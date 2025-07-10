@@ -1,0 +1,304 @@
+:root {
+  --color-background: #f2f2f2;
+  --color-surface: #ffffff;
+  --color-primary: #4a76a8;
+  --color-primary-dark: #3b5d88;
+  --color-text-default: #333333;
+  --color-text-muted: #666666;
+  --color-border: #e0e0e0;
+  --color-danger: #e74c3c;
+  --color-success: #2ecc71;
+  --color-warning: #f39c12;
+
+  --font-sans: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-size-base: 16px;
+
+  --sidebar-width: 350px;
+  --details-width: 350px;
+  --border-radius: 10px;
+  --gap: 1rem;
+
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --transition: 0.3s ease-in-out;
+
+  --z-index-sidebar: 100;
+  --z-index-details: 90;
+  --z-index-toggle: 1000;
+  --z-index-notification: 2000;
+  --z-index-error-banner: 3000;
+}
+
+/* ======================= RESET E BASE ============================ */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  font-size: var(--font-size-base);
+  font-family: var(--font-sans);
+  background: var(--color-background);
+  color: var(--color-text-default);
+  overflow: auto;
+}
+
+/* ======================= LAYOUT PRINCIPAL ========================= */
+.app-layout {
+  height: 100vh;
+  padding: var(--gap);
+  background-color: var(--color-background);
+  box-sizing: border-box;
+}
+
+.section-wrapper {
+  height: 100%;
+  width: 100%;
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr var(--details-width);
+  gap: var(--gap);
+  padding: var(--gap);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* ======================= PAINÉIS ========================= */
+
+.sidebar,
+.chat-container,
+.details-panel {
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ======================= SIDEBAR ========================= */
+.sidebar {
+  width: var(--sidebar-width);
+  border-right: 1px solid var(--color-border);
+  z-index: var(--z-index-sidebar);
+  transition: var(--transition);
+  overflow-y: auto;
+}
+
+/* ======================= CHAT ========================= */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-header {
+  padding: 1rem;
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  scroll-behavior: smooth;
+}
+
+.chat-input-container {
+  padding: 1rem;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  position: sticky;
+  bottom: 0;
+}
+
+.chat-list {
+  padding: 12px 8px; /* leve respiro nas laterais */
+  list-style: none;
+  margin: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.chat-list-item {
+  width: 100%;
+  background: var(--item-bg);
+  padding: 12px 16px;
+  border: 1px solid var(--item-border);
+  border-radius: 0.625rem;
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-light);
+}
+
+.chat-list-item:hover {
+  background-color: var(--item-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-medium);
+  z-index: 1;
+}
+
+.chat-list-item.active {
+  background: var(--item-bg-active);
+  border-color: var(--item-border-active);
+  box-shadow: var(--highlight);
+}
+
+
+.chat-list-item:first-child {
+  margin-top: 12px;
+}
+
+
+
+/* ======================= DETAILS ========================= */
+.details-panel {
+  width: var(--details-width);
+  border-left: 1px solid var(--color-border);
+  z-index: var(--z-index-details);
+  overflow-y: auto;
+  transition: var(--transition);
+}
+
+/* ======================= ERROR BANNER ========================= */
+.socket-error-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--color-danger);
+  color: white;
+  padding: 12px;
+  text-align: center;
+  z-index: var(--z-index-error-banner);
+  animation: slideDown 0.5s ease-out;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.socket-error-banner button {
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+/* ======================= RESPONSIVO ========================= */
+@media (max-width: 1200px) {
+  .app-container {
+    grid-template-columns: var(--sidebar-width) 1fr;
+  }
+
+  .details-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 80vw;
+    transform: translateX(-100%);
+    z-index: var(--z-index-sidebar);
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .mobile-toggle.sidebar-toggle {
+    display: block;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --sidebar-width: 90vw;
+    --details-width: 90vw;
+  }
+
+  .chat-header,
+  .sidebar-header,
+  .details-header {
+    padding: 0.75rem;
+  }
+
+  .chat-messages {
+    padding: 0.75rem;
+  }
+}
+
+/* ======================= UTILITÁRIOS ========================= */
+.hidden {
+  display: none !important;
+}
+
+.rounded {
+  border-radius: var(--border-radius);
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+  box-shadow: var(--box-shadow);
+}
+
+.transition {
+  transition: var(--transition);
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Scroll personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+

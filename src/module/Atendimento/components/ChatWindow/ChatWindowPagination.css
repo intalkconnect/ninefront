@@ -1,0 +1,22 @@
+/* Apenas estilos para a paginação - não afeta layout existente */
+
+.pagination-loader {
+  text-align: center;
+  padding: 12px;
+  color: #666;
+  font-size: 14px;
+  background-color: rgba(245, 245, 245, 0.9);
+  border-radius: 8px;
+  margin: 8px;
+  position: sticky;
+  top: 8px;
+  z-index: 1;
+}
+
+/* Dark mode para o loader */
+@media (prefers-color-scheme: dark) {
+  .pagination-loader {
+    color: #aaa;
+    background-color: rgba(45, 45, 45, 0.9);
+  }
+}

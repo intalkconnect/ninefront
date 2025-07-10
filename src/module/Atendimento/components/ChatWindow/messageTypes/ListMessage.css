@@ -1,0 +1,52 @@
+/* ListMessage.css */
+.list-container {
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: var(--border-radius);
+}
+.list-container h4 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  color: var(--color-text-default);
+}
+.list-body-text {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+.list-section {
+  margin-bottom: 12px;
+}
+.list-section-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--color-text-default);
+  margin-bottom: 4px;
+}
+.list-row {
+  padding: 6px;
+  margin-top: 4px;
+  background-color: #ffffff;
+  border: 1px solid #cccccc;
+  border-radius: 5px;
+}
+.list-row-title {
+  font-size: 0.95rem;
+  color: var(--color-text-default);
+}
+.list-row-description {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.list-footer {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.list-preview {
+  font-size: 0.85rem;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
