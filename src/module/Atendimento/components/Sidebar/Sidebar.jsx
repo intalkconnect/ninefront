@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { apiGet, apiPut } from '../../services/apiClient';
 import { File, Mic, User, Circle } from 'lucide-react';
 import useConversationsStore from '../../store/useConversationsStore';
+import LogoutButton from '../../../components/LogoutButton';
+
 import './Sidebar.css';
 
 const stringToColor = (str) => {
@@ -239,14 +241,16 @@ useEffect(() => {
       </select>
     </div>
 
-    <button className="profile-button" onClick={() => alert('Abrir tela de perfil')}>
-      <User size={18} strokeWidth={1.75} />
-      <span>Perfil</span>
-    </button>
+    <div className="profile-actions">
+      <button className="profile-button" onClick={() => alert('Abrir tela de perfil')}>
+        <User size={18} strokeWidth={1.75} />
+        <span>Perfil</span>
+      </button>
+
+      <LogoutButton />
+    </div>
   </div>
 </div>
 
-
-    </div>
   );
 }
