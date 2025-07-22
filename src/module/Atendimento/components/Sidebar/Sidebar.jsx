@@ -1,10 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { apiGet, apiPut } from '../../services/apiClient';
-import { File, Mic, User, Circle } from 'lucide-react';
-import useConversationsStore from '../../store/useConversationsStore';
-import LogoutButton from '../../../components/LogoutButton';
-
-import './Sidebar.css';
+import React, { useEffect, useState } from "react";
+import { apiGet, apiPut } from "../../services/apiClient";
+import { File, Mic, User, Circle } from "lucide-react";
+import useConversationsStore from "../../store/useConversationsStore";
+import "./Sidebar.css";
 
 const stringToColor = (str) => {
   let hash = 0;
@@ -15,48 +13,50 @@ const stringToColor = (str) => {
 };
 
 export default function Sidebar() {
-const conversations = useConversationsStore(state => state.conversations);
-const unreadCounts = useConversationsStore(state => state.unreadCounts);
-const userEmail = useConversationsStore(state => state.userEmail);
-const userFilas = useConversationsStore(state => state.userFilas);
-const selectedUserId = useConversationsStore(state => state.selectedUserId);
-const setSelectedUserId = useConversationsStore(state => state.setSelectedUserId);
-const mergeConversation = useConversationsStore(state => state.mergeConversation);
-const setSettings = useConversationsStore(state => state.setSettings);
+  const conversations = useConversationsStore((state) => state.conversations);
+  const unreadCounts = useConversationsStore((state) => state.unreadCounts);
+  const userEmail = useConversationsStore((state) => state.userEmail);
+  const userFilas = useConversationsStore((state) => state.userFilas);
+  const selectedUserId = useConversationsStore((state) => state.selectedUserId);
+  const setSelectedUserId = useConversationsStore(
+    (state) => state.setSelectedUserId
+  );
+  const mergeConversation = useConversationsStore(
+    (state) => state.mergeConversation
+  );
+  const setSettings = useConversationsStore((state) => state.setSettings);
 
-
-  const [distribuicaoTickets, setDistribuicaoTickets] = useState('manual');
+  const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [status, setStatus] = useState('online'); // 'online' | 'offline' | 'pausado'
+  const [searchTerm, setSearchTerm] = useState("");
+  const [status, setStatus] = useState("online"); // 'online' | 'offline' | 'pausado'
 
   const fetchSettingsAndFila = async () => {
     try {
-      const settings = await apiGet('/settings');
-      const distrib = settings.find((s) => s.key === 'distribuicao_tickets');
+      const settings = await apiGet("/settings");
+      const distrib = settings.find((s) => s.key === "distribuicao_tickets");
       if (distrib?.value) setDistribuicaoTickets(distrib.value);
       setSettings(settings);
 
       if (!userFilas || userFilas.length === 0) return;
 
-      const params = new URLSearchParams({ filas: userFilas.join(',') });
+      const params = new URLSearchParams({ filas: userFilas.join(",") });
       const data = await apiGet(`/chats/fila?${params.toString()}`);
       setFilaCount(data.length);
     } catch (err) {
-      console.error('Erro ao buscar configurações/fila:', err);
+      console.error("Erro ao buscar configurações/fila:", err);
     }
   };
 
-useEffect(() => {
-  if (userEmail && userFilas && userFilas.length > 0) {
-    fetchSettingsAndFila();
-  }
-}, [userEmail, userFilas]);
-
+  useEffect(() => {
+    if (userEmail && userFilas && userFilas.length > 0) {
+      fetchSettingsAndFila();
+    }
+  }, [userEmail, userFilas]);
 
   const puxarProximoTicket = async () => {
     try {
-      const res = await apiPut('/chats/fila/proximo', {
+      const res = await apiPut("/chats/fila/proximo", {
         email: userEmail,
         filas: userFilas,
       });
@@ -67,41 +67,58 @@ useEffect(() => {
         mergeConversation(res.user_id, res);
         setSelectedUserId(res.user_id);
       } else {
-        alert('Nenhum cliente disponível na fila');
+        alert("Nenhum cliente disponível na fila");
       }
     } catch (err) {
-      console.error('Erro ao puxar próximo cliente:', err);
-      alert('Erro ao puxar próximo cliente');
+      console.error("Erro ao puxar próximo cliente:", err);
+      alert("Erro ao puxar próximo cliente");
     }
   };
 
   const getSnippet = (rawContent) => {
-    if (!rawContent) return '';
-    if (typeof rawContent === 'string' && /^\d+$/.test(rawContent)) return rawContent;
+    if (!rawContent) return "";
+    if (typeof rawContent === "string" && /^\d+$/.test(rawContent))
+      return rawContent;
 
     if (
-      typeof rawContent === 'string' &&
-      (rawContent.trim().startsWith('{') || rawContent.trim().startsWith('['))
+      typeof rawContent === "string" &&
+      (rawContent.trim().startsWith("{") || rawContent.trim().startsWith("["))
     ) {
       try {
         const parsed = JSON.parse(rawContent);
         if (parsed.url) {
           const url = parsed.url.toLowerCase();
-          if (url.match(/\.(ogg|mp3|wav)$/)) return <span className="chat-icon-snippet"><Mic size={18} /> Áudio</span>;
-          if (url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/)) return <span className="chat-icon-snippet"><File size={18} /> Imagem</span>;
-          return <span className="chat-icon-snippet"><File size={18} /> Arquivo</span>;
+          if (url.match(/\.(ogg|mp3|wav)$/))
+            return (
+              <span className="chat-icon-snippet">
+                <Mic size={18} /> Áudio
+              </span>
+            );
+          if (url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/))
+            return (
+              <span className="chat-icon-snippet">
+                <File size={18} /> Imagem
+              </span>
+            );
+          return (
+            <span className="chat-icon-snippet">
+              <File size={18} /> Arquivo
+            </span>
+          );
         }
-        return parsed.text || parsed.caption || '';
+        return parsed.text || parsed.caption || "";
       } catch {}
     }
 
     const contentStr = String(rawContent);
-    return contentStr.length > 40 ? contentStr.slice(0, 37) + '...' : contentStr;
+    return contentStr.length > 40
+      ? contentStr.slice(0, 37) + "..."
+      : contentStr;
   };
 
   const filteredConversations = Object.values(conversations).filter((conv) => {
     const autorizado =
-      conv.status === 'open' &&
+      conv.status === "open" &&
       conv.assigned_to === userEmail &&
       userFilas.includes(conv.fila);
 
@@ -130,12 +147,12 @@ useEffect(() => {
       </div>
 
       <div className="fila-info">
-        {distribuicaoTickets === 'manual' ? (
+        {distribuicaoTickets === "manual" ? (
           <>
             <span className="fila-count">
               {filaCount > 0
-                ? `${filaCount} cliente${filaCount > 1 ? 's' : ''} aguardando`
-                : 'Não há clientes aguardando'}
+                ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
+                : "Não há clientes aguardando"}
             </span>
             <button
               className="botao-proximo"
@@ -146,7 +163,7 @@ useEffect(() => {
             </button>
           </>
         ) : (
-          'Distribuição: Automática'
+          "Distribuição: Automática"
         )}
       </div>
 
@@ -156,12 +173,12 @@ useEffect(() => {
           const isSelected = fullId === selectedUserId;
           const unreadCount = unreadCounts[fullId] || 0;
           const showUnread = !isSelected && unreadCount > 0;
-          const canalWhatsapp = conv.channel === 'whatsapp';
+          const canalWhatsapp = conv.channel === "whatsapp";
 
           return (
             <li
               key={fullId}
-              className={`chat-list-item ${isSelected ? 'active' : ''}`}
+              className={`chat-list-item ${isSelected ? "active" : ""}`}
               onClick={() => setSelectedUserId(fullId)}
               role="button"
               tabIndex={0}
@@ -169,9 +186,11 @@ useEffect(() => {
               <div className="chat-avatar-initial">
                 <div
                   className="avatar-circle"
-                  style={{ backgroundColor: stringToColor(conv.name || conv.user_id) }}
+                  style={{
+                    backgroundColor: stringToColor(conv.name || conv.user_id),
+                  }}
                 >
-                  {conv.name?.charAt(0).toUpperCase() || 'U'}
+                  {conv.name?.charAt(0).toUpperCase() || "U"}
                 </div>
                 {canalWhatsapp && (
                   <img
@@ -190,10 +209,13 @@ useEffect(() => {
 
                 <div className="chat-meta">
                   <span className="chat-ticket">
-                    #{conv.ticket_number || '000000'}
+                    #{conv.ticket_number || "000000"}
                   </span>
-                  <span className="chat-queue-badge" style={{ backgroundColor: conv.fila_color}}>
-                    {conv.fila || 'Orçamento'}
+                  <span
+                    className="chat-queue-badge"
+                    style={{ backgroundColor: conv.fila_color }}
+                  >
+                    {conv.fila || "Orçamento"}
                   </span>
                 </div>
 
@@ -203,10 +225,10 @@ useEffect(() => {
               <div className="chat-time">
                 {conv.timestamp
                   ? new Date(conv.timestamp).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })
-                  : '--:--'}
+                  : "--:--"}
               </div>
             </li>
           );
@@ -252,5 +274,6 @@ useEffect(() => {
   </div>
 </div>
 
+    </div>
   );
 }
