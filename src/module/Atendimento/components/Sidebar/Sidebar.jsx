@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
 import { File, Mic, User, Circle } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
+import LogoutButton from '../../components/LogoutButton';
+
 import "./Sidebar.css";
 
 const stringToColor = (str) => {
