@@ -3,7 +3,7 @@ import React from 'react';
 export default function LogoutButton() {
   const handleLogout = () => {
     localStorage.removeItem('token');
-    window.location.href = import.meta.env.VITE_API_BASE_URL || '/';
+    window.location.href = import.meta.env.VIT_APP_LOGIN_URL || '/';
   };
 
   return (
