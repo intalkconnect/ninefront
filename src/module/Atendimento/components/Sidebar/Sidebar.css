@@ -366,6 +366,26 @@
   color: var(--whatsapp-dark-green);
 }
 
+.profile-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.logout-button {
+  background: none;
+  border: none;
+  color: #d9534f;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.logout-button:hover {
+  color: #c9302c;
+}
+
 
 
 /* ===================================================================
