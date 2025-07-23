@@ -1,9 +1,13 @@
+import { useEffect } from 'react';
+
 import { Home, Bot, Users, Settings } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
 import UsersPage from './users/Users';
 import styles from './styles/Admin.module.css'; // Verifique se o caminho está correto
+
+document.title = 'HubHMG - Gestão';
 
 export default function Admin() {
   return (
