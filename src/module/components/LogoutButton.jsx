@@ -3,7 +3,7 @@ import React from 'react';
 export default function LogoutButton() {
   const handleLogout = () => {
     localStorage.removeItem('token');
-    window.location.href = import.meta.env.VITE_APP_LOGIN_URL;
+    window.location.href = process.env.VITE_APP_LOGIN_URL;
     
   };
 
