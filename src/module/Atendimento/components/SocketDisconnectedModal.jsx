@@ -12,7 +12,7 @@ export default function SocketDisconnectedModal() {
 const updateStatus = async (sessionId, status, attempt = 0) => {
   if (!sessionId || sessionId === 'undefined') {
     if (attempt < 3) {
-      return setTimeout(() => updateStatus(getSocket()?.id, status, attempt + 1), 1000);
+      return setTimeout(() => updateStatus(getSocket()?.id, status, attempt + 1), 5000);
     } else {
       console.warn('Socket ID inválido mesmo após tentativas. Status não atualizado.');
       return;
