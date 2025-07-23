@@ -12,9 +12,13 @@ export default function LogoutButton() {
 
   return (
     <>
-      <button onClick={() => setShowConfirm(true)} style={{ marginLeft: 'auto' }}>
-        Sair
-      </button>
+<button
+  onClick={() => setShowConfirm(true)}
+  className="admin-menu-item logout-button"
+>
+  Sair
+</button>
+
 
       {showConfirm && (
         <div className="modal-overlay">
