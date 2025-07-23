@@ -9,12 +9,14 @@ export default function SocketDisconnectedModal() {
   const setSocketStatus = useConversationsStore(s => s.setSocketStatus);
 
   // Atualiza status do atendente pelo sessionId em vez do email
-const updateStatus = async (sessionId, status, attempt = 0) => {
-  if (!sessionId || sessionId === 'undefined') {
-    if (attempt < 3) {
-      return setTimeout(() => updateStatus(getSocket()?.id, status, attempt + 1), 5000);
+const waitForSessionAndUpdate = async (sessionId, status, attempt = 0) => {
+  const isReady = window.sessionStorage.getItem("sessionReady") === "true";
+
+  if (!sessionId || sessionId === "undefined" || !isReady) {
+    if (attempt < 5) {
+      return setTimeout(() => waitForSessionAndUpdate(getSocket()?.id, status, attempt + 1), 1000);
     } else {
-      console.warn('Socket ID inválido mesmo após tentativas. Status não atualizado.');
+      console.warn("Socket ID ou sessão inválida mesmo após tentativas.");
       return;
     }
   }
@@ -23,9 +25,10 @@ const updateStatus = async (sessionId, status, attempt = 0) => {
     await apiPut(`/atendentes/status/${sessionId}`, { status });
     console.log(`[status] sessão ${sessionId} → ${status}`);
   } catch (err) {
-    console.error('Erro ao atualizar status do atendente:', err);
+    console.error("Erro ao atualizar status do atendente:", err);
   }
 };
+
 
 
   useEffect(() => {
@@ -34,12 +37,12 @@ const updateStatus = async (sessionId, status, attempt = 0) => {
 
     const handleConnect = () => {
       setSocketStatus('online');
-      updateStatus(socket.id, 'online');
+      waitForSessionAndUpdate(getSocket()?.id, "online");
     };
 
     const handleDisconnect = () => {
       setSocketStatus('offline');
-      updateStatus(socket.id, 'offline');
+      waitForSessionAndUpdate(getSocket()?.id, "offline");
     };
 
     socket.on('connect', handleConnect);
@@ -49,7 +52,7 @@ const updateStatus = async (sessionId, status, attempt = 0) => {
     const timeout = setTimeout(() => {
       if (!socket.connected) {
         setSocketStatus('offline');
-        updateStatus(socket.id, 'offline');
+        waitForSessionAndUpdate(getSocket()?.id, "offline");
       }
     }, 3000);
 
