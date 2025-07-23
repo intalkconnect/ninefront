@@ -5,7 +5,7 @@ import Dashboard from './dashboard/Dashboard';
 import UsersPage from './users/Users';
 import styles from './styles/Admin.module.css';
 
-import LogoutButton from '../../components/LogoutButton';
+import LogoutButton from '../components/LogoutButton';
 
 document.title = 'HubHMG - Gestão';
 
