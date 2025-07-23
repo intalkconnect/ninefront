@@ -9,27 +9,17 @@ export default function SocketDisconnectedModal() {
   const setSocketStatus = useConversationsStore(s => s.setSocketStatus);
 
   // Atualiza status do atendente pelo sessionId em vez do email
-const waitForSessionAndUpdate = async (sessionId, status, attempt = 0) => {
-  const isReady = window.sessionStorage.getItem("sessionReady") === "true";
-
-  if (!sessionId || sessionId === "undefined" || !isReady) {
-    if (attempt < 5) {
-      return setTimeout(() => waitForSessionAndUpdate(getSocket()?.id, status, attempt + 1), 3000);
-    } else {
-      console.warn("Socket ID ou sessão inválida mesmo após tentativas.");
-      return;
+const waitForSessionAndUpdate = (sessionId, status) => {
+  const interval = setInterval(() => {
+    const isReady = window.sessionStorage.getItem("sessionReady") === "true";
+    if (isReady && sessionId) {
+      clearInterval(interval);
+      apiPut(`/atendentes/status/${sessionId}`, { status })
+        .then(() => console.log(`[status] sessão ${sessionId} → ${status}`))
+        .catch((err) => console.error("Erro ao atualizar status:", err));
     }
-  }
-
-  try {
-    await apiPut(`/atendentes/status/${sessionId}`, { status });
-    console.log(`[status] sessão ${sessionId} → ${status}`);
-  } catch (err) {
-    console.error("Erro ao atualizar status do atendente:", err);
-  }
+  }, 300); // Checa a cada 300ms
 };
-
-
 
   useEffect(() => {
     const socket = getSocket();
