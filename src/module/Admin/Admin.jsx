@@ -1,26 +1,30 @@
-import { useEffect } from 'react';
-
 import { Home, Bot, Users, Settings } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
 import UsersPage from './users/Users';
-import styles from './styles/Admin.module.css'; // Verifique se o caminho está correto
+import styles from './styles/Admin.module.css';
+
+import LogoutButton from '../../../components/LogoutButton';
 
 document.title = 'HubHMG - Gestão';
 
 export default function Admin() {
   return (
-    <div className={styles['admin-wrapper']}> {/* Correção aqui */}
+    <div className={styles['admin-wrapper']}>
       <header className={styles['admin-header']}>
         <h2 className={styles['admin-logo']}>Painel Admin</h2>
 
-        <nav className={styles['admin-nav']}>
-          <MenuItem to="" label="Início" icon={<Home size={18} />} />
-          <MenuItem to="chatbot" label="Chatbot" icon={<Bot size={18} />} />
-          <MenuItem to="users" label="Usuários" icon={<Users size={18} />} />
-          <MenuItem to="configuracoes" label="Configurações" icon={<Settings size={18} />} />
-        </nav>
+        <div className={styles['admin-header-right']}>
+          <nav className={styles['admin-nav']}>
+            <MenuItem to="" label="Início" icon={<Home size={18} />} />
+            <MenuItem to="chatbot" label="Chatbot" icon={<Bot size={18} />} />
+            <MenuItem to="users" label="Usuários" icon={<Users size={18} />} />
+            <MenuItem to="configuracoes" label="Configurações" icon={<Settings size={18} />} />
+          </nav>
+
+          <LogoutButton />
+        </div>
       </header>
 
       <main className={styles['admin-main']}>
@@ -36,12 +40,11 @@ export default function Admin() {
   );
 }
 
-// Componente MenuItem corrigido
 const MenuItem = ({ to, label, icon }) => (
   <NavLink
     to={to}
     end={to === ''}
-    className={({ isActive }) => 
+    className={({ isActive }) =>
       `${styles['admin-menu-item']} ${isActive ? styles.active : ''}`
     }
   >
