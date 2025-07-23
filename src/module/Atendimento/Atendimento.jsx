@@ -35,6 +35,7 @@ export default function Atendimento() {
   const [isWindowActive, setIsWindowActive] = useState(true);
 
   useEffect(() => {
+    document.title = "HubHMG - Atendimento";
     const token = localStorage.getItem("token");
 
     if (!token) return;
