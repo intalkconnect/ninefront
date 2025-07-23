@@ -8,8 +8,7 @@ import SocketDisconnectedModal from "./components/SocketDisconnectedModal";
 import useConversationsStore from "./store/useConversationsStore";
 import notificationSound from "./assets/notification.mp3";
 import "./Atendimento.css";
-import { parseJwt } from '../../utils/auth';
-
+import { parseJwt } from "../../utils/auth";
 
 export default function Atendimento() {
   const audioPlayer = useRef(null);
@@ -166,9 +165,13 @@ export default function Atendimento() {
             await apiPut(`/atendentes/session/${userEmail}`, {
               session: sessionId,
             });
+
+            // ✅ Sinalizar que está pronto para SocketDisconnectedModal
+            window.sessionStorage.setItem("sessionReady", "true");
           } catch (err) {
             console.error("Erro ao informar sessão ao servidor:", err);
           }
+
           socket.emit("identify", { email: userEmail, rooms: userFilas });
         });
 
