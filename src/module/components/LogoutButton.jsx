@@ -1,16 +1,32 @@
-import React from 'react';
-console.log('🔍 VITE_APP_LOGIN_URL:', import.meta.env.VITE_APP_LOGIN_URL);
+import React, { useState } from 'react';
+import './LogoutModal.css'; // Vamos criar isso
 
 export default function LogoutButton() {
-  const handleLogout = () => {
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const confirmLogout = () => {
     localStorage.removeItem('token');
-    window.location.href = import.meta.env.VITE_APP_LOGIN_URL;
-    
+    const loginUrl = import.meta.env.VITE_APP_LOGIN_URL;
+    window.location.href = loginUrl || '/';
   };
 
   return (
-    <button onClick={handleLogout} style={{ marginLeft: 'auto' }}>
-      Sair
-    </button>
+    <>
+      <button onClick={() => setShowConfirm(true)} style={{ marginLeft: 'auto' }}>
+        Sair
+      </button>
+
+      {showConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Deseja realmente sair?</h3>
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setShowConfirm(false)}>Cancelar</button>
+              <button className="confirm-btn" onClick={confirmLogout}>Sair</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
