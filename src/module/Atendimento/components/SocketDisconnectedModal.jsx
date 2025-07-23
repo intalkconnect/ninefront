@@ -14,7 +14,7 @@ const waitForSessionAndUpdate = async (sessionId, status, attempt = 0) => {
 
   if (!sessionId || sessionId === "undefined" || !isReady) {
     if (attempt < 5) {
-      return setTimeout(() => waitForSessionAndUpdate(getSocket()?.id, status, attempt + 1), 5000);
+      return setTimeout(() => waitForSessionAndUpdate(getSocket()?.id, status, attempt + 1), 3000);
     } else {
       console.warn("Socket ID ou sessão inválida mesmo após tentativas.");
       return;
