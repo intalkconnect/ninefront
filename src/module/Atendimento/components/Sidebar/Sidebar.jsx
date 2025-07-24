@@ -286,7 +286,7 @@ export default function Sidebar() {
                     className="chat-queue-badge"
                     style={{ backgroundColor: conv.fila_color }}
                   >
-                    {conv.fila || "Orçamento"}
+                    {conv.fila}
                   </span>
                 </div>
 
