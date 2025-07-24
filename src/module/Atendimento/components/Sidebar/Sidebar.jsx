@@ -160,62 +160,55 @@ export default function Sidebar() {
         />
       </div>
 
-      <div
-        className="user-profile-header"
-        onClick={() => setDropdownOpen(!dropdownOpen)}
-      >
-        <div className="avatar-circle">
-          {userName?.charAt(0)?.toUpperCase() || "U"}
-        </div>
-        <span className="username">{userName}</span>
-        <span className="dropdown-arrow">▼</span>
-      </div>
+      <div className="user-profile-header" onClick={() => setDropdownOpen((prev) => !prev)}>
+  <div className="avatar-circle">{userName?.charAt(0)?.toUpperCase() || "U"}</div>
+  <span className="username">{userName}</span>
+  <span className="dropdown-arrow">▼</span>
+</div>
 
-      {dropdownOpen && (
-        <div className="user-dropdown-menu">
-          <div className="user-status">
-            <span className="status-label">Status:</span>
-            <Circle
-              size={10}
-              color={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausado"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
-              fill={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausado"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
-            />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="status-select"
-            >
-              <option value="online">Online</option>
-              <option value="pausado">Pausa</option>
-              <option value="offline">Offline</option>
-            </select>
-          </div>
-          <button
-            className="dropdown-item"
-            onClick={() => alert("Abrir perfil")}
-          >
-            <User size={16} /> Meu Perfil
-          </button>
-          <button className="dropdown-item">
-            <Settings size={16} /> Configurações
-          </button>
-          <button className="dropdown-item">
-            <LogOut size={16} /> Sair
-          </button>
-        </div>
-      )}
+{dropdownOpen && (
+  <div className="user-dropdown-menu">
+    <div className="user-status">
+      <span className="status-label">Status:</span>
+      <Circle
+        size={10}
+        color={
+          status === "online"
+            ? "#25D366"
+            : status === "pausado"
+            ? "#f0ad4e"
+            : "#d9534f"
+        }
+        fill={
+          status === "online"
+            ? "#25D366"
+            : status === "pausado"
+            ? "#f0ad4e"
+            : "#d9534f"
+        }
+      />
+      <select
+        value={status}
+        onChange={(e) => setStatus(e.target.value)}
+        className="status-select"
+      >
+        <option value="online">Online</option>
+        <option value="pausado">Pausa</option>
+        <option value="offline">Offline</option>
+      </select>
+    </div>
+    <button className="dropdown-item" onClick={() => alert("Abrir perfil")}>
+      <User size={16} /> Meu Perfil
+    </button>
+    <button className="dropdown-item">
+      <Settings size={16} /> Configurações
+    </button>
+    <button className="dropdown-item">
+      <LogOut size={16} /> Sair
+    </button>
+  </div>
+)}
+
 
       <div className="fila-info">
         {distribuicaoTickets === "manual" ? (
