@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
-import { File, Mic, User, Circle, LogOut, Settings } from "lucide-react";
+import { File, Mic, User, Circle } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
-import LogoutButton from "../../../components/LogoutButton";
+import LogoutButton from '../../../components/LogoutButton';
 
 import "./Sidebar.css";
 
@@ -31,18 +31,7 @@ export default function Sidebar() {
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("online");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [userName, setUserName] = useState("Usuário");
-
-  const fetchUserProfile = async () => {
-    try {
-      const profile = await apiGet("/auth/profile");
-      if (profile?.name) setUserName(profile.name);
-    } catch (err) {
-      console.error("Erro ao buscar perfil do usuário:", err);
-    }
-  };
+  const [status, setStatus] = useState("online"); // 'online' | 'offline' | 'pausado'
 
   const fetchSettingsAndFila = async () => {
     try {
@@ -65,7 +54,6 @@ export default function Sidebar() {
     if (userEmail && userFilas && userFilas.length > 0) {
       fetchSettingsAndFila();
     }
-    fetchUserProfile();
   }, [userEmail, userFilas]);
 
   const puxarProximoTicket = async () => {
@@ -75,7 +63,7 @@ export default function Sidebar() {
         filas: userFilas,
       });
 
-      await fetchSettingsAndFila();
+      await fetchSettingsAndFila(); // Atualiza contagem da fila
 
       if (res && res.user_id) {
         mergeConversation(res.user_id, res);
@@ -160,56 +148,6 @@ export default function Sidebar() {
         />
       </div>
 
-      <div className="user-profile-header" onClick={() => setDropdownOpen((prev) => !prev)}>
-  <div className="avatar-circle">{userName?.charAt(0)?.toUpperCase() || "U"}</div>
-  <span className="username">{userName}</span>
-  <span className="dropdown-arrow">▼</span>
-</div>
-
-{dropdownOpen && (
-  <div className="user-dropdown-menu">
-    <div className="user-status">
-      <span className="status-label">Status:</span>
-      <Circle
-        size={10}
-        color={
-          status === "online"
-            ? "#25D366"
-            : status === "pausado"
-            ? "#f0ad4e"
-            : "#d9534f"
-        }
-        fill={
-          status === "online"
-            ? "#25D366"
-            : status === "pausado"
-            ? "#f0ad4e"
-            : "#d9534f"
-        }
-      />
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        className="status-select"
-      >
-        <option value="online">Online</option>
-        <option value="pausado">Pausa</option>
-        <option value="offline">Offline</option>
-      </select>
-    </div>
-    <button className="dropdown-item" onClick={() => alert("Abrir perfil")}>
-      <User size={16} /> Meu Perfil
-    </button>
-    <button className="dropdown-item">
-      <Settings size={16} /> Configurações
-    </button>
-    <button className="dropdown-item">
-      <LogOut size={16} /> Sair
-    </button>
-  </div>
-)}
-
-
       <div className="fila-info">
         {distribuicaoTickets === "manual" ? (
           <>
@@ -279,7 +217,7 @@ export default function Sidebar() {
                     className="chat-queue-badge"
                     style={{ backgroundColor: conv.fila_color }}
                   >
-                    {conv.fila}
+                    {conv.fila || "Orçamento"}
                   </span>
                 </div>
 
@@ -298,6 +236,46 @@ export default function Sidebar() {
           );
         })}
       </ul>
+
+<div className="sidebar-user-footer">
+  <div className="user-footer-content">
+    <div className="user-status">
+      <span className="status-label">Status:</span>
+      <Circle
+        size={10}
+        color={
+          status === 'online' ? '#25D366' :
+          status === 'pausa' ? '#f0ad4e' :
+          '#d9534f'
+        }
+        fill={
+          status === 'online' ? '#25D366' :
+          status === 'pausa' ? '#f0ad4e' :
+          '#d9534f'
+        }
+      />
+      <select
+        value={status}
+        onChange={(e) => setStatus(e.target.value)}
+        className="status-select"
+      >
+        <option value="online">Online</option>
+        <option value="pausado">Pausa</option>
+        <option value="offline">Offline</option>
+      </select>
+    </div>
+
+    <div className="profile-actions">
+      <button className="profile-button" onClick={() => alert('Abrir tela de perfil')}>
+        <User size={18} strokeWidth={1.75} />
+        <span>Perfil</span>
+      </button>
+
+      <LogoutButton />
+    </div>
+  </div>
+</div>
+
     </div>
   );
 }
