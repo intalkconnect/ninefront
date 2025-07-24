@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
 import { File, Mic, User, Circle, LogOut, Settings } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
-import LogoutButton from '../../../components/LogoutButton';
+import LogoutButton from "../../../components/LogoutButton";
 
 import "./Sidebar.css";
 
@@ -20,8 +20,12 @@ export default function Sidebar() {
   const userEmail = useConversationsStore((state) => state.userEmail);
   const userFilas = useConversationsStore((state) => state.userFilas);
   const selectedUserId = useConversationsStore((state) => state.selectedUserId);
-  const setSelectedUserId = useConversationsStore((state) => state.setSelectedUserId);
-  const mergeConversation = useConversationsStore((state) => state.mergeConversation);
+  const setSelectedUserId = useConversationsStore(
+    (state) => state.setSelectedUserId
+  );
+  const mergeConversation = useConversationsStore(
+    (state) => state.mergeConversation
+  );
   const setSettings = useConversationsStore((state) => state.setSettings);
 
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
@@ -29,6 +33,16 @@ export default function Sidebar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState("online");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [userName, setUserName] = useState("Usuário");
+
+  const fetchUserProfile = async () => {
+    try {
+      const profile = await apiGet("/auth/profile");
+      if (profile?.name) setUserName(profile.name);
+    } catch (err) {
+      console.error("Erro ao buscar perfil do usuário:", err);
+    }
+  };
 
   const fetchSettingsAndFila = async () => {
     try {
@@ -51,6 +65,7 @@ export default function Sidebar() {
     if (userEmail && userFilas && userFilas.length > 0) {
       fetchSettingsAndFila();
     }
+    fetchUserProfile();
   }, [userEmail, userFilas]);
 
   const puxarProximoTicket = async () => {
@@ -145,9 +160,14 @@ export default function Sidebar() {
         />
       </div>
 
-      <div className="user-profile-header" onClick={() => setDropdownOpen(!dropdownOpen)}>
-        <div className="avatar-circle">J</div>
-        <span className="username">João</span>
+      <div
+        className="user-profile-header"
+        onClick={() => setDropdownOpen(!dropdownOpen)}
+      >
+        <div className="avatar-circle">
+          {userName?.charAt(0)?.toUpperCase() || "U"}
+        </div>
+        <span className="username">{userName}</span>
         <span className="dropdown-arrow">▼</span>
       </div>
 
@@ -158,14 +178,18 @@ export default function Sidebar() {
             <Circle
               size={10}
               color={
-                status === 'online' ? '#25D366' :
-                status === 'pausado' ? '#f0ad4e' :
-                '#d9534f'
+                status === "online"
+                  ? "#25D366"
+                  : status === "pausado"
+                  ? "#f0ad4e"
+                  : "#d9534f"
               }
               fill={
-                status === 'online' ? '#25D366' :
-                status === 'pausado' ? '#f0ad4e' :
-                '#d9534f'
+                status === "online"
+                  ? "#25D366"
+                  : status === "pausado"
+                  ? "#f0ad4e"
+                  : "#d9534f"
               }
             />
             <select
@@ -178,9 +202,18 @@ export default function Sidebar() {
               <option value="offline">Offline</option>
             </select>
           </div>
-          <button className="dropdown-item" onClick={() => alert('Abrir perfil')}><User size={16} /> Meu Perfil</button>
-          <button className="dropdown-item"><Settings size={16} /> Configurações</button>
-          <button className="dropdown-item"><LogOut size={16} /> Sair</button>
+          <button
+            className="dropdown-item"
+            onClick={() => alert("Abrir perfil")}
+          >
+            <User size={16} /> Meu Perfil
+          </button>
+          <button className="dropdown-item">
+            <Settings size={16} /> Configurações
+          </button>
+          <button className="dropdown-item">
+            <LogOut size={16} /> Sair
+          </button>
         </div>
       )}
 
@@ -205,7 +238,7 @@ export default function Sidebar() {
         )}
       </div>
 
-  <ul className="chat-list">
+      <ul className="chat-list">
         {filteredConversations.map((conv) => {
           const fullId = conv.user_id;
           const isSelected = fullId === selectedUserId;
@@ -272,7 +305,6 @@ export default function Sidebar() {
           );
         })}
       </ul>
-      
     </div>
   );
 }
