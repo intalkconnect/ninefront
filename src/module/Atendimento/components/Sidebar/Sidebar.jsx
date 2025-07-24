@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
-import { File, Mic, User, Circle } from "lucide-react";
+import { File, Mic, User, Circle, LogOut, Settings } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 
@@ -20,18 +20,15 @@ export default function Sidebar() {
   const userEmail = useConversationsStore((state) => state.userEmail);
   const userFilas = useConversationsStore((state) => state.userFilas);
   const selectedUserId = useConversationsStore((state) => state.selectedUserId);
-  const setSelectedUserId = useConversationsStore(
-    (state) => state.setSelectedUserId
-  );
-  const mergeConversation = useConversationsStore(
-    (state) => state.mergeConversation
-  );
+  const setSelectedUserId = useConversationsStore((state) => state.setSelectedUserId);
+  const mergeConversation = useConversationsStore((state) => state.mergeConversation);
   const setSettings = useConversationsStore((state) => state.setSettings);
 
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("online"); // 'online' | 'offline' | 'pausado'
+  const [status, setStatus] = useState("online");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const fetchSettingsAndFila = async () => {
     try {
@@ -63,7 +60,7 @@ export default function Sidebar() {
         filas: userFilas,
       });
 
-      await fetchSettingsAndFila(); // Atualiza contagem da fila
+      await fetchSettingsAndFila();
 
       if (res && res.user_id) {
         mergeConversation(res.user_id, res);
@@ -148,6 +145,45 @@ export default function Sidebar() {
         />
       </div>
 
+      <div className="user-profile-header" onClick={() => setDropdownOpen(!dropdownOpen)}>
+        <div className="avatar-circle">J</div>
+        <span className="username">João</span>
+        <span className="dropdown-arrow">▼</span>
+      </div>
+
+      {dropdownOpen && (
+        <div className="user-dropdown-menu">
+          <div className="user-status">
+            <span className="status-label">Status:</span>
+            <Circle
+              size={10}
+              color={
+                status === 'online' ? '#25D366' :
+                status === 'pausado' ? '#f0ad4e' :
+                '#d9534f'
+              }
+              fill={
+                status === 'online' ? '#25D366' :
+                status === 'pausado' ? '#f0ad4e' :
+                '#d9534f'
+              }
+            />
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="status-select"
+            >
+              <option value="online">Online</option>
+              <option value="pausado">Pausa</option>
+              <option value="offline">Offline</option>
+            </select>
+          </div>
+          <button className="dropdown-item" onClick={() => alert('Abrir perfil')}><User size={16} /> Meu Perfil</button>
+          <button className="dropdown-item"><Settings size={16} /> Configurações</button>
+          <button className="dropdown-item"><LogOut size={16} /> Sair</button>
+        </div>
+      )}
+
       <div className="fila-info">
         {distribuicaoTickets === "manual" ? (
           <>
@@ -169,7 +205,7 @@ export default function Sidebar() {
         )}
       </div>
 
-      <ul className="chat-list">
+  <ul className="chat-list">
         {filteredConversations.map((conv) => {
           const fullId = conv.user_id;
           const isSelected = fullId === selectedUserId;
@@ -236,46 +272,7 @@ export default function Sidebar() {
           );
         })}
       </ul>
-
-<div className="sidebar-user-footer">
-  <div className="user-footer-content">
-    <div className="user-status">
-      <span className="status-label">Status:</span>
-      <Circle
-        size={10}
-        color={
-          status === 'online' ? '#25D366' :
-          status === 'pausa' ? '#f0ad4e' :
-          '#d9534f'
-        }
-        fill={
-          status === 'online' ? '#25D366' :
-          status === 'pausa' ? '#f0ad4e' :
-          '#d9534f'
-        }
-      />
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        className="status-select"
-      >
-        <option value="online">Online</option>
-        <option value="pausado">Pausa</option>
-        <option value="offline">Offline</option>
-      </select>
-    </div>
-
-    <div className="profile-actions">
-      <button className="profile-button" onClick={() => alert('Abrir tela de perfil')}>
-        <User size={18} strokeWidth={1.75} />
-        <span>Perfil</span>
-      </button>
-
-      <LogoutButton />
-    </div>
-  </div>
-</div>
-
+      
     </div>
   );
 }
