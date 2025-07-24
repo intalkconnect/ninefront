@@ -111,6 +111,107 @@
   box-shadow: none;
 }
 
+/* Topo - Cabeçalho do perfil */
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+  position: relative;
+  z-index: 10;
+}
+
+.avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #25D366;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.username {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.dropdown-arrow {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Menu suspenso */
+.user-dropdown-menu {
+  position: absolute;
+  top: 65px;
+  left: 1rem;
+  right: 1rem;
+  background-color: white;
+  box-shadow: var(--shadow-medium);
+  border-radius: 8px;
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+}
+
+/* Itens do menu */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 1rem;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* Status inline dentro do dropdown */
+.user-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.status-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.status-select {
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.status-select:focus {
+  outline: none;
+}
+
+
 /* ===================================================================
   Componente: Chat List
 =================================================================== */
