@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 
 export default function NodeConfigPanel({
@@ -15,7 +15,7 @@ export default function NodeConfigPanel({
     basic: true,
     content: true,
     actions: true,
-    history: true,
+    history: true
   });
 
   useEffect(() => {
@@ -25,9 +25,7 @@ export default function NodeConfigPanel({
   const fetchLatestFlows = async () => {
     setLoadingHistory(true);
     try {
-      const res = await fetch(
-        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest"
-      );
+      const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest");
       const data = await res.json();
       setFlowHistory(data.slice(0, 10));
     } catch (err) {
@@ -39,14 +37,11 @@ export default function NodeConfigPanel({
 
   const handleRestore = async (id) => {
     try {
-      await fetch(
-        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
-        }
-      );
+      await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
       window.location.reload();
     } catch (err) {
       alert("Erro ao restaurar fluxo");
@@ -54,46 +49,45 @@ export default function NodeConfigPanel({
   };
 
   const toggleSection = (section) => {
-    setExpandedSections((prev) => ({
+    setExpandedSections(prev => ({
       ...prev,
-      [section]: !prev[section],
+      [section]: !prev[section]
     }));
   };
 
-  if (!selectedNode)
-    return (
-      <aside style={asideStyle}>
-        <div style={panelHeader}>
-          <h3 style={panelTitle}>Histórico de Fluxos</h3>
+  if (!selectedNode) return (
+    <aside style={asideStyle}>
+      <div style={panelHeader}>
+        <h3 style={panelTitle}>Histórico de Fluxos</h3>
+      </div>
+      
+      {loadingHistory ? (
+        <div style={loadingStyle}>
+          <div style={spinnerStyle}></div>
+          <span>Carregando...</span>
         </div>
-
-        {loadingHistory ? (
-          <div style={loadingStyle}>
-            <div style={spinnerStyle}></div>
-            <span>Carregando...</span>
-          </div>
-        ) : (
-          <div style={historyContainer}>
-            {flowHistory.map((flow) => (
-              <div key={flow.id} style={historyItem}>
-                <div style={historyItemHeader}>
-                  <span style={historyId}>{flow.id.slice(0, 8)}...</span>
-                  <span style={historyDate}>
-                    {new Date(flow.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleRestore(flow.id)}
-                  style={restoreButton}
-                >
-                  Restaurar Versão
-                </button>
+      ) : (
+        <div style={historyContainer}>
+          {flowHistory.map((flow) => (
+            <div key={flow.id} style={historyItem}>
+              <div style={historyItemHeader}>
+                <span style={historyId}>{flow.id.slice(0, 8)}...</span>
+                <span style={historyDate}>
+                  {new Date(flow.created_at).toLocaleString()}
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </aside>
-    );
+              <button 
+                onClick={() => handleRestore(flow.id)} 
+                style={restoreButton}
+              >
+                Restaurar Versão
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </aside>
+  );
 
   const { block } = selectedNode.data;
   const {
@@ -146,18 +140,17 @@ export default function NodeConfigPanel({
   const renderActionsTab = () => (
     <div style={tabContent}>
       <div style={sectionContainer}>
-        <div style={sectionHeader} onClick={() => toggleSection("actions")}>
+        <div 
+          style={sectionHeader}
+          onClick={() => toggleSection('actions')}
+        >
           <h4 style={sectionTitle}>
             Condições de Saída
             <span style={sectionCount}>({actions.length}/25)</span>
           </h4>
-          {expandedSections.actions ? (
-            <ChevronUp size={16} />
-          ) : (
-            <ChevronDown size={16} />
-          )}
+          {expandedSections.actions ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
-
+        
         {expandedSections.actions && (
           <div style={sectionContent}>
             {actions.map((action, actionIdx) => (
@@ -171,9 +164,7 @@ export default function NodeConfigPanel({
 
                 <div style={actionBox}>
                   <div style={actionHeader}>
-                    <strong style={actionTitle}>
-                      Condição {actionIdx + 1}
-                    </strong>
+                    <strong style={actionTitle}>Condição {actionIdx + 1}</strong>
                     <Trash2
                       size={16}
                       color="#ff6b6b"
@@ -191,24 +182,16 @@ export default function NodeConfigPanel({
                       <div style={inputGroup}>
                         <label style={inputLabel}>Variável</label>
                         <select
-                          value={
-                            cond.variable === "lastUserMessage"
-                              ? "lastUserMessage"
-                              : "custom"
-                          }
+                          value={cond.variable === "lastUserMessage" ? "lastUserMessage" : "custom"}
                           onChange={(e) => {
                             const updated = [...actions];
                             updated[actionIdx].conditions[condIdx].variable =
-                              e.target.value === "lastUserMessage"
-                                ? "lastUserMessage"
-                                : "";
+                              e.target.value === "lastUserMessage" ? "lastUserMessage" : "";
                             updateActions(updated);
                           }}
                           style={inputStyle}
                         >
-                          <option value="lastUserMessage">
-                            Resposta do usuário
-                          </option>
+                          <option value="lastUserMessage">Resposta do usuário</option>
                           <option value="custom">Variável personalizada</option>
                         </select>
                       </div>
@@ -222,8 +205,7 @@ export default function NodeConfigPanel({
                             value={cond.variable}
                             onChange={(e) => {
                               const updated = [...actions];
-                              updated[actionIdx].conditions[condIdx].variable =
-                                e.target.value;
+                              updated[actionIdx].conditions[condIdx].variable = e.target.value;
                               updateActions(updated);
                             }}
                             style={inputStyle}
@@ -237,8 +219,7 @@ export default function NodeConfigPanel({
                           value={cond.type}
                           onChange={(e) => {
                             const updated = [...actions];
-                            updated[actionIdx].conditions[condIdx].type =
-                              e.target.value;
+                            updated[actionIdx].conditions[condIdx].type = e.target.value;
                             updateActions(updated);
                           }}
                           style={inputStyle}
@@ -261,8 +242,7 @@ export default function NodeConfigPanel({
                             value={cond.value}
                             onChange={(e) => {
                               const updated = [...actions];
-                              updated[actionIdx].conditions[condIdx].value =
-                                e.target.value;
+                              updated[actionIdx].conditions[condIdx].value = e.target.value;
                               updateActions(updated);
                             }}
                             style={inputStyle}
@@ -288,10 +268,10 @@ export default function NodeConfigPanel({
                   <div style={buttonGroup}>
                     <button
                       onClick={() => {
-                        const newCondition = {
-                          variable: "lastUserMessage",
-                          type: "exists",
-                          value: "",
+                        const newCondition = { 
+                          variable: "lastUserMessage", 
+                          type: "exists", 
+                          value: "" 
                         };
                         const updated = [...actions];
                         if (!updated[actionIdx].conditions) {
@@ -345,11 +325,7 @@ export default function NodeConfigPanel({
                   const newAction = {
                     next: "",
                     conditions: [
-                      {
-                        variable: "lastUserMessage",
-                        type: "exists",
-                        value: "",
-                      },
+                      { variable: "lastUserMessage", type: "exists", value: "" },
                     ],
                   };
                   updateActions([...actions, newAction]);
@@ -364,15 +340,14 @@ export default function NodeConfigPanel({
       </div>
 
       <div style={sectionContainer}>
-        <div style={sectionHeader} onClick={() => toggleSection("default")}>
+        <div 
+          style={sectionHeader}
+          onClick={() => toggleSection('default')}
+        >
           <h4 style={sectionTitle}>Saída Padrão</h4>
-          {expandedSections.default ? (
-            <ChevronUp size={16} />
-          ) : (
-            <ChevronDown size={16} />
-          )}
+          {expandedSections.default ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
-
+        
         {expandedSections.default && (
           <div style={sectionContent}>
             <div style={inputGroup}>
@@ -980,8 +955,14 @@ export default function NodeConfigPanel({
   return (
     <aside style={asideStyle}>
       <div style={panelHeader}>
-        <h3 style={panelTitle}>{selectedNode.data.label || "Novo Bloco"}</h3>
-        <button onClick={() => onClose()} style={closeButton} title="Fechar">
+        <h3 style={panelTitle}>
+          {selectedNode.data.label || "Novo Bloco"}
+        </h3>
+        <button
+          onClick={() => onClose()}
+          style={closeButton}
+          title="Fechar"
+        >
           <X size={20} />
         </button>
       </div>
@@ -990,69 +971,41 @@ export default function NodeConfigPanel({
         <div style={sectionContainer}>
           <div style={inputGroup}>
             <label style={inputLabel}>Nome do Bloco</label>
-            {selectedNode.data.nodeType === "start" ? (
-              <div
-                style={{
-                  padding: "0.75rem",
-                  backgroundColor: "#2f2f2f",
-                  borderRadius: "6px",
-                  color: "#ccc",
-                }}
-              >
-                Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo,
-                com redirecionamento automatico para o próximo bloco
-                configurado.
-              </div>
-            ) : (
-              <input
-                type="text"
-                value={selectedNode.data.label}
-                onChange={(e) =>
-                  onChange({
-                    ...selectedNode,
-                    data: {
-                      ...selectedNode.data,
-                      label: e.target.value,
-                    },
-                  })
-                }
-                style={inputStyle}
-                placeholder="Nomeie este bloco"
-              />
-            )}
+            <input
+              type="text"
+              value={selectedNode.data.label}
+              onChange={(e) =>
+                onChange({
+                  ...selectedNode,
+                  data: {
+                    ...selectedNode.data,
+                    label: e.target.value,
+                  },
+                })
+              }
+              style={inputStyle}
+              placeholder="Nomeie este bloco"
+            />
           </div>
         </div>
 
-        {/* Botões de aba: mostrar apenas "Ações" para o nó de início */}
-        {selectedNode.data.nodeType === "start" ? (
-          <div style={tabButtons}>
-            <button style={tabButtonStyle(true)} disabled>
-              Ações
-            </button>
-          </div>
-        ) : (
-          <div style={tabButtons}>
-            <button
-              style={tabButtonStyle(tab === "conteudo")}
-              onClick={() => setTab("conteudo")}
-            >
-              Conteúdo
-            </button>
-            <button
-              style={tabButtonStyle(tab === "acoes")}
-              onClick={() => setTab("acoes")}
-            >
-              Ações
-            </button>
-          </div>
-        )}
+        <div style={tabButtons}>
+          <button
+            style={tabButtonStyle(tab === "conteudo")}
+            onClick={() => setTab("conteudo")}
+          >
+            Conteúdo
+          </button>
+          <button
+            style={tabButtonStyle(tab === "acoes")}
+            onClick={() => setTab("acoes")}
+          >
+            Ações
+          </button>
+        </div>
 
-        {/* Conteúdo das abas: só renderiza "Conteúdo" se não for o início */}
-        {selectedNode.data.nodeType === "start"
-          ? renderActionsTab()
-          : tab === "conteudo"
-          ? renderContentTab()
-          : renderActionsTab()}
+        {tab === "conteudo" && renderContentTab()}
+        {tab === "acoes" && renderActionsTab()}
       </div>
     </aside>
   );
