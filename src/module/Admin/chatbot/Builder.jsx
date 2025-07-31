@@ -319,6 +319,10 @@ export default function Builder() {
             data: {
               label,
               type: block.type,
+              nodeType:
+                block.type === "start" || label.toLowerCase() === "início"
+                  ? "start"
+                  : undefined,
               color: block.color || "#607D8B",
               block,
             },
