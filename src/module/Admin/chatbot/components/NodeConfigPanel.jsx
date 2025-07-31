@@ -1383,6 +1383,14 @@ const spinnerStyle = {
   animation: "spin 1s linear infinite",
 };
 
+const rowItemStyle = {
+  display: "flex",
+  gap: "0.5rem",
+  alignItems: "center",
+  marginBottom: "0.75rem",
+};
+
+
 // Add this to your global CSS
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
