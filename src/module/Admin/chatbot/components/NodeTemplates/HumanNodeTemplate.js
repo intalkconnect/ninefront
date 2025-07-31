@@ -1,5 +1,5 @@
 export const HumanNodeTemplate = {
-  label: 'Transferir para Humano',
+  label: 'Atendimento Humano',
   type: 'human',
   color: '#8E24AA',
   iconName: 'Headphones',
