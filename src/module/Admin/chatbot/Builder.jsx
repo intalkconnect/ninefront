@@ -69,7 +69,7 @@ export default function Builder() {
         color: "#546E7A",
         block: {
           type: "text",
-          content: "Bloco fixo e sem envio de mensagem",
+          content: "!",
           awaitResponse: true,
           awaitTimeInSeconds: 0,
           sendDelayInSeconds: 1,
@@ -78,7 +78,7 @@ export default function Builder() {
         },
       },
       draggable: false,
-      connectable: false,
+      connectable: true,
       selectable: true, // Opcional: desativa seleção
       style: {
         ...nodeStyle,
