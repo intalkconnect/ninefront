@@ -69,7 +69,7 @@ export default function Builder() {
         color: "#546E7A",
         block: {
           type: "text",
-          content: "Olá!",
+          content: "Bloco fixo e sem envio de mensagem",
           awaitResponse: true,
           awaitTimeInSeconds: 0,
           sendDelayInSeconds: 1,
