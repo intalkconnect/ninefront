@@ -69,7 +69,7 @@ export default function Builder() {
         color: "#546E7A",
         block: {
           type: "text",
-          content: "!",
+          content: "Olá!",
           awaitResponse: true,
           awaitTimeInSeconds: 0,
           sendDelayInSeconds: 1,
@@ -115,29 +115,29 @@ export default function Builder() {
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
-const onNodesChange = useCallback((changes) => {
-  setNodes((nds) => {
-    const newNodes = nds.map((node) => {
-      const positionChange = changes.find(
-        (c) => c.id === node.id && c.type === "position"
-      );
+  const onNodesChange = useCallback((changes) => {
+    setNodes((nds) => {
+      const newNodes = nds.map((node) => {
+        const positionChange = changes.find(
+          (c) => c.id === node.id && c.type === "position"
+        );
 
-      // Bloqueia movimento se for o nó de início ou se draggable for false
-      if (
-        positionChange && 
-        node.draggable !== false && 
-        node.data.nodeType !== "start"
-      ) {
-        return {
-          ...node,
-          position: positionChange.position || node.position,
-        };
-      }
-      return node;
+        // Bloqueia movimento se for o nó de início ou se draggable for false
+        if (
+          positionChange &&
+          node.draggable !== false &&
+          node.data.nodeType !== "start"
+        ) {
+          return {
+            ...node,
+            position: positionChange.position || node.position,
+          };
+        }
+        return node;
+      });
+      return applyNodeChanges(changes, newNodes);
     });
-    return applyNodeChanges(changes, newNodes);
-  });
-}, []);
+  }, []);
 
   const onEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
@@ -380,9 +380,11 @@ const onNodesChange = useCallback((changes) => {
       };
     });
 
+    const startNode = nodes.find((n) => n.data.nodeType === "start");
+
     const flowData = {
       data: {
-        start: nodeIdMap[nodes[0]?.id],
+        start: startNode ? nodeIdMap[startNode.id] : nodeIdMap[nodes[0]?.id],
         blocks,
       },
     };
