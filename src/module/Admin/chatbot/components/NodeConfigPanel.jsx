@@ -1000,8 +1000,8 @@ export default function NodeConfigPanel({
                 }}
               >
                 Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo,
-                com a mensagem “Olá!” e redireciona automaticamente para o
-                próximo bloco configurado.
+                com redirecionamento automatico para o próximo bloco
+                configurado.
               </div>
             ) : (
               <input
@@ -1023,44 +1023,36 @@ export default function NodeConfigPanel({
           </div>
         </div>
 
-        <div style={tabButtons}>
-          <button
-            style={tabButtonStyle(tab === "conteudo")}
-            onClick={() => setTab("conteudo")}
-          >
-            Conteúdo
-          </button>
-          <button
-            style={tabButtonStyle(tab === "acoes")}
-            onClick={() => setTab("acoes")}
-          >
-            Ações
-          </button>
-        </div>
-
-        {selectedNode.data.nodeType !== "start" && (
-          <>
-            <div style={tabButtons}>
-              <button
-                style={tabButtonStyle(tab === "conteudo")}
-                onClick={() => setTab("conteudo")}
-              >
-                Conteúdo
-              </button>
-              <button
-                style={tabButtonStyle(tab === "acoes")}
-                onClick={() => setTab("acoes")}
-              >
-                Ações
-              </button>
-            </div>
-
-            {tab === "conteudo" && renderContentTab()}
-            {tab === "acoes" && renderActionsTab()}
-          </>
+        {/* Botões de aba: mostrar apenas "Ações" para o nó de início */}
+        {selectedNode.data.nodeType === "start" ? (
+          <div style={tabButtons}>
+            <button style={tabButtonStyle(true)} disabled>
+              Ações
+            </button>
+          </div>
+        ) : (
+          <div style={tabButtons}>
+            <button
+              style={tabButtonStyle(tab === "conteudo")}
+              onClick={() => setTab("conteudo")}
+            >
+              Conteúdo
+            </button>
+            <button
+              style={tabButtonStyle(tab === "acoes")}
+              onClick={() => setTab("acoes")}
+            >
+              Ações
+            </button>
+          </div>
         )}
 
-        {tab === "acoes" && renderActionsTab()}
+        {/* Conteúdo das abas: só renderiza "Conteúdo" se não for o início */}
+        {selectedNode.data.nodeType === "start"
+          ? renderActionsTab()
+          : tab === "conteudo"
+          ? renderContentTab()
+          : renderActionsTab()}
       </div>
     </aside>
   );
