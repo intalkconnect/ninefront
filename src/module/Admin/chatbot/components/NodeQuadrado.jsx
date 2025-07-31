@@ -23,17 +23,6 @@ const NodeQuadrado = React.memo(({ data = {}, selected }) => {
       }}
 
     >
-      {!isStartNode && (
-        <Handle 
-          type="target" 
-          position={Position.Top} 
-          className={styles.nodeHandle}
-          style={{ 
-            borderColor: color,
-            cursor: 'crosshair' // Cursor especial para handles
-          }}
-        />
-      )}
 
       <div className={styles.nodeContent}>
         <div className={styles.nodeLabel} title={label}>
@@ -46,13 +35,23 @@ const NodeQuadrado = React.memo(({ data = {}, selected }) => {
         )}
       </div>
 
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className={styles.nodeHandle}
-        style={{ borderColor: color }}
-        isConnectable={!isStartNode}
-      />
+{!isStartNode && (
+  <Handle 
+    type="target" 
+    position={Position.Top} 
+    className={styles.nodeHandle}
+    style={{ borderColor: color, cursor: 'crosshair' }}
+  />
+)}
+
+<Handle
+  type="source"
+  position={Position.Bottom}
+  className={styles.nodeHandle}
+  style={{ borderColor: color }}
+  isConnectable={true}
+/>
+
     </div>
   );
 });
