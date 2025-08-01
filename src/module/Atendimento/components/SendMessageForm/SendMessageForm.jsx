@@ -165,6 +165,26 @@ export default function SendMessageForm({
         <div className="message-input-wrapper">
           {hasQuickReplies && <span className="quick-reply-hash">/</span>}
 
+          {replyTo && (
+  <div className="reply-preview">
+    <div className="reply-content">
+      <div className="reply-author">Você está respondendo:</div>
+      <div className="reply-text">
+        {replyTo.content?.text || replyTo.content || '[Mensagem]'}
+      </div>
+    </div>
+    <button
+      type="button"
+      className="reply-cancel"
+      onClick={() => setReplyTo(null)}
+      title="Cancelar resposta"
+    >
+      <Slash size={16} />
+    </button>
+  </div>
+)}
+
+
 <AutoResizingTextarea
   ref={textareaRef}
   className="send-message-textarea"
