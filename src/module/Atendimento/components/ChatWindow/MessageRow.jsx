@@ -36,8 +36,10 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   }
 
   const isOutgoing = msg.direction === 'outgoing';
+  const isSystem = msg.direction === 'system' || msg.type === 'system';
+
   const replyDirection = msg.reply_direction || '';
-  const rowClass = `message-row ${isOutgoing ? 'outgoing' : 'incoming'}`;
+  const rowClass = `message-row ${isSystem ? 'system' : isOutgoing ? 'outgoing' : 'incoming'}`;
   const bubbleClass = `message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
 
   const renderTimeAndStatus = () => (
@@ -68,6 +70,15 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const isQuickReply = content?.type === 'button' && Array.isArray(content?.action?.buttons);
 
   let messageContent = null;
+
+  if (isSystem) {
+  messageContent = (
+    <div className="system-message">
+      {typeof content === 'object' ? content.text : content}
+    </div>
+  );
+}
+
 
   // Content rendering logic with numeric string handling
   if (typeof content === 'string' && /^\d+$/.test(content)) {
@@ -154,6 +165,9 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
 
   return (
     <div className={rowClass}>
+      {isSystem ? (
+      <div className="system-message-wrapper">{messageContent}</div>
+    ) : (
       <div className={bubbleClass}>
         <div className="message-bubble-content">
           <div className="menu-arrow" ref={menuRef}>
@@ -196,6 +210,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
           {renderTimeAndStatus()}
         </div>
       </div>
+      )}
     </div>
   );
 }
