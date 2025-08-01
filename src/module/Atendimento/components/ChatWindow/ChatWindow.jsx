@@ -53,6 +53,25 @@ export default function ChatWindow({ userIdSelecionado }) {
   }, []);
 
   useEffect(() => {
+  const socket = socketRef.current;
+  if (!socket) return;
+
+  // Quando reconectar, entra novamente na sala do usuário selecionado
+  const handleReconnect = () => {
+    if (userIdSelecionado) {
+      socket.emit('join_room', userIdSelecionado);
+    }
+  };
+
+  socket.on('connect', handleReconnect);
+
+  return () => {
+    socket.off('connect', handleReconnect);
+  };
+}, [userIdSelecionado]);
+
+
+  useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
 
