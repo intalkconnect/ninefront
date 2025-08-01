@@ -174,25 +174,61 @@ export default function ChatWindow({ userIdSelecionado }) {
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
   // 6. (Opcional) Recarrega mensagens do usuário ao voltar para aba
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && userIdSelecionado) {
-        (async () => {
-          try {
-            const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
-            setAllMessages(msgs);
-            updateDisplayedMessages(msgs, pageRef.current);
-          } catch (err) {
-            console.error('Erro ao recarregar mensagens:', err);
-          }
-        })();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [userIdSelecionado, updateDisplayedMessages]);
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && userIdSelecionado) {
+      // 1. Reconecta o socket (ele não perde eventos!)
+      const socket = getSocket();
+      if (!socket.connected) socket.connect();
+
+      // 2. Limpa e readiciona os listeners SEMPRE (garante que não ficaram “travados”)
+      socket.off('new_message');
+      socket.off('update_message');
+
+      socket.on('new_message', handleNewMessage);
+      socket.on('update_message', handleUpdateMessage);
+
+      // 3. Faz fetch dos dados, garantindo atualização
+      (async () => {
+        try {
+          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
+          setAllMessages(msgs);
+          updateDisplayedMessages(msgs, pageRef.current);
+        } catch (err) {
+          console.error('Erro ao recarregar mensagens:', err);
+        }
+      })();
+    }
+  };
+
+  // Funções listeners precisam ser visíveis aqui
+  function handleNewMessage(msg) {
+    if (msg.user_id !== userIdSelecionado) return;
+    setAllMessages(prev => {
+      if (prev.find(m => m.id === msg.id)) return prev;
+      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      messageCacheRef.current.set(msg.user_id, updated);
+      updateDisplayedMessages(updated, pageRef.current);
+      return updated;
+    });
+  }
+
+  function handleUpdateMessage(msg) {
+    if (msg.user_id !== userIdSelecionado) return;
+    setAllMessages(prev => {
+      const updated = prev.map(m => m.id === msg.id ? msg : m);
+      messageCacheRef.current.set(msg.user_id, updated);
+      updateDisplayedMessages(updated, pageRef.current);
+      return updated;
+    });
+  }
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, [userIdSelecionado, updateDisplayedMessages]);
+
 
   // 7. Renderização do componente
   if (!userIdSelecionado) {
