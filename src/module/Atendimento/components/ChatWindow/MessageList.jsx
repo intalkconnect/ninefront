@@ -1,5 +1,3 @@
-// src/components/ChatWindow/MessageList.jsx
-
 import React, { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
 import MessageRow from './MessageRow';
 
@@ -17,10 +15,9 @@ import MessageRow from './MessageRow';
 
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply }, ref) => {
-    // Referência ao container que faz o scroll
     const containerRef = useRef(null);
 
-    // Expondo o método scrollToBottomInstant() para o componente pai
+    // Expor scroll instantâneo para o componente pai
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         if (containerRef.current) {
@@ -29,42 +26,44 @@ const MessageList = forwardRef(
       },
     }));
 
-    // Sempre que o array “messages” mudar, rola automaticamente para o fim
+    // Scroll automático ao receber novas mensagens
     useEffect(() => {
       if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
       }
     }, [messages]);
 
+    const renderedTickets = new Set();
+
     return (
-      <div
-        ref={containerRef}
-        className="chat-scroll-container"
-      >
-{messages.map((msg, index) => {
-  const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
-  const prevMsg = messages[index - 1];
-  const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
+      <div ref={containerRef} className="chat-scroll-container">
+        {messages.map((msg, index) => {
+          const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
 
-  return (
-    <React.Fragment key={msg.id || index}>
-{index > 0 && isNewTicket && msg.ticket_number && (
-  <div className="ticket-divider">
-    Ticket #{msg.ticket_number}
-  </div>
-)}
+          const shouldRenderDivider =
+            msg.ticket_number &&
+            !renderedTickets.has(msg.ticket_number);
 
-      <MessageRow
-        msg={{ ...msg, replyTo: replyToMessage }}
-        onImageClick={onImageClick}
-        onPdfClick={onPdfClick}
-        onReply={onReply}
-      />
-    </React.Fragment>
-  );
-})}
+          if (shouldRenderDivider) {
+            renderedTickets.add(msg.ticket_number);
+          }
 
-
+          return (
+            <React.Fragment key={msg.id || index}>
+              {shouldRenderDivider && (
+                <div className="ticket-divider">
+                  Ticket #{msg.ticket_number}
+                </div>
+              )}
+              <MessageRow
+                msg={{ ...msg, replyTo: replyToMessage }}
+                onImageClick={onImageClick}
+                onPdfClick={onPdfClick}
+                onReply={onReply}
+              />
+            </React.Fragment>
+          );
+        })}
       </div>
     );
   }
