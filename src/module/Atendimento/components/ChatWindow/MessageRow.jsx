@@ -4,6 +4,8 @@ import TextMessage from './messageTypes/TextMessage';
 import ImageMessage from './messageTypes/ImageMessage';
 import DocumentMessage from './messageTypes/DocumentMessage';
 import ListMessage from './messageTypes/ListMessage';
+import QuickReplyMessage from './messageTypes/QuickReplyMessage';
+
 import AudioMessage from './messageTypes/AudioMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import { renderReplyContent } from '../../utils/renderUtils';
@@ -34,8 +36,10 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   }
 
   const isOutgoing = msg.direction === 'outgoing';
+  const isSystem = msg.direction === 'system' || msg.type === 'system';
+
   const replyDirection = msg.reply_direction || '';
-  const rowClass = `message-row ${isOutgoing ? 'outgoing' : 'incoming'}`;
+  const rowClass = `message-row ${isSystem ? 'system' : isOutgoing ? 'outgoing' : 'incoming'}`;
   const bubbleClass = `message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
 
   const renderTimeAndStatus = () => (
@@ -63,8 +67,18 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const isImage = msg.type === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(content?.url || '');
   const isPdf = (msg.type === 'document' || content?.filename) && content?.filename?.toLowerCase().endsWith('.pdf');
   const isList = (content?.type === 'list' || content?.body?.type === 'list') && (content?.action || content?.body?.action);
+  const isQuickReply = content?.type === 'button' && Array.isArray(content?.action?.buttons);
 
   let messageContent = null;
+
+  if (isSystem) {
+  messageContent = (
+    <div className="system-message">
+      {typeof content === 'object' ? content.text : content}
+    </div>
+  );
+}
+
 
   // Content rendering logic with numeric string handling
   if (typeof content === 'string' && /^\d+$/.test(content)) {
@@ -93,6 +107,8 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   } else if (isList) {
     const listData = content?.type === 'list' ? content : content.body;
     messageContent = <ListMessage listData={listData} />;
+  } else if (isQuickReply) {
+  messageContent = <QuickReplyMessage data={content} />;
   } else if (typeof content === 'string') {
     messageContent = <TextMessage content={content} />;
   } else if (typeof content === 'object' && (content?.text || content?.caption)) {
@@ -149,6 +165,9 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
 
   return (
     <div className={rowClass}>
+      {isSystem ? (
+      <div className="system-message-wrapper">{messageContent}</div>
+    ) : (
       <div className={bubbleClass}>
         <div className="message-bubble-content">
           <div className="menu-arrow" ref={menuRef}>
@@ -191,6 +210,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
           {renderTimeAndStatus()}
         </div>
       </div>
+      )}
     </div>
   );
 }
