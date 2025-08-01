@@ -43,6 +43,15 @@ const MessageList = forwardRef(
       >
 {messages
   .map((msg, index) => {
+    if (msg.direction === 'system' || msg.type === 'system') {
+  const text = typeof msg.content === 'object' ? msg.content.text : msg.content;
+  return (
+    <div key={msg.id || index} className="ticket-divider">
+      {text}
+    </div>
+  );
+}
+
   const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
   const prevMsg = messages[index - 1];
   const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
