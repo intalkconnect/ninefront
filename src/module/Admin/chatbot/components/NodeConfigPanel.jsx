@@ -815,12 +815,14 @@ export default function NodeConfigPanel({
                     maxLength={20}
                     placeholder="Texto do botão"
                     onChange={(e) => {
+                      const value = e.target.value.slice(0, 20);
                       const updated = [...content.action.buttons];
                       updated[idx] = {
                         ...btn,
                         reply: {
                           ...btn.reply,
-                          title: e.target.value.slice(0, 20),
+                          title: value,
+                          id: value,
                         },
                       };
                       updateContent("action", {
@@ -1389,7 +1391,6 @@ const rowItemStyle = {
   alignItems: "center",
   marginBottom: "0.75rem",
 };
-
 
 // Add this to your global CSS
 // @keyframes spin {
