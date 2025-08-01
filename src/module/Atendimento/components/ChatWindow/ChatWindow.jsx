@@ -112,6 +112,17 @@ export default function ChatWindow({ userIdSelecionado }) {
         ]);
         // Autorização
         const { status, assigned_to, fila } = ticketRes;
+
+        setClienteInfo({
+  ticket_number: ticketRes.ticket_number,
+  name: '',         // será preenchido depois por clienteRes
+  phone: '',
+  channel: '',
+  fila: ticketRes.fila || '',
+  assigned_to: ticketRes.assigned_to,
+  status: ticketRes.status,
+});
+
         if (status !== 'open' || assigned_to !== userEmail || !userFilas.includes(fila)) {
           console.warn('Acesso negado ao ticket deste usuário.');
           return;
