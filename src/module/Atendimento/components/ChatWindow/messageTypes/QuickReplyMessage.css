@@ -1,10 +1,14 @@
 .quickreply-container {
   padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .quickreply-body {
-  margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 6px;
 }
 
 .quickreply-buttons {
@@ -14,19 +18,22 @@
 }
 
 .quickreply-button {
-  background: #f0f0f0;
-  padding: 6px 10px;
+  background-color: #2f2f2f;
+  color: #ffffff;
+  padding: 8px 12px;
   border-radius: 6px;
+  border: 1px solid #444;
   font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.quickreply-button:hover {
+  background-color: #3f3f3f;
+  cursor: pointer;
 }
 
 .quickreply-footer {
   margin-top: 8px;
   font-size: 0.85em;
-  color: #666;
-}
-
-.quickreply-preview {
-  font-style: italic;
-  opacity: 0.75;
+  color: #ccc;
 }
