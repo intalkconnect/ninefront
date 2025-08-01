@@ -166,6 +166,28 @@ export default function ChatWindow({ userIdSelecionado }) {
   }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo]);
 
   useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && userIdSelecionado) {
+      // Recarrega mensagens do usuário selecionado
+      (async () => {
+        try {
+          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
+          setAllMessages(msgs);
+          updateDisplayedMessages(msgs, pageRef.current);
+        } catch (err) {
+          console.error('Erro ao recarregar mensagens:', err);
+        }
+      })();
+    }
+  };
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, [userIdSelecionado, updateDisplayedMessages]);
+
+
+  useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
         pageRef.current += 1;
