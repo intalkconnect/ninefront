@@ -35,6 +35,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
 
+  // Atualiza mensagens exibidas conforme paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
     const newMessages = messages.slice(startIndex);
@@ -42,40 +43,13 @@ export default function ChatWindow({ userIdSelecionado }) {
     setHasMoreMessages(startIndex > 0);
   }, []);
 
+  // 1. Sempre inicialize socket e listeners corretamente
   useEffect(() => {
-    connectSocket();
+    connectSocket(); // Garante singleton e conecta se necessário
     const socket = getSocket();
     socketRef.current = socket;
-    return () => {
-      socket.off('new_message');
-      socket.off('update_message');
-    };
-  }, []);
 
-  useEffect(() => {
-  const socket = socketRef.current;
-  if (!socket) return;
-
-  // Quando reconectar, entra novamente na sala do usuário selecionado
-  const handleReconnect = () => {
-    if (userIdSelecionado) {
-      console.log('Socket reconectado! Reentrando na sala:', userIdSelecionado);
-      socket.emit('join_room', userIdSelecionado);
-    }
-  };
-
-  socket.on('connect', handleReconnect);
-
-  return () => {
-    socket.off('connect', handleReconnect);
-  };
-}, [userIdSelecionado]);
-
-
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-
+    // Listeners de mensagem
     const handleNew = (msg) => {
       if (msg.user_id !== userIdSelecionado) return;
       setAllMessages(prev => {
@@ -86,7 +60,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         return updated;
       });
     };
-
     const handleUpdate = (msg) => {
       if (msg.user_id !== userIdSelecionado) return;
       setAllMessages(prev => {
@@ -97,14 +70,19 @@ export default function ChatWindow({ userIdSelecionado }) {
       });
     };
 
+    // Remove e adiciona listeners SEMPRE (evita duplicação)
+    socket.off('new_message', handleNew);
+    socket.off('update_message', handleUpdate);
     socket.on('new_message', handleNew);
     socket.on('update_message', handleUpdate);
+
     return () => {
       socket.off('new_message', handleNew);
       socket.off('update_message', handleUpdate);
     };
   }, [userIdSelecionado, updateDisplayedMessages]);
 
+  // 2. join_room ao trocar de usuário selecionado
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !userIdSelecionado) return;
@@ -114,6 +92,22 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, [userIdSelecionado]);
 
+  // 3. join_room ao reconectar
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+    const handleReconnect = () => {
+      if (userIdSelecionado) {
+        socket.emit('join_room', userIdSelecionado);
+      }
+    };
+    socket.on('connect', handleReconnect);
+    return () => {
+      socket.off('connect', handleReconnect);
+    };
+  }, [userIdSelecionado]);
+
+  // 4. Carrega as mensagens iniciais ao selecionar usuário
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -165,28 +159,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     })();
   }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo]);
 
-  useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible" && userIdSelecionado) {
-      // Recarrega mensagens do usuário selecionado
-      (async () => {
-        try {
-          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
-          setAllMessages(msgs);
-          updateDisplayedMessages(msgs, pageRef.current);
-        } catch (err) {
-          console.error('Erro ao recarregar mensagens:', err);
-        }
-      })();
-    }
-  };
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-}, [userIdSelecionado, updateDisplayedMessages]);
-
-
+  // 5. Scroll infinito ao chegar no topo
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -200,6 +173,28 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => loaderRef.current && observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
+  // 6. (Opcional) Recarrega mensagens do usuário ao voltar para aba
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && userIdSelecionado) {
+        (async () => {
+          try {
+            const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
+            setAllMessages(msgs);
+            updateDisplayedMessages(msgs, pageRef.current);
+          } catch (err) {
+            console.error('Erro ao recarregar mensagens:', err);
+          }
+        })();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [userIdSelecionado, updateDisplayedMessages]);
+
+  // 7. Renderização do componente
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -225,7 +220,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   return (
     <div className="chat-window">
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
-      
+
       <MessageList
         initialKey={userIdSelecionado}
         ref={messageListRef}
