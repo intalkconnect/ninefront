@@ -1,0 +1,32 @@
+.quickreply-container {
+  padding: 8px;
+}
+
+.quickreply-body {
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.quickreply-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quickreply-button {
+  background: #f0f0f0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.quickreply-footer {
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.quickreply-preview {
+  font-style: italic;
+  opacity: 0.75;
+}
