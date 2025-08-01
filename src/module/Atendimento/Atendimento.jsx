@@ -84,6 +84,28 @@ export default function Atendimento() {
     };
   }, []);
 
+  // Força reconexão do socket quando volta para aba
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      const socket = getSocket();
+      if (socket && !socket.connected) {
+        // Força reconexão do socket
+        socket.connect();
+        // Opcional: envie novamente o identify se necessário
+        // socket.emit("identify", { email: userEmail, rooms: userFilas });
+      }
+    }
+  };
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, [userEmail, userFilas]);
+
+
   const handleNewMessage = useCallback(
     async (message) => {
       if (!message || !message.content || message.assigned_to !== userEmail) {
