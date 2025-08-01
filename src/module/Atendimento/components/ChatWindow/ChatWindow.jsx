@@ -8,33 +8,33 @@ import MessageList from './MessageList';
 import ImageModal from './modals/ImageModal';
 import PdfModal from './modals/PdfModal';
 import ChatHeader from './ChatHeader';
+
 import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore(state => state.mergeConversation);
-  const setClienteAtivo   = useConversationsStore(state => state.setClienteAtivo);
+  const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
 
-  const [allMessages, setAllMessages]         = useState([]);
+  const [allMessages, setAllMessages] = useState([]);
   const [displayedMessages, setDisplayedMessages] = useState([]);
-  const [modalImage, setModalImage]           = useState(null);
-  const [pdfModal, setPdfModal]               = useState(null);
-  const [clienteInfo, setClienteInfo]         = useState(null);
-  const [isLoading, setIsLoading]             = useState(false);
-  const [replyTo, setReplyTo]                 = useState(null);
+  const [modalImage, setModalImage] = useState(null);
+  const [pdfModal, setPdfModal] = useState(null);
+  const [clienteInfo, setClienteInfo] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
 
   const userEmail = useConversationsStore(state => state.userEmail);
   const userFilas = useConversationsStore(state => state.userFilas);
 
-  const messageListRef   = useRef(null);
-  const loaderRef        = useRef(null);
-  const socketRef        = useRef(null);
-  const pageRef          = useRef(1);
-  const messageCacheRef  = useRef(new Map());
-  const messagesPerPage  = 100;
+  const messageListRef = useRef(null);
+  const loaderRef = useRef(null);
+  const socketRef = useRef(null);
+  const pageRef = useRef(1);
+  const messageCacheRef = useRef(new Map());
+  const messagesPerPage = 100;
 
-  // Helper para controle de paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
     const newMessages = messages.slice(startIndex);
@@ -42,7 +42,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     setHasMoreMessages(startIndex > 0);
   }, []);
 
-  // Conecta socket uma vez
   useEffect(() => {
     connectSocket();
     const socket = getSocket();
@@ -53,7 +52,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, []);
 
-  // Ouve novas mensagens do socket para página ativa
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
@@ -87,7 +85,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, [userIdSelecionado, updateDisplayedMessages]);
 
-  // Entrega salas ao entrar/fechar conversa
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !userIdSelecionado) return;
@@ -97,7 +94,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, [userIdSelecionado]);
 
-  // Busca histórico ao selecionar usuário
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -110,7 +106,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}`),
           apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
         ]);
-        // Autorização
+
         const { status, assigned_to, fila } = ticketRes;
         if (status !== 'open' || assigned_to !== userEmail || !userFilas.includes(fila)) {
           console.warn('Acesso negado ao ticket deste usuário.');
@@ -122,13 +118,12 @@ export default function ChatWindow({ userIdSelecionado }) {
         setAllMessages(msgs);
         updateDisplayedMessages(msgs, 1);
 
-        // Atualiza conversation summary
         const lastMsg = msgs[msgs.length - 1] || {};
         mergeConversation(userIdSelecionado, {
-          channel:      lastMsg.channel || clienteRes.channel || 'desconhecido',
+          channel: lastMsg.channel || clienteRes.channel || 'desconhecido',
           ticket_number: clienteRes.ticket_number || '000000',
-          fila:          clienteRes.fila || fila || 'Orçamento',
-          name:          clienteRes.name || userIdSelecionado,
+          fila: clienteRes.fila || fila || 'Orçamento',
+          name: clienteRes.name || userIdSelecionado,
           assigned_to, status,
         });
 
@@ -140,6 +135,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           fila: clienteRes.fila,
           assigned_to, status,
         });
+
         setClienteAtivo(clienteRes);
       } catch (err) {
         console.error('Erro ao buscar cliente:', err);
@@ -149,7 +145,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     })();
   }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo]);
 
-  // Paginação infinita
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -167,7 +162,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return (
       <div className="chat-window placeholder">
         <div className="chat-placeholder">
-          <svg className="chat-icon" width="80" height="80" viewBox="0 0 24 24" fill="var(--color-border)" xmlns="http://www.w3.org/2000/svg">
+          <svg className="chat-icon" width="80" height="80" viewBox="0 0 24 24" fill="var(--color-border)">
             <path d="M4 2h16a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2H6l-4 4V4a2 2 0 0 1 2 -2z" />
           </svg>
           <h2 className="placeholder-title">Tudo pronto para atender</h2>
@@ -187,23 +182,28 @@ export default function ChatWindow({ userIdSelecionado }) {
 
   return (
     <div className="chat-window">
-      <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo}/>
-      <div className="messages-list">
-        {hasMoreMessages && <div ref={loaderRef} className="pagination-loader">Carregando mensagens mais antigas...</div>}
-        <MessageList
-          initialKey={userIdSelecionado}
-          ref={messageListRef}
-          messages={displayedMessages}
-          onImageClick={setModalImage}
-          onPdfClick={setPdfModal}
-          onReply={setReplyTo}
+      <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
+      
+      <MessageList
+        initialKey={userIdSelecionado}
+        ref={messageListRef}
+        messages={displayedMessages}
+        onImageClick={setModalImage}
+        onPdfClick={setPdfModal}
+        onReply={setReplyTo}
+        loaderRef={hasMoreMessages ? loaderRef : null}
+      />
+
+      <div className="chat-input">
+        <SendMessageForm
+          userIdSelecionado={userIdSelecionado}
+          replyTo={replyTo}
+          setReplyTo={setReplyTo}
         />
       </div>
-      <div className="chat-input">
-        <SendMessageForm userIdSelecionado={userIdSelecionado} replyTo={replyTo} setReplyTo={setReplyTo}/>
-      </div>
-      {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)}/>}      
-      {pdfModal   && <PdfModal   url={pdfModal}   onClose={() => setPdfModal(null)}/>}   
+
+      {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)} />}
+      {pdfModal && <PdfModal url={pdfModal} onClose={() => setPdfModal(null)} />}
     </div>
   );
 }
