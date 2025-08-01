@@ -41,7 +41,9 @@ const MessageList = forwardRef(
         ref={containerRef}
         className="chat-scroll-container"
       >
-{messages.map((msg, index) => {
+{messages
+  .filter(msg => msg.direction !== 'system') // ⛔️ Ignora mensagens do tipo system
+  .map((msg, index) => {
   const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
   const prevMsg = messages[index - 1];
   const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
