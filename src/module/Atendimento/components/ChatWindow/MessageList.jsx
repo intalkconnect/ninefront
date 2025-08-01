@@ -1,3 +1,5 @@
+// src/components/ChatWindow/MessageList.jsx
+
 import React, { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
 import MessageRow from './MessageRow';
 
@@ -15,9 +17,10 @@ import MessageRow from './MessageRow';
 
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply }, ref) => {
+    // Referência ao container que faz o scroll
     const containerRef = useRef(null);
 
-    // Expor scroll instantâneo para o componente pai
+    // Expondo o método scrollToBottomInstant() para o componente pai
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         if (containerRef.current) {
@@ -26,35 +29,26 @@ const MessageList = forwardRef(
       },
     }));
 
-    // Scroll automático ao receber novas mensagens
+    // Sempre que o array “messages” mudar, rola automaticamente para o fim
     useEffect(() => {
       if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
       }
     }, [messages]);
 
-    const renderedTickets = new Set();
-
     return (
-      <div ref={containerRef} className="chat-scroll-container">
-        {messages.map((msg, index) => {
+      <div
+        ref={containerRef}
+        className="chat-scroll-container"
+      >
+{messages.map((msg, index) => {
   const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
   const prevMsg = messages[index - 1];
   const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
 
-  // ⛔️ IGNORAR mensagens do tipo "Ticket #000XXX criado"
-  const isSystemTicketCreation =
-    msg.direction === 'system' &&
-    typeof msg.content === 'object' &&
-    /^🎫 Ticket #\d{6} criado$/.test(msg.content.text || '');
-
-  if (isSystemTicketCreation) {
-    return null;
-  }
-
   return (
     <React.Fragment key={msg.id || index}>
-      {isNewTicket && msg.ticket_number && (
+      {isNewTicket && (
         <div className="ticket-divider">
           Ticket #{msg.ticket_number}
         </div>
@@ -68,6 +62,7 @@ const MessageList = forwardRef(
     </React.Fragment>
   );
 })}
+
 
       </div>
     );
