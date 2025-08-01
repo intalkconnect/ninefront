@@ -4,8 +4,6 @@ import TextMessage from './messageTypes/TextMessage';
 import ImageMessage from './messageTypes/ImageMessage';
 import DocumentMessage from './messageTypes/DocumentMessage';
 import ListMessage from './messageTypes/ListMessage';
-import QuickReplyMessage from './messageTypes/QuickReplyMessage';
-
 import AudioMessage from './messageTypes/AudioMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import { renderReplyContent } from '../../utils/renderUtils';
@@ -65,7 +63,6 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const isImage = msg.type === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(content?.url || '');
   const isPdf = (msg.type === 'document' || content?.filename) && content?.filename?.toLowerCase().endsWith('.pdf');
   const isList = (content?.type === 'list' || content?.body?.type === 'list') && (content?.action || content?.body?.action);
-  const isQuickReply = content?.type === 'button' && Array.isArray(content?.action?.buttons);
 
   let messageContent = null;
 
@@ -96,8 +93,6 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   } else if (isList) {
     const listData = content?.type === 'list' ? content : content.body;
     messageContent = <ListMessage listData={listData} />;
-  } else if (isQuickReply) {
-  messageContent = <QuickReplyMessage data={content} />;
   } else if (typeof content === 'string') {
     messageContent = <TextMessage content={content} />;
   } else if (typeof content === 'object' && (content?.text || content?.caption)) {
