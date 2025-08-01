@@ -48,11 +48,12 @@ const MessageList = forwardRef(
 
   return (
     <React.Fragment key={msg.id || index}>
-      {isNewTicket && (
-        <div className="ticket-divider">
-          Ticket #{msg.ticket_number}
-        </div>
-      )}
+{index > 0 && isNewTicket && msg.ticket_number && (
+  <div className="ticket-divider">
+    Ticket #{msg.ticket_number}
+  </div>
+)}
+
       <MessageRow
         msg={{ ...msg, replyTo: replyToMessage }}
         onImageClick={onImageClick}
