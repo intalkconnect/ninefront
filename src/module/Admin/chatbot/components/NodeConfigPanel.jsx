@@ -513,7 +513,7 @@ export default function NodeConfigPanel({
           {
             type: "reply",
             reply: {
-              id: `btn_${current.length + 1}`,
+              id: "",
               title: "",
             },
           },
