@@ -59,6 +59,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   // Quando reconectar, entra novamente na sala do usuário selecionado
   const handleReconnect = () => {
     if (userIdSelecionado) {
+      console.log('Socket reconectado! Reentrando na sala:', userIdSelecionado);
       socket.emit('join_room', userIdSelecionado);
     }
   };
