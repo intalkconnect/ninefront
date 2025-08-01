@@ -38,32 +38,37 @@ const MessageList = forwardRef(
     return (
       <div ref={containerRef} className="chat-scroll-container">
         {messages.map((msg, index) => {
-          const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
+  const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
+  const prevMsg = messages[index - 1];
+  const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
 
-          const shouldRenderDivider =
-            msg.ticket_number &&
-            !renderedTickets.has(msg.ticket_number);
+  // ⛔️ IGNORAR mensagens do tipo "Ticket #000XXX criado"
+  const isSystemTicketCreation =
+    msg.direction === 'system' &&
+    typeof msg.content === 'object' &&
+    /^🎫 Ticket #\d{6} criado$/.test(msg.content.text || '');
 
-          if (shouldRenderDivider) {
-            renderedTickets.add(msg.ticket_number);
-          }
+  if (isSystemTicketCreation) {
+    return null;
+  }
 
-          return (
-            <React.Fragment key={msg.id || index}>
-              {shouldRenderDivider && (
-                <div className="ticket-divider">
-                  Ticket #{msg.ticket_number}
-                </div>
-              )}
-              <MessageRow
-                msg={{ ...msg, replyTo: replyToMessage }}
-                onImageClick={onImageClick}
-                onPdfClick={onPdfClick}
-                onReply={onReply}
-              />
-            </React.Fragment>
-          );
-        })}
+  return (
+    <React.Fragment key={msg.id || index}>
+      {isNewTicket && msg.ticket_number && (
+        <div className="ticket-divider">
+          Ticket #{msg.ticket_number}
+        </div>
+      )}
+      <MessageRow
+        msg={{ ...msg, replyTo: replyToMessage }}
+        onImageClick={onImageClick}
+        onPdfClick={onPdfClick}
+        onReply={onReply}
+      />
+    </React.Fragment>
+  );
+})}
+
       </div>
     );
   }
