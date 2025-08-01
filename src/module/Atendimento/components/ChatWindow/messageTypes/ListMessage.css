@@ -1,51 +1,55 @@
 /* ListMessage.css */
 .list-container {
-  padding: 10px;
-  background-color: #f0f0f0;
-  border-radius: var(--border-radius);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.list-container h4 {
-  margin: 0 0 4px 0;
-  font-size: 1rem;
-  color: var(--color-text-default);
-}
+
 .list-body-text {
-  margin: 0 0 8px 0;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
+  font-weight: 600;
+  color: #ffffff;
 }
+
 .list-section {
-  margin-bottom: 12px;
+  margin-top: 6px;
+  border-top: 1px solid #444;
+  padding-top: 6px;
 }
+
 .list-section-title {
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: var(--color-text-default);
+  font-size: 0.9em;
+  color: #bbbbbb;
   margin-bottom: 4px;
 }
+
 .list-row {
-  padding: 6px;
-  margin-top: 4px;
-  background-color: #ffffff;
-  border: 1px solid #cccccc;
-  border-radius: 5px;
+  background-color: #2f2f2f;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #fff;
+  margin-bottom: 4px;
+  border: 1px solid #444;
 }
+
 .list-row-title {
-  font-size: 0.95rem;
-  color: var(--color-text-default);
+  font-weight: 500;
 }
+
 .list-row-description {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
+  font-size: 0.85em;
+  color: #cccccc;
 }
+
 .list-footer {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: #ccc;
 }
 
 .list-preview {
   font-size: 0.85rem;
-  color: #333;
+  color: #ccc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
