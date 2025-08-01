@@ -41,16 +41,8 @@ const MessageList = forwardRef(
         ref={containerRef}
         className="chat-scroll-container"
       >
-{messages.map((msg, index) => {
-  if (msg.direction === 'system' || msg.type === 'system') {
-    return (
-      <div key={msg.id || index} className="system-message-wrapper">
-        <div className="system-message">
-          {typeof msg.content === 'object' ? msg.content.text : msg.content}
-        </div>
-      </div>
-    );
-  }
+{messages
+  .map((msg, index) => {
   const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
   const prevMsg = messages[index - 1];
   const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
