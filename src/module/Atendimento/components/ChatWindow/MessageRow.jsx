@@ -42,25 +42,30 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const rowClass = `message-row ${isSystem ? 'system' : isOutgoing ? 'outgoing' : 'incoming'}`;
   const bubbleClass = `message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
 
-  const renderTimeAndStatus = () => (
-    <div className="message-time">
-      {new Date(msg.timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}
-      {isOutgoing && (
-        <span className="message-status">
-          {msg.status === 'delivered' ? (
-            <CheckCheck size={14} className="check delivered" />
-          ) : msg.status === 'sent' ? (
-            <CheckCheck size={14} className="check sent" />
-          ) : (
-            <Check size={14} className="check pending" />
-          )}
-        </span>
-      )}
-    </div>
-  );
+const renderTimeAndStatus = () => (
+  <div className="message-time">
+    {new Date(msg.timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })}
+    {isOutgoing && (
+      <span className="message-status">
+        {msg.status === 'read' ? (
+          <CheckCheck size={14} className="check read" />
+        ) : msg.status === 'delivered' ? (
+          <CheckCheck size={14} className="check delivered" />
+        ) : msg.status === 'sent' ? (
+          <CheckCheck size={14} className="check sent" />
+        ) : msg.status === 'error' ? (
+          <span className="check error">❌</span>
+        ) : (
+          <Check size={14} className="check pending" />
+        )}
+      </span>
+    )}
+  </div>
+);
+
 
   const urlLower = String(content?.url || '').toLowerCase();
   const isAudio = msg.type === 'audio' || content?.voice || /\.(ogg|mp3|wav)$/i.test(urlLower);
