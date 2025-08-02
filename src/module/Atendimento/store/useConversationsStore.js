@@ -9,6 +9,7 @@ const useConversationsStore = create((set, get) => ({
   selectedUserId: null,
   userEmail: null,
   userFilas: [],
+  agentName: null,
   settings: [],
   socketStatus: 'online',          // estado da conexão com o socket
   setSocketStatus: (status) => set({ socketStatus: status }),
@@ -20,7 +21,7 @@ const useConversationsStore = create((set, get) => ({
   },
 
   // Configura email e filas do usuário
-  setUserInfo: ({ email, filas }) => set({ userEmail: email, userFilas: filas }),
+  setUserInfo: ({ email, filas }) => set({ userEmail: email, userFilas: filas, agentName: name }),
 
   // Atualiza conversa selecionada, zera não lidas do atual e do anterior
   setSelectedUserId: async (userId) => {
