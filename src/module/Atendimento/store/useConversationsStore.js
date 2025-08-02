@@ -63,6 +63,18 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
+  setConversation: (userId, newData) =>
+  set((state) => ({
+    conversations: {
+      ...state.conversations,
+      [userId]: {
+        ...(state.conversations[userId] || {}),
+        ...newData,
+      },
+    },
+  })),
+
+
   // Zera contagem de não lidas
   resetUnread: (userId) =>
     set((state) => ({
