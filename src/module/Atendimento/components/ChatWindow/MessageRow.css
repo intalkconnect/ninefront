@@ -18,24 +18,21 @@
   line-height: 1;
 }
 
-.ver-mais-wrapper {
+.show-more-messages {
   text-align: center;
-  margin: 10px 0;
+  margin: 12px 0;
 }
-
-.ver-mais-btn {
-  background-color: #eee;
+.show-more-messages button {
+  background: #f0f0f0;
   border: none;
   padding: 6px 12px;
   cursor: pointer;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
 }
-
-.ver-mais-btn:hover {
-  background-color: #ddd;
+.show-more-messages button:hover {
+  background: #e0e0e0;
 }
-
 
 .message-row {
   display: flex;
