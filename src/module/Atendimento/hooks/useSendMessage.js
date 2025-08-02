@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
+import useConversationsStore from '../store/useConversationsStore';
 
 /**
  * Hook que encapsula a lógica de envio de mensagens para WhatsApp (Cloud API).
@@ -11,6 +12,25 @@ import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
  */
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
+  const setConversation = useConversationsStore((s) => s.setConversation);
+  const getConversation = useConversationsStore((s) => s.conversations);
+
+  const marcarMensagensAntesDoTicketComoLidas = (userId) => {
+    const conversa = getConversation[userId];
+    if (!conversa?.messages) return;
+
+    const systemIndex = conversa.messages.findIndex((m) => m.type === 'system');
+    if (systemIndex === -1) return;
+
+    const novasMsgs = conversa.messages.map((msg, idx) => {
+      if (idx < systemIndex && msg.direction === 'incoming') {
+        return { ...msg, status: 'read' };
+      }
+      return msg;
+    });
+
+    setConversation(userId, { ...conversa, messages: novasMsgs });
+  };
 
   const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
     console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
@@ -99,6 +119,9 @@ export function useSendMessage() {
           serverResponse: response,
         });
       }
+
+      // Marca visualmente como "lidas" todas as mensagens anteriores ao ticket
+      marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
       if (typeof onMessageAdded === 'function') {
@@ -115,3 +138,5 @@ export function useSendMessage() {
 
   return { isSending, sendMessage };
 }
+
+export { marcarMensagensAntesDoTicketComoLidas };
