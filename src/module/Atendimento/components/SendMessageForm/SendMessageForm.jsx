@@ -17,20 +17,12 @@ import QuickReplies from "./QuickReplies";
 
 import useConversationsStore from "../../store/useConversationsStore";
 
-/**
- * Formulário de envio de mensagens com:
- *  - Emojis
- *  - Anexos
- *  - Áudio push‑to‑talk
- *  - Respostas rápidas (#) / botão hash
- */
 export default function SendMessageForm({
   userIdSelecionado,
   onMessageAdded,
   replyTo,
   setReplyTo,
 }) {
-  // ---------- ESTADOS ----------
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
   const [fileToConfirm, setFileToConfirm] = useState(null);
@@ -38,14 +30,12 @@ export default function SendMessageForm({
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [hasQuickReplies, setHasQuickReplies] = useState(false);
 
-  // ---------- REFS ----------
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const quickReplyRef = useRef(null);
 
-  // ---------- HOOKS ----------
   const { isSending, sendMessage } = useSendMessage();
   const {
     isRecording,
@@ -58,9 +48,7 @@ export default function SendMessageForm({
 
   const getSettingValue = useConversationsStore((s) => s.getSettingValue);
   const agentName = useConversationsStore((s) => s.agentName);
-  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
 
-  // ---------- QUICK REPLIES EXISTE? ----------
   useEffect(() => {
     (async () => {
       try {
@@ -72,30 +60,25 @@ export default function SendMessageForm({
     })();
   }, []);
 
-  // ---------- LIMPA AO TROCAR DE USUÁRIO ----------
   useEffect(() => {
     setText("");
     setFile(null);
     setReplyTo(null);
   }, [userIdSelecionado]);
 
-  // ---------- AUDIO: ATUALIZA FILE AO FINAL DA GRAVAÇÃO ----------
   useEffect(() => {
     if (recordedFile) setFile(recordedFile);
   }, [recordedFile]);
 
-  // ---------- DETECTA CLIQUE FORA ----------
   useClickOutside([emojiPickerRef, quickReplyRef], () => {
     setShowEmoji(false);
     setShowQuickReplies(false);
   });
 
-  // ---------- MANIPULADORES ----------
   const handleSend = (e) => {
     e.preventDefault();
     if (isRecording) return stopRecording();
 
-    // Monta mensagem com assinatura se habilitado
     let messageText = text;
     const assinaturaHabilitada = getSettingValue("assinatura_atendente");
     if (
@@ -116,13 +99,8 @@ export default function SendMessageForm({
           replyTo: replyTo?.whatsapp_message_id || null,
         },
         (provisionalMessage) => {
-          // Otimista: insere a mensagem já no array da conversa!
-          if (userIdSelecionado && provisionalMessage) {
-            mergeConversation(userIdSelecionado, {
-              messages: [provisionalMessage],
-            });
-          }
-          if (typeof onMessageAdded === "function") {
+          // Atualização otimista APENAS no estado local do chat!
+          if (typeof onMessageAdded === "function" && provisionalMessage) {
             onMessageAdded(provisionalMessage);
           }
         }
@@ -159,7 +137,6 @@ export default function SendMessageForm({
     imageInputRef.current.value = "";
   };
 
-  // ---------- RENDER ----------
   return (
     <>
       {replyTo && (
@@ -183,7 +160,6 @@ export default function SendMessageForm({
       <form className="send-message-form" onSubmit={(e) => e.preventDefault()}>
         <div className="message-input-wrapper">
           {hasQuickReplies && <span className="quick-reply-hash">/</span>}
-
           <AutoResizingTextarea
             ref={textareaRef}
             className="send-message-textarea"
@@ -309,12 +285,7 @@ export default function SendMessageForm({
                 replyTo: replyTo?.whatsapp_message_id || null,
               },
               (provisionalMessage) => {
-                if (userIdSelecionado && provisionalMessage) {
-                  mergeConversation(userIdSelecionado, {
-                    messages: [provisionalMessage],
-                  });
-                }
-                if (typeof onMessageAdded === "function") {
+                if (typeof onMessageAdded === "function" && provisionalMessage) {
                   onMessageAdded(provisionalMessage);
                 }
               }
