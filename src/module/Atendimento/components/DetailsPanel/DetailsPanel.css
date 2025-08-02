@@ -114,11 +114,11 @@
 }
 
 .info-label {
-  flex: 0 0 120px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+
 
 .info-value {
   flex: 1;
