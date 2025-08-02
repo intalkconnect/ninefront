@@ -20,12 +20,11 @@ import MessageRow from './MessageRow';
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
-    const [visibleCount, setVisibleCount] = useState(30); // mostra 30 inicialmente
+    const [visibleCount, setVisibleCount] = useState(30);
+    const [prevScrollHeight, setPrevScrollHeight] = useState(0);
 
-    // Mensagens visíveis do final para o começo
     const visibleMessages = messages.slice(-visibleCount);
 
-    // Método para scroll manual
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         if (containerRef.current) {
@@ -37,7 +36,7 @@ const MessageList = forwardRef(
       },
     }));
 
-    // Scroll automático quando mensagens mudam
+    // Scroll automático ao mudar mensagens visíveis
     useEffect(() => {
       if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -60,8 +59,20 @@ const MessageList = forwardRef(
     }, []);
 
     const handleShowMore = () => {
-      setVisibleCount((prev) => Math.min(prev + 30, messages.length));
+      if (containerRef.current) {
+        setPrevScrollHeight(containerRef.current.scrollHeight);
+        setVisibleCount((prev) => Math.min(prev + 30, messages.length));
+      }
     };
+
+    // Após carregar mais mensagens, corrige o scroll para não pular
+    useEffect(() => {
+      if (visibleCount > 30 && containerRef.current) {
+        const newHeight = containerRef.current.scrollHeight;
+        const delta = newHeight - prevScrollHeight;
+        containerRef.current.scrollTop = delta;
+      }
+    }, [visibleCount]);
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
@@ -84,7 +95,7 @@ const MessageList = forwardRef(
           if (isSystem) {
             let systemText = '';
             if (typeof msg.content === 'string') {
-              systemText = msg.content.replace(/^"(.*)"$/, '$1'); // remove aspas
+              systemText = msg.content.replace(/^"(.*)"$/, '$1');
             } else if (typeof msg.content === 'object' && msg.content.text) {
               systemText = msg.content.text;
             }
