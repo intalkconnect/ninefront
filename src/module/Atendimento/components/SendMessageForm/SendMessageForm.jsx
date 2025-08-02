@@ -35,7 +35,9 @@ export default function SendMessageForm({
   onMessageAdded,
   replyTo,
   setReplyTo,
+  canSendFreeform,
 }) {
+
   /* ------------------------------------------------------------------ */
   /*  Estados principais                                                */
   /* ------------------------------------------------------------------ */
@@ -124,13 +126,6 @@ export default function SendMessageForm({
     startRecording();
     return;
   }
-
-  const lastIncoming = [...(conversation?.messages || [])]
-    .reverse()
-    .find((msg) => msg.direction === 'incoming');
-
-  const canSendFreeform =
-    lastIncoming && isWithin24Hours(lastIncoming.timestamp);
 
   if (!canSendFreeform) {
     toast.warn(
@@ -368,6 +363,7 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
 
 
