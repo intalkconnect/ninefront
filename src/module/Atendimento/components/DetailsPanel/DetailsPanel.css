@@ -1,12 +1,6 @@
-/* =======================================================================
-   DetailsPanel.css - Redesign Moderno
-======================================================================= */
-
-/* Container geral do painel */
 .details-panel-container {
   display: flex;
   flex-direction: column;
-  padding: 0;
   background: #ffffff;
   height: 100%;
   box-sizing: border-box;
@@ -14,289 +8,136 @@
   overflow: hidden;
 }
 
-/* Título do painel */
-.panel-title {
-  margin: 0;
-  padding: 16px 20px;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #333;
-  background-color: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
+.avatar-circle {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-color: #4a90e2;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 20px auto 10px;
 }
 
-/* ===== Abas ===== */
+.name-label {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
 .tabs-container {
   display: flex;
-  margin: 0;
-  background-color: #f9f9f9;
+  justify-content: center;
+  background-color: #f5f5f5;
   border-bottom: 1px solid #e0e0e0;
 }
 
 .tab-button {
   flex: 1;
-  background: transparent;
-  border: none;
-  padding: 12px 0;
-  font-size: 0.95rem;
+  text-align: center;
+  padding: 10px 0;
   font-weight: 500;
-  color: #666;
+  color: #888;
+  background: none;
+  border: none;
   cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.tab-button:hover {
-  color: #333;
-  background-color: rgba(0, 0, 0, 0.03);
+  transition: 0.2s;
 }
 
 .tab-button.active {
-  color: var(--primary, #4a90e2);
-  font-weight: 600;
+  color: #4a90e2;
+  border-bottom: 2px solid #4a90e2;
 }
 
-.tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background-color: var(--primary, #4a90e2);
-}
-
-/* ===== Área de conteúdo da aba ===== */
 .tab-content {
-  flex: 1;
+  padding: 20px;
   overflow-y: auto;
-  padding: 16px;
+  flex: 1;
 }
 
-/* ===== Cartões (cards) ===== */
 .card {
   background-color: #ffffff;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  margin-bottom: 16px;
-  overflow: hidden;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* Título de cada card */
 .card-title {
-  margin: 0;
-  padding: 12px 16px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: bold;
+  margin-bottom: 16px;
   color: #333;
-  background-color: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 8px;
 }
 
-/* ===== Aba "Informações" ===== */
-.informacoes-content {
+.info-item {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  margin-bottom: 12px;
+  color: #555;
 }
 
-/* Cada linha de informação */
-.info-row {
-  display: flex;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.info-row:last-child {
-  border-bottom: none;
+.info-item svg {
+  margin-right: 10px;
+  color: #4a90e2;
 }
 
 .info-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-weight: 500;
+  margin-right: 5px;
 }
-
 
 .info-value {
-  flex: 1;
-  font-size: 0.9rem;
   color: #333;
-  word-break: break-word;
-}
-
-/* ===== Seção de Comentários ===== */
-.comentario-card {
-  display: flex;
-  flex-direction: column;
+  font-size: 0.9rem;
 }
 
 .comentario-textarea {
   width: 100%;
-  min-height: 100px;
-  resize: vertical;
-  padding: 12px;
+  min-height: 80px;
+  padding: 10px;
   font-size: 0.9rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #ccc;
   border-radius: 6px;
-  outline: none;
-  background-color: #ffffff;
-  margin: 16px;
-  box-sizing: border-box;
-  transition: border-color 0.2s;
-}
-
-.comentario-textarea:focus {
-  border-color: var(--primary, #4a90e2);
+  resize: vertical;
+  margin-bottom: 10px;
 }
 
 .btn-enviar-comentario {
-  align-self: flex-end;
-  padding: 8px 20px;
-  margin: 0 16px 16px 0;
-  background-color: var(--primary, #4a90e2);
-  color: #ffffff;
+  padding: 8px 16px;
+  background-color: #4a90e2;
+  color: white;
   border: none;
   border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s ease;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .btn-enviar-comentario:hover {
   background-color: #3a7bc8;
-  transform: translateY(-1px);
-}
-
-.btn-enviar-comentario:active {
-  transform: translateY(0);
-}
-
-/* ===== Aba "Histórico" ===== */
-.historico-content {
-  display: flex;
-  justify-content: center;
-  padding: 16px;
-  color: #666;
-  font-size: 0.9rem;
-}
-
-.historico-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .historico-item {
-  width: 100%;
-}
-
-/* Card de ticket */
-.ticket-card {
-  background-color: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 0;
-  width: 100%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
 }
 
 .ticket-title {
-  margin: 0;
-  padding: 12px 16px;
-  font-size: 0.95rem;
   font-weight: 600;
+  margin-bottom: 6px;
   color: #333;
-  border-bottom: 1px solid #f0f0f0;
 }
 
 .ticket-field {
-  padding: 8px 16px;
   font-size: 0.85rem;
-  color: #555;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.ticket-field:last-child {
-  border-bottom: none;
-}
-
-.ticket-field strong {
   color: #666;
-  font-weight: 500;
-}
-
-/* ===== Mensagens de estado ===== */
-.loading {
-  color: #666;
-  font-size: 0.9rem;
-  text-align: center;
-  padding: 40px 20px;
-}
-.avatar-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 0 8px 0;
-  margin-bottom: 12px;
-}
-
-.avatar-circle {
-  background-color: var(--primary, #4a90e2);
-  color: white;
-  width: 48px;
-  height: 48px;
-  font-size: 1.4rem;
-  font-weight: bold;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #333;
-}
-
-/* Ícones ao lado das labels */
-.info-icon {
-  margin-right: 8px;
-  color: var(--primary, #4a90e2);
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  margin-left: 8px;
-}
-
-
-/* ===== Responsividade ===== */
-@media (max-width: 768px) {
-  .details-panel-container {
-    border-left: none;
-    border-top: 1px solid #e0e0e0;
-  }
-  
-  .info-row {
-    flex-direction: column;
-    gap: 4px;
-    padding: 8px 12px;
-  }
-  
-  .info-label {
-    flex: 1;
-    font-size: 0.8rem;
-  }
-  
-  .info-value {
-    font-size: 0.85rem;
-  }
+  margin-bottom: 4px;
 }
