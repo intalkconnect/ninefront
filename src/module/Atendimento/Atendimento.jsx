@@ -12,8 +12,8 @@ import { parseJwt } from "../../utils/auth";
 
 export default function Atendimento() {
   const audioPlayer = useRef(null);
+  const isWindowActiveRef = useRef(true);
 
-  // Zustand hooks
   const selectedUserId = useConversationsStore((s) => s.selectedUserId);
   const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
   const setUserInfo = useConversationsStore((s) => s.setUserInfo);
@@ -26,14 +26,12 @@ export default function Atendimento() {
   const notifiedConversations = useConversationsStore((s) => s.notifiedConversations);
   const markNotified = useConversationsStore((s) => s.markNotified);
   const clearNotified = useConversationsStore((s) => s.clearNotified);
-  const clearUnread = useConversationsStore((s) => s.clearUnread);
+  const clearUnread = useConversationsStore((s) => s.resetUnread);
   const userEmail = useConversationsStore((s) => s.userEmail);
   const userFilas = useConversationsStore((s) => s.userFilas);
   const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
 
-  const isWindowActiveRef = useRef(true);
-
-  // Setup do usuário e filas
+  // Autenticação do usuário e setup de info
   useEffect(() => {
     document.title = "HubHMG - Atendimento";
     const token = localStorage.getItem("token");
@@ -73,7 +71,7 @@ export default function Atendimento() {
     };
   }, []);
 
-  // Limpa notificações e unread ao abrir uma conversa
+  // Limpa notificações e unread ao abrir conversa
   useEffect(() => {
     if (selectedUserId) {
       clearNotified(selectedUserId);
@@ -118,8 +116,6 @@ export default function Atendimento() {
       } else {
         incrementUnread(message.user_id, message.timestamp);
         await loadUnreadCounts();
-
-        // Só notifica se NÃO notificou ainda desde a última seleção de conversa
         if (!isWindowFocused && !notifiedConversations[message.user_id]) {
           const contactName = getContactName(message.user_id);
           showNotification(message, contactName);
