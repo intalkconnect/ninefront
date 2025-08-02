@@ -9,11 +9,15 @@ const useConversationsStore = create((set, get) => ({
   selectedUserId: null,
   userEmail: null,
   userFilas: [],
+  agentName: '',
   settings: [],
   socketStatus: 'online',
   notifiedConversations: {},
 
   setSocketStatus: (status) => set({ socketStatus: status }),
+
+  setAgentName: (name) => set({ agentName: name }),        
+  getAgentName: () => get().agentName,                   
 
   setSettings: (data) => set({ settings: data }),
   getSettingValue: (key) => {
