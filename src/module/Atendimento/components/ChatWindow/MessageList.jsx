@@ -9,7 +9,7 @@ import React, {
 import MessageRow from './MessageRow';
 
 /**
- * MessageList (versão paginada com botão "Ver mais")
+ * MessageList (versão com "Ver mais" e scroll no final)
  *
  * Props:
  *  - messages: array de mensagens ({ id, direction, content, timestamp, status, ... })
@@ -22,21 +22,22 @@ const MessageList = forwardRef(
     const containerRef = useRef(null);
     const [visibleCount, setVisibleCount] = useState(30); // mostra 30 inicialmente
 
+    // Mensagens visíveis do final para o começo
     const visibleMessages = messages.slice(-visibleCount);
 
-    // Método exposto para scroll manual
+    // Método para scroll manual
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         if (containerRef.current) {
           containerRef.current.scrollTo({
             top: containerRef.current.scrollHeight,
-            behavior: "auto"
+            behavior: 'auto'
           });
         }
       },
     }));
 
-    // Scroll automático ao mudar mensagens (sem animação)
+    // Scroll automático quando mensagens mudam
     useEffect(() => {
       if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -58,25 +59,24 @@ const MessageList = forwardRef(
       return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, []);
 
+    const handleShowMore = () => {
+      setVisibleCount((prev) => Math.min(prev + 30, messages.length));
+    };
+
     return (
       <div ref={containerRef} className="chat-scroll-container">
-        {/* Botão "ver mais mensagens" */}
-        {messages.length > visibleCount && (
-          <div className="ver-mais-wrapper">
-            <button className="ver-mais-btn" onClick={() => setVisibleCount(c => c + 30)}>
-              Ver mais mensagens
-            </button>
-          </div>
-        )}
-
-        {/* Loader opcional para scroll infinito */}
         {loaderRef && (
           <div ref={loaderRef} className="pagination-loader">
             Carregando mensagens mais antigas...
           </div>
         )}
 
-        {/* Mensagens */}
+        {messages.length > visibleMessages.length && (
+          <div className="show-more-messages">
+            <button onClick={handleShowMore}>Ver mais mensagens</button>
+          </div>
+        )}
+
         {visibleMessages.map((msg, index) => {
           if (!msg) return null;
 
@@ -84,7 +84,7 @@ const MessageList = forwardRef(
           if (isSystem) {
             let systemText = '';
             if (typeof msg.content === 'string') {
-              systemText = msg.content.replace(/^"(.*)"$/, '$1');
+              systemText = msg.content.replace(/^"(.*)"$/, '$1'); // remove aspas
             } else if (typeof msg.content === 'object' && msg.content.text) {
               systemText = msg.content.text;
             }
@@ -96,13 +96,20 @@ const MessageList = forwardRef(
             );
           }
 
-          const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
-          const prevMsg = messages[index - 1];
-          const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
+          const fullIndex = messages.length - visibleMessages.length + index;
+          const prevMsg = messages[fullIndex - 1];
+
+          const showTicketDivider =
+            msg.ticket_number &&
+            (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
+
+          const replyToMessage = messages.find(
+            (m) => m.whatsapp_message_id === msg.reply_to
+          );
 
           return (
             <React.Fragment key={msg.id || index}>
-              {index > 0 && isNewTicket && msg.ticket_number && (
+              {showTicketDivider && (
                 <div className="ticket-divider">Ticket #{msg.ticket_number}</div>
               )}
               <MessageRow
