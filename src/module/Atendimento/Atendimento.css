@@ -168,7 +168,13 @@ html, body, #root {
   margin-top: 12px;
 }
 
-
+.message-status {
+  margin-left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
 
 /* ======================= DETAILS ========================= */
 .details-panel {
