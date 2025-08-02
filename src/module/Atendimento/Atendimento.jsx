@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { apiGet, apiPut } from "./services/apiClient";
 import { connectSocket, getSocket } from "./services/socket";
 import Sidebar from "./components/Sidebar/Sidebar";
@@ -12,108 +12,113 @@ import { parseJwt } from "../../utils/auth";
 
 export default function Atendimento() {
   const audioPlayer = useRef(null);
+  const socketRef = useRef(null);
   const isWindowActiveRef = useRef(true);
 
-  // Zustand hooks
   const selectedUserId = useConversationsStore((s) => s.selectedUserId);
   const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
   const setUserInfo = useConversationsStore((s) => s.setUserInfo);
-  const setAgentName = useConversationsStore((s) => s.setAgentName);  // novo!
-  const setSettings = useConversationsStore((s) => s.setSettings);    // novo!
   const mergeConversation = useConversationsStore((s) => s.mergeConversation);
   const loadUnreadCounts = useConversationsStore((s) => s.loadUnreadCounts);
   const loadLastReadTimes = useConversationsStore((s) => s.loadLastReadTimes);
   const incrementUnread = useConversationsStore((s) => s.incrementUnread);
   const getContactName = useConversationsStore((s) => s.getContactName);
   const conversations = useConversationsStore((s) => s.conversations);
-  const notifiedConversations = useConversationsStore((s) => s.notifiedConversations);
+  const notifiedConversations = useConversationsStore(
+    (s) => s.notifiedConversations
+  );
   const markNotified = useConversationsStore((s) => s.markNotified);
-  const clearNotified = useConversationsStore((s) => s.clearNotified);
-  const clearUnread = useConversationsStore((s) => s.resetUnread);
   const userEmail = useConversationsStore((s) => s.userEmail);
   const userFilas = useConversationsStore((s) => s.userFilas);
   const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
 
-  // Autenticação do usuário e setup de info
- useEffect(() => {
+  const [isWindowActive, setIsWindowActive] = useState(true);
+
+  useEffect(() => {
     document.title = "HubHMG - Atendimento";
     const token = localStorage.getItem("token");
+
     if (!token) return;
+
     const { email } = parseJwt(token);
     if (!email) return;
-    setUserInfo({ email, filas: [] });
 
+    setUserInfo({ email, filas: [] });
     (async () => {
       try {
-        // Busca dados do atendente (nome)
         const data = await apiGet(`/atendentes/${email}`);
         if (data?.email) {
           setUserInfo({ email: data.email, filas: data.filas || [] });
-          // Monta nome completo!
-          const fullName = [data.name, data.lastname].filter(Boolean).join(" ");
-          setAgentName(fullName);
         }
       } catch (err) {
         console.error("Erro ao buscar dados do atendente:", err);
       }
-      // Busca as configurações globais
-      try {
-        const config = await apiGet("/settings");
-        setSettings(config);
-      } catch (err) {
-        console.error("Erro ao buscar settings:", err);
-      }
     })();
-  }, [setUserInfo, setAgentName, setSettings]);
+  }, [setUserInfo]);
 
-  // Notificação sonora
   useEffect(() => {
     audioPlayer.current = new Audio(notificationSound);
     audioPlayer.current.volume = 0.3;
     return () => audioPlayer.current?.pause();
   }, []);
 
-  // Foco/blur janela e permissão Notification
   useEffect(() => {
-    const onFocus = () => { isWindowActiveRef.current = true; };
-    const onBlur = () => { isWindowActiveRef.current = false; };
+    const onFocus = () => {
+      isWindowActiveRef.current = true;
+      setIsWindowActive(true);
+    };
+    const onBlur = () => {
+      isWindowActiveRef.current = false;
+      setIsWindowActive(false);
+    };
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onBlur);
+
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
+
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("blur", onBlur);
     };
   }, []);
 
-  // Limpa notificações e unread ao abrir conversa
-  useEffect(() => {
-    if (selectedUserId) {
-      clearNotified(selectedUserId);
-      clearUnread(selectedUserId);
-    }
-  }, [selectedUserId, clearNotified, clearUnread]);
+  // Força reconexão do socket quando volta para aba
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      const socket = getSocket();
+socket.on('connect', () => console.log('SOCKET RECONNECTED:', socket.id));
+socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
 
-  // Reconecta socket ao voltar visibilidade
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        const socket = getSocket();
-        if (socket && !socket.connected) socket.connect();
+      console.log('Visibilidade: voltando para aba. Socket conectado?', socket.connected);
+      if (socket && !socket.connected) {
+        // Força reconexão do socket
+        socket.connect();
+        // Opcional: envie novamente o identify se necessário
+        // socket.emit("identify", { email: userEmail, rooms: userFilas });
       }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
+    }
+  };
 
-  // Handler principal
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, [userEmail, userFilas]);
+
+
   const handleNewMessage = useCallback(
     async (message) => {
-      if (!message || !message.content || message.assigned_to !== userEmail) return;
+      if (!message || !message.content || message.assigned_to !== userEmail) {
+        console.warn(
+          "[Notificação] Mensagem ignorada: dados incompletos ou não atribuída a este atendente."
+        );
+        return;
+      }
+
       const isFromMe = message.direction === "outgoing";
       const isActiveChat = message.user_id === selectedUserId;
       const isWindowFocused = isWindowActiveRef.current;
@@ -124,15 +129,17 @@ export default function Atendimento() {
         content: message.content,
         channel: message.channel,
       });
-
       if (isFromMe) return;
 
       if (isActiveChat && isWindowFocused) {
-        await apiPut(`/messages/read-status/${message.user_id}`, { last_read: new Date().toISOString() });
+        await apiPut(`/messages/read-status/${message.user_id}`, {
+          last_read: new Date().toISOString(),
+        });
         await loadUnreadCounts();
       } else {
         incrementUnread(message.user_id, message.timestamp);
         await loadUnreadCounts();
+
         if (!isWindowFocused && !notifiedConversations[message.user_id]) {
           const contactName = getContactName(message.user_id);
           showNotification(message, contactName);
@@ -143,7 +150,9 @@ export default function Atendimento() {
               player.currentTime = 0;
               await player.play();
             }
-          } catch (err) {}
+          } catch (err) {
+            console.error("Erro ao tocar som de notificação:", err);
+          }
           markNotified(message.user_id);
         }
       }
@@ -160,7 +169,6 @@ export default function Atendimento() {
     ]
   );
 
-  // Inicialização e listeners do socket
   useEffect(() => {
     if (!userEmail || !userFilas.length) return;
     let mounted = true;
@@ -172,23 +180,35 @@ export default function Atendimento() {
           loadUnreadCounts(),
         ]);
         if (!mounted) return;
+
         connectSocket();
         const socket = getSocket();
+        socketRef.current = socket;
+
         socket.on("connect", async () => {
           setSocketStatus("online");
           const sessionId = socket.id;
           try {
-            await apiPut(`/atendentes/session/${userEmail}`, { session: sessionId });
+            await apiPut(`/atendentes/session/${userEmail}`, {
+              session: sessionId,
+            });
+
+            // ✅ Sinalizar que está pronto para SocketDisconnectedModal
             window.sessionStorage.setItem("sessionReady", "true");
-          } catch (err) {}
+          } catch (err) {
+            console.error("Erro ao informar sessão ao servidor:", err);
+          }
+
           socket.emit("identify", { email: userEmail, rooms: userFilas });
         });
+
         socket.on("disconnect", () => setSocketStatus("offline"));
         socket.on("new_message", handleNewMessage);
       } catch (err) {
         console.error("Erro na inicialização:", err);
       }
     })();
+
     return () => {
       mounted = false;
       const socket = getSocket();
@@ -204,7 +224,6 @@ export default function Atendimento() {
     loadLastReadTimes,
   ]);
 
-  // Busca conversas
   const fetchConversations = async () => {
     try {
       const params = new URLSearchParams({
@@ -218,16 +237,27 @@ export default function Atendimento() {
     }
   };
 
-  // Notificação browser
   const showNotification = (message, contactName) => {
-    if (!("Notification" in window)) return;
+    if (!("Notification" in window)) {
+      console.warn("[Notificação] API Notification não está disponível.");
+      return;
+    }
+
     if (Notification.permission === "default") {
       Notification.requestPermission().then((permission) => {
-        if (permission === "granted") showNotification(message, contactName);
+        if (permission === "granted") {
+          showNotification(message, contactName);
+        } else {
+          console.warn("[Notificação] Permissão negada.");
+        }
       });
       return;
     }
-    if (Notification.permission !== "granted") return;
+
+    if (Notification.permission !== "granted") {
+      console.warn("[Notificação] Permissão não concedida.");
+      return;
+    }
 
     let body;
     try {
@@ -235,10 +265,11 @@ export default function Atendimento() {
       body = parsed.text || parsed.caption || "[mensagem]";
     } catch {
       body =
-        typeof message.content === "string" && message.content.length > 50
+        message.content.length > 50
           ? message.content.slice(0, 47) + "..."
           : message.content;
     }
+
     const notif = new Notification(
       `Nova mensagem de ${contactName || message.user_id}`,
       {
@@ -247,6 +278,7 @@ export default function Atendimento() {
         vibrate: [200, 100, 200],
       }
     );
+
     notif.onclick = () => {
       window.focus();
       setSelectedUserId(message.user_id);
