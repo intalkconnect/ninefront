@@ -115,6 +115,16 @@ export default function SendMessageForm({
   /* ------------------------------------------------------------------ */
   /*  Manipuladores                                                      */
   /* ------------------------------------------------------------------ */
+
+      // Pegando configurações e nome do atendente
+  const getSettingValue = useConversationsStore(s => s.getSettingValue);
+  const userEmail = useConversationsStore(s => s.userEmail);
+  // Exemplo: o nome pode vir de settings ou do objeto user direto
+  // Ajuste conforme onde seu backend traz o nome!
+  const agentName = useConversationsStore(s => s.agentName);
+
+  // Está ativada a assinatura?
+  const isSignatureEnabled = getSettingValue("enable_signature") === "true"; // ou "1", depende do backend
   const handleSend = (e) => {
   e.preventDefault();
   if (isRecording) return stopRecording();
@@ -363,6 +373,7 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
 
 
