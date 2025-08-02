@@ -117,11 +117,11 @@ export function useSendMessage() {
 export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
   if (!mensagens || !Array.isArray(mensagens)) return;
 
-  const systemIndex = mensagens.findIndex((m) => m.direction === 'system');
+  const systemIndex = mensagens.findIndex((m) => m.type === 'system');
   if (systemIndex === -1) return;
 
   const novasMsgs = mensagens.map((msg, idx) => {
-    if (idx < systemIndex && msg.direction === 'incoming') {
+    if (idx < systemIndex) {
       return { ...msg, status: 'read' };
     }
     return msg;
@@ -132,5 +132,3 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     messages: novasMsgs,
   });
 }
-
-
