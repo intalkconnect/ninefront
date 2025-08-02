@@ -21,7 +21,7 @@ const useConversationsStore = create((set, get) => ({
   },
 
   // Configura email e filas do usuário
-  setUserInfo: ({ email, filas }) => set({ userEmail: email, userFilas: filas, agentName: name }),
+  setUserInfo: ({ email, filas, name }) => set({ userEmail: email, userFilas: filas, agentName: name }),
 
   // Atualiza conversa selecionada, zera não lidas do atual e do anterior
   setSelectedUserId: async (userId) => {
