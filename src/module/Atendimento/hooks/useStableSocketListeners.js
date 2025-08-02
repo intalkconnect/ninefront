@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { getSocket } from "../../services/socket";
+import { getSocket } from "../services/socket";
 
 // Handlers fora do componente (sempre atualizados por ref)
 export function useStableSocketListeners({ userId, onNew, onUpdate }) {
