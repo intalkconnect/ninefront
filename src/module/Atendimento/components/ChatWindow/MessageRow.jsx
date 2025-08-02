@@ -48,20 +48,17 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
         hour: '2-digit',
         minute: '2-digit',
       })}
-{isOutgoing && (
-  <span className="message-status">
-    {msg.status === 'error' ? (
-      <span title="Erro ao enviar" style={{ color: 'red' }}>❗</span>
-    ) : msg.status === 'sending' ? (
-      <span title="Enviando...">⏳</span>
-    ) : msg.status === 'sent' ? (
-      <Check size={14} title="Enviado" className="check sent" />
-    ) : msg.status === 'delivered' || msg.status === 'read' ? (
-      <CheckCheck size={14} title="Entregue" className="check delivered" />
-    ) : null}
-  </span>
-)}
-
+      {isOutgoing && (
+        <span className="message-status">
+          {msg.status === 'delivered' ? (
+            <CheckCheck size={14} className="check delivered" />
+          ) : msg.status === 'sent' ? (
+            <CheckCheck size={14} className="check sent" />
+          ) : (
+            <Check size={14} className="check pending" />
+          )}
+        </span>
+      )}
     </div>
   );
 
