@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import { apiGet, apiPut } from "./services/apiClient";
 import { connectSocket, getSocket } from "./services/socket";
 import Sidebar from "./components/Sidebar/Sidebar";
@@ -13,6 +13,7 @@ import { parseJwt } from "../../utils/auth";
 export default function Atendimento() {
   const audioPlayer = useRef(null);
 
+  // Zustand hooks
   const selectedUserId = useConversationsStore((s) => s.selectedUserId);
   const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
   const setUserInfo = useConversationsStore((s) => s.setUserInfo);
@@ -24,15 +25,15 @@ export default function Atendimento() {
   const conversations = useConversationsStore((s) => s.conversations);
   const notifiedConversations = useConversationsStore((s) => s.notifiedConversations);
   const markNotified = useConversationsStore((s) => s.markNotified);
-  const clearNotified = useConversationsStore((s) => s.clearNotified); // precisa existir na store!
-  const clearUnread = useConversationsStore((s) => s.clearUnread);     // precisa existir na store!
+  const clearNotified = useConversationsStore((s) => s.clearNotified);
+  const clearUnread = useConversationsStore((s) => s.clearUnread);
   const userEmail = useConversationsStore((s) => s.userEmail);
   const userFilas = useConversationsStore((s) => s.userFilas);
   const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
 
-  // Controle janela ativa
   const isWindowActiveRef = useRef(true);
 
+  // Setup do usuário e filas
   useEffect(() => {
     document.title = "HubHMG - Atendimento";
     const token = localStorage.getItem("token");
@@ -50,13 +51,14 @@ export default function Atendimento() {
     })();
   }, [setUserInfo]);
 
+  // Notificação sonora
   useEffect(() => {
     audioPlayer.current = new Audio(notificationSound);
     audioPlayer.current.volume = 0.3;
     return () => audioPlayer.current?.pause();
   }, []);
 
-  // Janela ativa/inativa e permissão de notificação
+  // Foco/blur janela e permissão Notification
   useEffect(() => {
     const onFocus = () => { isWindowActiveRef.current = true; };
     const onBlur = () => { isWindowActiveRef.current = false; };
@@ -71,7 +73,7 @@ export default function Atendimento() {
     };
   }, []);
 
-  // Ao selecionar conversa, limpa notified + unread (para permitir novas notificações do mesmo user)
+  // Limpa notificações e unread ao abrir uma conversa
   useEffect(() => {
     if (selectedUserId) {
       clearNotified(selectedUserId);
@@ -79,7 +81,7 @@ export default function Atendimento() {
     }
   }, [selectedUserId, clearNotified, clearUnread]);
 
-  // Força reconexão do socket quando volta para aba
+  // Reconecta socket ao voltar visibilidade
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
@@ -93,7 +95,7 @@ export default function Atendimento() {
     };
   }, []);
 
-  // Handler principal de mensagens novas (socket)
+  // Handler principal
   const handleNewMessage = useCallback(
     async (message) => {
       if (!message || !message.content || message.assigned_to !== userEmail) return;
@@ -107,6 +109,7 @@ export default function Atendimento() {
         content: message.content,
         channel: message.channel,
       });
+
       if (isFromMe) return;
 
       if (isActiveChat && isWindowFocused) {
@@ -116,7 +119,7 @@ export default function Atendimento() {
         incrementUnread(message.user_id, message.timestamp);
         await loadUnreadCounts();
 
-        // Só notifica se a janela NÃO estiver ativa E nunca notificou para essa conversa desde última visualização
+        // Só notifica se NÃO notificou ainda desde a última seleção de conversa
         if (!isWindowFocused && !notifiedConversations[message.user_id]) {
           const contactName = getContactName(message.user_id);
           showNotification(message, contactName);
@@ -127,10 +130,8 @@ export default function Atendimento() {
               player.currentTime = 0;
               await player.play();
             }
-          } catch (err) {
-            // não trava se não tocar
-          }
-          markNotified(message.user_id); // marca como já notificado até o user abrir o chat
+          } catch (err) {}
+          markNotified(message.user_id);
         }
       }
     },
@@ -146,7 +147,7 @@ export default function Atendimento() {
     ]
   );
 
-  // Inicialização, listeners do socket
+  // Inicialização e listeners do socket
   useEffect(() => {
     if (!userEmail || !userFilas.length) return;
     let mounted = true;
@@ -166,7 +167,7 @@ export default function Atendimento() {
           try {
             await apiPut(`/atendentes/session/${userEmail}`, { session: sessionId });
             window.sessionStorage.setItem("sessionReady", "true");
-          } catch (err) { }
+          } catch (err) {}
           socket.emit("identify", { email: userEmail, rooms: userFilas });
         });
         socket.on("disconnect", () => setSocketStatus("offline"));
@@ -190,6 +191,7 @@ export default function Atendimento() {
     loadLastReadTimes,
   ]);
 
+  // Busca conversas
   const fetchConversations = async () => {
     try {
       const params = new URLSearchParams({
@@ -203,7 +205,7 @@ export default function Atendimento() {
     }
   };
 
-  // Gera notificação visual browser
+  // Notificação browser
   const showNotification = (message, contactName) => {
     if (!("Notification" in window)) return;
     if (Notification.permission === "default") {
