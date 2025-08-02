@@ -76,16 +76,33 @@ const useConversationsStore = create((set, get) => ({
 
   setClienteAtivo: (info) => set({ clienteAtivo: info }),
 
-  mergeConversation: (userId, data) =>
-    set((state) => ({
+mergeConversation: (userId, data) =>
+  set((state) => {
+    const prevConv = state.conversations[userId] || {};
+    const prevMsgs = prevConv.messages || [];
+
+    // Se 'data' vier com messages (array), faz merge; senão, adiciona 'data' como nova mensagem.
+    let newMessages;
+    if (Array.isArray(data.messages)) {
+      newMessages = [...prevMsgs, ...data.messages];
+    } else if (data.type || data.content) {
+      newMessages = [...prevMsgs, data]; // data é uma mensagem individual
+    } else {
+      newMessages = prevMsgs;
+    }
+
+    return {
       conversations: {
         ...state.conversations,
         [userId]: {
-          ...(state.conversations[userId] || {}),
-          ...data
+          ...prevConv,
+          ...data,
+          messages: newMessages,
         }
       }
-    })),
+    };
+  }),
+
 
   getContactName: (userId) =>
     get().conversations[userId]?.name || userId,
