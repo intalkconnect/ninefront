@@ -1,4 +1,4 @@
-// ✅ Versão completa e refatorada do useSendMessage.js
+// ✅ Versão final do useSendMessage.js
 
 import { useState } from 'react';
 import { toast } from 'react-toastify';
@@ -6,31 +6,8 @@ import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
-/**
- * Hook que encapsula a lógica de envio de mensagens para WhatsApp (Cloud API).
- * Suporte a texto, arquivos (imagem/documento/áudio), replies, e controle de status.
- */
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
-  const setConversation = useConversationsStore((s) => s.setConversation);
-  const getConversation = useConversationsStore((s) => s.conversations);
-
-  const marcarMensagensAntesDoTicketComoLidas = (userId) => {
-    const conversa = getConversation[userId];
-    if (!conversa?.messages) return;
-
-    const systemIndex = conversa.messages.findIndex((m) => m.type === 'system');
-    if (systemIndex === -1) return;
-
-    const novasMsgs = conversa.messages.map((msg, idx) => {
-      if (idx < systemIndex && msg.direction === 'incoming') {
-        return { ...msg, status: 'read' };
-      }
-      return msg;
-    });
-
-    setConversation(userId, { ...conversa, messages: novasMsgs });
-  };
 
   const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
     console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
@@ -45,7 +22,6 @@ export function useSendMessage() {
 
     const tempId = Date.now();
     const now = new Date();
-    const timestamp = now.toISOString();
     const readableTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     let provisionalMessage = {
@@ -67,7 +43,6 @@ export function useSendMessage() {
 
       const isAudio = file.type.startsWith('audio/');
       const isImage = file.type.startsWith('image/');
-      const isDoc = file.type.startsWith('application/');
       const captionText = text.trim() || file.name;
 
       provisionalMessage.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
@@ -120,7 +95,7 @@ export function useSendMessage() {
         });
       }
 
-      // Marca visualmente como "lidas" todas as mensagens anteriores ao ticket
+      // ✅ Marca como lidas visualmente
       marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
@@ -139,4 +114,23 @@ export function useSendMessage() {
   return { isSending, sendMessage };
 }
 
-export { marcarMensagensAntesDoTicketComoLidas };
+// ✅ Export separado para uso em ChatWindow ou qualquer outro lugar
+export function marcarMensagensAntesDoTicketComoLidas(userId) {
+  const conversa = useConversationsStore.getState().conversations[userId];
+  if (!conversa?.messages) return;
+
+  const systemIndex = conversa.messages.findIndex((m) => m.type === 'system');
+  if (systemIndex === -1) return;
+
+  const novasMsgs = conversa.messages.map((msg, idx) => {
+    if (idx < systemIndex && msg.direction === 'incoming') {
+      return { ...msg, status: 'read' };
+    }
+    return msg;
+  });
+
+  useConversationsStore.getState().setConversation(userId, {
+    ...conversa,
+    messages: novasMsgs,
+  });
+}
