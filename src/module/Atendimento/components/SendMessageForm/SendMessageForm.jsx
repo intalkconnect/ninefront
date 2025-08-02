@@ -21,6 +21,8 @@ import EmojiPicker from "./EmojiPicker";
 import UploadFileModal from "./UploadFileModal";
 import QuickReplies from "./QuickReplies";
 
+import useConversationsStore from "../../store/useConversationsStore";
+
 /**
  * Formulário de envio de mensagens com:
  *  - Emojis
@@ -107,14 +109,32 @@ export default function SendMessageForm({
   /* ------------------------------------------------------------------ */
   /*  Manipuladores                                                      */
   /* ------------------------------------------------------------------ */
+
+    const getSettingValue = useConversationsStore((s) => s.getSettingValue);
+  const agentName = useConversationsStore((s) => s.agentName);
+
+  
   const handleSend = (e) => {
     e.preventDefault();
     if (isRecording) return stopRecording();
 
-    if (text.trim() || file) {
+    // Checa se precisa assinar a mensagem
+    let messageText = text;
+    const assinaturaHabilitada = getSettingValue("assinatura_atendente");
+    if (
+      assinaturaHabilitada &&
+      agentName &&
+      messageText.trim() &&
+      // Evita duplicar assinatura se já está lá (envio rápido, user pode colar manual)
+      !messageText.startsWith(`**${agentName}:**`)
+    ) {
+      messageText = `**${agentName}:**\n${messageText}`;
+    }
+
+    if (messageText.trim() || file) {
       sendMessage(
         {
-          text,
+          text: messageText,
           file,
           userId: userIdSelecionado,
           replyTo: replyTo?.whatsapp_message_id || null,
@@ -337,3 +357,4 @@ export default function SendMessageForm({
     </>
   );
 }
+
