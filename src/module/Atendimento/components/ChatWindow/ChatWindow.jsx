@@ -3,7 +3,7 @@ import { connectSocket, getSocket } from "../../services/socket";
 import { apiGet } from "../../services/apiClient";
 import useConversationsStore from "../../store/useConversationsStore";
 import useSocketMessages from "../../hooks/useSocketMessages";
-import { notifyUser } from "../../utils/notifications";
+import { notifyUser } from "./utils/notifications";
 
 import SendMessageForm from "../SendMessageForm/SendMessageForm";
 import MessageList from "./MessageList";
