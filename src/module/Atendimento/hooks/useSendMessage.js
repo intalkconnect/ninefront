@@ -1,4 +1,4 @@
-// src/hooks/useSendMessage.js
+// ✅ Versão completa e refatorada do useSendMessage.js
 
 import { useState } from 'react';
 import { toast } from 'react-toastify';
@@ -6,20 +6,14 @@ import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 
 /**
- * Hook que encapsula a lógica de “montar payload e chamar POST /messages/send”.
- *
- * - Expondo:
- *   • isSending (boolean)
- *   • sendMessage({ text, file, userId }, onMessageAdded)
- *
- * Chame sendMessage() quando quiser disparar o envio.
+ * Hook que encapsula a lógica de envio de mensagens para WhatsApp (Cloud API).
+ * Suporte a texto, arquivos (imagem/documento/áudio), replies, e controle de status.
  */
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
-
   const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
-    console.log('📨 useSendMessage recebeu:', { text, file, userId, replyTo , onMessageAdded });
+    console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
 
     if (!text.trim() && !file) {
       toast.warn('Digite algo ou grave áudio antes de enviar.', {
@@ -29,46 +23,38 @@ export function useSendMessage() {
       return;
     }
 
-    // Monta a mensagem provisória (id temporário, timestamp, etc.)
     const tempId = Date.now();
     const now = new Date();
-    const timestamp = now.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const timestamp = now.toISOString();
+    const readableTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    let provisionalMessage;
+    let provisionalMessage = {
+      id: tempId,
+      direction: 'outgoing',
+      timestamp: now.getTime(),
+      readableTime,
+      status: 'sending',
+      type: 'text',
+      content: text.trim(),
+    };
+
     if (file) {
-      if (file.type.startsWith('audio/')) {
-        provisionalMessage = {
-          id: tempId,
-          type: 'audio',
-          content: { url: null },
-          status: 'sending',
-          timestamp,
-        };
-      } else {
-        const realFileName = file.name;
-        const captionText = text.trim() !== '' ? text.trim() : realFileName;
-        provisionalMessage = {
-          id: tempId,
-          type: file.type.startsWith('image/') ? 'image' : 'document',
-          content: {
-            url: null,
-            filename: realFileName,
-            caption: captionText,
-          },
-          status: 'sending',
-          timestamp,
-        };
+      const { valid, errorMsg } = validateFile(file);
+      if (!valid) {
+        toast.error(errorMsg || 'Arquivo inválido.');
+        return;
       }
-    } else {
-      provisionalMessage = {
-        id: tempId,
-        type: 'text',
-        content: text.trim(),
-        status: 'sending',
-        timestamp,
+
+      const isAudio = file.type.startsWith('audio/');
+      const isImage = file.type.startsWith('image/');
+      const isDoc = file.type.startsWith('application/');
+      const captionText = text.trim() || file.name;
+
+      provisionalMessage.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
+      provisionalMessage.content = {
+        url: null,
+        filename: file.name,
+        caption: captionText,
       };
     }
 
@@ -79,66 +65,52 @@ export function useSendMessage() {
     setIsSending(true);
 
     try {
-  const to = userId.replace('@w.msgcli.net', '');
-  const payload = { to };
+      const payload = { to: userId.replace('@w.msgcli.net', '') };
 
-  if (file) {
-    const { valid, errorMsg } = validateFile(file);
-    if (!valid) {
+      if (file) {
+        const fileUrl = await uploadFileAndGetURL(file);
+        if (!fileUrl) throw new Error('Erro ao gerar URL do arquivo.');
+
+        const isAudio = file.type.startsWith('audio/');
+        const isImage = file.type.startsWith('image/');
+
+        payload.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
+        payload.content = isAudio
+          ? { url: fileUrl, voice: true }
+          : {
+              url: fileUrl,
+              filename: file.name,
+              caption: text.trim() || file.name,
+            };
+      } else {
+        payload.type = 'text';
+        payload.content = { body: text.trim() };
+        if (replyTo) payload.context = { message_id: replyTo };
+      }
+
+      const response = await apiPost('/messages/send', payload);
+      const messageId = response?.messages?.[0]?.id;
+
+      if (typeof onMessageAdded === 'function') {
+        onMessageAdded({
+          ...provisionalMessage,
+          status: 'sent',
+          whatsapp_message_id: messageId,
+          serverResponse: response,
+        });
+      }
+    } catch (err) {
+      console.error('[❌ Erro ao enviar mensagem]', err);
+      if (typeof onMessageAdded === 'function') {
+        onMessageAdded({
+          ...provisionalMessage,
+          status: 'error',
+          errorMessage: err.message,
+        });
+      }
+    } finally {
       setIsSending(false);
-      return;
     }
-    const fileUrl = await uploadFileAndGetURL(file);
-    if (!fileUrl) throw new Error('Não foi possível obter URL.');
-
-    const isAudioFile = file.type.startsWith('audio/');
-    const isImage = file.type.startsWith('image/');
-    if (isAudioFile) {
-      payload.type = 'audio';
-      payload.content = { url: fileUrl, voice: true };
-    } else {
-      const caption = text.trim() || file.name;
-      payload.type = isImage ? 'image' : 'document';
-      payload.content = {
-        url: fileUrl,
-        filename: file.name,
-        caption,
-      };
-    }
-  } else {
-    payload.type = 'text';
-    if (replyTo) {
-      payload.context = { message_id: replyTo };
-    }
-    payload.content = { body: text.trim() };
-  }
-
-  console.log('🚀 Payload FINAL enviado para o servidor:', payload);
-
-  const serverData = await apiPost('/messages/send', payload);
-
-  if (typeof onMessageAdded === 'function') {
-    onMessageAdded({
-      id: tempId,
-      status: 'sent',
-      serverResponse: serverData,
-    });
-  }
-
-} catch (err) {
-  console.error('[❌ Erro ao enviar]', err);
-  if (typeof onMessageAdded === 'function') {
-    onMessageAdded({
-      id: tempId,
-      status: 'error',
-      errorMessage: err.message,
-    });
-  }
-
-} finally {
-  setIsSending(false);
-}
-
   };
 
   return { isSending, sendMessage };
