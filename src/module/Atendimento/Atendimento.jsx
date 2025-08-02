@@ -34,27 +34,32 @@ export default function Atendimento() {
 
   const [isWindowActive, setIsWindowActive] = useState(true);
 
-  useEffect(() => {
-    document.title = "HubHMG - Atendimento";
-    const token = localStorage.getItem("token");
+useEffect(() => {
+  document.title = "HubHMG - Atendimento";
+  const token = localStorage.getItem("token");
+  if (!token) return;
 
-    if (!token) return;
+  const { email } = parseJwt(token);
+  if (!email) return;
 
-    const { email } = parseJwt(token);
-    if (!email) return;
+  setUserInfo({ email, filas: [] }); // limpa antes
 
-    setUserInfo({ email, filas: [] });
-    (async () => {
-      try {
-        const data = await apiGet(`/atendentes/${email}`);
-        if (data?.email) {
-          setUserInfo({ email: data.email, filas: data.filas || [] });
-        }
-      } catch (err) {
-        console.error("Erro ao buscar dados do atendente:", err);
+  (async () => {
+    try {
+      const data = await apiGet(`/atendentes/${email}`);
+      if (data?.email) {
+        setUserInfo({
+          email: data.email,
+          filas: data.filas || [],
+          name: `${data.name} ${data.lastname}`.trim(),
+        });
       }
-    })();
-  }, [setUserInfo]);
+    } catch (err) {
+      console.error("Erro ao buscar dados do atendente:", err);
+    }
+  })();
+}, [setUserInfo]);
+
 
   useEffect(() => {
     audioPlayer.current = new Audio(notificationSound);
