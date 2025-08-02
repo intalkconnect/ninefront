@@ -14,9 +14,12 @@ export default function Atendimento() {
   const audioPlayer = useRef(null);
   const isWindowActiveRef = useRef(true);
 
+  // Zustand hooks
   const selectedUserId = useConversationsStore((s) => s.selectedUserId);
   const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
   const setUserInfo = useConversationsStore((s) => s.setUserInfo);
+  const setAgentName = useConversationsStore((s) => s.setAgentName);  // novo!
+  const setSettings = useConversationsStore((s) => s.setSettings);    // novo!
   const mergeConversation = useConversationsStore((s) => s.mergeConversation);
   const loadUnreadCounts = useConversationsStore((s) => s.loadUnreadCounts);
   const loadLastReadTimes = useConversationsStore((s) => s.loadLastReadTimes);
@@ -32,22 +35,36 @@ export default function Atendimento() {
   const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
 
   // Autenticação do usuário e setup de info
-  useEffect(() => {
+ useEffect(() => {
     document.title = "HubHMG - Atendimento";
     const token = localStorage.getItem("token");
     if (!token) return;
     const { email } = parseJwt(token);
     if (!email) return;
     setUserInfo({ email, filas: [] });
+
     (async () => {
       try {
+        // Busca dados do atendente (nome)
         const data = await apiGet(`/atendentes/${email}`);
-        if (data?.email) setUserInfo({ email: data.email, filas: data.filas || [] });
+        if (data?.email) {
+          setUserInfo({ email: data.email, filas: data.filas || [] });
+          // Monta nome completo!
+          const fullName = [data.name, data.lastname].filter(Boolean).join(" ");
+          setAgentName(fullName);
+        }
       } catch (err) {
         console.error("Erro ao buscar dados do atendente:", err);
       }
+      // Busca as configurações globais
+      try {
+        const config = await apiGet("/settings");
+        setSettings(config);
+      } catch (err) {
+        console.error("Erro ao buscar settings:", err);
+      }
     })();
-  }, [setUserInfo]);
+  }, [setUserInfo, setAgentName, setSettings]);
 
   // Notificação sonora
   useEffect(() => {
