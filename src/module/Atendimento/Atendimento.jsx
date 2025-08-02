@@ -12,8 +12,6 @@ import { parseJwt } from "../../utils/auth";
 
 export default function Atendimento() {
   const audioPlayer = useRef(null);
-  const socketRef = useRef(null);
-  const isWindowActiveRef = useRef(true);
 
   const selectedUserId = useConversationsStore((s) => s.selectedUserId);
   const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
@@ -24,32 +22,28 @@ export default function Atendimento() {
   const incrementUnread = useConversationsStore((s) => s.incrementUnread);
   const getContactName = useConversationsStore((s) => s.getContactName);
   const conversations = useConversationsStore((s) => s.conversations);
-  const notifiedConversations = useConversationsStore(
-    (s) => s.notifiedConversations
-  );
+  const notifiedConversations = useConversationsStore((s) => s.notifiedConversations);
   const markNotified = useConversationsStore((s) => s.markNotified);
+  const clearNotified = useConversationsStore((s) => s.clearNotified); // precisa existir na store!
+  const clearUnread = useConversationsStore((s) => s.clearUnread);     // precisa existir na store!
   const userEmail = useConversationsStore((s) => s.userEmail);
   const userFilas = useConversationsStore((s) => s.userFilas);
   const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
 
-  const [isWindowActive, setIsWindowActive] = useState(true);
+  // Controle janela ativa
+  const isWindowActiveRef = useRef(true);
 
   useEffect(() => {
     document.title = "HubHMG - Atendimento";
     const token = localStorage.getItem("token");
-
     if (!token) return;
-
     const { email } = parseJwt(token);
     if (!email) return;
-
     setUserInfo({ email, filas: [] });
     (async () => {
       try {
         const data = await apiGet(`/atendentes/${email}`);
-        if (data?.email) {
-          setUserInfo({ email: data.email, filas: data.filas || [] });
-        }
+        if (data?.email) setUserInfo({ email: data.email, filas: data.filas || [] });
       } catch (err) {
         console.error("Erro ao buscar dados do atendente:", err);
       }
@@ -62,63 +56,47 @@ export default function Atendimento() {
     return () => audioPlayer.current?.pause();
   }, []);
 
+  // Janela ativa/inativa e permissão de notificação
   useEffect(() => {
-    const onFocus = () => {
-      isWindowActiveRef.current = true;
-      setIsWindowActive(true);
-    };
-    const onBlur = () => {
-      isWindowActiveRef.current = false;
-      setIsWindowActive(false);
-    };
+    const onFocus = () => { isWindowActiveRef.current = true; };
+    const onBlur = () => { isWindowActiveRef.current = false; };
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onBlur);
-
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("blur", onBlur);
     };
   }, []);
 
-  // Força reconexão do socket quando volta para aba
-useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      const socket = getSocket();
-socket.on('connect', () => console.log('SOCKET RECONNECTED:', socket.id));
-socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
-
-      console.log('Visibilidade: voltando para aba. Socket conectado?', socket.connected);
-      if (socket && !socket.connected) {
-        // Força reconexão do socket
-        socket.connect();
-        // Opcional: envie novamente o identify se necessário
-        // socket.emit("identify", { email: userEmail, rooms: userFilas });
-      }
+  // Ao selecionar conversa, limpa notified + unread (para permitir novas notificações do mesmo user)
+  useEffect(() => {
+    if (selectedUserId) {
+      clearNotified(selectedUserId);
+      clearUnread(selectedUserId);
     }
-  };
+  }, [selectedUserId, clearNotified, clearUnread]);
 
-  document.addEventListener("visibilitychange", handleVisibilityChange);
+  // Força reconexão do socket quando volta para aba
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        const socket = getSocket();
+        if (socket && !socket.connected) socket.connect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-}, [userEmail, userFilas]);
-
-
+  // Handler principal de mensagens novas (socket)
   const handleNewMessage = useCallback(
     async (message) => {
-      if (!message || !message.content || message.assigned_to !== userEmail) {
-        console.warn(
-          "[Notificação] Mensagem ignorada: dados incompletos ou não atribuída a este atendente."
-        );
-        return;
-      }
-
+      if (!message || !message.content || message.assigned_to !== userEmail) return;
       const isFromMe = message.direction === "outgoing";
       const isActiveChat = message.user_id === selectedUserId;
       const isWindowFocused = isWindowActiveRef.current;
@@ -132,14 +110,13 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
       if (isFromMe) return;
 
       if (isActiveChat && isWindowFocused) {
-        await apiPut(`/messages/read-status/${message.user_id}`, {
-          last_read: new Date().toISOString(),
-        });
+        await apiPut(`/messages/read-status/${message.user_id}`, { last_read: new Date().toISOString() });
         await loadUnreadCounts();
       } else {
         incrementUnread(message.user_id, message.timestamp);
         await loadUnreadCounts();
 
+        // Só notifica se a janela NÃO estiver ativa E nunca notificou para essa conversa desde última visualização
         if (!isWindowFocused && !notifiedConversations[message.user_id]) {
           const contactName = getContactName(message.user_id);
           showNotification(message, contactName);
@@ -151,9 +128,9 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
               await player.play();
             }
           } catch (err) {
-            console.error("Erro ao tocar som de notificação:", err);
+            // não trava se não tocar
           }
-          markNotified(message.user_id);
+          markNotified(message.user_id); // marca como já notificado até o user abrir o chat
         }
       }
     },
@@ -169,6 +146,7 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
     ]
   );
 
+  // Inicialização, listeners do socket
   useEffect(() => {
     if (!userEmail || !userFilas.length) return;
     let mounted = true;
@@ -180,35 +158,23 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
           loadUnreadCounts(),
         ]);
         if (!mounted) return;
-
         connectSocket();
         const socket = getSocket();
-        socketRef.current = socket;
-
         socket.on("connect", async () => {
           setSocketStatus("online");
           const sessionId = socket.id;
           try {
-            await apiPut(`/atendentes/session/${userEmail}`, {
-              session: sessionId,
-            });
-
-            // ✅ Sinalizar que está pronto para SocketDisconnectedModal
+            await apiPut(`/atendentes/session/${userEmail}`, { session: sessionId });
             window.sessionStorage.setItem("sessionReady", "true");
-          } catch (err) {
-            console.error("Erro ao informar sessão ao servidor:", err);
-          }
-
+          } catch (err) { }
           socket.emit("identify", { email: userEmail, rooms: userFilas });
         });
-
         socket.on("disconnect", () => setSocketStatus("offline"));
         socket.on("new_message", handleNewMessage);
       } catch (err) {
         console.error("Erro na inicialização:", err);
       }
     })();
-
     return () => {
       mounted = false;
       const socket = getSocket();
@@ -237,27 +203,16 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
     }
   };
 
+  // Gera notificação visual browser
   const showNotification = (message, contactName) => {
-    if (!("Notification" in window)) {
-      console.warn("[Notificação] API Notification não está disponível.");
-      return;
-    }
-
+    if (!("Notification" in window)) return;
     if (Notification.permission === "default") {
       Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          showNotification(message, contactName);
-        } else {
-          console.warn("[Notificação] Permissão negada.");
-        }
+        if (permission === "granted") showNotification(message, contactName);
       });
       return;
     }
-
-    if (Notification.permission !== "granted") {
-      console.warn("[Notificação] Permissão não concedida.");
-      return;
-    }
+    if (Notification.permission !== "granted") return;
 
     let body;
     try {
@@ -265,11 +220,10 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
       body = parsed.text || parsed.caption || "[mensagem]";
     } catch {
       body =
-        message.content.length > 50
+        typeof message.content === "string" && message.content.length > 50
           ? message.content.slice(0, 47) + "..."
           : message.content;
     }
-
     const notif = new Notification(
       `Nova mensagem de ${contactName || message.user_id}`,
       {
@@ -278,7 +232,6 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
         vibrate: [200, 100, 200],
       }
     );
-
     notif.onclick = () => {
       window.focus();
       setSelectedUserId(message.user_id);
