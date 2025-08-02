@@ -240,6 +240,43 @@
   text-align: center;
   padding: 40px 20px;
 }
+.avatar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 8px 0;
+  margin-bottom: 12px;
+}
+
+.avatar-circle {
+  background-color: var(--primary, #4a90e2);
+  color: white;
+  width: 48px;
+  height: 48px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Ícones ao lado das labels */
+.info-icon {
+  margin-right: 8px;
+  color: var(--primary, #4a90e2);
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+}
+
 
 /* ===== Responsividade ===== */
 @media (max-width: 768px) {
