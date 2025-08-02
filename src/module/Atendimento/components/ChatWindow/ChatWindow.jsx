@@ -134,8 +134,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         setAllMessages(msgs);
         updateDisplayedMessages(msgs, 1);
 
-        marcarMensagensAntesDoTicketComoLidas(userIdSelecionado);
-
         const lastMsg = msgs[msgs.length - 1] || {};
         mergeConversation(userIdSelecionado, {
           channel: lastMsg.channel || clienteRes.channel || 'desconhecido',
@@ -144,6 +142,10 @@ export default function ChatWindow({ userIdSelecionado }) {
           name: clienteRes.name || userIdSelecionado,
           assigned_to, status,
         });
+
+        setTimeout(() => {
+  marcarMensagensAntesDoTicketComoLidas(userIdSelecionado);
+}, 0);
 
         setClienteInfo({
           name: clienteRes.name,
