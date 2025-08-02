@@ -2,10 +2,10 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useRef,
-  useEffect,
-} from "react";
+  useEffect
+} from 'react';
 
-import MessageRow from "./MessageRow";
+import MessageRow from './MessageRow';
 
 /**
  * MessageList (versão “carrega tudo” com suporte a scroll infinito)
@@ -39,18 +39,16 @@ const MessageList = forwardRef(
     // Scroll automático ao voltar aba
     useEffect(() => {
       const handleVisibility = () => {
-        if (document.visibilityState === "visible") {
+        if (document.visibilityState === 'visible') {
           setTimeout(() => {
             if (containerRef.current) {
-              containerRef.current.scrollTop =
-                containerRef.current.scrollHeight;
+              containerRef.current.scrollTop = containerRef.current.scrollHeight;
             }
           }, 50);
         }
       };
-      document.addEventListener("visibilitychange", handleVisibility);
-      return () =>
-        document.removeEventListener("visibilitychange", handleVisibility);
+      document.addEventListener('visibilitychange', handleVisibility);
+      return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, []);
 
     return (
@@ -63,12 +61,12 @@ const MessageList = forwardRef(
         {messages.map((msg, index) => {
           if (!msg) return null;
 
-          const isSystem = msg.direction === "system" || msg.type === "system";
+          const isSystem = msg.direction === 'system' || msg.type === 'system';
           if (isSystem) {
-            let systemText = "";
-            if (typeof msg.content === "string") {
-              systemText = msg.content.replace(/^"(.*)"$/, "$1"); // remove aspas
-            } else if (typeof msg.content === "object" && msg.content.text) {
+            let systemText = '';
+            if (typeof msg.content === 'string') {
+              systemText = msg.content.replace(/^"(.*)"$/, '$1'); // remove aspas
+            } else if (typeof msg.content === 'object' && msg.content.text) {
               systemText = msg.content.text;
             }
 
@@ -79,33 +77,17 @@ const MessageList = forwardRef(
             );
           }
 
-          const replyToMessage = messages.find(
-            (m) => m.whatsapp_message_id === msg.reply_to
-          );
+          const replyToMessage = messages.find(m => m.whatsapp_message_id === msg.reply_to);
           const prevMsg = messages[index - 1];
-          const isNewTicket =
-            !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
+          const isNewTicket = !prevMsg || msg.ticket_number !== prevMsg.ticket_number;
 
           return (
             <React.Fragment key={msg.id || index}>
               {index > 0 && isNewTicket && msg.ticket_number && (
-                <div className="ticket-divider">
-                  Ticket #{msg.ticket_number}
-                </div>
+                <div className="ticket-divider">Ticket #{msg.ticket_number}</div>
               )}
               <MessageRow
-                msg={{
-                  ...msg,
-                  replyTo: replyToMessage,
-                  content:
-                    msg.direction === "outgoing" &&
-                    typeof msg.content === "string"
-                      ? msg.content
-                          .split("\n")
-                          .filter((line) => !line.trim().startsWith("— "))
-                          .join("\n")
-                      : msg.content,
-                }}
+                msg={{ ...msg, replyTo: replyToMessage }}
                 onImageClick={onImageClick}
                 onPdfClick={onPdfClick}
                 onReply={onReply}
