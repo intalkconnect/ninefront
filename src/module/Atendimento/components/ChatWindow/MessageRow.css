@@ -18,6 +18,24 @@
   line-height: 1;
 }
 
+.ver-mais-wrapper {
+  text-align: center;
+  margin: 10px 0;
+}
+
+.ver-mais-btn {
+  background-color: #eee;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.ver-mais-btn:hover {
+  background-color: #ddd;
+}
+
 
 .message-row {
   display: flex;
