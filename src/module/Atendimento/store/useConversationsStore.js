@@ -1,88 +1,139 @@
-import { create } from "zustand";
-import { produce } from "immer";
-
-const initialState = {
-  selectedUserId: null,
-  userEmail: "",
-  userFilas: [],
-  conversations: {},
-  unreadCounts: {},
-  lastReadTimes: {},
-  notifiedConversations: {},
-  socketStatus: "offline",
-};
+import { create } from 'zustand';
+import { apiGet, apiPut } from '../services/apiClient';
 
 const useConversationsStore = create((set, get) => ({
-  ...initialState,
+  conversations: {},
+  lastRead: {},
+  unreadCounts: {},
+  clienteAtivo: null,
+  selectedUserId: null,
+  userEmail: null,
+  userFilas: [],
+  settings: [],
+  socketStatus: 'online',
+  notifiedConversations: {},
 
-  // Troca o usuário selecionado, reseta notificações/unread para anterior e novo
-  setSelectedUserId: (userId) => set(produce((state) => {
-    if (state.selectedUserId) {
-      state.notifiedConversations[state.selectedUserId] = false;
-      state.unreadCounts[state.selectedUserId] = 0;
-    }
-    state.selectedUserId = userId;
-    if (userId) {
-      state.notifiedConversations[userId] = false;
-      state.unreadCounts[userId] = 0;
-    }
-  })),
+  setSocketStatus: (status) => set({ socketStatus: status }),
 
-  // Seta email e filas do usuário (só sobrescreve esses campos)
-  setUserInfo: (info) =>
+  setSettings: (data) => set({ settings: data }),
+  getSettingValue: (key) => {
+    const found = get().settings.find(s => s.key === key);
+    return found ? found.value : null;
+  },
+
+  setUserInfo: ({ email, filas }) => set({ userEmail: email, userFilas: filas }),
+
+  setSelectedUserId: async (userId) => {
+    const previousId = get().selectedUserId;
+    const now = new Date().toISOString();
+
+    set({ selectedUserId: userId });
+
+    if (previousId && previousId !== userId) {
+      get().resetUnread(previousId);
+      get().clearNotified(previousId);
+    }
+
+    get().resetUnread(userId);
+    get().clearNotified(userId);
+
     set((state) => ({
-      ...state,
-      userEmail: info.email,
-      userFilas: info.filas || [],
-    })),
+      lastRead: { ...state.lastRead, [userId]: now },
+      unreadCounts: { ...state.unreadCounts, [userId]: 0 }
+    }));
 
-  // Atualiza uma conversa (merge inteligente)
-  mergeConversation: (userId, newData) =>
-    set(produce((state) => {
-      if (!state.conversations[userId]) state.conversations[userId] = {};
-      state.conversations[userId] = {
-        ...state.conversations[userId],
-        ...newData
-      };
-    })),
+    try {
+      await apiPut(`/messages/read-status/${userId}`, { last_read: now });
+      await get().loadUnreadCounts();
+    } catch (err) {
+      console.error('Erro ao marcar como lido:', err);
+    }
+  },
 
-  // Soma unread, atualiza lastReadTime se enviado
-  incrementUnread: (userId, timestamp) =>
-    set(produce((state) => {
-      if (!state.unreadCounts[userId]) state.unreadCounts[userId] = 0;
-      state.unreadCounts[userId]++;
-      if (timestamp) state.lastReadTimes[userId] = timestamp;
-    })),
-
-  // Marca conversa como notificada
-  markNotified: (userId) =>
-    set(produce((state) => {
-      state.notifiedConversations[userId] = true;
-    })),
-
-  // Limpa notificação
-  clearNotified: (userId) =>
-    set(produce((state) => {
-      state.notifiedConversations[userId] = false;
-    })),
-
-  // Zera unread de um usuário
   resetUnread: (userId) =>
-    set(produce((state) => {
-      state.unreadCounts[userId] = 0;
+    set((state) => ({
+      unreadCounts: { ...state.unreadCounts, [userId]: 0 },
+      lastRead: { ...state.lastRead, [userId]: new Date().toISOString() }
     })),
-  clearUnread: (userId) => get().resetUnread(userId), // alias
 
-  // Getter seguro para nome do contato
+  incrementUnread: (userId, messageTimestamp) => {
+    const { lastRead, unreadCounts } = get();
+    const last = lastRead[userId] ? new Date(lastRead[userId]) : null;
+    const current = new Date(messageTimestamp);
+
+    if (last && current <= last) return;
+    set({
+      unreadCounts: {
+        ...unreadCounts,
+        [userId]: (unreadCounts[userId] || 0) + 1
+      }
+    });
+  },
+
+  setClienteAtivo: (info) => set({ clienteAtivo: info }),
+
+  mergeConversation: (userId, data) =>
+    set((state) => ({
+      conversations: {
+        ...state.conversations,
+        [userId]: {
+          ...(state.conversations[userId] || {}),
+          ...data
+        }
+      }
+    })),
+
   getContactName: (userId) =>
     get().conversations[userId]?.name || userId,
 
-  setSocketStatus: (status) =>
-    set({ socketStatus: status }),
+  loadUnreadCounts: async () => {
+    try {
+      const data = await apiGet('/messages/unread-counts');
+      const counts = data.reduce((acc, item) => {
+        acc[item.user_id] = item.unread_count;
+        return acc;
+      }, {});
+      set({ unreadCounts: counts });
+    } catch (error) {
+      console.error('Erro ao carregar unreadCounts:', error);
+    }
+  },
 
-  // Async functions placeholders (implemente se quiser buscar do backend)
-  loadUnreadCounts: async () => {},
-  loadLastReadTimes: async () => {},
+  loadLastReadTimes: async () => {
+    try {
+      const data = await apiGet('/messages/read-status');
+      const lastReadAcc = data.reduce((acc, item) => {
+        acc[item.user_id] = item.last_read;
+        return acc;
+      }, {});
+      set({ lastRead: lastReadAcc });
+    } catch (error) {
+      console.error('Erro ao carregar lastReadTimes:', error);
+    }
+  },
+
+  getFilteredConversations: () => {
+    const { conversations, userEmail, userFilas } = get();
+    return Object.fromEntries(
+      Object.entries(conversations).filter(([_, conv]) =>
+        conv.status === 'open' &&
+        conv.assigned_to === userEmail &&
+        userFilas.includes(conv.fila)
+      )
+    );
+  },
+
+  markNotified: (userId) =>
+    set((state) => ({
+      notifiedConversations: { ...state.notifiedConversations, [userId]: true }
+    })),
+
+  clearNotified: (userId) =>
+    set((state) => {
+      const updated = { ...state.notifiedConversations };
+      delete updated[userId];
+      return { notifiedConversations: updated };
+    }),
 }));
 
 export default useConversationsStore;
