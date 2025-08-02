@@ -3,7 +3,9 @@
 .upload-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5); /* fundo escurecido */
+  width: 100vw;       /* Garante ocupar toda a largura */
+  height: 100vh;      /* Garante ocupar toda a altura */
+  background: rgba(0, 0, 0, 0.55); /* fundo escurecido */
   display: flex;
   justify-content: center;
   align-items: center;
