@@ -114,15 +114,13 @@ export function useSendMessage() {
   return { isSending, sendMessage };
 }
 
-// ✅ Export separado para uso em ChatWindow ou qualquer outro lugar
-export function marcarMensagensAntesDoTicketComoLidas(userId) {
-  const conversa = useConversationsStore.getState().conversations[userId];
-  if (!conversa?.messages) return;
+export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
+  if (!mensagens || !Array.isArray(mensagens)) return;
 
-  const systemIndex = conversa.messages.findIndex((m) => m.type === 'system');
+  const systemIndex = mensagens.findIndex((m) => m.direction === 'system');
   if (systemIndex === -1) return;
 
-  const novasMsgs = conversa.messages.map((msg, idx) => {
+  const novasMsgs = mensagens.map((msg, idx) => {
     if (idx < systemIndex && msg.direction === 'incoming') {
       return { ...msg, status: 'read' };
     }
@@ -130,7 +128,9 @@ export function marcarMensagensAntesDoTicketComoLidas(userId) {
   });
 
   useConversationsStore.getState().setConversation(userId, {
-    ...conversa,
+    ...(useConversationsStore.getState().conversations[userId] || {}),
     messages: novasMsgs,
   });
 }
+
+
