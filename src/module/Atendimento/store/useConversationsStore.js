@@ -9,15 +9,9 @@ const useConversationsStore = create((set, get) => ({
   selectedUserId: null,
   userEmail: null,
   userFilas: [],
-  agentName: '',
   settings: [],
-  socketStatus: 'online',
-  notifiedConversations: {},
-
+  socketStatus: 'online',          // estado da conexão com o socket
   setSocketStatus: (status) => set({ socketStatus: status }),
-
-  setAgentName: (name) => set({ agentName: name }),        
-  getAgentName: () => get().agentName,                   
 
   setSettings: (data) => set({ settings: data }),
   getSettingValue: (key) => {
@@ -25,8 +19,10 @@ const useConversationsStore = create((set, get) => ({
     return found ? found.value : null;
   },
 
+  // Configura email e filas do usuário
   setUserInfo: ({ email, filas }) => set({ userEmail: email, userFilas: filas }),
 
+  // Atualiza conversa selecionada, zera não lidas do atual e do anterior
   setSelectedUserId: async (userId) => {
     const previousId = get().selectedUserId;
     const now = new Date().toISOString();
@@ -41,62 +37,69 @@ const useConversationsStore = create((set, get) => ({
     get().resetUnread(userId);
     get().clearNotified(userId);
 
+    // Atualiza visualmente
     set((state) => ({
-      lastRead: { ...state.lastRead, [userId]: now },
-      unreadCounts: { ...state.unreadCounts, [userId]: 0 }
+      lastRead: {
+        ...state.lastRead,
+        [userId]: now,
+      },
+      unreadCounts: {
+        ...state.unreadCounts,
+        [userId]: 0,
+      },
     }));
 
+    // Marcar como lido no backend
     try {
-      await apiPut(`/messages/read-status/${userId}`, { last_read: now });
+      await apiPut(`/messages/read-status/${userId}`, {
+        last_read: now,
+      });
+
+      // 🔁 Atualiza contagens do backend após marcar como lido
       await get().loadUnreadCounts();
     } catch (err) {
       console.error('Erro ao marcar como lido:', err);
     }
   },
 
+  // Zera contagem de não lidas
   resetUnread: (userId) =>
     set((state) => ({
-      unreadCounts: { ...state.unreadCounts, [userId]: 0 },
-      lastRead: { ...state.lastRead, [userId]: new Date().toISOString() }
+      unreadCounts: {
+        ...state.unreadCounts,
+        [userId]: 0,
+      },
+      lastRead: {
+        ...state.lastRead,
+        [userId]: new Date().toISOString(),
+      },
     })),
 
+  // Incrementa contagem de não lidas
   incrementUnread: (userId, messageTimestamp) => {
     const { lastRead, unreadCounts } = get();
+
     const last = lastRead[userId] ? new Date(lastRead[userId]) : null;
     const current = new Date(messageTimestamp);
 
-    if (last && current <= last) return;
+    if (last && current <= last) {
+      // Já foi lida
+      return;
+    }
+
     set({
       unreadCounts: {
         ...unreadCounts,
-        [userId]: (unreadCounts[userId] || 0) + 1
-      }
+        [userId]: (unreadCounts[userId] || 0) + 1,
+      },
     });
   },
 
   setClienteAtivo: (info) => set({ clienteAtivo: info }),
 
-// No seu useConversationsStore.js
-mergeConversation: (userId, data) =>
-  set((state) => {
-    // Se for mensagem nova, adiciona ao array messages
-    if (data.messages) {
-      // Garante array, adiciona (concatena) ao final
-      const prevMsgs = state.conversations[userId]?.messages || [];
-      const newMsgs = Array.isArray(data.messages) ? data.messages : [data.messages];
-      return {
-        conversations: {
-          ...state.conversations,
-          [userId]: {
-            ...(state.conversations[userId] || {}),
-            ...data,
-            messages: [...prevMsgs, ...newMsgs],
-          },
-        },
-      };
-    }
-    // Caso não seja mensagem (apenas update de meta/dados)
-    return {
+  // Adiciona ou atualiza dados de conversa
+  mergeConversation: (userId, data) =>
+    set((state) => ({
       conversations: {
         ...state.conversations,
         [userId]: {
@@ -104,14 +107,12 @@ mergeConversation: (userId, data) =>
           ...data,
         },
       },
-    };
-  }),
+    })),
 
+  // Retorna nome do contato ou ID
+  getContactName: (userId) => get().conversations[userId]?.name || userId,
 
-
-  getContactName: (userId) =>
-    get().conversations[userId]?.name || userId,
-
+  // Carrega contagem de não lidas do servidor
   loadUnreadCounts: async () => {
     try {
       const data = await apiGet('/messages/unread-counts');
@@ -125,6 +126,7 @@ mergeConversation: (userId, data) =>
     }
   },
 
+  // Carrega timestamps de leitura do servidor
   loadLastReadTimes: async () => {
     try {
       const data = await apiGet('/messages/read-status');
@@ -138,6 +140,7 @@ mergeConversation: (userId, data) =>
     }
   },
 
+  // Filtra conversas ativas e atribuídas
   getFilteredConversations: () => {
     const { conversations, userEmail, userFilas } = get();
     return Object.fromEntries(
@@ -149,9 +152,14 @@ mergeConversation: (userId, data) =>
     );
   },
 
+  notifiedConversations: {},
+
   markNotified: (userId) =>
     set((state) => ({
-      notifiedConversations: { ...state.notifiedConversations, [userId]: true }
+      notifiedConversations: {
+        ...state.notifiedConversations,
+        [userId]: true,
+      },
     })),
 
   clearNotified: (userId) =>
@@ -160,6 +168,7 @@ mergeConversation: (userId, data) =>
       delete updated[userId];
       return { notifiedConversations: updated };
     }),
+
 }));
 
 export default useConversationsStore;
