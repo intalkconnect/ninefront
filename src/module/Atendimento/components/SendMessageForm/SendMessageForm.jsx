@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import "./SendMessageForm.css";
@@ -107,28 +107,54 @@ export default function SendMessageForm({
   /* ------------------------------------------------------------------ */
   /*  Manipuladores                                                      */
   /* ------------------------------------------------------------------ */
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (isRecording) return stopRecording();
+  const handleSend = (e) => {const handleSend = (e) => {
+  e.preventDefault();
+  if (isRecording) return stopRecording();
 
-    if (text.trim() || file) {
-      sendMessage(
-        {
-          text,
-          file,
-          userId: userIdSelecionado,
-          replyTo: replyTo?.whatsapp_message_id || null,
-        },
-        onMessageAdded
-      );
-      setText("");
-      setFile(null);
-      setReplyTo(null);
-      setShowQuickReplies(false);
-    } else {
-      startRecording();
-    }
-  };
+  const trimmedText = text.trim();
+  const hasTextOrFile = trimmedText || file;
+
+  if (!hasTextOrFile) {
+    startRecording();
+    return;
+  }
+
+  const lastIncoming = [...(conversation?.messages || [])]
+    .reverse()
+    .find((msg) => msg.direction === 'incoming');
+
+  const canSendFreeform =
+    lastIncoming && isWithin24Hours(lastIncoming.timestamp);
+
+  if (!canSendFreeform) {
+    toast.warn(
+      'A conversa está fora da janela de 24h. Envie um template primeiro.',
+      { position: 'bottom-right' }
+    );
+    return;
+  }
+
+  let textToSend = trimmedText;
+  if (isSignatureEnabled && trimmedText) {
+    textToSend = `*${agentName}:*\n\n${trimmedText}`;
+  }
+
+  sendMessage(
+    {
+      text: textToSend,
+      file,
+      userId: userIdSelecionado,
+      replyTo: replyTo?.whatsapp_message_id || null,
+    },
+    onMessageAdded
+  );
+
+  setText('');
+  setFile(null);
+  setReplyTo(null);
+  setShowQuickReplies(false);
+};
+
 
   const handleQuickReplySelect = (qr) => {
     setText(qr.content);
@@ -337,3 +363,4 @@ export default function SendMessageForm({
     </>
   );
 }
+
