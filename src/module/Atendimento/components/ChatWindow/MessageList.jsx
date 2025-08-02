@@ -2,13 +2,14 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useRef,
-  useEffect
+  useEffect,
+  useState
 } from 'react';
 
 import MessageRow from './MessageRow';
 
 /**
- * MessageList (versão “carrega tudo” com suporte a scroll infinito)
+ * MessageList (versão paginada com botão "Ver mais")
  *
  * Props:
  *  - messages: array de mensagens ({ id, direction, content, timestamp, status, ... })
@@ -19,26 +20,28 @@ import MessageRow from './MessageRow';
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
+    const [visibleCount, setVisibleCount] = useState(30); // mostra 30 inicialmente
+
+    const visibleMessages = messages.slice(-visibleCount);
 
     // Método exposto para scroll manual
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         if (containerRef.current) {
           containerRef.current.scrollTo({
-  top: containerRef.current.scrollHeight,
-  behavior: "auto", // ⬅ garante scroll instantâneo
-});
-
+            top: containerRef.current.scrollHeight,
+            behavior: "auto"
+          });
         }
       },
     }));
 
-    // Scroll automático ao mudar mensagens
+    // Scroll automático ao mudar mensagens (sem animação)
     useEffect(() => {
       if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
       }
-    }, [messages]);
+    }, [visibleMessages]);
 
     // Scroll automático ao voltar aba
     useEffect(() => {
@@ -57,19 +60,31 @@ const MessageList = forwardRef(
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
+        {/* Botão "ver mais mensagens" */}
+        {messages.length > visibleCount && (
+          <div className="ver-mais-wrapper">
+            <button className="ver-mais-btn" onClick={() => setVisibleCount(c => c + 30)}>
+              Ver mais mensagens
+            </button>
+          </div>
+        )}
+
+        {/* Loader opcional para scroll infinito */}
         {loaderRef && (
           <div ref={loaderRef} className="pagination-loader">
             Carregando mensagens mais antigas...
           </div>
         )}
-        {messages.map((msg, index) => {
+
+        {/* Mensagens */}
+        {visibleMessages.map((msg, index) => {
           if (!msg) return null;
 
           const isSystem = msg.direction === 'system' || msg.type === 'system';
           if (isSystem) {
             let systemText = '';
             if (typeof msg.content === 'string') {
-              systemText = msg.content.replace(/^"(.*)"$/, '$1'); // remove aspas
+              systemText = msg.content.replace(/^"(.*)"$/, '$1');
             } else if (typeof msg.content === 'object' && msg.content.text) {
               systemText = msg.content.text;
             }
