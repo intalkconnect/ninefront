@@ -3,7 +3,6 @@ import { connectSocket, getSocket } from "../../services/socket";
 import { apiGet } from "../../services/apiClient";
 import useConversationsStore from "../../store/useConversationsStore";
 import { useStableSocketListeners } from "../../hooks/useStableSocketListeners";
-import { notifyUser } from "../../utils/notification";
 
 import SendMessageForm from "../SendMessageForm/SendMessageForm";
 import MessageList from "./MessageList";
@@ -60,14 +59,6 @@ export default function ChatWindow({ userIdSelecionado }) {
       return updated;
     });
 
-    // Notificação (fora de foco)
-    if (document.visibilityState !== "visible") {
-      notifyUser({
-        title: "Nova mensagem",
-        body: msg.content?.text || msg.content || "[Mensagem]",
-        icon: "/icons/whatsapp.png"
-      });
-    }
   }, [updateDisplayedMessages]);
 
   // Handler para atualização de mensagem
