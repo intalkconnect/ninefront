@@ -127,7 +127,7 @@ export default function SendMessageForm({
         // Aplica assinatura SÓ em texto normal (não para áudio nem arquivo)
     let textToSend = text;
     if (isSignatureEnabled && text.trim()) {
-      textToSend = `${text.trim()}\n\n— ${agentName}`;
+      textToSend = `*${agentName}:*\n\n${text.trim()}`;
     }
     
     if (textToSend || file) {
@@ -356,5 +356,6 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
 
