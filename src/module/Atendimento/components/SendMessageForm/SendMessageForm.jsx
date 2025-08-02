@@ -107,7 +107,7 @@ export default function SendMessageForm({
   /* ------------------------------------------------------------------ */
   /*  Manipuladores                                                      */
   /* ------------------------------------------------------------------ */
-  const handleSend = (e) => {const handleSend = (e) => {
+  const handleSend = (e) => {
   e.preventDefault();
   if (isRecording) return stopRecording();
 
@@ -154,7 +154,6 @@ export default function SendMessageForm({
   setReplyTo(null);
   setShowQuickReplies(false);
 };
-
 
   const handleQuickReplySelect = (qr) => {
     setText(qr.content);
@@ -363,4 +362,5 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
