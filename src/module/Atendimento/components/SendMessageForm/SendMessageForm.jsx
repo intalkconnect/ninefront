@@ -5,6 +5,7 @@ import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import "./SendMessageForm.css";
 
 import useConversationsStore from "../../store/useConversationsStore";
+import { isWithin24Hours } from "../../utils/conversationWindow";
 
 import TextMessage from "../ChatWindow/messageTypes/TextMessage";
 import ImageMessage from "../ChatWindow/messageTypes/ImageMessage";
@@ -109,12 +110,16 @@ export default function SendMessageForm({
   /* ------------------------------------------------------------------ */
   /*  Manipuladores                                                      */
 
-    // Pegando configurações e nome do atendente
-  const getSettingValue = useConversationsStore(s => s.getSettingValue);
-  const userEmail = useConversationsStore(s => s.userEmail);
+  // Pegando configurações e nome do atendente
+  const getSettingValue = useConversationsStore((s) => s.getSettingValue);
+  const userEmail = useConversationsStore((s) => s.userEmail);
   // Exemplo: o nome pode vir de settings ou do objeto user direto
   // Ajuste conforme onde seu backend traz o nome!
-  const agentName = useConversationsStore(s => s.agentName);
+  const agentName = useConversationsStore((s) => s.agentName);
+
+  const conversation = useConversationsStore(
+    (s) => s.conversations[userIdSelecionado]
+  );
 
   // Está ativada a assinatura?
   const isSignatureEnabled = getSettingValue("enable_signature") === "true"; // ou "1", depende do backend
@@ -124,13 +129,27 @@ export default function SendMessageForm({
     e.preventDefault();
     if (isRecording) return stopRecording();
 
-        // Aplica assinatura SÓ em texto normal (não para áudio nem arquivo)
+    // Aplica assinatura SÓ em texto normal (não para áudio nem arquivo)
     let textToSend = text;
     if (isSignatureEnabled && text.trim()) {
       textToSend = `*${agentName}:*\n\n${text.trim()}`;
     }
-    
+
     if (textToSend || file) {
+      const lastIncoming = conversation?.messages
+        ?.slice()
+        ?.reverse()
+        ?.find((msg) => msg.direction === "incoming");
+
+      const canSendFreeform =
+        lastIncoming && isWithin24Hours(lastIncoming.timestamp);
+
+      if (!canSendFreeform) {
+        // ⚠️ Substitua isso por abrir modal de template depois
+        toast.warn("A conversa está fora da janela de 24h. Envie um template.");
+        return;
+      }
+
       sendMessage(
         {
           text: textToSend,
@@ -356,6 +375,3 @@ export default function SendMessageForm({
     </>
   );
 }
-
-
-
