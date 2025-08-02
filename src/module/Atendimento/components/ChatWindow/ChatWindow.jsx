@@ -143,9 +143,8 @@ export default function ChatWindow({ userIdSelecionado }) {
           assigned_to, status,
         });
 
-        setTimeout(() => {
-  marcarMensagensAntesDoTicketComoLidas(userIdSelecionado);
-}, 0);
+marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
+
 
         setClienteInfo({
           name: clienteRes.name,
