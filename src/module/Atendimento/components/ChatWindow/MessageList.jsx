@@ -24,7 +24,11 @@ const MessageList = forwardRef(
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         if (containerRef.current) {
-          containerRef.current.scrollTop = containerRef.current.scrollHeight;
+          containerRef.current.scrollTo({
+  top: containerRef.current.scrollHeight,
+  behavior: "auto", // ⬅ garante scroll instantâneo
+});
+
         }
       },
     }));
