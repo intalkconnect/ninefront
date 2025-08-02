@@ -10,6 +10,9 @@
   position: relative; /* ← necessário para posicionamento absoluto dos filhos */
 }
 
+.Toastify__toast-container {
+  z-index: 9999 !important;
+}
 
 /* =================================================
    2) Textarea: altura fixa maior e linha inferior
