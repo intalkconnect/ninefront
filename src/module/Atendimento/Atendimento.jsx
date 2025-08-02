@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { apiGet, apiPut } from "./services/apiClient";
 import { connectSocket, getSocket } from "./services/socket";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Sidebar from "./components/Sidebar/Sidebar";
 import ChatWindow from "./components/ChatWindow/ChatWindow";
 import DetailsPanel from "./components/DetailsPanel/DetailsPanel";
@@ -297,6 +299,9 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
   return (
     <>
       <SocketDisconnectedModal />
+
+      <ToastContainer position="bottom-right" style={{ zIndex: 9999 }} />
+      
       <div className="app-layout">
         <div className="app-container section-wrapper">
           <aside className="sidebar">
