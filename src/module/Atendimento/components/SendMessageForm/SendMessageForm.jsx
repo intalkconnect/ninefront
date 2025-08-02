@@ -4,6 +4,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import "./SendMessageForm.css";
 
+import useConversationsStore from "../../store/useConversationsStore";
+
 import TextMessage from "../ChatWindow/messageTypes/TextMessage";
 import ImageMessage from "../ChatWindow/messageTypes/ImageMessage";
 import DocumentMessage from "../ChatWindow/messageTypes/DocumentMessage";
@@ -65,6 +67,10 @@ export default function SendMessageForm({
     clearRecordedFile,
     recordingTime,
   } = useAudioRecorder();
+  const conversation = useConversationsStore(
+  (s) => s.conversations[userIdSelecionado]
+);
+
 
   /* ------------------------------------------------------------------ */
   /*  Detecta clique fora para fechar menus                              */
@@ -362,5 +368,6 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
 
