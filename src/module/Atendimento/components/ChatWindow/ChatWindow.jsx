@@ -36,58 +36,67 @@ export default function ChatWindow({ userIdSelecionado }) {
   const pageRef = useRef(1);
   const messageCacheRef = useRef(new Map());
 
-  // Atualização de mensagens para paginação
+  // Paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * MESSAGES_PER_PAGE);
     setDisplayedMessages(messages.slice(startIndex));
     setHasMoreMessages(startIndex > 0);
   }, []);
 
-  // Handler para adicionar mensagem OUT no chat
-  const handleMessageAdded = useCallback((msg) => {
-    setAllMessages((prev) => {
-      if (prev.find((m) => m.id === msg.id)) return prev;
-      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      messageCacheRef.current.set(userIdSelecionado, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
-    });
-  }, [updateDisplayedMessages, userIdSelecionado]);
+  // Novo handler para mensagem OUT (otimista)
+  const handleMessageAdded = useCallback(
+    (msg) => {
+      setAllMessages((prev) => {
+        if (!msg) return prev;
+        if (prev.find((m) => m.id === msg.id)) return prev;
+        const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        messageCacheRef.current.set(userIdSelecionado, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+    },
+    [updateDisplayedMessages, userIdSelecionado]
+  );
 
   // Handler para mensagens novas recebidas via socket (IN e OUT)
-  const handleNewMessage = useCallback((msg) => {
-    setAllMessages((prev) => {
-      if (prev.find((m) => m.id === msg.id)) return prev;
-      let updated;
-      if (!prev.length || new Date(msg.timestamp) >= new Date(prev[prev.length - 1]?.timestamp)) {
-        updated = [...prev, msg];
-      } else {
-        updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      }
-      messageCacheRef.current.set(msg.user_id, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
-    });
-  }, [updateDisplayedMessages]);
+  const handleNewMessage = useCallback(
+    (msg) => {
+      setAllMessages((prev) => {
+        if (!msg) return prev;
+        if (prev.find((m) => m.id === msg.id)) return prev;
+        let updated;
+        if (!prev.length || new Date(msg.timestamp) >= new Date(prev[prev.length - 1]?.timestamp)) {
+          updated = [...prev, msg];
+        } else {
+          updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        }
+        messageCacheRef.current.set(msg.user_id, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+    },
+    [updateDisplayedMessages]
+  );
 
   // Handler para atualizar mensagem existente (caso backend envie status)
-  const handleUpdateMessage = useCallback((msg) => {
-    setAllMessages((prev) => {
-      const updated = prev.map((m) => (m.id === msg.id ? msg : m));
-      messageCacheRef.current.set(msg.user_id, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
-    });
-  }, [updateDisplayedMessages]);
+  const handleUpdateMessage = useCallback(
+    (msg) => {
+      setAllMessages((prev) => {
+        const updated = prev.map((m) => (m.id === msg.id ? msg : m));
+        messageCacheRef.current.set(msg.user_id, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+    },
+    [updateDisplayedMessages]
+  );
 
-  // Listeners fresh de socket
   useStableSocketListeners({
     userId: userIdSelecionado,
     onNew: handleNewMessage,
     onUpdate: handleUpdateMessage,
   });
 
-  // Join na sala ao trocar de usuário
   useEffect(() => {
     const socket = getSocket();
     if (!userIdSelecionado) return;
@@ -95,7 +104,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => socket.emit("leave_room", userIdSelecionado);
   }, [userIdSelecionado]);
 
-  // Carrega as mensagens iniciais ao selecionar usuário
   useEffect(() => {
     if (!userIdSelecionado) return;
     setIsLoading(true);
@@ -125,7 +133,8 @@ export default function ChatWindow({ userIdSelecionado }) {
           ticket_number: clienteRes.ticket_number || "000000",
           fila: clienteRes.fila || fila || "Orçamento",
           name: clienteRes.name || userIdSelecionado,
-          assigned_to, status,
+          assigned_to,
+          status,
         });
         setClienteInfo({
           name: clienteRes.name,
@@ -133,7 +142,8 @@ export default function ChatWindow({ userIdSelecionado }) {
           channel: clienteRes.channel,
           ticket_number: clienteRes.ticket_number,
           fila: clienteRes.fila,
-          assigned_to, status,
+          assigned_to,
+          status,
         });
         setClienteAtivo(clienteRes);
       } catch (err) {
@@ -145,27 +155,27 @@ export default function ChatWindow({ userIdSelecionado }) {
     })();
   }, [userIdSelecionado, userEmail, userFilas, mergeConversation, setClienteAtivo, updateDisplayedMessages]);
 
-  // Scroll infinito otimizado
   useEffect(() => {
-    const observer = new window.IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMoreMessages) {
-        pageRef.current += 1;
-        const cached = messageCacheRef.current.get(userIdSelecionado) || [];
-        updateDisplayedMessages(cached, pageRef.current);
-      }
-    }, { threshold: 0.1 });
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreMessages) {
+          pageRef.current += 1;
+          const cached = messageCacheRef.current.get(userIdSelecionado) || [];
+          updateDisplayedMessages(cached, pageRef.current);
+        }
+      },
+      { threshold: 0.1 }
+    );
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => loaderRef.current && observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // Limpeza ao trocar usuário
   useEffect(() => {
     setReplyTo(null);
     setModalImage(null);
     setPdfModal(null);
   }, [userIdSelecionado]);
 
-  // Renderização
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -183,7 +193,9 @@ export default function ChatWindow({ userIdSelecionado }) {
   if (isLoading) {
     return (
       <div className="chat-window loading">
-        <div className="loading-container"><div className="spinner" /></div>
+        <div className="loading-container">
+          <div className="spinner" />
+        </div>
       </div>
     );
   }
@@ -205,7 +217,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           userIdSelecionado={userIdSelecionado}
           replyTo={replyTo}
           setReplyTo={setReplyTo}
-          onMessageAdded={handleMessageAdded}
+          onMessageAdded={handleMessageAdded} // <--- **ESSA LINHA É FUNDAMENTAL!**
         />
       </div>
       {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)} />}
