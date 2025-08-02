@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import './UploadFileModal.css';
 
 export default function UploadFileModal({ file, onClose, onSubmit }) {
@@ -17,7 +18,7 @@ export default function UploadFileModal({ file, onClose, onSubmit }) {
     }
   };
 
-  return (
+  const modal = (
     <div className="upload-modal-overlay">
       <div className="upload-modal">
         <h2>Enviar arquivo</h2>
@@ -37,4 +38,6 @@ export default function UploadFileModal({ file, onClose, onSubmit }) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
