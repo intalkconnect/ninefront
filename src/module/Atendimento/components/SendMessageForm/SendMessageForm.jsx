@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import "./SendMessageForm.css";
 
@@ -368,11 +366,10 @@ export default function SendMessageForm({
           }}
         />
       )}
-
-      <ToastContainer position="bottom-right" style={{ zIndex: 9999 }} />
     </>
   );
 }
+
 
 
 
