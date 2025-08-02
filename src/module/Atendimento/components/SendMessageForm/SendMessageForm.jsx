@@ -4,6 +4,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import "./SendMessageForm.css";
 
+import useConversationsStore from "../../store/useConversationsStore";
+
 import TextMessage from "../ChatWindow/messageTypes/TextMessage";
 import ImageMessage from "../ChatWindow/messageTypes/ImageMessage";
 import DocumentMessage from "../ChatWindow/messageTypes/DocumentMessage";
@@ -106,15 +108,32 @@ export default function SendMessageForm({
 
   /* ------------------------------------------------------------------ */
   /*  Manipuladores                                                      */
+
+    // Pegando configurações e nome do atendente
+  const getSettingValue = useConversationsStore(s => s.getSettingValue);
+  const userEmail = useConversationsStore(s => s.userEmail);
+  // Exemplo: o nome pode vir de settings ou do objeto user direto
+  // Ajuste conforme onde seu backend traz o nome!
+  const agentName = getSettingValue("agent_name") || userEmail || "Atendente";
+
+  // Está ativada a assinatura?
+  const isSignatureEnabled = getSettingValue("enable_signature") === "true"; // ou "1", depende do backend
+
   /* ------------------------------------------------------------------ */
   const handleSend = (e) => {
     e.preventDefault();
     if (isRecording) return stopRecording();
 
-    if (text.trim() || file) {
+        // Aplica assinatura SÓ em texto normal (não para áudio nem arquivo)
+    let textToSend = text;
+    if (isSignatureEnabled && text.trim()) {
+      textToSend = `${text.trim()}\n\n— ${agentName}`;
+    }
+    
+    if (textToSend || file) {
       sendMessage(
         {
-          text,
+          text: textToSend,
           file,
           userId: userIdSelecionado,
           replyTo: replyTo?.whatsapp_message_id || null,
@@ -337,3 +356,4 @@ export default function SendMessageForm({
     </>
   );
 }
+
