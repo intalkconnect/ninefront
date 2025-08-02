@@ -1,11 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import "./SendMessageForm.css";
-
-import useConversationsStore from "../../store/useConversationsStore";
-import { isWithin24Hours } from "../../utils/conversationWindow";
 
 import TextMessage from "../ChatWindow/messageTypes/TextMessage";
 import ImageMessage from "../ChatWindow/messageTypes/ImageMessage";
@@ -109,55 +106,15 @@ export default function SendMessageForm({
 
   /* ------------------------------------------------------------------ */
   /*  Manipuladores                                                      */
-
-  // Pegando configurações e nome do atendente
-  const getSettingValue = useConversationsStore((s) => s.getSettingValue);
-  const userEmail = useConversationsStore((s) => s.userEmail);
-  // Exemplo: o nome pode vir de settings ou do objeto user direto
-  // Ajuste conforme onde seu backend traz o nome!
-  const agentName = useConversationsStore((s) => s.agentName);
-
-  const conversation = useConversationsStore(
-    (s) => s.conversations[userIdSelecionado]
-  );
-
-  // Está ativada a assinatura?
-  const isSignatureEnabled = getSettingValue("enable_signature") === "true"; // ou "1", depende do backend
-
   /* ------------------------------------------------------------------ */
   const handleSend = (e) => {
     e.preventDefault();
     if (isRecording) return stopRecording();
 
-    // Aplica assinatura SÓ em texto normal (não para áudio nem arquivo)
-    let textToSend = text;
-    if (isSignatureEnabled && text.trim()) {
-      textToSend = `*${agentName}:*\n\n${text.trim()}`;
-    }
-
-    if (textToSend || file) {
-      const lastMessage = conversation?.messages?.slice()?.reverse()?.find(Boolean);
-
-const lastIncoming = conversation?.messages
-  ?.slice()
-  ?.reverse()
-  ?.find((msg) => msg.direction === "incoming");
-
-const lastIncomingTime = new Date(lastIncoming?.timestamp || 0);
-const now = new Date();
-const diffInHours = (now - lastIncomingTime) / (1000 * 60 * 60);
-
-const canSendFreeform = diffInHours <= 24;
-
-if (!canSendFreeform) {
-  toast.warn("A conversa está fora da janela de 24h. Envie um template.");
-  return;
-}
-
-
+    if (text.trim() || file) {
       sendMessage(
         {
-          text: textToSend,
+          text,
           file,
           userId: userIdSelecionado,
           replyTo: replyTo?.whatsapp_message_id || null,
@@ -380,5 +337,3 @@ if (!canSendFreeform) {
     </>
   );
 }
-
-
