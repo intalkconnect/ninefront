@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { connectSocket, getSocket } from "../../../services/socket";
+import { connectSocket, getSocket } from "../../../../services/socket";
 import { apiGet } from "../../../services/apiClient";
 import useConversationsStore from "../../../store/useConversationsStore";
 import { useStableSocketListeners } from "../../../hooks/useStableSocketListeners";
