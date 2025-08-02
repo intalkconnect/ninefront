@@ -1,6 +1,7 @@
 // src/components
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaPhone, FaEnvelope, FaIdCard } from 'react-icons/fa';
+import { User, Phone, Mail, IdCard } from 'lucide-react';
+
 import './DetailsPanel.css';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
@@ -47,38 +48,42 @@ const renderInformacoes = () => {
       <div className="card info-card">
         <h4 className="card-title">Informações do Contato</h4>
 
-        {conversaSelecionada.name && (
-          <div className="info-row">
-            <FaUser className="info-icon" />
-            <div className="info-label">Nome</div>
-            <div className="info-value">{conversaSelecionada.name}</div>
-          </div>
-        )}
+       {conversaSelecionada.name && (
+  <div className="info-row">
+    <div className="info-label">
+      <User size={16} style={{ marginRight: 6 }} /> Nome
+    </div>
+    <div className="info-value">{conversaSelecionada.name}</div>
+  </div>
+)}
 
-        {conversaSelecionada.phone && (
-          <div className="info-row">
-            <FaPhone className="info-icon" />
-            <div className="info-label">Telefone</div>
-            <div className="info-value">{conversaSelecionada.phone}</div>
-          </div>
-        )}
+{conversaSelecionada.phone && (
+  <div className="info-row">
+    <div className="info-label">
+      <Phone size={16} style={{ marginRight: 6 }} /> Telefone
+    </div>
+    <div className="info-value">{conversaSelecionada.phone}</div>
+  </div>
+)}
 
-        {conversaSelecionada.email && (
-          <div className="info-row">
-            <FaEnvelope className="info-icon" />
-            <div className="info-label">E-mail</div>
-            <div className="info-value">{conversaSelecionada.email}</div>
-          </div>
-        )}
+{conversaSelecionada.email && (
+  <div className="info-row">
+    <div className="info-label">
+      <Mail size={16} style={{ marginRight: 6 }} /> E-mail
+    </div>
+    <div className="info-value">{conversaSelecionada.email}</div>
+  </div>
+)}
 
-        {conversaSelecionada.documento && (
-          <div className="info-row">
-            <FaIdCard className="info-icon" />
-            <div className="info-label">Documento</div>
-            <div className="info-value">{conversaSelecionada.documento}</div>
-          </div>
-        )}
-      </div>
+{conversaSelecionada.documento && (
+  <div className="info-row">
+    <div className="info-label">
+      <IdCard size={16} style={{ marginRight: 6 }} /> Documento
+    </div>
+    <div className="info-value">{conversaSelecionada.documento}</div>
+  </div>
+)}
+
 
       {/* Comentários */}
       <div className="card comentario-card">
