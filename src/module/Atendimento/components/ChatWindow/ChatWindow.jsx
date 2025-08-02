@@ -36,20 +36,30 @@ export default function ChatWindow({ userIdSelecionado }) {
   const pageRef = useRef(1);
   const messageCacheRef = useRef(new Map());
 
-  // Atualização otimizada: não faz sort toda vez
+  // Atualização de mensagens para paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * MESSAGES_PER_PAGE);
     setDisplayedMessages(messages.slice(startIndex));
     setHasMoreMessages(startIndex > 0);
   }, []);
 
-  // Novo handler otimizado para mensagem nova
+  // Handler para adicionar mensagem OUT no chat
+  const handleMessageAdded = useCallback((msg) => {
+    setAllMessages((prev) => {
+      if (prev.find((m) => m.id === msg.id)) return prev;
+      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      messageCacheRef.current.set(userIdSelecionado, updated);
+      updateDisplayedMessages(updated, pageRef.current);
+      return updated;
+    });
+  }, [updateDisplayedMessages, userIdSelecionado]);
+
+  // Handler para mensagens novas recebidas via socket (IN e OUT)
   const handleNewMessage = useCallback((msg) => {
     setAllMessages((prev) => {
       if (prev.find((m) => m.id === msg.id)) return prev;
-      // Insere ordenado se necessário
       let updated;
-      if (!prev.length || new Date(msg.timestamp) >= new Date(prev[prev.length-1]?.timestamp)) {
+      if (!prev.length || new Date(msg.timestamp) >= new Date(prev[prev.length - 1]?.timestamp)) {
         updated = [...prev, msg];
       } else {
         updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -58,10 +68,9 @@ export default function ChatWindow({ userIdSelecionado }) {
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
     });
-
   }, [updateDisplayedMessages]);
 
-  // Handler para atualização de mensagem
+  // Handler para atualizar mensagem existente (caso backend envie status)
   const handleUpdateMessage = useCallback((msg) => {
     setAllMessages((prev) => {
       const updated = prev.map((m) => (m.id === msg.id ? msg : m));
@@ -71,7 +80,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     });
   }, [updateDisplayedMessages]);
 
-  // Listeners sempre fresh!
+  // Listeners fresh de socket
   useStableSocketListeners({
     userId: userIdSelecionado,
     onNew: handleNewMessage,
@@ -196,6 +205,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           userIdSelecionado={userIdSelecionado}
           replyTo={replyTo}
           setReplyTo={setReplyTo}
+          onMessageAdded={handleMessageAdded}
         />
       </div>
       {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)} />}
