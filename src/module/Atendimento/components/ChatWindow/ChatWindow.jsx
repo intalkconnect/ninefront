@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { connectSocket, getSocket } from "../../../../services/socket";
-import { apiGet } from "../../../services/apiClient";
-import useConversationsStore from "../../../store/useConversationsStore";
-import { useStableSocketListeners } from "../../../hooks/useStableSocketListeners";
-import { notifyUser } from "../../../utils/notifications";
+import { connectSocket, getSocket } from "../../services/socket";
+import { apiGet } from "../../services/apiClient";
+import useConversationsStore from "../../store/useConversationsStore";
+import { useStableSocketListeners } from "../../hooks/useStableSocketListeners";
+import { notifyUser } from "../../utils/notification";
 
 import SendMessageForm from "../SendMessageForm/SendMessageForm";
 import MessageList from "./MessageList";
