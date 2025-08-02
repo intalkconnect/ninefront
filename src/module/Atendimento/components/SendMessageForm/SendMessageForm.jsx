@@ -136,19 +136,24 @@ export default function SendMessageForm({
     }
 
     if (textToSend || file) {
-      const lastIncoming = conversation?.messages
-        ?.slice()
-        ?.reverse()
-        ?.find((msg) => msg.direction === "incoming");
+      const lastMessage = conversation?.messages?.slice()?.reverse()?.find(Boolean);
 
-      const canSendFreeform =
-        lastIncoming && isWithin24Hours(lastIncoming.timestamp);
+const lastIncoming = conversation?.messages
+  ?.slice()
+  ?.reverse()
+  ?.find((msg) => msg.direction === "incoming");
 
-      if (!canSendFreeform) {
-        // ⚠️ Substitua isso por abrir modal de template depois
-        toast.warn("A conversa está fora da janela de 24h. Envie um template.");
-        return;
-      }
+const lastIncomingTime = new Date(lastIncoming?.timestamp || 0);
+const now = new Date();
+const diffInHours = (now - lastIncomingTime) / (1000 * 60 * 60);
+
+const canSendFreeform = diffInHours <= 24;
+
+if (!canSendFreeform) {
+  toast.warn("A conversa está fora da janela de 24h. Envie um template.");
+  return;
+}
+
 
       sendMessage(
         {
@@ -375,4 +380,5 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
