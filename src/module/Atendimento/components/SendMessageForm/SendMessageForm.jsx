@@ -364,10 +364,11 @@ export default function SendMessageForm({
         />
       )}
 
-      <ToastContainer />
+      <ToastContainer position="bottom-right" style={{ zIndex: 9999 }} />
     </>
   );
 }
+
 
 
 
