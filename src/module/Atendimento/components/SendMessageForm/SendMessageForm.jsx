@@ -4,6 +4,12 @@ import "react-toastify/dist/ReactToastify.css";
 import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import "./SendMessageForm.css";
 
+import TextMessage from "../ChatWindow/messageTypes/TextMessage";
+import ImageMessage from "../ChatWindow/messageTypes/ImageMessage";
+import DocumentMessage from "../ChatWindow/messageTypes/DocumentMessage";
+import AudioMessage from "../ChatWindow/messageTypes/AudioMessage";
+import ListMessage from "../ChatWindow/messageTypes/ListMessage";
+
 import { useSendMessage } from "../../hooks/useSendMessage";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useClickOutside } from "../../hooks/useClickOutside";
@@ -15,14 +21,22 @@ import EmojiPicker from "./EmojiPicker";
 import UploadFileModal from "./UploadFileModal";
 import QuickReplies from "./QuickReplies";
 
-import useConversationsStore from "../../store/useConversationsStore";
-
+/**
+ * Formulário de envio de mensagens com:
+ *  - Emojis
+ *  - Anexos
+ *  - Áudio push‑to‑talk
+ *  - Respostas rápidas (#) / botão hash
+ */
 export default function SendMessageForm({
   userIdSelecionado,
   onMessageAdded,
   replyTo,
   setReplyTo,
 }) {
+  /* ------------------------------------------------------------------ */
+  /*  Estados principais                                                */
+  /* ------------------------------------------------------------------ */
   const [text, setText] = useState("");
   const [file, setFile] = useState(null);
   const [fileToConfirm, setFileToConfirm] = useState(null);
@@ -30,12 +44,18 @@ export default function SendMessageForm({
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [hasQuickReplies, setHasQuickReplies] = useState(false);
 
+  /* ------------------------------------------------------------------ */
+  /*  Refs                                                              */
+  /* ------------------------------------------------------------------ */
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const quickReplyRef = useRef(null);
 
+  /* ------------------------------------------------------------------ */
+  /*  Hooks personalizados                                               */
+  /* ------------------------------------------------------------------ */
   const { isSending, sendMessage } = useSendMessage();
   const {
     isRecording,
@@ -46,9 +66,17 @@ export default function SendMessageForm({
     recordingTime,
   } = useAudioRecorder();
 
-  const getSettingValue = useConversationsStore((s) => s.getSettingValue);
-  const agentName = useConversationsStore((s) => s.agentName);
+  /* ------------------------------------------------------------------ */
+  /*  Detecta clique fora para fechar menus                              */
+  /* ------------------------------------------------------------------ */
+  useClickOutside([emojiPickerRef, quickReplyRef], () => {
+    setShowEmoji(false);
+    setShowQuickReplies(false);
+  });
 
+  /* ------------------------------------------------------------------ */
+  /*  Verifica se existem respostas rápidas                              */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
     (async () => {
       try {
@@ -60,50 +88,38 @@ export default function SendMessageForm({
     })();
   }, []);
 
+  /* ------------------------------------------------------------------ */
+  /*  Reset ao trocar de usuário                                         */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
     setText("");
     setFile(null);
     setReplyTo(null);
   }, [userIdSelecionado]);
 
+  /* ------------------------------------------------------------------ */
+  /*  Atualiza file ao terminar gravação                                */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
     if (recordedFile) setFile(recordedFile);
   }, [recordedFile]);
 
-  useClickOutside([emojiPickerRef, quickReplyRef], () => {
-    setShowEmoji(false);
-    setShowQuickReplies(false);
-  });
-
+  /* ------------------------------------------------------------------ */
+  /*  Manipuladores                                                      */
+  /* ------------------------------------------------------------------ */
   const handleSend = (e) => {
     e.preventDefault();
     if (isRecording) return stopRecording();
 
-    let messageText = text;
-    const assinaturaHabilitada = getSettingValue("assinatura_atendente");
-    if (
-      assinaturaHabilitada &&
-      agentName &&
-      messageText.trim() &&
-      !messageText.startsWith(`**${agentName}:**`)
-    ) {
-      messageText = `**${agentName}:**\n${messageText}`;
-    }
-
-    if (messageText.trim() || file) {
+    if (text.trim() || file) {
       sendMessage(
         {
-          text: messageText,
+          text,
           file,
           userId: userIdSelecionado,
           replyTo: replyTo?.whatsapp_message_id || null,
         },
-        (provisionalMessage) => {
-          // Atualização otimista APENAS no estado local do chat!
-          if (typeof onMessageAdded === "function" && provisionalMessage) {
-            onMessageAdded(provisionalMessage);
-          }
-        }
+        onMessageAdded
       );
       setText("");
       setFile(null);
@@ -120,6 +136,9 @@ export default function SendMessageForm({
     textareaRef.current?.focus();
   };
 
+  /* ------------------------------------------------------------------ */
+  /*  onChange do textarea                                               */
+  /* ------------------------------------------------------------------ */
   const handleTextChange = (e) => {
     const value = e.target.value;
     setText(value);
@@ -130,6 +149,9 @@ export default function SendMessageForm({
     );
   };
 
+  /* ------------------------------------------------------------------ */
+  /*  Remove arquivo                                                     */
+  /* ------------------------------------------------------------------ */
   const handleRemoveFile = () => {
     setFile(null);
     clearRecordedFile();
@@ -137,6 +159,9 @@ export default function SendMessageForm({
     imageInputRef.current.value = "";
   };
 
+  /* ------------------------------------------------------------------ */
+  /*  JSX                                                                */
+  /* ------------------------------------------------------------------ */
   return (
     <>
       {replyTo && (
@@ -158,8 +183,10 @@ export default function SendMessageForm({
         </div>
       )}
       <form className="send-message-form" onSubmit={(e) => e.preventDefault()}>
+        {/* Campo de mensagem + ícone hash */}
         <div className="message-input-wrapper">
           {hasQuickReplies && <span className="quick-reply-hash">/</span>}
+
           <AutoResizingTextarea
             ref={textareaRef}
             className="send-message-textarea"
@@ -187,7 +214,19 @@ export default function SendMessageForm({
           />
         </div>
 
+        {/* Botões */}
         <div className="send-button-group">
+          {/*           {hasQuickReplies && (
+            <button
+              type="button"
+              className="btn-attachment"
+              onClick={() => setShowQuickReplies((v) => !v)}
+              title="Respostas Rápidas"
+            >
+              /
+            </button>
+          )} */}
+
           <button
             type="button"
             className="btn-attachment"
@@ -256,6 +295,7 @@ export default function SendMessageForm({
           </button>
         </div>
 
+        {/* Emoji-picker */}
         {showEmoji && (
           <div ref={emojiPickerRef} className="emoji-picker-container">
             <EmojiPicker onSelect={(emoji) => setText((p) => p + emoji)} />
@@ -263,6 +303,7 @@ export default function SendMessageForm({
         )}
       </form>
 
+      {/* Quick Replies dropdown */}
       {showQuickReplies && (
         <div ref={quickReplyRef} className="quick-replies-container">
           <QuickReplies
@@ -272,6 +313,7 @@ export default function SendMessageForm({
         </div>
       )}
 
+      {/* Modal confirmação upload */}
       {fileToConfirm && (
         <UploadFileModal
           file={fileToConfirm}
@@ -284,11 +326,7 @@ export default function SendMessageForm({
                 userId: userIdSelecionado,
                 replyTo: replyTo?.whatsapp_message_id || null,
               },
-              (provisionalMessage) => {
-                if (typeof onMessageAdded === "function" && provisionalMessage) {
-                  onMessageAdded(provisionalMessage);
-                }
-              }
+              onMessageAdded
             );
             setFileToConfirm(null);
           }}
