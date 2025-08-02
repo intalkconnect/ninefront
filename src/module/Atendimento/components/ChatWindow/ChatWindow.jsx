@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { connectSocket, getSocket } from "../../services/socket";
 import { apiGet } from "../../services/apiClient";
 import useConversationsStore from "../../store/useConversationsStore";
-import useSocketMessages from "../../hooks/useSocketMessages";
-import { notifyUser } from "./utils/notifications";
+import { useStableSocketListeners } from "../../hooks/useStableSocketListeners";
+import { notifyUser } from "../../utils/notifications";
 
 import SendMessageForm from "../SendMessageForm/SendMessageForm";
 import MessageList from "./MessageList";
@@ -37,32 +37,40 @@ export default function ChatWindow({ userIdSelecionado }) {
   const pageRef = useRef(1);
   const messageCacheRef = useRef(new Map());
 
-  // Otimizado: sem sort repetido, só insere ordenado se necessário
+  // Atualização otimizada: não faz sort toda vez
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * MESSAGES_PER_PAGE);
     setDisplayedMessages(messages.slice(startIndex));
     setHasMoreMessages(startIndex > 0);
   }, []);
 
-  // Mensagem nova (otimista)
+  // Novo handler otimizado para mensagem nova
   const handleNewMessage = useCallback((msg) => {
     setAllMessages((prev) => {
       if (prev.find((m) => m.id === msg.id)) return prev;
-      // insere ordenado só se necessário
+      // Insere ordenado se necessário
+      let updated;
       if (!prev.length || new Date(msg.timestamp) >= new Date(prev[prev.length-1]?.timestamp)) {
-        const updated = [...prev, msg];
-        messageCacheRef.current.set(msg.user_id, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        return updated;
+        updated = [...prev, msg];
+      } else {
+        updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       }
-      // Insere na ordem correta
-      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       messageCacheRef.current.set(msg.user_id, updated);
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
     });
+
+    // Notificação (fora de foco)
+    if (document.visibilityState !== "visible") {
+      notifyUser({
+        title: "Nova mensagem",
+        body: msg.content?.text || msg.content || "[Mensagem]",
+        icon: "/icons/whatsapp.png"
+      });
+    }
   }, [updateDisplayedMessages]);
 
+  // Handler para atualização de mensagem
   const handleUpdateMessage = useCallback((msg) => {
     setAllMessages((prev) => {
       const updated = prev.map((m) => (m.id === msg.id ? msg : m));
@@ -72,21 +80,11 @@ export default function ChatWindow({ userIdSelecionado }) {
     });
   }, [updateDisplayedMessages]);
 
-  // Notificações centralizadas
-  const handleNotify = useCallback((msg) => {
-    notifyUser({
-      title: "Nova mensagem",
-      body: msg.content?.text || msg.content || "[Mensagem]",
-      icon: "/icons/whatsapp.png",
-    });
-  }, []);
-
-  // Centralize socket listeners
-  useSocketMessages({
+  // Listeners sempre fresh!
+  useStableSocketListeners({
     userId: userIdSelecionado,
     onNew: handleNewMessage,
     onUpdate: handleUpdateMessage,
-    onNotified: handleNotify,
   });
 
   // Join na sala ao trocar de usuário
@@ -95,16 +93,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!userIdSelecionado) return;
     socket.emit("join_room", userIdSelecionado);
     return () => socket.emit("leave_room", userIdSelecionado);
-  }, [userIdSelecionado]);
-
-  // Join_room ao reconectar
-  useEffect(() => {
-    const socket = getSocket();
-    const handleReconnect = () => {
-      if (userIdSelecionado) socket.emit("join_room", userIdSelecionado);
-    };
-    socket.on("connect", handleReconnect);
-    return () => socket.off("connect", handleReconnect);
   }, [userIdSelecionado]);
 
   // Carrega as mensagens iniciais ao selecionar usuário
@@ -169,25 +157,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => loaderRef.current && observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
-
-  // (Opcional) Força listeners fresh ao voltar do inativo
-  useEffect(() => {
-    const socket = getSocket();
-    const handleFocus = () => {
-      if (!socket.connected) socket.connect();
-      socket.emit("join_room", userIdSelecionado);
-      // fetch para garantir sync
-      (async () => {
-        try {
-          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
-          setAllMessages(msgs);
-          updateDisplayedMessages(msgs, pageRef.current);
-        } catch {}
-      })();
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [userIdSelecionado, updateDisplayedMessages]);
 
   // Limpeza ao trocar usuário
   useEffect(() => {
