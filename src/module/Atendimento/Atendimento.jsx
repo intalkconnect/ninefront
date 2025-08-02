@@ -299,9 +299,6 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
   return (
     <>
       <SocketDisconnectedModal />
-
-      <ToastContainer position="bottom-right" style={{ zIndex: 9999 }} />
-      
       <div className="app-layout">
         <div className="app-container section-wrapper">
           <aside className="sidebar">
@@ -320,6 +317,8 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
             />
           </aside>
         </div>
+         {/* 🔽 Mover o Toast para aqui */}
+  <ToastContainer position="bottom-right" style={{ zIndex: 9999 }} />
       </div>
     </>
   );
