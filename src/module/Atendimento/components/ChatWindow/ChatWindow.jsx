@@ -26,6 +26,8 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [isLoading, setIsLoading] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [canSendFreeform, setCanSendFreeform] = useState(true);
+
 
   const userEmail = useConversationsStore(state => state.userEmail);
   const userFilas = useConversationsStore(state => state.userFilas);
@@ -117,10 +119,11 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     (async () => {
       try {
-        const [msgRes, clienteRes, ticketRes] = await Promise.all([
+        const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
           apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`),
           apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}`),
           apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
         ]);
 
         const { status, assigned_to, fila } = ticketRes;
@@ -273,11 +276,13 @@ useEffect(() => {
       />
 
       <div className="chat-input">
-        <SendMessageForm
-          userIdSelecionado={userIdSelecionado}
-          replyTo={replyTo}
-          setReplyTo={setReplyTo}
-        />
+<SendMessageForm
+  userIdSelecionado={userIdSelecionado}
+  replyTo={replyTo}
+  setReplyTo={setReplyTo}
+  canSendFreeform={canSendFreeform}
+/>
+
       </div>
 
       {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)} />}
