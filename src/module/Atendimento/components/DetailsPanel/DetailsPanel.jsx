@@ -1,5 +1,6 @@
 // src/components
 import React, { useState, useEffect } from 'react';
+import { FaUser, FaPhone, FaEnvelope, FaIdCard } from 'react-icons/fa';
 import './DetailsPanel.css';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
@@ -28,67 +29,81 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   }
 
   // ─── Aba “Informações” ───
-  const renderInformacoes = () => {
-    return (
-      <div className="informacoes-content">
-        {/* Card de Informações do Contato */}
-        <div className="card info-card">
-          <h4 className="card-title">Informações do Contato</h4>
+ import { FaUser, FaPhone, FaEnvelope, FaIdCard } from 'react-icons/fa';
 
-          {conversaSelecionada.name && (
-            <div className="info-row">
-              <div className="info-label">Nome</div>
-              <div className="info-value">{conversaSelecionada.name}</div>
-            </div>
-          )}
+const renderInformacoes = () => {
+  const nome = conversaSelecionada.name || '';
+  const inicial = nome.charAt(0).toUpperCase();
 
-          {conversaSelecionada.phone && (
-            <div className="info-row">
-              <div className="info-label">Telefone</div>
-              <div className="info-value">{conversaSelecionada.phone}</div>
-            </div>
-          )}
-
-          {conversaSelecionada.email && (
-            <div className="info-row">
-              <div className="info-label">E-mail</div>
-              <div className="info-value">{conversaSelecionada.email}</div>
-            </div>
-          )}
-
-          {conversaSelecionada.documento && (
-            <div className="info-row">
-              <div className="info-label">Documento</div>
-              <div className="info-value">{conversaSelecionada.documento}</div>
-            </div>
-          )}
-
-        </div>
-
-        {/* Card de Comentários */}
-        <div className="card comentario-card">
-          <h4 className="card-title">Comentários</h4>
-          <textarea
-            className="comentario-textarea"
-            placeholder="Escreva um comentário sobre este contato..."
-            value={comentario}
-            onChange={(e) => setComentario(e.target.value)}
-          />
-          <button
-            className="btn-enviar-comentario"
-            onClick={() => {
-              if (!comentario.trim()) return;
-              // Aqui, você pode gravar esse comentário onde quiser
-              alert('Comentário enviado: ' + comentario.trim());
-              setComentario('');
-            }}
-          >
-            Enviar comentário
-          </button>
-        </div>
+  return (
+    <div className="informacoes-content">
+      {/* Avatar e nome */}
+      <div className="avatar-header">
+        <div className="avatar-circle">{inicial}</div>
+        <div className="avatar-name">{nome}</div>
       </div>
-    );
-  };
+
+      {/* Card de informações */}
+      <div className="card info-card">
+        <h4 className="card-title">Informações do Contato</h4>
+
+        {conversaSelecionada.name && (
+          <div className="info-row">
+            <FaUser className="info-icon" />
+            <div className="info-label">Nome</div>
+            <div className="info-value">{conversaSelecionada.name}</div>
+          </div>
+        )}
+
+        {conversaSelecionada.phone && (
+          <div className="info-row">
+            <FaPhone className="info-icon" />
+            <div className="info-label">Telefone</div>
+            <div className="info-value">{conversaSelecionada.phone}</div>
+          </div>
+        )}
+
+        {conversaSelecionada.email && (
+          <div className="info-row">
+            <FaEnvelope className="info-icon" />
+            <div className="info-label">E-mail</div>
+            <div className="info-value">{conversaSelecionada.email}</div>
+          </div>
+        )}
+
+        {conversaSelecionada.documento && (
+          <div className="info-row">
+            <FaIdCard className="info-icon" />
+            <div className="info-label">Documento</div>
+            <div className="info-value">{conversaSelecionada.documento}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Comentários */}
+      <div className="card comentario-card">
+        <h4 className="card-title">Comentários</h4>
+        <textarea
+          className="comentario-textarea"
+          placeholder="Escreva um comentário sobre este contato..."
+          value={comentario}
+          onChange={(e) => setComentario(e.target.value)}
+        />
+        <button
+          className="btn-enviar-comentario"
+          onClick={() => {
+            if (!comentario.trim()) return;
+            alert('Comentário enviado: ' + comentario.trim());
+            setComentario('');
+          }}
+        >
+          Enviar comentário
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
   // ─── Aba “Histórico” ───
   const renderHistorico = () => {
