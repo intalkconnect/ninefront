@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { connectSocket, getSocket } from '../../services/socket';
 import { apiGet } from '../../services/apiClient';
 import useConversationsStore from '../../store/useConversationsStore';
+import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage'; // ajuste o path se necessário
+
 
 import SendMessageForm from '../SendMessageForm/SendMessageForm';
 import MessageList from './MessageList';
@@ -131,6 +133,8 @@ export default function ChatWindow({ userIdSelecionado }) {
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
         updateDisplayedMessages(msgs, 1);
+
+        marcarMensagensAntesDoTicketComoLidas(userIdSelecionado);
 
         const lastMsg = msgs[msgs.length - 1] || {};
         mergeConversation(userIdSelecionado, {
