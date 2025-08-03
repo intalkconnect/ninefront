@@ -7,10 +7,9 @@ export default function NodeConfigPanel({
   onClose,
   allNodes = [],
   onConnectNodes,
-  setShowEditor,
+  setShowScriptEditor,
   setScriptCode,
 }) {
-
   const [tab, setTab] = useState("conteudo");
   const [flowHistory, setFlowHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -914,8 +913,8 @@ export default function NodeConfigPanel({
         <>
 <button
   onClick={() => {
-    setScriptCode(block.code || "");
-    setShowEditor(true); // este agora controla o estado global vindo via props
+    setScriptCode(selectedNode?.data?.block?.code || "");
+    setShowScriptEditor(true);
   }}
   style={{
     padding: "8px",
@@ -928,9 +927,6 @@ export default function NodeConfigPanel({
 >
   Abrir editor de código
 </button>
-
-
-
 
           <label>Função</label>
           <input
@@ -1413,6 +1409,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
