@@ -11,6 +11,7 @@ import "reactflow/dist/style.css";
 
 import { nodeTemplates } from "./components/NodeTemplates";
 
+import ScriptEditor from "./components/editor/scriptEditor";
 import NodeQuadrado from "./components/NodeQuadrado";
 import NodeConfigPanel from "./components/NodeConfigPanel";
 import {
@@ -111,6 +112,9 @@ export default function Builder() {
 
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [showScriptEditor, setShowScriptEditor] = useState(false);
+  const [scriptCode, setScriptCode] = useState("");
+
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -143,7 +147,23 @@ export default function Builder() {
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
+  
+ const handleOpenEditor = (node) => {
+    setSelectedNode(node);
+    setScriptCode(
+      node?.data?.block?.code ||
+        `// Escreva seu código aqui\n// Use context para acessar dados da conversa\n// Retorne um valor com return`
+    );
+    setShowScriptEditor(true);
+  };
 
+  const handleUpdateCode = (newCode) => {
+    setScriptCode(newCode);
+    if (selectedNode && selectedNode.data?.block) {
+      selectedNode.data.block.code = newCode;
+    }
+  };
+  
   const onConnect = useCallback((params) => {
     const { source, target } = params;
 
@@ -625,6 +645,47 @@ export default function Builder() {
           </button>
         ))}
       </div>
+
+      <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
+      {showScriptEditor && (
+        <div
+          style={{
+            width: "40vw",
+            backgroundColor: "#1e1e1e",
+            borderRight: "1px solid #333",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              padding: "0.5rem 1rem",
+              color: "#fff",
+              background: "#2a2a2a",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>Editor de Script</span>
+            <button
+              onClick={() => setShowScriptEditor(false)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#fff",
+                fontSize: "1.2rem",
+                cursor: "pointer",
+              }}
+            >
+              ✖
+            </button>
+          </div>
+          <div style={{ flex: 1, overflow: "auto" }}>
+            <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
+          </div>
+        </div>
+      )}
 
       <ReactFlow
         nodes={styledNodes}
