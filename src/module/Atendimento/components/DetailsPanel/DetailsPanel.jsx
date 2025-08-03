@@ -6,9 +6,14 @@ import { stringToColor } from '../../utils/color';
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   if (!userIdSelecionado || !conversaSelecionada) {
     return (
-      <div className="details-panel-container">
-        <p className="loading">Nenhum cliente selecionado</p>
-      </div>
+<div class="painel-vazio">
+  <div class="conteudo-vazio">
+    <span class="icone-vazio">👤</span>
+    <h3>Nenhum cliente selecionado</h3>
+    <p>Selecione um cliente para visualizar os dados e histórico.</p>
+  </div>
+</div>
+
     );
   }
 
