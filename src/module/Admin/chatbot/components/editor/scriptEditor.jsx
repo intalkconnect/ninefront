@@ -1,4 +1,3 @@
-// components/ScriptEditorModal.js
 import React, { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
@@ -6,61 +5,70 @@ import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 
 export default function ScriptEditorModal({ code, onChange, onClose }) {
-  const editorRef = useRef();
+  const editorContainerRef = useRef(null);
+  const editorViewRef = useRef(null);
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorContainerRef.current || editorViewRef.current) return;
 
     const updateListener = EditorView.updateListener.of((v) => {
       if (v.docChanged) {
-        onChange(v.state.doc.toString());
+        const newCode = v.state.doc.toString();
+        onChange?.(newCode);
       }
     });
 
     const state = EditorState.create({
-      doc: code || "",
+      doc:
+        code?.trim() !== ""
+          ? code
+          : `// Script de exemplo\nfunction main() {\n  console.log("Olá mundo!");\n}`,
       extensions: [basicSetup, javascript(), updateListener],
     });
 
-    const view = new EditorView({
+    editorViewRef.current = new EditorView({
       state,
-      parent: editorRef.current,
+      parent: editorContainerRef.current,
     });
 
-    return () => view.destroy();
-  }, [code, onChange]);
+    return () => {
+      editorViewRef.current?.destroy();
+      editorViewRef.current = null;
+    };
+  }, []);
 
   return (
     <div style={modalStyle}>
       <div style={headerStyle}>
-        <span>Editor de Script</span>
-        <button style={closeBtn} onClick={onClose}>✖</button>
+        <span style={{ color: "#fff", fontWeight: "bold" }}>Editor de Script</span>
+        <button onClick={onClose} style={closeBtn}>✖</button>
       </div>
-      <div ref={editorRef} style={editorContainer} />
+      <div ref={editorContainerRef} style={editorContainer} />
     </div>
   );
 }
 
 const modalStyle = {
-  position: "fixed",
+  position: "absolute",
   top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
+  left: 0, // exibe à esquerda
+  width: "600px",
+  height: "100%",
   backgroundColor: "#1e1e1e",
-  zIndex: 9999,
+  zIndex: 999,
   display: "flex",
   flexDirection: "column",
+  borderRight: "1px solid #444",
+  boxShadow: "4px 0 12px rgba(0, 0, 0, 0.3)",
 };
 
 const headerStyle = {
   height: "40px",
   backgroundColor: "#2a2a2a",
-  color: "#fff",
-  padding: "0 1rem",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
+  padding: "0 1rem",
   borderBottom: "1px solid #444",
 };
 
