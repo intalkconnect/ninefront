@@ -15,7 +15,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   if (!userIdSelecionado) {
     return (
       <div className="details-panel-container">
-        <p className="loading">Nenhuma cliente selecionado</p>
+        <p className="loading">Nenhum cliente selecionado</p>
       </div>
     );
   }
@@ -31,35 +31,42 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const nome = conversaSelecionada.name || 'Não identificado';
   const inicial = nome.charAt(0).toUpperCase();
   const documento = conversaSelecionada.documento;
+  const isLoading = !documento && !conversaSelecionada.email;
 
   const renderInformacoes = () => {
     return (
       <div className="informacoes-content">
         <div className="circle-initial-box">
           <div
-  className="circle-initial"
-  style={{ backgroundColor: stringToColor(nome) }}
->
-  {inicial}
-</div>
-
+            className="circle-initial"
+            style={{ backgroundColor: stringToColor(nome) }}
+          >
+            {inicial}
+          </div>
         </div>
+
         <h4 className="name-label">{nome}</h4>
 
         <div className="info-row">
           <Mail size={16} className="info-icon" />
-          <span className="info-value">{conversaSelecionada.email || 'Não informado'}</span>
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.email || 'Não informado')}
+          </span>
         </div>
 
         <div className="info-row">
           <Phone size={16} className="info-icon" />
-          <span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span>
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.phone || 'Não informado')}
+          </span>
         </div>
-      
-          <div className="info-row">
-            <IdCard size={16} className="info-icon" />
-            <span className="info-value">{documento}</span>
-          </div>
+
+        <div className="info-row">
+          <IdCard size={16} className="info-icon" />
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : (documento || 'Não informado')}
+          </span>
+        </div>
 
         <div className="card comentario-card">
           <h4 className="card-title">Comentários</h4>
