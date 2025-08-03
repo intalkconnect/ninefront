@@ -112,7 +112,7 @@ export default function Builder() {
 
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [showScriptEditor, setShowScriptEditor] = useState(false);
+  const [itor, setitor] = useState(false);
   const [scriptCode, setScriptCode] = useState("");
 
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
@@ -164,7 +164,7 @@ function handler(context) {
 }
 `
   );
-  setShowScriptEditor(true);
+  setitor(true);
 };
 
 
@@ -684,19 +684,20 @@ const handleUpdateCode = (newCode) => {
       </div>
 
       <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
-      {showScriptEditor && (
+      {{showScriptEditor && (
   <div
     style={{
       position: "fixed",
       top: 0,
-      left: 0,
-      width: "40vw",
+      left: 0, // cobre TUDO da esquerda
       height: "100vh",
+      width: "calc(100vw - 380px)", // NÃO cobre painel direito
       zIndex: 9999,
       backgroundColor: "#1e1e1e",
       borderRight: "1px solid #333",
       display: "flex",
       flexDirection: "column",
+      boxShadow: "2px 0 12px #000b",
     }}
   >
     <div
@@ -728,6 +729,7 @@ const handleUpdateCode = (newCode) => {
     </div>
   </div>
 )}
+
 
 
       <ReactFlow
