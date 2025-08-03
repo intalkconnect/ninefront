@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import CodeMirrorEditor from "./CodeMirrorEditor";
+
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -910,12 +912,11 @@ export default function NodeConfigPanel({
       return (
         <>
           <label>Script</label>
-          <textarea
-            rows={5}
-            value={block.code || ""}
-            onChange={(e) => updateBlock({ code: e.target.value })}
-            style={inputStyle}
-          />
+<CodeMirrorEditor
+  value={block.code || ""}
+  onChange={(newCode) => updateBlock({ code: newCode })}
+/>
+
           <label>Função</label>
           <input
             type="text"
@@ -1396,3 +1397,4 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
