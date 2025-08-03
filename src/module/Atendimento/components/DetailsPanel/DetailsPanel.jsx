@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Phone, IdCard, MapPin } from 'lucide-react';
 import './DetailsPanel.css';
+import { stringToColor } from '../../utils/color';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [activeTab, setActiveTab] = useState('informacoes');
@@ -34,7 +35,13 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     return (
       <div className="informacoes-content">
         <div className="circle-initial-box">
-          <div className="circle-initial">{inicial}</div>
+          <div
+  className="circle-initial"
+  style={{ backgroundColor: stringToColor(nome) }}
+>
+  {inicial}
+</div>
+
         </div>
         <h4 className="name-label">{nome}</h4>
 
