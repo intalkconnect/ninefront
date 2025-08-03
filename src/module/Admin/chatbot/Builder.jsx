@@ -112,7 +112,7 @@ export default function Builder() {
 
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [iptEditor, setiptEditor] = useState(false);
+  const [showScriptEditor, setShowScriptEditor] = useState(false);
   const [scriptCode, setScriptCode] = useState("");
 
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
