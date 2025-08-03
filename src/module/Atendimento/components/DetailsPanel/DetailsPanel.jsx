@@ -141,13 +141,13 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       <h3 className="panel-title">Dados do Contato</h3>
       <div className="tabs-container">
         <button
-          className={tab-button ${activeTab === 'informacoes' ? 'active' : ''}}
+          className={`tab-button ${activeTab === 'informacoes' ? 'active' : ''}`}
           onClick={() => setActiveTab('informacoes')}
         >
           Informações
         </button>
         <button
-          className={tab-button ${activeTab === 'historico' ? 'active' : ''}}
+          className={`tab-button ${activeTab === 'historico' ? 'active' : ''}`}
           onClick={() => setActiveTab('historico')}
         >
           Histórico
