@@ -98,12 +98,6 @@
 
 .ticket-item {
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.ticket-item:hover .ticket-card {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .ticket-card {
@@ -112,21 +106,21 @@
   border-radius: 8px;
   padding: 12px 16px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.2s ease;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.ticket-label {
+.ticket-title {
   font-weight: 600;
-  color: #444;
-}
-
-.ticket-number {
-  font-family: monospace;
   font-size: 0.95rem;
   color: #333;
 }
+
+.ticket-date {
+  font-size: 0.85rem;
+  color: #666;
+}
+
 
 
 /* Informações do contato */
