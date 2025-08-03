@@ -67,6 +67,19 @@
   padding-top: 8px;
 }
 
+.historico-content ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.historico-content li {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+
 /* Texto de aviso */
 .sem-historico {
   font-size: 0.95rem;
