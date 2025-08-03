@@ -68,51 +68,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       <span className="info-value">{conversaSelecionada.user_id}</span>
     </div>
 
-    <div className="info-row">
-      <MapPin size={16} className="info-icon" />
-      <span className="info-value">{conversaSelecionada.location || 'Localização desconhecida'}</span>
-    </div>
-  </div>
-
-  <div className="card site-card">
-    <h4 className="card-title">Informações do Site</h4>
-    <div className="info-row">
-      <strong>Conversa iniciada de:</strong>
-      <a href={conversaSelecionada.site_origem} target="_blank" rel="noreferrer">
-        {conversaSelecionada.site_origem || 'Indisponível'}
-      </a>
-    </div>
-    <div className="info-row">
-      <strong>Última mensagem de:</strong>
-      <a href={conversaSelecionada.site_ultimo} target="_blank" rel="noreferrer">
-        {conversaSelecionada.site_ultimo || 'Indisponível'}
-      </a>
-    </div>
-    <div className="info-row">
-      <strong>Locale:</strong> {conversaSelecionada.locale || 'en-US'}
-    </div>
-  </div>
-
-  <div className="card comentario-card">
-    <h4 className="card-title">Comentários</h4>
-    <textarea
-      className="comentario-textarea"
-      placeholder="Escreva um comentário sobre este contato..."
-      value={comentario}
-      onChange={(e) => setComentario(e.target.value)}
-    />
-    <button
-      className="btn-enviar-comentario"
-      onClick={() => {
-        if (!comentario.trim()) return;
-        alert('Comentário enviado: ' + comentario.trim());
-        setComentario('');
-      }}
-    >
-      Enviar comentário
-    </button>
-  </div>
-</div>
+ </div>
 
     );
   };
@@ -130,27 +86,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
     return (
       <ul className="historico-list">
-        {history.map((ticket, idx) => {
-          const key = ticket.id ?? idx;
-          return (
-            <li key={key} className="historico-item">
-              <div className="card ticket-card">
-                <h5 className="ticket-title">{ticket.titulo}</h5>
-                <div className="ticket-field">
-                  <strong>Status:</strong> {ticket.status}
-                </div>
-                <div className="ticket-field">
-                  <strong>Data:</strong> {new Date(ticket.data).toLocaleDateString()}
-                </div>
-                {ticket.descricao && (
-                  <div className="ticket-field">
-                    <strong>Descrição:</strong> {ticket.descricao}
-                  </div>
-                )}
-              </div>
-            </li>
-          );
-        })}
+
       </ul>
     );
   };
@@ -165,16 +101,9 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         >
           Informações
         </button>
-        <button
-          className={`tab-button ${activeTab === 'historico' ? 'active' : ''}`}
-          onClick={() => setActiveTab('historico')}
-        >
-          Histórico
-        </button>
       </div>
       <div className="tab-content">
         {activeTab === 'informacoes' && renderInformacoes()}
-        {activeTab === 'historico' && renderHistorico()}
       </div>
     </div>
   );
