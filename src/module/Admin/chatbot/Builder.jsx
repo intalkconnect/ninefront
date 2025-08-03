@@ -609,177 +609,173 @@ const handleUpdateCode = (newCode) => {
   };
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
-        backgroundColor: "#1a1a1a",
-      }}
-    >
-      <div
-        style={{
-          position: "fixed",
-          top: "50%",
-          left: 10,
-          transform: "translateY(-50%)",
-          background: "#1e1e1e",
-          border: "1px solid #444",
-          borderRadius: "8px",
-          padding: "0.5rem",
-          zIndex: 20,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "10px",
-          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
-        }}
-      >
-        <button
-          onClick={handlePublish}
-          title="Publicar"
-          style={{
-            ...iconButtonStyle,
-            opacity: isPublishing ? 0.5 : 1,
-            pointerEvents: isPublishing ? "none" : "auto",
-          }}
-        >
-          {isPublishing ? "⏳" : <Rocket size={18} />}
-        </button>
-
-        <button
-          onClick={downloadFlow}
-          title="Baixar JSON"
-          style={iconButtonStyle}
-        >
-          <Download size={18} />
-        </button>
-
-        <div
-          style={{
-            width: "80%",
-            height: "1px",
-            backgroundColor: "#555",
-            margin: "4px 0",
-          }}
-        />
-
-        {nodeTemplates.map((template) => (
-          <button
-            key={template.type + template.label}
-            onClick={() => {
-              addNodeTemplate(template);
-            }}
-            style={{
-              ...iconButtonStyle,
-              backgroundColor: template.color,
-              width: "40px",
-              height: "40px",
-            }}
-            title={template.label}
-          >
-            {iconMap[template.iconName] || <Zap size={16} />}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
-      {{showScriptEditor && (
   <div
     style={{
-      position: "fixed",
-      top: 0,
-      left: 0, // cobre TUDO da esquerda
-      height: "100vh",
-      width: "calc(100vw - 380px)", // NÃO cobre painel direito
-      zIndex: 9999,
-      backgroundColor: "#1e1e1e",
-      borderRight: "1px solid #333",
-      display: "flex",
-      flexDirection: "column",
-      boxShadow: "2px 0 12px #000b",
+      width: "100%",
+      height: "100%",
+      position: "relative",
+      backgroundColor: "#1a1a1a",
     }}
   >
+    {/* Menu lateral fixo */}
     <div
       style={{
-        padding: "0.5rem 1rem",
-        color: "#fff",
-        background: "#2a2a2a",
+        position: "fixed",
+        top: "50%",
+        left: 10,
+        transform: "translateY(-50%)",
+        background: "#1e1e1e",
+        border: "1px solid #444",
+        borderRadius: "8px",
+        padding: "0.5rem",
+        zIndex: 20,
         display: "flex",
-        justifyContent: "space-between",
+        flexDirection: "column",
         alignItems: "center",
+        gap: "10px",
+        boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
       }}
     >
-      <span>Editor de Script</span>
       <button
-        onClick={() => setShowScriptEditor(false)}
+        onClick={handlePublish}
+        title="Publicar"
         style={{
-          background: "transparent",
-          border: "none",
-          color: "#fff",
-          fontSize: "1.2rem",
-          cursor: "pointer",
+          ...iconButtonStyle,
+          opacity: isPublishing ? 0.5 : 1,
+          pointerEvents: isPublishing ? "none" : "auto",
         }}
       >
-        ✖
+        {isPublishing ? "⏳" : <Rocket size={18} />}
       </button>
+      <button
+        onClick={downloadFlow}
+        title="Baixar JSON"
+        style={iconButtonStyle}
+      >
+        <Download size={18} />
+      </button>
+      <div
+        style={{
+          width: "80%",
+          height: "1px",
+          backgroundColor: "#555",
+          margin: "4px 0",
+        }}
+      />
+      {nodeTemplates.map((template) => (
+        <button
+          key={template.type + template.label}
+          onClick={() => addNodeTemplate(template)}
+          style={{
+            ...iconButtonStyle,
+            backgroundColor: template.color,
+            width: "40px",
+            height: "40px",
+          }}
+          title={template.label}
+        >
+          {iconMap[template.iconName] || <Zap size={16} />}
+        </button>
+      ))}
     </div>
-    <div style={{ flex: 1, overflow: "auto" }}>
-      <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
+
+    {/* Container principal */}
+    <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
+      {/* ESQUERDA: builder + editor script sobreposto */}
+      <div style={{ position: "relative", flex: 1, height: "100vh" }}>
+        {itor && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              zIndex: 100,
+              backgroundColor: "#1e1e1e",
+              borderRight: "1px solid #333",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "2px 0 12px #000b",
+            }}
+          >
+            <div
+              style={{
+                padding: "0.5rem 1rem",
+                color: "#fff",
+                background: "#2a2a2a",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span>Editor de Script</span>
+              <button
+                onClick={() => setitor(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#fff",
+                  fontSize: "1.2rem",
+                  cursor: "pointer",
+                }}
+              >
+                ✖
+              </button>
+            </div>
+            <div style={{ flex: 1, overflow: "auto" }}>
+              <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
+            </div>
+          </div>
+        )}
+        <ReactFlow
+          nodes={styledNodes}
+          edges={styledEdges}
+          nodeTypes={nodeTypes}
+          defaultEdgeOptions={edgeOptions}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeDoubleClick={onNodeDoubleClick}
+          onNodeClick={(event, node) => {
+            setSelectedNode(node);
+            setSelectedEdgeId(null);
+            setHighlightedNodeId(node.id);
+          }}
+          onEdgeClick={(event, edge) => {
+            event.stopPropagation();
+            setSelectedEdgeId(edge.id);
+            setSelectedNode(null);
+          }}
+          onPaneClick={() => {
+            setSelectedNode(null);
+            setSelectedEdgeId(null);
+            setHighlightedNodeId(null);
+          }}
+          fitViewOptions={{ padding: 0.5 }}
+        >
+          <Background color="#e2e8f0" gap={32} variant="dots" />
+          <Controls
+            style={{
+              backgroundColor: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "6px",
+              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+            }}
+          />
+        </ReactFlow>
+      </div>
+
+      {/* DIREITA: NodeConfigPanel */}
+      <NodeConfigPanel
+        selectedNode={selectedNode}
+        onChange={updateSelectedNode}
+        onClose={() => setSelectedNode(null)}
+        allNodes={nodes}
+        onConnectNodes={handleConnectNodes}
+        setShowScriptEditor={setitor}
+        setScriptCode={setScriptCode}
+      />
     </div>
   </div>
-)}
-
-
-
-      <ReactFlow
-        nodes={styledNodes}
-        edges={styledEdges}
-        nodeTypes={nodeTypes}
-        defaultEdgeOptions={edgeOptions}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeDoubleClick={onNodeDoubleClick}
-        onNodeClick={(event, node) => {
-          setSelectedNode(node);
-          setSelectedEdgeId(null);
-          setHighlightedNodeId(node.id);
-        }}
-        onEdgeClick={(event, edge) => {
-          event.stopPropagation();
-          setSelectedEdgeId(edge.id);
-          setSelectedNode(null);
-        }}
-        onPaneClick={() => {
-          setSelectedNode(null);
-          setSelectedEdgeId(null);
-          setHighlightedNodeId(null);
-        }}
-        fitViewOptions={{ padding: 0.5 }}
-      >
-        <Background color="#e2e8f0" gap={32} variant="dots" />
-        <Controls
-          style={{
-            backgroundColor: "white",
-            border: "1px solid #e2e8f0",
-            borderRadius: "6px",
-            boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-          }}
-        />
-      </ReactFlow>
-
-<NodeConfigPanel
-  selectedNode={selectedNode}
-  onChange={updateSelectedNode}
-  onClose={() => setSelectedNode(null)}
-  allNodes={nodes}
-  onConnectNodes={handleConnectNodes}
-  setShowScriptEditor={setShowScriptEditor}
-  setScriptCode={setScriptCode}
-/>
-
-    </div>
-      </div>
-  );
-}
+);
