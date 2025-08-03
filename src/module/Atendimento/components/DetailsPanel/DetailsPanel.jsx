@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, IdCard, MapPin } from 'lucide-react';
+import { Mail, Phone, IdCard, MapPin, IdCardLanyard } from 'lucide-react';
 import './DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
 
@@ -65,6 +65,13 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           <IdCard size={16} className="info-icon" />
           <span className="info-value">
             {isLoading ? <span className="skeleton skeleton-text" /> : (documento || 'Não informado')}
+          </span>
+        </div>
+
+            <div className="info-row">
+          <IdCardLanyard size={16} className="info-icon" />
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : conversaSelecionada.user_id}
           </span>
         </div>
 
