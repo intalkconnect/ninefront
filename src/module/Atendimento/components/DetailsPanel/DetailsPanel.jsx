@@ -82,20 +82,17 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           ) : (
 <ul className="historico-list">
   {historico.map((ticket) => (
-    <li key={ticket.id} className="ticket-item" onClick={() => console.log('Ticket clicado', ticket)}>
+    <li key={ticket.id} className="ticket-item">
       <div className="ticket-card">
-        <div className="ticket-info">
-          <div className="ticket-title">
-            <strong>Ticket:</strong> {ticket.ticket_number}
-          </div>
-          <div className="ticket-date">
-            {new Date(ticket.created_at).toLocaleString('pt-BR')}
-          </div>
+        <div className="ticket-title">Ticket: {ticket.ticket_number}</div>
+        <div className="ticket-date">
+          {new Date(ticket.created_at).toLocaleString('pt-BR')}
         </div>
       </div>
     </li>
   ))}
 </ul>
+
 
 
           )}
