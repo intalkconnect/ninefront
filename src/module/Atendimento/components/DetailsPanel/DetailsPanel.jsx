@@ -15,7 +15,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   if (!userIdSelecionado) {
     return (
       <div className="details-panel-container">
-        <p className="loading">Selecione um usuário</p>
+        <p className="loading">Nenhuma cliente selecionado</p>
       </div>
     );
   }
@@ -28,8 +28,9 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     );
   }
 
-  const nome = conversaSelecionada.name || 'Usuário';
+  const nome = conversaSelecionada.name || 'Não identificado';
   const inicial = nome.charAt(0).toUpperCase();
+  const documento = conversaSelecionada.documento;
 
   const renderInformacoes = () => {
     return (
@@ -57,7 +58,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       
           <div className="info-row">
             <IdCard size={16} className="info-icon" />
-            <span className="info-value">{conversaSelecionada.documento}</span>
+            <span className="info-value">{documento}</span>
           </div>
 
         <div className="card comentario-card">
