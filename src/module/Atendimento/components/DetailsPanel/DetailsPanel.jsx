@@ -7,7 +7,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   if (!userIdSelecionado || !conversaSelecionada) {
     return (
 <div class="card painel-vazio">
-  <h2 class="card-title">Informações</h2>
   <div class="conteudo-vazio">
     <p class="mensagem-vazia">Nenhum cliente selecionado.</p>
     <p class="submensagem-vazia">Selecione um cliente na lista para exibir os dados.</p>
