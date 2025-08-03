@@ -148,14 +148,25 @@ export default function Builder() {
     []
   );
   
- const handleOpenEditor = (node) => {
-    setSelectedNode(node);
-    setScriptCode(
-      node?.data?.block?.code ||
-        `// Escreva seu código aqui\n// Use context para acessar dados da conversa\n// Retorne um valor com return`
-    );
-    setiptEditor(true);
-  };
+const handleOpenEditor = (node) => {
+  setSelectedNode(node);
+  setScriptCode(
+    node?.data?.block?.code ||
+`// Escreva seu código aqui
+// Use "context" para acessar dados da conversa
+function handler(context) {
+  // exemplo: acessar mensagem do usuário
+  // const mensagem = context.lastUserMessage;
+
+  // seu código aqui
+
+  return { resultado: "valor de saída" };
+}
+`
+  );
+  setShowScriptEditor(true);
+};
+
 
 const handleUpdateCode = (newCode) => {
   setScriptCode(newCode);
