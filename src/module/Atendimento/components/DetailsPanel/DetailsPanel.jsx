@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
 import './DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
-import { apiGet } from '../../services/api'; // ajuste o path conforme seu projeto
+import { apiGet } from '../../services/apiClient'; // ajuste o path conforme seu projeto
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [historico, setHistorico] = useState([]);
