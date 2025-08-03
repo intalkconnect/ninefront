@@ -157,12 +157,38 @@ export default function Builder() {
     setShowScriptEditor(true);
   };
 
-  const handleUpdateCode = (newCode) => {
-    setScriptCode(newCode);
-    if (selectedNode && selectedNode.data?.block) {
-      selectedNode.data.block.code = newCode;
-    }
-  };
+const handleUpdateCode = (newCode) => {
+  setScriptCode(newCode);
+  if (selectedNode && selectedNode.data?.block) {
+    // Atualiza node na lista global
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === selectedNode.id
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                block: { ...n.data.block, code: newCode },
+              },
+            }
+          : n
+      )
+    );
+    // E sincroniza objeto selecionado
+    setSelectedNode((prev) =>
+      prev
+        ? {
+            ...prev,
+            data: {
+              ...prev.data,
+              block: { ...prev.data.block, code: newCode },
+            },
+          }
+        : prev
+    );
+  }
+};
+
   
   const onConnect = useCallback((params) => {
     const { source, target } = params;
