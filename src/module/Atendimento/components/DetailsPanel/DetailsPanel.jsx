@@ -54,13 +54,11 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           <Phone size={16} className="info-icon" />
           <span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span>
         </div>
-
-        {conversaSelecionada.documento && (
+      
           <div className="info-row">
             <IdCard size={16} className="info-icon" />
             <span className="info-value">{conversaSelecionada.documento}</span>
           </div>
-        )}
 
         <div className="card comentario-card">
           <h4 className="card-title">Comentários</h4>
