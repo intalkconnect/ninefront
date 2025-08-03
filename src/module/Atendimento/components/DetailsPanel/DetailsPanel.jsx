@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, IdCard, MapPin, IdCardLanyard } from 'lucide-react';
+import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
 import './DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
-  const [activeTab, setActiveTab] = useState('informacoes');
-  const [comentario, setComentario] = useState('');
-
   useEffect(() => {
-    setActiveTab('informacoes');
     setComentario('');
   }, [userIdSelecionado]);
 
@@ -33,8 +29,10 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const documento = conversaSelecionada.documento;
   const isLoading = !documento && !conversaSelecionada.email;
 
-  const renderInformacoes = () => {
-    return (
+  const history = conversaSelecionada.ticket_history || [];
+
+  return (
+    <div className="details-panel-container">
       <div className="informacoes-content">
         <div className="circle-initial-box">
           <div
@@ -68,94 +66,43 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           </span>
         </div>
 
-            <div className="info-row">
+        <div className="info-row">
           <IdCardLanyard size={16} className="info-icon" />
           <span className="info-value">
             {isLoading ? <span className="skeleton skeleton-text" /> : conversaSelecionada.user_id}
           </span>
         </div>
-
-        <div className="card comentario-card">
-          <h4 className="card-title">Comentários</h4>
-          <textarea
-            className="comentario-textarea"
-            placeholder="Escreva um comentário sobre este contato..."
-            value={comentario}
-            onChange={(e) => setComentario(e.target.value)}
-          />
-          <button
-            className="btn-enviar-comentario"
-            onClick={() => {
-              if (!comentario.trim()) return;
-              alert('Comentário enviado: ' + comentario.trim());
-              setComentario('');
-            }}
-          >
-            Enviar comentário
-          </button>
-        </div>
       </div>
-    );
-  };
 
-  const renderHistorico = () => {
-    const history = conversaSelecionada.ticket_history || [];
-
-    if (history.length === 0) {
-      return (
-        <div className="historico-content">
+      <div className="historico-content">
+        <h4 className="card-title">Histórico</h4>
+        {history.length === 0 ? (
           <p className="loading">Nenhum histórico de tickets encontrado.</p>
-        </div>
-      );
-    }
-
-    return (
-      <ul className="historico-list">
-        {history.map((ticket, idx) => {
-          const key = ticket.id ?? idx;
-          return (
-            <li key={key} className="historico-item">
-              <div className="card ticket-card">
-                <h5 className="ticket-title">{ticket.titulo}</h5>
-                <div className="ticket-field">
-                  <strong>Status:</strong> {ticket.status}
-                </div>
-                <div className="ticket-field">
-                  <strong>Data:</strong> {new Date(ticket.data).toLocaleDateString()}
-                </div>
-                {ticket.descricao && (
-                  <div className="ticket-field">
-                    <strong>Descrição:</strong> {ticket.descricao}
+        ) : (
+          <ul className="historico-list">
+            {history.map((ticket, idx) => {
+              const key = ticket.id ?? idx;
+              return (
+                <li key={key} className="historico-item">
+                  <div className="card ticket-card">
+                    <h5 className="ticket-title">{ticket.titulo}</h5>
+                    <div className="ticket-field">
+                      <strong>Status:</strong> {ticket.status}
+                    </div>
+                    <div className="ticket-field">
+                      <strong>Data:</strong> {new Date(ticket.data).toLocaleDateString()}
+                    </div>
+                    {ticket.descricao && (
+                      <div className="ticket-field">
+                        <strong>Descrição:</strong> {ticket.descricao}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    );
-  };
-
-  return (
-    <div className="details-panel-container">
-      <h3 className="panel-title">Dados do Contato</h3>
-      <div className="tabs-container">
-        <button
-          className={`tab-button ${activeTab === 'informacoes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('informacoes')}
-        >
-          Informações
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'historico' ? 'active' : ''}`}
-          onClick={() => setActiveTab('historico')}
-        >
-          Histórico
-        </button>
-      </div>
-      <div className="tab-content">
-        {activeTab === 'informacoes' && renderInformacoes()}
-        {activeTab === 'historico' && renderHistorico()}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );
