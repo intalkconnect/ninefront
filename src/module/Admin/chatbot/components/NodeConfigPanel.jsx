@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import ScriptEditorModal from "./editor/scriptEditor";
 
+
 export default function NodeConfigPanel({
   selectedNode,
   onChange,
@@ -18,7 +19,8 @@ export default function NodeConfigPanel({
     actions: true,
     history: true,
   });
-  const [showScriptEditor, setShowScriptEditor] = useState(false);
+const [showEditor, setShowEditor] = useState(false);
+const [scriptCode, setScriptCode] = useState("");
 
 
   useEffect(() => {
@@ -913,18 +915,22 @@ export default function NodeConfigPanel({
       return (
         <>
 <button
+  onClick={() => {
+    setScriptCode(selectedNode?.data?.block?.code || "");
+    setShowEditor(true);
+  }}
   style={{
-    ...inputStyle,
-    fontWeight: "bold",
-    cursor: "pointer",
-    backgroundColor: "#333",
+    padding: "8px",
+    background: "#333",
     color: "#fff",
+    border: "1px solid #444",
+    borderRadius: "4px",
     marginBottom: "1rem",
   }}
-  onClick={() => setShowScriptEditor(true)}
 >
-  Script
+  Abrir editor de código
 </button>
+
 
 
           <label>Função</label>
@@ -1067,13 +1073,14 @@ export default function NodeConfigPanel({
           ? renderContentTab()
           : renderActionsTab()}
 
-        {showScriptEditor && (
+{showEditor && (
   <ScriptEditorModal
-    code={block.code || ""}
-    onChange={(newCode) => updateBlock({ code: newCode })}
-    onClose={() => setShowScriptEditor(false)}
+    code={scriptCode}
+    onChange={(updatedCode) => setScriptCode(updatedCode)}
+    onClose={() => setShowEditor(false)}
   />
 )}
+
 
       </div>
     </aside>
@@ -1416,6 +1423,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
