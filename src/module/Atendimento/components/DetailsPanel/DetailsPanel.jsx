@@ -1,11 +1,5 @@
-// DetailsPanel.jsx
+// src/components
 import React, { useState, useEffect } from 'react';
-import {
-  Mail,
-  Phone,
-  IdCard,
-  MapPin
-} from 'lucide-react';
 import './DetailsPanel.css';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
@@ -17,92 +11,151 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     setComentario('');
   }, [userIdSelecionado]);
 
-  if (!userIdSelecionado || !conversaSelecionada) {
+  if (!userIdSelecionado) {
     return (
-      <div className="details-panel-empty">
-        <p>Selecione um contato</p>
+      <div className="details-panel-container">
+        <p className="loading">Selecione um usuário</p>
       </div>
     );
   }
 
-  const nome = conversaSelecionada.name || 'Usuário';
-  const inicial = nome.charAt(0).toUpperCase();
-
-  const renderInformacoes = () => (
-    <div className="info-section">
-      <div className="avatar-circle">{inicial}</div>
-      <h2 className="contact-name">{nome}</h2>
-
-      <div className="info-item">
-        <Mail className="icon" size={16} />
-        <span>{conversaSelecionada.email || 'Não informado'}</span>
+  if (!conversaSelecionada) {
+    return (
+      <div className="details-panel-container">
+        <p className="loading">Sem dados de conversa</p>
       </div>
+    );
+  }
 
-      <div className="info-item">
-        <Phone className="icon" size={16} />
-        <span>{conversaSelecionada.phone || 'Não informado'}</span>
-      </div>
+  // ─── Aba “Informações” ───
+  const renderInformacoes = () => {
+    return (
+      <div className="informacoes-content">
+        {/* Card de Informações do Contato */}
+        <div className="card info-card">
+          <h4 className="card-title">Informações do Contato</h4>
 
-      {conversaSelecionada.documento && (
-        <div className="info-item">
-          <IdCard className="icon" size={16} />
-          <span>{conversaSelecionada.documento}</span>
+          {conversaSelecionada.name && (
+            <div className="info-row">
+              <div className="info-label">Nome</div>
+              <div className="info-value">{conversaSelecionada.name}</div>
+            </div>
+          )}
+
+          {conversaSelecionada.phone && (
+            <div className="info-row">
+              <div className="info-label">Telefone</div>
+              <div className="info-value">{conversaSelecionada.phone}</div>
+            </div>
+          )}
+
+          {conversaSelecionada.email && (
+            <div className="info-row">
+              <div className="info-label">E-mail</div>
+              <div className="info-value">{conversaSelecionada.email}</div>
+            </div>
+          )}
+
+          {conversaSelecionada.documento && (
+            <div className="info-row">
+              <div className="info-label">Documento</div>
+              <div className="info-value">{conversaSelecionada.documento}</div>
+            </div>
+          )}
+
         </div>
-      )}
 
-      {conversaSelecionada.localizacao && (
-        <div className="info-item">
-          <MapPin className="icon" size={16} />
-          <span>{conversaSelecionada.localizacao}</span>
-        </div>
-      )}
-
-      <div className="comentario-area">
-        <textarea
-          value={comentario}
-          onChange={(e) => setComentario(e.target.value)}
-          placeholder="Escreva um comentário sobre este contato..."
-        />
-        <button
-          onClick={() => {
-            if (comentario.trim()) {
-              alert('Comentário enviado: ' + comentario);
+        {/* Card de Comentários */}
+        <div className="card comentario-card">
+          <h4 className="card-title">Comentários</h4>
+          <textarea
+            className="comentario-textarea"
+            placeholder="Escreva um comentário sobre este contato..."
+            value={comentario}
+            onChange={(e) => setComentario(e.target.value)}
+          />
+          <button
+            className="btn-enviar-comentario"
+            onClick={() => {
+              if (!comentario.trim()) return;
+              // Aqui, você pode gravar esse comentário onde quiser
+              alert('Comentário enviado: ' + comentario.trim());
               setComentario('');
-            }
-          }}
-        >
-          Enviar comentário
-        </button>
+            }}
+          >
+            Enviar comentário
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
+  // ─── Aba “Histórico” ───
   const renderHistorico = () => {
     const history = conversaSelecionada.ticket_history || [];
-    if (history.length === 0) return <p className="empty">Nenhum histórico encontrado.</p>;
+
+    if (history.length === 0) {
+      return (
+        <div className="historico-content">
+          <p className="loading">Nenhum histórico de tickets encontrado.</p>
+        </div>
+      );
+    }
 
     return (
-      <ul className="history-list">
-        {history.map((ticket, idx) => (
-          <li key={ticket.id || idx} className="ticket-card">
-            <h4>{ticket.titulo}</h4>
-            <p><strong>Status:</strong> {ticket.status}</p>
-            <p><strong>Data:</strong> {new Date(ticket.data).toLocaleDateString()}</p>
-            {ticket.descricao && <p><strong>Descrição:</strong> {ticket.descricao}</p>}
-          </li>
-        ))}
+      <ul className="historico-list">
+        {history.map((ticket, idx) => {
+          const key = ticket.id ?? idx;
+          return (
+            <li key={key} className="historico-item">
+              <div className="card ticket-card">
+                <h5 className="ticket-title">{ticket.titulo}</h5>
+                <div className="ticket-field">
+                  <strong>Status:</strong> {ticket.status}
+                </div>
+                <div className="ticket-field">
+                  <strong>Data:</strong>{' '}
+                  {new Date(ticket.data).toLocaleDateString()}
+                </div>
+                {ticket.descricao && (
+                  <div className="ticket-field">
+                    <strong>Descrição:</strong> {ticket.descricao}
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     );
   };
 
   return (
     <div className="details-panel-container">
-      <div className="tabs">
-        <button className={activeTab === 'informacoes' ? 'active' : ''} onClick={() => setActiveTab('informacoes')}>Informações</button>
-        <button className={activeTab === 'historico' ? 'active' : ''} onClick={() => setActiveTab('historico')}>Histórico</button>
+      <h3 className="panel-title">Dados do Contato</h3>
+
+      {/* Botões de Abas */}
+      <div className="tabs-container">
+        <button
+          className={`tab-button ${
+            activeTab === 'informacoes' ? 'active' : ''
+          }`}
+          onClick={() => setActiveTab('informacoes')}
+        >
+          Informações
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'historico' ? 'active' : ''}`}
+          onClick={() => setActiveTab('historico')}
+        >
+          Histórico
+        </button>
       </div>
+
+      {/* Conteúdo da aba selecionada */}
       <div className="tab-content">
-        {activeTab === 'informacoes' ? renderInformacoes() : renderHistorico()}
+        {activeTab === 'informacoes' && renderInformacoes()}
+        {activeTab === 'historico' && renderHistorico()}
       </div>
     </div>
   );
