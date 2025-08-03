@@ -80,13 +80,17 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           ) : historico.length === 0 ? (
             <p className="sem-historico">Sem histórico encontrado</p>
           ) : (
-            <ul className="historico-list">
-              {historico.map((ticket) => (
-                <li key={ticket.id} className="ticket-item">
-                  <strong>Ticket:</strong> {ticket.ticket_number}
-                </li>
-              ))}
-            </ul>
+<ul className="historico-list">
+  {historico.map((ticket) => (
+    <li key={ticket.id} className="ticket-item" onClick={() => console.log('Ticket clicado', ticket)}>
+      <div className="ticket-card">
+        <span className="ticket-label">Ticket:</span>
+        <span className="ticket-number">{ticket.ticket_number}</span>
+      </div>
+    </li>
+  ))}
+</ul>
+
           )}
         </div>
       </div>
