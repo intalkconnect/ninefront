@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DetailsPanel.css - Refatorado e Modernizado
+   DetailsPanel.css - Refatorado e Unificado
 ========================================================================== */
 
 /* Estrutura principal */
@@ -100,17 +100,52 @@
   margin-bottom: 20px;
 }
 
+/* Cards container */
+.cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card genérico */
+.card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+  margin-top: 24px;
+}
+
+.card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
 /* Linhas de informações */
 .info-row {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
-  border-bottom: 1px solid #f0f0f0;
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 4px 0;
+  font-size: 14px;
+  word-break: break-word;
 }
 
-.info-row:last-child {
-  border-bottom: none;
+.info-value {
+  flex: 1;
+  color: #333;
+  font-size: 0.9rem;
 }
 
 .info-icon {
@@ -118,42 +153,19 @@
   color: #4a90e2;
 }
 
-.info-value {
-  font-size: 0.9rem;
-  color: #333;
-  word-break: break-word;
-}
-
-/* Card de comentários */
-.card {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 24px;
-}
-
-.card-title {
-  padding: 12px 16px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-}
-
+/* Comentário */
 .comentario-textarea {
-  width: calc(100% - 32px);
+  width: 100%;
   min-height: 100px;
   resize: vertical;
   padding: 12px;
-  margin: 16px;
   font-size: 0.9rem;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   background: #fff;
   box-sizing: border-box;
   transition: border-color 0.2s;
+  margin-bottom: 12px;
 }
 
 .comentario-textarea:focus {
@@ -162,7 +174,6 @@
 
 .btn-enviar-comentario {
   align-self: flex-end;
-  margin: 0 16px 16px;
   padding: 8px 20px;
   font-size: 0.9rem;
   font-weight: 500;
@@ -231,7 +242,7 @@
   font-weight: 500;
 }
 
-/* Mensagem de estado */
+/* Estado "loading" e skeleton */
 .loading {
   padding: 40px 20px;
   font-size: 0.9rem;
@@ -263,6 +274,15 @@
   }
 }
 
+/* Links */
+a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
 
 /* Responsivo */
 @media (max-width: 768px) {
