@@ -17,9 +17,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const documento = conversaSelecionada.documento;
 
   return (
-    <div className="details-panel-container">
-      <h3 className="panel-title">Dados do Contato</h3>
-
+    <div className="details-panel-container centered-layout">
       <div className="cards-container">
         {/* Card: Informações de Contato */}
         <div className="card info-card">
@@ -55,7 +53,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           </div>
         </div>
 
-        {/* Área de Histórico (placeholder visual) */}
+        {/* Card: Histórico */}
         <div className="card historico-card">
           <h4 className="card-title">Histórico</h4>
           <p className="historico-msg">historico</p>
