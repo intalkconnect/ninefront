@@ -724,29 +724,16 @@ export default function Builder() {
         />
       </ReactFlow>
 
-      <NodeConfigPanel
-        selectedNode={selectedNode}
-        onChange={updateSelectedNode}
-        onClose={() => setSelectedNode(null)}
-        allNodes={nodes}
-        onConnect={(params) => {
-          setEdges((eds) =>
-            addEdge(
-              {
-                ...params,
-                type: "default",
-                markerEnd: {
-                  type: "arrowclosed",
-                  color: "#00e676",
-                  width: 16,
-                  height: 16,
-                },
-              },
-              eds
-            )
-          );
-        }}
-      />
+<NodeConfigPanel
+  selectedNode={selectedNode}
+  onChange={updateSelectedNode}
+  onClose={() => setSelectedNode(null)}
+  allNodes={nodes}
+  onConnectNodes={handleConnectNodes}
+  setShowScriptEditor={setShowScriptEditor}
+  setScriptCode={setScriptCode}
+/>
+
     </div>
       </div>
   );
