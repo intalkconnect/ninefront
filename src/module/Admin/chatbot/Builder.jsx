@@ -112,7 +112,7 @@ export default function Builder() {
 
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [showScriptEditor, setShowScriptEditor] = useState(false);
+  const [iptEditor, setiptEditor] = useState(false);
   const [scriptCode, setScriptCode] = useState("");
 
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
@@ -154,7 +154,7 @@ export default function Builder() {
       node?.data?.block?.code ||
         `// Escreva seu código aqui\n// Use context para acessar dados da conversa\n// Retorne um valor com return`
     );
-    setShowScriptEditor(true);
+    setiptEditor(true);
   };
 
 const handleUpdateCode = (newCode) => {
@@ -674,44 +674,50 @@ const handleUpdateCode = (newCode) => {
 
       <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
       {showScriptEditor && (
-        <div
-          style={{
-            width: "40vw",
-            backgroundColor: "#1e1e1e",
-            borderRight: "1px solid #333",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div
-            style={{
-              padding: "0.5rem 1rem",
-              color: "#fff",
-              background: "#2a2a2a",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <span>Editor de Script</span>
-            <button
-              onClick={() => setShowScriptEditor(false)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#fff",
-                fontSize: "1.2rem",
-                cursor: "pointer",
-              }}
-            >
-              ✖
-            </button>
-          </div>
-          <div style={{ flex: 1, overflow: "auto" }}>
-            <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
-          </div>
-        </div>
-      )}
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "40vw",
+      height: "100vh",
+      zIndex: 9999,
+      backgroundColor: "#1e1e1e",
+      borderRight: "1px solid #333",
+      display: "flex",
+      flexDirection: "column",
+    }}
+  >
+    <div
+      style={{
+        padding: "0.5rem 1rem",
+        color: "#fff",
+        background: "#2a2a2a",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <span>Editor de Script</span>
+      <button
+        onClick={() => setShowScriptEditor(false)}
+        style={{
+          background: "transparent",
+          border: "none",
+          color: "#fff",
+          fontSize: "1.2rem",
+          cursor: "pointer",
+        }}
+      >
+        ✖
+      </button>
+    </div>
+    <div style={{ flex: 1, overflow: "auto" }}>
+      <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
+    </div>
+  </div>
+)}
+
 
       <ReactFlow
         nodes={styledNodes}
