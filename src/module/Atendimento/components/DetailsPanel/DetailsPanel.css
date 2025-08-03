@@ -1,283 +1,142 @@
-/* ==========================================================================
-   DetailsPanel.css - Refatorado e Modernizado
-========================================================================== */
-
-/* Estrutura principal */
+/* ===== Painel principal (background branco, coluna, espaço entre cards) ===== */
 .details-panel-container {
+  background: #fff;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: 18px;
+  padding: 24px 0;
+  min-height: 100vh;
+}
+
+/* ===== Card padrão ===== */
+.card {
   background: #fff;
-  border-left: 1px solid #e0e0e0;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px #e7eaf3;
+  border: 1px solid #e0e0e0;
+  margin: 0 20px;
+  padding: 0;
   overflow: hidden;
-  box-sizing: border-box;
-}
-
-/* Título principal */
-.panel-title {
-  padding: 16px 20px;
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  background: #f9f9f9;
-  color: #333;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-/* Abas */
-.tabs-container {
   display: flex;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
+  flex-direction: column;
 }
 
-.tab-button {
-  flex: 1;
-  padding: 12px 0;
-  border: none;
-  background: none;
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #666;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.tab-button:hover {
-  background: rgba(0, 0, 0, 0.03);
-  color: #333;
-}
-
-.tab-button.active {
-  color: var(--primary, #4a90e2);
+/* ===== Títulos dos cards ===== */
+.card-title, .section-title {
+  font-size: 1.08rem;
   font-weight: 600;
+  color: #23272e;
+  background: #f7f8fa;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 14px 20px 10px 20px;
+  margin: 0;
+  letter-spacing: 0.01em;
 }
 
-.tab-button.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  width: 60%;
-  height: 3px;
-  background: var(--primary, #4a90e2);
-  border-radius: 2px;
+/* ===== Conteúdo dos cards (info, histórico, detalhes) ===== */
+.card-content {
+  padding: 16px 20px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-/* Conteúdo da aba */
-.tab-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-/* Avatar com inicial */
+/* ===== Avatar circular no topo ===== */
 .circle-initial-box {
   display: flex;
   justify-content: center;
-  margin: 16px 0 8px;
+  align-items: center;
+  margin-top: 22px;
+  margin-bottom: 8px;
 }
 
 .circle-initial {
-  width: 70px;
-  height: 70px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  background-color: #4a90e2;
-  color: white;
+  background: #6ea9ec;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  font-weight: bold;
+  box-shadow: 0 1px 8px #c3d0e9;
 }
 
+/* ===== Nome do contato ===== */
 .name-label {
   text-align: center;
-  font-size: 1.05rem;
+  font-size: 1.18rem;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 20px;
+  color: #23272e;
+  margin: 8px 0 18px 0;
 }
 
-/* Linhas de informações */
+/* ===== Linha de informação ===== */
 .info-row {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
-  border-bottom: 1px solid #f0f0f0;
   gap: 10px;
-}
-
-.info-row:last-child {
-  border-bottom: none;
+  font-size: 0.97rem;
+  padding: 0 0 8px 0;
 }
 
 .info-icon {
-  flex-shrink: 0;
-  color: #4a90e2;
+  color: #6ea9ec;
 }
 
-.info-value {
-  font-size: 0.9rem;
-  color: #333;
-  word-break: break-word;
+/* ===== Linhas duplas para detalhes (tipo order details) ===== */
+.order-details-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 38px;
+  font-size: 0.95rem;
 }
 
-/* Card de comentários */
-.card {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
-  margin-top: 24px;
+.order-details-grid .order-details-item {
+  min-width: 150px;
+  flex: 1;
+  color: #474e5d;
 }
 
-.card-title {
-  padding: 12px 16px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #333;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.comentario-textarea {
-  width: calc(100% - 32px);
-  min-height: 100px;
-  resize: vertical;
-  padding: 12px;
-  margin: 16px;
-  font-size: 0.9rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background: #fff;
-  box-sizing: border-box;
-  transition: border-color 0.2s;
-}
-
-.comentario-textarea:focus {
-  border-color: var(--primary, #4a90e2);
-}
-
-.btn-enviar-comentario {
-  align-self: flex-end;
-  margin: 0 16px 16px;
-  padding: 8px 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #fff;
-  background-color: var(--primary, #4a90e2);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-enviar-comentario:hover {
-  background-color: #3a7bc8;
-  transform: translateY(-1px);
-}
-
-.btn-enviar-comentario:active {
-  transform: translateY(0);
-}
-
-/* Histórico */
-.historico-content {
-  padding: 16px;
-  color: #666;
-  font-size: 0.9rem;
-  text-align: center;
-}
-
+/* ===== Lista de histórico ===== */
 .historico-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  gap: 14px;
 }
 
-.ticket-card {
-  background: #fff;
+.historico-item {
+  background: #f8fafc;
+  border-radius: 7px;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-}
-
-.ticket-title {
   padding: 12px 16px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.97rem;
 }
 
-.ticket-field {
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  color: #555;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.ticket-field:last-child {
-  border-bottom: none;
-}
-
-.ticket-field strong {
-  color: #666;
-  font-weight: 500;
-}
-
-/* Mensagem de estado */
-.loading {
-  padding: 40px 20px;
-  font-size: 0.9rem;
-  color: #666;
-  text-align: center;
-}
-
-.skeleton {
-  display: inline-block;
-  height: 1em;
-  background: linear-gradient(90deg, #f0f0f0 25%, #e2e2e2 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.2s infinite;
-  border-radius: 4px;
-}
-
-.skeleton-text {
-  width: 120px;
-  height: 1em;
-  margin: 4px 0;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-
-/* Responsivo */
-@media (max-width: 768px) {
+/* ===== Responsivo ===== */
+@media (max-width: 650px) {
   .details-panel-container {
-    border-left: none;
-    border-top: 1px solid #e0e0e0;
+    padding: 8px 0;
+    gap: 12px;
   }
-
-  .info-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+  .card {
+    margin: 0 4px;
   }
-
-  .info-value {
-    font-size: 0.85rem;
+  .card-content {
+    padding: 12px 10px 14px 10px;
+    gap: 8px;
+  }
+  .circle-initial {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+  .name-label {
+    font-size: 1.01rem;
   }
 }
