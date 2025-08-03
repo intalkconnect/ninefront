@@ -138,16 +138,21 @@ export default function ChatWindow({ userIdSelecionado }) {
         updateDisplayedMessages(msgs, 1);
 
         const lastMsg = msgs[msgs.length - 1] || {};
-        mergeConversation(userIdSelecionado, {
-          channel: lastMsg.channel || clienteRes.channel || 'desconhecido',
-          ticket_number: clienteRes.ticket_number || '000000',
-          fila: clienteRes.fila || fila || 'Orçamento',
-          name: clienteRes.name || userIdSelecionado,
-          assigned_to, status,
-        });
+mergeConversation(userIdSelecionado, {
+  channel: lastMsg.channel || clienteRes.channel || 'desconhecido',
+  ticket_number: clienteRes.ticket_number || '000000',
+  fila: clienteRes.fila || fila || 'Orçamento',
+  name: clienteRes.name || userIdSelecionado,
+  email: clienteRes.email || '',
+  phone: clienteRes.phone || '',
+  documento: clienteRes.document || clienteRes.documento || '',
+  user_id: clienteRes.user_id || userIdSelecionado,
+  assigned_to,
+  status,
+});
+
 
 marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
-
 
         setClienteInfo({
           name: clienteRes.name,
