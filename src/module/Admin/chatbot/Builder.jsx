@@ -680,19 +680,21 @@ const handleUpdateCode = (newCode) => {
     </div>
 
     {/* Container principal */}
-<div style={{
-  display: "flex",
-  height: "calc(100vh - 56px)", // IGNORA a navbar fixa
-  marginTop: "56px", // empurra tudo pra baixo da navbar (caso não use fixed)
-}}>
-  {/* Sidebar ... */}
-  <div style={{ position: "relative", flex: 1, height: "100%" }}>
+    <div
+      style={{
+        display: "flex",
+        height: "calc(100vh - 56px)",
+        marginTop: "56px",
+      }}
+    >
+      {/* ESQUERDA: builder + editor sobreposto */}
+      <div style={{ position: "relative", flex: 1, height: "100%" }}>
         {itor && (
           <div
-    style={{
-      position: "absolute",
-      inset: 0, // Isso já é top:0, right:0, bottom:0, left:0
-      zIndex: 100,
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 100,
               backgroundColor: "#1e1e1e",
               borderRight: "1px solid #333",
               display: "flex",
@@ -780,3 +782,4 @@ const handleUpdateCode = (newCode) => {
     </div>
   </div>
 );
+
