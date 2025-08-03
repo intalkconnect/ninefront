@@ -1,7 +1,8 @@
 // components/ScriptEditorModal.js
 import React, { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
-import { EditorView, basicSetup } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
+import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 
 export default function ScriptEditorModal({ code, onChange, onClose }) {
