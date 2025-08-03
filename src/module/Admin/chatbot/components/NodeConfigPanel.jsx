@@ -1075,7 +1075,7 @@ const [scriptCode, setScriptCode] = useState("");
 
 {showEditor && (
   <div style={{ marginTop: "1rem" }}>
-    <ScriptEditor
+    <ScriptEditorModal 
       value={scriptCode}
       onChange={(updatedCode) => {
         setScriptCode(updatedCode);
@@ -1428,6 +1428,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
