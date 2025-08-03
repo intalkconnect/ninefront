@@ -1074,12 +1074,17 @@ const [scriptCode, setScriptCode] = useState("");
           : renderActionsTab()}
 
 {showEditor && (
-  <ScriptEditorModal
-    code={scriptCode}
-    onChange={(updatedCode) => setScriptCode(updatedCode)}
-    onClose={() => setShowEditor(false)}
-  />
+  <div style={{ marginTop: "1rem" }}>
+    <ScriptEditor
+      value={scriptCode}
+      onChange={(updatedCode) => {
+        setScriptCode(updatedCode);
+        updateBlock({ code: updatedCode }); // salva no bloco
+      }}
+    />
+  </div>
 )}
+
 
 
       </div>
@@ -1423,6 +1428,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
