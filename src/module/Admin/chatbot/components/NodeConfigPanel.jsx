@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
-import ScriptEditorModal from "./editor/scriptEditor";
-
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -9,7 +7,10 @@ export default function NodeConfigPanel({
   onClose,
   allNodes = [],
   onConnectNodes,
+  setShowEditor,
+  setScriptCode,
 }) {
+
   const [tab, setTab] = useState("conteudo");
   const [flowHistory, setFlowHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -19,9 +20,6 @@ export default function NodeConfigPanel({
     actions: true,
     history: true,
   });
-const [showEditor, setShowEditor] = useState(false);
-const [scriptCode, setScriptCode] = useState("");
-
 
   useEffect(() => {
     fetchLatestFlows();
@@ -916,8 +914,8 @@ const [scriptCode, setScriptCode] = useState("");
         <>
 <button
   onClick={() => {
-    setScriptCode(selectedNode?.data?.block?.code || "");
-    setShowEditor(true);
+    setScriptCode(block.code || "");
+    setShowEditor(true); // este agora controla o estado global vindo via props
   }}
   style={{
     padding: "8px",
@@ -930,6 +928,7 @@ const [scriptCode, setScriptCode] = useState("");
 >
   Abrir editor de código
 </button>
+
 
 
 
@@ -1072,20 +1071,6 @@ const [scriptCode, setScriptCode] = useState("");
           : tab === "conteudo"
           ? renderContentTab()
           : renderActionsTab()}
-
-{showEditor && (
-  <div style={{ marginTop: "1rem" }}>
-    <ScriptEditorModal 
-      value={scriptCode}
-      onChange={(updatedCode) => {
-        setScriptCode(updatedCode);
-        updateBlock({ code: updatedCode }); // salva no bloco
-      }}
-    />
-  </div>
-)}
-
-
 
       </div>
     </aside>
@@ -1428,6 +1413,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
