@@ -2,26 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
 import './DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
-import axios from 'axios';
+import { apiGet } from '../../services/api'; // ajuste o path conforme seu projeto
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [historico, setHistorico] = useState([]);
-  const [loadingHistorico, setLoadingHistorico] = useState(false);
+  const [loadingHistorico, setLoadingHistorico] = useState(true);
 
   useEffect(() => {
     if (!userIdSelecionado) return;
 
     setLoadingHistorico(true);
-    axios.get(`/tickets/user/${userIdSelecionado}`)
-      .then((res) => {
-        setHistorico(res.data.tickets || []);
+    apiGet(`/tickets/user/${userIdSelecionado}`)
+      .then(res => {
+        setHistorico(res?.tickets || []);
       })
       .catch(() => {
         setHistorico([]);
       })
-      .finally(() => {
-        setLoadingHistorico(false);
-      });
+      .finally(() => setLoadingHistorico(false));
   }, [userIdSelecionado]);
 
   if (!userIdSelecionado || !conversaSelecionada) {
@@ -74,19 +72,18 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
-      {/* Histórico */}
       <div className="card historico-card">
         <h4 className="card-title">Histórico</h4>
         <div className="historico-content">
           {loadingHistorico ? (
-            <p className="sem-historico">Carregando histórico...</p>
+            <p className="sem-historico">Carregando...</p>
           ) : historico.length === 0 ? (
             <p className="sem-historico">Sem histórico encontrado</p>
           ) : (
-            <ul>
+            <ul className="historico-list">
               {historico.map((ticket) => (
-                <li key={ticket.id}>
-                  Ticket #{ticket.ticket_number}
+                <li key={ticket.id} className="ticket-item">
+                  <strong>Ticket:</strong> {ticket.ticket_number}
                 </li>
               ))}
             </ul>
