@@ -35,66 +35,85 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
   const renderInformacoes = () => {
     return (
-      <div className="informacoes-content">
-        <div className="circle-initial-box">
-          <div
-            className="circle-initial"
-            style={{ backgroundColor: stringToColor(nome) }}
-          >
-            {inicial}
-          </div>
-        </div>
-
-        <h4 className="name-label">{nome}</h4>
-
-        <div className="info-row">
-          <Mail size={16} className="info-icon" />
-          <span className="info-value">
-            {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.email || 'Não informado')}
-          </span>
-        </div>
-
-        <div className="info-row">
-          <Phone size={16} className="info-icon" />
-          <span className="info-value">
-            {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.phone || 'Não informado')}
-          </span>
-        </div>
-
-        <div className="info-row">
-          <IdCard size={16} className="info-icon" />
-          <span className="info-value">
-            {isLoading ? <span className="skeleton skeleton-text" /> : (documento || 'Não informado')}
-          </span>
-        </div>
-
-            <div className="info-row">
-          <IdCardLanyard size={16} className="info-icon" />
-          <span className="info-value">
-            {isLoading ? <span className="skeleton skeleton-text" /> : conversaSelecionada.user_id}
-          </span>
-        </div>
-
-        <div className="card comentario-card">
-          <h4 className="card-title">Comentários</h4>
-          <textarea
-            className="comentario-textarea"
-            placeholder="Escreva um comentário sobre este contato..."
-            value={comentario}
-            onChange={(e) => setComentario(e.target.value)}
-          />
-          <button
-            className="btn-enviar-comentario"
-            onClick={() => {
-              if (!comentario.trim()) return;
-              alert('Comentário enviado: ' + comentario.trim());
-              setComentario('');
-            }}
-          >
-            Enviar comentário
-          </button>
-        </div>
+      <div className="cards-container">
+  <div className="card info-card">
+    <h4 className="card-title">Informações de Contato</h4>
+    <div className="circle-initial-box">
+      <div
+        className="circle-initial"
+        style={{ backgroundColor: stringToColor(nome) }}
+      >
+        {inicial}
       </div>
+    </div>
+    <h4 className="name-label">{nome}</h4>
+
+    <div className="info-row">
+      <Mail size={16} className="info-icon" />
+      <span className="info-value">{conversaSelecionada.email || 'Não informado'}</span>
+    </div>
+
+    <div className="info-row">
+      <Phone size={16} className="info-icon" />
+      <span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span>
+    </div>
+
+    <div className="info-row">
+      <IdCard size={16} className="info-icon" />
+      <span className="info-value">{documento || 'Não informado'}</span>
+    </div>
+
+    <div className="info-row">
+      <IdCardLanyard size={16} className="info-icon" />
+      <span className="info-value">{conversaSelecionada.user_id}</span>
+    </div>
+
+    <div className="info-row">
+      <MapPin size={16} className="info-icon" />
+      <span className="info-value">{conversaSelecionada.location || 'Localização desconhecida'}</span>
+    </div>
+  </div>
+
+  <div className="card site-card">
+    <h4 className="card-title">Informações do Site</h4>
+    <div className="info-row">
+      <strong>Conversa iniciada de:</strong>
+      <a href={conversaSelecionada.site_origem} target="_blank" rel="noreferrer">
+        {conversaSelecionada.site_origem || 'Indisponível'}
+      </a>
+    </div>
+    <div className="info-row">
+      <strong>Última mensagem de:</strong>
+      <a href={conversaSelecionada.site_ultimo} target="_blank" rel="noreferrer">
+        {conversaSelecionada.site_ultimo || 'Indisponível'}
+      </a>
+    </div>
+    <div className="info-row">
+      <strong>Locale:</strong> {conversaSelecionada.locale || 'en-US'}
+    </div>
+  </div>
+
+  <div className="card comentario-card">
+    <h4 className="card-title">Comentários</h4>
+    <textarea
+      className="comentario-textarea"
+      placeholder="Escreva um comentário sobre este contato..."
+      value={comentario}
+      onChange={(e) => setComentario(e.target.value)}
+    />
+    <button
+      className="btn-enviar-comentario"
+      onClick={() => {
+        if (!comentario.trim()) return;
+        alert('Comentário enviado: ' + comentario.trim());
+        setComentario('');
+      }}
+    >
+      Enviar comentário
+    </button>
+  </div>
+</div>
+
     );
   };
 
