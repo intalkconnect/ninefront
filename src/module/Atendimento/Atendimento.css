@@ -181,12 +181,14 @@ html, body, #root {
   width: var(--details-width);
   border-left: 1px solid var(--color-border);
   z-index: var(--z-index-details);
-  overflow-y: auto;
-  transition: var(--transition);
-  background-color: transparent; /* antes era branco */
-  box-shadow: none;              /* remove aparência de card */
-  padding: 0;                    /* remove espaçamento extra */
+  overflow: hidden; /* <- importante! impede scroll interno */
+  background-color: transparent;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
+
 
 
 /* ======================= ERROR BANNER ========================= */
