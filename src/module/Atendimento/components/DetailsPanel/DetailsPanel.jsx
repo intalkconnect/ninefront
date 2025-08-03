@@ -1,9 +1,17 @@
-import React from 'react';
-import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, Phone, IdCard, MapPin, IdCardLanyard } from 'lucide-react';
 import './DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
+  const [activeTab, setActiveTab] = useState('informacoes');
+  const [comentario, setComentario] = useState('');
+
+  useEffect(() => {
+    setActiveTab('informacoes');
+    setComentario('');
+  }, [userIdSelecionado]);
+
   if (!userIdSelecionado) {
     return (
       <div className="details-panel-container">
@@ -25,17 +33,9 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const documento = conversaSelecionada.documento;
   const isLoading = !documento && !conversaSelecionada.email;
 
-  // Mock: substitua pelos campos reais conforme seu back-end
-  const lifetimeValue = conversaSelecionada.lifetimeValue || 'R$0';
-  const totalOrderCount = conversaSelecionada.totalOrderCount || 0;
-  const customerSince = conversaSelecionada.customerSince || '—';
-  const customerStatus = conversaSelecionada.customerStatus || '—';
-  const ticketHistory = conversaSelecionada.ticket_history || [];
-
-  return (
-    <div className="details-panel-container">
-      {/* Contact Info */}
-      <div className="card contato-card">
+  const renderInformacoes = () => {
+    return (
+      <div className="informacoes-content">
         <div className="circle-initial-box">
           <div
             className="circle-initial"
@@ -44,77 +44,118 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
             {inicial}
           </div>
         </div>
-        <div className="contact-info">
-          <h4 className="name-label">{nome}</h4>
-          <div className="info-row">
-            <Mail size={16} className="info-icon" />
-            <span className="info-value">
-              {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.email || 'Não informado')}
-            </span>
-          </div>
-          <div className="info-row">
-            <Phone size={16} className="info-icon" />
-            <span className="info-value">
-              {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.phone || 'Não informado')}
-            </span>
-          </div>
-          <div className="info-row">
-            <IdCard size={16} className="info-icon" />
-            <span className="info-value">
-              {isLoading ? <span className="skeleton skeleton-text" /> : (documento || 'Não informado')}
-            </span>
-          </div>
-          <div className="info-row">
-            <IdCardLanyard size={16} className="info-icon" />
-            <span className="info-value">
-              {isLoading ? <span className="skeleton skeleton-text" /> : conversaSelecionada.user_id}
-            </span>
-          </div>
+
+        <h4 className="name-label">{nome}</h4>
+
+        <div className="info-row">
+          <Mail size={16} className="info-icon" />
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.email || 'Não informado')}
+          </span>
+        </div>
+
+        <div className="info-row">
+          <Phone size={16} className="info-icon" />
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : (conversaSelecionada.phone || 'Não informado')}
+          </span>
+        </div>
+
+        <div className="info-row">
+          <IdCard size={16} className="info-icon" />
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : (documento || 'Não informado')}
+          </span>
+        </div>
+
+            <div className="info-row">
+          <IdCardLanyard size={16} className="info-icon" />
+          <span className="info-value">
+            {isLoading ? <span className="skeleton skeleton-text" /> : conversaSelecionada.user_id}
+          </span>
+        </div>
+
+        <div className="card comentario-card">
+          <h4 className="card-title">Comentários</h4>
+          <textarea
+            className="comentario-textarea"
+            placeholder="Escreva um comentário sobre este contato..."
+            value={comentario}
+            onChange={(e) => setComentario(e.target.value)}
+          />
+          <button
+            className="btn-enviar-comentario"
+            onClick={() => {
+              if (!comentario.trim()) return;
+              alert('Comentário enviado: ' + comentario.trim());
+              setComentario('');
+            }}
+          >
+            Enviar comentário
+          </button>
         </div>
       </div>
+    );
+  };
 
-      {/* Order Details */}
-      <div className="card order-details-card">
-        <h4 className="section-title">Order Details</h4>
-        <div className="order-row">
-          <div><strong>Lifetime value:</strong> {lifetimeValue}</div>
-          <div><strong>Total order count:</strong> {totalOrderCount}</div>
-        </div>
-        <div className="order-row">
-          <div><strong>Customer since:</strong> {customerSince}</div>
-          <div><strong>Status:</strong> {customerStatus}</div>
-        </div>
-      </div>
+  const renderHistorico = () => {
+    const history = conversaSelecionada.ticket_history || [];
 
-      {/* Histórico */}
-      <div className="card historico-card">
-        <h4 className="section-title">Últimos pedidos</h4>
-        {ticketHistory.length === 0 ? (
-          <p className="loading">Nenhum histórico encontrado.</p>
-        ) : (
-          <ul className="historico-list">
-            {ticketHistory.map((ticket, idx) => (
-              <li key={ticket.id ?? idx} className="historico-item">
-                <div className="ticket-info">
-                  <div>
-                    <strong>Pedido:</strong> {ticket.titulo}
-                  </div>
-                  <div>
-                    <strong>Status:</strong> {ticket.status}
-                  </div>
-                  <div>
-                    <strong>Data:</strong> {new Date(ticket.data).toLocaleDateString()}
-                  </div>
-                  {ticket.descricao && (
-                    <div>
-                      <strong>Descrição:</strong> {ticket.descricao}
-                    </div>
-                  )}
+    if (history.length === 0) {
+      return (
+        <div className="historico-content">
+          <p className="loading">Nenhum histórico de tickets encontrado.</p>
+        </div>
+      );
+    }
+
+    return (
+      <ul className="historico-list">
+        {history.map((ticket, idx) => {
+          const key = ticket.id ?? idx;
+          return (
+            <li key={key} className="historico-item">
+              <div className="card ticket-card">
+                <h5 className="ticket-title">{ticket.titulo}</h5>
+                <div className="ticket-field">
+                  <strong>Status:</strong> {ticket.status}
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                <div className="ticket-field">
+                  <strong>Data:</strong> {new Date(ticket.data).toLocaleDateString()}
+                </div>
+                {ticket.descricao && (
+                  <div className="ticket-field">
+                    <strong>Descrição:</strong> {ticket.descricao}
+                  </div>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
+  return (
+    <div className="details-panel-container">
+      <h3 className="panel-title">Dados do Contato</h3>
+      <div className="tabs-container">
+        <button
+          className={tab-button ${activeTab === 'informacoes' ? 'active' : ''}}
+          onClick={() => setActiveTab('informacoes')}
+        >
+          Informações
+        </button>
+        <button
+          className={tab-button ${activeTab === 'historico' ? 'active' : ''}}
+          onClick={() => setActiveTab('historico')}
+        >
+          Histórico
+        </button>
+      </div>
+      <div className="tab-content">
+        {activeTab === 'informacoes' && renderInformacoes()}
+        {activeTab === 'historico' && renderHistorico()}
       </div>
     </div>
   );
