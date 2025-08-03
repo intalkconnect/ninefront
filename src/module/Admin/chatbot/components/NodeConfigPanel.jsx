@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
-import CodeMirrorEditor from "./CodeMirrorEditor";
-
+import ScriptEditorModal from "./editor/ScriptEditorModal";
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -19,6 +18,8 @@ export default function NodeConfigPanel({
     actions: true,
     history: true,
   });
+  const [showScriptEditor, setShowScriptEditor] = useState(false);
+
 
   useEffect(() => {
     fetchLatestFlows();
@@ -911,11 +912,20 @@ export default function NodeConfigPanel({
     if (type === "code") {
       return (
         <>
-          <label>Script</label>
-<CodeMirrorEditor
-  value={block.code || ""}
-  onChange={(newCode) => updateBlock({ code: newCode })}
-/>
+<button
+  style={{
+    ...inputStyle,
+    fontWeight: "bold",
+    cursor: "pointer",
+    backgroundColor: "#333",
+    color: "#fff",
+    marginBottom: "1rem",
+  }}
+  onClick={() => setShowScriptEditor(true)}
+>
+  Script
+</button>
+
 
           <label>Função</label>
           <input
@@ -1056,6 +1066,15 @@ export default function NodeConfigPanel({
           : tab === "conteudo"
           ? renderContentTab()
           : renderActionsTab()}
+
+        {showScriptEditor && (
+  <ScriptEditorModal
+    code={block.code || ""}
+    onChange={(newCode) => updateBlock({ code: newCode })}
+    onClose={() => setShowScriptEditor(false)}
+  />
+)}
+
       </div>
     </aside>
   );
@@ -1397,4 +1416,5 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
