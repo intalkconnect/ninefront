@@ -183,7 +183,11 @@ html, body, #root {
   z-index: var(--z-index-details);
   overflow-y: auto;
   transition: var(--transition);
+  background-color: transparent; /* antes era branco */
+  box-shadow: none;              /* remove aparência de card */
+  padding: 0;                    /* remove espaçamento extra */
 }
+
 
 /* ======================= ERROR BANNER ========================= */
 .socket-error-banner {
