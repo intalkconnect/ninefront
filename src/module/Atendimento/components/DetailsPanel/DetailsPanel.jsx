@@ -1,5 +1,5 @@
-// src/components
 import React, { useState, useEffect } from 'react';
+import { Mail, Phone, IdCard, MapPin } from 'lucide-react';
 import './DetailsPanel.css';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
@@ -27,45 +27,41 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     );
   }
 
-  // ─── Aba “Informações” ───
+  const nome = conversaSelecionada.name || 'Usuário';
+  const inicial = nome.charAt(0).toUpperCase();
+
   const renderInformacoes = () => {
     return (
       <div className="informacoes-content">
-        {/* Card de Informações do Contato */}
-        <div className="card info-card">
-          <h4 className="card-title">Informações do Contato</h4>
+        <div className="circle-initial-box">
+          <div className="circle-initial">{inicial}</div>
+        </div>
+        <h4 className="name-label">{nome}</h4>
 
-          {conversaSelecionada.name && (
-            <div className="info-row">
-              <div className="info-label">Nome</div>
-              <div className="info-value">{conversaSelecionada.name}</div>
-            </div>
-          )}
-
-          {conversaSelecionada.phone && (
-            <div className="info-row">
-              <div className="info-label">Telefone</div>
-              <div className="info-value">{conversaSelecionada.phone}</div>
-            </div>
-          )}
-
-          {conversaSelecionada.email && (
-            <div className="info-row">
-              <div className="info-label">E-mail</div>
-              <div className="info-value">{conversaSelecionada.email}</div>
-            </div>
-          )}
-
-          {conversaSelecionada.documento && (
-            <div className="info-row">
-              <div className="info-label">Documento</div>
-              <div className="info-value">{conversaSelecionada.documento}</div>
-            </div>
-          )}
-
+        <div className="info-row">
+          <Mail size={16} className="info-icon" />
+          <span className="info-value">{conversaSelecionada.email || 'Não informado'}</span>
         </div>
 
-        {/* Card de Comentários */}
+        <div className="info-row">
+          <Phone size={16} className="info-icon" />
+          <span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span>
+        </div>
+
+        {conversaSelecionada.documento && (
+          <div className="info-row">
+            <IdCard size={16} className="info-icon" />
+            <span className="info-value">{conversaSelecionada.documento}</span>
+          </div>
+        )}
+
+        {conversaSelecionada.localizacao && (
+          <div className="info-row">
+            <MapPin size={16} className="info-icon" />
+            <span className="info-value">{conversaSelecionada.localizacao}</span>
+          </div>
+        )}
+
         <div className="card comentario-card">
           <h4 className="card-title">Comentários</h4>
           <textarea
@@ -78,7 +74,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
             className="btn-enviar-comentario"
             onClick={() => {
               if (!comentario.trim()) return;
-              // Aqui, você pode gravar esse comentário onde quiser
               alert('Comentário enviado: ' + comentario.trim());
               setComentario('');
             }}
@@ -90,7 +85,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     );
   };
 
-  // ─── Aba “Histórico” ───
   const renderHistorico = () => {
     const history = conversaSelecionada.ticket_history || [];
 
@@ -114,8 +108,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
                   <strong>Status:</strong> {ticket.status}
                 </div>
                 <div className="ticket-field">
-                  <strong>Data:</strong>{' '}
-                  {new Date(ticket.data).toLocaleDateString()}
+                  <strong>Data:</strong> {new Date(ticket.data).toLocaleDateString()}
                 </div>
                 {ticket.descricao && (
                   <div className="ticket-field">
@@ -133,13 +126,9 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   return (
     <div className="details-panel-container">
       <h3 className="panel-title">Dados do Contato</h3>
-
-      {/* Botões de Abas */}
       <div className="tabs-container">
         <button
-          className={`tab-button ${
-            activeTab === 'informacoes' ? 'active' : ''
-          }`}
+          className={`tab-button ${activeTab === 'informacoes' ? 'active' : ''}`}
           onClick={() => setActiveTab('informacoes')}
         >
           Informações
@@ -151,8 +140,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           Histórico
         </button>
       </div>
-
-      {/* Conteúdo da aba selecionada */}
       <div className="tab-content">
         {activeTab === 'informacoes' && renderInformacoes()}
         {activeTab === 'historico' && renderHistorico()}
