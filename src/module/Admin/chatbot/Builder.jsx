@@ -697,7 +697,7 @@ const handleUpdateCode = (newCode) => {
         top: 0,
         bottom: 0,
         left: 0,
-        right: "300px", // 👈 Define o limite para não invadir o NodeConfigPanel
+        right: "375px", // 👈 Define o limite para não invadir o NodeConfigPanel
         zIndex: 100,
         backgroundColor: "#1e1e1e",
         borderRight: "1px solid #333",
