@@ -3,16 +3,9 @@ import { apiGet, apiPut } from "../../services/apiClient";
 import { File, Mic, User, Circle } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
+import { stringToColor } from '../../utils/color';
 
 import "./Sidebar.css";
-
-const stringToColor = (str) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return `hsl(${hash % 360}, 70%, 50%)`;
-};
 
 export default function Sidebar() {
   const conversations = useConversationsStore((state) => state.conversations);
