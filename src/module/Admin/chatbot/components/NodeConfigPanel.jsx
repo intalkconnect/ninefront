@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
-import ScriptEditorModal from "./editor/ScriptEditorModal";
+import ScriptEditorModal from "./editor/scriptEditor";
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -1416,5 +1416,6 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
