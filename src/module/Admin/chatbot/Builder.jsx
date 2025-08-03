@@ -688,12 +688,17 @@ const handleUpdateCode = (newCode) => {
       }}
     >
       {/* ESQUERDA: builder + editor sobreposto */}
-<div style={{ display: "flex", flex: 1 }}>
-  {/* Editor de Script (lado esquerdo, se ativado) */}
+<div style={{ position: "relative", flex: 1, height: "100%" }}>
+  {/* Painel de Editor flutuando sobre o ReactFlow, mas NÃO cobrindo o NodeConfigPanel */}
   {itor && (
     <div
       style={{
-        flex: 1,
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: "300px", // 👈 Define o limite para não invadir o NodeConfigPanel
+        zIndex: 100,
         backgroundColor: "#1e1e1e",
         borderRight: "1px solid #333",
         display: "flex",
@@ -701,73 +706,75 @@ const handleUpdateCode = (newCode) => {
         boxShadow: "2px 0 12px #000b",
       }}
     >
-
-            <div
-              style={{
-                padding: "0.5rem 1rem",
-                color: "#fff",
-                background: "#2a2a2a",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span>Editor de Script</span>
-              <button
-                onClick={() => setitor(false)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#fff",
-                  fontSize: "1.2rem",
-                  cursor: "pointer",
-                }}
-              >
-                ✖
-              </button>
-            </div>
-            <div style={{ flex: 1, overflow: "auto" }}>
-              <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
-            </div>
-          </div>
-        )}
-        <ReactFlow
-          nodes={styledNodes}
-          edges={styledEdges}
-          nodeTypes={nodeTypes}
-          defaultEdgeOptions={edgeOptions}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeDoubleClick={onNodeDoubleClick}
-          onNodeClick={(event, node) => {
-            setSelectedNode(node);
-            setSelectedEdgeId(null);
-            setHighlightedNodeId(node.id);
+      <div
+        style={{
+          padding: "0.5rem 1rem",
+          color: "#fff",
+          background: "#2a2a2a",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span>Editor de Script</span>
+        <button
+          onClick={() => setitor(false)}
+          style={{
+            background: "transparent",
+            border: "none",
+            color: "#fff",
+            fontSize: "1.2rem",
+            cursor: "pointer",
           }}
-          onEdgeClick={(event, edge) => {
-            event.stopPropagation();
-            setSelectedEdgeId(edge.id);
-            setSelectedNode(null);
-          }}
-          onPaneClick={() => {
-            setSelectedNode(null);
-            setSelectedEdgeId(null);
-            setHighlightedNodeId(null);
-          }}
-          fitViewOptions={{ padding: 0.5 }}
         >
-          <Background color="#e2e8f0" gap={32} variant="dots" />
-          <Controls
-            style={{
-              backgroundColor: "white",
-              border: "1px solid #e2e8f0",
-              borderRadius: "6px",
-              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-            }}
-          />
-        </ReactFlow>
+          ✖
+        </button>
       </div>
+      <div style={{ flex: 1, overflow: "auto" }}>
+        <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
+      </div>
+    </div>
+  )}
+
+  {/* ReactFlow abaixo do painel flutuante */}
+  <ReactFlow
+    nodes={styledNodes}
+    edges={styledEdges}
+    nodeTypes={nodeTypes}
+    defaultEdgeOptions={edgeOptions}
+    onNodesChange={onNodesChange}
+    onEdgesChange={onEdgesChange}
+    onConnect={onConnect}
+    onNodeDoubleClick={onNodeDoubleClick}
+    onNodeClick={(event, node) => {
+      setSelectedNode(node);
+      setSelectedEdgeId(null);
+      setHighlightedNodeId(node.id);
+    }}
+    onEdgeClick={(event, edge) => {
+      event.stopPropagation();
+      setSelectedEdgeId(edge.id);
+      setSelectedNode(null);
+    }}
+    onPaneClick={() => {
+      setSelectedNode(null);
+      setSelectedEdgeId(null);
+      setHighlightedNodeId(null);
+    }}
+    fitViewOptions={{ padding: 0.5 }}
+  >
+    <Background color="#e2e8f0" gap={32} variant="dots" />
+    <Controls
+      style={{
+        backgroundColor: "white",
+        border: "1px solid #e2e8f0",
+        borderRadius: "6px",
+        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+      }}
+    />
+  </ReactFlow>
+</div>
+
 
       {/* DIREITA: NodeConfigPanel */}
       <NodeConfigPanel
