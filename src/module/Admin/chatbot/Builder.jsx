@@ -689,19 +689,21 @@ const handleUpdateCode = (newCode) => {
     >
       {/* ESQUERDA: builder + editor sobreposto */}
       <div style={{ position: "relative", flex: 1, height: "100%" }}>
-        {itor && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              zIndex: 100,
-              backgroundColor: "#1e1e1e",
-              borderRight: "1px solid #333",
-              display: "flex",
-              flexDirection: "column",
-              boxShadow: "2px 0 12px #000b",
-            }}
-          >
+{itor && (
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      right: "300px", // 👈 LIMITE PARA NÃO INVADIR NodeConfigPanel
+      zIndex: 100,
+      backgroundColor: "#1e1e1e",
+      borderRight: "1px solid #333",
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "2px 0 12px #000b",
+    }}
+  >
+
             <div
               style={{
                 padding: "0.5rem 1rem",
