@@ -1,19 +1,37 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
 import './DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
+import axios from 'axios';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
+  const [historico, setHistorico] = useState([]);
+  const [loadingHistorico, setLoadingHistorico] = useState(false);
+
+  useEffect(() => {
+    if (!userIdSelecionado) return;
+
+    setLoadingHistorico(true);
+    axios.get(`/tickets/user/${userIdSelecionado}`)
+      .then((res) => {
+        setHistorico(res.data.tickets || []);
+      })
+      .catch(() => {
+        setHistorico([]);
+      })
+      .finally(() => {
+        setLoadingHistorico(false);
+      });
+  }, [userIdSelecionado]);
+
   if (!userIdSelecionado || !conversaSelecionada) {
     return (
-<div class="card painel-vazio">
-  <div class="conteudo-vazio">
-    <p class="mensagem-vazia">Nenhum cliente selecionado.</p>
-    <p class="submensagem-vazia">Selecione um cliente na lista para exibir os dados.</p>
-  </div>
-</div>
-
-
+      <div className="card painel-vazio">
+        <div className="conteudo-vazio">
+          <p className="mensagem-vazia">Nenhum cliente selecionado.</p>
+          <p className="submensagem-vazia">Selecione um cliente na lista para exibir os dados.</p>
+        </div>
+      </div>
     );
   }
 
@@ -56,11 +74,23 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
-      {/* Histórico ocupando o restante */}
+      {/* Histórico */}
       <div className="card historico-card">
         <h4 className="card-title">Histórico</h4>
         <div className="historico-content">
-          <p className="sem-historico">Sem histórico encontrado</p>
+          {loadingHistorico ? (
+            <p className="sem-historico">Carregando histórico...</p>
+          ) : historico.length === 0 ? (
+            <p className="sem-historico">Sem histórico encontrado</p>
+          ) : (
+            <ul>
+              {historico.map((ticket) => (
+                <li key={ticket.id}>
+                  Ticket #{ticket.ticket_number}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
