@@ -145,7 +145,7 @@ mergeConversation(userIdSelecionado, {
   name: clienteRes.name || userIdSelecionado,
   email: clienteRes.email || '',
   phone: clienteRes.phone || '',
-  documento: clienteRes.document || clienteRes.documento || '',
+  documento: clienteRes.document || '',
   user_id: clienteRes.user_id || userIdSelecionado,
   assigned_to,
   status,
