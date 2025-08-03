@@ -55,17 +55,10 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           <span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span>
         </div>
 
-        {conversaSelecionada.documento && (
+        {conversaSelecionada.document && (
           <div className="info-row">
             <IdCard size={16} className="info-icon" />
-            <span className="info-value">{conversaSelecionada.documento}</span>
-          </div>
-        )}
-
-        {conversaSelecionada.localizacao && (
-          <div className="info-row">
-            <MapPin size={16} className="info-icon" />
-            <span className="info-value">{conversaSelecionada.localizacao}</span>
+            <span className="info-value">{conversaSelecionada.document}</span>
           </div>
         )}
 
