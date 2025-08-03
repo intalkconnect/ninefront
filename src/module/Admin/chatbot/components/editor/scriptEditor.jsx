@@ -5,34 +5,30 @@ import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 
 export default function ScriptEditorModal({ code, onChange, onClose }) {
-  const editorContainerRef = useRef(null);
+  const editorRef = useRef(null);
   const editorViewRef = useRef(null);
 
   useEffect(() => {
-    if (!editorContainerRef.current || editorViewRef.current) return;
+    if (!editorRef.current || editorViewRef.current) return;
 
-    const updateListener = EditorView.updateListener.of((v) => {
-      if (v.docChanged) {
-        const newCode = v.state.doc.toString();
-        onChange?.(newCode);
+    const updateListener = EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        onChange(update.state.doc.toString());
       }
     });
 
     const state = EditorState.create({
-      doc:
-        code?.trim() !== ""
-          ? code
-          : `// Script de exemplo\nfunction main() {\n  console.log("Olá mundo!");\n}`,
+      doc: code || `// Script de exemplo\nfunction main() {\n  console.log("Olá mundo!");\n}`,
       extensions: [basicSetup, javascript(), updateListener],
     });
 
     editorViewRef.current = new EditorView({
       state,
-      parent: editorContainerRef.current,
+      parent: editorRef.current,
     });
 
     return () => {
-      editorViewRef.current?.destroy();
+      editorViewRef.current.destroy();
       editorViewRef.current = null;
     };
   }, []);
@@ -40,10 +36,10 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
   return (
     <div style={modalStyle}>
       <div style={headerStyle}>
-        <span style={{ color: "#fff", fontWeight: "bold" }}>Editor de Script</span>
+        <span>Editor de Script</span>
         <button onClick={onClose} style={closeBtn}>✖</button>
       </div>
-      <div ref={editorContainerRef} style={editorContainer} />
+      <div ref={editorRef} style={editorContainer} />
     </div>
   );
 }
@@ -51,15 +47,14 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
 const modalStyle = {
   position: "absolute",
   top: 0,
-  left: 0, // exibe à esquerda
+  left: 0,
   width: "600px",
   height: "100%",
   backgroundColor: "#1e1e1e",
-  zIndex: 999,
+  zIndex: 1000,
   display: "flex",
   flexDirection: "column",
   borderRight: "1px solid #444",
-  boxShadow: "4px 0 12px rgba(0, 0, 0, 0.3)",
 };
 
 const headerStyle = {
@@ -70,6 +65,7 @@ const headerStyle = {
   justifyContent: "space-between",
   padding: "0 1rem",
   borderBottom: "1px solid #444",
+  color: "#fff",
 };
 
 const editorContainer = {
