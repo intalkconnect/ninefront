@@ -33,7 +33,7 @@ import {
   bracketMatching,
   foldGutter,
   foldKeymap
-} from "@codemirror/language";
+} from "@codemirror/language";  // <-- traz tudo do mesmo pacote
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 
@@ -48,7 +48,6 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       if (update.docChanged) onChange(update.state.doc.toString());
     });
 
-    // Autocomplete customizado
     const customAutocomplete = autocompletion({
       override: [
         (context) => {
@@ -56,42 +55,45 @@ export default function ScriptEditor({ code, onChange, onClose }) {
           if (!word || word.from === word.to) return null;
           return {
             from: word.from,
-            options: [{
-              label: "function",
-              type: "keyword",
-              apply: "function ${name}(${params}) {\n  ${}\n}"
-            }]
+            options: [
+              {
+                label: "function",
+                type: "keyword",
+                apply: "function ${name}(${params}) {\n  ${}\n}"
+              }
+            ]
           };
         }
       ]
     });
 
     const extensions = [
+      // Básicas de view
       lineNumbers(),
       highlightActiveLine(),
       highlightActiveLineGutter(),
       highlightSpecialChars(),
-      history(),
-      foldGutter(),
       drawSelection(),
       dropCursor(),
-      EditorState.allowMultipleSelections.of(true),
-      indentOnInput(),
-      bracketMatching(),
-      closeBrackets(),
       rectangularSelection(),
       crosshairCursor(),
 
-      // linguagem e highlighting
+      // Comandos e histórico
+      history(),
+      foldGutter(),
+      indentOnInput(),
+      bracketMatching(),
+      closeBrackets(),
+      autocompletion(),
+      highlightSelectionMatches(),
+      lintGutter(),
+
+      // Linguagem e highlight
       javascript({ jsx: false, typescript: false }),
       syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       oneDark,
 
-      // buscas e lint
-      highlightSelectionMatches(),
-      lintGutter(),
-
-      // listeners e keymaps
+      // Listeners e keymaps
       updateListener,
       customAutocomplete,
       keymap.of([
@@ -105,6 +107,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
         indentWithTab
       ]),
 
+      // Wrapping e tema customizado
       EditorView.lineWrapping,
       EditorView.theme({
         "&": { height: "100%", fontSize: "14px" },
@@ -131,7 +134,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
     ];
 
     const state = EditorState.create({
-      doc: code || getDefaultCode(),
+      doc: code ?? getDefaultCode(),
       extensions
     });
 
@@ -141,14 +144,12 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       parent: editorRef.current
     });
 
-    // foco inicial
     setTimeout(() => editorViewRef.current?.focus(), 100);
   };
 
   const getDefaultCode = () => `// Escreva seu código aqui
 // Use "context" para acessar dados da conversa
 function handler(context) {
-  // seu código aqui
   return { resultado: "valor de saída" };
 }
 `;
@@ -163,7 +164,7 @@ function handler(context) {
     const cur = editorViewRef.current.state.doc.toString();
     if (code !== cur) {
       editorViewRef.current.dispatch({
-        changes: { from: 0, to: cur.length, insert: code || getDefaultCode() }
+        changes: { from: 0, to: cur.length, insert: code ?? getDefaultCode() }
       });
     }
   }, [code]);
@@ -179,7 +180,7 @@ function handler(context) {
   );
 }
 
-// Estilos mantidos
+// estilos mantidos
 const modalStyle = {
   position: "fixed",
   top: "117px",
@@ -193,7 +194,6 @@ const modalStyle = {
   borderRight: "1px solid #444",
   boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)"
 };
-
 const headerStyle = {
   height: "40px",
   backgroundColor: "#2a2a2a",
@@ -205,13 +205,7 @@ const headerStyle = {
   color: "#fff",
   fontSize: "14px"
 };
-
-const editorContainer = {
-  flex: 1,
-  overflow: "hidden",
-  fontSize: "14px"
-};
-
+const editorContainer = { flex: 1, overflow: "hidden", fontSize: "14px" };
 const closeBtn = {
   background: "#444",
   border: "none",
@@ -221,7 +215,5 @@ const closeBtn = {
   padding: "5px 10px",
   borderRadius: "4px",
   transition: "background 0.2s",
-  ":hover": {
-    background: "#555"
-  }
+  ":hover": { background: "#555" }
 };
