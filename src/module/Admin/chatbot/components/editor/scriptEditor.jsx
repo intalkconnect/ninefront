@@ -1,98 +1,84 @@
-import React, { useEffect, useRef } from "react";
-import * as monaco from "monaco-editor";
+import React, { useRef } from "react";
+import AceEditor from "react-ace";
+import prettier from "prettier/standalone";
+import parserBabel from "prettier/plugins/babel";
 import { Linter } from "eslint-linter-browserify";
 
-// Caminho relativo ao `public`
-const prettierWorkerUrl = "/prettier.worker.js";
+import "ace-builds/src-noconflict/mode-javascript";
+import "ace-builds/src-noconflict/theme-monokai";
+import "ace-builds/src-noconflict/ext-language_tools";
 
-export default function ScriptEditorMonaco({ value, onChange }) {
-  const editorRef = useRef(null);
-  const monacoRef = useRef(null);
+export default function ScriptEditorAce({ value, onChange }) {
+  const editorRef = useRef();
+
+  // ESLint Linter
   const linter = new Linter();
 
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    monacoRef.current = monaco.editor.create(editorRef.current, {
-      value,
-      language: "javascript",
-      theme: "vs-dark",
-      automaticLayout: true,
-      minimap: { enabled: false },
-    });
-
-    monacoRef.current.onDidChangeModelContent(() => {
-      const updatedValue = monacoRef.current.getValue();
-      onChange(updatedValue);
-    });
-
-    return () => monacoRef.current?.dispose();
-  }, []);
-
-  useEffect(() => {
-    if (monacoRef.current && monacoRef.current.getValue() !== value) {
-      monacoRef.current.setValue(value);
+  const formatCode = async () => {
+    try {
+      const formatted = await prettier.format(value, {
+        parser: "babel",
+        plugins: [parserBabel],
+        semi: true,
+        singleQuote: true,
+      });
+      onChange(formatted);
+    } catch (err) {
+      alert("Erro ao formatar: " + err.message);
     }
-  }, [value]);
-
-  const formatCode = () => {
-    const rawCode = monacoRef.current.getValue();
-
-    // Web worker para Prettier!
-    const worker = new window.Worker(prettierWorkerUrl);
-
-    worker.postMessage({
-      code: rawCode,
-      options: { singleQuote: true, semi: true }
-    });
-
-    worker.onmessage = function (e) {
-      const { formatted, error } = e.data;
-      if (formatted) monacoRef.current.setValue(formatted);
-      if (error) console.error("Erro ao formatar:", error);
-      worker.terminate();
-    };
   };
 
   const lintCode = () => {
-    const code = monacoRef.current.getValue();
-
     try {
-      const results = linter.verify(code, {
+      const messages = linter.verify(value, {
         rules: {
           semi: ["error", "always"],
           "no-unused-vars": "warn",
         },
-        env: {
-          browser: true,
-          es6: true,
-        },
-        parserOptions: {
-          ecmaVersion: 2021,
-          sourceType: "module",
-        },
+        env: { browser: true, es6: true },
+        parserOptions: { ecmaVersion: 2021, sourceType: "module" },
       });
-
-      const model = monacoRef.current.getModel();
-
-      monaco.editor.setModelMarkers(model, "eslint", results.map((msg) => ({
-        startLineNumber: msg.line,
-        startColumn: msg.column,
-        endLineNumber: msg.endLine || msg.line,
-        endColumn: msg.endColumn || msg.column + 1,
-        message: msg.message,
-        severity: msg.severity === 2 ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
-        source: "eslint",
-      })));
-    } catch (err) {
-      console.error("Erro ao executar lint:", err);
+      if (messages.length) {
+        const msg = messages
+          .map((m) => `${m.message} [${m.line}:${m.column}]`)
+          .join("\n");
+        alert(msg);
+      } else {
+        alert("Nenhum erro encontrado!");
+      }
+    } catch (e) {
+      alert("Erro ao lintar: " + e.message);
     }
   };
 
   return (
     <div style={{ position: "relative", border: "1px solid #333", borderRadius: 6 }}>
-      <div ref={editorRef} style={{ height: 300 }} />
-      <div style={{ position: "absolute", bottom: 8, right: 8, display: "flex", gap: "8px" }}>
+      <AceEditor
+        ref={editorRef}
+        mode="javascript"
+        theme="monokai"
+        name="script-editor"
+        value={value}
+        onChange={onChange}
+        width="100%"
+        height="300px"
+        fontSize={14}
+        showPrintMargin={false}
+        showGutter={true}
+        highlightActiveLine={true}
+        setOptions={{
+          enableBasicAutocompletion: true,
+          enableLiveAutocompletion: false,
+          enableSnippets: false,
+          showLineNumbers: true,
+          tabSize: 2,
+        }}
+        style={{
+          borderRadius: 6,
+          background: "#232323",
+        }}
+      />
+      <div style={{ position: "absolute", bottom: 10, right: 12, display: "flex", gap: 8 }}>
         <button onClick={formatCode} style={buttonStyle}>Format</button>
         <button onClick={lintCode} style={buttonStyle}>Lint</button>
       </div>
