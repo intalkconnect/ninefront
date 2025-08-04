@@ -1,15 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import monacoEditorPluginCjs from 'vite-plugin-monaco-editor';
-
-const { monacoEditorPlugin } = monacoEditorPluginCjs;
+import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 
 export default defineConfig({
   plugins: [
     react(),
-    monacoEditorPlugin({
-      languageWorkers: ['javascript'], // pode adicionar 'json', 'typescript' etc se quiser
-    }),
+    monacoEditorPlugin(), // chame como função diretamente
   ],
   server: {
     historyApiFallback: true,
