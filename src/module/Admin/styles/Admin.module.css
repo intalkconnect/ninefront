@@ -26,7 +26,6 @@
   flex: 1;
   margin-left: 64px; /* igual à largura da sidebar */
   overflow-y: auto;
-  padding: 24px;
   background-color: #fff;
   height: 100vh;
 }
@@ -84,6 +83,7 @@
   background-color: #f0f0f0;
   color: #000;
 }
+
 
 
 
