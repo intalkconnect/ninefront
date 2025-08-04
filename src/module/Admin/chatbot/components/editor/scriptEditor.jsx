@@ -3,6 +3,8 @@ import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "@codemirror/basic-setup"; // ✔️ Corrigido
 import { javascript } from "@codemirror/lang-javascript";
+import { oneDark } from "@codemirror/theme-one-dark";
+
 
 export default function ScriptEditorModal({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -19,7 +21,7 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
 
     const state = EditorState.create({
       doc: code || `// Script de exemplo\nfunction main() {\n  console.log("Olá mundo!");\n}`,
-      extensions: [basicSetup, javascript(), updateListener],
+      extensions: [basicSetup, javascript(), oneDark, updateListener],
     });
 
     editorViewRef.current = new EditorView({
