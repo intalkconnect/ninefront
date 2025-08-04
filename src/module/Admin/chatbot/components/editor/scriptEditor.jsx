@@ -4,9 +4,16 @@ import prettier from "prettier/standalone";
 import parserBabel from "prettier/plugins/babel";
 import { Linter } from "eslint-linter-browserify";
 
+// Imports Ace modules
+import ace from "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-language_tools";
+
+// Desativa o worker do modo javascript para evitar erro de importScripts
+ace.require("ace/mode/javascript").Mode.prototype.createWorker = function () {
+  return null;
+};
 
 export default function ScriptEditorAce({ value, onChange }) {
   const editorRef = useRef();
