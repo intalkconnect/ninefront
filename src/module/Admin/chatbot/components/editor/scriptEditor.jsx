@@ -1,10 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { basicSetup } from "@codemirror/basic-setup"; // ✔️ Corrigido
+import { basicSetup } from "@codemirror/basic-setup";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-
 
 export default function ScriptEditorModal({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -20,8 +19,13 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
     });
 
     const state = EditorState.create({
-      doc: code || `// Script de exemplo\nfunction main() {\n  console.log("Olá mundo!");\n}`,
-      extensions: [basicSetup, javascript(), oneDark, updateListener],
+      doc: code || `function name(params) {\n  \n}`,
+      extensions: [
+        basicSetup,
+        javascript(),
+        oneDark,
+        updateListener,
+      ],
     });
 
     editorViewRef.current = new EditorView({
@@ -30,7 +34,7 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
     });
 
     return () => {
-      editorViewRef.current.destroy();
+      editorViewRef.current?.destroy();
       editorViewRef.current = null;
     };
   }, []);
@@ -46,12 +50,11 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
   );
 }
 
-// Layout corrigido:
 const modalStyle = {
   position: "absolute",
   top: 0,
   left: 0,
-  right: "375px", // ✅ se o painel da direita ocupar 375px
+  width: "375px",
   height: "100%",
   backgroundColor: "#1e1e1e",
   zIndex: 1000,
@@ -73,7 +76,7 @@ const headerStyle = {
 
 const editorContainer = {
   flex: 1,
-  overflow: "auto",
+  overflow: "hidden",
 };
 
 const closeBtn = {
