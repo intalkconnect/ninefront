@@ -39,18 +39,22 @@ export default function ScriptEditor({ value, onChange }) {
     }
   };
 
-  const formatWithPrettier = () => {
-    if (!viewRef.current) return;
+const formatWithPrettier = () => {
+  if (!viewRef.current) return;
 
+  try {
     const currentCode = viewRef.current.state.doc.toString();
-    try {
-      const formatted = prettier.format(currentCode, {
-        parser: "babel",
-        plugins: [parserBabel],
-        singleQuote: true,
-        semi: true,
-      });
+    if (!currentCode.trim()) {
+      alert("Código está vazio.");
+      return;
+    }
 
+    const formatted = prettier.format(currentCode, {
+      parser: "babel",
+      plugins: [parserBabel],
+    });
+
+    if (formatted !== currentCode) {
       viewRef.current.dispatch({
         changes: {
           from: 0,
@@ -58,10 +62,13 @@ export default function ScriptEditor({ value, onChange }) {
           insert: formatted,
         },
       });
-    } catch (err) {
-      console.error("Erro ao formatar com Prettier:", err);
     }
-  };
+  } catch (err) {
+    console.warn("Erro ao formatar com Prettier:", err);
+    alert("Erro ao formatar código:\n" + err.message);
+  }
+};
+
 
   useEffect(() => {
     if (!editorRef.current) return;
