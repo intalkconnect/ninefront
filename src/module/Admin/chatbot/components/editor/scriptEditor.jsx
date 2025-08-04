@@ -28,15 +28,14 @@ import {
 import { lintGutter, lintKeymap } from "@codemirror/lint";
 import {
   syntaxHighlighting,
+  defaultHighlightStyle,
   indentOnInput,
   bracketMatching,
   foldGutter,
   foldKeymap
 } from "@codemirror/language";
-import { defaultHighlightStyle } from "@codemirror/highlight";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-
 
 export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -80,13 +79,12 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       indentOnInput(),
       bracketMatching(),
       closeBrackets(),
-      autocompletion(),
       rectangularSelection(),
       crosshairCursor(),
 
       // linguagem e highlighting
       javascript({ jsx: false, typescript: false }),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),  // ⚠️ sem duplicar via basicSetup
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       oneDark,
 
       // buscas e lint
