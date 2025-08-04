@@ -8,7 +8,7 @@ import { indentWithTab } from "@codemirror/commands";
 import { lintGutter } from "@codemirror/lint";
 import { autocompletion } from "@codemirror/autocomplete";
 import { highlightSelectionMatches } from "@codemirror/search";
-import { bracketMatching } from "@codemirror/language";
+import { bracketMatching, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
 import { highlightSpecialChars, drawSelection } from "@codemirror/view";
 
 export default function ScriptEditor({ code, onChange, onClose }) {
@@ -54,6 +54,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       highlightSpecialChars(),
       drawSelection(),
       bracketMatching(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       javascript({ jsx: false, typescript: false }),
       oneDark,
       updateListener,
@@ -75,7 +76,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
           "& > ul > li": {
             padding: "4px 8px",
             "&[aria-selected]": {
-              background: "#2a2a2a"
+              backgroundColor: "#2a2a2a"
             }
           }
         },
