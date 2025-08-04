@@ -1,64 +1,82 @@
 import React, { useEffect, useRef } from "react";
+import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { basicSetup } from "@codemirror/basic-setup";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 
-export default function ScriptEditor({ value, onChange }) {
+export default function ScriptEditorModal({ code, onChange, onClose }) {
   const editorRef = useRef(null);
-  const viewRef = useRef(null);
+  const editorViewRef = useRef(null);
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorRef.current || editorViewRef.current) return;
 
-    const updateListener = EditorView.updateListener.of((v) => {
-      if (v.docChanged) {
-        const updatedCode = v.state.doc.toString();
-        onChange(updatedCode);
+    const updateListener = EditorView.updateListener.of((update) => {
+      if (update.docChanged) {
+        onChange(update.state.doc.toString());
       }
     });
 
-    viewRef.current = new EditorView({
-      doc: value,
-      extensions: [
-        basicSetup,
-        javascript(),
-        oneDark,
-        updateListener,
-      ],
+    const state = EditorState.create({
+      doc: code || `// Script de exemplo\nfunction main() {\n  console.log("Olá mundo!");\n}`,
+      extensions: [basicSetup, javascript(), updateListener],
+    });
+
+    editorViewRef.current = new EditorView({
+      state,
       parent: editorRef.current,
     });
 
     return () => {
-      viewRef.current?.destroy();
-      viewRef.current = null;
+      editorViewRef.current.destroy();
+      editorViewRef.current = null;
     };
   }, []);
 
-  useEffect(() => {
-    const currentValue = viewRef.current?.state.doc.toString();
-    if (viewRef.current && currentValue !== value) {
-      viewRef.current.dispatch({
-        changes: {
-          from: 0,
-          to: viewRef.current.state.doc.length,
-          insert: value,
-        },
-      });
-    }
-  }, [value]);
-
   return (
-    <div
-      ref={editorRef}
-      style={{
-        height: "300px",
-        width: "100%",
-        border: "1px solid #444",
-        borderRadius: "6px",
-        overflow: "hidden",
-        backgroundColor: "#1e1e1e",
-      }}
-    />
+    <div style={modalStyle}>
+      <div style={headerStyle}>
+        <span>Editor de Script</span>
+        <button onClick={onClose} style={closeBtn}>✖</button>
+      </div>
+      <div ref={editorRef} style={editorContainer} />
+    </div>
   );
 }
+
+const modalStyle = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  width: "600px",
+  height: "100%",
+  backgroundColor: "#1e1e1e",
+  zIndex: 1000,
+  display: "flex",
+  flexDirection: "column",
+  borderRight: "1px solid #444",
+};
+
+const headerStyle = {
+  height: "40px",
+  backgroundColor: "#2a2a2a",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "0 1rem",
+  borderBottom: "1px solid #444",
+  color: "#fff",
+};
+
+const editorContainer = {
+  flex: 1,
+  overflow: "auto",
+};
+
+const closeBtn = {
+  background: "transparent",
+  border: "none",
+  color: "#fff",
+  fontSize: "1.2rem",
+  cursor: "pointer",
+};
