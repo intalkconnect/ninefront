@@ -1,8 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import AceEditor from "react-ace";
 import prettier from "prettier/standalone";
-// O CORRETO é importar assim:
-import parserBabel from "prettier/parser-babel";
+import * as parserBabel from "prettier/parser-babel";
 
 import ace from "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/mode-javascript";
@@ -20,9 +19,9 @@ export default function ScriptEditorAce({ value, onChange }) {
   // Formata automaticamente ao perder foco ou digitar (escolha um dos dois)
   const handleFormat = async (rawValue) => {
     try {
-      const formatted = await prettier.format(rawValue, {
-        parser: "babel",
-        plugins: [parserBabel],
+const formatted = await prettier.format(value, {
+  parser: "babel",
+  plugins: [parserBabel],
         semi: true,
         singleQuote: true,
       });
