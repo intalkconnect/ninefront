@@ -731,7 +731,7 @@ const handleUpdateCode = (newCode) => {
         </button>
       </div>
       <div style={{ flex: 1, overflow: "auto" }}>
-        <ScriptEditor value={scriptCode} onChange={handleUpdateCode} />
+        <ScriptEditor code={scriptCode} onChange={handleUpdateCode} onClose={() => setitor(false)} />
       </div>
     </div>
   )}
