@@ -1,83 +1,145 @@
-import React, { useRef } from "react";
-import AceEditor from "react-ace";
-import ace from "ace-builds/src-noconflict/ace";
-import "ace-builds/src-noconflict/mode-javascript";
-import "ace-builds/src-noconflict/theme-monokai";
-import "ace-builds/src-noconflict/ext-language_tools";
+import React, { useEffect, useRef } from "react";
+import { EditorView, basicSetup } from "codemirror";
+import { highlightActiveLine } from "@codemirror/view";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { javascript } from "@codemirror/lang-javascript";
+import { linter, lintGutter } from "@codemirror/lint";
 
-ace.require("ace/mode/javascript").Mode.prototype.createWorker = function () {
-  return null;
-};
+import Linter from "eslint-linter-browserify";
 
-export default function ScriptEditorAce({ value, onChange }) {
-  const editorRef = useRef();
+import prettier from "prettier/standalone";
+import parserBabel from "prettier/parser-babel";
 
-  const formatCode = () => {
+export default function ScriptEditor({ value, onChange }) {
+  const editorRef = useRef(null);
+  const viewRef = useRef(null);
+
+  const eslintLinter = Linter ? new Linter() : null;
+
+  const validateWithESLint = (code) => {
+    if (!eslintLinter) return [];
+
     try {
-      if (
-        !window.prettier ||
-        !window.prettierPlugins ||
-        !window.prettierPlugins.babel
-      ) {
-        alert("Prettier não está carregado! Confira o HTML.");
-        return;
-      }
-      const formatted = window.prettier.format(value, {
-        parser: "babel",
-        plugins: [window.prettierPlugins.babel], // <-- aqui é o segredo!
-        semi: true,
-        singleQuote: true,
+      const messages = eslintLinter.verify(code, {
+        rules: {
+          semi: ["error", "always"],
+          "no-unused-vars": "warn",
+          "no-undef": "error",
+        },
+        env: { browser: true, es2021: true },
+        parserOptions: { ecmaVersion: 12, sourceType: "module" },
       });
-      if (typeof formatted === "string") {
-        onChange(formatted);
-      } else {
-        alert("Prettier não conseguiu formatar.");
-      }
-    } catch (err) {
-      alert("Erro ao formatar: " + err.message);
+
+      return messages.map((m) => ({
+        from: m.column - 1,
+        to: m.endColumn ? m.endColumn - 1 : m.column,
+        severity: m.severity === 2 ? "error" : "warning",
+        message: m.message,
+        source: "eslint",
+      }));
+    } catch (e) {
+      return [];
     }
   };
 
+  const formatWithPrettier = () => {
+    if (!viewRef.current) return;
+
+    const currentCode = viewRef.current.state.doc.toString();
+    try {
+      const formatted = prettier.format(currentCode, {
+        parser: "babel",
+        plugins: [parserBabel],
+        singleQuote: true,
+        semi: true,
+      });
+
+      viewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: viewRef.current.state.doc.length,
+          insert: formatted,
+        },
+      });
+    } catch (err) {
+      console.error("Erro ao formatar com Prettier:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const updateListener = EditorView.updateListener.of((v) => {
+      if (v.docChanged) {
+        const updatedCode = v.state.doc.toString();
+        onChange(updatedCode);
+      }
+    });
+
+    viewRef.current = new EditorView({
+      doc: value,
+      extensions: [
+        basicSetup,
+        javascript(),
+        oneDark,
+        highlightActiveLine(),
+        lintGutter(),
+        linter(validateWithESLint),
+        updateListener,
+      ],
+      parent: editorRef.current,
+    });
+
+    return () => {
+      if (viewRef.current) {
+        viewRef.current.destroy();
+        viewRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (viewRef.current && viewRef.current.state.doc.toString() !== value) {
+      viewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: viewRef.current.state.doc.length,
+          insert: value,
+        },
+      });
+    }
+  }, [value]);
+
   return (
-    <div style={{ position: "relative", border: "1px solid #333", borderRadius: 6 }}>
-      <AceEditor
+    <div style={{ position: "relative" }}>
+      <div
         ref={editorRef}
-        mode="javascript"
-        theme="monokai"
-        name="script-editor"
-        value={value}
-        onChange={onChange}
-        width="100%"
-        height="300px"
-        fontSize={14}
-        showPrintMargin={false}
-        showGutter={true}
-        highlightActiveLine={true}
-        setOptions={{
-          enableBasicAutocompletion: true,
-          enableLiveAutocompletion: false,
-          enableSnippets: false,
-          showLineNumbers: true,
-          tabSize: 2,
-        }}
         style={{
-          borderRadius: 6,
-          background: "#232323",
+          height: "300px",
+          width: "100%",
+          border: "1px solid #444",
+          borderRadius: "6px",
+          overflow: "hidden",
+          backgroundColor: "#1e1e1e",
         }}
       />
-      <div style={{ position: "absolute", bottom: 10, right: 12, display: "flex", gap: 8 }}>
-        <button onClick={formatCode} style={buttonStyle}>Format</button>
-      </div>
+      <button
+        onClick={formatWithPrettier}
+        style={{
+          position: "absolute",
+          bottom: "8px",
+          right: "12px",
+          background: "#222",
+          color: "#fff",
+          border: "1px solid #444",
+          borderRadius: "4px",
+          padding: "4px 8px",
+          fontSize: "12px",
+          cursor: "pointer",
+        }}
+      >
+        Format
+      </button>
     </div>
   );
 }
-
-const buttonStyle = {
-  background: "#222",
-  color: "#fff",
-  border: "1px solid #444",
-  borderRadius: "4px",
-  padding: "4px 8px",
-  fontSize: "12px",
-  cursor: "pointer",
-};
