@@ -9,14 +9,6 @@ import styles from './styles/Admin.module.css';
 document.title = 'HubHMG - Gestão';
 
 export default function Admin() {
-  // Dados de exemplo baseados na imagem
-  const items = [
-    { id: 1, leftText: "X16-3440...", rightText: "Restaurant Versão", date: "31/07/2023, 18:36:00" },
-    { id: 2, leftText: "YohMee...", rightText: "Restaurant Versão", date: "31/07/2023, 18:27:10" },
-    { id: 3, leftText: "Y2MoMe...", rightText: "Restaurant Versão", date: "31/07/2023, 18:14:41" },
-    { id: 4, leftText: "Y4Y1Y3...", rightText: "Restaurant Versão", date: "31/07/2023, 18:13:09" },
-  ];
-
   return (
     <div className={styles['layout-wrapper']}>
       <aside className={styles['sidebar']}>
@@ -35,20 +27,16 @@ export default function Admin() {
       </aside>
 
       <main className={styles['main-content']}>
-        <div className={styles['items-container']}>
-          {items.map((item) => (
-            <div key={item.id} className={styles['item-card']}>
-              <div className={styles['item-left']}>
-                <div className={styles['item-title']}>{item.leftText}</div>
-                <div className={styles['item-date']}>{item.date}</div>
-              </div>
-              <div className={styles['item-right']}>
-                <div className={styles['item-title']}>{item.rightText}</div>
-                <div className={styles['item-date']}>{item.date}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <Routes>
+          <Route index element={<Dashboard />} />
+          <Route path="chatbot" element={<Chatbot />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route
+            path="configuracoes"
+            element={<div>Página de Configurações</div>}
+          />
+          <Route path="*" element={<Navigate to="" />} />
+        </Routes>
       </main>
     </div>
   );
