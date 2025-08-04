@@ -5,8 +5,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { javascript } from "@codemirror/lang-javascript";
 import { linter, lintGutter } from "@codemirror/lint";
 
-import Linter from "eslint-linter-browserify";
-
+import { Linter } from "eslint-linter-browserify";
 import prettier from "prettier/standalone";
 import parserBabel from "prettier/parser-babel";
 
@@ -14,11 +13,9 @@ export default function ScriptEditor({ value, onChange }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
 
-  const eslintLinter = Linter ? new Linter() : null;
+  const eslintLinter = new Linter();
 
   const validateWithESLint = (code) => {
-    if (!eslintLinter) return [];
-
     try {
       const messages = eslintLinter.verify(code, {
         rules: {
@@ -37,7 +34,7 @@ export default function ScriptEditor({ value, onChange }) {
         message: m.message,
         source: "eslint",
       }));
-    } catch (e) {
+    } catch {
       return [];
     }
   };
@@ -84,17 +81,15 @@ export default function ScriptEditor({ value, onChange }) {
         oneDark,
         highlightActiveLine(),
         lintGutter(),
-        linter(validateWithESLint),
+        linter((view) => validateWithESLint(view.state.doc.toString())),
         updateListener,
       ],
       parent: editorRef.current,
     });
 
     return () => {
-      if (viewRef.current) {
-        viewRef.current.destroy();
-        viewRef.current = null;
-      }
+      viewRef.current?.destroy();
+      viewRef.current = null;
     };
   }, []);
 
