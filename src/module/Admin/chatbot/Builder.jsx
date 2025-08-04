@@ -170,7 +170,8 @@ function handler(context) {
 
 const handleUpdateCode = React.useCallback((newCode) => {
   setScriptCode(newCode);
-  if (selectedNode && selectedNode.data?.block) {
+
+  if (selectedNode && selectedNode.data?.block?.type === "code") {
     setNodes((nds) =>
       nds.map((n) =>
         n.id === selectedNode.id
@@ -178,7 +179,10 @@ const handleUpdateCode = React.useCallback((newCode) => {
               ...n,
               data: {
                 ...n.data,
-                block: { ...n.data.block, code: newCode },
+                block: {
+                  ...n.data.block,
+                  code: newCode,
+                },
               },
             }
           : n
@@ -186,6 +190,7 @@ const handleUpdateCode = React.useCallback((newCode) => {
     );
   }
 }, [selectedNode]);
+
 
   
   const onConnect = useCallback((params) => {
