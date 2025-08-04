@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { basicSetup } from "codemirror";
+import { basicSetup } from "@codemirror/basic-setup"; // ✔️ Corrigido
 import { javascript } from "@codemirror/lang-javascript";
 
 export default function ScriptEditorModal({ code, onChange, onClose }) {
@@ -44,11 +44,12 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
   );
 }
 
+// Layout corrigido:
 const modalStyle = {
   position: "absolute",
   top: 0,
   left: 0,
-  width: "600px",
+  right: "375px", // ✅ se o painel da direita ocupar 375px
   height: "100%",
   backgroundColor: "#1e1e1e",
   zIndex: 1000,
