@@ -1,6 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
-import { EditorView, keymap, highlightActiveLine, highlightActiveLineGutter } from "@codemirror/view";
+import {
+  EditorView,
+  keymap,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  drawSelection
+} from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
@@ -8,8 +15,8 @@ import { indentWithTab } from "@codemirror/commands";
 import { lintGutter } from "@codemirror/lint";
 import { autocompletion } from "@codemirror/autocomplete";
 import { highlightSelectionMatches } from "@codemirror/search";
-import { bracketMatching, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
-import { highlightSpecialChars, drawSelection } from "@codemirror/view";
+import { bracketMatching, syntaxHighlighting } from "@codemirror/language";
+import { defaultHighlightStyle } from "@codemirror/highlight"; // ✅ correto!
 
 export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -24,25 +31,24 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       }
     });
 
-    // Configuração customizada do autocompletar
+    // ✅ Correto uso da API de autocompletar
     const customAutocomplete = autocompletion({
       override: [
-        javascript().language.data.of({
-          autocomplete: context => {
-            const word = context.matchBefore(/\w*/);
-            if (!word) return null;
-            return {
-              from: word.from,
-              options: [
-                {
-                  label: "function",
-                  type: "keyword",
-                  apply: "function ${name}(${params}) {\n  ${}\n}"
-                }
-              ]
-            };
-          }
-        })
+        (context) => {
+          const word = context.matchBefore(/\w*/);
+          if (!word || word.from === word.to) return null;
+
+          return {
+            from: word.from,
+            options: [
+              {
+                label: "function",
+                type: "keyword",
+                apply: "function ${name}(${params}) {\n  ${}\n}"
+              }
+            ]
+          };
+        }
       ]
     });
 
@@ -54,7 +60,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       highlightSpecialChars(),
       drawSelection(),
       bracketMatching(),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }), // ✅ Estilo certo
       javascript({ jsx: false, typescript: false }),
       oneDark,
       updateListener,
@@ -63,11 +69,11 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       keymap.of([indentWithTab]),
       EditorView.lineWrapping,
       EditorView.theme({
-        "&": { 
+        "&": {
           height: "100%",
           fontSize: "14px"
         },
-        ".cm-scroller": { 
+        ".cm-scroller": {
           overflow: "auto",
           fontFamily: "'Fira Code', monospace",
           lineHeight: "1.5"
@@ -80,7 +86,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
             }
           }
         },
-        ".cm-gutters": { 
+        ".cm-gutters": {
           backgroundColor: "#1e1e1e",
           borderRight: "1px solid #444",
           color: "#858585"
@@ -108,7 +114,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
 
     editorViewRef.current = new EditorView({
       state,
-      parent: editorRef.current,
+      parent: editorRef.current
     });
 
     setTimeout(() => {
@@ -135,11 +141,15 @@ function handler(context) {
 
   useEffect(() => {
     if (!editorViewRef.current || code === undefined) return;
-    
+
     const currentValue = editorViewRef.current.state.doc.toString();
     if (code !== currentValue) {
       editorViewRef.current.dispatch({
-        changes: { from: 0, to: currentValue.length, insert: code || getDefaultCode() }
+        changes: {
+          from: 0,
+          to: currentValue.length,
+          insert: code || getDefaultCode()
+        }
       });
     }
   }, [code]);
@@ -157,7 +167,7 @@ function handler(context) {
   );
 }
 
-// Estilos completos mantidos
+// Estilos mantidos
 const modalStyle = {
   position: "fixed",
   top: "117px",
