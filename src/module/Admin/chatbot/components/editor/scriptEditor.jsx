@@ -1,8 +1,5 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef } from "react";
 import AceEditor from "react-ace";
-import prettier from "prettier/standalone";
-import * as parserBabel from "prettier/parser-babel";
-
 import ace from "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/theme-monokai";
@@ -16,29 +13,21 @@ ace.require("ace/mode/javascript").Mode.prototype.createWorker = function () {
 export default function ScriptEditorAce({ value, onChange }) {
   const editorRef = useRef();
 
-  // Formata automaticamente ao perder foco ou digitar (escolha um dos dois)
-  const handleFormat = async (rawValue) => {
+  // Formata o código ao clicar no botão
+  const formatCode = () => {
     try {
-const formatted = await prettier.format(value, {
-  parser: "babel",
-  plugins: [parserBabel],
+      // window.prettier e window.prettierPlugins vêm do script do CDN!
+      const formatted = window.prettier.format(value, {
+        parser: "babel",
+        plugins: window.prettierPlugins,
         semi: true,
         singleQuote: true,
       });
-      if (formatted !== rawValue) onChange(formatted);
+      onChange(formatted);
     } catch (err) {
-      // Não alerta na tela para não irritar, só mostra no console
-      console.error("Erro ao formatar: " + err.message);
+      alert("Erro ao formatar: " + err.message);
     }
   };
-
-  // Opção: formata ao digitar (cuidado: pode ser incômodo)
-  // useEffect(() => {
-  //   if (value) handleFormat(value);
-  // }, [value]);
-
-  // Opção: formata só ao clicar no botão ou ao perder o foco
-  const handleBlur = () => handleFormat(value);
 
   return (
     <div style={{ position: "relative", border: "1px solid #333", borderRadius: 6 }}>
@@ -49,7 +38,6 @@ const formatted = await prettier.format(value, {
         name="script-editor"
         value={value}
         onChange={onChange}
-        onBlur={handleBlur}
         width="100%"
         height="300px"
         fontSize={14}
@@ -69,7 +57,7 @@ const formatted = await prettier.format(value, {
         }}
       />
       <div style={{ position: "absolute", bottom: 10, right: 12, display: "flex", gap: 8 }}>
-        <button onClick={() => handleFormat(value)} style={buttonStyle}>Format</button>
+        <button onClick={formatCode} style={buttonStyle}>Format</button>
       </div>
     </div>
   );
