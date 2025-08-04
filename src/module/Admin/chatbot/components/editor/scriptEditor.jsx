@@ -28,12 +28,13 @@ import {
 import { lintGutter, lintKeymap } from "@codemirror/lint";
 import {
   syntaxHighlighting,
-  defaultHighlightStyle,
   indentOnInput,
   bracketMatching,
   foldGutter,
   foldKeymap
 } from "@codemirror/language";
+import { defaultHighlightStyle } from "@codemirror/highlight";
+
 import { javascript } from "@codemirror/lang-javascript";
 // ❌ REMOVIDO: import { oneDark } from "@codemirror/theme-one-dark";
 
