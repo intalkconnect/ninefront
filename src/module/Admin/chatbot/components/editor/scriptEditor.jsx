@@ -4,21 +4,16 @@ import { highlightActiveLine } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { javascript } from "@codemirror/lang-javascript";
 import { linter, lintGutter } from "@codemirror/lint";
-
-import Linter from "eslint-linter-browserify";
-
-import prettier from "prettier/standalone";
-import parserBabel from "prettier/parser-babel";
+import { Linter } from "eslint-linter-browserify";
 
 export default function ScriptEditor({ value, onChange }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
 
-  const eslintLinter = Linter ? new Linter() : null;
+  const eslintLinter = new Linter();
 
   const validateWithESLint = (code) => {
     if (!eslintLinter) return [];
-
     try {
       const messages = eslintLinter.verify(code, {
         rules: {
@@ -42,28 +37,35 @@ export default function ScriptEditor({ value, onChange }) {
     }
   };
 
-  const formatWithPrettier = () => {
+  const formatWithPrettierWorker = () => {
     if (!viewRef.current) return;
 
     const currentCode = viewRef.current.state.doc.toString();
-    try {
-      const formatted = prettier.format(currentCode, {
-        parser: "babel",
-        plugins: [parserBabel],
-        singleQuote: true,
-        semi: true,
-      });
+    const worker = new Worker("/prettierWorker.js");
 
-      viewRef.current.dispatch({
-        changes: {
-          from: 0,
-          to: viewRef.current.state.doc.length,
-          insert: formatted,
-        },
-      });
-    } catch (err) {
-      console.error("Erro ao formatar com Prettier:", err);
-    }
+    worker.postMessage({ code: currentCode });
+
+    worker.onmessage = (e) => {
+      const { formatted, error } = e.data;
+
+      if (error) {
+        alert("Erro ao formatar: " + error);
+        console.error("Erro no Prettier Worker:", error);
+        return;
+      }
+
+      if (formatted) {
+        viewRef.current.dispatch({
+          changes: {
+            from: 0,
+            to: viewRef.current.state.doc.length,
+            insert: formatted,
+          },
+        });
+      }
+
+      worker.terminate();
+    };
   };
 
   useEffect(() => {
@@ -124,7 +126,7 @@ export default function ScriptEditor({ value, onChange }) {
         }}
       />
       <button
-        onClick={formatWithPrettier}
+        onClick={formatWithPrettierWorker}
         style={{
           position: "absolute",
           bottom: "8px",
