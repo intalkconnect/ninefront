@@ -33,9 +33,9 @@ import {
   bracketMatching,
   foldGutter,
   foldKeymap
-} from "@codemirror/language";  // <-- traz tudo do mesmo pacote
+} from "@codemirror/language";
 import { javascript } from "@codemirror/lang-javascript";
-import { oneDark } from "@codemirror/theme-one-dark";
+// ❌ REMOVIDO: import { oneDark } from "@codemirror/theme-one-dark";
 
 export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -68,7 +68,6 @@ export default function ScriptEditor({ code, onChange, onClose }) {
     });
 
     const extensions = [
-      // Básicas de view
       lineNumbers(),
       highlightActiveLine(),
       highlightActiveLineGutter(),
@@ -77,8 +76,6 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       dropCursor(),
       rectangularSelection(),
       crosshairCursor(),
-
-      // Comandos e histórico
       history(),
       foldGutter(),
       indentOnInput(),
@@ -87,13 +84,8 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       autocompletion(),
       highlightSelectionMatches(),
       lintGutter(),
-
-      // Linguagem e highlight
       javascript({ jsx: false, typescript: false }),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-      oneDark,
-
-      // Listeners e keymaps
+      syntaxHighlighting(defaultHighlightStyle), // ✅ apenas essa linha cuida do highlight
       updateListener,
       customAutocomplete,
       keymap.of([
@@ -106,8 +98,6 @@ export default function ScriptEditor({ code, onChange, onClose }) {
         ...lintKeymap,
         indentWithTab
       ]),
-
-      // Wrapping e tema customizado
       EditorView.lineWrapping,
       EditorView.theme({
         "&": { height: "100%", fontSize: "14px" },
@@ -120,15 +110,15 @@ export default function ScriptEditor({ code, onChange, onClose }) {
           backgroundColor: "#2a2a2a"
         },
         ".cm-gutters": {
-          backgroundColor: "#1e1e1e",
-          borderRight: "1px solid #444",
-          color: "#858585"
+          backgroundColor: "#f4f4f4",
+          borderRight: "1px solid #ddd",
+          color: "#555"
         },
         ".cm-activeLine, .cm-activeLineGutter": {
-          backgroundColor: "#2a2a2a"
+          backgroundColor: "#eee"
         },
         ".cm-selectionMatch": {
-          backgroundColor: "#3a3a3a"
+          backgroundColor: "#ddd"
         }
       })
     ];
@@ -187,33 +177,33 @@ const modalStyle = {
   left: 0,
   width: "calc(100% - 375px)",
   height: "calc(100vh - 56px)",
-  backgroundColor: "#1e1e1e",
+  backgroundColor: "#fdfdfd",
   zIndex: 1000,
   display: "flex",
   flexDirection: "column",
-  borderRight: "1px solid #444",
-  boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)"
+  borderRight: "1px solid #ccc",
+  boxShadow: "0 0 20px rgba(0, 0, 0, 0.1)"
 };
 const headerStyle = {
   height: "40px",
-  backgroundColor: "#2a2a2a",
+  backgroundColor: "#eee",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0 1rem",
-  borderBottom: "1px solid #444",
-  color: "#fff",
+  borderBottom: "1px solid #ccc",
+  color: "#333",
   fontSize: "14px"
 };
 const editorContainer = { flex: 1, overflow: "hidden", fontSize: "14px" };
 const closeBtn = {
-  background: "#444",
+  background: "#ccc",
   border: "none",
-  color: "#fff",
+  color: "#333",
   fontSize: "12px",
   cursor: "pointer",
   padding: "5px 10px",
   borderRadius: "4px",
   transition: "background 0.2s",
-  ":hover": { background: "#555" }
+  ":hover": { background: "#bbb" }
 };
