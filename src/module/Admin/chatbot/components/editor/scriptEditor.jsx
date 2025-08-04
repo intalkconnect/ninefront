@@ -1,11 +1,9 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import AceEditor from "react-ace";
 import prettier from "prettier/standalone";
+// O CORRETO é importar assim:
 import parserBabel from "prettier/parser-babel";
 
-import { Linter } from "eslint-linter-browserify";
-
-// Imports Ace modules
 import ace from "ace-builds/src-noconflict/ace";
 import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/theme-monokai";
@@ -19,45 +17,29 @@ ace.require("ace/mode/javascript").Mode.prototype.createWorker = function () {
 export default function ScriptEditorAce({ value, onChange }) {
   const editorRef = useRef();
 
-  // ESLint Linter
-  const linter = new Linter();
-
-  const formatCode = async () => {
+  // Formata automaticamente ao perder foco ou digitar (escolha um dos dois)
+  const handleFormat = async (rawValue) => {
     try {
-      const formatted = await prettier.format(value, {
+      const formatted = await prettier.format(rawValue, {
         parser: "babel",
         plugins: [parserBabel],
         semi: true,
         singleQuote: true,
       });
-      onChange(formatted);
+      if (formatted !== rawValue) onChange(formatted);
     } catch (err) {
-      alert("Erro ao formatar: " + err.message);
+      // Não alerta na tela para não irritar, só mostra no console
+      console.error("Erro ao formatar: " + err.message);
     }
   };
 
-  const lintCode = () => {
-    try {
-      const messages = linter.verify(value, {
-        rules: {
-          semi: ["error", "always"],
-          "no-unused-vars": "warn",
-        },
-        env: { browser: true, es6: true },
-        parserOptions: { ecmaVersion: 2021, sourceType: "module" },
-      });
-      if (messages.length) {
-        const msg = messages
-          .map((m) => `${m.message} [${m.line}:${m.column}]`)
-          .join("\n");
-        alert(msg);
-      } else {
-        alert("Nenhum erro encontrado!");
-      }
-    } catch (e) {
-      alert("Erro ao lintar: " + e.message);
-    }
-  };
+  // Opção: formata ao digitar (cuidado: pode ser incômodo)
+  // useEffect(() => {
+  //   if (value) handleFormat(value);
+  // }, [value]);
+
+  // Opção: formata só ao clicar no botão ou ao perder o foco
+  const handleBlur = () => handleFormat(value);
 
   return (
     <div style={{ position: "relative", border: "1px solid #333", borderRadius: 6 }}>
@@ -68,6 +50,7 @@ export default function ScriptEditorAce({ value, onChange }) {
         name="script-editor"
         value={value}
         onChange={onChange}
+        onBlur={handleBlur}
         width="100%"
         height="300px"
         fontSize={14}
@@ -87,8 +70,7 @@ export default function ScriptEditorAce({ value, onChange }) {
         }}
       />
       <div style={{ position: "absolute", bottom: 10, right: 12, display: "flex", gap: 8 }}>
-        <button onClick={formatCode} style={buttonStyle}>Format</button>
-        <button onClick={lintCode} style={buttonStyle}>Lint</button>
+        <button onClick={() => handleFormat(value)} style={buttonStyle}>Format</button>
       </div>
     </div>
   );
