@@ -10,7 +10,11 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
   const editorViewRef = useRef(null);
 
   useEffect(() => {
-    if (!editorRef.current || editorViewRef.current) return;
+    if (!editorRef.current) return;
+
+    if (editorRef.current.firstChild) {
+      editorRef.current.innerHTML = ""; // Clear any existing editor before reinitializing
+    }
 
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {
@@ -37,7 +41,7 @@ export default function ScriptEditorModal({ code, onChange, onClose }) {
       editorViewRef.current?.destroy();
       editorViewRef.current = null;
     };
-  }, []);
+  }, [code, onChange]);
 
   return (
     <div style={modalStyle}>
