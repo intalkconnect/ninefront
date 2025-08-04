@@ -1,12 +1,15 @@
 import React, { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
-import { basicSetup } from "@codemirror/basic-setup";
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightSelectionMatches } from "@codemirror/view";
+import { Extension, EditorSelection } from "@codemirror/state";
+import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap } from "@codemirror/language";
+import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
+import { lintKeymap } from "@codemirror/lint";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { indentWithTab } from "@codemirror/commands";
-import { lintGutter } from "@codemirror/lint";
-import { autocompletion } from "@codemirror/autocomplete";
 
 export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -21,38 +24,30 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       }
     });
 
-    // Configuração customizada do autocompletar
-    const customAutocomplete = autocompletion({
-      override: [
-        // Adiciona apenas uma instância do completions
-        javascript().language.data.of({
-          autocomplete: context => {
-            const word = context.matchBefore(/\w*/);
-            if (!word) return null;
-            return {
-              from: word.from,
-              options: [
-                {
-                  label: "function",
-                  type: "keyword",
-                  apply: "function ${name}(${params}) {\n  ${}\n}"
-                }
-              ]
-            };
-          }
-        })
-      ]
-    });
+    // Extensões básicas do CodeMirror 6
+    const basicExtensions = [
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      highlightSpecialChars(),
+      history(),
+      foldGutter(),
+      drawSelection(),
+      dropCursor(),
+      EditorState.allowMultipleSelections.of(true),
+      indentOnInput(),
+      bracketMatching(),
+      closeBrackets(),
+      autocompletion(),
+      rectangularSelection(),
+      crosshairCursor(),
+      highlightSelectionMatches(),
+      searchKeymap
+    ];
 
-    const extensions = [
-      basicSetup,
-      javascript({ jsx: false, typescript: false }),
+    // Configuração do tema e highlighting
+    const themeExtensions = [
       oneDark,
-      updateListener,
-      lintGutter(),
-      customAutocomplete, // Usando nossa versão customizada
-      keymap.of([indentWithTab]),
-      EditorView.lineWrapping,
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
       EditorView.theme({
         "&": { 
           height: "100%",
@@ -60,7 +55,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
         },
         ".cm-scroller": { 
           overflow: "auto",
-          fontFamily: "'Fira Code', monospace",
+          fontFamily: "'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
           lineHeight: "1.5"
         },
         ".cm-tooltip.cm-tooltip-autocomplete": {
@@ -81,8 +76,34 @@ export default function ScriptEditor({ code, onChange, onClose }) {
         },
         ".cm-activeLineGutter": {
           backgroundColor: "#2a2a2a"
+        },
+        ".cm-focused": {
+          outline: "none"
         }
       })
+    ];
+
+    // Keymaps
+    const keymapExtensions = [
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...completionKeymap,
+        ...lintKeymap,
+        indentWithTab
+      ])
+    ];
+
+    const extensions = [
+      ...basicExtensions,
+      ...themeExtensions,
+      ...keymapExtensions,
+      javascript({ jsx: false, typescript: false }),
+      updateListener,
+      EditorView.lineWrapping
     ];
 
     const state = EditorState.create({
@@ -108,11 +129,22 @@ export default function ScriptEditor({ code, onChange, onClose }) {
 // Use "context" para acessar dados da conversa
 function handler(context) {
   // exemplo: acessar mensagem do usuário
-  // const mensagem = context.lastUserMessage;
+  const mensagem = context.lastUserMessage;
 
   // seu código aqui
+  if (mensagem) {
+    console.log("Mensagem recebida:", mensagem);
+  }
 
   return { resultado: "valor de saída" };
+}
+
+// Exemplo de função auxiliar
+function processarDados(dados) {
+  return dados.map(item => ({
+    ...item,
+    processado: true
+  }));
 }
 `;
 
@@ -145,7 +177,7 @@ function handler(context) {
   );
 }
 
-// Estilos completos mantidos
+// Estilos mantidos
 const modalStyle = {
   position: "fixed",
   top: "117px",
@@ -186,8 +218,5 @@ const closeBtn = {
   cursor: "pointer",
   padding: "5px 10px",
   borderRadius: "4px",
-  transition: "background 0.2s",
-  ":hover": {
-    background: "#555"
-  }
+  transition: "background 0.2s"
 };
