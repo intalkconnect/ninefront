@@ -1,13 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import * as monaco from "monaco-editor";
-import prettier from "prettier/standalone";
-import parserBabel from "prettier/plugins/babel";
 import { Linter } from "eslint-linter-browserify";
+
+// Caminho relativo ao `public`
+const prettierWorkerUrl = "/prettier.worker.js";
 
 export default function ScriptEditorMonaco({ value, onChange }) {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
-
   const linter = new Linter();
 
   useEffect(() => {
@@ -35,21 +35,23 @@ export default function ScriptEditorMonaco({ value, onChange }) {
     }
   }, [value]);
 
-  const formatCode = async () => {
+  const formatCode = () => {
     const rawCode = monacoRef.current.getValue();
 
-    try {
-      const formatted = await prettier.format(rawCode, {
-        parser: "babel",
-        plugins: [parserBabel],
-        singleQuote: true,
-        semi: true,
-      });
+    // Web worker para Prettier!
+    const worker = new window.Worker(prettierWorkerUrl);
 
-      monacoRef.current.setValue(formatted);
-    } catch (err) {
-      console.error("Erro ao formatar:", err);
-    }
+    worker.postMessage({
+      code: rawCode,
+      options: { singleQuote: true, semi: true }
+    });
+
+    worker.onmessage = function (e) {
+      const { formatted, error } = e.data;
+      if (formatted) monacoRef.current.setValue(formatted);
+      if (error) console.error("Erro ao formatar:", error);
+      worker.terminate();
+    };
   };
 
   const lintCode = () => {
