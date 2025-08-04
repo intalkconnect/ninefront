@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import { EditorView, basicSetup, highlightActiveLine } from "codemirror";
+import { EditorView, basicSetup } from "codemirror";
+import { highlightActiveLine } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { javascript } from "@codemirror/lang-javascript";
 import { linter, lintGutter } from "@codemirror/lint";
