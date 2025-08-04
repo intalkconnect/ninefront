@@ -2,13 +2,12 @@ import React, { useEffect, useRef } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor } from "@codemirror/view";
 import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap } from "@codemirror/language";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { lintKeymap } from "@codemirror/lint";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { indentWithTab } from "@codemirror/commands";
 
 export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -23,8 +22,8 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       }
     });
 
-    // Extensões básicas do CodeMirror 6
-    const basicExtensions = [
+    const extensions = [
+      // Extensões básicas
       lineNumbers(),
       highlightActiveLineGutter(),
       highlightSpecialChars(),
@@ -39,13 +38,36 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       autocompletion(),
       rectangularSelection(),
       crosshairCursor(),
-      highlightSelectionMatches()
-    ];
-
-    // Configuração do tema e highlighting
-    const themeExtensions = [
+      
+      // Linguagem e highlighting
+      javascript({ jsx: false, typescript: false }),
+      syntaxHighlighting(defaultHighlightStyle),
+      
+      // Tema
       oneDark,
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      
+      // Search
+      highlightSelectionMatches(),
+      
+      // Keymaps
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...completionKeymap,
+        ...lintKeymap,
+        indentWithTab
+      ]),
+      
+      // Listener para mudanças
+      updateListener,
+      
+      // Line wrapping
+      EditorView.lineWrapping,
+      
+      // Tema customizado
       EditorView.theme({
         "&": { 
           height: "100%",
@@ -79,29 +101,6 @@ export default function ScriptEditor({ code, onChange, onClose }) {
           outline: "none"
         }
       })
-    ];
-
-    // Keymaps
-    const keymapExtensions = [
-      keymap.of([
-        ...closeBracketsKeymap,
-        ...defaultKeymap,
-        ...searchKeymap,
-        ...historyKeymap,
-        ...foldKeymap,
-        ...completionKeymap,
-        ...lintKeymap,
-        indentWithTab
-      ])
-    ];
-
-    const extensions = [
-      ...basicExtensions,
-      ...themeExtensions,
-      ...keymapExtensions,
-      javascript({ jsx: false, typescript: false }),
-      updateListener,
-      EditorView.lineWrapping
     ];
 
     const state = EditorState.create({
