@@ -3,20 +3,39 @@ import { EditorState } from "@codemirror/state";
 import {
   EditorView,
   keymap,
+  lineNumbers,
   highlightActiveLine,
   highlightActiveLineGutter,
   highlightSpecialChars,
-  drawSelection
+  drawSelection,
+  dropCursor,
+  rectangularSelection,
+  crosshairCursor
 } from "@codemirror/view";
-import { basicSetup } from "codemirror";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab
+} from "@codemirror/commands";
+import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import {
+  autocompletion,
+  completionKeymap,
+  closeBrackets,
+  closeBracketsKeymap
+} from "@codemirror/autocomplete";
+import { lintKeymap } from "@codemirror/lint";
+import {
+  syntaxHighlighting,
+  indentOnInput,
+  bracketMatching,
+  foldGutter,
+  foldKeymap
+} from "@codemirror/language";
+import { defaultHighlightStyle } from "@codemirror/highlight";  // ✅ pacote separado
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { indentWithTab } from "@codemirror/commands";
-import { lintGutter } from "@codemirror/lint";
-import { autocompletion } from "@codemirror/autocomplete";
-import { highlightSelectionMatches } from "@codemirror/search";
-import { bracketMatching, syntaxHighlighting } from "@codemirror/language";
-import { defaultHighlightStyle } from "@codemirror/highlight"; // ✅ correto!
 
 export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
@@ -26,75 +45,84 @@ export default function ScriptEditor({ code, onChange, onClose }) {
     if (!editorRef.current) return;
 
     const updateListener = EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
-        onChange(update.state.doc.toString());
-      }
+      if (update.docChanged) onChange(update.state.doc.toString());
     });
 
-    // ✅ Correto uso da API de autocompletar
+    // Autocomplete customizado
     const customAutocomplete = autocompletion({
       override: [
         (context) => {
           const word = context.matchBefore(/\w*/);
           if (!word || word.from === word.to) return null;
-
           return {
             from: word.from,
-            options: [
-              {
-                label: "function",
-                type: "keyword",
-                apply: "function ${name}(${params}) {\n  ${}\n}"
-              }
-            ]
+            options: [{
+              label: "function",
+              type: "keyword",
+              apply: "function ${name}(${params}) {\n  ${}\n}"
+            }]
           };
         }
       ]
     });
 
     const extensions = [
-      basicSetup,
+      lineNumbers(),
       highlightActiveLine(),
       highlightActiveLineGutter(),
-      highlightSelectionMatches(),
       highlightSpecialChars(),
+      history(),
+      foldGutter(),
       drawSelection(),
+      dropCursor(),
+      EditorState.allowMultipleSelections.of(true),
+      indentOnInput(),
       bracketMatching(),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }), // ✅ Estilo certo
+      closeBrackets(),
+      autocompletion(),
+      rectangularSelection(),
+      crosshairCursor(),
+
+      // linguagem e highlighting
       javascript({ jsx: false, typescript: false }),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),  // ⚠️ sem duplicar via basicSetup
       oneDark,
-      updateListener,
+
+      // buscas e lint
+      highlightSelectionMatches(),
       lintGutter(),
+
+      // listeners e keymaps
+      updateListener,
       customAutocomplete,
-      keymap.of([indentWithTab]),
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...completionKeymap,
+        ...lintKeymap,
+        indentWithTab
+      ]),
+
       EditorView.lineWrapping,
       EditorView.theme({
-        "&": {
-          height: "100%",
-          fontSize: "14px"
-        },
+        "&": { height: "100%", fontSize: "14px" },
         ".cm-scroller": {
           overflow: "auto",
           fontFamily: "'Fira Code', monospace",
           lineHeight: "1.5"
         },
-        ".cm-tooltip.cm-tooltip-autocomplete": {
-          "& > ul > li": {
-            padding: "4px 8px",
-            "&[aria-selected]": {
-              backgroundColor: "#2a2a2a"
-            }
-          }
+        ".cm-tooltip.cm-tooltip-autocomplete ul li[aria-selected]": {
+          backgroundColor: "#2a2a2a"
         },
         ".cm-gutters": {
           backgroundColor: "#1e1e1e",
           borderRight: "1px solid #444",
           color: "#858585"
         },
-        ".cm-activeLine": {
-          backgroundColor: "#2a2a2a"
-        },
-        ".cm-activeLineGutter": {
+        ".cm-activeLine, .cm-activeLineGutter": {
           backgroundColor: "#2a2a2a"
         },
         ".cm-selectionMatch": {
@@ -108,28 +136,20 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       extensions
     });
 
-    if (editorViewRef.current) {
-      editorViewRef.current.destroy();
-    }
-
+    editorViewRef.current?.destroy();
     editorViewRef.current = new EditorView({
       state,
       parent: editorRef.current
     });
 
-    setTimeout(() => {
-      editorViewRef.current?.focus();
-    }, 100);
+    // foco inicial
+    setTimeout(() => editorViewRef.current?.focus(), 100);
   };
 
   const getDefaultCode = () => `// Escreva seu código aqui
 // Use "context" para acessar dados da conversa
 function handler(context) {
-  // exemplo: acessar mensagem do usuário
-  // const mensagem = context.lastUserMessage;
-
   // seu código aqui
-
   return { resultado: "valor de saída" };
 }
 `;
@@ -141,15 +161,10 @@ function handler(context) {
 
   useEffect(() => {
     if (!editorViewRef.current || code === undefined) return;
-
-    const currentValue = editorViewRef.current.state.doc.toString();
-    if (code !== currentValue) {
+    const cur = editorViewRef.current.state.doc.toString();
+    if (code !== cur) {
       editorViewRef.current.dispatch({
-        changes: {
-          from: 0,
-          to: currentValue.length,
-          insert: code || getDefaultCode()
-        }
+        changes: { from: 0, to: cur.length, insert: code || getDefaultCode() }
       });
     }
   }, [code]);
@@ -158,9 +173,7 @@ function handler(context) {
     <div style={modalStyle}>
       <div style={headerStyle}>
         <span>Editor de Script</span>
-        <button onClick={onClose} style={closeBtn}>
-          ✖ Fechar
-        </button>
+        <button onClick={onClose} style={closeBtn}>✖ Fechar</button>
       </div>
       <div ref={editorRef} style={editorContainer} />
     </div>
