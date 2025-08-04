@@ -25,7 +25,7 @@ import {
   closeBrackets,
   closeBracketsKeymap
 } from "@codemirror/autocomplete";
-import { lintKeymap } from "@codemirror/lint";
+import { lintGutter, lintKeymap } from "@codemirror/lint";
 import {
   syntaxHighlighting,
   indentOnInput,
@@ -33,9 +33,10 @@ import {
   foldGutter,
   foldKeymap
 } from "@codemirror/language";
-import { defaultHighlightStyle } from "@codemirror/highlight";  // ✅ pacote separado
+import { defaultHighlightStyle } from "@codemirror/highlight";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
+
 
 export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
