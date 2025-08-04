@@ -1,109 +1,136 @@
-import React, { useRef, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import * as monaco from "monaco-editor";
 import prettier from "prettier/standalone";
 import parserBabel from "prettier/parser-babel";
 import { Linter } from "eslint-linter-browserify";
 
-export default function ScriptEditor({ value, onChange }) {
-  const containerRef = useRef(null);
+// Evita erro de worker
+self.MonacoEnvironment = {
+  getWorker: () =>
+    new Worker(
+      URL.createObjectURL(new Blob(["self.onmessage = () => {}"]))
+    ),
+};
+
+export default function ScriptEditorMonaco({ value, onChange }) {
   const editorRef = useRef(null);
-  const eslint = new Linter();
+  const monacoRef = useRef(null);
+
+  const eslintLinter = new Linter();
+
+  const runLint = (code) => {
+    try {
+      const messages = eslintLinter.verify(
+        code,
+        [
+          {
+            files: ["**/*.js"],
+            languageOptions: {
+              ecmaVersion: 2021,
+              sourceType: "module",
+            },
+            rules: {
+              semi: ["error", "always"],
+              "no-unused-vars": "warn",
+              "no-undef": "error",
+            },
+          },
+        ]
+      );
+
+      monaco.editor.setModelMarkers(monacoRef.current.getModel(), "eslint", messages.map(msg => ({
+        startLineNumber: msg.line,
+        startColumn: msg.column,
+        endLineNumber: msg.endLine || msg.line,
+        endColumn: msg.endColumn || msg.column + 1,
+        message: msg.message,
+        severity: msg.severity === 2 ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+        source: "eslint"
+      })));
+    } catch (e) {
+      console.warn("Erro ao validar ESLint:", e);
+    }
+  };
+
+  const formatWithPrettier = () => {
+    if (!monacoRef.current) return;
+
+    const current = monacoRef.current.getValue();
+    try {
+      const formatted = prettier.format(current, {
+        parser: "babel",
+        plugins: [parserBabel],
+        singleQuote: true,
+        semi: true,
+      });
+      monacoRef.current.setValue(formatted);
+    } catch (err) {
+      console.error("Erro ao formatar:", err);
+    }
+  };
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!editorRef.current) return;
 
-    editorRef.current = monaco.editor.create(containerRef.current, {
-      value: value || "",
+    monacoRef.current = monaco.editor.create(editorRef.current, {
+      value,
       language: "javascript",
       theme: "vs-dark",
       automaticLayout: true,
-      fontSize: 14,
       minimap: { enabled: false },
+      fontSize: 14,
     });
 
-    editorRef.current.onDidChangeModelContent(() => {
-      const updatedCode = editorRef.current.getValue();
-      onChange?.(updatedCode);
-      runESLint(updatedCode);
+    monacoRef.current.onDidChangeModelContent(() => {
+      const newVal = monacoRef.current.getValue();
+      onChange(newVal);
+      runLint(newVal);
     });
 
-    runESLint(value);
+    runLint(value);
 
-    return () => editorRef.current?.dispose();
+    return () => {
+      if (monacoRef.current) monacoRef.current.dispose();
+    };
   }, []);
 
-  const runESLint = (code) => {
-    if (!eslint || !monaco) return;
-
-    const results = eslint.verify(code, {
-      env: { browser: true, es2021: true },
-      parserOptions: { ecmaVersion: 12, sourceType: "module" },
-      rules: {
-        semi: ["error", "always"],
-        "no-unused-vars": "warn",
-        "no-undef": "error",
-      },
-    });
-
-    const markers = results.map((m) => ({
-      severity:
-        m.severity === 2
-          ? monaco.MarkerSeverity.Error
-          : monaco.MarkerSeverity.Warning,
-      message: m.message,
-      startLineNumber: m.line,
-      startColumn: m.column,
-      endLineNumber: m.endLine || m.line,
-      endColumn: m.endColumn || m.column + 1,
-    }));
-
-    const model = editorRef.current?.getModel();
-    if (model) {
-      monaco.editor.setModelMarkers(model, "eslint", markers);
+  useEffect(() => {
+    if (
+      monacoRef.current &&
+      monacoRef.current.getValue() !== value
+    ) {
+      monacoRef.current.setValue(value);
     }
-  };
-
-  const handleFormat = () => {
-    const code = editorRef.current?.getValue();
-    try {
-      const formatted = prettier.format(code, {
-        parser: "babel",
-        plugins: [parserBabel],
-        semi: true,
-        singleQuote: true,
-      });
-
-      editorRef.current?.setValue(formatted);
-    } catch (err) {
-      console.error("Erro ao formatar com Prettier:", err);
-    }
-  };
+  }, [value]);
 
   return (
-    <div style={{ position: "relative", height: "300px", width: "100%" }}>
+    <div style={{ position: "relative", height: "400px", width: "100%" }}>
       <div
-        ref={containerRef}
+        ref={editorRef}
         style={{
           position: "absolute",
-          inset: 0,
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          border: "1px solid #333",
           borderRadius: "6px",
-          border: "1px solid #444",
         }}
       />
       <button
-        onClick={handleFormat}
+        onClick={formatWithPrettier}
         style={{
           position: "absolute",
           bottom: 10,
-          right: 10,
-          padding: "4px 8px",
-          fontSize: "12px",
+          right: 12,
           background: "#222",
           color: "#fff",
           border: "1px solid #444",
           borderRadius: "4px",
+          padding: "4px 10px",
+          fontSize: "12px",
           cursor: "pointer",
-          zIndex: 1,
+          zIndex: 10,
         }}
       >
         Format
