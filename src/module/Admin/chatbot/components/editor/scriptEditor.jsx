@@ -1,7 +1,8 @@
 import React, { useRef } from "react";
 import AceEditor from "react-ace";
 import prettier from "prettier/standalone";
-import parserBabel from "prettier/plugins/babel";
+import parserBabel from "prettier/parser-babel";
+
 import { Linter } from "eslint-linter-browserify";
 
 // Imports Ace modules
