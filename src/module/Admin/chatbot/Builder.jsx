@@ -685,7 +685,7 @@ const handleUpdateCode = React.useCallback((newCode) => {
           }}
           fitViewOptions={{ padding: 0.5 }}
         >
-          <Background color="#000000" gap={32} variant="dots" />
+          <Background color="#555" gap={32} variant="dots" />
           <Controls
             style={{
               backgroundColor: "white",
