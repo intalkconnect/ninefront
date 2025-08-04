@@ -690,13 +690,20 @@ const handleUpdateCode = (newCode) => {
       {/* ESQUERDA: builder + editor sobreposto */}
 <div style={{ position: "relative", flex: 1, height: "100%" }}>
   {/* Painel de Editor flutuando sobre o ReactFlow, mas NÃO cobrindo o NodeConfigPanel */}
-  {itor && (
-  <ScriptEditor
-    code={scriptCode}
-    onChange={handleUpdateCode}
-    onClose={() => setitor(false)}
-  />
+{itor && (
+  <div style={{
+    display: "flex",
+    flex: 1,
+    height: "100%",
+  }}>
+    <ScriptEditor
+      code={scriptCode}
+      onChange={handleUpdateCode}
+      onClose={() => setitor(false)}
+    />
+  </div>
 )}
+
 
 
   {/* ReactFlow abaixo do painel flutuante */}
