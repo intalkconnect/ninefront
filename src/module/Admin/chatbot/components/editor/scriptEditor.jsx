@@ -56,7 +56,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
 
 const modalStyle = {
   position: "fixed",
-  top: "56px", // mesmo topo do NodeConfigPanel
+  top: "117px", // mesmo topo do NodeConfigPanel
   left: 0,
   width: "calc(100% - 375px)", // espaço restante sem invadir o painel
   height: "calc(100vh - 56px)", // mesma altura visível
