@@ -5,7 +5,6 @@ import "ace-builds/src-noconflict/mode-javascript";
 import "ace-builds/src-noconflict/theme-monokai";
 import "ace-builds/src-noconflict/ext-language_tools";
 
-// Desativa o worker do modo javascript para evitar erro de importScripts
 ace.require("ace/mode/javascript").Mode.prototype.createWorker = function () {
   return null;
 };
@@ -13,17 +12,23 @@ ace.require("ace/mode/javascript").Mode.prototype.createWorker = function () {
 export default function ScriptEditorAce({ value, onChange }) {
   const editorRef = useRef();
 
-  // Formata o código ao clicar no botão
   const formatCode = () => {
     try {
-      // window.prettier e window.prettierPlugins vêm do script do CDN!
+      if (!window.prettier || !window.prettierPlugins) {
+        alert("Prettier não está carregado! Confira o HTML.");
+        return;
+      }
       const formatted = window.prettier.format(value, {
         parser: "babel",
         plugins: window.prettierPlugins,
         semi: true,
         singleQuote: true,
       });
-      onChange(formatted);
+      if (typeof formatted === "string") {
+        onChange(formatted);
+      } else {
+        alert("Prettier não conseguiu formatar.");
+      }
     } catch (err) {
       alert("Erro ao formatar: " + err.message);
     }
