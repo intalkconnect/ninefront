@@ -56,16 +56,17 @@ export default function ScriptEditor({ code, onChange, onClose }) {
 
 const modalStyle = {
   position: "fixed",
-  top: 0,
+  top: "56px", // mesmo topo do NodeConfigPanel
   left: 0,
-  width: "calc(100% - 375px)", // ocupa tudo menos o painel lateral
-  height: "100%",
+  width: "calc(100% - 375px)", // espaço restante sem invadir o painel
+  height: "calc(100vh - 56px)", // mesma altura visível
   backgroundColor: "#1e1e1e",
   zIndex: 1000,
   display: "flex",
   flexDirection: "column",
   borderRight: "1px solid #444",
 };
+
 
 
 const headerStyle = {
