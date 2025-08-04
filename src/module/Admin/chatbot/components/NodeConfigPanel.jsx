@@ -33,7 +33,7 @@ export default function NodeConfigPanel({
       const data = await res.json();
       setFlowHistory(data.slice(0, 10));
     } catch (err) {
-      console.error("Erro ao carregar histórico de fluxos", err);
+      console.error("Erro ao carregar rico de fluxos", err);
     } finally {
       setLoadingHistory(false);
     }
@@ -1076,7 +1076,6 @@ export default function NodeConfigPanel({
 // Updated Styles
 const asideStyle = {
   position: "absolute",
-  top: 0,
   right: 0,
   width: "380px",
   height: "100%",
@@ -1409,6 +1408,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
