@@ -5,7 +5,7 @@ import { basicSetup } from "@codemirror/basic-setup";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 
-export default function ScriptEditorModal({ code, onChange, onClose }) {
+export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
   const editorViewRef = useRef(null);
 
