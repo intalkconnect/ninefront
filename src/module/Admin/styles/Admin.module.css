@@ -25,9 +25,10 @@
 .main-content {
   flex: 1;
   margin-left: 64px; /* igual à largura da sidebar */
-  overflow-y: auto;
+  overflow-y: hidden;
   background-color: #fff;
   height: 100vh;
+  padding-left: 20px;
 }
 
 
@@ -83,6 +84,7 @@
   background-color: #f0f0f0;
   color: #000;
 }
+
 
 
 
