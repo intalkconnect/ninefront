@@ -1,11 +1,69 @@
 import React, { useEffect, useRef } from "react";
-import { EditorView, basicSetup } from "codemirror";
-import { javascript } from "@codemirror/lang-javascript";
+import { EditorView, basicSetup, highlightActiveLine } from "codemirror";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { javascript } from "@codemirror/lang-javascript";
+import { linter, lintGutter } from "@codemirror/lint";
+
+import Linter from "eslint-linter-browserify";
+
+import prettier from "prettier/standalone";
+import parserBabel from "prettier/parser-babel";
 
 export default function ScriptEditor({ value, onChange }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
+
+  const eslintLinter = Linter ? new Linter() : null;
+
+  const validateWithESLint = (code) => {
+    if (!eslintLinter) return [];
+
+    try {
+      const messages = eslintLinter.verify(code, {
+        rules: {
+          semi: ["error", "always"],
+          "no-unused-vars": "warn",
+          "no-undef": "error",
+        },
+        env: { browser: true, es2021: true },
+        parserOptions: { ecmaVersion: 12, sourceType: "module" },
+      });
+
+      return messages.map((m) => ({
+        from: m.column - 1,
+        to: m.endColumn ? m.endColumn - 1 : m.column,
+        severity: m.severity === 2 ? "error" : "warning",
+        message: m.message,
+        source: "eslint",
+      }));
+    } catch (e) {
+      return [];
+    }
+  };
+
+  const formatWithPrettier = () => {
+    if (!viewRef.current) return;
+
+    const currentCode = viewRef.current.state.doc.toString();
+    try {
+      const formatted = prettier.format(currentCode, {
+        parser: "babel",
+        plugins: [parserBabel],
+        singleQuote: true,
+        semi: true,
+      });
+
+      viewRef.current.dispatch({
+        changes: {
+          from: 0,
+          to: viewRef.current.state.doc.length,
+          insert: formatted,
+        },
+      });
+    } catch (err) {
+      console.error("Erro ao formatar com Prettier:", err);
+    }
+  };
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -19,7 +77,15 @@ export default function ScriptEditor({ value, onChange }) {
 
     viewRef.current = new EditorView({
       doc: value,
-      extensions: [basicSetup, javascript(), oneDark, updateListener],
+      extensions: [
+        basicSetup,
+        javascript(),
+        oneDark,
+        highlightActiveLine(),
+        lintGutter(),
+        linter(validateWithESLint),
+        updateListener,
+      ],
       parent: editorRef.current,
     });
 
@@ -32,7 +98,6 @@ export default function ScriptEditor({ value, onChange }) {
   }, []);
 
   useEffect(() => {
-    // Atualiza conteúdo externo, se necessário
     if (viewRef.current && viewRef.current.state.doc.toString() !== value) {
       viewRef.current.dispatch({
         changes: {
@@ -45,16 +110,35 @@ export default function ScriptEditor({ value, onChange }) {
   }, [value]);
 
   return (
-    <div
-      ref={editorRef}
-      style={{
-        height: "300px",
-        width: "100%",
-        border: "1px solid #444",
-        borderRadius: "6px",
-        overflow: "hidden",
-        backgroundColor: "#1e1e1e",
-      }}
-    />
+    <div style={{ position: "relative" }}>
+      <div
+        ref={editorRef}
+        style={{
+          height: "300px",
+          width: "100%",
+          border: "1px solid #444",
+          borderRadius: "6px",
+          overflow: "hidden",
+          backgroundColor: "#1e1e1e",
+        }}
+      />
+      <button
+        onClick={formatWithPrettier}
+        style={{
+          position: "absolute",
+          bottom: "8px",
+          right: "12px",
+          background: "#222",
+          color: "#fff",
+          border: "1px solid #444",
+          borderRadius: "4px",
+          padding: "4px 8px",
+          fontSize: "12px",
+          cursor: "pointer",
+        }}
+      >
+        Format
+      </button>
+    </div>
   );
 }
