@@ -12,7 +12,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
   const editorViewRef = useRef(null);
 
-  // Configurações do editor
+  // Configurações completas do editor
   const setupEditor = () => {
     if (!editorRef.current) return;
 
@@ -22,49 +22,53 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       }
     });
 
-    const initialState = EditorState.create({
+    const extensions = [
+      basicSetup,
+      javascript({ jsx: false, typescript: false }), // Configuração explícita para JS puro
+      oneDark,
+      updateListener,
+      lintGutter(),
+      autocompletion(),
+      keymap.of([indentWithTab]),
+      EditorView.lineWrapping,
+      EditorView.theme({
+        "&": { 
+          height: "100%",
+          fontSize: "14px"
+        },
+        ".cm-scroller": { 
+          overflow: "auto",
+          fontFamily: "'Fira Code', monospace",
+          lineHeight: "1.5"
+        },
+        ".cm-gutters": { 
+          backgroundColor: "#1e1e1e",
+          borderRight: "1px solid #444",
+          color: "#858585"
+        },
+        ".cm-activeLine": {
+          backgroundColor: "#2a2a2a"
+        },
+        ".cm-activeLineGutter": {
+          backgroundColor: "#2a2a2a"
+        }
+      })
+    ];
+
+    const state = EditorState.create({
       doc: code || getDefaultCode(),
-      extensions: [
-        basicSetup,
-        javascript(), // Extensão para syntax highlighting de JavaScript
-        oneDark,     // Tema com cores pré-definidas
-        updateListener,
-        lintGutter(), // Adiciona gutter para linting
-        autocompletion(), // Habilita autocompletar
-        keymap.of([indentWithTab]), // Habilita tab para indentação
-        EditorView.lineWrapping, // Quebra de linha automática
-        EditorView.theme({
-          "&": { 
-            height: "100%",
-            fontSize: "14px"
-          },
-          ".cm-scroller": { 
-            overflow: "auto",
-            fontFamily: "'Fira Code', monospace" 
-          },
-          ".cm-gutters": { 
-            backgroundColor: "#1e1e1e", 
-            borderRight: "1px solid #444",
-            color: "#858585"
-          },
-          ".cm-activeLineGutter": {
-            backgroundColor: "#2a2a2a"
-          }
-        }),
-      ],
+      extensions
     });
 
-    // Destrói a instância anterior se existir
     if (editorViewRef.current) {
       editorViewRef.current.destroy();
     }
 
     editorViewRef.current = new EditorView({
-      state: initialState,
+      state,
       parent: editorRef.current,
     });
 
-    // Foca no editor quando é aberto
     setTimeout(() => {
       editorViewRef.current?.focus();
     }, 100);
@@ -84,24 +88,16 @@ function handler(context) {
 
   useEffect(() => {
     setupEditor();
-
-    return () => {
-      editorViewRef.current?.destroy();
-    };
+    return () => editorViewRef.current?.destroy();
   }, []);
 
-  // Atualiza o conteúdo quando o código muda
   useEffect(() => {
-    if (!editorViewRef.current || !code) return;
-
+    if (!editorViewRef.current || code === undefined) return;
+    
     const currentValue = editorViewRef.current.state.doc.toString();
     if (code !== currentValue) {
       editorViewRef.current.dispatch({
-        changes: {
-          from: 0,
-          to: currentValue.length,
-          insert: code || getDefaultCode(),
-        },
+        changes: { from: 0, to: currentValue.length, insert: code || getDefaultCode() }
       });
     }
   }, [code]);
@@ -110,18 +106,16 @@ function handler(context) {
     <div style={modalStyle}>
       <div style={headerStyle}>
         <span>Editor de Script</span>
-        <div>
-          <button onClick={onClose} style={closeBtn}>
-            ✖ Fechar
-          </button>
-        </div>
+        <button onClick={onClose} style={closeBtn}>
+          ✖ Fechar
+        </button>
       </div>
       <div ref={editorRef} style={editorContainer} />
     </div>
   );
 }
 
-// Estilos atualizados
+// Estilos completos mantidos
 const modalStyle = {
   position: "fixed",
   top: "117px",
@@ -133,7 +127,7 @@ const modalStyle = {
   display: "flex",
   flexDirection: "column",
   borderRight: "1px solid #444",
-  boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)",
+  boxShadow: "0 0 20px rgba(0, 0, 0, 0.5)"
 };
 
 const headerStyle = {
@@ -145,13 +139,13 @@ const headerStyle = {
   padding: "0 1rem",
   borderBottom: "1px solid #444",
   color: "#fff",
-  fontSize: "14px",
+  fontSize: "14px"
 };
 
 const editorContainer = {
   flex: 1,
   overflow: "hidden",
-  fontSize: "14px",
+  fontSize: "14px"
 };
 
 const closeBtn = {
@@ -164,6 +158,6 @@ const closeBtn = {
   borderRadius: "4px",
   transition: "background 0.2s",
   ":hover": {
-    background: "#555",
-  },
+    background: "#555"
+  }
 };
