@@ -620,178 +620,165 @@ const handleUpdateCode = React.useCallback((newCode) => {
     style={{
       width: "100%",
       height: "100vh",
-      display: "flex",
+      position: "relative",
       backgroundColor: "#f9f9f9",
-      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
     }}
   >
-    {/* Menu lateral fixo como parte do layout */}
-    <aside
-      style={{
-        width: "64px",
-        background: "#1e1e1e",
-        borderRight: "1px solid #444",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "1rem 0",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <button
-          onClick={handlePublish}
-          title="Publicar"
-          style={{
-            ...iconButtonStyle,
-            opacity: isPublishing ? 0.5 : 1,
-            pointerEvents: isPublishing ? "none" : "auto",
-          }}
-        >
-          {isPublishing ? "⏳" : <Rocket size={18} />}
-        </button>
-        <button
-          onClick={downloadFlow}
-          title="Baixar JSON"
-          style={iconButtonStyle}
-        >
-          <Download size={18} />
-        </button>
-        <div
-          style={{
-            width: "80%",
-            height: "1px",
-            backgroundColor: "#555",
-            margin: "4px auto",
-          }}
-        />
-        {nodeTemplates.map((template) => (
-          <button
-            key={template.type + template.label}
-            onClick={() => addNodeTemplate(template)}
-            style={{
-              ...iconButtonStyle,
-              backgroundColor: template.color,
-              width: "40px",
-              height: "40px",
-            }}
-            title={template.label}
-          >
-            {iconMap[template.iconName] || <Zap size={16} />}
-          </button>
-        ))}
-      </div>
-
-      {/* Rodapé da sidebar se quiser adicionar algo */}
-      <div />
-    </aside>
-
-    {/* Container principal: topo + conteúdo */}
+    {/* Cabeçalho */}
     <div
       style={{
-        flex: 1,
+        height: "56px",
+        width: "100%",
+        backgroundColor: "#ffffff",
+        borderBottom: "1px solid #ddd",
         display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden",
+        alignItems: "center",
+        padding: "0 20px",
+        fontWeight: 500,
+        fontSize: "1rem",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)",
       }}
     >
-      {/* Cabeçalho fixo */}
-      <div
-        style={{
-          height: "56px",
-          width: "100%",
-          backgroundColor: "#ffffff",
-          borderBottom: "1px solid #ddd",
-          display: "flex",
-          alignItems: "center",
-          padding: "0 20px",
-          fontWeight: 500,
-          fontSize: "1rem",
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)",
-          zIndex: 1,
-        }}
-      >
-        Construtor de Fluxos
-      </div>
+      Construtor de Fluxos
+    </div>
 
-      {/* Conteúdo principal */}
-      <div
-        style={{
-          display: "flex",
-          flex: 1,
-          height: "calc(100vh - 56px)",
-        }}
-      >
-        {/* ESQUERDA: Flow e Editor */}
+    {/* Corpo principal */}
+    <div
+      style={{
+        display: "flex",
+        flex: 1,
+        height: "calc(100vh - 56px)",
+      }}
+    >
+      {/* Área do ReactFlow + menus flutuantes */}
+      <div style={{ position: "relative", flex: 1 }}>
+        {/* Menu flutuante de blocos dentro do Flow */}
         <div
           style={{
-            position: "relative",
-            flex: 1,
-            height: "100%",
+            position: "absolute",
+            top: "20px",
+            left: "20px",
+            background: "#1e1e1e",
+            border: "1px solid #444",
+            borderRadius: "8px",
+            padding: "0.5rem",
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "10px",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
           }}
         >
-          {/* Editor Script flutuante */}
-          {itor && (
-            <ScriptEditor
-              code={scriptCode}
-              onChange={handleUpdateCode}
-              onClose={() => setitor(false)}
-            />
-          )}
-
-          {/* ReactFlow */}
-          <ReactFlow
-            nodes={styledNodes}
-            edges={styledEdges}
-            nodeTypes={nodeTypes}
-            defaultEdgeOptions={edgeOptions}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeDoubleClick={onNodeDoubleClick}
-            onNodeClick={(event, node) => {
-              setSelectedNode(node);
-              setSelectedEdgeId(null);
-              setHighlightedNodeId(node.id);
+          <button
+            onClick={handlePublish}
+            title="Publicar"
+            style={{
+              ...iconButtonStyle,
+              opacity: isPublishing ? 0.5 : 1,
+              pointerEvents: isPublishing ? "none" : "auto",
             }}
-            onEdgeClick={(event, edge) => {
-              event.stopPropagation();
-              setSelectedEdgeId(edge.id);
-              setSelectedNode(null);
-            }}
-            onPaneClick={() => {
-              setSelectedNode(null);
-              setSelectedEdgeId(null);
-              setHighlightedNodeId(null);
-            }}
-            fitViewOptions={{ padding: 0.5 }}
           >
-            <Background color="#e2e8f0" gap={32} variant="dots" />
-            <Controls
+            {isPublishing ? "⏳" : <Rocket size={18} />}
+          </button>
+
+          <button
+            onClick={downloadFlow}
+            title="Baixar JSON"
+            style={iconButtonStyle}
+          >
+            <Download size={18} />
+          </button>
+
+          <div
+            style={{
+              width: "80%",
+              height: "1px",
+              backgroundColor: "#555",
+              margin: "4px 0",
+            }}
+          />
+
+          {nodeTemplates.map((template) => (
+            <button
+              key={template.type + template.label}
+              onClick={() => addNodeTemplate(template)}
               style={{
-                backgroundColor: "white",
-                border: "1px solid #e2e8f0",
-                borderRadius: "6px",
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+                ...iconButtonStyle,
+                backgroundColor: template.color,
+                width: "40px",
+                height: "40px",
               }}
-            />
-          </ReactFlow>
+              title={template.label}
+            >
+              {iconMap[template.iconName] || <Zap size={16} />}
+            </button>
+          ))}
         </div>
 
-        {/* DIREITA: Configuração do nó */}
-        <NodeConfigPanel
-          selectedNode={selectedNode}
-          onChange={updateSelectedNode}
-          onClose={() => setSelectedNode(null)}
-          allNodes={nodes}
-          onConnectNodes={handleConnectNodes}
-          setShowScriptEditor={setitor}
-          setScriptCode={setScriptCode}
-        />
+        {/* Editor flutuante */}
+        {itor && (
+          <ScriptEditor
+            code={scriptCode}
+            onChange={handleUpdateCode}
+            onClose={() => setitor(false)}
+          />
+        )}
+
+        {/* ReactFlow */}
+        <ReactFlow
+          nodes={styledNodes}
+          edges={styledEdges}
+          nodeTypes={nodeTypes}
+          defaultEdgeOptions={edgeOptions}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeDoubleClick={onNodeDoubleClick}
+          onNodeClick={(event, node) => {
+            setSelectedNode(node);
+            setSelectedEdgeId(null);
+            setHighlightedNodeId(node.id);
+          }}
+          onEdgeClick={(event, edge) => {
+            event.stopPropagation();
+            setSelectedEdgeId(edge.id);
+            setSelectedNode(null);
+          }}
+          onPaneClick={() => {
+            setSelectedNode(null);
+            setSelectedEdgeId(null);
+            setHighlightedNodeId(null);
+          }}
+          fitViewOptions={{ padding: 0.5 }}
+        >
+          <Background color="#e2e8f0" gap={32} variant="dots" />
+          <Controls
+            style={{
+              backgroundColor: "white",
+              border: "1px solid #e2e8f0",
+              borderRadius: "6px",
+              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+            }}
+          />
+        </ReactFlow>
       </div>
+
+      {/* Painel de configuração à direita */}
+      <NodeConfigPanel
+        selectedNode={selectedNode}
+        onChange={updateSelectedNode}
+        onClose={() => setSelectedNode(null)}
+        allNodes={nodes}
+        onConnectNodes={handleConnectNodes}
+        setShowScriptEditor={setitor}
+        setScriptCode={setScriptCode}
+      />
     </div>
   </div>
 );
+
 
 }
