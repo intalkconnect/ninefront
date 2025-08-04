@@ -149,23 +149,21 @@ export default function Builder() {
   );
   
 const handleOpenEditor = (node) => {
-  setSelectedNode(node);
+  // Busca o node atualizado a partir da lista de nodes
+  const freshNode = nodes.find((n) => n.id === node.id);
+
+  setSelectedNode(freshNode);
   setScriptCode(
-    node?.data?.block?.code ||
+    freshNode?.data?.block?.code ||
 `// Escreva seu código aqui
 // Use "context" para acessar dados da conversa
 function handler(context) {
-  // exemplo: acessar mensagem do usuário
-  // const mensagem = context.lastUserMessage;
-
-  // seu código aqui
-
   return { resultado: "valor de saída" };
-}
-`
+}`
   );
   setitor(true);
 };
+
 
 
 const handleUpdateCode = React.useCallback((newCode) => {
@@ -188,8 +186,25 @@ const handleUpdateCode = React.useCallback((newCode) => {
           : n
       )
     );
+
+    // ✅ Atualiza também o selectedNode manualmente
+    setSelectedNode((prev) =>
+      prev
+        ? {
+            ...prev,
+            data: {
+              ...prev.data,
+              block: {
+                ...prev.data.block,
+                code: newCode,
+              },
+            },
+          }
+        : null
+    );
   }
 }, [selectedNode]);
+
 
 
   
