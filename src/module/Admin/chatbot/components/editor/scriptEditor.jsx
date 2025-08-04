@@ -4,39 +4,10 @@ import { basicSetup } from "@codemirror/basic-setup";
 import { highlightActiveLine } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { javascript } from "@codemirror/lang-javascript";
-import { linter, lintGutter } from "@codemirror/lint";
-import { Linter } from "eslint-linter-browserify";
 
 export default function ScriptEditor({ value, onChange }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
-
-  const eslintLinter = new Linter();
-
-  const validateWithESLint = (code) => {
-    if (!eslintLinter) return [];
-    try {
-      const messages = eslintLinter.verify(code, {
-        rules: {
-          semi: ["error", "always"],
-          "no-unused-vars": "warn",
-          "no-undef": "error",
-        },
-        env: { browser: true, es2021: true },
-        parserOptions: { ecmaVersion: 12, sourceType: "module" },
-      });
-
-      return messages.map((m) => ({
-        from: m.column - 1,
-        to: m.endColumn ? m.endColumn - 1 : m.column,
-        severity: m.severity === 2 ? "error" : "warning",
-        message: m.message,
-        source: "eslint",
-      }));
-    } catch (e) {
-      return [];
-    }
-  };
 
   const formatWithPrettierWorker = () => {
     if (!viewRef.current) return;
@@ -86,8 +57,6 @@ export default function ScriptEditor({ value, onChange }) {
         javascript(),
         oneDark,
         highlightActiveLine(),
-        lintGutter(),
-        linter(validateWithESLint),
         updateListener,
       ],
       parent: editorRef.current,
