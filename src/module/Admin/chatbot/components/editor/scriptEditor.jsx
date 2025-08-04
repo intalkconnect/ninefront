@@ -3,7 +3,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { basicSetup } from "@codemirror/basic-setup";
 import { javascript } from "@codemirror/lang-javascript";
-import { oneDark } from "@codemirror/theme-one-dark";
+import { githubDark } from "@codemirror/theme-github"; // Tema alterado
 import { indentWithTab } from "@codemirror/commands";
 import { lintGutter } from "@codemirror/lint";
 import { autocompletion } from "@codemirror/autocomplete";
@@ -12,7 +12,6 @@ export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
   const editorViewRef = useRef(null);
 
-  // Configurações completas do editor
   const setupEditor = () => {
     if (!editorRef.current) return;
 
@@ -24,8 +23,8 @@ export default function ScriptEditor({ code, onChange, onClose }) {
 
     const extensions = [
       basicSetup,
-      javascript({ jsx: false, typescript: false }), // Configuração explícita para JS puro
-      oneDark,
+      javascript({ jsx: false, typescript: false }),
+      githubDark, // Tema GitHub Dark aplicado
       updateListener,
       lintGutter(),
       autocompletion(),
@@ -42,15 +41,15 @@ export default function ScriptEditor({ code, onChange, onClose }) {
           lineHeight: "1.5"
         },
         ".cm-gutters": { 
-          backgroundColor: "#1e1e1e",
-          borderRight: "1px solid #444",
-          color: "#858585"
+          backgroundColor: "#0d1117",
+          borderRight: "1px solid #30363d",
+          color: "#8b949e"
         },
         ".cm-activeLine": {
-          backgroundColor: "#2a2a2a"
+          backgroundColor: "#161b22"
         },
         ".cm-activeLineGutter": {
-          backgroundColor: "#2a2a2a"
+          backgroundColor: "#161b22"
         }
       })
     ];
@@ -115,7 +114,7 @@ function handler(context) {
   );
 }
 
-// Estilos completos mantidos
+// Estilos (mantidos)
 const modalStyle = {
   position: "fixed",
   top: "117px",
