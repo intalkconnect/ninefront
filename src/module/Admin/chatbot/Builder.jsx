@@ -168,10 +168,9 @@ function handler(context) {
 };
 
 
-const handleUpdateCode = (newCode) => {
+const handleUpdateCode = React.useCallback((newCode) => {
   setScriptCode(newCode);
   if (selectedNode && selectedNode.data?.block) {
-    // Atualiza node na lista global
     setNodes((nds) =>
       nds.map((n) =>
         n.id === selectedNode.id
@@ -185,20 +184,8 @@ const handleUpdateCode = (newCode) => {
           : n
       )
     );
-    // E sincroniza objeto selecionado
-    setSelectedNode((prev) =>
-      prev
-        ? {
-            ...prev,
-            data: {
-              ...prev.data,
-              block: { ...prev.data.block, code: newCode },
-            },
-          }
-        : prev
-    );
   }
-};
+}, [selectedNode]);
 
   
   const onConnect = useCallback((params) => {
