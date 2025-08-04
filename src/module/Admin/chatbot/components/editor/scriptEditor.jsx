@@ -26,17 +26,30 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       doc: code || getDefaultCode(),
       extensions: [
         basicSetup,
-        javascript(),
-        oneDark,
+        javascript(), // Extensão para syntax highlighting de JavaScript
+        oneDark,     // Tema com cores pré-definidas
         updateListener,
-        lintGutter(),
-        autocompletion(),
+        lintGutter(), // Adiciona gutter para linting
+        autocompletion(), // Habilita autocompletar
         keymap.of([indentWithTab]), // Habilita tab para indentação
         EditorView.lineWrapping, // Quebra de linha automática
         EditorView.theme({
-          "&": { height: "100%" },
-          ".cm-scroller": { overflow: "auto" },
-          ".cm-gutters": { backgroundColor: "#1e1e1e", borderRight: "none" },
+          "&": { 
+            height: "100%",
+            fontSize: "14px"
+          },
+          ".cm-scroller": { 
+            overflow: "auto",
+            fontFamily: "'Fira Code', monospace" 
+          },
+          ".cm-gutters": { 
+            backgroundColor: "#1e1e1e", 
+            borderRight: "1px solid #444",
+            color: "#858585"
+          },
+          ".cm-activeLineGutter": {
+            backgroundColor: "#2a2a2a"
+          }
         }),
       ],
     });
