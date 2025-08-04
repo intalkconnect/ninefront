@@ -14,13 +14,17 @@ export default function ScriptEditorAce({ value, onChange }) {
 
   const formatCode = () => {
     try {
-      if (!window.prettier || !window.prettierPlugins) {
+      if (
+        !window.prettier ||
+        !window.prettierPlugins ||
+        !window.prettierPlugins.babel
+      ) {
         alert("Prettier não está carregado! Confira o HTML.");
         return;
       }
       const formatted = window.prettier.format(value, {
         parser: "babel",
-        plugins: window.prettierPlugins,
+        plugins: [window.prettierPlugins.babel], // <-- aqui é o segredo!
         semi: true,
         singleQuote: true,
       });
