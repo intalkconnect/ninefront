@@ -616,14 +616,35 @@ const handleUpdateCode = React.useCallback((newCode) => {
   };
 
   return (
-  <div
-    style={{
-      width: "100%",
-      height: "100%",
-      position: "relative",
-      backgroundColor: "#1a1a1a",
-    }}
-  >
+<div
+  style={{
+    width: "100%",
+    height: "100vh",
+    position: "relative",
+    backgroundColor: "#f9f9f9", // tom mais claro para combinar
+    marginLeft: "64px", // mesma largura da sidebar
+    display: "flex",
+    flexDirection: "column",
+  }}
+>
+{/* Faixa de topo (borda ou cabeçalho decorativo) */}
+<div
+  style={{
+    height: "56px",
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderBottom: "1px solid #ddd",
+    display: "flex",
+    alignItems: "center",
+    padding: "0 20px",
+    fontWeight: 500,
+    fontSize: "1rem",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)",
+  }}
+>
+  Construtor de Fluxos
+</div>
+
     {/* Menu lateral fixo */}
     <div
       style={{
@@ -695,7 +716,8 @@ const handleUpdateCode = React.useCallback((newCode) => {
       }}
     >
       {/* ESQUERDA: builder + editor sobreposto */}
-<div style={{ position: "relative", flex: 1, height: "100%" }}>
+<div style={{ position: "relative", flex: 1, height: "calc(100vh - 56px)" }}>
+
   {/* Painel de Editor flutuando sobre o ReactFlow, mas NÃO cobrindo o NodeConfigPanel */}
   {itor && (
   <ScriptEditor
