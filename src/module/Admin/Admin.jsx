@@ -11,16 +11,18 @@ document.title = 'HubHMG - Gestão';
 export default function Admin() {
   return (
     <div className={styles['layout-wrapper']}>
-      <aside className={styles.sidebar}>
-        <div className={styles.logo}>HubHMG</div>
-        <nav className={styles['sidebar-nav']}>
-          <MenuIcon to="" icon={<Home size={20} />} label="Início" />
-          <MenuIcon to="chatbot" icon={<Bot size={20} />} label="Chatbot" />
-          <MenuIcon to="users" icon={<Users size={20} />} label="Usuários" />
-          <MenuIcon to="configuracoes" icon={<Settings size={20} />} label="Config." />
-        </nav>
+      <aside className={styles['sidebar']}>
+        <div>
+          <div className={styles.logo}>HubHMG</div>
+          <nav className={styles['sidebar-nav']}>
+            <MenuIcon to="" icon={<Home size={20} />} />
+            <MenuIcon to="chatbot" icon={<Bot size={20} />} />
+            <MenuIcon to="users" icon={<Users size={20} />} />
+            <MenuIcon to="configuracoes" icon={<Settings size={20} />} />
+          </nav>
+        </div>
         <div className={styles['sidebar-footer']}>
-          <LogoutButton />
+          <LogoutButton className={styles['logout-button']} />
         </div>
       </aside>
 
@@ -29,7 +31,10 @@ export default function Admin() {
           <Route index element={<Dashboard />} />
           <Route path="chatbot" element={<Chatbot />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="configuracoes" element={<div className={styles['admin-page']}>Página de Configurações</div>} />
+          <Route
+            path="configuracoes"
+            element={<div>Página de Configurações</div>}
+          />
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
       </main>
@@ -37,14 +42,13 @@ export default function Admin() {
   );
 }
 
-const MenuIcon = ({ to, icon, label }) => (
+const MenuIcon = ({ to, icon }) => (
   <NavLink
     to={to}
     end={to === ''}
     className={({ isActive }) =>
       `${styles['menu-icon']} ${isActive ? styles.active : ''}`
     }
-    title={label}
   >
     {icon}
   </NavLink>
