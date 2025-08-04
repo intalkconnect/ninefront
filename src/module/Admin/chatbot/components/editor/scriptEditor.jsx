@@ -12,7 +12,6 @@ export default function ScriptEditor({ code, onChange, onClose }) {
   const editorRef = useRef(null);
   const editorViewRef = useRef(null);
 
-  // Configurações completas do editor
   const setupEditor = () => {
     if (!editorRef.current) return;
 
@@ -22,13 +21,36 @@ export default function ScriptEditor({ code, onChange, onClose }) {
       }
     });
 
+    // Configuração customizada do autocompletar
+    const customAutocomplete = autocompletion({
+      override: [
+        // Adiciona apenas uma instância do completions
+        javascript().language.data.of({
+          autocomplete: context => {
+            const word = context.matchBefore(/\w*/);
+            if (!word) return null;
+            return {
+              from: word.from,
+              options: [
+                {
+                  label: "function",
+                  type: "keyword",
+                  apply: "function ${name}(${params}) {\n  ${}\n}"
+                }
+              ]
+            };
+          }
+        })
+      ]
+    });
+
     const extensions = [
       basicSetup,
-      javascript({ jsx: false, typescript: false }), // Configuração explícita para JS puro
+      javascript({ jsx: false, typescript: false }),
       oneDark,
       updateListener,
       lintGutter(),
-      autocompletion(),
+      customAutocomplete, // Usando nossa versão customizada
       keymap.of([indentWithTab]),
       EditorView.lineWrapping,
       EditorView.theme({
@@ -40,6 +62,14 @@ export default function ScriptEditor({ code, onChange, onClose }) {
           overflow: "auto",
           fontFamily: "'Fira Code', monospace",
           lineHeight: "1.5"
+        },
+        ".cm-tooltip.cm-tooltip-autocomplete": {
+          "& > ul > li": {
+            padding: "4px 8px",
+            "&[aria-selected]": {
+              background: "#2a2a2a"
+            }
+          }
         },
         ".cm-gutters": { 
           backgroundColor: "#1e1e1e",
