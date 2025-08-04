@@ -622,7 +622,6 @@ const handleUpdateCode = React.useCallback((newCode) => {
     height: "100vh",
     position: "relative",
     backgroundColor: "#f9f9f9", // tom mais claro para combinar
-    marginLeft: "64px", // mesma largura da sidebar
     display: "flex",
     flexDirection: "column",
   }}
