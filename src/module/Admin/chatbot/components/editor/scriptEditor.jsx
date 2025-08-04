@@ -1,44 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "@codemirror/basic-setup";
-import { highlightActiveLine } from "@codemirror/view";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { javascript } from "@codemirror/lang-javascript";
 
 export default function ScriptEditor({ value, onChange }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
-
-  const formatWithPrettierWorker = () => {
-    if (!viewRef.current) return;
-
-    const currentCode = viewRef.current.state.doc.toString();
-    const worker = new Worker("/prettierWorker.js");
-
-    worker.postMessage({ code: currentCode });
-
-    worker.onmessage = (e) => {
-      const { formatted, error } = e.data;
-
-      if (error) {
-        alert("Erro ao formatar: " + error);
-        console.error("Erro no Prettier Worker:", error);
-        return;
-      }
-
-      if (formatted) {
-        viewRef.current.dispatch({
-          changes: {
-            from: 0,
-            to: viewRef.current.state.doc.length,
-            insert: formatted,
-          },
-        });
-      }
-
-      worker.terminate();
-    };
-  };
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -56,22 +24,20 @@ export default function ScriptEditor({ value, onChange }) {
         basicSetup,
         javascript(),
         oneDark,
-        highlightActiveLine(),
         updateListener,
       ],
       parent: editorRef.current,
     });
 
     return () => {
-      if (viewRef.current) {
-        viewRef.current.destroy();
-        viewRef.current = null;
-      }
+      viewRef.current?.destroy();
+      viewRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (viewRef.current && viewRef.current.state.doc.toString() !== value) {
+    const currentValue = viewRef.current?.state.doc.toString();
+    if (viewRef.current && currentValue !== value) {
       viewRef.current.dispatch({
         changes: {
           from: 0,
@@ -83,35 +49,16 @@ export default function ScriptEditor({ value, onChange }) {
   }, [value]);
 
   return (
-    <div style={{ position: "relative" }}>
-      <div
-        ref={editorRef}
-        style={{
-          height: "300px",
-          width: "100%",
-          border: "1px solid #444",
-          borderRadius: "6px",
-          overflow: "hidden",
-          backgroundColor: "#1e1e1e",
-        }}
-      />
-      <button
-        onClick={formatWithPrettierWorker}
-        style={{
-          position: "absolute",
-          bottom: "8px",
-          right: "12px",
-          background: "#222",
-          color: "#fff",
-          border: "1px solid #444",
-          borderRadius: "4px",
-          padding: "4px 8px",
-          fontSize: "12px",
-          cursor: "pointer",
-        }}
-      >
-        Format
-      </button>
-    </div>
+    <div
+      ref={editorRef}
+      style={{
+        height: "300px",
+        width: "100%",
+        border: "1px solid #444",
+        borderRadius: "6px",
+        overflow: "hidden",
+        backgroundColor: "#1e1e1e",
+      }}
+    />
   );
 }
