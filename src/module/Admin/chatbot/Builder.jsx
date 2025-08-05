@@ -335,10 +335,10 @@ const handleUpdateCode = React.useCallback((newCode) => {
               };
             })
           );
-        } else if (
-          selectedNode &&
-          selectedNode.data.label !== "Boas-vindas" &&
-          !selectedNode.data.label.toLowerCase().includes("onerror")
+      } else if (
+        selectedNode &&
+        selectedNode.data.nodeType !== "start" &&
+        !selectedNode.data.label.toLowerCase().includes("onerror")
         ) {
           setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
           setEdges((eds) =>
