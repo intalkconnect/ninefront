@@ -7,7 +7,7 @@ import UsersPage from './users/Users';
 import LogoutButton from '../components/LogoutButton';
 import styles from './styles/Admin.module.css';
 import { parseJwt } from '../../utils/auth';
-import { stringToColor } from '../../utils/colors';
+import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../services/apiClient'; // ✅ Certifique-se que este está correto
 
 document.title = 'HubHMG - Gestão';
