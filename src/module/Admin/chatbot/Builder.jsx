@@ -330,7 +330,7 @@ if (updatedBlock?.actions?.length > 0) {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest");
+      const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/history");
       const data = await res.json();
       setFlowHistory(data);
     } catch (err) {
