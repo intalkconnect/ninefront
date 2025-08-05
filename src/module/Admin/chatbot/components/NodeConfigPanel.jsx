@@ -28,7 +28,10 @@ export default function NodeConfigPanel({
 
  
 
-  const { block } = selectedNode.data;
+  if (!selectedNode || !selectedNode.data) return null;
+
+const { block } = selectedNode.data;
+
   const {
     type,
     content = {},
@@ -1276,6 +1279,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
