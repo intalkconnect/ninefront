@@ -1,32 +1,69 @@
-import React from "react";
-import { X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
-export default function VersionHistoryModal({ visible, onClose, versions, onRestore }) {
+export default function VersionControlModal({ visible, onClose }) {
+  const [flowHistory, setFlowHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (visible) fetchHistory();
+  }, [visible]);
+
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest"
+      );
+      const data = await res.json();
+      setFlowHistory(data.slice(0, 10));
+    } catch (e) {
+      console.error("Erro ao buscar histórico:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = async (id) => {
+    try {
+      await fetch(
+        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        }
+      );
+      window.location.reload();
+    } catch (e) {
+      alert("Erro ao restaurar versão.");
+    }
+  };
+
   if (!visible) return null;
 
   return (
-    <div style={overlayStyle}>
-      <div style={modalStyle}>
-        <div style={headerStyle}>
-          <h4 style={titleStyle}>Histórico de Versões</h4>
-          <button onClick={onClose} style={closeStyle}>
-            <X size={18} />
-          </button>
+    <div style={overlay}>
+      <div style={modal}>
+        <div style={header}>
+          <strong>Controle de Versões</strong>
+          <button onClick={onClose} style={closeButton}>✕</button>
         </div>
 
-        <div style={listContainerStyle}>
-          {versions.length === 0 ? (
-            <p style={{ color: '#888', padding: '1rem' }}>Nenhuma versão encontrada.</p>
+        <div style={body}>
+          {loading ? (
+            <div style={{ color: "#aaa" }}>Carregando...</div>
           ) : (
-            versions.map((v) => (
-              <div key={v.id} style={itemStyle}>
-                <div>
-                  <div style={versionIdStyle}>{v.id.slice(0, 8)}...</div>
-                  <div style={versionDateStyle}>{new Date(v.created_at).toLocaleString()}</div>
+            flowHistory.map((flow) => (
+              <div key={flow.id} style={item}>
+                <div style={info}>
+                  <span style={id}>#{flow.id.slice(0, 8)}</span>
+                  <span style={date}>
+                    {new Date(flow.created_at).toLocaleString()}
+                  </span>
                 </div>
                 <button
-                  style={restoreButtonStyle}
-                  onClick={() => onRestore(v.id)}
+                  onClick={() => handleRestore(flow.id)}
+                  style={restoreBtn}
                 >
                   Restaurar
                 </button>
@@ -39,98 +76,84 @@ export default function VersionHistoryModal({ visible, onClose, versions, onRest
   );
 }
 
-const overlayStyle = {
+const overlay = {
   position: "fixed",
   top: 0,
+  left: 0,
   right: 0,
-  width: 0,
-  height: 0,
-  overflow: "hidden",
-  zIndex: 2000,
+  bottom: 0,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "flex-end",
+  zIndex: 1200,
 };
 
-const modalStyle = {
-  position: "absolute",
-  top: "1rem",
-  right: "1rem",
-  background: "#1e1e1e",
-  width: "360px",
-  maxHeight: "80vh",
+const modal = {
+  margin: "2rem",
+  background: "#252525",
   borderRadius: "8px",
+  width: "350px",
+  maxHeight: "80vh",
   overflowY: "auto",
-  boxShadow: "0 0 12px rgba(0,0,0,0.5)",
-  animation: "slideIn 0.3s ease-out",
+  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
 };
 
-const headerStyle = {
+const header = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   padding: "1rem",
   borderBottom: "1px solid #333",
+  color: "#fff",
 };
 
-const titleStyle = {
-  margin: 0,
-  fontSize: "1rem",
-  color: "#4FC3F7",
-};
-
-const closeStyle = {
+const closeButton = {
   background: "transparent",
   border: "none",
-  color: "#aaa",
+  color: "#999",
+  fontSize: "1.2rem",
   cursor: "pointer",
 };
 
-const listContainerStyle = {
-  display: "flex",
-  flexDirection: "column",
-  padding: "0.5rem 1rem 1rem 1rem",
-  gap: "0.75rem",
+const body = {
+  padding: "1rem",
 };
 
-const itemStyle = {
-  background: "#2b2b2b",
-  padding: "0.75rem 1rem",
+const item = {
+  background: "#2e2e2e",
+  padding: "0.75rem",
   borderRadius: "6px",
-  border: "1px solid #333",
+  marginBottom: "0.75rem",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
+  border: "1px solid #3a3a3a",
 };
 
-const versionIdStyle = {
-  fontSize: "0.9rem",
+const info = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.25rem",
+};
+
+const id = {
   color: "#4FC3F7",
-  fontWeight: 500,
+  fontWeight: "bold",
+  fontSize: "0.9rem",
 };
 
-const versionDateStyle = {
+const date = {
   fontSize: "0.8rem",
   color: "#aaa",
 };
 
-const restoreButtonStyle = {
-  backgroundColor: "#2e7d32",
+const restoreBtn = {
+  padding: "0.5rem 0.75rem",
+  background: "#2e7d32",
   color: "#fff",
   border: "none",
-  padding: "0.5rem 0.75rem",
-  borderRadius: "6px",
+  borderRadius: "4px",
   cursor: "pointer",
   fontSize: "0.8rem",
-  fontWeight: 500,
 };
-
-// CSS Animations (adicione ao seu global.css ou style tag)
-/*
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideIn {
-  from { transform: translateY(-20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-*/
