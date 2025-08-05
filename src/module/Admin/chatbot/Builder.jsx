@@ -10,6 +10,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 
 import { nodeTemplates } from "./components/NodeTemplates";
+import VersionHistoryModal from "./components/VersionControlModal";
 
 import ScriptEditor from "./components/editor/scriptEditor";
 import NodeQuadrado from "./components/NodeQuadrado";
@@ -114,6 +115,9 @@ export default function Builder() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [itor, setitor] = useState(false);
   const [scriptCode, setScriptCode] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+const [flowHistory, setFlowHistory] = useState([]);
+
 
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
@@ -320,6 +324,23 @@ if (updatedBlock?.actions?.length > 0) {
     );
     setSelectedNode(null);
   }, [selectedNode]);
+  
+  useEffect(() => {
+  if (!showHistory) return;
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest");
+      const data = await res.json();
+      setFlowHistory(data);
+    } catch (err) {
+      console.error("Erro ao carregar histórico de versões:", err);
+    }
+  };
+
+  fetchHistory();
+}, [showHistory]);
+
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -707,6 +728,37 @@ if (updatedBlock?.actions?.length > 0) {
               boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
             }}
           />
+          <button
+  onClick={() => setShowHistory(true)}
+  style={{
+    position: "absolute",
+    top: "1rem",
+    right: "1rem",
+    backgroundColor: "#4FC3F7",
+    color: "#1e1e1e",
+    padding: "0.5rem 1rem",
+    borderRadius: "6px",
+    fontWeight: 500,
+    cursor: "pointer",
+    zIndex: 1000,
+  }}
+>
+  Versões
+</button>
+<VersionHistoryModal
+  visible={showHistory}
+  onClose={() => setShowHistory(false)}
+  versions={flowHistory}
+  onRestore={async (id) => {
+    await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    window.location.reload();
+  }}
+/>
+
         </ReactFlow>
 
         {/* Menu de nós (flutuante, dentro do builder) */}
