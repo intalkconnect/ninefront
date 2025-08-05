@@ -6,6 +6,8 @@ import UsersPage from './users/Users';
 import LogoutButton from '../components/LogoutButton';
 import styles from './styles/Admin.module.css';
 import { parseJwt } from '../../utils/auth';
+import { stringToColor } from '../../utils/color';
+
 
 document.title = 'HubHMG - Gestão';
 
@@ -26,21 +28,41 @@ const { email } = token ? parseJwt(token) : {};
             <MenuIcon to="configuracoes" icon={<Settings size={20} />} />
           </nav>
         </div>
-<div className={styles['sidebar-footer']}>
-  {email && (
-    <div
-      style={{
-        color: '#ccc',
-        fontSize: '0.8rem',
-        padding: '0.5rem 0',
-        textAlign: 'center',
-      }}
-    >
+{email && (
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '0.4rem',
+  }}>
+    <div style={{
+      width: '36px',
+      height: '36px',
+      borderRadius: '50%',
+      backgroundColor: stringToColor(email),
+      color: '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '1rem',
+      fontWeight: 'bold',
+      userSelect: 'none',
+    }}>
+      {email.charAt(0).toUpperCase()}
+    </div>
+    <div style={{
+      color: '#aaa',
+      fontSize: '0.65rem',
+      textAlign: 'center',
+      wordBreak: 'break-word',
+      maxWidth: '56px',
+    }}>
       {email}
     </div>
-  )}
-  <LogoutButton className={styles['logout-button']} />
-</div>
+  </div>
+)}
+<LogoutButton className={styles['logout-button']} />
+
 
       </aside>
 
