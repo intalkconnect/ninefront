@@ -248,15 +248,45 @@ const handleUpdateCode = React.useCallback((newCode) => {
     setSelectedNode(node);
   };
 
-  const updateSelectedNode = (updated) => {
-    if (!updated) {
-      setSelectedNode(null);
-      return;
+const updateSelectedNode = (updated) => {
+  if (!updated) {
+    setSelectedNode(null);
+    return;
+  }
+
+  setNodes((prevNodes) => {
+    const updatedNodes = prevNodes.map((n) =>
+      n.id === updated.id ? updated : n
+    );
+
+    // Verifica se há ações com .next que ainda não estão ligadas como edges
+    const newEdges = [];
+    const updatedBlock = updated.data?.block;
+    if (updatedBlock?.actions?.length > 0) {
+      updatedBlock.actions.forEach((action) => {
+        const exists = edges.find(
+          (e) => e.source === updated.id && e.target === action.next
+        );
+        if (!exists && action.next) {
+          newEdges.push({
+            id: `${updated.id}-${action.next}`,
+            source: updated.id,
+            target: action.next,
+          });
+        }
+      });
     }
 
-    setNodes((nds) => nds.map((n) => (n.id === updated.id ? updated : n)));
-    setSelectedNode(updated);
-  };
+    if (newEdges.length > 0) {
+      setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+    }
+
+    return updatedNodes;
+  });
+
+  setSelectedNode(updated);
+};
+
 
   const handleConnectNodes = ({ source, target }) => {
     setEdges((eds) => [...eds, { id: `${source}-${target}`, source, target }]);
