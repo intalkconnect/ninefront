@@ -1,44 +1,11 @@
 /**
- * Modal de Histórico de Versões com busca automática e restauração.
+ * Modal de Histórico de Versões (mais limpo e controlado externamente).
  */
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { X } from "lucide-react";
 import ReactDOM from "react-dom";
 
-export default function VersionControlModal({ visible, onClose }) {
-  const [flowHistory, setFlowHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (visible) fetchHistory();
-  }, [visible]);
-
-  const fetchHistory = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest");
-      const data = await res.json();
-      setFlowHistory(data.slice(0, 10));
-    } catch (e) {
-      console.error("Erro ao buscar histórico:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRestore = async (id) => {
-    try {
-      await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
-      window.location.reload();
-    } catch (e) {
-      alert("Erro ao restaurar versão.");
-    }
-  };
-
+export default function VersionControlModal({ visible, onClose, versions = [], onRestore, loading }) {
   if (!visible) return null;
 
   return ReactDOM.createPortal(
@@ -52,16 +19,16 @@ export default function VersionControlModal({ visible, onClose }) {
         <div style={listContainerStyle}>
           {loading ? (
             <p style={{ color: "#aaa" }}>Carregando...</p>
-          ) : flowHistory.length === 0 ? (
+          ) : versions.length === 0 ? (
             <p style={{ color: '#888', padding: '1rem' }}>Nenhuma versão encontrada.</p>
           ) : (
-            flowHistory.map((flow) => (
+            versions.map((flow) => (
               <div key={flow.id} style={itemStyle}>
-                <div>
-                  <div style={versionIdStyle}>#{flow.id.slice(0, 8)}</div>
-                  <div style={versionDateStyle}>{new Date(flow.created_at).toLocaleString()}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={versionIdStyle}>#{flow.id.slice(0, 8)}</span>
+                  <span style={versionDateStyle}>{new Date(flow.created_at).toLocaleString()}</span>
                 </div>
-                <button style={restoreButtonStyle} onClick={() => handleRestore(flow.id)}>Restaurar</button>
+                <button style={restoreButtonStyle} onClick={() => onRestore(flow.id)}>Restaurar</button>
               </div>
             ))
           )}
@@ -90,10 +57,11 @@ const modalStyle = {
   background: "#1e1e1e",
   width: "360px",
   maxHeight: "80vh",
-  borderRadius: "8px",
+  borderRadius: "10px",
   overflowY: "auto",
-  boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.6)",
   animation: "slideIn 0.3s ease-out",
+  border: "1px solid #333",
 };
 
 const headerStyle = {
@@ -101,7 +69,7 @@ const headerStyle = {
   justifyContent: "space-between",
   alignItems: "center",
   padding: "1rem",
-  borderBottom: "1px solid #333",
+  borderBottom: "1px solid #444",
 };
 
 const titleStyle = {
@@ -120,29 +88,29 @@ const closeStyle = {
 const listContainerStyle = {
   display: "flex",
   flexDirection: "column",
-  padding: "0.5rem 1rem 1rem 1rem",
+  padding: "1rem",
   gap: "0.75rem",
 };
 
 const itemStyle = {
-  background: "#2b2b2b",
+  background: "#292929",
   padding: "0.75rem 1rem",
   borderRadius: "6px",
-  border: "1px solid #333",
+  border: "1px solid #3c3c3c",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
 };
 
 const versionIdStyle = {
-  fontSize: "0.9rem",
+  fontSize: "0.85rem",
   color: "#4FC3F7",
-  fontWeight: 500,
+  fontWeight: 600,
 };
 
 const versionDateStyle = {
-  fontSize: "0.8rem",
-  color: "#aaa",
+  fontSize: "0.75rem",
+  color: "#bbb",
 };
 
 const restoreButtonStyle = {
@@ -152,6 +120,7 @@ const restoreButtonStyle = {
   padding: "0.5rem 0.75rem",
   borderRadius: "6px",
   cursor: "pointer",
-  fontSize: "0.8rem",
-  fontWeight: 500,
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  transition: "background 0.2s ease",
 };
