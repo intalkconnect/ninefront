@@ -44,15 +44,17 @@ export default function Admin() {
             <div className={styles.dropdown}>
               <button
                 className={styles['dropdown-toggle']}
-                onClick={() => setShowDropdown((prev) => !prev)}
+                onClick={() => setShowDropdown(!showDropdown)}
               >
-                <Settings size={18} /> Configurações <ChevronDown size={14} />
+                <Settings size={18} />
+                Configurações
+                <ChevronDown size={14} />
               </button>
               {showDropdown && (
                 <div className={styles['dropdown-menu']}>
-                  <div>⚙️ Preferências</div>
-                  <div>🔐 Segurança</div>
-                  <div>🧩 Integrações</div>
+                  <div>Preferências</div>
+                  <div>Segurança</div>
+                  <div>Integrações</div>
                 </div>
               )}
             </div>
@@ -101,6 +103,7 @@ const MenuIcon = ({ to, icon, label }) => (
       `${styles['menu-icon']} ${isActive ? styles.active : ''}`
     }
   >
-    {icon} {label}
+    {icon}
+    {label}
   </NavLink>
 );
