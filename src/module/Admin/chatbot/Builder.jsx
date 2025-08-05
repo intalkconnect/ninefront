@@ -49,7 +49,7 @@ const nodeStyle = {
   border: "2px solid",
   borderRadius: "8px",
   boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-  transition: "all 0.2s ease",
+
 };
 
 const selectedNodeStyle = {
