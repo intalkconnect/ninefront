@@ -816,39 +816,44 @@ if (updatedBlock?.actions?.length > 0) {
   </button>
 
   {/* Menu suspenso com ícones */}
-  {showNodeMenu && (
-    <div
-      style={{
-        marginTop: "0.5rem",
-        backgroundColor: "#2c2c2c",
-        borderRadius: "6px",
-        padding: "0.5rem",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
-      }}
-    >
-      {nodeTemplates.map((template) => (
-        <button
-          key={template.type + template.label}
-          onClick={() => {
-            addNodeTemplate(template);
-            setShowNodeMenu(false); // Fecha o menu ao adicionar
-          }}
-          style={{
-            ...iconButtonStyle,
-            backgroundColor: template.color,
-            width: "36px",
-            height: "36px",
-          }}
-          title={template.label}
-        >
-          {iconMap[template.iconName] || <Zap size={16} />}
-        </button>
-      ))}
-    </div>
-  )}
+  {/* Menu suspenso lateral */}
+{showNodeMenu && (
+  <div
+    style={{
+      position: "absolute",
+      left: "60px", // ao lado da barra
+      top: "calc(50% + 90px)", // ajusta a altura para alinhar com o botão
+      backgroundColor: "#2c2c2c",
+      borderRadius: "6px",
+      padding: "0.5rem",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5rem",
+      zIndex: 30,
+    }}
+  >
+    {nodeTemplates.map((template) => (
+      <button
+        key={template.type + template.label}
+        onClick={() => {
+          addNodeTemplate(template);
+          setShowNodeMenu(false);
+        }}
+        style={{
+          ...iconButtonStyle,
+          backgroundColor: template.color,
+          width: "36px",
+          height: "36px",
+        }}
+        title={template.label}
+      >
+        {iconMap[template.iconName] || <Zap size={16} />}
+      </button>
+    ))}
+  </div>
+)}
+
 </div>
 
 
