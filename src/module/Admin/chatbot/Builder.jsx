@@ -762,73 +762,73 @@ function handler(context) {
 
           {/* Menu de nós (flutuante, dentro do builder) */}
           <div
-            ref={nodeMenuRef}
-            style={{
-              position: "absolute",
-              top: "120px", // antes: 50%
-              left: 10,
-              transform: "none", // remove centralização vertical
-              background: "#1e1e1e",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              padding: "0.5rem",
-              zIndex: 20,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "10px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            {/* Botão de menu toggle (AGORA NO TOPO) */}
-            <button
-              onClick={() => setShowNodeMenu((prev) => !prev)}
-              title="Adicionar Blocos"
-              style={{
-                ...iconButtonStyle,
-                backgroundColor: showNodeMenu ? "#555" : "#333",
-              }}
-            >
-              ➕
-            </button>
+  ref={nodeMenuRef} // Agora englobando TUDO!
+  style={{
+    position: "absolute",
+    top: "120px",
+    left: 10,
+    transform: "none",
+    background: "#1e1e1e",
+    border: "1px solid #444",
+    borderRadius: "8px",
+    padding: "0.5rem",
+    zIndex: 20,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "10px",
+    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
+  }}
+>
+  {/* Botão toggle */}
+  <button
+    onClick={() => setShowNodeMenu((prev) => !prev)}
+    title="Adicionar Blocos"
+    style={{
+      ...iconButtonStyle,
+      backgroundColor: showNodeMenu ? "#555" : "#333",
+    }}
+  >
+    ➕
+  </button>
 
-            {/* Menu suspenso lateral */}
-            {showNodeMenu && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: "60px", // ao lado da barra
-                  top: "120", // mesmo top da barra para alinhamento
-                  backgroundColor: "#2c2c2c",
-                  borderRadius: "6px",
-                  padding: "0.5rem",
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem",
-                  zIndex: 30,
-                }}
-              >
-                {nodeTemplates.map((template) => (
-                  <button
-                    key={template.type + template.label}
-                    onClick={() => {
-                      addNodeTemplate(template);
-                      setShowNodeMenu(false);
-                    }}
-                    style={{
-                      ...iconButtonStyle,
-                      backgroundColor: template.color,
-                      width: "36px",
-                      height: "36px",
-                    }}
-                    title={template.label}
-                  >
-                    {iconMap[template.iconName] || <Zap size={16} />}
-                  </button>
-                ))}
-              </div>
-            )}
+  {/* Menu suspenso lateral (agora DENTRO do mesmo container com ref) */}
+  {showNodeMenu && (
+    <div
+      style={{
+        position: "absolute",
+        left: "60px",
+        top: "0px", // relativo ao container que está em top: 120px
+        backgroundColor: "#2c2c2c",
+        borderRadius: "6px",
+        padding: "0.5rem",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.5rem",
+        zIndex: 30,
+      }}
+    >
+      {nodeTemplates.map((template) => (
+        <button
+          key={template.type + template.label}
+          onClick={() => {
+            addNodeTemplate(template);
+            setShowNodeMenu(false);
+          }}
+          style={{
+            ...iconButtonStyle,
+            backgroundColor: template.color,
+            width: "36px",
+            height: "36px",
+          }}
+          title={template.label}
+        >
+          {iconMap[template.iconName] || <Zap size={16} />}
+        </button>
+      ))}
+    </div>
+  )}
 
             {/* Divider */}
             <div
