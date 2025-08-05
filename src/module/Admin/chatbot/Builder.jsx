@@ -87,7 +87,7 @@ export default function Builder() {
       },
     },
     {
-      id: "",
+      id: "fallback",
       type: "quadrado",
       position: { x: 300, y: 100 },
       data: {
@@ -119,29 +119,10 @@ export default function Builder() {
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  const onNodesChange = useCallback((changes) => {
-    setNodes((nds) => {
-      const newNodes = nds.map((node) => {
-        const positionChange = changes.find(
-          (c) => c.id === node.id && c.type === "position"
-        );
+const onNodesChange = useCallback((changes) => {
+  setNodes((nds) => applyNodeChanges(changes, nds));
+}, []);
 
-        // Bloqueia movimento se for o nó de início ou se draggable for false
-        if (
-          positionChange &&
-          node.draggable !== false &&
-          node.data.nodeType !== "start"
-        ) {
-          return {
-            ...node,
-            position: positionChange.position || node.position,
-          };
-        }
-        return node;
-      });
-      return applyNodeChanges(changes, newNodes);
-    });
-  }, []);
 
   const onEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
@@ -260,22 +241,22 @@ const updateSelectedNode = (updated) => {
     );
 
     // Verifica se há ações com .next que ainda não estão ligadas como edges
-    const newEdges = [];
-    const updatedBlock = updated.data?.block;
-    if (updatedBlock?.actions?.length > 0) {
-      updatedBlock.actions.forEach((action) => {
-        const exists = edges.find(
-          (e) => e.source === updated.id && e.target === action.next
-        );
-        if (!exists && action.next) {
-          newEdges.push({
-            id: `${updated.id}-${action.next}`,
-            source: updated.id,
-            target: action.next,
-          });
-        }
+    const edgeSet = new Set(edges.map((e) => `${e.source}-${e.target}`));
+const newEdges = [];
+const updatedBlock = updated.data?.block;
+
+if (updatedBlock?.actions?.length > 0) {
+  updatedBlock.actions.forEach((action) => {
+    if (action.next && !edgeSet.has(`${updated.id}-${action.next}`)) {
+      newEdges.push({
+        id: `${updated.id}-${action.next}`,
+        source: updated.id,
+        target: action.next,
       });
     }
+  });
+}
+
 
     if (newEdges.length > 0) {
       setEdges((prevEdges) => [...prevEdges, ...newEdges]);
@@ -714,6 +695,8 @@ const updateSelectedNode = (updated) => {
             setHighlightedNodeId(null);
           }}
           fitViewOptions={{ padding: 0.5 }}
+          proOptions={{ hideAttribution: true }}
+
         >
           <Background color="#555" gap={32} variant="dots" />
           <Controls
