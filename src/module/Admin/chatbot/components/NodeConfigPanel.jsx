@@ -11,8 +11,6 @@ export default function NodeConfigPanel({
   setScriptCode,
 }) {
   const [tab, setTab] = useState("conteudo");
-  const [flowHistory, setFlowHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     basic: true,
     content: true,
@@ -20,40 +18,6 @@ export default function NodeConfigPanel({
     history: true,
   });
 
-  useEffect(() => {
-    fetchLatestFlows();
-  }, []);
-
-  const fetchLatestFlows = async () => {
-    setLoadingHistory(true);
-    try {
-      const res = await fetch(
-        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest"
-      );
-      const data = await res.json();
-      setFlowHistory(data.slice(0, 10));
-    } catch (err) {
-      console.error("Erro ao carregar rico de fluxos", err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  const handleRestore = async (id) => {
-    try {
-      await fetch(
-        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
-        }
-      );
-      window.location.reload();
-    } catch (err) {
-      alert("Erro ao restaurar fluxo");
-    }
-  };
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -62,40 +26,7 @@ export default function NodeConfigPanel({
     }));
   };
 
-  if (!selectedNode)
-    return (
-      <aside style={asideStyle}>
-        <div style={panelHeader}>
-          <h3 style={panelTitle}>Histórico de Fluxos</h3>
-        </div>
-
-        {loadingHistory ? (
-          <div style={loadingStyle}>
-            <div style={spinnerStyle}></div>
-            <span>Carregando...</span>
-          </div>
-        ) : (
-          <div style={historyContainer}>
-            {flowHistory.map((flow) => (
-              <div key={flow.id} style={historyItem}>
-                <div style={historyItemHeader}>
-                  <span style={historyId}>{flow.id.slice(0, 8)}...</span>
-                  <span style={historyDate}>
-                    {new Date(flow.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleRestore(flow.id)}
-                  style={restoreButton}
-                >
-                  Restaurar Versão
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </aside>
-    );
+ 
 
   const { block } = selectedNode.data;
   const {
@@ -1332,70 +1263,7 @@ const trashIconStyle = {
   },
 };
 
-// History Panel Styles
-const historyContainer = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "0.75rem",
-};
 
-const historyItem = {
-  background: "#252525",
-  borderRadius: "8px",
-  padding: "1rem",
-  border: "1px solid #333",
-};
-
-const historyItemHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginBottom: "0.75rem",
-};
-
-const historyId = {
-  fontSize: "0.85rem",
-  color: "#4FC3F7",
-  fontWeight: "500",
-};
-
-const historyDate = {
-  fontSize: "0.8rem",
-  color: "#aaa",
-};
-
-const restoreButton = {
-  width: "100%",
-  padding: "0.75rem",
-  background: "#2e7d32",
-  color: "#fff",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "0.9rem",
-  fontWeight: "500",
-  transition: "all 0.2s",
-  ":hover": {
-    background: "#3d8b40",
-  },
-};
-
-const loadingStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "0.75rem",
-  padding: "2rem",
-  color: "#aaa",
-};
-
-const spinnerStyle = {
-  width: "20px",
-  height: "20px",
-  border: "3px solid rgba(255, 255, 255, 0.1)",
-  borderTopColor: "#4FC3F7",
-  borderRadius: "50%",
-  animation: "spin 1s linear infinite",
-};
 
 const rowItemStyle = {
   display: "flex",
@@ -1408,6 +1276,7 @@ const rowItemStyle = {
 // @keyframes spin {
 //   to { transform: rotate(360deg); }
 // }
+
 
 
 
