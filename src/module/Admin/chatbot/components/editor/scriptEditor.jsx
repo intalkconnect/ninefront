@@ -35,7 +35,8 @@ function handler(context) {
 
 const modalStyle = {
   position: "fixed",
-  width: "calc(100% - 395px)",
+  width: "calc(100% - 400px)",
+  height: "calc(100vh - 56px)",
   backgroundColor: "#1e1e1e",
   zIndex: 1000,
   display: "flex",
