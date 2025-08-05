@@ -338,21 +338,24 @@ function handler(context) {
     fetchHistory();
   }, [showHistory]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) {
-        setShowNodeMenu(false);
-      }
-    };
-
-    if (showNodeMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (
+      nodeMenuRef.current &&
+      !nodeMenuRef.current.contains(event.target)
+    ) {
+      setShowNodeMenu(false);
     }
+  };
 
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showNodeMenu]);
+  // Use capture para garantir que pegue o clique antes de ReactFlow interceptar
+  document.addEventListener("mousedown", handleClickOutside, true);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside, true);
+  };
+}, []);
+
 
   useEffect(() => {
     const handleKeyDown = (event) => {
