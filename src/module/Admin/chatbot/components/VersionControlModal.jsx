@@ -1,6 +1,3 @@
-/**
- * Modal de Histórico de Versões (mais limpo e controlado externamente).
- */
 import React from "react";
 import { X } from "lucide-react";
 import ReactDOM from "react-dom";
@@ -18,9 +15,9 @@ export default function VersionControlModal({ visible, onClose, versions = [], o
 
         <div style={listContainerStyle}>
           {loading ? (
-            <p style={{ color: "#aaa" }}>Carregando...</p>
+            <p style={{ color: "#aaa", textAlign: "center" }}>Carregando...</p>
           ) : versions.length === 0 ? (
-            <p style={{ color: '#888', padding: '1rem' }}>Nenhuma versão encontrada.</p>
+            <p style={{ color: '#888', padding: '1rem', textAlign: "center" }}>Nenhuma versão encontrada.</p>
           ) : (
             versions.map((flow) => (
               <div key={flow.id} style={itemStyle}>
@@ -47,21 +44,20 @@ const overlayStyle = {
   height: "100vh",
   backgroundColor: "rgba(0, 0, 0, 0.4)",
   display: "flex",
-  justifyContent: "flex-end",
-  alignItems: "flex-start",
+  justifyContent: "center",
+  alignItems: "center",
   zIndex: 2000,
 };
 
 const modalStyle = {
-  margin: "2rem",
   background: "#1e1e1e",
-  width: "360px",
-  maxHeight: "80vh",
+  width: "400px",
+  maxHeight: "90vh",
   borderRadius: "10px",
-  overflowY: "auto",
   boxShadow: "0 6px 18px rgba(0,0,0,0.6)",
-  animation: "slideIn 0.3s ease-out",
   border: "1px solid #333",
+  display: "flex",
+  flexDirection: "column",
 };
 
 const headerStyle = {
@@ -86,9 +82,9 @@ const closeStyle = {
 };
 
 const listContainerStyle = {
+  padding: "1rem",
   display: "flex",
   flexDirection: "column",
-  padding: "1rem",
   gap: "0.75rem",
 };
 
@@ -122,5 +118,6 @@ const restoreButtonStyle = {
   cursor: "pointer",
   fontSize: "0.75rem",
   fontWeight: 600,
-  transition: "background 0.2s ease",
+  transition: "all 0.2s ease",
+  minWidth: "90px",
 };
