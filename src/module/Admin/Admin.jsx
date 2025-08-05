@@ -10,6 +10,10 @@ import { parseJwt } from '../../utils/auth';
 document.title = 'HubHMG - Gestão';
 
 export default function Admin() {
+  
+const token = localStorage.getItem('token');
+const { email } = token ? parseJwt(token) : {};
+  
   return (
     <div className={styles['layout-wrapper']}>
       <aside className={styles['sidebar']}>
@@ -23,7 +27,7 @@ export default function Admin() {
           </nav>
         </div>
 <div className={styles['sidebar-footer']}>
-  {name && (
+  {email && (
     <div
       style={{
         color: '#ccc',
@@ -32,7 +36,7 @@ export default function Admin() {
         textAlign: 'center',
       }}
     >
-      {name}
+      {email}
     </div>
   )}
   <LogoutButton className={styles['logout-button']} />
