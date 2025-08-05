@@ -5,6 +5,7 @@ import Dashboard from './dashboard/Dashboard';
 import UsersPage from './users/Users';
 import LogoutButton from '../components/LogoutButton';
 import styles from './styles/Admin.module.css';
+import { parseJwt } from '../../utils/auth';
 
 document.title = 'HubHMG - Gestão';
 
@@ -21,9 +22,22 @@ export default function Admin() {
             <MenuIcon to="configuracoes" icon={<Settings size={20} />} />
           </nav>
         </div>
-        <div className={styles['sidebar-footer']}>
-          <LogoutButton className={styles['logout-button']} />
-        </div>
+<div className={styles['sidebar-footer']}>
+  {name && (
+    <div
+      style={{
+        color: '#ccc',
+        fontSize: '0.8rem',
+        padding: '0.5rem 0',
+        textAlign: 'center',
+      }}
+    >
+      {name}
+    </div>
+  )}
+  <LogoutButton className={styles['logout-button']} />
+</div>
+
       </aside>
 
       <main className={styles['main-content']}>
