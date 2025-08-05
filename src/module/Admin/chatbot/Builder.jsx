@@ -118,6 +118,8 @@ export default function Builder() {
   const [showHistory, setShowHistory] = useState(false);
 const [flowHistory, setFlowHistory] = useState([]);
 const [showNodeMenu, setShowNodeMenu] = useState(false);
+  const nodeMenuRef = useRef(null);
+
 
 
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
@@ -341,6 +343,22 @@ if (updatedBlock?.actions?.length > 0) {
 
   fetchHistory();
 }, [showHistory]);
+
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) {
+      setShowNodeMenu(false);
+    }
+  }
+
+  if (showNodeMenu) {
+    document.addEventListener("mousedown", handleClickOutside);
+  }
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, [showNodeMenu]);
 
 
   useEffect(() => {
@@ -745,6 +763,7 @@ if (updatedBlock?.actions?.length > 0) {
 
         {/* Menu de nós (flutuante, dentro do builder) */}
 <div
+  ref={nodeMenuRef}
   style={{
     position: "absolute",
     top: "120px", // antes: 50%
@@ -780,7 +799,7 @@ if (updatedBlock?.actions?.length > 0) {
       style={{
         position: "absolute",
         left: "60px", // ao lado da barra
-        top: "100px", // mesmo top da barra para alinhamento
+        top: "120", // mesmo top da barra para alinhamento
         backgroundColor: "#2c2c2c",
         borderRadius: "6px",
         padding: "0.5rem",
@@ -852,10 +871,6 @@ if (updatedBlock?.actions?.length > 0) {
   >
     🕘
   </button>
-</div>
-
-)}
-
 </div>
 
 
