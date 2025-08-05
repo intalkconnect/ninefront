@@ -448,69 +448,66 @@ if (updatedBlock?.actions?.length > 0) {
   }, []);
 
   const handlePublish = async () => {
-    setIsPublishing(true);
+  setIsPublishing(true);
 
-    const nodeIdMap = Object.fromEntries(
+  try {
+    // Mapear IDs antigos para nomes normalizados
+    const idMap = Object.fromEntries(
       nodes.map((n) => [n.id, n.data.label.replace(/\s+/g, "_").toLowerCase()])
     );
 
     const blocks = {};
-    nodes.forEach((node) => {
-      const id = nodeIdMap[node.id];
-      const originalBlock = node.data.block;
 
-      const clonedBlock = {
-        ...originalBlock,
-        defaultNext: originalBlock.defaultNext
-          ? nodeIdMap[originalBlock.defaultNext] || originalBlock.defaultNext
+    nodes.forEach((node) => {
+      const newId = idMap[node.id];
+      const block = {
+        ...node.data.block,
+        color: node.data.color,
+        position: node.position,
+        defaultNext: node.data.block.defaultNext
+          ? idMap[node.data.block.defaultNext] || node.data.block.defaultNext
           : undefined,
       };
 
-      if (originalBlock.actions && originalBlock.actions.length > 0) {
-        clonedBlock.actions = originalBlock.actions.map((action) => ({
-          next: nodeIdMap[action.next] || action.next,
-          conditions: action.conditions || [],
+      if (block.actions?.length > 0) {
+        block.actions = block.actions.map((a) => ({
+          next: idMap[a.next] || a.next,
+          conditions: a.conditions || [],
         }));
       }
 
-      blocks[id] = {
-        ...clonedBlock,
-        position: node.position,
-        color: node.data.color,
-      };
+      blocks[newId] = block;
     });
 
     const startNode = nodes.find((n) => n.data.nodeType === "start");
+    const start = idMap[startNode?.id] || Object.keys(blocks)[0];
 
     const flowData = {
-      data: {
-        start: startNode ? nodeIdMap[startNode.id] : nodeIdMap[nodes[0]?.id],
-        blocks,
-      },
+      start,
+      blocks,
     };
 
-    try {
-      const response = await fetch(
-        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/publish",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(flowData, null, 2),
-        }
-      );
+    const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: flowData }, null, 2),
+    });
 
-      if (response.ok) {
-        alert("Fluxo publicado com sucesso!");
-      } else {
-        const error = await response.text();
-        alert("Erro ao publicar fluxo: " + error);
-      }
-    } catch (err) {
-      alert("Erro de conexão: " + err.message);
-    } finally {
-      setIsPublishing(false);
+    const response = await res.json();
+
+    if (res.ok) {
+      alert("Fluxo publicado com sucesso!");
+    } else {
+      console.error("Erro ao publicar:", response);
+      alert("Erro ao publicar fluxo: " + JSON.stringify(response));
     }
-  };
+  } catch (err) {
+    alert("Erro de conexão: " + err.message);
+  } finally {
+    setIsPublishing(false);
+  }
+};
+
 
   const addNodeTemplate = (template) => {
     const newNode = {
