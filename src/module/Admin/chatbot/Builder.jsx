@@ -117,6 +117,7 @@ export default function Builder() {
   const [scriptCode, setScriptCode] = useState("");
   const [showHistory, setShowHistory] = useState(false);
 const [flowHistory, setFlowHistory] = useState([]);
+const [showNodeMenu, setShowNodeMenu] = useState(false);
 
 
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
@@ -725,23 +726,7 @@ if (updatedBlock?.actions?.length > 0) {
               boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
             }}
           />
-          <button
-  onClick={() => setShowHistory(true)}
-  style={{
-    position: "absolute",
-    top: "1rem",
-    right: "1rem",
-    backgroundColor: "#4FC3F7",
-    color: "#1e1e1e",
-    padding: "0.5rem 1rem",
-    borderRadius: "6px",
-    fontWeight: 500,
-    cursor: "pointer",
-    zIndex: 1000,
-  }}
->
-  Versões
-</button>
+
 <VersionHistoryModal
   visible={showHistory}
   onClose={() => setShowHistory(false)}
@@ -759,67 +744,114 @@ if (updatedBlock?.actions?.length > 0) {
         </ReactFlow>
 
         {/* Menu de nós (flutuante, dentro do builder) */}
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: 10,
-            transform: "translateY(-50%)",
-            background: "#1e1e1e",
-            border: "1px solid #444",
-            borderRadius: "8px",
-            padding: "0.5rem",
-            zIndex: 20,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "10px",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
+        <div{/* Barra lateral de ações */}
+<div
+  style={{
+    position: "absolute",
+    top: "50%",
+    left: 10,
+    transform: "translateY(-50%)",
+    background: "#1e1e1e",
+    border: "1px solid #444",
+    borderRadius: "8px",
+    padding: "0.5rem",
+    zIndex: 20,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "10px",
+    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
+  }}
+>
+  {/* Botão: Publicar */}
+  <button
+    onClick={handlePublish}
+    title="Publicar"
+    style={{
+      ...iconButtonStyle,
+      opacity: isPublishing ? 0.5 : 1,
+      pointerEvents: isPublishing ? "none" : "auto",
+    }}
+  >
+    {isPublishing ? "⏳" : <Rocket size={18} />}
+  </button>
+
+  {/* Botão: Baixar */}
+  <button
+    onClick={downloadFlow}
+    title="Baixar JSON"
+    style={iconButtonStyle}
+  >
+    <Download size={18} />
+  </button>
+
+  {/* Botão: Histórico */}
+  <button
+    onClick={() => setShowHistory(true)}
+    title="Histórico de Versões"
+    style={iconButtonStyle}
+  >
+    🕘
+  </button>
+
+  {/* Divider */}
+  <div
+    style={{
+      width: "80%",
+      height: "1px",
+      backgroundColor: "#555",
+      margin: "4px 0",
+    }}
+  />
+
+  {/* Botão de menu toggle */}
+  <button
+    onClick={() => setShowNodeMenu((prev) => !prev)}
+    title="Adicionar Blocos"
+    style={{
+      ...iconButtonStyle,
+      backgroundColor: showNodeMenu ? "#555" : "#333",
+    }}
+  >
+    ➕
+  </button>
+
+  {/* Menu suspenso com ícones */}
+  {showNodeMenu && (
+    <div
+      style={{
+        marginTop: "0.5rem",
+        backgroundColor: "#2c2c2c",
+        borderRadius: "6px",
+        padding: "0.5rem",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.5rem",
+      }}
+    >
+      {nodeTemplates.map((template) => (
+        <button
+          key={template.type + template.label}
+          onClick={() => {
+            addNodeTemplate(template);
+            setShowNodeMenu(false); // Fecha o menu ao adicionar
           }}
+          style={{
+            ...iconButtonStyle,
+            backgroundColor: template.color,
+            width: "36px",
+            height: "36px",
+          }}
+          title={template.label}
         >
-          <button
-            onClick={handlePublish}
-            title="Publicar"
-            style={{
-              ...iconButtonStyle,
-              opacity: isPublishing ? 0.5 : 1,
-              pointerEvents: isPublishing ? "none" : "auto",
-            }}
-          >
-            {isPublishing ? "⏳" : <Rocket size={18} />}
-          </button>
-          <button
-            onClick={downloadFlow}
-            title="Baixar JSON"
-            style={iconButtonStyle}
-          >
-            <Download size={18} />
-          </button>
-          <div
-            style={{
-              width: "80%",
-              height: "1px",
-              backgroundColor: "#555",
-              margin: "4px 0",
-            }}
-          />
-          {nodeTemplates.map((template) => (
-            <button
-              key={template.type + template.label}
-              onClick={() => addNodeTemplate(template)}
-              style={{
-                ...iconButtonStyle,
-                backgroundColor: template.color,
-                width: "40px",
-                height: "40px",
-              }}
-              title={template.label}
-            >
-              {iconMap[template.iconName] || <Zap size={16} />}
-            </button>
-          ))}
-        </div>
-      </div>
+          {iconMap[template.iconName] || <Zap size={16} />}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
 
         <NodeConfigPanel
           selectedNode={selectedNode}
