@@ -834,7 +834,6 @@ if (updatedBlock?.actions?.length > 0) {
           setScriptCode={setScriptCode}
         />
       </div>
-    </div>
   </div>
 );
 
