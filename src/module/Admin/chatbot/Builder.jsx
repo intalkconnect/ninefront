@@ -747,9 +747,9 @@ if (updatedBlock?.actions?.length > 0) {
 <div
   style={{
     position: "absolute",
-    top: "50%",
+    top: "120px", // antes: 50%
     left: 10,
-    transform: "translateY(-50%)",
+    transform: "none", // remove centralização vertical
     background: "#1e1e1e",
     border: "1px solid #444",
     borderRadius: "8px",
@@ -762,6 +762,66 @@ if (updatedBlock?.actions?.length > 0) {
     boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
   }}
 >
+  {/* Botão de menu toggle (AGORA NO TOPO) */}
+  <button
+    onClick={() => setShowNodeMenu((prev) => !prev)}
+    title="Adicionar Blocos"
+    style={{
+      ...iconButtonStyle,
+      backgroundColor: showNodeMenu ? "#555" : "#333",
+    }}
+  >
+    ➕
+  </button>
+
+  {/* Menu suspenso lateral */}
+  {showNodeMenu && (
+    <div
+      style={{
+        position: "absolute",
+        left: "60px", // ao lado da barra
+        top: "100px", // mesmo top da barra para alinhamento
+        backgroundColor: "#2c2c2c",
+        borderRadius: "6px",
+        padding: "0.5rem",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.5rem",
+        zIndex: 30,
+      }}
+    >
+      {nodeTemplates.map((template) => (
+        <button
+          key={template.type + template.label}
+          onClick={() => {
+            addNodeTemplate(template);
+            setShowNodeMenu(false);
+          }}
+          style={{
+            ...iconButtonStyle,
+            backgroundColor: template.color,
+            width: "36px",
+            height: "36px",
+          }}
+          title={template.label}
+        >
+          {iconMap[template.iconName] || <Zap size={16} />}
+        </button>
+      ))}
+    </div>
+  )}
+
+  {/* Divider */}
+  <div
+    style={{
+      width: "80%",
+      height: "1px",
+      backgroundColor: "#555",
+      margin: "4px 0",
+    }}
+  />
+
   {/* Botão: Publicar */}
   <button
     onClick={handlePublish}
@@ -792,66 +852,8 @@ if (updatedBlock?.actions?.length > 0) {
   >
     🕘
   </button>
+</div>
 
-  {/* Divider */}
-  <div
-    style={{
-      width: "80%",
-      height: "1px",
-      backgroundColor: "#555",
-      margin: "4px 0",
-    }}
-  />
-
-  {/* Botão de menu toggle */}
-  <button
-    onClick={() => setShowNodeMenu((prev) => !prev)}
-    title="Adicionar Blocos"
-    style={{
-      ...iconButtonStyle,
-      backgroundColor: showNodeMenu ? "#555" : "#333",
-    }}
-  >
-    ➕
-  </button>
-
-  {/* Menu suspenso com ícones */}
-  {/* Menu suspenso lateral */}
-{showNodeMenu && (
-  <div
-    style={{
-      position: "absolute",
-      left: "60px", // ao lado da barra
-      top: "calc(50% + 90px)", // ajusta a altura para alinhar com o botão
-      backgroundColor: "#2c2c2c",
-      borderRadius: "6px",
-      padding: "0.5rem",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.5rem",
-      zIndex: 30,
-    }}
-  >
-    {nodeTemplates.map((template) => (
-      <button
-        key={template.type + template.label}
-        onClick={() => {
-          addNodeTemplate(template);
-          setShowNodeMenu(false);
-        }}
-        style={{
-          ...iconButtonStyle,
-          backgroundColor: template.color,
-          width: "36px",
-          height: "36px",
-        }}
-        title={template.label}
-      >
-        {iconMap[template.iconName] || <Zap size={16} />}
-      </button>
-    ))}
-  </div>
 )}
 
 </div>
