@@ -50,7 +50,6 @@ const nodeStyle = {
   border: "2px solid",
   borderRadius: "8px",
   boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-
 };
 
 const selectedNodeStyle = {
@@ -116,86 +115,81 @@ export default function Builder() {
   const [itor, setitor] = useState(false);
   const [scriptCode, setScriptCode] = useState("");
   const [showHistory, setShowHistory] = useState(false);
-const [flowHistory, setFlowHistory] = useState([]);
-const [showNodeMenu, setShowNodeMenu] = useState(false);
+  const [flowHistory, setFlowHistory] = useState([]);
+  const [showNodeMenu, setShowNodeMenu] = useState(false);
   const nodeMenuRef = useRef(null);
-
-
 
   const [highlightedNodeId, setHighlightedNodeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
-const onNodesChange = useCallback((changes) => {
-  setNodes((nds) => applyNodeChanges(changes, nds));
-}, []);
-
+  const onNodesChange = useCallback((changes) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
 
   const onEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
-  
-const handleOpenEditor = (node) => {
-  // Busca o node atualizado a partir da lista de nodes
-  const freshNode = nodes.find((n) => n.id === node.id);
 
-  setSelectedNode(freshNode);
-  setScriptCode(
-    freshNode?.data?.block?.code ||
-`// Escreva seu código aqui
+  const handleOpenEditor = (node) => {
+    // Busca o node atualizado a partir da lista de nodes
+    const freshNode = nodes.find((n) => n.id === node.id);
+
+    setSelectedNode(freshNode);
+    setScriptCode(
+      freshNode?.data?.block?.code ||
+        `// Escreva seu código aqui
 // Use "context" para acessar dados da conversa
 function handler(context) {
   return { resultado: "valor de saída" };
 }`
-  );
-  setitor(true);
-};
+    );
+    setitor(true);
+  };
 
+  const handleUpdateCode = React.useCallback(
+    (newCode) => {
+      setScriptCode(newCode);
 
+      if (selectedNode && selectedNode.data?.block?.type === "code") {
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === selectedNode.id
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    block: {
+                      ...n.data.block,
+                      code: newCode,
+                    },
+                  },
+                }
+              : n
+          )
+        );
 
-const handleUpdateCode = React.useCallback((newCode) => {
-  setScriptCode(newCode);
-
-  if (selectedNode && selectedNode.data?.block?.type === "code") {
-    setNodes((nds) =>
-      nds.map((n) =>
-        n.id === selectedNode.id
-          ? {
-              ...n,
-              data: {
-                ...n.data,
-                block: {
-                  ...n.data.block,
-                  code: newCode,
+        // ✅ Atualiza também o selectedNode manualmente
+        setSelectedNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: {
+                  ...prev.data,
+                  block: {
+                    ...prev.data.block,
+                    code: newCode,
+                  },
                 },
-              },
-            }
-          : n
-      )
-    );
+              }
+            : null
+        );
+      }
+    },
+    [selectedNode]
+  );
 
-    // ✅ Atualiza também o selectedNode manualmente
-    setSelectedNode((prev) =>
-      prev
-        ? {
-            ...prev,
-            data: {
-              ...prev.data,
-              block: {
-                ...prev.data.block,
-                code: newCode,
-              },
-            },
-          }
-        : null
-    );
-  }
-}, [selectedNode]);
-
-
-
-  
   const onConnect = useCallback((params) => {
     const { source, target } = params;
 
@@ -236,45 +230,43 @@ const handleUpdateCode = React.useCallback((newCode) => {
     setSelectedNode(node);
   };
 
-const updateSelectedNode = (updated) => {
-  if (!updated) {
-    setSelectedNode(null);
-    return;
-  }
-
-  setNodes((prevNodes) => {
-    const updatedNodes = prevNodes.map((n) =>
-      n.id === updated.id ? updated : n
-    );
-
-    // Verifica se há ações com .next que ainda não estão ligadas como edges
-    const edgeSet = new Set(edges.map((e) => `${e.source}-${e.target}`));
-const newEdges = [];
-const updatedBlock = updated.data?.block;
-
-if (updatedBlock?.actions?.length > 0) {
-  updatedBlock.actions.forEach((action) => {
-    if (action.next && !edgeSet.has(`${updated.id}-${action.next}`)) {
-      newEdges.push({
-        id: `${updated.id}-${action.next}`,
-        source: updated.id,
-        target: action.next,
-      });
-    }
-  });
-}
-
-
-    if (newEdges.length > 0) {
-      setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+  const updateSelectedNode = (updated) => {
+    if (!updated) {
+      setSelectedNode(null);
+      return;
     }
 
-    return updatedNodes;
-  });
+    setNodes((prevNodes) => {
+      const updatedNodes = prevNodes.map((n) =>
+        n.id === updated.id ? updated : n
+      );
 
-  setSelectedNode(updated);
-};
+      // Verifica se há ações com .next que ainda não estão ligadas como edges
+      const edgeSet = new Set(edges.map((e) => `${e.source}-${e.target}`));
+      const newEdges = [];
+      const updatedBlock = updated.data?.block;
 
+      if (updatedBlock?.actions?.length > 0) {
+        updatedBlock.actions.forEach((action) => {
+          if (action.next && !edgeSet.has(`${updated.id}-${action.next}`)) {
+            newEdges.push({
+              id: `${updated.id}-${action.next}`,
+              source: updated.id,
+              target: action.next,
+            });
+          }
+        });
+      }
+
+      if (newEdges.length > 0) {
+        setEdges((prevEdges) => [...prevEdges, ...newEdges]);
+      }
+
+      return updatedNodes;
+    });
+
+    setSelectedNode(updated);
+  };
 
   const handleConnectNodes = ({ source, target }) => {
     setEdges((eds) => [...eds, { id: `${source}-${target}`, source, target }]);
@@ -313,9 +305,9 @@ if (updatedBlock?.actions?.length > 0) {
 
   const handleDelete = useCallback(() => {
     if (
-        !selectedNode ||
-        selectedNode.data.nodeType === "start" || // Protege por tipo de nó
-        selectedNode.data.label.toLowerCase().includes("onerror")
+      !selectedNode ||
+      selectedNode.data.nodeType === "start" || // Protege por tipo de nó
+      selectedNode.data.label.toLowerCase().includes("onerror")
     )
       return;
 
@@ -327,39 +319,40 @@ if (updatedBlock?.actions?.length > 0) {
     );
     setSelectedNode(null);
   }, [selectedNode]);
-  
-  useEffect(() => {
-  if (!showHistory) return;
-
-  const fetchHistory = async () => {
-    try {
-      const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/history");
-      const data = await res.json();
-      setFlowHistory(data);
-    } catch (err) {
-      console.error("Erro ao carregar histórico de versões:", err);
-    }
-  };
-
-  fetchHistory();
-}, [showHistory]);
 
   useEffect(() => {
-  const handleClickOutside = (event) => {
-    if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) {
-      setShowNodeMenu(false);
+    if (!showHistory) return;
+
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(
+          "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/history"
+        );
+        const data = await res.json();
+        setFlowHistory(data);
+      } catch (err) {
+        console.error("Erro ao carregar histórico de versões:", err);
+      }
+    };
+
+    fetchHistory();
+  }, [showHistory]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) {
+        setShowNodeMenu(false);
+      }
+    };
+
+    if (showNodeMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
     }
-  }
 
-  if (showNodeMenu) {
-    document.addEventListener("mousedown", handleClickOutside);
-  }
-
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, [showNodeMenu]);
-
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showNodeMenu]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -386,10 +379,10 @@ if (updatedBlock?.actions?.length > 0) {
               };
             })
           );
-      } else if (
-        selectedNode &&
-        selectedNode.data.nodeType !== "start" &&
-        !selectedNode.data.label.toLowerCase().includes("onerror")
+        } else if (
+          selectedNode &&
+          selectedNode.data.nodeType !== "start" &&
+          !selectedNode.data.label.toLowerCase().includes("onerror")
         ) {
           setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
           setEdges((eds) =>
@@ -467,66 +460,71 @@ if (updatedBlock?.actions?.length > 0) {
   }, []);
 
   const handlePublish = async () => {
-  setIsPublishing(true);
+    setIsPublishing(true);
 
-  try {
-    // Mapear IDs antigos para nomes normalizados
-    const idMap = Object.fromEntries(
-      nodes.map((n) => [n.id, n.data.label.replace(/\s+/g, "_").toLowerCase()])
-    );
+    try {
+      // Mapear IDs antigos para nomes normalizados
+      const idMap = Object.fromEntries(
+        nodes.map((n) => [
+          n.id,
+          n.data.label.replace(/\s+/g, "_").toLowerCase(),
+        ])
+      );
 
-    const blocks = {};
+      const blocks = {};
 
-    nodes.forEach((node) => {
-      const newId = idMap[node.id];
-      const block = {
-        ...node.data.block,
-        color: node.data.color,
-        position: node.position,
-        defaultNext: node.data.block.defaultNext
-          ? idMap[node.data.block.defaultNext] || node.data.block.defaultNext
-          : undefined,
+      nodes.forEach((node) => {
+        const newId = idMap[node.id];
+        const block = {
+          ...node.data.block,
+          color: node.data.color,
+          position: node.position,
+          defaultNext: node.data.block.defaultNext
+            ? idMap[node.data.block.defaultNext] || node.data.block.defaultNext
+            : undefined,
+        };
+
+        if (block.actions?.length > 0) {
+          block.actions = block.actions.map((a) => ({
+            next: idMap[a.next] || a.next,
+            conditions: a.conditions || [],
+          }));
+        }
+
+        blocks[newId] = block;
+      });
+
+      const startNode = nodes.find((n) => n.data.nodeType === "start");
+      const start = idMap[startNode?.id] || Object.keys(blocks)[0];
+
+      const flowData = {
+        start,
+        blocks,
       };
 
-      if (block.actions?.length > 0) {
-        block.actions = block.actions.map((a) => ({
-          next: idMap[a.next] || a.next,
-          conditions: a.conditions || [],
-        }));
+      const res = await fetch(
+        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/publish",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: flowData }, null, 2),
+        }
+      );
+
+      const response = await res.json();
+
+      if (res.ok) {
+        alert("Fluxo publicado com sucesso!");
+      } else {
+        console.error("Erro ao publicar:", response);
+        alert("Erro ao publicar fluxo: " + JSON.stringify(response));
       }
-
-      blocks[newId] = block;
-    });
-
-    const startNode = nodes.find((n) => n.data.nodeType === "start");
-    const start = idMap[startNode?.id] || Object.keys(blocks)[0];
-
-    const flowData = {
-      start,
-      blocks,
-    };
-
-    const res = await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/publish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: flowData }, null, 2),
-    });
-
-    const response = await res.json();
-
-    if (res.ok) {
-      alert("Fluxo publicado com sucesso!");
-    } else {
-      console.error("Erro ao publicar:", response);
-      alert("Erro ao publicar fluxo: " + JSON.stringify(response));
+    } catch (err) {
+      alert("Erro de conexão: " + err.message);
+    } finally {
+      setIsPublishing(false);
     }
-  } catch (err) {
-    alert("Erro de conexão: " + err.message);
-  } finally {
-    setIsPublishing(false);
-  }
-};
-
+  };
 
   const addNodeTemplate = (template) => {
     const newNode = {
@@ -664,227 +662,227 @@ if (updatedBlock?.actions?.length > 0) {
   };
 
   return (
-  <div
-    style={{
-      width: "100%",
-      height: "100vh",
-      position: "relative",
-      backgroundColor: "#f9f9f9",
-      display: "flex",
-      flexDirection: "column",
-    }}
-  >
-    {/* Cabeçalho */}
     <div
       style={{
-        height: "56px",
         width: "100%",
-        backgroundColor: "#ffffff",
-        borderBottom: "1px solid #ddd",
-        display: "flex",
-        alignItems: "center",
-        padding: "0 20px",
-        fontWeight: 500,
-        fontSize: "1rem",
-        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)",
-        zIndex: 10,
-      }}
-    >
-      Construtor de Fluxos
-    </div>
-
-    {/* Conteúdo principal com builder + histórico dentro */}
-    <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-      {/* Área esquerda: ReactFlow e ScriptEditor */}
-      <div style={{ position: "relative", flex: 1 }}>
-        {/* Script Editor flutuante */}
-        {itor && (
-          <ScriptEditor
-            code={scriptCode}
-            onChange={handleUpdateCode}
-            onClose={() => setitor(false)}
-          />
-        )}
-
-        {/* ReactFlow */}
-        <ReactFlow
-          nodes={styledNodes}
-          edges={styledEdges}
-          nodeTypes={nodeTypes}
-          defaultEdgeOptions={edgeOptions}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeDoubleClick={onNodeDoubleClick}
-          onNodeClick={(event, node) => {
-            setSelectedNode(node);
-            setSelectedEdgeId(null);
-            setHighlightedNodeId(node.id);
-          }}
-          onEdgeClick={(event, edge) => {
-            event.stopPropagation();
-            setSelectedEdgeId(edge.id);
-            setSelectedNode(null);
-          }}
-          onPaneClick={() => {
-            setSelectedNode(null);
-            setSelectedEdgeId(null);
-            setHighlightedNodeId(null);
-          }}
-          fitViewOptions={{ padding: 0.5 }}
-          proOptions={{ hideAttribution: true }}
-
-        >
-          <Background color="#555" gap={32} variant="dots" />
-          <Controls
-            style={{
-              backgroundColor: "white",
-              border: "1px solid #e2e8f0",
-              borderRadius: "6px",
-              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-            }}
-          />
-
-<VersionHistoryModal
-  visible={showHistory}
-  onClose={() => setShowHistory(false)}
-  versions={flowHistory}
-  onRestore={async (id) => {
-    await fetch("https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    window.location.reload();
-  }}
-/>
-
-        </ReactFlow>
-
-        {/* Menu de nós (flutuante, dentro do builder) */}
-<div
-  ref={nodeMenuRef}
-  style={{
-    position: "absolute",
-    top: "120px", // antes: 50%
-    left: 10,
-    transform: "none", // remove centralização vertical
-    background: "#1e1e1e",
-    border: "1px solid #444",
-    borderRadius: "8px",
-    padding: "0.5rem",
-    zIndex: 20,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "10px",
-    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
-  }}
->
-  {/* Botão de menu toggle (AGORA NO TOPO) */}
-  <button
-    onClick={() => setShowNodeMenu((prev) => !prev)}
-    title="Adicionar Blocos"
-    style={{
-      ...iconButtonStyle,
-      backgroundColor: showNodeMenu ? "#555" : "#333",
-    }}
-  >
-    ➕
-  </button>
-
-  {/* Menu suspenso lateral */}
-  {showNodeMenu && (
-    <div
-      style={{
-        position: "absolute",
-        left: "60px", // ao lado da barra
-        top: "120", // mesmo top da barra para alinhamento
-        backgroundColor: "#2c2c2c",
-        borderRadius: "6px",
-        padding: "0.5rem",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+        height: "100vh",
+        position: "relative",
+        backgroundColor: "#f9f9f9",
         display: "flex",
         flexDirection: "column",
-        gap: "0.5rem",
-        zIndex: 30,
       }}
     >
-      {nodeTemplates.map((template) => (
-        <button
-          key={template.type + template.label}
-          onClick={() => {
-            addNodeTemplate(template);
-            setShowNodeMenu(false);
-          }}
-          style={{
-            ...iconButtonStyle,
-            backgroundColor: template.color,
-            width: "36px",
-            height: "36px",
-          }}
-          title={template.label}
-        >
-          {iconMap[template.iconName] || <Zap size={16} />}
-        </button>
-      ))}
-    </div>
-  )}
-
-  {/* Divider */}
-  <div
-    style={{
-      width: "80%",
-      height: "1px",
-      backgroundColor: "#555",
-      margin: "4px 0",
-    }}
-  />
-
-  {/* Botão: Publicar */}
-  <button
-    onClick={handlePublish}
-    title="Publicar"
-    style={{
-      ...iconButtonStyle,
-      opacity: isPublishing ? 0.5 : 1,
-      pointerEvents: isPublishing ? "none" : "auto",
-    }}
-  >
-    {isPublishing ? "⏳" : <Rocket size={18} />}
-  </button>
-
-  {/* Botão: Baixar */}
-  <button
-    onClick={downloadFlow}
-    title="Baixar JSON"
-    style={iconButtonStyle}
-  >
-    <Download size={18} />
-  </button>
-
-  {/* Botão: Histórico */}
-  <button
-    onClick={() => setShowHistory(true)}
-    title="Histórico de Versões"
-    style={iconButtonStyle}
-  >
-    🕘
-  </button>
-</div>
-
-
-        <NodeConfigPanel
-          selectedNode={selectedNode}
-          onChange={updateSelectedNode}
-          onClose={() => setSelectedNode(null)}
-          allNodes={nodes}
-          onConnectNodes={handleConnectNodes}
-          setShowScriptEditor={setitor}
-          setScriptCode={setScriptCode}
-        />
+      {/* Cabeçalho */}
+      <div
+        style={{
+          height: "56px",
+          width: "100%",
+          backgroundColor: "#ffffff",
+          borderBottom: "1px solid #ddd",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 20px",
+          fontWeight: 500,
+          fontSize: "1rem",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)",
+          zIndex: 10,
+        }}
+      >
+        Construtor de Fluxos
       </div>
-  </div>
-);
 
+      {/* Conteúdo principal com builder + histórico dentro */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        {/* Área esquerda: ReactFlow e ScriptEditor */}
+        <div style={{ position: "relative", flex: 1 }}>
+          {/* Script Editor flutuante */}
+          {itor && (
+            <ScriptEditor
+              code={scriptCode}
+              onChange={handleUpdateCode}
+              onClose={() => setitor(false)}
+            />
+          )}
+
+          {/* ReactFlow */}
+          <ReactFlow
+            nodes={styledNodes}
+            edges={styledEdges}
+            nodeTypes={nodeTypes}
+            defaultEdgeOptions={edgeOptions}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeDoubleClick={onNodeDoubleClick}
+            onNodeClick={(event, node) => {
+              setSelectedNode(node);
+              setSelectedEdgeId(null);
+              setHighlightedNodeId(node.id);
+            }}
+            onEdgeClick={(event, edge) => {
+              event.stopPropagation();
+              setSelectedEdgeId(edge.id);
+              setSelectedNode(null);
+            }}
+            onPaneClick={() => {
+              setSelectedNode(null);
+              setSelectedEdgeId(null);
+              setHighlightedNodeId(null);
+            }}
+            fitViewOptions={{ padding: 0.5 }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background color="#555" gap={32} variant="dots" />
+            <Controls
+              style={{
+                backgroundColor: "white",
+                border: "1px solid #e2e8f0",
+                borderRadius: "6px",
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+              }}
+            />
+
+            <VersionHistoryModal
+              visible={showHistory}
+              onClose={() => setShowHistory(false)}
+              versions={flowHistory}
+              onRestore={async (id) => {
+                await fetch(
+                  "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id }),
+                  }
+                );
+                window.location.reload();
+              }}
+            />
+          </ReactFlow>
+
+          {/* Menu de nós (flutuante, dentro do builder) */}
+          <div
+            ref={nodeMenuRef}
+            style={{
+              position: "absolute",
+              top: "120px", // antes: 50%
+              left: 10,
+              transform: "none", // remove centralização vertical
+              background: "#1e1e1e",
+              border: "1px solid #444",
+              borderRadius: "8px",
+              padding: "0.5rem",
+              zIndex: 20,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "10px",
+              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            {/* Botão de menu toggle (AGORA NO TOPO) */}
+            <button
+              onClick={() => setShowNodeMenu((prev) => !prev)}
+              title="Adicionar Blocos"
+              style={{
+                ...iconButtonStyle,
+                backgroundColor: showNodeMenu ? "#555" : "#333",
+              }}
+            >
+              ➕
+            </button>
+
+            {/* Menu suspenso lateral */}
+            {showNodeMenu && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: "60px", // ao lado da barra
+                  top: "120", // mesmo top da barra para alinhamento
+                  backgroundColor: "#2c2c2c",
+                  borderRadius: "6px",
+                  padding: "0.5rem",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  zIndex: 30,
+                }}
+              >
+                {nodeTemplates.map((template) => (
+                  <button
+                    key={template.type + template.label}
+                    onClick={() => {
+                      addNodeTemplate(template);
+                      setShowNodeMenu(false);
+                    }}
+                    style={{
+                      ...iconButtonStyle,
+                      backgroundColor: template.color,
+                      width: "36px",
+                      height: "36px",
+                    }}
+                    title={template.label}
+                  >
+                    {iconMap[template.iconName] || <Zap size={16} />}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Divider */}
+            <div
+              style={{
+                width: "80%",
+                height: "1px",
+                backgroundColor: "#555",
+                margin: "4px 0",
+              }}
+            />
+
+            {/* Botão: Publicar */}
+            <button
+              onClick={handlePublish}
+              title="Publicar"
+              style={{
+                ...iconButtonStyle,
+                opacity: isPublishing ? 0.5 : 1,
+                pointerEvents: isPublishing ? "none" : "auto",
+              }}
+            >
+              {isPublishing ? "⏳" : <Rocket size={18} />}
+            </button>
+
+            {/* Botão: Baixar */}
+            <button
+              onClick={downloadFlow}
+              title="Baixar JSON"
+              style={iconButtonStyle}
+            >
+              <Download size={18} />
+            </button>
+
+            {/* Botão: Histórico */}
+            <button
+              onClick={() => setShowHistory(true)}
+              title="Histórico de Versões"
+              style={iconButtonStyle}
+            >
+              🕘
+            </button>
+          </div>
+
+          <NodeConfigPanel
+            selectedNode={selectedNode}
+            onChange={updateSelectedNode}
+            onClose={() => setSelectedNode(null)}
+            allNodes={nodes}
+            onConnectNodes={handleConnectNodes}
+            setShowScriptEditor={setitor}
+            setScriptCode={setScriptCode}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
