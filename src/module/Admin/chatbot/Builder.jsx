@@ -863,6 +863,7 @@ if (updatedBlock?.actions?.length > 0) {
         />
       </div>
   </div>
+      </div>
 );
 
 }
