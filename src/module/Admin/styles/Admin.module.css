@@ -183,11 +183,13 @@
 /* Conteúdo principal */
 .main-content {
   flex: 1;
-  margin-left: 220px; /* ← igual à largura da sidebar */
-  padding: 2rem;
-  background-color: #fff;
+  margin-left: 220px; /* igual à sidebar */
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden; /* Remove scroll */
+  display: flex;
+  flex-direction: column;
 }
+
+
 
 
