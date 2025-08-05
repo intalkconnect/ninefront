@@ -75,7 +75,7 @@ export default function Builder() {
           awaitTimeInSeconds: 0,
           sendDelayInSeconds: 1,
           actions: [],
-          defaultNext: "onError",
+          defaultNext: "",
         },
       },
       draggable: false,
@@ -87,11 +87,11 @@ export default function Builder() {
       },
     },
     {
-      id: "onError",
+      id: "",
       type: "quadrado",
       position: { x: 300, y: 100 },
       data: {
-        label: "onError",
+        label: "",
         type: "text",
         color: "#FF4500",
         block: {
@@ -295,9 +295,9 @@ const handleUpdateCode = React.useCallback((newCode) => {
 
   const handleDelete = useCallback(() => {
     if (
-      !selectedNode ||
-      selectedNode.data.label === "Boas-vindas" ||
-      selectedNode.data.label.toLowerCase().includes("onerror")
+        !selectedNode ||
+        selectedNode.data.nodeType === "start" || // Protege por tipo de nó
+        selectedNode.data.label.toLowerCase().includes("onerror")
     )
       return;
 
