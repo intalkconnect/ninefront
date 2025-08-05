@@ -744,7 +744,6 @@ if (updatedBlock?.actions?.length > 0) {
         </ReactFlow>
 
         {/* Menu de nós (flutuante, dentro do builder) */}
-        <div{/* Barra lateral de ações */}
 <div
   style={{
     position: "absolute",
