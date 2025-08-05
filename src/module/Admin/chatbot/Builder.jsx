@@ -824,16 +824,6 @@ if (updatedBlock?.actions?.length > 0) {
         </div>
       </div>
 
-      {/* Painel de histórico/configurações à direita, fixo no builder */}
-      <div
-        style={{
-          width: "320px",
-          height: "100%",
-          overflowY: "auto",
-          backgroundColor: "#111",
-          borderLeft: "1px solid #ddd",
-        }}
-      >
         <NodeConfigPanel
           selectedNode={selectedNode}
           onChange={updateSelectedNode}
