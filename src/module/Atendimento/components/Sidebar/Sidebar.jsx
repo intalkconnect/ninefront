@@ -144,7 +144,7 @@ export default function Sidebar() {
   <div className="fila-status-line">
     {/* Ícone + Texto */}
     <div className="fila-pessoas">
-      <User size={32} strokeWidth={1.8} />
+      <Timer size={40} strokeWidth={1.8} />
       <div className="fila-textos">
         <strong>{filaCount} pessoa{filaCount !== 1 ? "s" : ""}</strong>
         <span className="subtexto">Aguardando</span>
