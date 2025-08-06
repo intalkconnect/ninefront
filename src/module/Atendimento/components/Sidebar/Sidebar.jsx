@@ -129,121 +129,119 @@ export default function Sidebar() {
     );
   });
 
-  return (
-    <div className="sidebar-container">
-<div className="sidebar-header">
-  <img src="/logo.svg" alt="Robbu" className="logo-img" />
-  <button className="icon-button" onClick={() => alert("Abrir perfil")}>
-    <User size={20} />
-  </button>
-</div>
+ return (
+  <div className="sidebar-container">
+    <div className="sidebar-header">
+      <img src="/logo.svg" alt="Robbu" className="logo-img" />
+      <button className="icon-button" onClick={() => alert("Abrir perfil")}>
+        <User size={20} />
+      </button>
+    </div>
 
-
-        <div className="sidebar-user-header">
-    <div className="user-header-content">
-      <div
-        className="avatar-circle"
-        style={{
-          backgroundColor: stringToColor(userEmail || "U"),
-        }}
-      >
-        {(userEmail || "U")[0].toUpperCase()}
-      </div>
-      <div className="user-info">
-        <span className="user-name">{userEmail}</span>
+    <div className="sidebar-user-header">
+      <div className="user-header-content">
+        <div
+          className="avatar-circle"
+          style={{
+            backgroundColor: stringToColor(userEmail || "U"),
+          }}
+        >
+          {(userEmail || "U")[0].toUpperCase()}
+        </div>
+        <div className="user-info">
+          <span className="user-name">{userEmail}</span>
+        </div>
       </div>
     </div>
-  </div>
-      <hr className="sidebar-divider" />
+    <hr className="sidebar-divider" />
 
-      <div className="sidebar-search">
-        <input
-          type="text"
-          placeholder="Pesquisar..."
-          className="sidebar-input"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+    <div className="sidebar-search">
+      <input
+        type="text"
+        placeholder="Pesquisar..."
+        className="sidebar-input"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </div>
 
-      <div className="fila-info">
-        {distribuicaoTickets === "manual" ? (
-          <>
-            <span className="fila-count">
-              {filaCount > 0
-                ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
-                : "Não há clientes aguardando"}
-            </span>
-            <button
-              className="botao-proximo"
-              onClick={puxarProximoTicket}
-              disabled={filaCount === 0}
-            >
-              Próximo
-            </button>
-          </>
-        ) : (
-          "Distribuição: Automática"
-        )}
-      </div>
+    <div className="fila-info">
+      {distribuicaoTickets === "manual" ? (
+        <>
+          <span className="fila-count">
+            {filaCount > 0
+              ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
+              : "Não há clientes aguardando"}
+          </span>
+          <button
+            className="botao-proximo"
+            onClick={puxarProximoTicket}
+            disabled={filaCount === 0}
+          >
+            Próximo
+          </button>
+        </>
+      ) : (
+        "Distribuição: Automática"
+      )}
+    </div>
 
-      <ul className="chat-list">
-        {filteredConversations.map((conv) => {
-          const fullId = conv.user_id;
-          const isSelected = fullId === selectedUserId;
-          const unreadCount = unreadCounts[fullId] || 0;
-          const showUnread = !isSelected && unreadCount > 0;
-          const canalWhatsapp = conv.channel === "whatsapp";
+    <ul className="chat-list">
+      {filteredConversations.map((conv) => {
+        const fullId = conv.user_id;
+        const isSelected = fullId === selectedUserId;
+        const unreadCount = unreadCounts[fullId] || 0;
+        const showUnread = !isSelected && unreadCount > 0;
+        const canalWhatsapp = conv.channel === "whatsapp";
 
-          return (
-            <li
-              key={fullId}
-              className={`chat-list-item ${isSelected ? "active" : ""}`}
-              onClick={() => setSelectedUserId(fullId)}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="chat-avatar-initial">
-                <div
-                  className="avatar-circle"
-                  style={{
-                    backgroundColor: stringToColor(conv.name || conv.user_id),
-                  }}
-                >
-                  {conv.name?.charAt(0).toUpperCase() || "U"}
+        return (
+          <li
+            key={fullId}
+            className={`chat-list-item ${isSelected ? "active" : ""}`}
+            onClick={() => setSelectedUserId(fullId)}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="chat-avatar-initial">
+              <div
+                className="avatar-circle"
+                style={{
+                  backgroundColor: stringToColor(conv.name || conv.user_id),
+                }}
+              >
+                {conv.name?.charAt(0).toUpperCase() || "U"}
+              </div>
+              {canalWhatsapp && (
+                <img
+                  src="/icons/whatsapp.png"
+                  alt="whatsapp"
+                  className="channel-icon-overlay"
+                />
+              )}
+            </div>
+
+            <div className="chat-details">
+              <div className="chat-title-row">
+                <div className="chat-title">
+                  {conv.name || fullId}
+                  {showUnread && <span className="unread-dot"></span>}
                 </div>
-                {canalWhatsapp && (
-                  <img
-                    src="/icons/whatsapp.png"
-                    alt="whatsapp"
-                    className="channel-icon-overlay"
-                  />
-                )}
+                <div className="chat-time">
+                  {conv.timestamp
+                    ? new Date(conv.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "--:--"}
+                </div>
               </div>
 
-              <div className="chat-details">
-<div className="chat-title-row">
-  <div className="chat-title">
-    {conv.name || fullId}
-    {showUnread && <span className="unread-dot"></span>}
-  </div>
-  <div className="chat-time">
-    {conv.timestamp
-      ? new Date(conv.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "--:--"}
-  </div>
-</div>
+              <div className="chat-snippet">{getSnippet(conv.content)}</div>
 
-
-                <div className="chat-snippet">{getSnippet(conv.content)}</div>
-
-
-              </div>
-                              <div className="chat-divider"></div>
-                                <div className="chat-meta">
+              {/* Área movida para baixo dentro do card */}
+              <div className="chat-footer-info">
+                <div className="chat-divider"></div>
+                <div className="chat-meta">
                   <span
                     className="chat-queue-badge"
                     style={{ backgroundColor: conv.fila_color }}
@@ -251,49 +249,48 @@ export default function Sidebar() {
                     {conv.fila}
                   </span>
                 </div>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
 
-            </li>
-          );
-        })}
-      </ul>
+    <div className="sidebar-user-footer">
+      <div className="user-footer-content">
+        <div className="user-status">
+          <span className="status-label">Status:</span>
+          <Circle
+            size={10}
+            color={
+              status === 'online' ? '#25D366' :
+              status === 'pausa' ? '#f0ad4e' :
+              '#d9534f'
+            }
+            fill={
+              status === 'online' ? '#25D366' :
+              status === 'pausa' ? '#f0ad4e' :
+              '#d9534f'
+            }
+          />
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="status-select"
+          >
+            <option value="online">Online</option>
+            <option value="pausado">Pausa</option>
+            <option value="offline">Offline</option>
+          </select>
+        </div>
 
-<div className="sidebar-user-footer">
-  <div className="user-footer-content">
-    <div className="user-status">
-      <span className="status-label">Status:</span>
-      <Circle
-        size={10}
-        color={
-          status === 'online' ? '#25D366' :
-          status === 'pausa' ? '#f0ad4e' :
-          '#d9534f'
-        }
-        fill={
-          status === 'online' ? '#25D366' :
-          status === 'pausa' ? '#f0ad4e' :
-          '#d9534f'
-        }
-      />
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        className="status-select"
-      >
-        <option value="online">Online</option>
-        <option value="pausado">Pausa</option>
-        <option value="offline">Offline</option>
-      </select>
-    </div>
-
-    <div className="profile-actions">
-                    <LogoutButton className="logout-button">
-
-                <LogOut size={16} />
-              </LogoutButton>
+        <div className="profile-actions">
+          <LogoutButton className="logout-button">
+            <LogOut size={16} />
+          </LogoutButton>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-
-    </div>
-  );
+);
 }
