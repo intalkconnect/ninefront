@@ -2,8 +2,9 @@
 
 :root {
   /* Variáveis opcionais para facilitar manutenção */
-
-  --color-text-light: #000000;
+  --color-incoming-bg: #fefeff;
+  --color-outgoing-bg: #6d788f;
+  --color-text-light: #ffffff;
   --message-font-size: 0.95rem;
   --message-line-height: 1.4;
   --message-gap: 4px;   /* espaçamento interno entre cada linha */
@@ -60,26 +61,16 @@
   overflow: visible; /* para não cortar sombras, modais e imagens */
 }
 
-/* Texto da mensagem (lado esquerdo) */
-.message-bubble.incoming .message-content {
-  color: #000000;
+/* Cores diferentes para incoming / outgoing */
+.message-bubble.incoming {
+  background-color: var(--color-incoming-bg);
+  color: var(--color-text-light);
 }
 
-/* Texto da mensagem (lado direito) */
-.message-bubble.outgoing .message-content {
-  color: #ffffff;
+.message-bubble.outgoing {
+  background-color: var(--color-outgoing-bg);
+  color: var(--color-text-light);
 }
-
-/* Horário da mensagem (lado esquerdo) */
-.message-bubble.incoming .message-time {
-  color: #000000;
-}
-
-/* Horário da mensagem (lado direito) */
-.message-bubble.outgoing .message-time {
-  color: #ffffff;
-}
-
 
 /* Conteúdo textual */
 .message-content {
