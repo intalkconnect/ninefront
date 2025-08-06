@@ -4,7 +4,7 @@
   /* Variáveis opcionais para facilitar manutenção */
   --color-incoming-bg: #fefeff;
   --color-outgoing-bg: #6d788f;
-  --color-text-light: #ffffff;
+  --color-text-light: #000000;
   --message-font-size: 0.95rem;
   --message-line-height: 1.4;
   --message-gap: 4px;   /* espaçamento interno entre cada linha */
