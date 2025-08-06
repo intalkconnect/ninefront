@@ -227,10 +227,11 @@ export default function Sidebar() {
                   {showUnread && <span className="unread-dot"></span>}
                 </div>
 
-                <div className="chat-meta">
-                  <span className="chat-ticket">
-                    #{conv.ticket_number || "000000"}
-                  </span>
+
+
+                <div className="chat-snippet">{getSnippet(conv.content)}</div>
+                <div className="chat-divider"></div>
+                                <div className="chat-meta">
                   <span
                     className="chat-queue-badge"
                     style={{ backgroundColor: conv.fila_color }}
@@ -239,7 +240,6 @@ export default function Sidebar() {
                   </span>
                 </div>
 
-                <div className="chat-snippet">{getSnippet(conv.content)}</div>
               </div>
 
               <div className="chat-time">
