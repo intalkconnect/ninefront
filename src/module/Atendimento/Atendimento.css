@@ -91,7 +91,10 @@ html, body, #root {
   z-index: var(--z-index-sidebar);
   transition: var(--transition);
   overflow-y: auto;
+  border-radius: 0 !important;
 }
+
+
 
 /* ======================= CHAT ========================= */
 .chat-container {
