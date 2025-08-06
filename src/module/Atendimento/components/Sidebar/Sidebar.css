@@ -129,17 +129,7 @@
 /* ===================================================================
   Seção de Fila
 =================================================================== */
-.fila-info {
-  padding: 1rem;
-  background-color: var(--sidebar-bg);
-  border-bottom: 1px solid var(--sidebar-border);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* centraliza verticalmente */
-  gap: 0.625rem;
-  text-align: center;
-}
+
 
 
 .fila-count {
@@ -445,4 +435,83 @@
   gap: 8px;
   text-align: center;
 }
+
+.botao-proximo {
+  padding: 0.5rem 1rem;
+  background-color: var(--whatsapp-green);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.fila-info {
+  padding: 1rem;
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.fila-status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fila-pessoas {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
+
+.fila-textos {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.fila-textos strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.fila-textos .subtexto {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.botao-proximo {
+  padding: 0.5rem 1.2rem;
+  background-color: var(--whatsapp-green);
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.botao-proximo:hover {
+  background-color: var(--whatsapp-dark-green);
+}
+
+.botao-proximo:disabled {
+  background-color: #444c56;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.distribuicao-badge.automatica {
+  background-color: #e0f0ff;
+  color: #0077cc;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
 
