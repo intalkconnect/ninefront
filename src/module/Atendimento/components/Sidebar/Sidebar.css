@@ -391,3 +391,14 @@
 .logout-button:hover {
   color: #e03e3e;
 }
+
+/* ===================================================================
+  Rodapé da conversa (divider + fila)
+=================================================================== */
+.chat-footer-info {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
