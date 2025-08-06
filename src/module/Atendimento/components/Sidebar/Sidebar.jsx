@@ -239,7 +239,10 @@ export default function Sidebar() {
 
 
                 <div className="chat-snippet">{getSnippet(conv.content)}</div>
-                <div className="chat-divider"></div>
+
+
+              </div>
+                              <div className="chat-divider"></div>
                                 <div className="chat-meta">
                   <span
                     className="chat-queue-badge"
@@ -248,8 +251,6 @@ export default function Sidebar() {
                     {conv.fila}
                   </span>
                 </div>
-
-              </div>
 
             </li>
           );
