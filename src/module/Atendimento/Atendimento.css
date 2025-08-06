@@ -15,7 +15,6 @@
 
   --sidebar-width: 350px;
   --details-width: 350px;
-  --border-radius: 10px;
   --gap: 1rem;
 
   --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -55,7 +54,6 @@ html, body, #root {
   height: 100%;
   width: 100%;
   background-color: var(--color-surface);
-  border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   overflow: hidden;
   display: flex;
@@ -72,7 +70,6 @@ html, body, #root {
 
 /* ======================= PAINÉIS ========================= */
 
-.sidebar,
 .chat-container,
 .details-panel {
   background-color: var(--color-surface);
@@ -317,6 +314,5 @@ html, body, #root {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 
 
