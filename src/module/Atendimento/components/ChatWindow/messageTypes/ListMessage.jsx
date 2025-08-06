@@ -15,7 +15,12 @@ export default function ListMessage({ listData, small }) {
 
   return (
     <div className="list-container">
-      {listData.header?.text && <h4>{listData.header.text}</h4>}
+      {listData.header?.text && (
+  <h4 style={{ margin: 0, fontSize: '14px', color: '#111b21' }}>
+    {listData.header.text}
+  </h4>
+)}
+
       {listData.body?.text && <p className="list-body-text">{listData.body.text}</p>}
 
       {listData.action.sections.map((section, i) => (
