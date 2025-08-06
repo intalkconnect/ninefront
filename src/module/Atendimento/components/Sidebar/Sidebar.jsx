@@ -171,7 +171,6 @@ export default function Sidebar() {
   </div>
 </div>
 
-</div>
     <hr className="sidebar-divider" />
         <div className="sidebar-search">
       <input
