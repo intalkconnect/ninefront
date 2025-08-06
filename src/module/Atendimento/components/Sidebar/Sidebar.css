@@ -209,14 +209,6 @@
   padding: 0; /* <-- Removido o padding */
 }
 
-.chat-list {
-  padding: 1rem;
-  list-style: none;
-  margin: 0;
-  flex: 1;
-  overflow-y: auto;
-}
-
 .chat-list-item {
   position: relative;
   background: var(--item-bg);
@@ -240,14 +232,6 @@
   box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
 }
 
-
-/* Detalhes do chat */
-.chat-details {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
 
 /* Alinha nome + hora no topo */
 .chat-title-row {
@@ -277,16 +261,6 @@
   margin-top: 1px;
 }
 
-/* Última mensagem */
-.chat-snippet {
-  font-size: 0.85rem;
-  color: #c0cbd4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 0.375rem;
-}
-
 .chat-footer-info {
   display: flex;
   flex-direction: column;
@@ -294,13 +268,6 @@
   margin-top: 0.75rem;
 }
 
-.chat-divider {
-  height: 1px;
-  background-color: #cbd5e1;
-  margin: 6px 0;
-  border: none;
-  opacity: 0.6;
-}
 
 .chat-meta {
   font-size: 0.75rem;
@@ -397,3 +364,46 @@
   color: #e03e3e;
 }
 
+
+/* Adicione estas classes ao seu arquivo CSS */
+.chat-main-content {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.chat-bottom-section {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  width: 100%;
+}
+
+.chat-divider {
+  height: 1px;
+  background-color: rgba(203, 213, 225, 0.3);
+  margin: 0 0 6px 0;
+  border: none;
+}
+
+.chat-list-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  /* outros estilos existentes... */
+}
+
+/* Ajuste para o chat-details */
+.chat-details {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Ajuste para o snippet */
+.chat-snippet {
+  font-size: 0.85rem;
+  color: #c0cbd4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.25rem;
+}
