@@ -1,31 +1,44 @@
-/* Sidebar.css */
+/* ======= Variáveis ======= */
+:root {
+  --sidebar-bg: #1b2735;
+  --sidebar-border: #2e3d50;
+  --text-light: #ffffff;
+  --text-muted: #a6b1c2;
+  --text-muted-dark: #77849c;
+  --highlight-green: #25d366;
+  --highlight-green-dark: #128C7E;
+  --badge-red: #ff4d4d;
+  --shadow-light: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
 
+/* ======= Estrutura principal ======= */
 .sidebar-wrapper {
-  background-color: #1b2735;
-  color: #ffffff;
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: var(--sidebar-bg);
+  color: var(--text-light);
   font-family: "Segoe UI", sans-serif;
 }
 
+/* ======= Header: contador e botão ======= */
 .sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #1b2735;
   padding: 1rem;
-  border-bottom: 1px solid #2e3d50;
+  border-bottom: 1px solid var(--sidebar-border);
 }
 
 .sidebar-count {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 500;
-  color: #a6b1c2;
+  color: var(--text-muted);
 }
 
 .sidebar-next {
-  background-color: #33cc66;
+  background-color: var(--highlight-green);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -36,19 +49,19 @@
 }
 
 .sidebar-next:hover {
-  background-color: #28a745;
+  background-color: var(--highlight-green-dark);
 }
 
+/* ======= Filtros ======= */
 .sidebar-section {
-  background-color: #1b2735;
   padding: 1rem;
-  border-bottom: 1px solid #2e3d50;
+  border-bottom: 1px solid var(--sidebar-border);
 }
 
 .sidebar-section-header {
   font-size: 0.85rem;
   font-weight: bold;
-  color: #a6b1c2;
+  color: var(--text-muted);
   margin-bottom: 0.5rem;
 }
 
@@ -75,6 +88,7 @@
   flex: 1;
 }
 
+/* ======= Lista de conversas ======= */
 .chat-list {
   flex: 1;
   overflow-y: auto;
@@ -89,6 +103,7 @@
   display: flex;
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease;
+  position: relative;
 }
 
 .chat-list-item:hover {
@@ -98,7 +113,7 @@
 
 .chat-list-item.active {
   background: #2c3e5c;
-  box-shadow: 0 0 0 2px #25d366;
+  box-shadow: 0 0 0 2px var(--highlight-green);
 }
 
 .chat-avatar-initial {
@@ -112,13 +127,25 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background-color: #25d366;
+  background-color: var(--highlight-green);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
   font-size: 1rem;
+  position: relative;
+}
+
+.whatsapp-icon-overlay {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  padding: 1px;
 }
 
 .chat-details {
@@ -129,7 +156,7 @@
 .chat-title {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -137,7 +164,7 @@
 
 .chat-meta {
   font-size: 0.75rem;
-  color: #a6b1c2;
+  color: var(--text-muted);
   margin-top: 0.25rem;
   display: flex;
   gap: 0.5rem;
@@ -169,25 +196,26 @@
 
 .chat-time {
   font-size: 0.75rem;
-  color: #a6b1c2;
+  color: var(--text-muted);
   margin-left: 0.5rem;
   white-space: nowrap;
 }
 
 .unread-dot {
-  background-color: #ff4d4d;
+  background-color: var(--badge-red);
   width: 8px;
   height: 8px;
   border-radius: 50%;
   display: inline-block;
   margin-left: 6px;
-  box-shadow: 0 0 0 2px #1b2735;
+  box-shadow: 0 0 0 2px var(--sidebar-bg);
 }
 
+/* ======= Fila vazia ======= */
 .sidebar-empty {
   text-align: center;
   padding: 2rem;
-  color: #a6b1c2;
+  color: var(--text-muted);
 }
 
 .sidebar-empty-icon {
@@ -203,12 +231,13 @@
 
 .sidebar-empty-desc {
   font-size: 0.85rem;
-  color: #77849c;
+  color: var(--text-muted-dark);
 }
 
+/* ======= Rodapé ======= */
 .sidebar-footer {
-  border-top: 1px solid #2e3d50;
-  background-color: #1b2735;
+  border-top: 1px solid var(--sidebar-border);
+  background-color: var(--sidebar-bg);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -220,7 +249,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.85rem;
-  color: #a6b1c2;
+  color: var(--text-muted);
 }
 
 .status-select {
@@ -249,5 +278,5 @@
 }
 
 .sidebar-profile button:hover {
-  color: #25D366;
+  color: var(--highlight-green);
 }
