@@ -301,9 +301,12 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
       <SocketDisconnectedModal />
       <div className="app-layout">
         <div className="app-container section-wrapper">
-          <aside className="sidebar">
-            <Sidebar />
-          </aside>
+<aside className="sidebar-wrapper">
+  <div className="sidebar">
+    <Sidebar />
+  </div>
+</aside>
+
           <main className="chat-container">
             <ChatWindow
               userIdSelecionado={selectedUserId}
