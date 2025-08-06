@@ -71,12 +71,13 @@ html, body, #root {
 }
 
 /* ======================= PAINÉIS ========================= */
+/* ======================= PAINÉIS ========================= */
 
+/* Removido border-radius daqui para aplicar individualmente */
 .sidebar,
 .chat-container,
 .details-panel {
   background-color: var(--color-surface);
-  border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   overflow: hidden;
   display: flex;
@@ -84,20 +85,23 @@ html, body, #root {
   height: 100%;
 }
 
-/* ======================= SIDEBAR ========================= */
-.sidebar {
-  width: var(--sidebar-width);
-  border-right: 1px solid var(--color-border);
-  z-index: var(--z-index-sidebar);
-  transition: var(--transition);
-  overflow-y: auto;
+/* Aplica radius normalmente aos painéis */
+.chat-container,
+.details-panel {
+  border-radius: var(--border-radius);
 }
 
-/* Remover border-radius apenas da seção da sidebar */
-.sidebar-wrapper {
-  border-top-left-radius: 0 !important;
-  border-bottom-left-radius: 0 !important;
+/* Remove completamente o radius apenas da Sidebar */
+.sidebar {
+  border-radius: 0 !important;
 }
+
+/* Se ainda estiver usando wrapper para sidebar: */
+.sidebar-wrapper,
+.section-wrapper.sidebar-wrapper {
+  border-radius: 0 !important;
+}
+
 
 
 .app-container > .section-wrapper:first-child {
