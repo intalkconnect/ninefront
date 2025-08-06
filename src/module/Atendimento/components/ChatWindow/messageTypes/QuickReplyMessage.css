@@ -1,39 +1,47 @@
 .quickreply-container {
-  padding: 8px;
+  background-color: #f7f9fc;
+  padding: 12px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  font-family: 'Segoe UI', sans-serif;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  max-width: 320px;
 }
 
 .quickreply-body {
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
   margin-bottom: 6px;
 }
 
 .quickreply-buttons {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .quickreply-button {
-  background-color: #2f2f2f;
-  color: #ffffff;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #444;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
+  background-color: white;
+  color: #2a7de1;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-weight: 600;
+  text-align: center;
+  font-size: 14px;
+  border: 1px solid #e0e0e0;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .quickreply-button:hover {
-  background-color: #3f3f3f;
+  background-color: #eaf3fe;
   cursor: pointer;
 }
 
 .quickreply-footer {
-  margin-top: 8px;
-  font-size: 0.85em;
-  color: #ccc;
+  font-size: 12px;
+  color: #999;
+  margin-top: 6px;
 }
