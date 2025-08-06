@@ -225,18 +225,19 @@
 
 .channel-icon-overlay {
   position: absolute;
-  bottom: 0px;
-  right: 0px;
-  width: 18px;
-  height: 18px;
+  bottom: -4px;  /* empurra um pouco pra baixo */
+  right: -4px;   /* empurra um pouco pra fora */
+  width: 20px;
+  height: 20px;
   background: white;
   border-radius: 50%;
   padding: 2px;
-  box-shadow: 0 0 0 1px white;
+  box-shadow: 0 0 0 2px var(--sidebar-bg);
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 
 
 
