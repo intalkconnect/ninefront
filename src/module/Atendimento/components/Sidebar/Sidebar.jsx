@@ -140,45 +140,37 @@ export default function Sidebar() {
     </div>
 
    {/* Fila Info */}
-      <div className="fila-info">
-        <div
-          className="fila-status"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Timer size={20} strokeWidth={3} />
-            <span className="fila-count">
-              {filaCount > 0
-                ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
-                : "Não há clientes aguardando"}
-            </span>
+     <div className="fila-info">
+  <div className="fila-status-center">
+    <div className="fila-count-box">
+      <Timer size={20} strokeWidth={3} />
+      <span className="fila-count">
+        {filaCount > 0
+          ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
+          : "Não há clientes aguardando"}
+      </span>
+    </div>
 
-          </div>
-
-    {/* Botão Próximo */}
     <button
       className="botao-proximo"
       onClick={puxarProximoTicket}
       disabled={
-        distribuicaoTickets !== "manual" || filaCount === 0 // desativa se automática ou fila vazia
+        distribuicaoTickets !== "manual" || filaCount === 0
       }
     >
       Próximo
     </button>
-                      <span
-              className={`distribuicao-badge ${
-                distribuicaoTickets === "manual" ? "manual" : "automatica"
-              }`}
-            >
-              {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
-            </span>
+
+    <span
+      className={`distribuicao-badge ${
+        distribuicaoTickets === "manual" ? "manual" : "automatica"
+      }`}
+    >
+      {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
+    </span>
   </div>
+</div>
+
 </div>
     <hr className="sidebar-divider" />
         <div className="sidebar-search">
