@@ -1,4 +1,4 @@
-function getRelativeTime(timestamp) {
+export function getRelativeTime(timestamp) {
   const now = new Date();
   const past = new Date(timestamp);
   const diff = now - past;
