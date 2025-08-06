@@ -264,7 +264,8 @@ export default function Sidebar() {
         <span>Perfil</span>
       </button>
 
-                    <LogoutButton className={styles['logout-button']}>
+                    <LogoutButton className="logout-button">
+
                 <LogOut size={16} />
               </LogoutButton>
     </div>
