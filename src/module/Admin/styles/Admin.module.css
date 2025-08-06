@@ -1,3 +1,4 @@
+
 /* Layout principal */
 .layout-wrapper {
   display: flex;
@@ -7,7 +8,7 @@
 
 /* Sidebar */
 .sidebar {
-  width: 220px;
+  width: 260px;
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -15,7 +16,7 @@
   border-right: 1px solid #e0e0e0;
   padding: 1.5rem 1rem;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.04);
-  height: 100vh; /* FIXO */
+  height: 100vh;
   position: fixed;
   top: 0;
   left: 0;
@@ -27,7 +28,6 @@
   display: flex;
   flex-direction: column;
 }
-
 
 /* Logo */
 .logo {
@@ -130,8 +130,13 @@
   gap: 1rem;
 }
 
-/* Avatar e info */
 .profileContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-info {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -165,13 +170,10 @@
   color: #888;
 }
 
-/* Botão logout */
 .logout-button {
-  align-self: flex-start;
-  margin-left: 4px;
   background: none;
   border: none;
-  color: #888;
+  color: #e63946;
   cursor: pointer;
   font-size: 0.85rem;
   display: flex;
@@ -182,20 +184,15 @@
 }
 
 .logout-button:hover {
-  color: #000;
+  color: #b30000;
 }
-
 
 /* Conteúdo principal */
 .main-content {
   flex: 1;
-  margin-left: 220px; /* igual à sidebar */
+  margin-left: 260px;
   height: 100vh;
-  overflow: hidden; /* Remove scroll */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
-
-
-
-
