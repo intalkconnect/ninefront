@@ -196,62 +196,63 @@ export default function Sidebar() {
 
         return (
           <li
-            key={fullId}
-            className={`chat-list-item ${isSelected ? "active" : ""}`}
-            onClick={() => setSelectedUserId(fullId)}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="chat-avatar-initial">
-              <div
-                className="avatar-circle"
-                style={{
-                  backgroundColor: stringToColor(conv.name || conv.user_id),
-                }}
-              >
-                {conv.name?.charAt(0).toUpperCase() || "U"}
-              </div>
-              {canalWhatsapp && (
-                <img
-                  src="/icons/whatsapp.png"
-                  alt="whatsapp"
-                  className="channel-icon-overlay"
-                />
-              )}
-            </div>
+  key={fullId}
+  className={`chat-list-item ${isSelected ? "active" : ""}`}
+  onClick={() => setSelectedUserId(fullId)}
+  role="button"
+  tabIndex={0}
+>
+  <div className="chat-main-content">
+    <div className="chat-avatar-initial">
+      <div
+        className="avatar-circle"
+        style={{
+          backgroundColor: stringToColor(conv.name || conv.user_id),
+        }}
+      >
+        {conv.name?.charAt(0).toUpperCase() || "U"}
+      </div>
+      {canalWhatsapp && (
+        <img
+          src="/icons/whatsapp.png"
+          alt="whatsapp"
+          className="channel-icon-overlay"
+        />
+      )}
+    </div>
 
-            <div className="chat-details">
-              <div className="chat-title-row">
-                <div className="chat-title">
-                  {conv.name || fullId}
-                  {showUnread && <span className="unread-dot"></span>}
-                </div>
-                <div className="chat-time">
-                  {conv.timestamp
-                    ? new Date(conv.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "--:--"}
-                </div>
-              </div>
+    <div className="chat-details">
+      <div className="chat-title-row">
+        <div className="chat-title">
+          {conv.name || fullId}
+          {showUnread && <span className="unread-dot"></span>}
+        </div>
+        <div className="chat-time">
+          {conv.timestamp
+            ? new Date(conv.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "--:--"}
+        </div>
+      </div>
+      <div className="chat-snippet">{getSnippet(conv.content)}</div>
+    </div>
+  </div>
 
-              <div className="chat-snippet">{getSnippet(conv.content)}</div>
-
-              {/* Área movida para baixo dentro do card */}
-              <div className="chat-footer-info">
-                <div className="chat-divider"></div>
-                <div className="chat-meta">
-                  <span
-                    className="chat-queue-badge"
-                    style={{ backgroundColor: conv.fila_color }}
-                  >
-                    {conv.fila}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </li>
+  {/* Bloco inferior com divider e fila */}
+  <div className="chat-bottom-section">
+    <div className="chat-divider"></div>
+    <div className="chat-meta">
+      <span
+        className="chat-queue-badge"
+        style={{ backgroundColor: conv.fila_color }}
+      >
+        {conv.fila}
+      </span>
+    </div>
+  </div>
+</li>
         );
       })}
     </ul>
