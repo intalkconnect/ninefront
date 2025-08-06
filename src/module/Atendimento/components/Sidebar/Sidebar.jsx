@@ -133,37 +133,10 @@ export default function Sidebar() {
  return (
   <div className="sidebar-container">
     <div className="sidebar-header">
-      <img src="/logo.svg" alt="Robbu" className="logo-img" />
+      <img src="/logo.svg" alt="omni" className="logo-img" />
       <button className="icon-button" onClick={() => alert("Abrir perfil")}>
         <User size={20} />
       </button>
-    </div>
-
-    <div className="sidebar-user-header">
-      <div className="user-header-content">
-        <div
-          className="avatar-circle"
-          style={{
-            backgroundColor: stringToColor(userEmail || "U"),
-          }}
-        >
-          {(userEmail || "U")[0].toUpperCase()}
-        </div>
-        <div className="user-info">
-          <span className="user-name">{userEmail}</span>
-        </div>
-      </div>
-    </div>
-    <hr className="sidebar-divider" />
-
-    <div className="sidebar-search">
-      <input
-        type="text"
-        placeholder="Pesquisar..."
-        className="sidebar-input"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
     </div>
 
     <div className="fila-info">
@@ -185,6 +158,16 @@ export default function Sidebar() {
       ) : (
         "Distribuição: Automática"
       )}
+    </div>
+    <hr className="sidebar-divider" />
+        <div className="sidebar-search">
+      <input
+        type="text"
+        placeholder="Pesquisar..."
+        className="sidebar-input"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
     </div>
 
     <ul className="chat-list">
