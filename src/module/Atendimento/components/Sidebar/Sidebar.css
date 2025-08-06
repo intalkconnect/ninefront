@@ -8,7 +8,7 @@
   --item-bg: #1E2B3A;
   --item-bg-hover: #223344;
   --item-bg-active: #29404F;
-  --item-border: #e0e0e0;
+  --item-border: #2e3d50;
   --item-border-active: #25D366;
   --text-primary: #ffffff;
   --text-secondary: #cbd5e1;
@@ -242,12 +242,12 @@
 .chat-title {
   font-weight: 600;
   font-size: 0.95rem;
-  color: #333;
+  color: #e0e0e0;
 }
 
 .chat-snippet {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: #c0cbd4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -256,7 +256,7 @@
 
 .chat-meta {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: #aab8c2;
   display: flex;
   gap: 0.5rem;
   margin-top: 0.375rem;
