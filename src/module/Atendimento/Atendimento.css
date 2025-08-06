@@ -93,6 +93,13 @@ html, body, #root {
   overflow-y: auto;
 }
 
+/* Remover border-radius apenas da seção da sidebar */
+.sidebar-wrapper {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+
 .app-container > .section-wrapper:first-child {
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
