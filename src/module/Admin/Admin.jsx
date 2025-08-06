@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Home, Bot, Users, Settings, ChevronDown, LogOut } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
@@ -42,10 +43,7 @@ export default function Admin() {
             <MenuIcon to="chatbot" icon={<Bot size={18} />} label="Chatbot" />
             <MenuIcon to="users" icon={<Users size={18} />} label="Usuários" />
             <div className={styles.dropdown}>
-              <button
-                className={styles['dropdown-toggle']}
-                onClick={() => setShowDropdown(!showDropdown)}
-              >
+              <button className={styles['dropdown-toggle']} onClick={() => setShowDropdown(!showDropdown)}>
                 <Settings size={18} />
                 Configurações
                 <ChevronDown size={14} />
@@ -64,25 +62,20 @@ export default function Admin() {
         <div className={styles['sidebar-footer']}>
           {userData && (
             <div className={styles.profileContainer}>
-              <div
-                className={styles.avatar}
-                style={{ backgroundColor: stringToColor(userData.email) }}
-              >
-                {userData.name?.charAt(0).toUpperCase() || 'U'}
-              </div>
-              <div className={styles.userInfo}>
-                <div className={styles.userName}>
-                  {userData.name?.split(' ')[0] || 'Usuário'}
+              <div className={styles['profile-info']}>
+                <div className={styles.avatar} style={{ backgroundColor: stringToColor(userData.email) }}>
+                  {userData.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <div className={styles.userEmail}>{userData.email}</div>
+                <div className={styles.userInfo}>
+                  <div className={styles.userName}>{userData.name?.split(' ')[0] || 'Usuário'}</div>
+                  <div className={styles.userEmail}>{userData.email}</div>
+                </div>
               </div>
+              <LogoutButton className={styles['logout-button']}>
+                <LogOut size={16} />
+              </LogoutButton>
             </div>
           )}
-          <LogoutButton className={styles['logout-button']}>
-  <LogOut size={16} style={{ marginRight: '6px' }} />
-  Sair
-</LogoutButton>
-
         </div>
       </aside>
 
@@ -103,9 +96,7 @@ const MenuIcon = ({ to, icon, label }) => (
   <NavLink
     to={to}
     end={to === ''}
-    className={({ isActive }) =>
-      `${styles['menu-icon']} ${isActive ? styles.active : ''}`
-    }
+    className={({ isActive }) => `${styles['menu-icon']} ${isActive ? styles.active : ''}`}
   >
     {icon}
     {label}
