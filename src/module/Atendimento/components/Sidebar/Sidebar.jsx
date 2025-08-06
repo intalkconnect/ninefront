@@ -142,46 +142,48 @@ export default function Sidebar() {
     <div className="fila-info">
       {distribuicaoTickets === "manual" ? (
         <>
-<span
-  className="fila-count"
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-  }}
->
-  {/* Texto com o contador */}
-  {filaCount > 0 ? (
-    <>
-      <Timer size={20} strokeWidth={3} />
-      {filaCount} cliente{filaCount > 1 ? "s" : ""} aguardando
-    </>
-  ) : (
-    "Não há clientes aguardando"
-  )}
-
-  {/* Badge de distribuição */}
-  <span
-    className={`distribuicao-badge ${
-      distribuicaoTickets === "manual" ? "manual" : "automatica"
-    }`}
+<div className="fila-info">
+  <div
+    className="fila-status"
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: "12px",
+    }}
   >
-    {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
-  </span>
-</span>
+    {/* Texto com cronômetro e contagem */}
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <Timer size={20} strokeWidth={3} />
+      <span className="fila-count">
+        {filaCount > 0
+          ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
+          : "Não há clientes aguardando"}
+      </span>
 
-          <button
-            className="botao-proximo"
-            onClick={puxarProximoTicket}
-            disabled={filaCount === 0}
-          >
-            Próximo
-          </button>
-        </>
-      ) : (
-        "Distribuição: Automática"
-      )}
+      {/* Badge de tipo de distribuição */}
+      <span
+        className={`distribuicao-badge ${
+          distribuicaoTickets === "manual" ? "manual" : "automatica"
+        }`}
+      >
+        {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
+      </span>
     </div>
+
+    {/* Botão Próximo */}
+    <button
+      className="botao-proximo"
+      onClick={puxarProximoTicket}
+      disabled={
+        distribuicaoTickets !== "manual" || filaCount === 0 // desativa se automática ou fila vazia
+      }
+    >
+      Próximo
+    </button>
+  </div>
+</div>
     <hr className="sidebar-divider" />
         <div className="sidebar-search">
       <input
