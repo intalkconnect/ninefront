@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
-import { File, Mic, User, Circle, Logout } from "lucide-react";
+import { File, Mic, User, Circle, LogOut  } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 import { stringToColor } from '../../utils/color';
