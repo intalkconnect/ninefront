@@ -142,7 +142,15 @@ export default function Sidebar() {
     <div className="fila-info">
       {distribuicaoTickets === "manual" ? (
         <>
-<span className="fila-count" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+<span
+  className="fila-count"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  }}
+>
+  {/* Texto com o contador */}
   {filaCount > 0 ? (
     <>
       <Timer size={20} strokeWidth={3} />
@@ -151,8 +159,16 @@ export default function Sidebar() {
   ) : (
     "Não há clientes aguardando"
   )}
-</span>
 
+  {/* Badge de distribuição */}
+  <span
+    className={`distribuicao-badge ${
+      distribuicaoTickets === "manual" ? "manual" : "automatica"
+    }`}
+  >
+    {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
+  </span>
+</span>
 
           <button
             className="botao-proximo"
