@@ -47,7 +47,6 @@ html, body, #root {
 /* ======================= LAYOUT PRINCIPAL ========================= */
 .app-layout {
   height: 100vh;
-  padding: var(--gap);
   background-color: var(--color-background);
   box-sizing: border-box;
 }
@@ -67,7 +66,6 @@ html, body, #root {
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr var(--details-width);
   gap: var(--gap);
-  padding: var(--gap);
   height: 100%;
   box-sizing: border-box;
 }
