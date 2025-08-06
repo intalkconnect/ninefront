@@ -130,72 +130,6 @@ export default function Sidebar() {
   });
 
   return (
-    <div className="sidebar-container">
-<div className="sidebar-header">
-  <img src="/logo.svg" alt="Robbu" className="logo-img" />
-  <button className="icon-button" onClick={() => alert("Abrir perfil")}>
-    <User size={20} />
-  </button>
-</div>
-
-
-        <div className="sidebar-user-header">
-    <div className="user-header-content">
-      <div
-        className="avatar-circle"
-        style={{
-          backgroundColor: stringToColor(userEmail || "U"),
-        }}
-      >
-        {(userEmail || "U")[0].toUpperCase()}
-      </div>
-      <div className="user-info">
-        <span className="user-name">{userEmail}</span>
-      </div>
-    </div>
-  </div>
-      <hr className="sidebar-divider" />
-
-      <div className="sidebar-search">
-        <input
-          type="text"
-          placeholder="Pesquisar..."
-          className="sidebar-input"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      <div className="fila-info">
-        {distribuicaoTickets === "manual" ? (
-          <>
-            <span className="fila-count">
-              {filaCount > 0
-                ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
-                : "Não há clientes aguardando"}
-            </span>
-            <button
-              className="botao-proximo"
-              onClick={puxarProximoTicket}
-              disabled={filaCount === 0}
-            >
-              Próximo
-            </button>
-          </>
-        ) : (
-          "Distribuição: Automática"
-        )}
-      </div>
-
-      <ul className="chat-list">
-        {filteredConversations.map((conv) => {
-          const fullId = conv.user_id;
-          const isSelected = fullId === selectedUserId;
-          const unreadCount = unreadCounts[fullId] || 0;
-          const showUnread = !isSelected && unreadCount > 0;
-          const canalWhatsapp = conv.channel === "whatsapp";
-
-          return (
   <div className="sidebar-container">
     <div className="sidebar-header">
       <img src="/logo.svg" alt="Robbu" className="logo-img" />
@@ -321,7 +255,6 @@ export default function Sidebar() {
       })}
     </ul>
 
-    {/* Rodapé do usuário (status e logout) */}
     <div className="sidebar-user-footer">
       <div className="user-footer-content">
         <div className="user-status">
@@ -363,5 +296,6 @@ export default function Sidebar() {
     </div>
   </div>
 );
+
 
 }
