@@ -717,21 +717,25 @@ useEffect(() => {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onNodeDoubleClick={onNodeDoubleClick}
-            onNodeClick={(event, node) => {
-              setSelectedNode(node);
-              setSelectedEdgeId(null);
-              setHighlightedNodeId(node.id);
-            }}
+onNodeClick={(event, node) => {
+  event.stopPropagation(); // Impede que o evento chegue ao pane
+  setSelectedNode(node);
+  setSelectedEdgeId(null);
+  setHighlightedNodeId(node.id);
+}}
             onEdgeClick={(event, edge) => {
               event.stopPropagation();
               setSelectedEdgeId(edge.id);
               setSelectedNode(null);
             }}
-            onPaneClick={() => {
-              setSelectedNode(null);
-              setSelectedEdgeId(null);
-              setHighlightedNodeId(null);
-            }}
+onPaneClick={(event) => {
+  // Só limpa se não estiver clicando em um nó ou edge
+  if (!event.target.closest('.react-flow__node') && !event.target.closest('.react-flow__edge')) {
+    setSelectedNode(null);
+    setSelectedEdgeId(null);
+    setHighlightedNodeId(null);
+  }
+}}
             fitViewOptions={{ padding: 0.5 }}
             proOptions={{ hideAttribution: true }}
           >
@@ -875,15 +879,17 @@ useEffect(() => {
             </button>
           </div>
 
-          <NodeConfigPanel
-            selectedNode={selectedNode}
-            onChange={updateSelectedNode}
-            onClose={() => setSelectedNode(null)}
-            allNodes={nodes}
-            onConnectNodes={handleConnectNodes}
-            setShowScriptEditor={setitor}
-            setScriptCode={setScriptCode}
-          />
+{selectedNode && (
+  <NodeConfigPanel
+    selectedNode={selectedNode}
+    onChange={updateSelectedNode}
+    onClose={() => setSelectedNode(null)}
+    allNodes={nodes}
+    onConnectNodes={handleConnectNodes}
+    setShowScriptEditor={setitor}
+    setScriptCode={setScriptCode}
+  />
+)}
         </div>
       </div>
     </div>
