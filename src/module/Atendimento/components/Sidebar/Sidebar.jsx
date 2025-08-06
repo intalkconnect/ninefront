@@ -216,7 +216,7 @@ export default function Sidebar() {
                   <img
                     src="/icons/whatsapp.png"
                     alt="whatsapp"
-                    className="whatsapp-icon-overlay"
+                    className="channel-icon-overlay"
                   />
                 )}
               </div>
