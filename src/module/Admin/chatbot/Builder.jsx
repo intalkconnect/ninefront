@@ -879,18 +879,18 @@ onPaneClick={(event) => {
             </button>
           </div>
 
-{selectedNode && (
-  <NodeConfigPanel
-    selectedNode={selectedNode}
-    onChange={updateSelectedNode}
-    onClose={() => setSelectedNode(null)}
-    allNodes={nodes}
-    onConnectNodes={handleConnectNodes}
-    setShowScriptEditor={setitor}
-    setScriptCode={setScriptCode}
-  />
-)}
         </div>
+              {selectedNode && (
+        <NodeConfigPanel
+          selectedNode={selectedNode}
+          onChange={updateSelectedNode}
+          onClose={() => setSelectedNode(null)}
+          allNodes={nodes}
+          onConnectNodes={handleConnectNodes}
+          setShowScriptEditor={setitor}
+          setScriptCode={setScriptCode}
+        />
+      )}
       </div>
     </div>
   );
