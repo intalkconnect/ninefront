@@ -222,11 +222,20 @@ export default function Sidebar() {
               </div>
 
               <div className="chat-details">
-                <div className="chat-title">
-                  {conv.name || fullId}
-                  {showUnread && <span className="unread-dot"></span>}
-                </div>
-
+<div className="chat-title-row">
+  <div className="chat-title">
+    {conv.name || fullId}
+    {showUnread && <span className="unread-dot"></span>}
+  </div>
+  <div className="chat-time">
+    {conv.timestamp
+      ? new Date(conv.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "--:--"}
+  </div>
+</div>
 
 
                 <div className="chat-snippet">{getSnippet(conv.content)}</div>
@@ -242,14 +251,6 @@ export default function Sidebar() {
 
               </div>
 
-              <div className="chat-time">
-                {conv.timestamp
-                  ? new Date(conv.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "--:--"}
-              </div>
             </li>
           );
         })}
