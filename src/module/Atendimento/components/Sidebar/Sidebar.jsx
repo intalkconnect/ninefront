@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
-import { File, Mic, User, Circle, LogOut, Clock } from "lucide-react";
+import { File, Mic, User, Circle, LogOut, Timer } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 import { stringToColor } from '../../utils/color';
@@ -145,7 +145,7 @@ export default function Sidebar() {
 <span className="fila-count" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
   {filaCount > 0 ? (
     <>
-      <Clock size={16} strokeWidth={2} />
+      <Timer size={20} strokeWidth={3} />
       {filaCount} cliente{filaCount > 1 ? "s" : ""} aguardando
     </>
   ) : (
