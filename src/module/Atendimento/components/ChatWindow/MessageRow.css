@@ -2,8 +2,8 @@
 
 :root {
   /* Variáveis opcionais para facilitar manutenção */
-  --color-incoming-bg: #9b7f97;
-  --color-outgoing-bg: #454545;
+  --color-incoming-bg: #fefeff;
+  --color-outgoing-bg: #6d788f;
   --color-text-light: #ffffff;
   --message-font-size: 0.95rem;
   --message-line-height: 1.4;
