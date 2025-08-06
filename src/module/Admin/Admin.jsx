@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Bot, Users, Settings, ChevronDown } from 'lucide-react';
+import { Home, Bot, Users, Settings, ChevronDown, LogOut } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
@@ -78,7 +78,11 @@ export default function Admin() {
               </div>
             </div>
           )}
-          <LogoutButton className={styles['logout-button']} />
+          <LogoutButton className={styles['logout-button']}>
+  <LogOut size={16} style={{ marginRight: '6px' }} />
+  Sair
+</LogoutButton>
+
         </div>
       </aside>
 
