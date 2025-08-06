@@ -287,7 +287,13 @@
   margin-top: 0.375rem;
 }
 
-/* Linha divisória entre mensagem e fila */
+.chat-footer-info {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
 .chat-divider {
   height: 1px;
   background-color: #cbd5e1;
@@ -296,7 +302,6 @@
   opacity: 0.6;
 }
 
-/* Fila */
 .chat-meta {
   font-size: 0.75rem;
   color: #aab8c2;
@@ -390,15 +395,5 @@
 }
 .logout-button:hover {
   color: #e03e3e;
-}
-
-/* ===================================================================
-  Rodapé da conversa (divider + fila)
-=================================================================== */
-.chat-footer-info {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-top: 0.75rem;
 }
 
