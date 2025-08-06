@@ -71,9 +71,7 @@ html, body, #root {
 }
 
 /* ======================= PAINÉIS ========================= */
-/* ======================= PAINÉIS ========================= */
-
-/* Removido border-radius daqui para aplicar individualmente */
+/* Aplicar estilo comum sem border-radius à sidebar */
 .sidebar,
 .chat-container,
 .details-panel {
@@ -85,22 +83,22 @@ html, body, #root {
   height: 100%;
 }
 
-/* Aplica radius normalmente aos painéis */
+/* Aplica radius apenas nos painéis certos */
 .chat-container,
 .details-panel {
   border-radius: var(--border-radius);
 }
 
-/* Remove completamente o radius apenas da Sidebar */
+/* Remove completamente o radius da sidebar */
 .sidebar {
   border-radius: 0 !important;
 }
 
-/* Se ainda estiver usando wrapper para sidebar: */
-.sidebar-wrapper,
-.section-wrapper.sidebar-wrapper {
+/* Também garante que o wrapper da sidebar não aplique radius */
+.sidebar-wrapper {
   border-radius: 0 !important;
 }
+
 
 
 
