@@ -131,6 +131,15 @@ export default function Sidebar() {
 
   return (
     <div className="sidebar-container">
+      <div className="sidebar-header-logo">
+  <img src="/logo.svg" alt="Robbu" className="logo-img" />
+</div>
+<div className="sidebar-header-icons">
+  <button className="icon-button" onClick={() => alert("Abrir perfil")}>
+    <User size={20} />
+  </button>
+</div>
+
         <div className="sidebar-user-header">
     <div className="user-header-content">
       <div
@@ -143,13 +152,11 @@ export default function Sidebar() {
       </div>
       <div className="user-info">
         <span className="user-name">{userEmail}</span>
-        <button className="profile-button" onClick={() => alert('Abrir tela de perfil')}>
-          <User size={16} />
-          Perfil
-        </button>
       </div>
     </div>
   </div>
+      <hr className="sidebar-divider" />
+
       <div className="sidebar-search">
         <input
           type="text"
