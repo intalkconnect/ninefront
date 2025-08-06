@@ -91,10 +91,12 @@ html, body, #root {
   z-index: var(--z-index-sidebar);
   transition: var(--transition);
   overflow-y: auto;
+}
+
+.app-container > .section-wrapper:first-child {
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
 }
-
 
 
 /* ======================= CHAT ========================= */
