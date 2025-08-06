@@ -139,38 +139,33 @@ export default function Sidebar() {
       </button>
     </div>
 
-    <div className="fila-info">
-      {distribuicaoTickets === "manual" ? (
-        <>
-<div className="fila-info">
-  <div
-    className="fila-status"
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      flexWrap: "wrap",
-      gap: "12px",
-    }}
-  >
-    {/* Texto com cronômetro e contagem */}
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      <Timer size={20} strokeWidth={3} />
-      <span className="fila-count">
-        {filaCount > 0
-          ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
-          : "Não há clientes aguardando"}
-      </span>
-
-      {/* Badge de tipo de distribuição */}
-      <span
-        className={`distribuicao-badge ${
-          distribuicaoTickets === "manual" ? "manual" : "automatica"
-        }`}
-      >
-        {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
-      </span>
-    </div>
+   {/* Fila Info */}
+      <div className="fila-info">
+        <div
+          className="fila-status"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Timer size={20} strokeWidth={3} />
+            <span className="fila-count">
+              {filaCount > 0
+                ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
+                : "Não há clientes aguardando"}
+            </span>
+            <span
+              className={`distribuicao-badge ${
+                distribuicaoTickets === "manual" ? "manual" : "automatica"
+              }`}
+            >
+              {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
+            </span>
+          </div>
 
     {/* Botão Próximo */}
     <button
