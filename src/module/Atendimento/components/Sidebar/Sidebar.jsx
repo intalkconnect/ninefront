@@ -1,4 +1,3 @@
-// Sidebar.jsx (versão completa com funcionalidades e visual da Robbu)
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
 import { File, Mic, User, Circle } from "lucide-react";
@@ -70,7 +69,10 @@ export default function Sidebar() {
   const getSnippet = (rawContent) => {
     if (!rawContent) return "";
     if (typeof rawContent === "string" && /^\d+$/.test(rawContent)) return rawContent;
-    if (typeof rawContent === "string" && (rawContent.trim().startsWith("{") || rawContent.trim().startsWith("["))) {
+    if (
+      typeof rawContent === "string" &&
+      (rawContent.trim().startsWith("{") || rawContent.trim().startsWith("["))
+    ) {
       try {
         const parsed = JSON.parse(rawContent);
         if (parsed.url) {
@@ -87,7 +89,10 @@ export default function Sidebar() {
   };
 
   const filteredConversations = Object.values(conversations).filter((conv) => {
-    const autorizado = conv.status === "open" && conv.assigned_to === userEmail && userFilas.includes(conv.fila);
+    const autorizado =
+      conv.status === "open" &&
+      conv.assigned_to === userEmail &&
+      userFilas.includes(conv.fila);
     if (!autorizado) return false;
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -102,7 +107,9 @@ export default function Sidebar() {
     <div className="sidebar-wrapper">
       <div className="sidebar-header">
         <div className="sidebar-count">{filaCount} pessoas</div>
-        <button className="sidebar-next" onClick={puxarProximoTicket}>Próximo</button>
+        <button className="sidebar-next" onClick={puxarProximoTicket}>
+          Próximo
+        </button>
       </div>
 
       <div className="sidebar-section">
@@ -125,7 +132,9 @@ export default function Sidebar() {
           <div className="sidebar-empty">
             <div className="sidebar-empty-icon">🙅‍♂️</div>
             <div className="sidebar-empty-title">Fila de atendimento vazia</div>
-            <div className="sidebar-empty-desc">Não há contatos pendentes na sua fila de atendimento</div>
+            <div className="sidebar-empty-desc">
+              Não há contatos pendentes na sua fila de atendimento
+            </div>
           </div>
         )}
 
@@ -134,6 +143,7 @@ export default function Sidebar() {
           const isSelected = fullId === selectedUserId;
           const unreadCount = unreadCounts[fullId] || 0;
           const showUnread = !isSelected && unreadCount > 0;
+          const canalWhatsapp = conv.channel === "whatsapp";
 
           return (
             <li
@@ -144,21 +154,50 @@ export default function Sidebar() {
               tabIndex={0}
             >
               <div className="chat-avatar-initial">
-                <div className="avatar-circle" style={{ backgroundColor: stringToColor(conv.name || conv.user_id) }}>
+                <div
+                  className="avatar-circle"
+                  style={{
+                    backgroundColor: stringToColor(conv.name || conv.user_id),
+                  }}
+                >
                   {conv.name?.charAt(0).toUpperCase() || "U"}
                 </div>
+                {canalWhatsapp && (
+                  <img
+                    src="/icons/whatsapp.png"
+                    alt="whatsapp"
+                    className="whatsapp-icon-overlay"
+                  />
+                )}
               </div>
+
               <div className="chat-details">
-                <div className="chat-title">{conv.name || fullId} {showUnread && <span className="unread-dot"></span>}</div>
-                <div className="chat-meta">
-                  <span className="chat-ticket">#{conv.ticket_number || "000000"}</span>
-                  <span className="chat-queue-badge" style={{ backgroundColor: conv.fila_color }}>{conv.fila}</span>
+                <div className="chat-title">
+                  {conv.name || fullId}
+                  {showUnread && <span className="unread-dot"></span>}
                 </div>
+
+                <div className="chat-meta">
+                  <span className="chat-ticket">
+                    #{conv.ticket_number || "000000"}
+                  </span>
+                  <span
+                    className="chat-queue-badge"
+                    style={{ backgroundColor: conv.fila_color }}
+                  >
+                    {conv.fila || "Orçamento"}
+                  </span>
+                </div>
+
                 <div className="chat-snippet">{getSnippet(conv.content)}</div>
               </div>
+
               <div className="chat-time">
                 {conv.timestamp
-                  ? new Date(conv.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  ? new Date(conv.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                   : "--:--"}
               </div>
             </li>
@@ -171,17 +210,36 @@ export default function Sidebar() {
           <span>Status:</span>
           <Circle
             size={10}
-            color={status === 'online' ? '#25D366' : status === 'pausa' ? '#f0ad4e' : '#d9534f'}
-            fill={status === 'online' ? '#25D366' : status === 'pausa' ? '#f0ad4e' : '#d9534f'}
+            color={
+              status === "online"
+                ? "#25D366"
+                : status === "pausa"
+                ? "#f0ad4e"
+                : "#d9534f"
+            }
+            fill={
+              status === "online"
+                ? "#25D366"
+                : status === "pausa"
+                ? "#f0ad4e"
+                : "#d9534f"
+            }
           />
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="status-select">
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="status-select"
+          >
             <option value="online">Online</option>
             <option value="pausado">Pausa</option>
             <option value="offline">Offline</option>
           </select>
         </div>
+
         <div className="sidebar-profile">
-          <button onClick={() => alert("Abrir perfil")}> <User size={18} /> Perfil </button>
+          <button onClick={() => alert("Abrir perfil")}>
+            <User size={18} /> Perfil
+          </button>
           <LogoutButton />
         </div>
       </div>
