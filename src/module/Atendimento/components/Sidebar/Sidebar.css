@@ -392,14 +392,31 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.logo-img {
-  height: 24px;
-  object-fit: contain;
-}
 
 .sidebar-header-icons {
   display: flex;
   gap: 0.5rem;
+}
+
+
+.sidebar-divider {
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  margin: 0 1rem;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.logo-img {
+  height: 24px;
+  object-fit: contain;
 }
 
 .icon-button {
@@ -413,10 +430,3 @@
 .icon-button:hover {
   color: var(--color-text-default);
 }
-
-.sidebar-divider {
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  margin: 0 1rem;
-}
-
