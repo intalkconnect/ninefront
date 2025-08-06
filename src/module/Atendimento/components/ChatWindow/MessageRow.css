@@ -34,6 +34,23 @@
   background: #e0e0e0;
 }
 
+/* Texto principal */
+.message-bubble.incoming .text-message {
+  color: #000000;
+}
+.message-bubble.outgoing .text-message {
+  color: #ffffff;
+}
+
+/* Horário */
+.message-bubble.incoming .message-time {
+  color: #000000;
+}
+.message-bubble.outgoing .message-time {
+  color: #ffffff;
+}
+
+
 .message-row {
   display: flex;
   /* O “gap” entre mensagens agora vem do padding-bottom,
