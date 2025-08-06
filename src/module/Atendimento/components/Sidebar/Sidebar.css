@@ -2,15 +2,16 @@
   Variáveis específicas do Sidebar
 =================================================================== */
 .sidebar {
-  --sidebar-bg: #1b2735;
-  --sidebar-border: #e0e0e0;
+  --sidebar-bg: #15202B;
+  --sidebar-header-bg: #1b2735;
+  --sidebar-border: #2e3d50;
   --item-bg: #f5f6f7;
   --item-bg-hover: #f0f2f5;
   --item-bg-active: #dff5e7;
   --item-border: #e0e0e0;
   --item-border-active: #25D366;
-  --text-primary: #333333;
-  --text-secondary: #757575;
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e1;
   --text-muted: #9e9e9e;
   --whatsapp-green: #25D366;
   --whatsapp-dark-green: #128C7E;
@@ -21,7 +22,9 @@
   --transition-fast: 0.2s ease-in-out;
 }
 
-/* Container principal */
+/* ===================================================================
+  Layout principal da Sidebar
+=================================================================== */
 .sidebar-container {
   display: flex;
   flex-direction: column;
@@ -30,17 +33,96 @@
   background-color: var(--sidebar-bg);
   position: relative;
   overflow: visible;
+  color: var(--text-primary);
 }
 
-/* Search Bar */
+/* ===================================================================
+  Cabeçalho (logo e ícones)
+=================================================================== */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: var(--sidebar-header-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.logo-img {
+  height: 24px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  transition: color 0.2s ease;
+}
+.icon-button:hover {
+  color: #dddddd;
+}
+
+/* ===================================================================
+  Avatar e dados do usuário
+=================================================================== */
+.sidebar-user-header {
+  background-color: var(--sidebar-header-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.user-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--whatsapp-green);
+  color: white;
+  font-weight: bold;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* ===================================================================
+  Linha divisória
+=================================================================== */
+.sidebar-divider {
+  border: none;
+  border-bottom: 1px solid var(--sidebar-border);
+  margin: 0 1rem;
+}
+
+/* ===================================================================
+  Campo de busca
+=================================================================== */
 .sidebar-search {
   padding: 1rem;
-  border-bottom: 1px solid var(--sidebar-border);
-  position: sticky;
-  top: 0;
   background-color: var(--sidebar-bg);
-  z-index: 10;
-  box-shadow: var(--shadow-light);
+  border-bottom: 1px solid var(--sidebar-border);
 }
 
 .sidebar-input {
@@ -49,24 +131,22 @@
   border: 1px solid #ccc;
   border-radius: 0.5rem;
   font-size: 0.9rem;
-  outline: none;
   background: #f5f5f5;
+  outline: none;
   transition: all var(--transition-fast);
 }
-
 .sidebar-input:focus {
   border-color: var(--whatsapp-green);
   box-shadow: var(--highlight);
 }
 
-/* Fila Info */
+/* ===================================================================
+  Seção de Fila
+=================================================================== */
 .fila-info {
   padding: 0.875rem 1rem;
-  border-bottom: 1px solid var(--sidebar-border);
   background-color: var(--sidebar-bg);
-  position: sticky;
-  top: 3.75rem;
-  z-index: 9;
+  border-bottom: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -75,9 +155,8 @@
 
 .fila-count {
   font-size: 0.95rem;
-  color: #d3dbe5;
+  color: var(--text-secondary);
   font-weight: 500;
-  text-align: center;
 }
 
 .botao-proximo {
@@ -93,80 +172,54 @@
   width: 100%;
   max-width: 200px;
 }
-
 .botao-proximo:hover {
   background-color: var(--whatsapp-dark-green);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-medium);
 }
-
 .botao-proximo:disabled {
   background-color: #444c56;
   color: #aaa;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
-/* Chat List */
+/* ===================================================================
+  Lista de Conversas
+=================================================================== */
 .chat-list {
-  padding-top: 2px;
+  padding: 1rem;
   list-style: none;
   margin: 0;
-  padding: 0;
   flex: 1;
   overflow-y: auto;
 }
 
 .chat-list-item {
-  position: relative;
   background: var(--item-bg);
-  padding: 1rem;
   border: 1px solid var(--item-border);
   border-radius: 0.625rem;
+  padding: 1rem;
   margin-bottom: 0.625rem;
-  cursor: pointer;
   display: flex;
   gap: 0.75rem;
-  align-items: flex-start;
+  cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: var(--shadow-light);
   color: var(--text-primary);
 }
-
 .chat-list-item:hover {
   background: var(--item-bg-hover);
-  transform: translateY(-1px);
   box-shadow: var(--shadow-medium);
-  z-index: 2;
 }
-
 .chat-list-item.active {
   background: var(--item-bg-active);
   border-color: var(--item-border-active);
   box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
 }
 
-/* Avatar */
+/* Avatar do chat */
 .chat-avatar-initial {
   position: relative;
   width: 40px;
   height: 40px;
   flex-shrink: 0;
-}
-
-.avatar-circle {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background-color: #25d366;
-  color: white;
-  font-weight: bold;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
 }
 
 .whatsapp-icon-overlay {
@@ -180,63 +233,51 @@
   padding: 1px;
 }
 
-/* Detalhes */
+/* Detalhes do chat */
 .chat-details {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
 }
 
 .chat-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   font-weight: 600;
   font-size: 0.95rem;
   color: #333;
-  margin-bottom: 0.375rem;
 }
 
 .chat-snippet {
-  margin-top: 6px;
   font-size: 0.85rem;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 0.375rem;
 }
 
 .chat-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.625rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+  display: flex;
+  gap: 0.5rem;
   margin-top: 0.375rem;
 }
 
 .chat-ticket {
-  background-color: #eef1ff;
+  background: #eef1ff;
   color: #333;
   padding: 2px 6px;
   border-radius: 6px;
   font-weight: 500;
-  font-size: 0.75rem;
 }
 
 .chat-queue-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 500;
+  background: #ffaa00;
+  color: white;
   padding: 3px 10px;
   border-radius: 8px;
-  color: #fff;
-  border: 1px solid rgba(255, 165, 0, 0.25);
-  background-color: #ffaa00;
 }
 
-/* Dot indicador de mensagens não lidas */
+/* Dot de não lidas */
 .unread-dot {
   position: absolute;
   bottom: 1rem;
@@ -246,25 +287,24 @@
   background-color: var(--unread-badge);
   border-radius: 50%;
   box-shadow: 0 0 0 2px white;
-  z-index: 1;
 }
 
-/* Hora */
+/* Horário */
 .chat-time {
   font-size: 0.75rem;
   color: var(--text-muted);
   white-space: nowrap;
-  align-self: flex-start;
 }
 
-/* Footer */
+/* ===================================================================
+  Rodapé
+=================================================================== */
 .sidebar-user-footer {
+  background: var(--sidebar-header-bg);
+  border-top: 1px solid var(--sidebar-border);
   padding: 0.75rem 1rem;
-  border-top: 1px solid #2e3d50;
-  background-color: #1f2a36;
   position: sticky;
   bottom: 0;
-  z-index: 10;
 }
 
 .user-footer-content {
@@ -278,7 +318,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .status-label {
@@ -287,29 +327,11 @@
 }
 
 .status-select {
-  border: none;
   background: transparent;
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 2px 4px;
-  color: #cbd5e1;
-}
-
-.profile-button {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: none;
   border: none;
-  color: #cbd5e1;
   font-size: 0.85rem;
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px 6px;
-  transition: color 0.2s ease;
-}
-
-.profile-button:hover {
-  color: var(--whatsapp-dark-green);
 }
 
 .logout-button {
@@ -321,116 +343,6 @@
   align-items: center;
   gap: 4px;
 }
-
 .logout-button:hover {
   color: #e03e3e;
-}
-
-/* avatar perfil*/
-.sidebar-user-header {
-  display: flex;
-  align-items: center;
-  padding: 1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.sidebar-header,
-.sidebar-user-header {
-  background-color: #15202B; /* mesmo tom do restante da sidebar */
-  color: white;
-}
-
-.user-header-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.avatar-circle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: var(--color-primary);
-  color: white;
-  font-weight: bold;
-  font-size: 1.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.user-name {
-  color: white;
-}
-
-.profile-button {
-  font-size: 13px;
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0;
-  cursor: pointer;
-}
-
-.profile-button:hover {
-  text-decoration: underline;
-}
-
-.sidebar-header-logo {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-
-
-.sidebar-header-icons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-
-.sidebar-divider {
-  border: none;
-  border-bottom: 1px solid var(--color-border);
-  margin: 0 1rem;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.logo-img {
-  height: 24px;
-  object-fit: contain;
-  filter: brightness(0) invert(1); /* deixa o logo branco se for escuro */
-}
-
-.icon-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: white;
-  transition: color 0.2s ease;
-}
-
-.icon-button:hover {
-  color: #dddddd;
 }
