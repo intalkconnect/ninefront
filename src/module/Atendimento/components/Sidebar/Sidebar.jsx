@@ -141,35 +141,31 @@ export default function Sidebar() {
 
    {/* Fila Info */}
      <div className="fila-info">
-  <div className="fila-status-center">
-    <div className="fila-count-box">
-      <Timer size={20} strokeWidth={3} />
-      <span className="fila-count">
-        {filaCount > 0
-          ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
-          : "Não há clientes aguardando"}
-      </span>
+  <div className="fila-status-line">
+    {/* Ícone + Texto */}
+    <div className="fila-pessoas">
+      <User size={32} strokeWidth={1.8} />
+      <div className="fila-textos">
+        <strong>{filaCount} pessoa{filaCount !== 1 ? "s" : ""}</strong>
+        <span className="subtexto">Aguardando</span>
+      </div>
     </div>
 
-    <button
-      className="botao-proximo"
-      onClick={puxarProximoTicket}
-      disabled={
-        distribuicaoTickets !== "manual" || filaCount === 0
-      }
-    >
-      Próximo
-    </button>
-
-    <span
-      className={`distribuicao-badge ${
-        distribuicaoTickets === "manual" ? "manual" : "automatica"
-      }`}
-    >
-      {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
-    </span>
+    {/* Botão ou Badge */}
+    {distribuicaoTickets === "manual" ? (
+      <button
+        className="botao-proximo"
+        onClick={puxarProximoTicket}
+        disabled={filaCount === 0}
+      >
+        Próximo →
+      </button>
+    ) : (
+      <span className="distribuicao-badge automatica">Automática</span>
+    )}
   </div>
 </div>
+
 
     <hr className="sidebar-divider" />
         <div className="sidebar-search">
