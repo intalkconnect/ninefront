@@ -4,6 +4,7 @@ import { File, Mic, User, Circle, LogOut  } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 import { stringToColor } from '../../utils/color';
+import { getRelativeTime } from '../../utils/time';
 
 import "./Sidebar.css";
 
@@ -227,14 +228,10 @@ export default function Sidebar() {
           {conv.name || fullId}
           {showUnread && <span className="unread-dot"></span>}
         </div>
-        <div className="chat-time">
-          {conv.timestamp
-            ? new Date(conv.timestamp).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "--:--"}
-        </div>
+<div className="chat-time">
+  {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
+</div>
+
       </div>
       <div className="chat-snippet">{getSnippet(conv.content)}</div>
     </div>
