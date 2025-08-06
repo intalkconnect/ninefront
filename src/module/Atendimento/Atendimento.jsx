@@ -300,7 +300,7 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
     <>
       <SocketDisconnectedModal />
       <div className="app-layout">
-        <div className="app-container section-wrapper">
+        <div className="app-container">
 <aside className="sidebar-wrapper">
   <div className="sidebar">
     <Sidebar />
