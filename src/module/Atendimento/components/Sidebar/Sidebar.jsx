@@ -131,6 +131,25 @@ export default function Sidebar() {
 
   return (
     <div className="sidebar-container">
+        <div className="sidebar-user-header">
+    <div className="user-header-content">
+      <div
+        className="avatar-circle"
+        style={{
+          backgroundColor: stringToColor(userEmail || "U"),
+        }}
+      >
+        {(userEmail || "U")[0].toUpperCase()}
+      </div>
+      <div className="user-info">
+        <span className="user-name">{userEmail}</span>
+        <button className="profile-button" onClick={() => alert('Abrir tela de perfil')}>
+          <User size={16} />
+          Perfil
+        </button>
+      </div>
+    </div>
+  </div>
       <div className="sidebar-search">
         <input
           type="text"
@@ -210,7 +229,7 @@ export default function Sidebar() {
                     className="chat-queue-badge"
                     style={{ backgroundColor: conv.fila_color }}
                   >
-                    {conv.fila || "Orçamento"}
+                    {conv.fila}
                   </span>
                 </div>
 
@@ -259,11 +278,6 @@ export default function Sidebar() {
     </div>
 
     <div className="profile-actions">
-      <button className="profile-button" onClick={() => alert('Abrir tela de perfil')}>
-        <User size={18} strokeWidth={1.75} />
-        <span>Perfil</span>
-      </button>
-
                     <LogoutButton className="logout-button">
 
                 <LogOut size={16} />
