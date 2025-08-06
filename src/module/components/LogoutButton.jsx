@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import './LogoutModal.css'; // Vamos criar isso
+import './LogoutModal.css';
 
-export default function LogoutButton() {
+export default function LogoutButton({ className = '', children }) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const confirmLogout = () => {
@@ -12,13 +12,12 @@ export default function LogoutButton() {
 
   return (
     <>
-<button
-  onClick={() => setShowConfirm(true)}
-  className="admin-menu-item logout-button"
->
-  Sair
-</button>
-
+      <button
+        onClick={() => setShowConfirm(true)}
+        className={`${className} logout-trigger`}
+      >
+        {children || 'Sair'}
+      </button>
 
       {showConfirm && (
         <div className="modal-overlay">
