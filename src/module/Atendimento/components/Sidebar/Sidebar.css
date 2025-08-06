@@ -225,14 +225,16 @@
 
 .whatsapp-icon-overlay {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 16px;
-  height: 16px;
+  bottom: 0px;
+  right: 0px;
+  width: 18px;
+  height: 18px;
   background: white;
   border-radius: 50%;
   padding: 1px;
+  box-shadow: 0 0 0 1px var(--sidebar-bg); /* contorno que simula "encaixe" */
 }
+
 
 /* Detalhes do chat */
 .chat-details {
