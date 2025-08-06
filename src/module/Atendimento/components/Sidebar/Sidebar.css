@@ -193,6 +193,7 @@
 }
 
 .chat-list-item {
+  position: relative;
   background: var(--item-bg);
   border: 1px solid var(--item-border);
   border-radius: 0.625rem;
@@ -280,14 +281,15 @@
 /* Dot de não lidas */
 .unread-dot {
   position: absolute;
-  bottom: 1rem;
-  right: 1rem;
+  top: 10px;
+  right: 10px;
   width: 10px;
   height: 10px;
   background-color: var(--unread-badge);
   border-radius: 50%;
-  box-shadow: 0 0 0 2px white;
+  box-shadow: 0 0 0 2px var(--item-bg);
 }
+
 
 /* Horário */
 .chat-time {
