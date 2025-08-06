@@ -131,14 +131,13 @@ export default function Sidebar() {
 
   return (
     <div className="sidebar-container">
-      <div className="sidebar-header-logo">
+<div className="sidebar-header">
   <img src="/logo.svg" alt="Robbu" className="logo-img" />
-</div>
-<div className="sidebar-header-icons">
   <button className="icon-button" onClick={() => alert("Abrir perfil")}>
     <User size={20} />
   </button>
 </div>
+
 
         <div className="sidebar-user-header">
     <div className="user-header-content">
