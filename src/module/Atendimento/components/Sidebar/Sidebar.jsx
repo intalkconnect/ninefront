@@ -158,13 +158,7 @@ export default function Sidebar() {
                 ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
                 : "Não há clientes aguardando"}
             </span>
-            <span
-              className={`distribuicao-badge ${
-                distribuicaoTickets === "manual" ? "manual" : "automatica"
-              }`}
-            >
-              {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
-            </span>
+
           </div>
 
     {/* Botão Próximo */}
@@ -177,6 +171,13 @@ export default function Sidebar() {
     >
       Próximo
     </button>
+                      <span
+              className={`distribuicao-badge ${
+                distribuicaoTickets === "manual" ? "manual" : "automatica"
+              }`}
+            >
+              {distribuicaoTickets === "manual" ? "Manual" : "Automática"}
+            </span>
   </div>
 </div>
     <hr className="sidebar-divider" />
