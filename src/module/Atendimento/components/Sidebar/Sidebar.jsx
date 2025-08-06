@@ -146,7 +146,7 @@ export default function Sidebar() {
     <div className="fila-pessoas">
       <Timer size={40} strokeWidth={1.8} />
       <div className="fila-textos">
-        <strong>{filaCount} pessoa{filaCount !== 1 ? "s" : ""}</strong>
+        <strong>{filaCount} Cliente{filaCount !== 1 ? "s" : ""}</strong>
         <span className="subtexto">Aguardando</span>
       </div>
     </div>
