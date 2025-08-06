@@ -142,11 +142,27 @@ export default function Sidebar() {
     <div className="fila-info">
       {distribuicaoTickets === "manual" ? (
         <>
-          <span className="fila-count">
-            {filaCount > 0
-              ? `${filaCount} cliente${filaCount > 1 ? "s" : ""} aguardando`
-              : "Não há clientes aguardando"}
-          </span>
+<span className="fila-count">
+  {filaCount > 0 ? (
+    <>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        fill="currentColor"
+        viewBox="0 0 16 16"
+        style={{ marginRight: "5px", verticalAlign: "middle" }}
+      >
+        <path d="M8 3.5a.5.5 0 0 1 .5.5v4H11a.5.5 0 0 1 0 1H8a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5z"/>
+        <path d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16zM1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8z"/>
+      </svg>
+      {filaCount} cliente{filaCount > 1 ? "s" : ""} aguardando
+    </>
+  ) : (
+    "Não há clientes aguardando"
+  )}
+</span>
+
           <button
             className="botao-proximo"
             onClick={puxarProximoTicket}
