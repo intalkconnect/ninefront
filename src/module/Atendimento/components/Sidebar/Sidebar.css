@@ -332,7 +332,12 @@
   align-items: center;
   padding: 1rem;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+}
+
+.sidebar-header,
+.sidebar-user-header {
+  background-color: #15202B; /* mesmo tom do restante da sidebar */
+  color: white;
 }
 
 .user-header-content {
@@ -362,9 +367,7 @@
 }
 
 .user-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text-default);
+  color: white;
 }
 
 .profile-button {
@@ -417,16 +420,17 @@
 .logo-img {
   height: 24px;
   object-fit: contain;
+  filter: brightness(0) invert(1); /* deixa o logo branco se for escuro */
 }
 
 .icon-button {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-text-muted);
+  color: white;
   transition: color 0.2s ease;
 }
 
 .icon-button:hover {
-  color: var(--color-text-default);
+  color: #dddddd;
 }
