@@ -290,17 +290,18 @@ export default function Sidebar() {
 
     <div className="sort-wrapper">
 <div className="sort-toggle-wrapper">
-  <button
-    className="sort-toggle-button"
-    onClick={() => setOrdemAscendente((prev) => !prev)}
-  >
-    <ArrowDownUp
-  size={16}
-  className={`sort-icon ${ordemAscendente ? "asc" : "desc"}`}
-/>
+ <button
+  className="sort-toggle-button"
+  onClick={() => setOrdemAscendente((prev) => !prev)}
+>
+  {ordemAscendente ? (
+    <ArrowUpDown size={16} className="sort-icon" />
+  ) : (
+    <ArrowDownUp size={16} className="sort-icon" />
+  )}
+  {ordemAscendente ? "Crescente" : "Decrescente"}
+</button>
 
-    {ordemAscendente ? "Crescente" : "Decrescente"}
-  </button>
 </div>
 
     </div>
