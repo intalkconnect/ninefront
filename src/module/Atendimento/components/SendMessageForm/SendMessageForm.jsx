@@ -153,7 +153,7 @@ export default function SendMessageForm({
       text: textToSend,
       file,
       userId: userIdSelecionado,
-      replyTo: replyTo?.message_id || null,
+      replyTo: replyTo?.whatsapp_message_id || null,
     },
     onMessageAdded
   );
@@ -358,7 +358,7 @@ export default function SendMessageForm({
                 text: caption,
                 file,
                 userId: userIdSelecionado,
-                replyTo: replyTo?.message_id || null,
+                replyTo: replyTo?.whatsapp_message_id || null,
               },
               onMessageAdded
             );
@@ -369,6 +369,7 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
 
 
