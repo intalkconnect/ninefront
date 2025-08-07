@@ -168,7 +168,7 @@ export default function Sidebar() {
     </>
   ) : (
     <div className="fila-textos">
-      <strong>Não há clientes na fila</strong>
+      <strong>Não há Clientes aguardando</strong>
     </div>
   )}
 </div>
