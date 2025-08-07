@@ -21,6 +21,7 @@ export default function Sidebar() {
     (state) => state.mergeConversation
   );
   const setSettings = useConversationsStore((state) => state.setSettings);
+  const [ordemAscendente, setOrdemAscendente] = useState(false); // false = mais novo primeiro
 
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
@@ -130,6 +131,13 @@ export default function Sidebar() {
     );
   });
 
+  const sortedConversations = [...filteredConversations].sort((a, b) => {
+  const dateA = new Date(a.timestamp || 0);
+  const dateB = new Date(b.timestamp || 0);
+  return ordemAscendente ? dateA - dateB : dateB - dateA;
+});
+
+
  return (
   <div className="sidebar-container">
     <div className="sidebar-header">
@@ -167,19 +175,27 @@ export default function Sidebar() {
 </div>
 
 
-    <hr className="sidebar-divider" />
-        <div className="sidebar-search">
-      <input
-        type="text"
-        placeholder="Pesquisar..."
-        className="sidebar-input"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
-    </div>
+<div className="sidebar-search-with-sort">
+  <input
+    type="text"
+    placeholder="Pesquisar..."
+    className="sidebar-input"
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+  />
+
+  <button
+    className="sort-button"
+    onClick={() => setOrdemAscendente((prev) => !prev)}
+    title="Ordenar por data"
+  >
+    {ordemAscendente ? "↑ Antigos" : "↓ Recentes"}
+  </button>
+</div>
+
 
     <ul className="chat-list">
-      {filteredConversations.map((conv) => {
+      {sortedConversations.map((conv) => (
         const fullId = conv.user_id;
         const isSelected = fullId === selectedUserId;
         const unreadCount = unreadCounts[fullId] || 0;
