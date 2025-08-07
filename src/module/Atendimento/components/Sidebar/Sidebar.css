@@ -128,7 +128,7 @@
   align-items: center;
   gap: 6px;
   padding: 0;
-  min-width: unset;
+  min-width: 110px; 
   height: auto;
 }
 
