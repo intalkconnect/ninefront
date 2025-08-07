@@ -254,45 +254,52 @@ export default function Sidebar() {
       })}
     </ul>
 
-    <div className="user-footer-content">
-      <div className="user-status">
-        <span className="status-label">Status:</span>
-        <Circle
-          size={10}
-          color={
-            status === "online"
-              ? "#25D366"
-              : status === "pausa"
-              ? "#f0ad4e"
-              : "#d9534f"
-          }
-          fill={
-            status === "online"
-              ? "#25D366"
-              : status === "pausa"
-              ? "#f0ad4e"
-              : "#d9534f"
-          }
-        />
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="status-select"
-        >
-          <option value="online">Online</option>
-          <option value="pausado">Pausa</option>
-          <option value="offline">Offline</option>
-        </select>
-      </div>
+    <hr className="sidebar-footer-divider" />
 
+<div className="sidebar-user-footer">
+  <div className="user-footer-content">
+    <div className="user-status">
+      <span className="status-label">Status:</span>
+      <Circle
+        size={10}
+        color={
+          status === "online"
+            ? "#25D366"
+            : status === "pausa"
+            ? "#f0ad4e"
+            : "#d9534f"
+        }
+        fill={
+          status === "online"
+            ? "#25D366"
+            : status === "pausa"
+            ? "#f0ad4e"
+            : "#d9534f"
+        }
+      />
+      <select
+        value={status}
+        onChange={(e) => setStatus(e.target.value)}
+        className="status-select"
+      >
+        <option value="online">Online</option>
+        <option value="pausado">Pausa</option>
+        <option value="offline">Offline</option>
+      </select>
+    </div>
+
+    <div className="sort-wrapper">
+      <span className="sort-label">Ordenar:</span>
       <button
-        className="sort-button sort-button-footer"
+        className="sort-button"
         onClick={() => setOrdemAscendente((prev) => !prev)}
         title="Ordenar por data"
       >
         {ordemAscendente ? "↓ Recentes" : "↑ Antigos"}
       </button>
     </div>
+  </div>
+</div>
   </div>
 );
 
