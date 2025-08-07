@@ -396,3 +396,10 @@
   color: var(--text-primary);                 /* texto claro */
 }
 
+.footer-divider-vertical {
+  width: 1px;
+  height: 24px;
+  background-color: var(--sidebar-border);
+  margin: 0 12px;
+  opacity: 0.5;
+}
