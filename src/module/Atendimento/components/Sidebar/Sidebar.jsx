@@ -194,7 +194,7 @@ export default function Sidebar() {
 </div>
 
 
-    <<ul className="chat-list">
+    <ul className="chat-list">
   {sortedConversations.map((conv) => {
     const fullId = conv.user_id;
     const isSelected = fullId === selectedUserId;
