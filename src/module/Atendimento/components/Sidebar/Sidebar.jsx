@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
-import { File, Mic, User, Circle, LogOut, Timer, ArrowDownUp, ArrowUpDown } from "lucide-react";
+import { File, Mic, User, Circle, LogOut, Timer, ArrowDownUp, ArrowUpDown, Search } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 import { stringToColor } from '../../utils/color';
@@ -189,15 +189,18 @@ export default function Sidebar() {
       </div>
     </div>
 
-    <div className="sidebar-search-with-sort">
-      <input
-        type="text"
-        placeholder="Pesquisar..."
-        className="sidebar-input"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-      />
-    </div>
+<div className="sidebar-search-with-sort">
+  <input
+    type="text"
+    placeholder="Pesquisar..."
+    className="sidebar-input"
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+  />
+  <span className="search-icon-right">
+    <Search size={20} strokeWidth={2} />
+  </span>
+</div>
 
     <ul className="chat-list">
       {sortedConversations.map((conv) => {
