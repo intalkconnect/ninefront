@@ -1,4 +1,4 @@
-// ✅ Versão final do useSendMessage.js (sempre garante sufixo no user_id)
+// ✅ Versão final do useSendMessage.js
 
 import { useState } from 'react';
 import { toast } from 'react-toastify';
@@ -6,73 +6,78 @@ import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
-// Map de sufixos por canal
-const CHANNEL_SUFFIX = {
+// Mapas de sufixo/canal
+const CHANNEL_TO_SUFFIX = {
   whatsapp: '@w.msgcli.net',
   telegram: '@telegram',
   instagram: '@instagram',
   facebook: '@facebook',
   messenger: '@messenger',
 };
+const SUFFIX_TO_CHANNEL = Object.fromEntries(
+  Object.entries(CHANNEL_TO_SUFFIX).map(([k, v]) => [v, k])
+);
 
-// Helpers
 const normalize = (s) => String(s || '').trim();
-const normalizeChannel = (raw) => normalize(raw).toLowerCase();
+const normalizeChannel = (s) => normalize(s).toLowerCase();
 
-// Retorna { id, suffix, channelGuess }
-const parseUserIdWithSuffix = (userId) => {
+// Lê o canal pelo sufixo do userId e devolve { to, channel, fullUserId }
+function parseIdentity(userId) {
   const s = normalize(userId);
   const at = s.lastIndexOf('@');
-  if (at === -1) return { id: s, suffix: '', channelGuess: '' };
-  const id = s.slice(0, at);
-  const suffix = s.slice(at); // inclui '@'
-  // tenta deduzir canal a partir do sufixo
-  const channelGuess =
-    Object.keys(CHANNEL_SUFFIX).find((k) => CHANNEL_SUFFIX[k] === suffix) || '';
-  return { id, suffix, channelGuess };
-};
 
-// Garante "<id>@<sufixoDoCanal>"
-const makeFullUserId = (id, channel) => {
-  const ch = normalizeChannel(channel);
-  const suffix = CHANNEL_SUFFIX[ch];
-  if (!suffix) throw new Error(`Canal não suportado: ${channel}`);
-  return `${normalize(id)}${suffix}`;
-};
+  if (at === -1) {
+    // Sem sufixo (não deveria acontecer), tenta descobrir pelo store
+    const state = useConversationsStore.getState();
+    const chFromStore = state.conversations[s]?.channel;
+    const channel = normalizeChannel(chFromStore || 'whatsapp');
+    const suffix = CHANNEL_TO_SUFFIX[channel] || '@w.msgcli.net';
+    return { to: s, channel, fullUserId: `${s}${suffix}` };
+  }
+
+  const to = s.slice(0, at);
+  const suffix = s.slice(at); // inclui '@'
+  const guessedChannel = SUFFIX_TO_CHANNEL[suffix];
+
+  // Se não reconheceu o sufixo, tenta pelo store; se não, assume whatsapp
+  const state = useConversationsStore.getState();
+  const chFromStore = state.conversations[s]?.channel;
+  const channel = normalizeChannel(guessedChannel || chFromStore || 'whatsapp');
+
+  // Garante que o sufixo do fullUserId seja o mapeado do canal
+  const fixedSuffix = CHANNEL_TO_SUFFIX[channel] || suffix;
+  const fullUserId = `${to}${fixedSuffix}`;
+
+  return { to, channel, fullUserId };
+}
 
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
-  const sendMessage = async ({ text = '', file, userId, channel, replyTo }, onMessageAdded) => {
-    console.log('📨 Enviando mensagem:', { text, file, userId, channel, replyTo });
+  const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
+    console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
 
     if (!userId) {
       toast.error('Usuário não identificado.');
       return;
     }
 
-    // 1) Descobre id/sufixo atuais e canal
-    let { id: rawId, suffix, channelGuess } = parseUserIdWithSuffix(userId);
-    let ch = normalizeChannel(channel || channelGuess || useConversationsStore.getState().conversations[userId]?.channel);
-
-    if (!ch) {
-      toast.error('Canal não informado e não foi possível inferir pelo userId.');
-      return;
-    }
-    if (!CHANNEL_SUFFIX[ch]) {
-      toast.error(`Canal não suportado: ${ch}`);
+    if (!normalize(text) && !file) {
+      toast.warn('Digite algo ou grave áudio antes de enviar.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
       return;
     }
 
-    // 2) Garante user_id com sufixo correto
-    const fullUserId = suffix ? makeFullUserId(rawId, ch) : makeFullUserId(rawId, ch);
-    const to = rawId; // "to" sempre cru (sem sufixo)
+    // ➜ Identity padronizada (to cru, channel em minúsculo, user_id com sufixo)
+    const { to, channel, fullUserId } = parseIdentity(userId);
 
-    // 3) Mensagem provisória (UI otimista)
+    const tempId = Date.now();
     const now = new Date();
-    const tempId = now.getTime();
     const readableTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    // Mensagem otimista (mantida conforme sua base)
     let provisionalMessage = {
       id: tempId,
       direction: 'outgoing',
@@ -80,9 +85,7 @@ export function useSendMessage() {
       readableTime,
       status: 'sending',
       type: 'text',
-      content: text.trim(),
-      user_id: fullUserId, // ✅ sempre com sufixo
-      channel: ch,
+      content: normalize(text),
     };
 
     if (file) {
@@ -94,7 +97,7 @@ export function useSendMessage() {
 
       const isAudio = file.type?.startsWith('audio/');
       const isImage = file.type?.startsWith('image/');
-      const captionText = text.trim() || file.name;
+      const captionText = normalize(text) || file.name;
 
       provisionalMessage.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
       provisionalMessage.content = {
@@ -111,12 +114,8 @@ export function useSendMessage() {
     setIsSending(true);
 
     try {
-      // 4) Payload padronizado para o back
-      const payload = {
-        to,                 // id cru
-        channel: ch,        // canal explícito
-        user_id: fullUserId // ✅ SEMPRE com sufixo
-      };
+      // Payload para o back: to (cru), channel e user_id (com sufixo)
+      const payload = { to, channel, user_id: fullUserId };
 
       if (file) {
         const fileUrl = await uploadFileAndGetURL(file);
@@ -127,24 +126,21 @@ export function useSendMessage() {
 
         payload.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
         payload.content = isAudio
-          ? { url: fileUrl, voice: true } // se o back usar PTT no WA
+          ? { url: fileUrl, voice: true } // PTT no WA se o back usar isso
           : {
               url: fileUrl,
               filename: file.name,
-              caption: provisionalMessage.content?.caption || (text.trim() || file.name),
+              caption: provisionalMessage.content?.caption || (normalize(text) || file.name),
             };
       } else {
-        if (!text.trim()) {
-          throw new Error('Mensagem vazia.');
-        }
         payload.type = 'text';
-        payload.content = { body: text.trim() };
+        payload.content = { body: normalize(text) };
         if (replyTo) payload.context = { message_id: replyTo };
       }
 
       const response = await apiPost('/messages/send', payload);
 
-      // 5) Extrai message_id (cobre WhatsApp/Telegram)
+      // Extrai id da mensagem (WhatsApp/Telegram – cobre variações comuns)
       const messageId =
         response?.messages?.[0]?.id ||
         response?.data?.messages?.[0]?.id ||
@@ -158,13 +154,13 @@ export function useSendMessage() {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
-          message_id: messageId,
+          whatsapp_message_id: messageId, // ⚠ mantém nome usado pela sua UI
           serverResponse: response,
         });
       }
 
-      // Marca como lidas visualmente (se usar)
-      marcarMensagensAntesDoTicketComoLidas(fullUserId);
+      // Marca como lidas visualmente (usa o userId recebido)
+      marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
       if (typeof onMessageAdded === 'function') {
