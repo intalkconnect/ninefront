@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
-import { File, Mic, User, Circle, LogOut, Timer } from "lucide-react";
+import { File, Mic, User, Circle, LogOut, Timer, SlidersHorizontal  } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 import { stringToColor } from '../../utils/color';
@@ -289,14 +289,17 @@ export default function Sidebar() {
     </div>
 
     <div className="sort-wrapper">
-      <span className="sort-label">Ordenar:</span>
-      <button
-        className="sort-button"
-        onClick={() => setOrdemAscendente((prev) => !prev)}
-        title="Ordenar por data"
-      >
-        {ordemAscendente ? "↓ Recentes" : "↑ Antigos"}
-      </button>
+<div className="sort-select-container">
+  <SlidersHorizontal size={16} className="sort-icon" />
+  <select
+    value={ordemAscendente ? "asc" : "desc"}
+    onChange={(e) => setOrdemAscendente(e.target.value === "asc")}
+    className="sort-select"
+  >
+    <option value="asc">Crescente</option>
+    <option value="desc">Decrescente</option>
+  </select>
+</div>
     </div>
   </div>
 </div>
