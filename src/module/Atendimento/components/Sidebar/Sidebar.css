@@ -113,73 +113,40 @@
   box-shadow: var(--highlight);
 }
 
-.sort-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .sort-label {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.sort-button {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
+.sort-toggle-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
-.sort-button:hover {
-  color: white;
-}
-
-.sort-select-container {
+.sort-toggle-button {
   display: flex;
   align-items: center;
   gap: 6px;
+  background-color: transparent;
+  border: 1px solid #444;
+  padding: 4px 10px;
+  border-radius: 6px;
   font-size: 0.85rem;
   color: #ccc;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
+}
+
+.sort-toggle-button:hover {
+  background-color: #2b2b2b;
+  border-color: #666;
 }
 
 .sort-icon {
   color: #aaa;
 }
 
-/* Estilo base do select */
-.sort-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  
-  background-color: transparent;
-  color: #ccc;
-  font-size: 0.85rem;
-  border: none;
-  padding: 4px 20px 4px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
-
-  background-image: url("data:image/svg+xml,%3Csvg fill='%23cbd5e1' viewBox='0 0 20 20'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.355a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 6px center;
-  background-size: 12px;
-}
-
-/* Remove borda e fundo escuro após selecionar */
-.sort-select:focus {
-  outline: none;
-  background-color: transparent;
-}
-
-.sort-select option {
-  background: #1f1f1f;
-  color: #f0f0f0;
-}
 
 
 /* ===================================================================
