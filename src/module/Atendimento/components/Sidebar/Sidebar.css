@@ -90,28 +90,41 @@
   Campo de Busca + Ordenação
 =================================================================== */
 .sidebar-search-with-sort {
+  position: relative;
   display: flex;
-  gap: 0.5rem;
   align-items: center;
-  padding: 1rem;
-  background-color: var(--sidebar-bg);
+  padding: 1rem 1rem 1rem 1rem;
+  background: var(--sidebar-bg);
   border-bottom: 1px solid var(--sidebar-border);
 }
 
 .sidebar-input {
   width: 100%;
-  padding: 0.625rem 0.875rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  font-size: 0.9rem;
-  background: #f5f5f5;
+  padding: 0.625rem 2.5rem 0.625rem 0.875rem; /* espaço à direita pra lupa */
+  border: 2px solid #2196f3; /* Azul igual ao da imagem */
+  border-radius: 0.7rem;
+  font-size: 1rem;
+  background: #fff;
+  color: #222;
   outline: none;
-  transition: all var(--transition-fast);
+  transition: border-color 0.18s;
 }
+
 .sidebar-input:focus {
-  border-color: var(--whatsapp-green);
-  box-shadow: var(--highlight);
+  border-color: #1976d2;
 }
+
+.search-icon-right {
+  position: absolute;
+  right: 1.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #2196f3; /* mesma cor da borda */
+  display: flex;
+  align-items: center;
+  pointer-events: none; /* permite digitar por cima */
+}
+
 
 .sort-label {
   font-size: 0.75rem;
