@@ -158,20 +158,22 @@ export default function Sidebar() {
     <div className="fila-info">
       <div className="fila-status-line">
 <div className="fila-pessoas">
-  <Timer size={40} strokeWidth={1.8} />
-  <div className="fila-textos">
-    {filaCount > 0 ? (
-      <>
+  {filaCount > 0 ? (
+    <>
+      <Timer size={40} strokeWidth={1.8} />
+      <div className="fila-textos">
         <strong>{filaCount} Cliente{filaCount !== 1 ? "s" : ""}</strong>
         <span className="subtexto">Aguardando</span>
-      </>
-    ) : (
-      <>
-        <strong>Não há clientes na fila</strong>
-      </>
-    )}
-  </div>
+      </div>
+    </>
+  ) : (
+    <div className="fila-textos">
+      <strong>Não há clientes</strong>
+      <span className="subtexto">na fila</span>
+    </div>
+  )}
 </div>
+
 
 
         {distribuicaoTickets === "manual" ? (
