@@ -141,168 +141,159 @@ export default function Sidebar() {
  return (
   <div className="sidebar-container">
     <div className="sidebar-header">
-  <img src="/logo.svg" alt="omni" className="logo-img" />
+      <img src="/logo.svg" alt="omni" className="logo-img" />
 
-  <div className="header-actions">
-    <button className="icon-button" onClick={() => alert("Abrir perfil")}>
-      <User size={20} />
-    </button>
+      <div className="header-actions">
+        <button className="icon-button" onClick={() => alert("Abrir perfil")}>
+          <User size={20} />
+        </button>
 
-    <LogoutButton className="logout-button">
-      <LogOut size={16} />
-    </LogoutButton>
-  </div>
-</div>
-
-
-   {/* Fila Info */}
-     <div className="fila-info">
-  <div className="fila-status-line">
-    {/* Ícone + Texto */}
-    <div className="fila-pessoas">
-      <Timer size={40} strokeWidth={1.8} />
-      <div className="fila-textos">
-        <strong>{filaCount} Cliente{filaCount !== 1 ? "s" : ""}</strong>
-        <span className="subtexto">Aguardando</span>
+        <LogoutButton className="logout-button">
+          <LogOut size={16} />
+        </LogoutButton>
       </div>
     </div>
 
-    {/* Botão ou Badge */}
-    {distribuicaoTickets === "manual" ? (
-      <button
-        className="botao-proximo"
-        onClick={puxarProximoTicket}
-        disabled={filaCount === 0}
-      >
-        Próximo →
-      </button>
-    ) : (
-      <span className="distribuicao-badge automatica">Automática</span>
-    )}
-  </div>
-</div>
+    {/* Fila Info */}
+    <div className="fila-info">
+      <div className="fila-status-line">
+        <div className="fila-pessoas">
+          <Timer size={40} strokeWidth={1.8} />
+          <div className="fila-textos">
+            <strong>{filaCount} Cliente{filaCount !== 1 ? "s" : ""}</strong>
+            <span className="subtexto">Aguardando</span>
+          </div>
+        </div>
 
+        {distribuicaoTickets === "manual" ? (
+          <button
+            className="botao-proximo"
+            onClick={puxarProximoTicket}
+            disabled={filaCount === 0}
+          >
+            Próximo →
+          </button>
+        ) : (
+          <span className="distribuicao-badge automatica">Automática</span>
+        )}
+      </div>
+    </div>
 
-<div className="sidebar-search-with-sort">
-  <input
-    type="text"
-    placeholder="Pesquisar..."
-    className="sidebar-input"
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-  />
-</div>
-
+    <div className="sidebar-search-with-sort">
+      <input
+        type="text"
+        placeholder="Pesquisar..."
+        className="sidebar-input"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </div>
 
     <ul className="chat-list">
-  {sortedConversations.map((conv) => {
-    const fullId = conv.user_id;
-    const isSelected = fullId === selectedUserId;
-    const unreadCount = unreadCounts[fullId] || 0;
-    const showUnread = !isSelected && unreadCount > 0;
-    const canalWhatsapp = conv.channel === "whatsapp";
+      {sortedConversations.map((conv) => {
+        const fullId = conv.user_id;
+        const isSelected = fullId === selectedUserId;
+        const unreadCount = unreadCounts[fullId] || 0;
+        const showUnread = !isSelected && unreadCount > 0;
+        const canalWhatsapp = conv.channel === "whatsapp";
 
-    return (
-      <li
-        key={fullId}
-        className={`chat-list-item ${isSelected ? "active" : ""}`}
-        onClick={() => setSelectedUserId(fullId)}
-        role="button"
-        tabIndex={0}
-      >
-        <div className="chat-main-content">
-          <div className="chat-avatar-initial">
-            <div
-              className="avatar-circle"
-              style={{
-                backgroundColor: stringToColor(conv.name || conv.user_id),
-              }}
-            >
-              {conv.name?.charAt(0).toUpperCase() || "U"}
-            </div>
-            {canalWhatsapp && (
-              <img
-                src="/icons/whatsapp.png"
-                alt="whatsapp"
-                className="channel-icon-overlay"
-              />
-            )}
-          </div>
-
-          <div className="chat-details">
-            <div className="chat-title-row">
-              <div className="chat-title">
-                {conv.name || fullId}
-                {showUnread && <span className="unread-dot"></span>}
+        return (
+          <li
+            key={fullId}
+            className={`chat-list-item ${isSelected ? "active" : ""}`}
+            onClick={() => setSelectedUserId(fullId)}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="chat-main-content">
+              <div className="chat-avatar-initial">
+                <div
+                  className="avatar-circle"
+                  style={{
+                    backgroundColor: stringToColor(conv.name || conv.user_id),
+                  }}
+                >
+                  {conv.name?.charAt(0).toUpperCase() || "U"}
+                </div>
+                {canalWhatsapp && (
+                  <img
+                    src="/icons/whatsapp.png"
+                    alt="whatsapp"
+                    className="channel-icon-overlay"
+                  />
+                )}
               </div>
-              <div className="chat-time">
-                {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
+
+              <div className="chat-details">
+                <div className="chat-title-row">
+                  <div className="chat-title">
+                    {conv.name || fullId}
+                    {showUnread && <span className="unread-dot"></span>}
+                  </div>
+                  <div className="chat-time">
+                    {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
+                  </div>
+                </div>
+                <div className="chat-snippet">{getSnippet(conv.content)}</div>
               </div>
             </div>
-            <div className="chat-snippet">{getSnippet(conv.content)}</div>
-          </div>
-        </div>
 
-        {/* Bloco inferior com divider e fila */}
-        <div className="chat-bottom-section">
-          <div className="chat-divider"></div>
-          <div className="chat-meta">
-            <span
-              className="chat-queue-badge"
-              style={{ backgroundColor: conv.fila_color }}
-            >
-              {conv.fila}
-            </span>
-          </div>
-        </div>
-      </li>
-    );
-  })}
-</ul>
-
+            <div className="chat-bottom-section">
+              <div className="chat-divider"></div>
+              <div className="chat-meta">
+                <span
+                  className="chat-queue-badge"
+                  style={{ backgroundColor: conv.fila_color }}
+                >
+                  {conv.fila}
+                </span>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
 
     <div className="user-footer-content">
-  <div className="user-status">
-    <span className="status-label">Status:</span>
-    <Circle
-      size={10}
-      color={
-        status === 'online'
-          ? '#25D366'
-          : status === 'pausa'
-          ? '#f0ad4e'
-          : '#d9534f'
-      }
-      fill={
-        status === 'online'
-          ? '#25D366'
-          : status === 'pausa'
-          ? '#f0ad4e'
-          : '#d9534f'
-      }
-    />
-    <select
-      value={status}
-      onChange={(e) => setStatus(e.target.value)}
-      className="status-select"
-    >
-      <option value="online">Online</option>
-      <option value="pausado">Pausa</option>
-      <option value="offline">Offline</option>
-    </select>
-  </div>
-
-  <button
-    className="sort-button sort-button-footer"
-    onClick={() => setOrdemAscendente((prev) => !prev)}
-    title="Ordenar por data"
-  >
-    {ordemAscendente ? "↓ Recentes" : "↑ Antigos"}
-  </button>
-</div>
-
+      <div className="user-status">
+        <span className="status-label">Status:</span>
+        <Circle
+          size={10}
+          color={
+            status === "online"
+              ? "#25D366"
+              : status === "pausa"
+              ? "#f0ad4e"
+              : "#d9534f"
+          }
+          fill={
+            status === "online"
+              ? "#25D366"
+              : status === "pausa"
+              ? "#f0ad4e"
+              : "#d9534f"
+          }
+        />
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="status-select"
+        >
+          <option value="online">Online</option>
+          <option value="pausado">Pausa</option>
+          <option value="offline">Offline</option>
+        </select>
       </div>
+
+      <button
+        className="sort-button sort-button-footer"
+        onClick={() => setOrdemAscendente((prev) => !prev)}
+        title="Ordenar por data"
+      >
+        {ordemAscendente ? "↓ Recentes" : "↑ Antigos"}
+      </button>
     </div>
   </div>
 );
+
 }
