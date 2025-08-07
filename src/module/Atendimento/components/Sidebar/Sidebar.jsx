@@ -246,19 +246,19 @@ export default function Sidebar() {
                 <div className="chat-snippet">{getSnippet(conv.content)}</div>
               </div>
             </div>
+<div className="chat-bottom-section">
+  <div className="chat-divider"></div>
+  <div className="chat-meta">
+    <span
+      className="chat-queue-badge"
+      style={{ backgroundColor: conv.fila_color }}
+    >
+      {conv.fila}
+    </span>
+    {showUnread && <span className="unread-dot"></span>}
+  </div>
+</div>
 
-            <div className="chat-bottom-section">
-              <div className="chat-divider"></div>
-              <div className="chat-meta">
-                <span
-                  className="chat-queue-badge"
-                  style={{ backgroundColor: conv.fila_color }}
-                >
-                  {conv.fila}
-                </span>
-                {showUnread && <span className="unread-dot"></span>}
-              </div>
-            </div>
           </li>
         );
       })}
