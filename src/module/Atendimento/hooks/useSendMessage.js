@@ -1,4 +1,4 @@
-// ✅ Versão final do useSendMessage.js
+// ✅ Versão final do useSendMessage.js (sempre garante sufixo no user_id)
 
 import { useState } from 'react';
 import { toast } from 'react-toastify';
@@ -6,45 +6,73 @@ import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
-// Helpers de identidade
-const normalizeChannel = (raw) => String(raw || '').toLowerCase().trim();
-const parseUserId = (userId) => {
-  const s = String(userId || '');
-  const at = s.lastIndexOf('@');
-  if (at === -1) return { id: s, channel: '' };
-  return { id: s.slice(0, at), channel: s.slice(at + 1) };
+// Map de sufixos por canal
+const CHANNEL_SUFFIX = {
+  whatsapp: '@w.msgcli.net',
+  telegram: '@telegram',
+  instagram: '@instagram',
+  facebook: '@facebook',
+  messenger: '@messenger',
 };
-const makeUserId = (id, channel) => `${String(id).trim()}@${normalizeChannel(channel)}`;
+
+// Helpers
+const normalize = (s) => String(s || '').trim();
+const normalizeChannel = (raw) => normalize(raw).toLowerCase();
+
+// Retorna { id, suffix, channelGuess }
+const parseUserIdWithSuffix = (userId) => {
+  const s = normalize(userId);
+  const at = s.lastIndexOf('@');
+  if (at === -1) return { id: s, suffix: '', channelGuess: '' };
+  const id = s.slice(0, at);
+  const suffix = s.slice(at); // inclui '@'
+  // tenta deduzir canal a partir do sufixo
+  const channelGuess =
+    Object.keys(CHANNEL_SUFFIX).find((k) => CHANNEL_SUFFIX[k] === suffix) || '';
+  return { id, suffix, channelGuess };
+};
+
+// Garante "<id>@<sufixoDoCanal>"
+const makeFullUserId = (id, channel) => {
+  const ch = normalizeChannel(channel);
+  const suffix = CHANNEL_SUFFIX[ch];
+  if (!suffix) throw new Error(`Canal não suportado: ${channel}`);
+  return `${normalize(id)}${suffix}`;
+};
 
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
-  const sendMessage = async ({ text = '', file, userId, replyTo }, onMessageAdded) => {
-    console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
+  const sendMessage = async ({ text = '', file, userId, channel, replyTo }, onMessageAdded) => {
+    console.log('📨 Enviando mensagem:', { text, file, userId, channel, replyTo });
 
     if (!userId) {
       toast.error('Usuário não identificado.');
       return;
     }
 
-    if (!text.trim() && !file) {
-      toast.warn('Digite algo ou anexe um arquivo antes de enviar.', {
-        position: 'bottom-right',
-        autoClose: 2000,
-      });
+    // 1) Descobre id/sufixo atuais e canal
+    let { id: rawId, suffix, channelGuess } = parseUserIdWithSuffix(userId);
+    let ch = normalizeChannel(channel || channelGuess || useConversationsStore.getState().conversations[userId]?.channel);
+
+    if (!ch) {
+      toast.error('Canal não informado e não foi possível inferir pelo userId.');
+      return;
+    }
+    if (!CHANNEL_SUFFIX[ch]) {
+      toast.error(`Canal não suportado: ${ch}`);
       return;
     }
 
-    // Extrai id e canal do userId vindo da conversa (ex.: "12345@telegram")
-    let { id: toId, channel } = parseUserId(userId);
-    channel = normalizeChannel(channel || 'whatsapp'); // fallback seguro
-    const fullUserId = makeUserId(toId, channel);
+    // 2) Garante user_id com sufixo correto
+    const fullUserId = suffix ? makeFullUserId(rawId, ch) : makeFullUserId(rawId, ch);
+    const to = rawId; // "to" sempre cru (sem sufixo)
 
+    // 3) Mensagem provisória (UI otimista)
     const now = new Date();
     const tempId = now.getTime();
     const readableTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Mensagem provisória (UI otimista)
     let provisionalMessage = {
       id: tempId,
       direction: 'outgoing',
@@ -53,8 +81,8 @@ export function useSendMessage() {
       status: 'sending',
       type: 'text',
       content: text.trim(),
-      user_id: fullUserId,
-      channel,
+      user_id: fullUserId, // ✅ sempre com sufixo
+      channel: ch,
     };
 
     if (file) {
@@ -63,6 +91,7 @@ export function useSendMessage() {
         toast.error(errorMsg || 'Arquivo inválido.');
         return;
       }
+
       const isAudio = file.type?.startsWith('audio/');
       const isImage = file.type?.startsWith('image/');
       const captionText = text.trim() || file.name;
@@ -82,11 +111,11 @@ export function useSendMessage() {
     setIsSending(true);
 
     try {
-      // Payload PADRONIZADO: sempre manda to, channel e user_id
+      // 4) Payload padronizado para o back
       const payload = {
-        to: toId,                 // id sem sufixo
-        channel,                  // 'whatsapp' | 'telegram' | ...
-        user_id: fullUserId,      // "<id>@<channel>"
+        to,                 // id cru
+        channel: ch,        // canal explícito
+        user_id: fullUserId // ✅ SEMPRE com sufixo
       };
 
       if (file) {
@@ -98,13 +127,16 @@ export function useSendMessage() {
 
         payload.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
         payload.content = isAudio
-          ? { url: fileUrl, voice: true } // voice=true para PTT no WhatsApp
+          ? { url: fileUrl, voice: true } // se o back usar PTT no WA
           : {
               url: fileUrl,
               filename: file.name,
               caption: provisionalMessage.content?.caption || (text.trim() || file.name),
             };
       } else {
+        if (!text.trim()) {
+          throw new Error('Mensagem vazia.');
+        }
         payload.type = 'text';
         payload.content = { body: text.trim() };
         if (replyTo) payload.context = { message_id: replyTo };
@@ -112,14 +144,14 @@ export function useSendMessage() {
 
       const response = await apiPost('/messages/send', payload);
 
-      // Tenta extrair um message_id do retorno (WA/Telegram)
+      // 5) Extrai message_id (cobre WhatsApp/Telegram)
       const messageId =
-        response?.messages?.[0]?.id ||                   // WhatsApp (Graph "puro")
-        response?.data?.messages?.[0]?.id ||             // WhatsApp (alguns adapters)
-        response?.data?.result?.message_id ||            // Telegram (Bot API proxied)
-        response?.data?.message_id ||                    // Telegram (variação)
-        response?.result?.message_id ||                  // Telegram (variação)
-        response?.message_id ||                          // Telegram (variação)
+        response?.messages?.[0]?.id ||
+        response?.data?.messages?.[0]?.id ||
+        response?.data?.result?.message_id ||
+        response?.data?.message_id ||
+        response?.result?.message_id ||
+        response?.message_id ||
         null;
 
       if (typeof onMessageAdded === 'function') {
@@ -131,7 +163,7 @@ export function useSendMessage() {
         });
       }
 
-      // ✅ Marca como lidas visualmente (mantido)
+      // Marca como lidas visualmente (se usar)
       marcarMensagensAntesDoTicketComoLidas(fullUserId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
