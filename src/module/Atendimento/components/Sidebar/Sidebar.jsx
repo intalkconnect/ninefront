@@ -173,6 +173,8 @@ export default function Sidebar() {
   )}
 </div>
 
+
+
         {distribuicaoTickets === "manual" ? (
           <button
             className="botao-proximo"
@@ -187,23 +189,15 @@ export default function Sidebar() {
       </div>
     </div>
 
-<div className="sidebar-search-with-sort">
-  <span className="search-icon">
-    {/* SVG de lupa */}
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-      <circle cx="9" cy="9" r="7" stroke="#999" strokeWidth="2" />
-      <line x1="15.5" y1="15.5" x2="12.5" y2="12.5" stroke="#999" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  </span>
-  <input
-    type="text"
-    placeholder="Pesquisar..."
-    className="sidebar-input"
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-  />
-</div>
-
+    <div className="sidebar-search-with-sort">
+      <input
+        type="text"
+        placeholder="Pesquisar..."
+        className="sidebar-input"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+      />
+    </div>
 
     <ul className="chat-list">
       {sortedConversations.map((conv) => {
