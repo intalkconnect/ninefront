@@ -43,15 +43,6 @@
   letter-spacing: 0.01em;
 }
 
-.show-more-messages button:hover,
-.show-more-messages button:focus {
-  background: #f6f8fa;
-  color: #1b61c2;
-  border-color: #c6d2ea;
-  box-shadow: 0 4px 16px rgba(34, 113, 230, 0.07);
-  transform: translateY(-1px) scale(1.025);
-}
-
 .show-more-messages button:active {
   background: #edf1f7;
   color: #2155a2;
