@@ -101,7 +101,7 @@
 .sidebar-input {
   width: 100%;
   padding: 0.625rem 2.5rem 0.625rem 0.875rem; /* espaço à direita pra lupa */
-  border: 2px solid #2196f3; /* Azul igual ao da imagem */
+  border: 2px solid #515e6c; /* Azul igual ao da imagem */
   border-radius: 0.7rem;
   font-size: 1rem;
   background: #fff;
@@ -119,7 +119,7 @@
   right: 1.8rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #2196f3; /* mesma cor da borda */
+  color: #515e6c; /* mesma cor da borda */
   display: flex;
   align-items: center;
   pointer-events: none; /* permite digitar por cima */
