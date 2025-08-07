@@ -320,6 +320,7 @@
 
 .chat-bottom-section {
   width: 100%;
+  padding: 0 12px;
 }
 .chat-divider {
   height: 1px;
@@ -330,17 +331,19 @@
 .chat-meta {
   display: flex;
   align-items: center;
-  gap: 8px; /* Espaço entre badge e dot */
+  justify-content: space-between; /* Badge à esquerda, dot à direita */
+  width: 100%;
+  position: relative;
 }
 
 .unread-dot {
   width: 10px;
   height: 10px;
-  background: #ff5252; /* vermelho chamativo */
+  background: #ff5252;
   border-radius: 50%;
   display: inline-block;
+  margin-left: 8px;
   box-shadow: 0 0 2px #ff5252cc;
-  margin-left: 2px;
   animation: pulseDot 1.1s infinite alternate;
 }
 
