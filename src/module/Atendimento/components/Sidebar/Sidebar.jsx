@@ -261,7 +261,7 @@ export default function Sidebar() {
 </ul>
 
 
-    <<div className="user-footer-content">
+    <div className="user-footer-content">
   <div className="user-status">
     <span className="status-label">Status:</span>
     <Circle
