@@ -141,14 +141,19 @@ export default function Sidebar() {
  return (
   <div className="sidebar-container">
     <div className="sidebar-header">
-      <img src="/logo.svg" alt="omni" className="logo-img" />
-      <button className="icon-button" onClick={() => alert("Abrir perfil")}>
-        <User size={20} />
-      </button>
-                <LogoutButton className="logout-button">
-            <LogOut size={16} />
-          </LogoutButton>
-    </div>
+  <img src="/logo.svg" alt="omni" className="logo-img" />
+
+  <div className="header-actions">
+    <button className="icon-button" onClick={() => alert("Abrir perfil")}>
+      <User size={20} />
+    </button>
+
+    <LogoutButton className="logout-button">
+      <LogOut size={16} />
+    </LogoutButton>
+  </div>
+</div>
+
 
    {/* Fila Info */}
      <div className="fila-info">
@@ -256,43 +261,46 @@ export default function Sidebar() {
 </ul>
 
 
-    <div className="sidebar-user-footer">
-      <div className="user-footer-content">
-        <div className="user-status">
-          <span className="status-label">Status:</span>
-          <Circle
-            size={10}
-            color={
-              status === 'online' ? '#25D366' :
-              status === 'pausa' ? '#f0ad4e' :
-              '#d9534f'
-            }
-            fill={
-              status === 'online' ? '#25D366' :
-              status === 'pausa' ? '#f0ad4e' :
-              '#d9534f'
-            }
-          />
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="status-select"
-          >
-            <option value="online">Online</option>
-            <option value="pausado">Pausa</option>
-            <option value="offline">Offline</option>
-          </select>
-        </div>
+    <<div className="user-footer-content">
+  <div className="user-status">
+    <span className="status-label">Status:</span>
+    <Circle
+      size={10}
+      color={
+        status === 'online'
+          ? '#25D366'
+          : status === 'pausa'
+          ? '#f0ad4e'
+          : '#d9534f'
+      }
+      fill={
+        status === 'online'
+          ? '#25D366'
+          : status === 'pausa'
+          ? '#f0ad4e'
+          : '#d9534f'
+      }
+    />
+    <select
+      value={status}
+      onChange={(e) => setStatus(e.target.value)}
+      className="status-select"
+    >
+      <option value="online">Online</option>
+      <option value="pausado">Pausa</option>
+      <option value="offline">Offline</option>
+    </select>
+  </div>
 
-        <div className="profile-actions">
   <button
-    className="sort-button-footer"
+    className="sort-button sort-button-footer"
     onClick={() => setOrdemAscendente((prev) => !prev)}
     title="Ordenar por data"
   >
-    {ordemAscendente ? "↑ Antigos" : "↓ Recentes"}
+    {ordemAscendente ? "↓ Recentes" : "↑ Antigos"}
   </button>
-        </div>
+</div>
+
       </div>
     </div>
   </div>
