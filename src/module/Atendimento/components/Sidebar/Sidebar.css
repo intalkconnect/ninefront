@@ -138,8 +138,20 @@
 }
 
 .sort-icon {
+  transition: transform 0.2s ease;
   color: var(--text-muted);
 }
+
+.sort-icon.asc {
+  transform: rotate(180deg); /* Aponta para cima */
+  color: var(--whatsapp-green); /* verde opcional */
+}
+
+.sort-icon.desc {
+  transform: rotate(0deg); /* Aponta para baixo */
+  color: #ccc;
+}
+
 
 /* ===================================================================
   Fila de Atendimento
