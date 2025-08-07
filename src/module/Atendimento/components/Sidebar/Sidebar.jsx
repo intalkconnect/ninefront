@@ -186,14 +186,6 @@ export default function Sidebar() {
     value={searchTerm}
     onChange={(e) => setSearchTerm(e.target.value)}
   />
-
-  <button
-    className="sort-button"
-    onClick={() => setOrdemAscendente((prev) => !prev)}
-    title="Ordenar por data"
-  >
-    {ordemAscendente ? "↑ Antigos" : "↓ Recentes"}
-  </button>
 </div>
 
 
