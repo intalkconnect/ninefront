@@ -289,17 +289,16 @@ export default function Sidebar() {
     </div>
 
     <div className="sort-wrapper">
-<div className="sort-select-container">
-  <ArrowDownUp size={16} className="sort-icon" />
-  <select
-    value={ordemAscendente ? "asc" : "desc"}
-    onChange={(e) => setOrdemAscendente(e.target.value === "asc")}
-    className="sort-select"
+<div className="sort-toggle-wrapper">
+  <button
+    className="sort-toggle-button"
+    onClick={() => setOrdemAscendente((prev) => !prev)}
   >
-    <option value="asc">Crescente</option>
-    <option value="desc">Decrescente</option>
-  </select>
+    <ArrowDownUp size={16} className="sort-icon" />
+    {ordemAscendente ? "Crescente" : "Decrescente"}
+  </button>
 </div>
+
     </div>
   </div>
 </div>
