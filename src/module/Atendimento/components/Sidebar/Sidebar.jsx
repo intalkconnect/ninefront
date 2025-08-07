@@ -51,15 +51,6 @@ export default function Sidebar() {
     }
   }, [userEmail, userFilas]);
 
-  const channelIcons = {
-  whatsapp: "/icons/whatsapp.png",
-  telegram: "/icons/telegram.png",
-  instagram: "/icons/instagram.png",
-  facebook: "/icons/facebook.png",
-  messenger: "/icons/messenger.png",
-  // adicione outros canais conforme necessário
-};
-
   const puxarProximoTicket = async () => {
     try {
       const res = await apiPut("/chats/fila/proximo", {
@@ -217,6 +208,7 @@ export default function Sidebar() {
         const isSelected = fullId === selectedUserId;
         const unreadCount = unreadCounts[fullId] || 0;
         const showUnread = !isSelected && unreadCount > 0;
+        const canalWhatsapp = conv.channel === "whatsapp";
 
         return (
           <li
@@ -236,13 +228,13 @@ export default function Sidebar() {
                 >
                   {conv.name?.charAt(0).toUpperCase() || "U"}
                 </div>
-        {conv.channel && channelIcons[conv.channel.toLowerCase()] && (
-          <img
-            src={channelIcons[conv.channel.toLowerCase()]}
-            alt={conv.channel}
-            className="channel-icon-overlay"
-          />
-        )}
+                {canalWhatsapp && (
+                  <img
+                    src="/icons/whatsapp.png"
+                    alt="whatsapp"
+                    className="channel-icon-overlay"
+                  />
+                )}
               </div>
 
               <div className="chat-details">
