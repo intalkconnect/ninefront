@@ -115,7 +115,7 @@ const MessageList = forwardRef(
             (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
           const replyToMessage = messages.find(
-            (m) => m.message_id === msg.reply_to
+            (m) => m.whatsapp_message_id === msg.reply_to
           );
 
           return (
