@@ -383,6 +383,16 @@
   background: transparent;
   border: none;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--text-primary); /* cor visível no select fechado */
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
+
+/* Estilizar as opções do dropdown */
+.status-select option {
+  background-color: var(--sidebar-header-bg); /* fundo escuro */
+  color: var(--text-primary);                 /* texto claro */
+}
+
