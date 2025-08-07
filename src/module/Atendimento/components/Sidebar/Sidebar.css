@@ -91,34 +91,11 @@
 =================================================================== */
 .sidebar-search-with-sort {
   display: flex;
+  gap: 0.5rem;
   align-items: center;
-  background: #fff;
-  border-radius: 8px;
-  padding: 4px 10px;
-  box-shadow: 0 1px 4px rgba(60, 60, 60, 0.03);
-  border: 1.5px solid #e3e7ee;
-  max-width: 100%;
-}
-
-.search-icon {
-  display: flex;
-  align-items: center;
-  margin-right: 6px;
-}
-
-.sidebar-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 15px;
-  padding: 6px 0;
-  width: 100%;
-  color: #222;
-}
-
-.sidebar-input::placeholder {
-  color: #aaa;
-  opacity: 1;
+  padding: 1rem;
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
 }
 
 .sidebar-input {
