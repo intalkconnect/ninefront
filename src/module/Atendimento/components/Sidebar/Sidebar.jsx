@@ -287,7 +287,7 @@ export default function Sidebar() {
         <option value="offline">Offline</option>
       </select>
     </div>
-
+<div className="footer-divider-vertical"></div>
     <div className="sort-wrapper">
 <div className="sort-toggle-wrapper">
  <button
