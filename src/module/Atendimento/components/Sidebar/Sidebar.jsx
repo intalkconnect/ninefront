@@ -238,7 +238,6 @@ export default function Sidebar() {
                 <div className="chat-title-row">
                   <div className="chat-title">
                     {conv.name || fullId}
-                    {showUnread && <span className="unread-dot"></span>}
                   </div>
                   <div className="chat-time">
                     {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
@@ -257,6 +256,7 @@ export default function Sidebar() {
                 >
                   {conv.fila}
                 </span>
+                {showUnread && <span className="unread-dot"></span>}
               </div>
             </div>
           </li>
