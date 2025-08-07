@@ -145,6 +145,9 @@ export default function Sidebar() {
       <button className="icon-button" onClick={() => alert("Abrir perfil")}>
         <User size={20} />
       </button>
+                <LogoutButton className="logout-button">
+            <LogOut size={16} />
+          </LogoutButton>
     </div>
 
    {/* Fila Info */}
@@ -290,9 +293,13 @@ export default function Sidebar() {
         </div>
 
         <div className="profile-actions">
-          <LogoutButton className="logout-button">
-            <LogOut size={16} />
-          </LogoutButton>
+  <button
+    className="sort-button-footer"
+    onClick={() => setOrdemAscendente((prev) => !prev)}
+    title="Ordenar por data"
+  >
+    {ordemAscendente ? "↑ Antigos" : "↓ Recentes"}
+  </button>
         </div>
       </div>
     </div>
