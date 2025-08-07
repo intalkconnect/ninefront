@@ -143,26 +143,26 @@
   gap: 6px;
   font-size: 0.85rem;
   color: #ccc;
-  position: relative;
 }
 
 .sort-icon {
   color: #aaa;
 }
 
-/* Reset estilo nativo do select */
+/* Estilo base do select */
 .sort-select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-
+  
   background-color: transparent;
-  border: 1px solid transparent;
   color: #ccc;
   font-size: 0.85rem;
-  padding: 4px 24px 4px 6px;
+  border: none;
+  padding: 4px 20px 4px 6px;
   border-radius: 4px;
   cursor: pointer;
+  position: relative;
 
   background-image: url("data:image/svg+xml,%3Csvg fill='%23cbd5e1' viewBox='0 0 20 20'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.355a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -170,15 +170,15 @@
   background-size: 12px;
 }
 
+/* Remove borda e fundo escuro após selecionar */
 .sort-select:focus {
   outline: none;
-  border-color: #666;
-  background-color: #1e1e1e;
+  background-color: transparent;
 }
 
 .sort-select option {
-  background: #1e1e1e;
-  color: #eee;
+  background: #1f1f1f;
+  color: #f0f0f0;
 }
 
 
