@@ -168,8 +168,7 @@ export default function Sidebar() {
     </>
   ) : (
     <div className="fila-textos">
-      <strong>Não há clientes</strong>
-      <span className="subtexto">na fila</span>
+      <strong>Não há clientes na fila</strong>
     </div>
   )}
 </div>
