@@ -76,6 +76,8 @@
   align-items: center;
 }
 
+
+
 .user-header-content {
   display: flex;
   align-items: center;
@@ -125,6 +127,28 @@
   border-color: var(--whatsapp-green);
   box-shadow: var(--highlight);
 }
+
+.sidebar-search-with-sort {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sort-button {
+  background-color: var(--item-bg);
+  border: 1px solid var(--sidebar-border);
+  color: var(--text-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all var(--transition-fast);
+}
+.sort-button:hover {
+  background-color: var(--item-bg-hover);
+  color: var(--text-primary);
+}
+
 
 /* ===================================================================
   Seção de Fila
