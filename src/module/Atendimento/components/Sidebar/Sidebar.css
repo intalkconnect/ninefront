@@ -135,18 +135,15 @@
 }
 
 .sort-button {
-  background-color: var(--item-bg);
-  border: 1px solid var(--sidebar-border);
+  background: none;
+  border: none;
   color: var(--text-secondary);
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
   font-size: 0.85rem;
-  transition: all var(--transition-fast);
+  cursor: pointer;
+  transition: color 0.2s ease;
 }
 .sort-button:hover {
-  background-color: var(--item-bg-hover);
-  color: var(--text-primary);
+color: white;
 }
 
 
@@ -541,4 +538,9 @@
   border-radius: 999px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
 
