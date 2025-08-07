@@ -128,7 +128,10 @@
   color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
+  width: 110px;
+  justify-content: space-between;
 }
+
 .sort-toggle-button:hover {
   color: var(--text-primary);
 }
