@@ -154,7 +154,7 @@ export function useSendMessage() {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
-          whatsapp_message_id: messageId, // ⚠ mantém nome usado pela sua UI
+          message_id: messageId, // ⚠ mantém nome usado pela sua UI
           serverResponse: response,
         });
       }
@@ -196,3 +196,4 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     messages: novasMsgs,
   });
 }
+
