@@ -119,38 +119,23 @@
 }
 
 .sort-toggle-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: transparent;
   border: none;
   font-size: 0.85rem;
   color: var(--text-secondary);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   padding: 0;
-  min-width: 110px; 
-  justify-content: space-between;
-  height: auto;
 }
-
 .sort-toggle-button:hover {
   color: var(--text-primary);
 }
-
 .sort-icon {
-  transition: transform 0.2s ease;
-  color: var(--text-muted);
+  color: inherit;
 }
 
-.sort-icon.asc {
-  transform: rotate(180deg); /* Aponta para cima */
-  color: var(--whatsapp-green); /* verde opcional */
-}
-
-.sort-icon.desc {
-  transform: rotate(0deg); /* Aponta para baixo */
-  color: #ccc;
-}
 
 
 /* ===================================================================
