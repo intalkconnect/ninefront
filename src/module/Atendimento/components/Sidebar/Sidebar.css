@@ -142,33 +142,45 @@
   align-items: center;
   gap: 6px;
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: #ccc;
+  position: relative;
 }
 
 .sort-icon {
-  color: var(--text-muted);
+  color: #aaa;
 }
 
+/* Reset estilo nativo do select */
 .sort-select {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 2px 4px;
   appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: #ccc;
+  font-size: 0.85rem;
+  padding: 4px 24px 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+
   background-image: url("data:image/svg+xml,%3Csvg fill='%23cbd5e1' viewBox='0 0 20 20'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.355a.75.75 0 111.14.976l-4.25 5a.75.75 0 01-1.14 0l-4.25-5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.4rem center;
+  background-position: right 6px center;
   background-size: 12px;
-  padding-right: 1rem;
-  border-radius: 4px;
 }
 
 .sort-select:focus {
   outline: none;
-  color: white;
+  border-color: #666;
+  background-color: #1e1e1e;
 }
+
+.sort-select option {
+  background: #1e1e1e;
+  color: #eee;
+}
+
 
 /* ===================================================================
   Fila de Atendimento
