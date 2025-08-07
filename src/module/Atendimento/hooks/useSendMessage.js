@@ -90,7 +90,7 @@ export function useSendMessage() {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
-          whatsapp_message_id: messageId,
+          message_id: messageId,
           serverResponse: response,
         });
       }
@@ -132,3 +132,4 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     messages: novasMsgs,
   });
 }
+
