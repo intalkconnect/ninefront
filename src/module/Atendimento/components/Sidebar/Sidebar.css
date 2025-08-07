@@ -119,27 +119,21 @@
 }
 
 .sort-toggle-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background-color: var(--sidebar-bg); /* mesmo fundo da sidebar */
-  border: none;                        /* remove borda */
-  padding: 4px 10px;
-  border-radius: 6px;
+  background: transparent;
+  border: none;
   font-size: 0.85rem;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background 0.2s ease-in-out;
-  min-width: 120px; /* tamanho mínimo fixo */
-  height: 32px;     /* altura fixa */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  min-width: unset;
+  height: auto;
 }
 
 .sort-toggle-button:hover {
-  background-color: var(--item-bg-hover);
-}
-
-.sort-toggle-button:active {
-  transform: scale(0.98);
+  color: var(--text-primary);
 }
 
 .sort-icon {
