@@ -294,7 +294,11 @@ export default function Sidebar() {
     className="sort-toggle-button"
     onClick={() => setOrdemAscendente((prev) => !prev)}
   >
-    <ArrowDownUp size={16} className="sort-icon" />
+    <ArrowDownUp
+  size={16}
+  className={`sort-icon ${ordemAscendente ? "asc" : "desc"}`}
+/>
+
     {ordemAscendente ? "Crescente" : "Decrescente"}
   </button>
 </div>
