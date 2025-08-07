@@ -1,5 +1,5 @@
 /* ===================================================================
-  Variáveis específicas do Sidebar
+  Variáveis do Tema da Sidebar
 =================================================================== */
 .sidebar {
   --sidebar-bg: #15202B;
@@ -16,14 +16,13 @@
   --whatsapp-green: #25D366;
   --whatsapp-dark-green: #128C7E;
   --unread-badge: #ff0000;
-  --shadow-light: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-medium: 0 2px 6px rgba(0, 0, 0, 0.1);
   --highlight: 0 0 0 2px rgba(37, 211, 102, 0.2);
   --transition-fast: 0.2s ease-in-out;
 }
 
 /* ===================================================================
-  Layout principal da Sidebar
+  Estrutura e Cabeçalho
 =================================================================== */
 .sidebar-container {
   display: flex;
@@ -31,14 +30,10 @@
   height: 100%;
   width: 100%;
   background-color: var(--sidebar-bg);
-  position: relative;
-  overflow: visible;
   color: var(--text-primary);
+  position: relative;
 }
 
-/* ===================================================================
-  Cabeçalho (logo e ícones)
-=================================================================== */
 .sidebar-header {
   display: flex;
   align-items: center;
@@ -54,6 +49,12 @@
   filter: brightness(0) invert(1);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .icon-button {
   background: none;
   border: none;
@@ -65,49 +66,26 @@
   color: #dddddd;
 }
 
-/* ===================================================================
-  Avatar e dados do usuário
-=================================================================== */
-.sidebar-user-header {
-  background-color: var(--sidebar-header-bg);
-  border-bottom: 1px solid var(--sidebar-border);
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-}
-
-
-
-.user-header-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.user-name {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-/* ===================================================================
-  Linha divisória
-=================================================================== */
-.sidebar-divider {
+.logout-button {
+  background: none;
   border: none;
-  border-bottom: 1px solid var(--sidebar-border);
-  margin: 0 1rem;
+  color: #ff4d4d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.logout-button:hover {
+  color: #e03e3e;
 }
 
 /* ===================================================================
-  Campo de busca
+  Campo de Busca + Ordenação
 =================================================================== */
-.sidebar-search {
+.sidebar-search-with-sort {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
   padding: 1rem;
   background-color: var(--sidebar-bg);
   border-bottom: 1px solid var(--sidebar-border);
@@ -128,49 +106,70 @@
   box-shadow: var(--highlight);
 }
 
-.sidebar-search-with-sort {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.sort-button {
-  background: none;
-  border: none;
+.sort-button-footer {
+  background: transparent;
+  border: 1px solid var(--sidebar-border);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: 6px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
 }
-.sort-button:hover {
-color: white;
+.sort-button-footer:hover {
+  color: white;
+  border-color: var(--text-muted);
 }
-
 
 /* ===================================================================
-  Seção de Fila
+  Fila de Atendimento
 =================================================================== */
+.fila-info {
+  padding: 1rem;
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+}
 
+.fila-status-line {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 1rem 0;
+}
 
+.fila-pessoas {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+}
 
-.fila-count {
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  font-weight: 500;
+.fila-textos {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.fila-textos strong {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.fila-textos .subtexto {
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .botao-proximo {
-  padding: 0.625rem 1.25rem;
+  padding: 0.5rem 1.2rem;
   background-color: var(--whatsapp-green);
   color: white;
   font-weight: 600;
   border: none;
   border-radius: 0.5rem;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  font-size: 0.9rem;
-  width: 100%;
-  max-width: 200px;
+  transition: all 0.2s ease-in-out;
 }
 .botao-proximo:hover {
   background-color: var(--whatsapp-dark-green);
@@ -181,16 +180,60 @@ color: white;
   cursor: not-allowed;
 }
 
+.distribuicao-badge {
+  margin-top: 0.25rem;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.distribuicao-badge.manual {
+  background-color: #fff4e0;
+  color: #cc7700;
+}
+.distribuicao-badge.automatica {
+  background-color: #e0f0ff;
+  color: #0077cc;
+}
+
 /* ===================================================================
   Lista de Conversas
 =================================================================== */
+.chat-list-item {
+  background: var(--item-bg);
+  border: 1px solid var(--item-border);
+  border-radius: 0.625rem;
+  padding: 1rem;
+  margin-bottom: 0.625rem;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+.chat-list-item:hover {
+  background: var(--item-bg-hover);
+  box-shadow: var(--shadow-medium);
+}
+.chat-list-item.active {
+  background: var(--item-bg-active);
+  border-color: var(--item-border-active);
+  box-shadow: var(--highlight);
+}
+
+.chat-main-content {
+  display: flex;
+  gap: 0.75rem;
+  width: 100%;
+}
+
 .chat-avatar-initial {
   position: relative;
   width: 48px;
   height: 48px;
   flex-shrink: 0;
 }
-
 .avatar-circle {
   width: 100%;
   height: 100%;
@@ -202,11 +245,8 @@ color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   position: relative;
 }
-
-/* Ícone do canal sobreposto */
 .channel-icon-overlay {
   position: absolute;
   bottom: -4px;
@@ -220,42 +260,19 @@ color: white;
   align-items: center;
   justify-content: center;
   z-index: 2;
-  padding: 0; /* <-- Removido o padding */
 }
 
-.chat-list-item {
-  position: relative;
-  background: var(--item-bg);
-  border: 1px solid var(--item-border);
-  border-radius: 0.625rem;
-  padding: 1rem;
-  margin-bottom: 0.625rem;
-  display: flex;
-  gap: 0.75rem;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  color: var(--text-primary);
-}
-.chat-list-item:hover {
-  background: var(--item-bg-hover);
-  box-shadow: var(--shadow-medium);
-}
-.chat-list-item.active {
-  background: var(--item-bg-active);
-  border-color: var(--item-border-active);
-  box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
+.chat-details {
+  flex: 1;
+  min-width: 0;
 }
 
-
-/* Alinha nome + hora no topo */
 .chat-title-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.5rem;
 }
-
-/* Nome do contato */
 .chat-title {
   font-weight: 600;
   font-size: 0.95rem;
@@ -265,8 +282,6 @@ color: white;
   text-overflow: ellipsis;
   max-width: 70%;
 }
-
-/* Horário */
 .chat-time {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -274,15 +289,24 @@ color: white;
   flex-shrink: 0;
   margin-top: 1px;
 }
-
-.chat-footer-info {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  margin-top: 0.75rem;
+.chat-snippet {
+  font-size: 0.85rem;
+  color: #c0cbd4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.25rem;
 }
 
-
+.chat-bottom-section {
+  width: 100%;
+}
+.chat-divider {
+  height: 1px;
+  background-color: rgba(203, 213, 225, 0.3);
+  margin: 0 0 6px 0;
+  border: none;
+}
 .chat-meta {
   font-size: 0.75rem;
   color: #aab8c2;
@@ -290,24 +314,12 @@ color: white;
   gap: 0.5rem;
   margin-top: 0.25rem;
 }
-
 .chat-queue-badge {
   background: #ffaa00;
   color: white;
   padding: 3px 10px;
   border-radius: 8px;
 }
-
-
-.chat-ticket {
-  background: #eef1ff;
-  color: #333;
-  padding: 2px 6px;
-  border-radius: 6px;
-  font-weight: 500;
-}
-
-/* Dot de não lidas */
 .unread-dot {
   position: absolute;
   top: 10px;
@@ -317,14 +329,6 @@ color: white;
   background-color: var(--unread-badge);
   border-radius: 50%;
   box-shadow: 0 0 0 2px var(--item-bg);
-}
-
-
-/* Horário */
-.chat-time {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  white-space: nowrap;
 }
 
 /* ===================================================================
@@ -364,183 +368,3 @@ color: white;
   color: var(--text-secondary);
   cursor: pointer;
 }
-
-.logout-button {
-  background: none;
-  border: none;
-  color: #ff4d4d;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.logout-button:hover {
-  color: #e03e3e;
-}
-
-
-/* Adicione estas classes ao seu arquivo CSS */
-.chat-main-content {
-  display: flex;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.chat-bottom-section {
-  width: 100%;
-}
-
-.chat-divider {
-  height: 1px;
-  background-color: rgba(203, 213, 225, 0.3);
-  margin: 0 0 6px 0;
-  border: none;
-}
-
-.chat-list-item {
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-  /* outros estilos existentes... */
-}
-
-/* Ajuste para o chat-details */
-.chat-details {
-  flex: 1;
-  min-width: 0;
-}
-
-/* Ajuste para o snippet */
-.chat-snippet {
-  font-size: 0.85rem;
-  color: #c0cbd4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 0.25rem;
-}
-
-.distribuicao-badge {
-  margin-top: 0.25rem;
-  padding: 3px 12px;
-  border-radius: 16px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-
-.distribuicao-badge.manual {
-  background-color: #fff4e0;
-  color: #cc7700;
-}
-
-.distribuicao-badge.automatica {
-  background-color: #e0f0ff;
-  color: #0077cc;
-}
-
-
-.fila-status-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  width: 100%;
-}
-
-.fila-count-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
-
-.botao-proximo {
-  padding: 0.5rem 1rem;
-  background-color: var(--whatsapp-green);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-}
-
-.fila-info {
-  padding: 1rem;
-  background-color: var(--sidebar-bg);
-  border-bottom: 1px solid var(--sidebar-border);
-}
-
-.fila-status-line {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 1rem 0;
-}
-
-
-.fila-pessoas {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-primary);
-}
-
-.fila-textos {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
-.fila-textos strong {
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.fila-textos .subtexto {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.botao-proximo {
-  padding: 0.5rem 1.2rem;
-  background-color: var(--whatsapp-green);
-  color: white;
-  font-weight: 600;
-  border: none;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-}
-
-.botao-proximo:hover {
-  background-color: var(--whatsapp-dark-green);
-}
-
-.botao-proximo:disabled {
-  background-color: #444c56;
-  color: #aaa;
-  cursor: not-allowed;
-}
-
-.distribuicao-badge.automatica {
-  background-color: #e0f0ff;
-  color: #0077cc;
-  padding: 6px 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 999px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
