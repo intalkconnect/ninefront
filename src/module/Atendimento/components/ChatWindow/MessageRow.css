@@ -20,19 +20,45 @@
 
 .show-more-messages {
   text-align: center;
-  margin: 12px 0;
+  margin: 22px 0 10px 0;
 }
+
 .show-more-messages button {
-  background: #f0f0f0;
-  border: none;
-  padding: 6px 12px;
+  background: #fff;
+  color: #2271e6;
+  border: 1.5px solid #e3e7ee;
+  padding: 8px 20px;
+  font-size: 1rem;
+  border-radius: 16px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(30, 42, 65, 0.04);
   cursor: pointer;
-  border-radius: 6px;
-  font-size: 0.85rem;
+  transition: 
+    background 0.18s,
+    color 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+  outline: none;
+  letter-spacing: 0.01em;
 }
-.show-more-messages button:hover {
-  background: #e0e0e0;
+
+.show-more-messages button:hover,
+.show-more-messages button:focus {
+  background: #f6f8fa;
+  color: #1b61c2;
+  border-color: #c6d2ea;
+  box-shadow: 0 4px 16px rgba(34, 113, 230, 0.07);
+  transform: translateY(-1px) scale(1.025);
 }
+
+.show-more-messages button:active {
+  background: #edf1f7;
+  color: #2155a2;
+  border-color: #b6c5de;
+  transform: scale(0.98);
+}
+
 
 /* Texto principal */
 .message-bubble.incoming .text-message {
