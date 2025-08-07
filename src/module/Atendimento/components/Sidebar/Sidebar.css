@@ -383,12 +383,12 @@
   background: transparent;
   border: none;
   font-size: 0.85rem;
-  color: var(--text-primary); /* cor visível no select fechado */
+  color: var(--text-secondary);
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
+  min-width: 100px; /* <- define um espaço mínimo decente */
+  padding: 2px 6px;
 }
+
 
 /* Estilizar as opções do dropdown */
 .status-select option {
