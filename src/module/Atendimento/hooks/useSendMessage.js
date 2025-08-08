@@ -9,30 +9,38 @@ import useConversationsStore from '../store/useConversationsStore';
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
-  const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
-    console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
+  const getChannelFromUserId = (userId) => {
+  if (userId.endsWith('@w.msgcli.net')) return 'whatsapp';
+  if (userId.endsWith('@t.msgcli.net')) return 'telegram';
+  return 'webchat';
+};
 
-    if (!text.trim() && !file) {
-      toast.warn('Digite algo ou grave áudio antes de enviar.', {
-        position: 'bottom-right',
-        autoClose: 2000,
-      });
-      return;
-    }
+const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
+  console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
 
-    const tempId = Date.now();
-    const now = new Date();
-    const readableTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (!text.trim() && !file) {
+    toast.warn('Digite algo ou grave áudio antes de enviar.', {
+      position: 'bottom-right',
+      autoClose: 2000,
+    });
+    return;
+  }
 
-    let provisionalMessage = {
-      id: tempId,
-      direction: 'outgoing',
-      timestamp: now.getTime(),
-      readableTime,
-      status: 'sending',
-      type: 'text',
-      content: text.trim(),
-    };
+  const channel = getChannelFromUserId(userId);
+  const tempId = Date.now();
+  const now = new Date();
+  const readableTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  let provisionalMessage = {
+    id: tempId,
+    direction: 'outgoing',
+    timestamp: now.getTime(),
+    readableTime,
+    status: 'sending',
+    type: 'text',
+    content: text.trim(),
+    channel // Adicione o canal à mensagem
+  };
 
     if (file) {
       const { valid, errorMsg } = validateFile(file);
@@ -60,28 +68,31 @@ export function useSendMessage() {
     setIsSending(true);
 
     try {
-      const payload = { to: userId.replace('@w.msgcli.net', '') };
+    const payload = { 
+      to: userId.replace(/@[wt]\.msgcli\.net$/, ''), // Remove o sufixo do canal
+      channel // Adiciona o canal no payload
+    };
 
-      if (file) {
-        const fileUrl = await uploadFileAndGetURL(file);
-        if (!fileUrl) throw new Error('Erro ao gerar URL do arquivo.');
+    if (file) {
+      const fileUrl = await uploadFileAndGetURL(file);
+      if (!fileUrl) throw new Error('Erro ao gerar URL do arquivo.');
 
-        const isAudio = file.type.startsWith('audio/');
-        const isImage = file.type.startsWith('image/');
+      const isAudio = file.type.startsWith('audio/');
+      const isImage = file.type.startsWith('image/');
 
-        payload.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
-        payload.content = isAudio
-          ? { url: fileUrl, voice: true }
-          : {
-              url: fileUrl,
-              filename: file.name,
-              caption: text.trim() || file.name,
-            };
-      } else {
-        payload.type = 'text';
-        payload.content = { body: text.trim() };
-        if (replyTo) payload.context = { message_id: replyTo };
-      }
+      payload.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
+      payload.content = isAudio
+        ? { url: fileUrl, voice: true }
+        : {
+            url: fileUrl,
+            filename: file.name,
+            caption: text.trim() || file.name,
+          };
+    } else {
+      payload.type = 'text';
+      payload.content = { body: text.trim() };
+      if (replyTo) payload.context = { message_id: replyTo };
+    }
 
       const response = await apiPost('/messages/send', payload);
       const messageId = response?.messages?.[0]?.id;
@@ -132,3 +143,4 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     messages: novasMsgs,
   });
 }
+
