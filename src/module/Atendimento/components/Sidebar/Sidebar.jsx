@@ -211,58 +211,55 @@ export default function Sidebar() {
         const canalWhatsapp = conv.channel === "whatsapp";
 
         return (
-          <li
-            key={fullId}
-            className={`chat-list-item ${isSelected ? "active" : ""}`}
-            onClick={() => setSelectedUserId(fullId)}
-            role="button"
-            tabIndex={0}
-          >
-            <div className="chat-main-content">
-              <div className="chat-avatar-initial">
-                <div
-                  className="avatar-circle"
-                  style={{
-                    backgroundColor: stringToColor(conv.name || conv.user_id),
-                  }}
-                >
-                  {conv.name?.charAt(0).toUpperCase() || "U"}
-                </div>
-                {canalWhatsapp && (
-                  <img
-                    src="/icons/whatsapp.png"
-                    alt="whatsapp"
-                    className="channel-icon-overlay"
-                  />
-                )}
-              </div>
+          // No arquivo Sidebar.jsx, atualize a parte do chat-list-item:
 
-              <div className="chat-details">
-                <div className="chat-title-row">
-                  <div className="chat-title">
-                    {conv.name || fullId}
-                  </div>
-                  <div className="chat-time">
-                    {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
-                  </div>
-                </div>
-                <div className="chat-snippet">{getSnippet(conv.content)}</div>
-              </div>
-            </div>
-<div className="chat-bottom-section">
-  <div className="chat-divider"></div>
-  <div className="chat-meta">
-    <span
-      className="chat-queue-badge"
-      style={{ backgroundColor: conv.fila_color }}
-    >
-      {conv.fila}
-    </span>
-    {showUnread && <span className="unread-dot"></span>}
+<li
+  key={fullId}
+  className={`chat-list-item ${isSelected ? "active" : ""}`}
+  onClick={() => setSelectedUserId(fullId)}
+  role="button"
+  tabIndex={0}
+>
+  <div className="chat-main-content">
+    <div className="chat-avatar-initial">
+      <div
+        className="avatar-circle"
+        style={{
+          backgroundColor: stringToColor(conv.name || conv.user_id),
+        }}
+      >
+        {conv.name?.charAt(0).toUpperCase() || "U"}
+      </div>
+      <div className="channel-icon-overlay">
+        <ChannelIcon channel={conv.channel} size={14} />
+      </div>
+    </div>
+
+    <div className="chat-details">
+      <div className="chat-title-row">
+        <div className="chat-title">
+          {conv.name || fullId}
+        </div>
+        <div className="chat-time">
+          {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
+        </div>
+      </div>
+      <div className="chat-snippet">{getSnippet(conv.content)}</div>
+    </div>
   </div>
-</div>
-
-          </li>
+  <div className="chat-bottom-section">
+    <div className="chat-divider"></div>
+    <div className="chat-meta">
+      <span
+        className="chat-queue-badge"
+        style={{ backgroundColor: conv.fila_color }}
+      >
+        {conv.fila}
+      </span>
+      {showUnread && <span className="unread-dot"></span>}
+    </div>
+  </div>
+</li>
         );
       })}
     </ul>
