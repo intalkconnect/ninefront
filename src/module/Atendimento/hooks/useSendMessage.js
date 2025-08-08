@@ -1,65 +1,59 @@
-// ✅ Versão final do useSendMessage.js
-
+// hooks/useSendMessage.js
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
-export function useSendMessage() {
-  const [isSending, setIsSending] = useState(false);
-
-  const getChannelFromUserId = (userId) => {
+// Helper para identificar o canal pelo userId
+const getChannelFromUserId = (userId) => {
+  if (!userId) return 'webchat';
   if (userId.endsWith('@w.msgcli.net')) return 'whatsapp';
   if (userId.endsWith('@t.msgcli.net')) return 'telegram';
   return 'webchat';
 };
 
-const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
-  console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
+// Helper para extrair o ID puro (remove sufixos @w.msgcli.net ou @t.msgcli.net)
+const extractRawUserId = (userId) => {
+  return userId.replace(/@[wt]\.msgcli\.net$/, '');
+};
 
-  if (!text.trim() && !file) {
-    toast.warn('Digite algo ou grave áudio antes de enviar.', {
-      position: 'bottom-right',
-      autoClose: 2000,
+export function useSendMessage() {
+  const [isSending, setIsSending] = useState(false);
+
+  const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
+    const channel = getChannelFromUserId(userId);
+    console.log('📨 Enviando mensagem:', { 
+      channel,
+      userId,
+      text: text?.trim(),
+      file: file?.name 
     });
-    return;
-  }
 
-  const channel = getChannelFromUserId(userId);
-  const tempId = Date.now();
-  const now = new Date();
-  const readableTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  let provisionalMessage = {
-    id: tempId,
-    direction: 'outgoing',
-    timestamp: now.getTime(),
-    readableTime,
-    status: 'sending',
-    type: 'text',
-    content: text.trim(),
-    channel // Adicione o canal à mensagem
-  };
-
-    if (file) {
-      const { valid, errorMsg } = validateFile(file);
-      if (!valid) {
-        toast.error(errorMsg || 'Arquivo inválido.');
-        return;
-      }
-
-      const isAudio = file.type.startsWith('audio/');
-      const isImage = file.type.startsWith('image/');
-      const captionText = text.trim() || file.name;
-
-      provisionalMessage.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
-      provisionalMessage.content = {
-        url: null,
-        filename: file.name,
-        caption: captionText,
-      };
+    // Validação básica
+    if (!text?.trim() && !file) {
+      toast.warn('Digite algo ou anexe um arquivo antes de enviar.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
+      return;
     }
+
+    // Cria mensagem temporária para feedback instantâneo
+    const tempId = Date.now();
+    const now = new Date();
+    
+    const provisionalMessage = {
+      id: tempId,
+      direction: 'outgoing',
+      timestamp: now.getTime(),
+      readableTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'sending',
+      type: file ? (file.type.startsWith('audio/') ? 'audio' : 
+                   file.type.startsWith('image/') ? 'image' : 'document') : 'text',
+      content: text?.trim() || (file ? { filename: file.name } : ''),
+      channel
+    };
 
     if (typeof onMessageAdded === 'function') {
       onMessageAdded(provisionalMessage);
@@ -68,53 +62,77 @@ const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
     setIsSending(true);
 
     try {
-    const payload = { 
-      to: userId.replace(/@[wt]\.msgcli\.net$/, ''), // Remove o sufixo do canal
-      channel // Adiciona o canal no payload
-    };
+      // Prepara payload base
+      const payload = {
+        to: extractRawUserId(userId),
+        channel,
+        type: provisionalMessage.type,
+        content: {}
+      };
 
-    if (file) {
-      const fileUrl = await uploadFileAndGetURL(file);
-      if (!fileUrl) throw new Error('Erro ao gerar URL do arquivo.');
+      // Tratamento para arquivos
+      if (file) {
+        const { valid, errorMsg } = validateFile(file);
+        if (!valid) {
+          throw new Error(errorMsg || 'Arquivo inválido');
+        }
 
-      const isAudio = file.type.startsWith('audio/');
-      const isImage = file.type.startsWith('image/');
+        const fileUrl = await uploadFileAndGetURL(file);
+        if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
-      payload.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
-      payload.content = isAudio
-        ? { url: fileUrl, voice: true }
-        : {
-            url: fileUrl,
-            filename: file.name,
-            caption: text.trim() || file.name,
-          };
-    } else {
-      payload.type = 'text';
-      payload.content = { body: text.trim() };
-      if (replyTo) payload.context = { message_id: replyTo };
-    }
+        payload.content = {
+          url: fileUrl,
+          ...(file.type.startsWith('audio/') ? {} : { filename: file.name }),
+          ...(text?.trim() ? { caption: text.trim() } : {})
+        };
+      } 
+      // Mensagem de texto simples
+      else {
+        payload.content = { body: text.trim() };
+      }
 
+      // Adiciona contexto de resposta se existir
+      if (replyTo) {
+        payload.context = { message_id: replyTo };
+      }
+
+      console.log('📤 Payload de envio:', payload);
       const response = await apiPost('/messages/send', payload);
-      const messageId = response?.messages?.[0]?.id;
 
+      // Atualiza mensagem temporária com resposta do servidor
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
-          whatsapp_message_id: messageId,
+          message_id: response?.message_id || response?.messages?.[0]?.id,
           serverResponse: response,
         });
       }
 
-      // ✅ Marca como lidas visualmente
+      // Atualiza status de leitura
       marcarMensagensAntesDoTicketComoLidas(userId);
+
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
+      
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
           status: 'error',
-          errorMessage: err.message,
+          errorMessage: err.response?.data?.error?.message || err.message,
+        });
+      }
+
+      // Tratamento específico para erro de WhatsApp
+      if (err.response?.data?.error?.code === 131030) {
+        toast.error('Número não permitido no WhatsApp. Use um número de teste cadastrado.', {
+          position: 'bottom-right',
+          autoClose: 5000,
+        });
+      } else {
+        toast.error(`Erro ao enviar mensagem: ${err.message}`, {
+          position: 'bottom-right',
+          autoClose: 3000,
         });
       }
     } finally {
@@ -125,22 +143,24 @@ const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
   return { isSending, sendMessage };
 }
 
+// Função auxiliar para marcar mensagens como lidas
 export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
-  if (!mensagens || !Array.isArray(mensagens)) return;
+  const store = useConversationsStore.getState();
+  const conversation = store.conversations[userId] || {};
+  
+  if (!mensagens) {
+    mensagens = conversation.messages || [];
+  }
 
   const systemIndex = mensagens.findIndex((m) => m.type === 'system');
   if (systemIndex === -1) return;
 
-  const novasMsgs = mensagens.map((msg, idx) => {
-    if (idx < systemIndex) {
-      return { ...msg, status: 'read' };
-    }
-    return msg;
-  });
+  const updatedMessages = mensagens.map((msg, idx) => 
+    idx < systemIndex ? { ...msg, status: 'read' } : msg
+  );
 
-  useConversationsStore.getState().setConversation(userId, {
-    ...(useConversationsStore.getState().conversations[userId] || {}),
-    messages: novasMsgs,
+  store.setConversation(userId, {
+    ...conversation,
+    messages: updatedMessages
   });
 }
-
