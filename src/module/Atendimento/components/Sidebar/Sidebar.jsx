@@ -5,6 +5,7 @@ import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 import { stringToColor } from '../../utils/color';
 import { getRelativeTime } from '../../utils/time';
+import ChannelIcon from './ChannelIcon';
 
 import "./Sidebar.css";
 
