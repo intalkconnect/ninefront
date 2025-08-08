@@ -6,7 +6,7 @@ import AudioMessage from './messageTypes/AudioMessage';
 import DocumentMessage from './messageTypes/DocumentMessage';
 
 export default function OriginalMessageSnippet({ messageId, allMessages }) {
-  const original = allMessages.find(m => m.message_id === messageId);
+  const original = allMessages.find(m => m.whatsapp_message_id === messageId);
 
   if (!original) {
     return <div className="reply-snippet"><em>Mensagem não encontrada</em></div>;
@@ -46,6 +46,3 @@ export default function OriginalMessageSnippet({ messageId, allMessages }) {
     </div>
   );
 }
-
-
-

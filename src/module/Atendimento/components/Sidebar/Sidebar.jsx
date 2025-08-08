@@ -51,14 +51,6 @@ export default function Sidebar() {
     }
   }, [userEmail, userFilas]);
 
-  const channelIcons = {
-  whatsapp: "/icons/whatsapp.png",
-  telegram: "/icons/telegram.png",
-  instagram: "/icons/instagram.png",
-  facebook: "/icons/facebook.png",
-  messenger: "/icons/messenger.png",
-};
-
   const puxarProximoTicket = async () => {
     try {
       const res = await apiPut("/chats/fila/proximo", {
@@ -236,20 +228,13 @@ export default function Sidebar() {
                 >
                   {conv.name?.charAt(0).toUpperCase() || "U"}
                 </div>
-  {/* ícone do canal */}
-  {(() => {
-    const key = String(conv.channel || "").toLowerCase().trim();
-    const iconUrl = channelIcons[key];
-    return (
-      iconUrl && (
-        <img
-          src={iconUrl}
-          alt={key}
-          className="channel-icon-overlay"
-        />
-      )
-    );
-  })()}
+                {canalWhatsapp && (
+                  <img
+                    src="/icons/whatsapp.png"
+                    alt="whatsapp"
+                    className="channel-icon-overlay"
+                  />
+                )}
               </div>
 
               <div className="chat-details">

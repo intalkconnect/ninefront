@@ -1,14 +1,10 @@
-// ✅ Versão final (universal) do useSendMessage.js
+// ✅ Versão final do useSendMessage.js
+
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
-
-function ensureUserIdWithSuffix(userId) {
-  // fallback: se vier sem sufixo, assume WhatsApp
-  return userId.includes('@') ? userId : `${userId}@w.msgcli.net`;
-}
 
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
@@ -16,8 +12,7 @@ export function useSendMessage() {
   const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
     console.log('📨 Enviando mensagem:', { text, file, userId, replyTo });
 
-    const safeText = (text || '').trim();
-    if (!safeText && !file) {
+    if (!text.trim() && !file) {
       toast.warn('Digite algo ou grave áudio antes de enviar.', {
         position: 'bottom-right',
         autoClose: 2000,
@@ -36,7 +31,7 @@ export function useSendMessage() {
       readableTime,
       status: 'sending',
       type: 'text',
-      content: safeText,
+      content: text.trim(),
     };
 
     if (file) {
@@ -48,7 +43,7 @@ export function useSendMessage() {
 
       const isAudio = file.type.startsWith('audio/');
       const isImage = file.type.startsWith('image/');
-      const captionText = safeText || file.name;
+      const captionText = text.trim() || file.name;
 
       provisionalMessage.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
       provisionalMessage.content = {
@@ -65,9 +60,7 @@ export function useSendMessage() {
     setIsSending(true);
 
     try {
-      // 🔑 Agora enviamos SEMPRE user_id com sufixo
-      const user_id = ensureUserIdWithSuffix(userId);
-      const payload = { user_id };
+      const payload = { to: userId.replace('@w.msgcli.net', '') };
 
       if (file) {
         const fileUrl = await uploadFileAndGetURL(file);
@@ -78,46 +71,39 @@ export function useSendMessage() {
 
         payload.type = isAudio ? 'audio' : isImage ? 'image' : 'document';
         payload.content = isAudio
-          ? { url: fileUrl, voice: true } // WA usa voice:true; no TG é ignorado sem quebrar
+          ? { url: fileUrl, voice: true }
           : {
               url: fileUrl,
               filename: file.name,
-              caption: safeText || file.name,
+              caption: text.trim() || file.name,
             };
       } else {
         payload.type = 'text';
-        payload.content = { body: safeText };
+        payload.content = { body: text.trim() };
         if (replyTo) payload.context = { message_id: replyTo };
       }
 
-      // 🔗 Endpoint permanece o mesmo
       const response = await apiPost('/messages/send', payload);
-
-      // 🆔 Compat: WA ou TG
-      const messageId =
-        response?.messages?.[0]?.id ||      // WhatsApp Cloud
-        response?.result?.message_id ||     // Telegram (se vier assim)
-        response?.message_id ||             // fallback
-        null;
+      const messageId = response?.messages?.[0]?.id;
 
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
-          message_id: messageId,
+          whatsapp_message_id: messageId,
           serverResponse: response,
         });
       }
 
       // ✅ Marca como lidas visualmente
-      marcarMensagensAntesDoTicketComoLidas(user_id);
+      marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
           status: 'error',
-          errorMessage: err?.message || 'Falha ao enviar',
+          errorMessage: err.message,
         });
       }
     } finally {
