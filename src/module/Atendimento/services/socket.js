@@ -7,12 +7,12 @@ let socket; // singleton
 export function getSocket() {
   if (!socket) {
     if (!SOCKET_URL) throw new Error('Socket URL is not defined.');
-    socket = io(SOCKET_URL, {
-      path: '/socket.io',
-      autoConnect: true,
-      reconnectionAttempts: 3,
-      transports: ['websocket'],
-    });
+const socket = io(SOCKET_URL, {
+  path: '/socket.io',              // path correto
+  transports: ['websocket','polling'],
+  reconnectionAttempts: 3,
+  autoConnect: true,
+});
 
     socket.on('connect_error', (err) => {
       console.error('Socket connection error:', err);
@@ -43,4 +43,5 @@ export function connectSocket(userId) {
 }
 
 // NÃO export { socket }!
+
 
