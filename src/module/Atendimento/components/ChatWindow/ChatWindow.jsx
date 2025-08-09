@@ -1,9 +1,9 @@
+// src/components/ChatWindow/ChatWindow.jsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { connectSocket, getSocket } from '../../services/socket';
 import { apiGet } from '../../services/apiClient';
 import useConversationsStore from '../../store/useConversationsStore';
-import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage'; // ajuste o path se necessário
-
+import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage'; // ajuste este path se necessário
 
 import SendMessageForm from '../SendMessageForm/SendMessageForm';
 import MessageList from './MessageList';
@@ -17,6 +17,8 @@ import './ChatWindowPagination.css';
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore(state => state.mergeConversation);
   const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
+  const userEmail = useConversationsStore(state => state.userEmail);
+  const userFilas = useConversationsStore(state => state.userFilas);
 
   const [allMessages, setAllMessages] = useState([]);
   const [displayedMessages, setDisplayedMessages] = useState([]);
@@ -28,16 +30,36 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
 
-
-  const userEmail = useConversationsStore(state => state.userEmail);
-  const userFilas = useConversationsStore(state => state.userFilas);
-
   const messageListRef = useRef(null);
   const loaderRef = useRef(null);
   const socketRef = useRef(null);
   const pageRef = useRef(1);
   const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
+
+  // ---- helpers ----
+  const normalizeMessage = useCallback((msg) => {
+    if (!msg) return msg;
+    const id = msg.id || msg.message_id;
+    const timestamp =
+      msg.timestamp ||
+      msg.created_at ||
+      msg.createdAt ||
+      msg.updated_at ||
+      new Date().toISOString();
+    return { id, ...msg, timestamp };
+  }, []);
+
+  const sameMessage = useCallback((a, b) => {
+    if (!a || !b) return false;
+    const aid = a.id || a.message_id;
+    const bid = b.id || b.message_id;
+    if (aid && bid && aid === bid) return true;
+    // backend às vezes manda "message_id" que coincide com "id" da provisória
+    if (a.message_id && (b.id === a.message_id || b.message_id === a.message_id)) return true;
+    if (b.message_id && (a.id === b.message_id || a.message_id === b.message_id)) return true;
+    return false;
+  }, []);
 
   // Atualiza mensagens exibidas conforme paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
@@ -47,46 +69,78 @@ export default function ChatWindow({ userIdSelecionado }) {
     setHasMoreMessages(startIndex > 0);
   }, []);
 
-  // 1. Sempre inicialize socket e listeners corretamente
+  // Callback usado pelo SendMessageForm para UI otimista (provisória -> sent/error)
+  const handleMessageAdded = useCallback((incomingRaw) => {
+    const incoming = normalizeMessage(incomingRaw);
+    const ownerId = incoming.user_id || userIdSelecionado;
+
+    setAllMessages(prev => {
+      // já existe? atualiza (ex.: provisória -> 'sent'/'error')
+      if (prev.some(m => sameMessage(m, incoming))) {
+        const updated = prev.map(m => (sameMessage(m, incoming) ? { ...m, ...incoming } : m));
+        messageCacheRef.current.set(ownerId, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      }
+      // novo? adiciona no final
+      const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      messageCacheRef.current.set(ownerId, updated);
+      updateDisplayedMessages(updated, pageRef.current);
+      return updated;
+    });
+  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
+
+  // ---- socket: conectar e listeners estáveis ----
   useEffect(() => {
-    connectSocket(); // Garante singleton e conecta se necessário
+    connectSocket(); // garante singleton
     const socket = getSocket();
     socketRef.current = socket;
 
-    // Listeners de mensagem
-    const handleNew = (msg) => {
+    const onNew = (raw) => {
+      const msg = normalizeMessage(raw);
       if (msg.user_id !== userIdSelecionado) return;
+
       setAllMessages(prev => {
-        if (prev.find(m => m.id === msg.id)) return prev;
+        if (prev.find(m => sameMessage(m, msg))) return prev;
         const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         messageCacheRef.current.set(msg.user_id, updated);
         updateDisplayedMessages(updated, pageRef.current);
         return updated;
       });
     };
-    const handleUpdate = (msg) => {
+
+    const onUpdate = (raw) => {
+      const msg = normalizeMessage(raw);
       if (msg.user_id !== userIdSelecionado) return;
+
       setAllMessages(prev => {
-        const updated = prev.map(m => m.id === msg.id ? msg : m);
+        const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
         messageCacheRef.current.set(msg.user_id, updated);
         updateDisplayedMessages(updated, pageRef.current);
         return updated;
       });
     };
 
-    // Remove e adiciona listeners SEMPRE (evita duplicação)
-    socket.off('new_message', handleNew);
-    socket.off('update_message', handleUpdate);
-    socket.on('new_message', handleNew);
-    socket.on('update_message', handleUpdate);
+    // limpa antes de registrar para evitar duplicação
+    socket.off('new_message');
+    socket.off('update_message');
+    socket.on('new_message', onNew);
+    socket.on('update_message', onUpdate);
+
+    // rejoin após reconectar
+    const handleReconnect = () => {
+      if (userIdSelecionado) socket.emit('join_room', userIdSelecionado);
+    };
+    socket.on('connect', handleReconnect);
 
     return () => {
-      socket.off('new_message', handleNew);
-      socket.off('update_message', handleUpdate);
+      socket.off('new_message', onNew);
+      socket.off('update_message', onUpdate);
+      socket.off('connect', handleReconnect);
     };
-  }, [userIdSelecionado, updateDisplayedMessages]);
+  }, [userIdSelecionado, normalizeMessage, sameMessage, updateDisplayedMessages]);
 
-  // 2. join_room ao trocar de usuário selecionado
+  // join/leave ao trocar de usuário
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !userIdSelecionado) return;
@@ -96,22 +150,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, [userIdSelecionado]);
 
-  // 3. join_room ao reconectar
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-    const handleReconnect = () => {
-      if (userIdSelecionado) {
-        socket.emit('join_room', userIdSelecionado);
-      }
-    };
-    socket.on('connect', handleReconnect);
-    return () => {
-      socket.off('connect', handleReconnect);
-    };
-  }, [userIdSelecionado]);
-
-  // 4. Carrega as mensagens iniciais ao selecionar usuário
+  // carregar dados iniciais
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -126,53 +165,76 @@ export default function ChatWindow({ userIdSelecionado }) {
           apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
         ]);
 
-        const { status, assigned_to, fila } = ticketRes;
-        if (status !== 'open' || assigned_to !== userEmail || !userFilas.includes(fila)) {
+        // Gate de segurança: ticket precisa estar aberto, designado ao agente e em fila do agente
+        const { status, assigned_to, fila } = ticketRes || {};
+        if (status !== 'open' || assigned_to !== userEmail || !userFilas?.includes(fila)) {
           console.warn('Acesso negado ao ticket deste usuário.');
+          setCanSendFreeform(false);
+          setAllMessages([]);
+          setDisplayedMessages([]);
+          setClienteInfo(null);
+          setClienteAtivo(null);
           return;
         }
 
-        const msgs = msgRes;
-        messageCacheRef.current.set(userIdSelecionado, msgs);
-        setAllMessages(msgs);
-        updateDisplayedMessages(msgs, 1);
+        const msgsNorm = (msgRes || []).map(normalizeMessage).sort(
+          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+        );
 
-        const lastMsg = msgs[msgs.length - 1] || {};
-mergeConversation(userIdSelecionado, {
-  channel: lastMsg.channel || clienteRes.channel || 'desconhecido',
-  ticket_number: clienteRes.ticket_number || '000000',
-  fila: clienteRes.fila || fila || 'Orçamento',
-  name: clienteRes.name || userIdSelecionado,
-  email: clienteRes.email || '',
-  phone: clienteRes.phone || '',
-  documento: clienteRes.document || '',
-  user_id: clienteRes.user_id || userIdSelecionado,
-  assigned_to,
-  status,
-});
+        messageCacheRef.current.set(userIdSelecionado, msgsNorm);
+        setAllMessages(msgsNorm);
+        updateDisplayedMessages(msgsNorm, 1);
 
-
-marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
-
-        setClienteInfo({
-          name: clienteRes.name,
-          phone: clienteRes.phone,
-          channel: clienteRes.channel,
-          ticket_number: clienteRes.ticket_number,
-          fila: clienteRes.fila,
-          assigned_to, status,
+        const lastMsg = msgsNorm[msgsNorm.length - 1] || {};
+        mergeConversation(userIdSelecionado, {
+          channel: lastMsg.channel || clienteRes?.channel || 'desconhecido',
+          ticket_number: clienteRes?.ticket_number || '000000',
+          fila: clienteRes?.fila || fila || 'Orçamento',
+          name: clienteRes?.name || userIdSelecionado,
+          email: clienteRes?.email || '',
+          phone: clienteRes?.phone || '',
+          documento: clienteRes?.document || '',
+          user_id: clienteRes?.user_id || userIdSelecionado,
+          assigned_to,
+          status,
         });
 
-        setClienteAtivo(clienteRes);
+        // marca como lidas
+        try {
+          marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgsNorm);
+        } catch (e) {
+          console.warn('Falha ao marcar como lidas (seguindo em frente):', e);
+        }
+
+        setClienteInfo({
+          name: clienteRes?.name,
+          phone: clienteRes?.phone,
+          channel: clienteRes?.channel,
+          ticket_number: clienteRes?.ticket_number,
+          fila: clienteRes?.fila,
+          assigned_to,
+          status,
+        });
+
+        setClienteAtivo(clienteRes || null);
+
+        // janela 24h (WhatsApp Cloud etc.)
+        if (check24hRes && typeof check24hRes.can_send_freeform === 'boolean') {
+          setCanSendFreeform(!!check24hRes.can_send_freeform);
+        } else if (typeof check24hRes === 'boolean') {
+          setCanSendFreeform(!!check24hRes);
+        } else {
+          setCanSendFreeform(true);
+        }
       } catch (err) {
         console.error('Erro ao buscar cliente:', err);
       } finally {
         setIsLoading(false);
       }
     })();
-  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo]);
+  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage]);
 
-  // 5. Scroll infinito ao chegar no topo
+  // scroll infinito (topo)
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -183,67 +245,67 @@ marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
     }, { threshold: 0.1 });
 
     if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => loaderRef.current && observer.disconnect();
+    return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // 6. (Opcional) Recarrega mensagens do usuário ao voltar para aba
-useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible" && userIdSelecionado) {
-      // 1. Reconecta o socket (ele não perde eventos!)
+  // refresh ao voltar o foco da aba (reconcilia socket + refetch)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
+
       const socket = getSocket();
       if (!socket.connected) socket.connect();
 
-      // 2. Limpa e readiciona os listeners SEMPRE (garante que não ficaram “travados”)
+      // limpar e re-registrar handlers
       socket.off('new_message');
       socket.off('update_message');
 
-      socket.on('new_message', handleNewMessage);
-      socket.on('update_message', handleUpdateMessage);
+      const onNew = (raw) => {
+        const msg = normalizeMessage(raw);
+        if (msg.user_id !== userIdSelecionado) return;
+        setAllMessages(prev => {
+          if (prev.find(m => sameMessage(m, msg))) return prev;
+          const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          messageCacheRef.current.set(msg.user_id, updated);
+          updateDisplayedMessages(updated, pageRef.current);
+          return updated;
+        });
+      };
+      const onUpdate = (raw) => {
+        const msg = normalizeMessage(raw);
+        if (msg.user_id !== userIdSelecionado) return;
+        setAllMessages(prev => {
+          const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
+          messageCacheRef.current.set(msg.user_id, updated);
+          updateDisplayedMessages(updated, pageRef.current);
+          return updated;
+        });
+      };
 
-      // 3. Faz fetch dos dados, garantindo atualização
+      socket.on('new_message', onNew);
+      socket.on('update_message', onUpdate);
+
+      // refetch para garantir sincronismo
       (async () => {
         try {
           const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
-          setAllMessages(msgs);
-          updateDisplayedMessages(msgs, pageRef.current);
+          const msgsNorm = (msgs || []).map(normalizeMessage).sort(
+            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+          );
+          setAllMessages(msgsNorm);
+          messageCacheRef.current.set(userIdSelecionado, msgsNorm);
+          updateDisplayedMessages(msgsNorm, pageRef.current);
         } catch (err) {
           console.error('Erro ao recarregar mensagens:', err);
         }
       })();
-    }
-  };
+    };
 
-  // Funções listeners precisam ser visíveis aqui
-  function handleNewMessage(msg) {
-    if (msg.user_id !== userIdSelecionado) return;
-    setAllMessages(prev => {
-      if (prev.find(m => m.id === msg.id)) return prev;
-      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      messageCacheRef.current.set(msg.user_id, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
-    });
-  }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage, sameMessage]);
 
-  function handleUpdateMessage(msg) {
-    if (msg.user_id !== userIdSelecionado) return;
-    setAllMessages(prev => {
-      const updated = prev.map(m => m.id === msg.id ? msg : m);
-      messageCacheRef.current.set(msg.user_id, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
-    });
-  }
-
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-}, [userIdSelecionado, updateDisplayedMessages]);
-
-
-  // 7. Renderização do componente
+  // ---- render ----
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -281,13 +343,14 @@ useEffect(() => {
       />
 
       <div className="chat-input">
-<SendMessageForm
-  userIdSelecionado={userIdSelecionado}
-  replyTo={replyTo}
-  setReplyTo={setReplyTo}
-  canSendFreeform={canSendFreeform}
-/>
-
+        <SendMessageForm
+          userIdSelecionado={userIdSelecionado}
+          replyTo={replyTo}
+          setReplyTo={setReplyTo}
+          canSendFreeform={canSendFreeform}
+          // ✅ passa o callback para habilitar UI otimista
+          onMessageAdded={handleMessageAdded}
+        />
       </div>
 
       {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)} />}
