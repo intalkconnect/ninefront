@@ -1,19 +1,17 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
 let socket; // singleton
 
 export function getSocket() {
   if (!socket) {
     if (!SOCKET_URL) throw new Error('Socket URL is not defined.');
-
-    // >>> NÃO redeclare "const socket" aqui! Use a variável de cima:
     socket = io(SOCKET_URL, {
-      path: '/socket.io',                 // path do servidor
-      transports: ['websocket', 'polling'], // permite fallback via proxy
-      reconnectionAttempts: 3,
+      path: '/socket.io',
       autoConnect: true,
+      reconnectionAttempts: 3,
+      transports: ['websocket'],
     });
 
     socket.on('connect_error', (err) => {
@@ -24,24 +22,24 @@ export function getSocket() {
 }
 
 export function connectSocket(userId) {
-  const s = getSocket();
-  console.log('[socket] Connecting to server at', SOCKET_URL);
-
-  if (!s.connected) s.connect();
-
-  // Só adiciona listeners uma vez
-  if (!s.hasListeners) {
-    s.on('connect', () => {
-      console.log('[socket] Connected with ID:', s.id);
-      if (userId) s.emit('join_room', userId);
-    });
-    s.hasListeners = true;
+  const socket = getSocket();
+  if (!socket.connected) {
+    console.log('[socket] Connecting to server at', SOCKET_URL);
+    socket.connect();
   }
 
-  return s;
+  // Só adiciona listener uma vez!
+  if (!socket.hasListeners) {
+    socket.on('connect', () => {
+      console.log('[socket] Connected with ID:', socket.id);
+      if (userId) {
+        socket.emit('join_room', userId);
+      }
+    });
+    socket.hasListeners = true;
+  }
+
+  return socket;
 }
 
-// utilidades opcionais
-export function joinRoom(userId) { const s = getSocket(); s.emit('join_room', userId); }
-export function leaveRoom(userId) { const s = getSocket(); s.emit('leave_room', userId); }
-export function disconnectSocket() { if (socket) socket.disconnect(); }
+// NÃO export { socket }!
