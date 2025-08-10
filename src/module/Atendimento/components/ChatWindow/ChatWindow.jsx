@@ -30,6 +30,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [messageVersion, setMessageVersion] = useState(0);
 
   const messageListRef = useRef(null);
   const loaderRef = useRef(null);
@@ -64,29 +65,29 @@ export default function ChatWindow({ userIdSelecionado }) {
     setLastUpdate(Date.now());
   }, []);
 
-  const handleMessageAdded = useCallback((incomingRaw) => {
-    const incoming = normalizeMessage(incomingRaw);
-    const ownerId = String(incoming.user_id || userIdSelecionado);
+const handleMessageAdded = useCallback((incomingRaw) => {
+  const incoming = normalizeMessage(incomingRaw);
+  const ownerId = String(incoming.user_id || userIdSelecionado);
 
-    setAllMessages(prev => {
-      const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
-      
-      if (existingIndex >= 0) {
-        // Atualiza mensagem existente
-        const updated = [...prev];
-        updated[existingIndex] = { ...updated[existingIndex], ...incoming };
-        messageCacheRef.current.set(ownerId, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        return updated;
-      }
-      
-      // Adiciona nova mensagem
-      const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  setAllMessages(prev => {
+    const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
+    
+    if (existingIndex >= 0) {
+      const updated = [...prev];
+      updated[existingIndex] = { ...updated[existingIndex], ...incoming };
       messageCacheRef.current.set(ownerId, updated);
       updateDisplayedMessages(updated, pageRef.current);
+      setMessageVersion(v => v + 1); // Força atualização
       return updated;
-    });
-  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
+    }
+    
+    const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    messageCacheRef.current.set(ownerId, updated);
+    updateDisplayedMessages(updated, pageRef.current);
+    setMessageVersion(v => v + 1); // Força atualização
+    return updated;
+  });
+}, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -264,14 +265,15 @@ export default function ChatWindow({ userIdSelecionado }) {
     <div className="chat-window" key={`chat-${userIdSelecionado}-${lastUpdate}`}>
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
-      <MessageList
-        ref={messageListRef}
-        messages={displayedMessages}
-        onImageClick={setModalImage}
-        onPdfClick={setPdfModal}
-        onReply={setReplyTo}
-        loaderRef={hasMoreMessages ? loaderRef : null}
-      />
+<MessageList
+  key={`${userIdSelecionado}-${messageVersion}`}
+  ref={messageListRef}
+  messages={displayedMessages}
+  onImageClick={setModalImage}
+  onPdfClick={setPdfModal}
+  onReply={setReplyTo}
+  loaderRef={hasMoreMessages ? loaderRef : null}
+/>
 
       <div className="chat-input">
         <SendMessageForm
