@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiGet, apiPut } from '../services/apiClient';
+import { joinUserRoom } from '../services/socket';
 
 const useConversationsStore = create((set, get) => ({
   conversations: {},
@@ -29,6 +30,12 @@ const useConversationsStore = create((set, get) => ({
     const now = new Date().toISOString();
 
     set({ selectedUserId: userId });
+
+    try {
+    joinUserRoom(userId, previousId);
+  } catch (e) {
+    console.warn('[socket] joinUserRoom falhou:', e?.message || e);
+  }
 
     if (previousId && previousId !== userId) {
       get().resetUnread(previousId);
