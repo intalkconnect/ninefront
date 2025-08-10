@@ -71,40 +71,37 @@ export default function ChatWindow({ userIdSelecionado }) {
 
 // Substitua a função belongsToCurrent existente por esta versão melhorada:
 
+const belongsToCurrent = useCallback((msg, uid) => {// Adicione esta função helper no ChatWindow.jsx:
+
+const normalizeUserId = useCallback((id) => {
+  if (!id) return id;
+  const str = String(id);
+  // Remove sufixos como @whatsapp, @telegram, etc.
+  return str.replace(/@.*$/, '');
+}, []);
+
+// E modifique o belongsToCurrent para usar normalização:
+
 const belongsToCurrent = useCallback((msg, uid) => {
   if (!msg || !uid) return false;
   
   const candidate = getPossibleOwner(msg);
   
-  // Se não conseguimos determinar o dono, assumimos que pertence à conversa atual
   if (candidate == null || candidate === undefined) {
-    console.warn('Mensagem sem owner detectado, assumindo conversa atual:', msg);
-    return true;
+    return true; // Assumir que pertence à conversa atual se não conseguir determinar
   }
   
-  const candidateStr = String(candidate);
-  const uidStr = String(uid);
+  const normalizedCandidate = normalizeUserId(candidate);
+  const normalizedUid = normalizeUserId(uid);
   
-  // Comparação exata
-  if (candidateStr === uidStr) return true;
-  
-  // Comparação sem prefixos/sufixos (ex: "123" vs "123@whatsapp")
-  const candidateClean = candidateStr.replace(/@.*$/, '');
-  const uidClean = uidStr.replace(/@.*$/, '');
-  
-  if (candidateClean === uidClean) return true;
-  
-  // Log para debug quando rejeitar mensagem
-  console.log('Mensagem rejeitada:', {
-    candidate: candidateStr,
-    uid: uidStr,
-    candidateClean,
-    uidClean,
-    message: msg
+  console.log('Comparando IDs normalizados:', {
+    original: { candidate, uid },
+    normalized: { candidate: normalizedCandidate, uid: normalizedUid },
+    match: normalizedCandidate === normalizedUid
   });
   
-  return false;
-}, []);
+  return normalizedCandidate === normalizedUid;
+}, [normalizeUserId]);
 
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
