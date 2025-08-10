@@ -209,31 +209,57 @@ const handleMessageAdded = useCallback((incomingRaw) => {
   }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage]);
 
 // Configuração SSE (ouvir QUALQUER evento)
+// Configuração SSE (debug explícito de IDs)
 useEffect(() => {
   if (!userIdSelecionado) return;
   const uid = String(userIdSelecionado);
 
   const offAny = on('message', (raw) => {
-    // o sse.js já "desembrulha" e reemite tudo em 'message'
+    // log bruto
+    console.groupCollapsed('%c[SSE][ChatWindow] incoming', 'color:#0aa');
+    console.log('selected userId:', uid);
+    console.log('raw event payload:', raw);
+    console.log('raw.user_id:', raw?.user_id, ' | raw.to:', raw?.to, ' | raw.from:', raw?.from, ' | raw.contact_id:', raw?.contact_id);
+    console.groupEnd();
+
     const msg = normalizeMessage(raw);
 
-    // só atualiza a thread aberta
-    if (String(msg.user_id) !== uid) return;
+    // comparação SEM normalizar nada além de String()
+    if (String(msg.user_id) !== uid) {
+      console.warn('[SSE][ChatWindow] IGNORADO por mismatch ->', {
+        selected: uid,
+        'payload.user_id': msg?.user_id
+      });
+      return;
+    }
 
-    // isso cobre: incoming, outgoing ecoado, update, status e system
+    console.info('[SSE][ChatWindow] ACEITO -> mesma conversa', {
+      selected: uid,
+      'payload.user_id': msg?.user_id
+    });
+
     handleMessageAdded(msg);
   });
 
-  // (opcional) manter 'typing' se quiser feedback de digitação
-  const offTyping = on('typing', (payload) => {
-    // tratar typing se precisar...
-  });
+  // se quiser ver também eventos específicos chegando:
+  const offNew = on('new_message', (raw) =>
+    console.debug('[SSE][new_message]', { selected: uid, user_id: raw?.user_id, raw })
+  );
+  const offUpd = on('update_message', (raw) =>
+    console.debug('[SSE][update_message]', { selected: uid, user_id: raw?.user_id, raw })
+  );
+  const offStat = on('message_status', (raw) =>
+    console.debug('[SSE][message_status]', { selected: uid, user_id: raw?.user_id, raw })
+  );
 
   return () => {
     offAny?.();
-    offTyping?.();
+    offNew?.();
+    offUpd?.();
+    offStat?.();
   };
 }, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
+
 
 
   // Renderização
