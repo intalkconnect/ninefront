@@ -12,9 +12,17 @@ import ChatHeader from './ChatHeader';
 import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
-import { on } from '../../services/sse';
+ import { on, joinUserRoom } from '../../services/sse';
 
 export default function ChatWindow({ userIdSelecionado }) {
+
+  useEffect(() => {
+  if (!userIdSelecionado) return;
+  const uid = String(userIdSelecionado);
+  console.log('[SSE][ChatWindow] joinUserRoom ->', uid);
+  joinUserRoom(uid);
+}, [userIdSelecionado]);
+
   const mergeConversation = useConversationsStore(state => state.mergeConversation);
   const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
   const userEmail = useConversationsStore(state => state.userEmail);
