@@ -10,7 +10,9 @@ let statusCb = null;  // fn(status) -> 'online' | 'offline'
 function buildUrl(rooms) {
   const params = new URLSearchParams();
   for (const r of rooms) params.append('room', r);
-  return `${SSE_URL}?${params.toString()}`;
+  const url = `${SSE_URL}?${params.toString()}`;
+ console.log('[SSE] buildUrl ->', url);
+ return url;
 }
 
 function notifyStatus(s) {
