@@ -69,12 +69,42 @@ export default function ChatWindow({ userIdSelecionado }) {
     msg?.to_user_id ??
     null;
 
-  // compara SEM normalizar (usa o ID completo com @)
-  const belongsToCurrent = (msg, uid) => {
-    const candidate = getPossibleOwner(msg);
-    if (candidate == null) return true; // se o backend não mandou, assumimos a conversa aberta
-    return String(candidate) === String(uid);
-  };
+// Substitua a função belongsToCurrent existente por esta versão melhorada:
+
+const belongsToCurrent = useCallback((msg, uid) => {
+  if (!msg || !uid) return false;
+  
+  const candidate = getPossibleOwner(msg);
+  
+  // Se não conseguimos determinar o dono, assumimos que pertence à conversa atual
+  if (candidate == null || candidate === undefined) {
+    console.warn('Mensagem sem owner detectado, assumindo conversa atual:', msg);
+    return true;
+  }
+  
+  const candidateStr = String(candidate);
+  const uidStr = String(uid);
+  
+  // Comparação exata
+  if (candidateStr === uidStr) return true;
+  
+  // Comparação sem prefixos/sufixos (ex: "123" vs "123@whatsapp")
+  const candidateClean = candidateStr.replace(/@.*$/, '');
+  const uidClean = uidStr.replace(/@.*$/, '');
+  
+  if (candidateClean === uidClean) return true;
+  
+  // Log para debug quando rejeitar mensagem
+  console.log('Mensagem rejeitada:', {
+    candidate: candidateStr,
+    uid: uidStr,
+    candidateClean,
+    uidClean,
+    message: msg
+  });
+  
+  return false;
+}, []);
 
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
