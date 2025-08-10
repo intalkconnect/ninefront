@@ -1,7 +1,7 @@
+// src/hooks/useStableSocketListeners.js
 import { useEffect, useRef } from "react";
 import { getSocket } from "../services/socket";
 
-// Handlers fora do componente (sempre atualizados por ref)
 export function useStableSocketListeners({ userId, onNew, onUpdate }) {
   const onNewRef = useRef(onNew);
   const onUpdateRef = useRef(onUpdate);
@@ -12,21 +12,13 @@ export function useStableSocketListeners({ userId, onNew, onUpdate }) {
   useEffect(() => {
     const socket = getSocket();
 
-    function handleNew(msg) { 
+    function handleNew(msg) {
       if (msg.user_id === userId) onNewRef.current(msg);
     }
     function handleUpdate(msg) {
       if (msg.user_id === userId) onUpdateRef.current(msg);
     }
 
-    // Sempre limpa antes de adicionar!
-    socket.off('new_message', handleNew);
-    socket.off('update_message', handleUpdate);
-
-    socket.on('new_message', handleNew);
-    socket.on('update_message', handleUpdate);
-
-    // Refaz isso ao cada volta ao foco ou reconexão!
     function refreshListeners() {
       socket.off('new_message', handleNew);
       socket.off('update_message', handleUpdate);
@@ -34,20 +26,23 @@ export function useStableSocketListeners({ userId, onNew, onUpdate }) {
       socket.on('update_message', handleUpdate);
     }
 
-     const onVisibility = () => {
-   if (document.visibilityState === "visible") refreshListeners();
- };
-    
-    window.addEventListener('focus', refreshListeners);
- document.addEventListener('visibilitychange', onVisibility);
+    // registra
+    socket.on('new_message', handleNew);
+    socket.on('update_message', handleUpdate);
     socket.on('connect', refreshListeners);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshListeners();
+    };
+    window.addEventListener('focus', refreshListeners);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       socket.off('new_message', handleNew);
       socket.off('update_message', handleUpdate);
+      socket.off('connect', refreshListeners);
       window.removeEventListener('focus', refreshListeners);
       document.removeEventListener('visibilitychange', onVisibility);
-      socket.off('connect', refreshListeners);
     };
   }, [userId]);
 }
