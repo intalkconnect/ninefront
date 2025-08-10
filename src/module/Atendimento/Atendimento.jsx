@@ -231,6 +231,7 @@ useEffect(() => {
   useEffect(() => {
     const rooms = ["broadcast"];
     if (selectedUserId) rooms.push(`chat-${String(selectedUserId)}`);
+    console.log('[SSE][Atendimento] setRooms ->', rooms);
     setRooms(rooms);
   }, [selectedUserId]);
 
