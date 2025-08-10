@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { apiGet } from '../../services/apiClient';
 import useConversationsStore from '../../store/useConversationsStore';
 import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage';
@@ -12,40 +12,36 @@ import ChatHeader from './ChatHeader';
 import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
- import { on, joinUserRoom } from '../../services/sse';
+import { joinUserRoom } from '../../services/sse';
+
+const PAGE_SIZE = 100;
 
 export default function ChatWindow({ userIdSelecionado }) {
+  // ----- Store
+  const mergeConversation = useConversationsStore(s => s.mergeConversation);
+  const setClienteAtivo  = useConversationsStore(s => s.setClienteAtivo);
+  const appendMessage    = useConversationsStore(s => s.appendMessage);
+  const userEmail        = useConversationsStore(s => s.userEmail);
+  const userFilas        = useConversationsStore(s => s.userFilas);
 
-  useEffect(() => {
-  if (!userIdSelecionado) return;
-  const uid = String(userIdSelecionado);
-  console.log('[SSE][ChatWindow] joinUserRoom ->', uid);
-  joinUserRoom(uid);
-}, [userIdSelecionado]);
+  const conversation     = useConversationsStore(
+    s => s.conversations?.[String(userIdSelecionado)] || {}
+  );
+  const messagesFromStore = conversation.messages || [];
 
-  const mergeConversation = useConversationsStore(state => state.mergeConversation);
-  const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
-  const userEmail = useConversationsStore(state => state.userEmail);
-  const userFilas = useConversationsStore(state => state.userFilas);
-
-  const [allMessages, setAllMessages] = useState([]);
-  const [displayedMessages, setDisplayedMessages] = useState([]);
+  // ----- Estado de UI
   const [modalImage, setModalImage] = useState(null);
-  const [pdfModal, setPdfModal] = useState(null);
+  const [pdfModal, setPdfModal]     = useState(null);
   const [clienteInfo, setClienteInfo] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [replyTo, setReplyTo] = useState(null);
-  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoading, setIsLoading]   = useState(false);
+  const [replyTo, setReplyTo]       = useState(null);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
-  const [messageVersion, setMessageVersion] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const messageListRef = useRef(null);
-  const loaderRef = useRef(null);
-  const pageRef = useRef(1);
-  const messageCacheRef = useRef(new Map());
-  const messagesPerPage = 100;
+  const loaderRef      = useRef(null);
 
+  // ----- Helpers
   const normalizeMessage = useCallback((msg) => {
     if (!msg) return msg;
     const id = msg.id || msg.message_id;
@@ -53,100 +49,99 @@ export default function ChatWindow({ userIdSelecionado }) {
     return { id, ...msg, timestamp };
   }, []);
 
-  const sameMessage = useCallback((a, b) => {
-    if (!a || !b) return false;
-    const aid = a.id || a.message_id;
-    const bid = b.id || b.message_id;
-    if (aid && bid && aid === bid) return true;
-    if (a.message_id && (b.id === a.message_id || b.message_id === a.message_id)) return true;
-    if (b.message_id && (a.id === b.message_id || a.message_id === b.message_id)) return true;
-    return false;
+  const makeKey = useCallback((m) => {
+    const contentStr = typeof m?.content === 'string'
+      ? m.content
+      : (m?.content?.text ?? JSON.stringify(m?.content ?? ''));
+    return (
+      m?.id ||
+      m?.message_id ||
+      `${m?.whatsapp_message_id || ''}::${m?.timestamp || ''}::${m?.direction || ''}::${(contentStr || '').slice(0, 50)}`
+    );
   }, []);
 
-  const updateDisplayedMessages = useCallback((messages, page) => {
-    const startIndex = Math.max(0, messages.length - page * messagesPerPage);
-    const newMessages = messages.slice(startIndex);
-    setDisplayedMessages(newMessages);
-    setHasMoreMessages(startIndex > 0);
-    
-    // Forçar atualização do MessageList
-    setLastUpdate(Date.now());
-  }, []);
-
-// No ChatWindow, modifique o handleMessageAdded para:
-const handleMessageAdded = useCallback((incomingRaw) => {
-  const incoming = normalizeMessage(incomingRaw);
-  const ownerId = String(incoming.user_id || userIdSelecionado);
-
-  setAllMessages(prev => {
-    const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
-    
-    if (existingIndex >= 0) {
-      const updated = [...prev];
-      updated[existingIndex] = { ...updated[existingIndex], ...incoming };
-      messageCacheRef.current.set(ownerId, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
+  const addMessagesToStore = useCallback((uidStr, msgs) => {
+    const current = useConversationsStore.getState().conversations?.[uidStr]?.messages || [];
+    const existingKeys = new Set(current.map(makeKey));
+    for (const raw of msgs) {
+      const m = normalizeMessage(raw);
+      const k = makeKey(m);
+      if (!existingKeys.has(k)) {
+        appendMessage(uidStr, m);
+        existingKeys.add(k);
+      }
     }
-    
-    const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    messageCacheRef.current.set(ownerId, updated);
-    updateDisplayedMessages(updated, pageRef.current);
-    
-    // Forçar scroll para baixo quando nova mensagem chegar
-    if (messageListRef.current) {
-      messageListRef.current.setAutoScrollEnabled(true);
-      messageListRef.current.scrollToBottomSmooth();
-    }
-    
-    return updated;
-  });
-}, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
+  }, [appendMessage, makeKey, normalizeMessage]);
 
-  // Carregar dados iniciais
+  // Ordenação (asc) e paginação
+  const messagesSorted = useMemo(() => {
+    const arr = (messagesFromStore || []).slice();
+    arr.sort((a, b) => new Date(a?.timestamp || 0) - new Date(b?.timestamp || 0));
+    return arr;
+  }, [messagesFromStore]);
+
+  const visibleMessages = useMemo(() => {
+    const total = messagesSorted.length;
+    if (!total) return [];
+    const start = Math.max(0, total - visibleCount);
+    return messagesSorted.slice(start);
+  }, [messagesSorted, visibleCount]);
+
+  const hasMoreMessages = messagesSorted.length > visibleCount;
+
+  // ----- Entrar na sala do usuário no SSE
   useEffect(() => {
     if (!userIdSelecionado) return;
-    pageRef.current = 1;
-    setIsLoading(true);
+    const uid = String(userIdSelecionado);
+    console.log('[SSE][ChatWindow] joinUserRoom ->', uid);
+    joinUserRoom(uid);
+  }, [userIdSelecionado]);
 
-    const loadInitialData = async () => {
+  // ----- Fetch inicial (cliente/ticket/mensagens) -> injeta na STORE (com dedupe)
+  useEffect(() => {
+    if (!userIdSelecionado) return;
+    setIsLoading(true);
+    setVisibleCount(PAGE_SIZE); // reset paginação a cada troca de conversa
+
+    const load = async () => {
       try {
+        const uidStr = String(userIdSelecionado);
+        const uidEnc = encodeURIComponent(userIdSelecionado);
+
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/api/v1/clientes/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/api/v1/tickets/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
+          apiGet(`/api/v1/messages/${uidEnc}`),
+          apiGet(`/api/v1/clientes/${uidEnc}`),
+          apiGet(`/api/v1/tickets/${uidEnc}`),
+          apiGet(`/api/v1/messages/check-24h/${uidEnc}`)
         ]);
 
         const { status, assigned_to, fila } = ticketRes || {};
         if (status !== 'open' || assigned_to !== userEmail || !userFilas?.includes(fila)) {
           console.warn('Acesso negado ao ticket deste usuário.');
           setCanSendFreeform(false);
-          setAllMessages([]);
-          setDisplayedMessages([]);
           setClienteInfo(null);
           setClienteAtivo(null);
           return;
         }
 
-        const msgsNorm = (msgRes || []).map(normalizeMessage).sort(
-          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-        );
+        const msgsNorm = (msgRes || [])
+          .map(normalizeMessage)
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        messageCacheRef.current.set(String(userIdSelecionado), msgsNorm);
-        setAllMessages(msgsNorm);
-        updateDisplayedMessages(msgsNorm, 1);
+        // injeta mensagens na store (dedupe)
+        addMessagesToStore(uidStr, msgsNorm);
 
+        // metadados da conversa
         const lastMsg = msgsNorm[msgsNorm.length - 1] || {};
-        mergeConversation(String(userIdSelecionado), {
+        mergeConversation(uidStr, {
           channel: lastMsg.channel || clienteRes?.channel || 'desconhecido',
           ticket_number: clienteRes?.ticket_number || '000000',
           fila: clienteRes?.fila || fila || 'Orçamento',
-          name: clienteRes?.name || String(userIdSelecionado),
+          name: clienteRes?.name || uidStr,
           email: clienteRes?.email || '',
           phone: clienteRes?.phone || '',
           documento: clienteRes?.document || '',
-          user_id: clienteRes?.user_id || String(userIdSelecionado),
+          user_id: clienteRes?.user_id || uidStr,
           assigned_to,
           status,
         });
@@ -166,7 +161,6 @@ const handleMessageAdded = useCallback((incomingRaw) => {
           assigned_to,
           status,
         });
-
         setClienteAtivo(clienteRes || null);
 
         if (check24hRes && typeof check24hRes.can_send_freeform === 'boolean') {
@@ -183,82 +177,54 @@ const handleMessageAdded = useCallback((incomingRaw) => {
       }
     };
 
-    loadInitialData();
-  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage]);
+    load();
+  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, setClienteAtivo, normalizeMessage, addMessagesToStore]);
 
-  // Scroll infinito (topo)
+  // ----- Refetch ao voltar a aba visível -> atualiza a STORE (dedupe)
+  useEffect(() => {
+    const onVis = async () => {
+      if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
+      try {
+        const uidStr = String(userIdSelecionado);
+        const uidEnc = encodeURIComponent(userIdSelecionado);
+        const msgs = await apiGet(`/api/v1/messages/${uidEnc}`);
+        const msgsNorm = (msgs || [])
+          .map(normalizeMessage)
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        addMessagesToStore(uidStr, msgsNorm);
+      } catch (err) {
+        console.error('Erro ao recarregar mensagens:', err);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [userIdSelecionado, normalizeMessage, addMessagesToStore]);
+
+  // ----- Infinite scroll (carregar mais antigas ao chegar no topo)
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
-        pageRef.current += 1;
-        const cached = messageCacheRef.current.get(String(userIdSelecionado)) || [];
-        updateDisplayedMessages(cached, pageRef.current);
+        setVisibleCount(prev => Math.min(prev + PAGE_SIZE, messagesSorted.length));
       }
     }, { threshold: 0.1 });
 
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
+  }, [hasMoreMessages, messagesSorted.length]);
 
-  // Refetch ao voltar foco (garante sincronismo)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
-      (async () => {
-        try {
-          const msgs = await apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`);
-          const msgsNorm = (msgs || []).map(normalizeMessage).sort(
-            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-          );
-          setAllMessages(msgsNorm);
-          messageCacheRef.current.set(String(userIdSelecionado), msgsNorm);
-          updateDisplayedMessages(msgsNorm, pageRef.current);
-        } catch (err) {
-          console.error('Erro ao recarregar mensagens:', err);
-        }
-      })();
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage]);
-
-// Configuração SSE (ouvir QUALQUER evento)
-// Configuração SSE (debug explícito de IDs)
-useEffect(() => {
-  if (!userIdSelecionado) return;
-  const uid = String(userIdSelecionado);
-
-  const offAny = on('message', (pkt) => {
-    const ev  = pkt?.__event;   // nome do evento real
-    const raw = pkt?.__raw ?? pkt; // payload original
-
-    console.groupCollapsed('%c[SSE][ChatWindow] incoming', 'color:#0aa');
-    console.log('event:', ev);
-    console.log('selected userId:', uid);
-    console.log('raw:', raw);
-    console.groupEnd();
-
-    // só compara nos eventos que realmente carregam mensagem/status
-    if (!['new_message', 'update_message', 'message_status'].includes(ev)) return;
-
-    console.log('[SSE][ChatWindow] comparar -> selected:', uid, 'payload.user_id:', raw?.user_id);
-
-    // se quiser manter a lógica antiga de filtrar pela conversa aberta:
-    if (String(raw?.user_id) !== uid) {
-      console.warn('[SSE][ChatWindow] IGNORADO (mismatch)', { selected: uid, user_id: raw?.user_id, ev });
-      return;
-    }
-
-    // se quiser também ver o objeto normalizado:
+  // ----- Envio otimista: injeta na store e faz scroll
+  const handleMessageAdded = useCallback((raw) => {
     const msg = normalizeMessage(raw);
-    console.info('[SSE][ChatWindow] ACEITO', { selected: uid, user_id: raw?.user_id, ev });
-    handleMessageAdded(msg);
-  });
+    const uidStr = String(msg.user_id || userIdSelecionado);
+    appendMessage(uidStr, msg);
+    if (messageListRef.current) {
+      messageListRef.current.setAutoScrollEnabled(true);
+      messageListRef.current.scrollToBottomSmooth();
+    }
+  }, [appendMessage, normalizeMessage, userIdSelecionado]);
 
-  return () => offAny?.();
-}, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
-
-  // Renderização
+  // ----- Render
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -276,23 +242,23 @@ useEffect(() => {
   if (isLoading) {
     return (
       <div className="chat-window loading">
-        <div className="loading-container"><div className="spinner"/></div>
+        <div className="loading-container"><div className="spinner" /></div>
       </div>
     );
   }
 
   return (
-    <div className="chat-window" key={`chat-${userIdSelecionado}-${lastUpdate}`}>
+    <div className="chat-window">
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
-    <MessageList
-      ref={messageListRef}
-      messages={displayedMessages}
-      onImageClick={setModalImage}
-      onPdfClick={setPdfModal}
-      onReply={setReplyTo}
-      loaderRef={hasMoreMessages ? loaderRef : null}
-    />
+      <MessageList
+        ref={messageListRef}
+        messages={visibleMessages}
+        onImageClick={setModalImage}
+        onPdfClick={setPdfModal}
+        onReply={setReplyTo}
+        loaderRef={hasMoreMessages ? loaderRef : null}
+      />
 
       <div className="chat-input">
         <SendMessageForm
