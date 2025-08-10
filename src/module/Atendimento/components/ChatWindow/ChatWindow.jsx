@@ -13,18 +13,12 @@ import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
 import { on } from '../../services/sse';
-// Substitua as partes relevantes do ChatWindow.jsx:
 
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore(state => state.mergeConversation);
-  const setClienteAtivo   = useConversationsStore(state => state.setClienteAtivo);
-  const userEmail         = useConversationsStore(state => state.userEmail);
-  const userFilas         = useConversationsStore(state => state.userFilas);
-  
-  // 🆕 NOVO: Usar cache do store
-  const getMessagesFromCache = useConversationsStore(state => state.getMessagesFromCache);
-  const setMessagesInCache = useConversationsStore(state => state.setMessagesInCache);
-  const messageVersion = useConversationsStore(state => state.messageVersion);
+  const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
+  const userEmail = useConversationsStore(state => state.userEmail);
+  const userFilas = useConversationsStore(state => state.userFilas);
 
   const [allMessages, setAllMessages] = useState([]);
   const [displayedMessages, setDisplayedMessages] = useState([]);
@@ -35,32 +29,19 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [replyTo, setReplyTo] = useState(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
-
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [messageVersion, setMessageVersion] = useState(0);
 
   const messageListRef = useRef(null);
   const loaderRef = useRef(null);
   const pageRef = useRef(1);
+  const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
 
-  // 🆕 NOVO: Sincronizar com cache do store
-  useEffect(() => {
-    if (!userIdSelecionado) return;
-
-    const cachedMessages = getMessagesFromCache(userIdSelecionado);
-    if (cachedMessages.length > 0) {
-      console.log('🔄 [ChatWindow] Sincronizando com cache do store:', cachedMessages.length);
-      setAllMessages(cachedMessages);
-      updateDisplayedMessages(cachedMessages, pageRef.current);
-    }
-  }, [userIdSelecionado, messageVersion, getMessagesFromCache]);
-
-  // ---------- Helpers ----------
   const normalizeMessage = useCallback((msg) => {
     if (!msg) return msg;
     const id = msg.id || msg.message_id;
-    const timestamp =
-      msg.timestamp || msg.created_at || msg.createdAt || msg.updated_at || new Date().toISOString();
+    const timestamp = msg.timestamp || msg.created_at || msg.createdAt || msg.updated_at || new Date().toISOString();
     return { id, ...msg, timestamp };
   }, []);
 
@@ -79,44 +60,36 @@ export default function ChatWindow({ userIdSelecionado }) {
     const newMessages = messages.slice(startIndex);
     setDisplayedMessages(newMessages);
     setHasMoreMessages(startIndex > 0);
+    
+    // Forçar atualização do MessageList
     setLastUpdate(Date.now());
-
-    requestAnimationFrame(() => {
-      messageListRef.current?.scrollToBottomInstant?.();
-    });
   }, []);
 
-  // 🔄 MELHORADO: handleMessageAdded sincroniza com store
-  const handleMessageAdded = useCallback((incomingRaw) => {
-    const incoming = normalizeMessage(incomingRaw);
-    const uid = String(userIdSelecionado);
+const handleMessageAdded = useCallback((incomingRaw) => {
+  const incoming = normalizeMessage(incomingRaw);
+  const ownerId = String(incoming.user_id || userIdSelecionado);
 
-    setAllMessages(prev => {
-      const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
-      let updated;
-      
-      if (existingIndex >= 0) {
-        updated = [...prev];
-        updated[existingIndex] = { ...updated[existingIndex], ...incoming };
-      } else {
-        updated = [...prev, incoming].sort(
-          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-        );
-      }
-
-      // 🆕 Sincronizar com store
-      setMessagesInCache(uid, updated);
+  setAllMessages(prev => {
+    const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
+    
+    if (existingIndex >= 0) {
+      const updated = [...prev];
+      updated[existingIndex] = { ...updated[existingIndex], ...incoming };
+      messageCacheRef.current.set(ownerId, updated);
       updateDisplayedMessages(updated, pageRef.current);
-
-      requestAnimationFrame(() => {
-        messageListRef.current?.scrollToBottomSmooth?.();
-      });
-
+      setMessageVersion(v => v + 1); // Força atualização
       return updated;
-    });
-  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado, setMessagesInCache]);
+    }
+    
+    const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    messageCacheRef.current.set(ownerId, updated);
+    updateDisplayedMessages(updated, pageRef.current);
+    setMessageVersion(v => v + 1); // Força atualização
+    return updated;
+  });
+}, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
 
-  // ---------- Carregar dados iniciais ----------
+  // Carregar dados iniciais
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -124,32 +97,16 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     const loadInitialData = async () => {
       try {
-        const uid = String(userIdSelecionado);
-        console.log('🔄 [ChatWindow] Carregando dados para:', uid);
-
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/api/v1/messages/${encodeURIComponent(uid)}`).catch(err => {
-            console.error('❌ [ChatWindow] Erro em /messages:', err);
-            return [];
-          }),
-          apiGet(`/api/v1/clientes/${encodeURIComponent(uid)}`).catch(err => {
-            console.error('❌ [ChatWindow] Erro em /clientes:', err);
-            return null;
-          }),
-          apiGet(`/api/v1/tickets/${encodeURIComponent(uid)}`).catch(err => {
-            console.error('❌ [ChatWindow] Erro em /tickets:', err);
-            return null;
-          }),
-          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(uid)}`).catch(err => {
-            console.error('❌ [ChatWindow] Erro em /check-24h:', err);
-            return { can_send_freeform: true };
-          })
+          apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/api/v1/clientes/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/api/v1/tickets/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
         ]);
 
         const { status, assigned_to, fila } = ticketRes || {};
-        
         if (status !== 'open' || assigned_to !== userEmail || !userFilas?.includes(fila)) {
-          console.warn('❌ [ChatWindow] Acesso negado');
+          console.warn('Acesso negado ao ticket deste usuário.');
           setCanSendFreeform(false);
           setAllMessages([]);
           setDisplayedMessages([]);
@@ -158,31 +115,33 @@ export default function ChatWindow({ userIdSelecionado }) {
           return;
         }
 
-        const msgsNorm = (msgRes || [])
-          .map(normalizeMessage)
-          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const msgsNorm = (msgRes || []).map(normalizeMessage).sort(
+          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+        );
 
-        console.log('✅ [ChatWindow] Mensagens carregadas:', msgsNorm.length);
-
-        // 🆕 Sincronizar com store
-        setMessagesInCache(uid, msgsNorm);
+        messageCacheRef.current.set(String(userIdSelecionado), msgsNorm);
         setAllMessages(msgsNorm);
         updateDisplayedMessages(msgsNorm, 1);
 
         const lastMsg = msgsNorm[msgsNorm.length - 1] || {};
-        mergeConversation(uid, {
-          channel: lastMsg.channel || clienteRes?.channel,
+        mergeConversation(String(userIdSelecionado), {
+          channel: lastMsg.channel || clienteRes?.channel || 'desconhecido',
           ticket_number: clienteRes?.ticket_number || '000000',
-          fila: clienteRes?.fila || fila,
-          name: clienteRes?.name || uid,
+          fila: clienteRes?.fila || fila || 'Orçamento',
+          name: clienteRes?.name || String(userIdSelecionado),
           email: clienteRes?.email || '',
           phone: clienteRes?.phone || '',
           documento: clienteRes?.document || '',
-          user_id: uid,
+          user_id: clienteRes?.user_id || String(userIdSelecionado),
           assigned_to,
           status,
-          content: typeof lastMsg.content === 'string' ? lastMsg.content : (lastMsg.content?.text ?? '')
         });
+
+        try {
+          marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgsNorm);
+        } catch (e) {
+          console.warn('Falha ao marcar como lidas:', e);
+        }
 
         setClienteInfo({
           name: clienteRes?.name,
@@ -203,33 +162,23 @@ export default function ChatWindow({ userIdSelecionado }) {
         } else {
           setCanSendFreeform(true);
         }
-
-        console.log('✅ [ChatWindow] Dados carregados com sucesso');
-        
       } catch (err) {
-        console.error('❌ [ChatWindow] Erro ao carregar dados:', err);
+        console.error('Erro ao buscar cliente:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadInitialData();
-  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage, setMessagesInCache]);
+  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage]);
 
-
-  // ---------- Scroll infinito (topo) ----------
+  // Scroll infinito (topo)
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
         pageRef.current += 1;
-        const uid = String(userIdSelecionado);
-        const cached = messageCacheRef.current.get(uid) || [];
+        const cached = messageCacheRef.current.get(String(userIdSelecionado)) || [];
         updateDisplayedMessages(cached, pageRef.current);
-
-        // mesmo paginando pelo topo, mantemos no fim
-        requestAnimationFrame(() => {
-          messageListRef.current?.scrollToBottomInstant?.();
-        });
       }
     }, { threshold: 0.1 });
 
@@ -237,19 +186,18 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // ---------- Refetch ao voltar foco ----------
+  // Refetch ao voltar foco (garante sincronismo)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
       (async () => {
         try {
-          const uid = String(userIdSelecionado);
-          const msgs = await apiGet(`/api/v1/messages/${encodeURIComponent(uid)}`);
+          const msgs = await apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`);
           const msgsNorm = (msgs || []).map(normalizeMessage).sort(
             (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
           );
           setAllMessages(msgsNorm);
-          messageCacheRef.current.set(uid, msgsNorm);
+          messageCacheRef.current.set(String(userIdSelecionado), msgsNorm);
           updateDisplayedMessages(msgsNorm, pageRef.current);
         } catch (err) {
           console.error('Erro ao recarregar mensagens:', err);
@@ -260,38 +208,37 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage]);
 
-  // ---------- SSE ----------
+  // Configuração SSE
   useEffect(() => {
     if (!userIdSelecionado) return;
     const uid = String(userIdSelecionado);
 
-    const wrap = (raw) => {
+    const offNew = on('new_message', (raw) => {
       const msg = normalizeMessage(raw);
-      if (!belongsToCurrent(msg, uid)) return;
-
-      // se quiser garantir que SEMPRE tenha o user_id completo, descomente:
-      // msg.user_id = uid; // <— DEIXADO COMENTADO DE PROPÓSITO
-
-      try {
-        mergeConversation(uid, {
-          user_id: uid,
-          content: typeof msg.content === 'string' ? msg.content : (msg.content?.text ?? ''),
-          timestamp: msg.timestamp,
-          channel: msg.channel,
-        });
-      } catch {}
-
+      if (String(msg.user_id) !== uid) return;
       handleMessageAdded(msg);
+    });
+
+    const offStatus = on('message_status', (raw) => {
+      const msg = normalizeMessage(raw);
+      if (String(msg.user_id) !== uid) return;
+      handleMessageAdded(msg);
+    });
+
+    const offUpdate = on('update_message', (raw) => {
+      const msg = normalizeMessage(raw);
+      if (String(msg.user_id) !== uid) return;
+      handleMessageAdded(msg);
+    });
+
+    return () => {
+      offNew?.();
+      offStatus?.();
+      offUpdate?.();
     };
+  }, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
 
-    const offNew    = on('new_message',    wrap);
-    const offStatus = on('message_status', wrap);
-    const offUpdate = on('update_message', wrap);
-
-    return () => { offNew?.(); offStatus?.(); offUpdate?.(); };
-  }, [userIdSelecionado, normalizeMessage, handleMessageAdded, mergeConversation]);
-
-  // ---------- Render ----------
+  // Renderização
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -315,18 +262,18 @@ export default function ChatWindow({ userIdSelecionado }) {
   }
 
   return (
-    <div className="chat-window" key={`chat-${userIdSelecionado}-${messageVersion}`}>
+    <div className="chat-window" key={`chat-${userIdSelecionado}-${lastUpdate}`}>
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
-      <MessageList
-        key={`${userIdSelecionado}-${messageVersion}`}
-        ref={messageListRef}
-        messages={displayedMessages}
-        onImageClick={setModalImage}
-        onPdfClick={setPdfModal}
-        onReply={setReplyTo}
-        loaderRef={hasMoreMessages ? loaderRef : null}
-      />
+<MessageList
+  key={`${userIdSelecionado}-${messageVersion}`}
+  ref={messageListRef}
+  messages={displayedMessages}
+  onImageClick={setModalImage}
+  onPdfClick={setPdfModal}
+  onReply={setReplyTo}
+  loaderRef={hasMoreMessages ? loaderRef : null}
+/>
 
       <div className="chat-input">
         <SendMessageForm
