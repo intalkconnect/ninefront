@@ -1,11 +1,4 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useEffect,
-  useState,
-  useMemo
-} from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, useEffect, useState, useMemo } from 'react';
 import MessageRow from './MessageRow';
 
 const MessageList = forwardRef(
@@ -13,13 +6,18 @@ const MessageList = forwardRef(
     const containerRef = useRef(null);
     const [visibleCount, setVisibleCount] = useState(30);
     const [prevScrollHeight, setPrevScrollHeight] = useState(0);
-    const [lastMessageId, setLastMessageId] = useState(null);
+    const [lastMessagesHash, setLastMessagesHash] = useState('');
+
+    // Calcula um hash das mensagens para detectar mudanças
+    const messagesHash = useMemo(() => {
+      return JSON.stringify(messages.slice(-5).map(m => m.id));
+    }, [messages]);
 
     const visibleMessages = useMemo(() => messages.slice(-visibleCount), [messages, visibleCount]);
 
-    // Debug: Log quando as mensagens mudam
+    // Debug: Log de atualizações
     useEffect(() => {
-      console.log('Messages updated:', messages.length, 'Last message:', messages[messages.length - 1]?.id);
+      console.log('Messages updated - Count:', messages.length, 'Last message:', messages[messages.length - 1]);
     }, [messages]);
 
     useImperativeHandle(ref, () => ({
@@ -45,9 +43,8 @@ const MessageList = forwardRef(
     useEffect(() => {
       if (!containerRef.current || messages.length === 0) return;
 
-      const lastMsg = messages[messages.length - 1];
-      const isNewMessage = lastMsg.id !== lastMessageId;
-      setLastMessageId(lastMsg.id);
+      const isNewMessage = messagesHash !== lastMessagesHash;
+      setLastMessagesHash(messagesHash);
 
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
       const isNearBottom = scrollHeight - scrollTop <= clientHeight + 100;
@@ -58,7 +55,7 @@ const MessageList = forwardRef(
           behavior: 'smooth'
         });
       }
-    }, [messages, lastMessageId]);
+    }, [messages, messagesHash, lastMessagesHash]);
 
     // Scroll ao voltar para a aba
     useEffect(() => {
