@@ -110,36 +110,44 @@ export default function Atendimento() {
   // handler para novas mensagens (mantido)
   const handleNewMessage = useCallback(
     async (message) => {
-      if (!message || !message.content || message.assigned_to !== userEmail) {
-        console.warn(
-          "[Notificação] Mensagem ignorada: dados incompletos ou não atribuída a este atendente."
-        );
-        return;
-      }
+if (!message || !message.content) return;
 
       const isFromMe = message.direction === "outgoing";
       const isActiveChat = String(message.user_id) === String(selectedUserId);
       const isWindowFocused = isWindowActiveRef.current;
+
+         // tenta descobrir se é “minha” conversa usando a store como fallback
+ const conv = conversations[message.user_id];
+   const assignedToMe = message.assigned_to
+     ? message.assigned_to === userEmail
+     : (conv?.assigned_to ? conv.assigned_to === userEmail : true); // default: true
+   const inMyQueue = conv?.fila ? userFilas.includes(conv.fila) : true;
 
       mergeConversation(message.user_id, {
         ticket_number: message.ticket_number || message.ticket,
         timestamp: message.timestamp,
         content: message.content,
         channel: message.channel,
+
+            assigned_to: message.assigned_to ?? conv?.assigned_to,
+     fila: message.fila ?? conv?.fila,
       });
 
       if (isFromMe) return;
 
-      if (isActiveChat && isWindowFocused) {
+      if (isActiveChat && isWindowFocused && assignedToMe && inMyQueue) {
         await apiPut(`/messages/read-status/${message.user_id}`, {
           last_read: new Date().toISOString(),
         });
         await loadUnreadCounts();
       } else {
-        incrementUnread(message.user_id, message.timestamp);
-        await loadUnreadCounts();
+             if (assignedToMe && inMyQueue) {
+       incrementUnread(message.user_id, message.timestamp);
+       await loadUnreadCounts();
+     }
 
-        if (!isWindowFocused && !notifiedConversations[message.user_id]) {
+       if (!isWindowFocused && !notifiedConversations[message.user_id] && assignedToMe && inMyQueue) {
+
           const contactName = getContactName(message.user_id);
           showNotification(message, contactName);
           try {
