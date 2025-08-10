@@ -69,17 +69,13 @@ export function connectSocket(roomId) {
   return s;
 }
 
-// no final do arquivo, exporte este helper
+// adicione no final do arquivo
 export function joinUserRoom(userId, prevUserId) {
   const s = getSocket();
   if (!s) return;
   const next = userId == null ? null : String(userId);
   const prev = prevUserId == null ? null : String(prevUserId);
-
-  if (prev && prev !== next) {
-    s.emit('leave_room', prev);
-  }
-  if (next) {
-    s.emit('join_room', next);
-  }
+  if (prev && prev !== next) s.emit('leave_room', prev);
+  if (next) s.emit('join_room', next);
 }
+
