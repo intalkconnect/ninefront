@@ -132,7 +132,7 @@ export default function Atendimento() {
       if (isFromMe) return;
 
       if (isActiveChat && isWindowFocused && assignedToMe && inMyQueue) {
-        await apiPut(`/messages/read-status/${message.user_id}`, {
+        await apiPut(`/api/v1/messages/read-status/${message.user_id}`, {
           last_read: new Date().toISOString(),
         });
         await loadUnreadCounts();
