@@ -214,53 +214,35 @@ useEffect(() => {
   if (!userIdSelecionado) return;
   const uid = String(userIdSelecionado);
 
-  const offAny = on('message', (raw) => {
-    // log bruto
+  const offAny = on('message', (pkt) => {
+    const ev  = pkt?.__event;   // nome do evento real
+    const raw = pkt?.__raw ?? pkt; // payload original
+
     console.groupCollapsed('%c[SSE][ChatWindow] incoming', 'color:#0aa');
+    console.log('event:', ev);
     console.log('selected userId:', uid);
-    console.log('raw event payload:', raw);
-    console.log('raw.user_id:', raw?.user_id, ' | raw.to:', raw?.to, ' | raw.from:', raw?.from, ' | raw.contact_id:', raw?.contact_id);
+    console.log('raw:', raw);
     console.groupEnd();
 
-    const msg = normalizeMessage(raw);
+    // só compara nos eventos que realmente carregam mensagem/status
+    if (!['new_message', 'update_message', 'message_status'].includes(ev)) return;
 
-    // comparação SEM normalizar nada além de String()
-    if (String(msg.user_id) !== uid) {
-      console.warn('[SSE][ChatWindow] IGNORADO por mismatch ->', {
-        selected: uid,
-        'payload.user_id': msg?.user_id
-      });
+    console.log('[SSE][ChatWindow] comparar -> selected:', uid, 'payload.user_id:', raw?.user_id);
+
+    // se quiser manter a lógica antiga de filtrar pela conversa aberta:
+    if (String(raw?.user_id) !== uid) {
+      console.warn('[SSE][ChatWindow] IGNORADO (mismatch)', { selected: uid, user_id: raw?.user_id, ev });
       return;
     }
 
-    console.info('[SSE][ChatWindow] ACEITO -> mesma conversa', {
-      selected: uid,
-      'payload.user_id': msg?.user_id
-    });
-
+    // se quiser também ver o objeto normalizado:
+    const msg = normalizeMessage(raw);
+    console.info('[SSE][ChatWindow] ACEITO', { selected: uid, user_id: raw?.user_id, ev });
     handleMessageAdded(msg);
   });
 
-  // se quiser ver também eventos específicos chegando:
-  const offNew = on('new_message', (raw) =>
-    console.debug('[SSE][new_message]', { selected: uid, user_id: raw?.user_id, raw })
-  );
-  const offUpd = on('update_message', (raw) =>
-    console.debug('[SSE][update_message]', { selected: uid, user_id: raw?.user_id, raw })
-  );
-  const offStat = on('message_status', (raw) =>
-    console.debug('[SSE][message_status]', { selected: uid, user_id: raw?.user_id, raw })
-  );
-
-  return () => {
-    offAny?.();
-    offNew?.();
-    offUpd?.();
-    offStat?.();
-  };
+  return () => offAny?.();
 }, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
-
-
 
   // Renderização
   if (!userIdSelecionado) {
