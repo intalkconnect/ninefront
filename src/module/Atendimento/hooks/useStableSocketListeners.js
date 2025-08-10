@@ -1,48 +1,43 @@
-// src/hooks/useStableSocketListeners.js
-import { useEffect, useRef } from "react";
-import { getSocket } from "../services/socket";
+// src/module/Atendimento/hooks/useStableSocketListeners.js
+import { useEffect } from "react";
+import { on } from "../services/sse";
 
-export function useStableSocketListeners({ userId, onNew, onUpdate }) {
-  const onNewRef = useRef(onNew);
-  const onUpdateRef = useRef(onUpdate);
-
-  useEffect(() => { onNewRef.current = onNew }, [onNew]);
-  useEffect(() => { onUpdateRef.current = onUpdate }, [onUpdate]);
-
+/**
+ * Hook para registrar handlers estáveis no SSE.
+ * Passe um objeto com os handlers que você precisa.
+ *
+ * Ex:
+ * useStableSocketListeners({
+ *   new_message: handleNewMessage,
+ *   message_status: handleStatus,
+ *   typing: handleTyping,
+ * });
+ */
+export default function useStableSocketListeners(handlers = {}) {
   useEffect(() => {
-    const socket = getSocket();
+    const offs = [];
 
-    function handleNew(msg) {
-      if (msg.user_id === userId) onNewRef.current(msg);
-    }
-    function handleUpdate(msg) {
-      if (msg.user_id === userId) onUpdateRef.current(msg);
-    }
-
-    function refreshListeners() {
-      socket.off('new_message', handleNew);
-      socket.off('update_message', handleUpdate);
-      socket.on('new_message', handleNew);
-      socket.on('update_message', handleUpdate);
+    for (const [eventName, fn] of Object.entries(handlers)) {
+      if (typeof fn === "function") {
+        offs.push(on(eventName, fn));
+      }
     }
 
-    // registra
-    socket.on('new_message', handleNew);
-    socket.on('update_message', handleUpdate);
-    socket.on('connect', refreshListeners);
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") refreshListeners();
-    };
-    window.addEventListener('focus', refreshListeners);
-    document.addEventListener('visibilitychange', onVisibility);
+    // sempre tenha um "message" se quiser capturar genéricos
+    if (typeof handlers.message === "function") {
+      offs.push(on("message", handlers.message));
+    }
 
     return () => {
-      socket.off('new_message', handleNew);
-      socket.off('update_message', handleUpdate);
-      socket.off('connect', refreshListeners);
-      window.removeEventListener('focus', refreshListeners);
-      document.removeEventListener('visibilitychange', onVisibility);
+      for (const off of offs) try { off && off(); } catch {}
     };
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    handlers.new_message,
+    handlers.message_status,
+    handlers.typing,
+    handlers.presence,
+    handlers.ready,
+    handlers.message,
+  ]);
 }
