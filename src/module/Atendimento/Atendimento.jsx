@@ -99,7 +99,7 @@ export default function Atendimento() {
       if (socket && !socket.connected) {
         socket.connect();
         // Se precisar re-identificar:
-        // socket.emit("identify", { email: userEmail, rooms: userFilas });
+         socket.emit("identify", { email: userEmail, rooms: userFilas });
       }
     };
 
@@ -190,6 +190,9 @@ export default function Atendimento() {
         console.error("Erro ao informar sessão ao servidor:", err);
       }
       socket.emit("identify", { email: userEmail, rooms: userFilas });
+       if (selectedUserId) {
+    socket.emit('join_room', String(selectedUserId));
+  }
     };
 
     const onDisconnect = () => setSocketStatus("offline");
