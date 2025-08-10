@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { apiGet, apiPut } from "./services/apiClient";
-import { connectSocket, getSocket } from "./services/socket";
+import { connectSSE, on, onStatusChange, setRooms } from "./services/sse";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Sidebar from "./components/Sidebar/Sidebar";
@@ -14,7 +14,6 @@ import { parseJwt } from "../../utils/auth";
 
 export default function Atendimento() {
   const audioPlayer = useRef(null);
-  const socketRef = useRef(null);
   const isWindowActiveRef = useRef(true);
 
   const selectedUserId = useConversationsStore((s) => s.selectedUserId);
@@ -40,7 +39,7 @@ export default function Atendimento() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    const { email } = parseJwt(token);
+    const { email } = parseJwt(token) || {};
     if (!email) return;
 
     setUserInfo({ email, filas: [] }); // limpa antes
@@ -52,7 +51,7 @@ export default function Atendimento() {
           setUserInfo({
             email: data.email,
             filas: data.filas || [],
-            name: `${data.name} ${data.lastname}`.trim(),
+            name: `${data.name || ""} ${data.lastname || ""}`.trim(),
           });
         }
       } catch (err) {
@@ -91,46 +90,43 @@ export default function Atendimento() {
     };
   }, []);
 
-  // reconectar ao voltar para a aba (sem adicionar listeners)
+  // reconectar ao voltar para a aba (com SSE basta reconectar)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
-      const socket = getSocket();
-      if (socket && !socket.connected) {
-        socket.connect();
-        // Se precisar re-identificar:
-         socket.emit("identify", { email: userEmail, rooms: userFilas });
-      }
+      // Reabre a conexão SSE ouvindo as salas atuais
+      const rooms = ["broadcast"];
+      if (selectedUserId) rooms.push(`chat-${String(selectedUserId)}`);
+      connectSSE(rooms);
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [userEmail, userFilas]);
+  }, [selectedUserId]);
 
   // handler para novas mensagens (mantido)
   const handleNewMessage = useCallback(
     async (message) => {
-if (!message || !message.content) return;
+      if (!message || !message.content) return;
 
       const isFromMe = message.direction === "outgoing";
       const isActiveChat = String(message.user_id) === String(selectedUserId);
       const isWindowFocused = isWindowActiveRef.current;
 
-         // tenta descobrir se é “minha” conversa usando a store como fallback
- const conv = conversations[message.user_id];
-   const assignedToMe = message.assigned_to
-     ? message.assigned_to === userEmail
-     : (conv?.assigned_to ? conv.assigned_to === userEmail : true); // default: true
-   const inMyQueue = conv?.fila ? userFilas.includes(conv.fila) : true;
+      // tenta descobrir se é “minha” conversa usando a store como fallback
+      const conv = conversations[message.user_id];
+      const assignedToMe = message.assigned_to
+        ? message.assigned_to === userEmail
+        : (conv?.assigned_to ? conv.assigned_to === userEmail : true); // default: true
+      const inMyQueue = conv?.fila ? userFilas.includes(conv?.fila) : true;
 
       mergeConversation(message.user_id, {
         ticket_number: message.ticket_number || message.ticket,
         timestamp: message.timestamp,
         content: message.content,
         channel: message.channel,
-
-            assigned_to: message.assigned_to ?? conv?.assigned_to,
-     fila: message.fila ?? conv?.fila,
+        assigned_to: message.assigned_to ?? conv?.assigned_to,
+        fila: message.fila ?? conv?.fila,
       });
 
       if (isFromMe) return;
@@ -141,13 +137,12 @@ if (!message || !message.content) return;
         });
         await loadUnreadCounts();
       } else {
-             if (assignedToMe && inMyQueue) {
-       incrementUnread(message.user_id, message.timestamp);
-       await loadUnreadCounts();
-     }
+        if (assignedToMe && inMyQueue) {
+          incrementUnread(message.user_id, message.timestamp);
+          await loadUnreadCounts();
+        }
 
-       if (!isWindowFocused && !notifiedConversations[message.user_id] && assignedToMe && inMyQueue) {
-
+        if (!isWindowFocused && !notifiedConversations[message.user_id] && assignedToMe && inMyQueue) {
           const contactName = getContactName(message.user_id);
           showNotification(message, contactName);
           try {
@@ -167,6 +162,8 @@ if (!message || !message.content) return;
     [
       userEmail,
       selectedUserId,
+      conversations,
+      userFilas,
       mergeConversation,
       incrementUnread,
       loadUnreadCounts,
@@ -176,43 +173,33 @@ if (!message || !message.content) return;
     ]
   );
 
-  // inicialização do socket + listeners
+  // inicialização do SSE + listeners
   useEffect(() => {
     if (!userEmail || !userFilas.length) return;
 
     let mounted = true;
 
-    connectSocket();
-    const socket = getSocket();
-    socketRef.current = socket;
-
-    // Handlers com referência fixa (para cleanup correto)
-    const onConnect = async () => {
-      setSocketStatus("online");
-      const sessionId = socket.id;
-      try {
-        await apiPut(`/atendentes/session/${userEmail}`, { session: sessionId });
-        // Sinalizar que o app já conhece a sessão (usado no modal)
-        window.sessionStorage.setItem("sessionReady", "true");
-      } catch (err) {
-        console.error("Erro ao informar sessão ao servidor:", err);
-      }
-      socket.emit("identify", { email: userEmail, rooms: userFilas });
- if (selectedUserId) {
-   socket.emit('join_room', String(selectedUserId)); // reentra após reconectar
- }
-    };
-
-    const onDisconnect = () => setSocketStatus("offline");
+    // Conectar SSE ouvindo broadcast (base). A sala do chat selecionado é gerenciada abaixo.
+    connectSSE(["broadcast"]);
+    onStatusChange(setSocketStatus);
 
     (async () => {
       try {
         await Promise.all([fetchConversations(), loadLastReadTimes(), loadUnreadCounts()]);
         if (!mounted) return;
 
-        socket.on("connect", onConnect);
-        socket.on("disconnect", onDisconnect);
-        socket.on("new_message", handleNewMessage);
+        const offNew = on("new_message", handleNewMessage);
+        const offStatus = on("message_status", (payload) => {
+          // se você já tem um handler específico, mantenha aqui
+          // ex.: atualizar status de mensagem na UI
+          // console.debug('message_status', payload);
+        });
+
+        // cleanup
+        return () => {
+          offNew?.();
+          offStatus?.();
+        };
       } catch (err) {
         console.error("Erro na inicialização:", err);
       }
@@ -220,19 +207,15 @@ if (!message || !message.content) return;
 
     return () => {
       mounted = false;
-      // limpar exatamente os handlers que registramos
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("new_message", handleNewMessage);
     };
-  }, [
-    userEmail,
-    userFilas,
-    handleNewMessage,
-    loadUnreadCounts,
-    loadLastReadTimes,
-    setSocketStatus,
-  ]);
+  }, [userEmail, userFilas, handleNewMessage, loadUnreadCounts, loadLastReadTimes, setSocketStatus]);
+
+  // ajustar rooms conforme a conversa selecionada muda
+  useEffect(() => {
+    const rooms = ["broadcast"];
+    if (selectedUserId) rooms.push(`chat-${String(selectedUserId)}`);
+    setRooms(rooms);
+  }, [selectedUserId]);
 
   const fetchConversations = async () => {
     try {
@@ -274,20 +257,14 @@ if (!message || !message.content) return;
       const parsed = JSON.parse(message.content);
       body = parsed.text || parsed.caption || "[mensagem]";
     } catch {
-      body =
-        message.content.length > 50
-          ? message.content.slice(0, 47) + "..."
-          : message.content;
+      body = message.content.length > 50 ? message.content.slice(0, 47) + "..." : message.content;
     }
 
-    const notif = new Notification(
-      `Nova mensagem de ${contactName || message.user_id}`,
-      {
-        body,
-        icon: "/icons/whatsapp.png",
-        vibrate: [200, 100, 200],
-      }
-    );
+    const notif = new Notification(`Nova mensagem de ${contactName || message.user_id}`, {
+      body,
+      icon: "/icons/whatsapp.png",
+      vibrate: [200, 100, 200],
+    });
 
     notif.onclick = () => {
       window.focus();
