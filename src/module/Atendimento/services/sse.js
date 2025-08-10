@@ -2,19 +2,21 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const SSE_URL      = `${API_BASE_URL.replace(/\/$/, '')}/sse`;
 
+// --- debug helper ---
 const DEBUG_SSE = true;
 const log = (...args) => { if (DEBUG_SSE) console.log('[SSE]', ...args); };
+// ---------------------
 
-let es;               // EventSource atual
+let es;                // EventSource atual
 let currentRooms = []; // rooms ativas
-let listeners = {};   // { eventName: Set<fn> }
-let statusCb = null;  // fn(status) -> 'online' | 'offline'
+let listeners = {};    // { eventName: Set<fn> }
+let statusCb = null;   // fn(status) -> 'online' | 'offline'
 
 function buildUrl(rooms) {
   const params = new URLSearchParams();
   for (const r of rooms) params.append('room', r);
   const url = `${SSE_URL}?${params.toString()}`;
-  if (DEBUG_SSE) log('buildUrl ->', url);
+  log('buildUrl ->', url);
   return url;
 }
 
@@ -37,8 +39,10 @@ function emitLocal(event, payload) {
   if (any && event !== 'message') for (const fn of any) { try { fn(payload); } catch {} }
 }
 
-export function connectSSE(initialRooms = []) {export function connectSSE(initialRooms = []) {
+export function connectSSE(initialRooms = []) {
+  // fecha anterior
   if (es) { try { es.close(); } catch {} es = null; }
+
   currentRooms = Array.from(new Set(initialRooms)).filter(Boolean);
   if (currentRooms.length === 0) currentRooms = ['broadcast'];
 
@@ -48,31 +52,35 @@ export function connectSSE(initialRooms = []) {export function connectSSE(initia
   es = new EventSource(url, { withCredentials: false });
 
   es.onopen = () => {
-    log('Conexão aberta', { rooms: currentRooms });
+    log('Conexão aberta', { rooms: currentRooms, readyState: es?.readyState });
     notifyStatus('online');
   };
+
   es.onerror = (err) => {
     console.warn('[SSE] Erro de conexão:', err);
     notifyStatus('offline');
   };
 
+  // eventos nomeados
   es.addEventListener('ready', (e) => {
     log('Evento "ready":', e.data);
     try { emitLocal('ready', JSON.parse(e.data)); }
     catch { emitLocal('ready', {}); }
   });
 
+  // fallback genérico
   es.onmessage = (e) => {
     log('Mensagem genérica:', e.data);
     try {
       const obj = JSON.parse(e.data);
-      const payload = obj?.data ?? obj;
+      const payload = obj?.data ?? obj; // << desembrulha
       emitLocal(obj?.event || 'message', payload);
     } catch {
       emitLocal('message', { raw: e.data });
     }
   };
 
+  // eventos mais usados
   for (const ev of ['new_message', 'update_message', 'message_status', 'typing', 'presence']) {
     es.addEventListener(ev, (e) => {
       log(`Evento "${ev}":`, e.data);
@@ -89,7 +97,6 @@ export function connectSSE(initialRooms = []) {export function connectSSE(initia
   return es;
 }
 
-
 export function setRooms(rooms) {
   const next = Array.from(new Set(rooms)).filter(Boolean);
   log('setRooms pedido:', next);
@@ -100,19 +107,16 @@ export function setRooms(rooms) {
     log('setRooms ignorado (mesmo conjunto).');
     return;
   }
-  connectSSE(next);
+  connectSSE(next); // reconecta com a nova lista
 }
 
-
 export function joinUserRoom(userId, prevUserId) {
-  // mantém sempre broadcast + a sala do usuário selecionado
   const rooms = ['broadcast'];
   if (userId != null) rooms.push(`chat-${String(userId)}`);
 
   log('joinUserRoom -> prev:', prevUserId, 'novo:', userId, 'rooms:', rooms);
   setRooms(rooms);
 }
-
 
 export function disconnectSSE() {
   if (es) { try { es.close(); } catch {} es = null; }
