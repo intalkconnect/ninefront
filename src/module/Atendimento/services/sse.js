@@ -55,9 +55,11 @@ console.log('[SSE] connectSSE rooms ->', currentRooms);
 
   // eventos nomeados
   es.addEventListener('ready', (e) => {
-    try {+   const data = JSON.parse(e.data);
+    try {
+      const data = JSON.parse(e.data);
    console.log('[SSE] READY from server ->', data);
-   emitLocal('ready', data); }
+   emitLocal('ready', data); 
+    }
     catch { emitLocal('ready', {}); }
   });
 
