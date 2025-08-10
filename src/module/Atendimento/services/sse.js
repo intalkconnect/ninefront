@@ -44,8 +44,16 @@ function emitLocal(event, payload) {
 export function connectSSE(initialRooms = []) {
   // fecha anterior
   if (es) { try { es.close(); } catch {} es = null; }
-  currentRooms = Array.from(new Set(initialRooms)).filter(Boolean);
-  if (currentRooms.length === 0) currentRooms = ['broadcast'];
+ const requested = Array.from(new Set(initialRooms)).filter(Boolean);
+ const hasChatNow = currentRooms.some(r => r.startsWith('chat-'));
+ const isPureBroadcast = requested.length === 1 && requested[0] === 'broadcast';
+ // evita "downgrade" de rooms
+ if (isPureBroadcast && hasChatNow) {
+   console.warn('[SSE] connectSSE IGNORADO: tentativa de downgrade para ["broadcast"] enquanto já estamos em', currentRooms);
+   return es;
+ }
+ currentRooms = requested.length ? requested : ['broadcast'];
+  
 console.log('[SSE] connectSSE rooms ->', currentRooms);
   const url = buildUrl(currentRooms);
   es = new EventSource(url, { withCredentials: false });
