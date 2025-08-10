@@ -33,17 +33,20 @@ export function useStableSocketListeners({ userId, onNew, onUpdate }) {
       socket.on('new_message', handleNew);
       socket.on('update_message', handleUpdate);
     }
+
+     const onVisibility = () => {
+   if (document.visibilityState === "visible") refreshListeners();
+ };
+    
     window.addEventListener('focus', refreshListeners);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === "visible") refreshListeners();
-    });
+ document.addEventListener('visibilitychange', onVisibility);
     socket.on('connect', refreshListeners);
 
     return () => {
       socket.off('new_message', handleNew);
       socket.off('update_message', handleUpdate);
       window.removeEventListener('focus', refreshListeners);
-      document.removeEventListener('visibilitychange', refreshListeners);
+      document.removeEventListener('visibilitychange', onVisibility);
       socket.off('connect', refreshListeners);
     };
   }, [userId]);
