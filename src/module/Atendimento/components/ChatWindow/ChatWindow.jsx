@@ -37,12 +37,15 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
 
+  // ⚠️ Normalizador de IDs (sempre compara/usa como string)
+  const asId = useCallback((v) => (v == null ? '' : String(v)), []);
+
   const normalizeMessage = useCallback((msg) => {
     if (!msg) return msg;
     const id = msg.id || msg.message_id;
     const timestamp = msg.timestamp || msg.created_at || msg.createdAt || msg.updated_at || new Date().toISOString();
-    return { id, ...msg, timestamp };
-  }, []);
+    return { id, ...msg, timestamp, user_id: asId(msg.user_id) };
+  }, [asId]);
 
   const sameMessage = useCallback((a, b) => {
     if (!a || !b) return false;
@@ -63,7 +66,7 @@ export default function ChatWindow({ userIdSelecionado }) {
 
   const handleMessageAdded = useCallback((incomingRaw) => {
     const incoming = normalizeMessage(incomingRaw);
-    const ownerId = incoming.user_id || userIdSelecionado;
+    const ownerId = asId(incoming.user_id || userIdSelecionado);
 
     setAllMessages(prev => {
       if (prev.some(m => sameMessage(m, incoming))) {
@@ -77,7 +80,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
     });
-  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
+  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado, asId]);
 
   // Conectar socket + listeners (somente os deste componente)
   useEffect(() => {
@@ -87,12 +90,12 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     const onNew = (raw) => {
       const msg = normalizeMessage(raw);
-      if (msg.user_id !== userIdSelecionado) return;
+      if (asId(msg.user_id) !== asId(userIdSelecionado)) return;
 
       setAllMessages(prev => {
         if (prev.find(m => sameMessage(m, msg))) return prev;
         const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        messageCacheRef.current.set(msg.user_id, updated);
+        messageCacheRef.current.set(asId(msg.user_id), updated);
         updateDisplayedMessages(updated, pageRef.current);
         return updated;
       });
@@ -100,21 +103,20 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     const onUpdate = (raw) => {
       const msg = normalizeMessage(raw);
-      if (msg.user_id !== userIdSelecionado) return;
+      if (asId(msg.user_id) !== asId(userIdSelecionado)) return;
 
       setAllMessages(prev => {
         const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
-        messageCacheRef.current.set(msg.user_id, updated);
+        messageCacheRef.current.set(asId(msg.user_id), updated);
         updateDisplayedMessages(updated, pageRef.current);
         return updated;
       });
     };
 
     const onConnect = () => {
-      if (userIdSelecionado) socket.emit('join_room', userIdSelecionado);
+      if (userIdSelecionado) socket.emit('join_room', asId(userIdSelecionado));
     };
 
-    // registra (sem limpar globais!)
     socket.on('new_message', onNew);
     socket.on('update_message', onUpdate);
     socket.on('connect', onConnect);
@@ -124,17 +126,17 @@ export default function ChatWindow({ userIdSelecionado }) {
       socket.off('update_message', onUpdate);
       socket.off('connect', onConnect);
     };
-  }, [userIdSelecionado, normalizeMessage, sameMessage, updateDisplayedMessages]);
+  }, [userIdSelecionado, normalizeMessage, sameMessage, updateDisplayedMessages, asId]);
 
   // join/leave ao trocar de usuário
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !userIdSelecionado) return;
-    socket.emit('join_room', userIdSelecionado);
+    socket.emit('join_room', asId(userIdSelecionado));
     return () => {
-      socket.emit('leave_room', userIdSelecionado);
+      socket.emit('leave_room', asId(userIdSelecionado));
     };
-  }, [userIdSelecionado]);
+  }, [userIdSelecionado, asId]);
 
   // carregar dados iniciais
   useEffect(() => {
@@ -144,11 +146,12 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     (async () => {
       try {
+        const uid = asId(userIdSelecionado);
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
+          apiGet(`/messages/${encodeURIComponent(uid)}`),
+          apiGet(`/clientes/${encodeURIComponent(uid)}`),
+          apiGet(`/tickets/${encodeURIComponent(uid)}`),
+          apiGet(`/messages/check-24h/${encodeURIComponent(uid)}`)
         ]);
 
         const { status, assigned_to, fila } = ticketRes || {};
@@ -166,26 +169,26 @@ export default function ChatWindow({ userIdSelecionado }) {
           (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
         );
 
-        messageCacheRef.current.set(userIdSelecionado, msgsNorm);
+        messageCacheRef.current.set(uid, msgsNorm);
         setAllMessages(msgsNorm);
         updateDisplayedMessages(msgsNorm, 1);
 
         const lastMsg = msgsNorm[msgsNorm.length - 1] || {};
-        mergeConversation(userIdSelecionado, {
+        mergeConversation(uid, {
           channel: lastMsg.channel || clienteRes?.channel || 'desconhecido',
           ticket_number: clienteRes?.ticket_number || '000000',
           fila: clienteRes?.fila || fila || 'Orçamento',
-          name: clienteRes?.name || userIdSelecionado,
+          name: clienteRes?.name || uid,
           email: clienteRes?.email || '',
           phone: clienteRes?.phone || '',
           documento: clienteRes?.document || '',
-          user_id: clienteRes?.user_id || userIdSelecionado,
+          user_id: clienteRes?.user_id || uid,
           assigned_to,
           status,
         });
 
         try {
-          marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgsNorm);
+          marcarMensagensAntesDoTicketComoLidas(uid, msgsNorm);
         } catch (e) {
           console.warn('Falha ao marcar como lidas (seguindo em frente):', e);
         }
@@ -215,21 +218,21 @@ export default function ChatWindow({ userIdSelecionado }) {
         setIsLoading(false);
       }
     })();
-  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage]);
+  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage, asId]);
 
   // scroll infinito (topo)
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
         pageRef.current += 1;
-        const cached = messageCacheRef.current.get(userIdSelecionado) || [];
+        const cached = messageCacheRef.current.get(asId(userIdSelecionado)) || [];
         updateDisplayedMessages(cached, pageRef.current);
       }
     }, { threshold: 0.1 });
 
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
+  }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages, asId]);
 
   // refresh ao voltar o foco da aba (só reforça listeners locais + refetch)
   useEffect(() => {
@@ -243,21 +246,21 @@ export default function ChatWindow({ userIdSelecionado }) {
 
       const onNew = (raw) => {
         const msg = normalizeMessage(raw);
-        if (msg.user_id !== userIdSelecionado) return;
+        if (asId(msg.user_id) !== asId(userIdSelecionado)) return;
         setAllMessages(prev => {
           if (prev.find(m => sameMessage(m, msg))) return prev;
           const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          messageCacheRef.current.set(msg.user_id, updated);
+          messageCacheRef.current.set(asId(msg.user_id), updated);
           updateDisplayedMessages(updated, pageRef.current);
           return updated;
         });
       };
       const onUpdate = (raw) => {
         const msg = normalizeMessage(raw);
-        if (msg.user_id !== userIdSelecionado) return;
+        if (asId(msg.user_id) !== asId(userIdSelecionado)) return;
         setAllMessages(prev => {
           const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
-          messageCacheRef.current.set(msg.user_id, updated);
+          messageCacheRef.current.set(asId(msg.user_id), updated);
           updateDisplayedMessages(updated, pageRef.current);
           return updated;
         });
@@ -268,19 +271,19 @@ export default function ChatWindow({ userIdSelecionado }) {
 
       (async () => {
         try {
-          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
+          const uid = asId(userIdSelecionado);
+          const msgs = await apiGet(`/messages/${encodeURIComponent(uid)}`);
           const msgsNorm = (msgs || []).map(normalizeMessage).sort(
             (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
           );
           setAllMessages(msgsNorm);
-          messageCacheRef.current.set(userIdSelecionado, msgsNorm);
+          messageCacheRef.current.set(uid, msgsNorm);
           updateDisplayedMessages(msgsNorm, pageRef.current);
         } catch (err) {
           console.error('Erro ao recarregar mensagens:', err);
         }
       })();
 
-      // limpa só os handlers deste escopo
       return () => {
         socket.off('new_message', onNew);
         socket.off('update_message', onUpdate);
@@ -289,7 +292,7 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage, sameMessage]);
+  }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage, sameMessage, asId]);
 
   if (!userIdSelecionado) {
     return (
@@ -318,7 +321,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
       <MessageList
-        initialKey={userIdSelecionado}
+        initialKey={asId(userIdSelecionado)}
         ref={messageListRef}
         messages={displayedMessages}
         onImageClick={setModalImage}
@@ -329,7 +332,7 @@ export default function ChatWindow({ userIdSelecionado }) {
 
       <div className="chat-input">
         <SendMessageForm
-          userIdSelecionado={userIdSelecionado}
+          userIdSelecionado={asId(userIdSelecionado)}
           replyTo={replyTo}
           setReplyTo={setReplyTo}
           canSendFreeform={canSendFreeform}
