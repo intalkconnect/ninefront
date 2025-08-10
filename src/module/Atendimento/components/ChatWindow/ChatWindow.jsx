@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { connectSocket, getSocket } from '../../services/socket';
 import { apiGet } from '../../services/apiClient';
 import useConversationsStore from '../../store/useConversationsStore';
-import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage'; // ajuste este path se necessário
+import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage';
 
 import SendMessageForm from '../SendMessageForm/SendMessageForm';
 import MessageList from './MessageList';
@@ -37,16 +37,10 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
 
-  // ---- helpers ----
   const normalizeMessage = useCallback((msg) => {
     if (!msg) return msg;
     const id = msg.id || msg.message_id;
-    const timestamp =
-      msg.timestamp ||
-      msg.created_at ||
-      msg.createdAt ||
-      msg.updated_at ||
-      new Date().toISOString();
+    const timestamp = msg.timestamp || msg.created_at || msg.createdAt || msg.updated_at || new Date().toISOString();
     return { id, ...msg, timestamp };
   }, []);
 
@@ -55,13 +49,11 @@ export default function ChatWindow({ userIdSelecionado }) {
     const aid = a.id || a.message_id;
     const bid = b.id || b.message_id;
     if (aid && bid && aid === bid) return true;
-    // backend às vezes manda "message_id" que coincide com "id" da provisória
     if (a.message_id && (b.id === a.message_id || b.message_id === a.message_id)) return true;
     if (b.message_id && (a.id === b.message_id || a.message_id === b.message_id)) return true;
     return false;
   }, []);
 
-  // Atualiza mensagens exibidas conforme paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
     const newMessages = messages.slice(startIndex);
@@ -69,20 +61,17 @@ export default function ChatWindow({ userIdSelecionado }) {
     setHasMoreMessages(startIndex > 0);
   }, []);
 
-  // Callback usado pelo SendMessageForm para UI otimista (provisória -> sent/error)
   const handleMessageAdded = useCallback((incomingRaw) => {
     const incoming = normalizeMessage(incomingRaw);
     const ownerId = incoming.user_id || userIdSelecionado;
 
     setAllMessages(prev => {
-      // já existe? atualiza (ex.: provisória -> 'sent'/'error')
       if (prev.some(m => sameMessage(m, incoming))) {
         const updated = prev.map(m => (sameMessage(m, incoming) ? { ...m, ...incoming } : m));
         messageCacheRef.current.set(ownerId, updated);
         updateDisplayedMessages(updated, pageRef.current);
         return updated;
       }
-      // novo? adiciona no final
       const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       messageCacheRef.current.set(ownerId, updated);
       updateDisplayedMessages(updated, pageRef.current);
@@ -90,9 +79,9 @@ export default function ChatWindow({ userIdSelecionado }) {
     });
   }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
 
-  // ---- socket: conectar e listeners estáveis ----
+  // Conectar socket + listeners (somente os deste componente)
   useEffect(() => {
-    connectSocket(); // garante singleton
+    connectSocket();
     const socket = getSocket();
     socketRef.current = socket;
 
@@ -121,20 +110,19 @@ export default function ChatWindow({ userIdSelecionado }) {
       });
     };
 
-    // limpa antes de registrar para evitar duplicação
-    socket.on('new_message', onNew);
-    socket.on('update_message', onUpdate);
-
-    // rejoin após reconectar
-    const handleReconnect = () => {
+    const onConnect = () => {
       if (userIdSelecionado) socket.emit('join_room', userIdSelecionado);
     };
-    socket.on('connect', handleReconnect);
+
+    // registra (sem limpar globais!)
+    socket.on('new_message', onNew);
+    socket.on('update_message', onUpdate);
+    socket.on('connect', onConnect);
 
     return () => {
       socket.off('new_message', onNew);
       socket.off('update_message', onUpdate);
-      socket.off('connect', handleReconnect);
+      socket.off('connect', onConnect);
     };
   }, [userIdSelecionado, normalizeMessage, sameMessage, updateDisplayedMessages]);
 
@@ -163,7 +151,6 @@ export default function ChatWindow({ userIdSelecionado }) {
           apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
         ]);
 
-        // Gate de segurança: ticket precisa estar aberto, designado ao agente e em fila do agente
         const { status, assigned_to, fila } = ticketRes || {};
         if (status !== 'open' || assigned_to !== userEmail || !userFilas?.includes(fila)) {
           console.warn('Acesso negado ao ticket deste usuário.');
@@ -197,7 +184,6 @@ export default function ChatWindow({ userIdSelecionado }) {
           status,
         });
 
-        // marca como lidas
         try {
           marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgsNorm);
         } catch (e) {
@@ -216,7 +202,6 @@ export default function ChatWindow({ userIdSelecionado }) {
 
         setClienteAtivo(clienteRes || null);
 
-        // janela 24h (WhatsApp Cloud etc.)
         if (check24hRes && typeof check24hRes.can_send_freeform === 'boolean') {
           setCanSendFreeform(!!check24hRes.can_send_freeform);
         } else if (typeof check24hRes === 'boolean') {
@@ -246,10 +231,12 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // refresh ao voltar o foco da aba (reconcilia socket + refetch)
+  // refresh ao voltar o foco da aba (só reforça listeners locais + refetch)
   useEffect(() => {
+    if (!userIdSelecionado) return;
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
+      if (document.visibilityState !== 'visible') return;
 
       const socket = getSocket();
       if (!socket.connected) socket.connect();
@@ -279,7 +266,6 @@ export default function ChatWindow({ userIdSelecionado }) {
       socket.on('new_message', onNew);
       socket.on('update_message', onUpdate);
 
-      // refetch para garantir sincronismo
       (async () => {
         try {
           const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
@@ -293,13 +279,18 @@ export default function ChatWindow({ userIdSelecionado }) {
           console.error('Erro ao recarregar mensagens:', err);
         }
       })();
+
+      // limpa só os handlers deste escopo
+      return () => {
+        socket.off('new_message', onNew);
+        socket.off('update_message', onUpdate);
+      };
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage, sameMessage]);
 
-  // ---- render ----
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -342,7 +333,6 @@ export default function ChatWindow({ userIdSelecionado }) {
           replyTo={replyTo}
           setReplyTo={setReplyTo}
           canSendFreeform={canSendFreeform}
-          // ✅ passa o callback para habilitar UI otimista
           onMessageAdded={handleMessageAdded}
         />
       </div>
