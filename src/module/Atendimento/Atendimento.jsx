@@ -96,7 +96,8 @@ const mergeConversation = useConversationsStore((s) => s.mergeConversation);
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
       // Reabre a conexão SSE ouvindo as salas atuais
-      const rooms = ["broadcast"];
+      console.log('[SSE][Atendimento] visibility -> setRooms', rooms);
+ setRooms(rooms);
       if (selectedUserId) rooms.push(`chat-${String(selectedUserId)}`);
       connectSSE(rooms);
     };
