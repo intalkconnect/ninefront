@@ -1,24 +1,15 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { apiGet } from '../../services/apiClient';
-import useConversationsStore from '../../store/useConversationsStore';
-import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage';
-
-import SendMessageForm from '../SendMessageForm/SendMessageForm';
-import MessageList from './MessageList';
-import ImageModal from './modals/ImageModal';
-import PdfModal from './modals/PdfModal';
-import ChatHeader from './ChatHeader';
-
-import './ChatWindow.css';
-import './ChatWindowPagination.css';
-
-import { on } from '../../services/sse';
+// Substitua as partes relevantes do ChatWindow.jsx:
 
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore(state => state.mergeConversation);
   const setClienteAtivo   = useConversationsStore(state => state.setClienteAtivo);
   const userEmail         = useConversationsStore(state => state.userEmail);
   const userFilas         = useConversationsStore(state => state.userFilas);
+  
+  // 🆕 NOVO: Usar cache do store
+  const getMessagesFromCache = useConversationsStore(state => state.getMessagesFromCache);
+  const setMessagesInCache = useConversationsStore(state => state.setMessagesInCache);
+  const messageVersion = useConversationsStore(state => state.messageVersion);
 
   const [allMessages, setAllMessages] = useState([]);
   const [displayedMessages, setDisplayedMessages] = useState([]);
@@ -30,15 +21,24 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
 
-  // “forçadores” (se quiser remover depois, ok)
   const [lastUpdate, setLastUpdate] = useState(Date.now());
-  const [messageVersion, setMessageVersion] = useState(0);
 
   const messageListRef = useRef(null);
   const loaderRef = useRef(null);
   const pageRef = useRef(1);
-  const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
+
+  // 🆕 NOVO: Sincronizar com cache do store
+  useEffect(() => {
+    if (!userIdSelecionado) return;
+
+    const cachedMessages = getMessagesFromCache(userIdSelecionado);
+    if (cachedMessages.length > 0) {
+      console.log('🔄 [ChatWindow] Sincronizando com cache do store:', cachedMessages.length);
+      setAllMessages(cachedMessages);
+      updateDisplayedMessages(cachedMessages, pageRef.current);
+    }
+  }, [userIdSelecionado, messageVersion, getMessagesFromCache]);
 
   // ---------- Helpers ----------
   const normalizeMessage = useCallback((msg) => {
@@ -59,53 +59,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     return false;
   }, []);
 
-  const getPossibleOwner = (msg) =>
-    msg?.user_id ??
-    msg?.owner_id ??
-    msg?.client_id ??
-    msg?.chat_id ??
-    msg?.whatsapp_user_id ??
-    msg?.from_user_id ??
-    msg?.to_user_id ??
-    null;
-
-// Substitua a função belongsToCurrent existente por esta versão melhorada:
-
-const belongsToCurrent = useCallback((msg, uid) => {
-  if (!msg || !uid) return false;
-  
-  const candidate = getPossibleOwner(msg);
-  
-  // Se não conseguimos determinar o dono, assumimos que pertence à conversa atual
-  if (candidate == null || candidate === undefined) {
-    console.warn('Mensagem sem owner detectado, assumindo conversa atual:', msg);
-    return true;
-  }
-  
-  const candidateStr = String(candidate);
-  const uidStr = String(uid);
-  
-  // Comparação exata
-  if (candidateStr === uidStr) return true;
-  
-  // Comparação sem prefixos/sufixos (ex: "123" vs "123@whatsapp")
-  const candidateClean = candidateStr.replace(/@.*$/, '');
-  const uidClean = uidStr.replace(/@.*$/, '');
-  
-  if (candidateClean === uidClean) return true;
-  
-  // Log para debug quando rejeitar mensagem
-  console.log('Mensagem rejeitada:', {
-    candidate: candidateStr,
-    uid: uidStr,
-    candidateClean,
-    uidClean,
-    message: msg
-  });
-  
-  return false;
-}, []);
-
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
     const newMessages = messages.slice(startIndex);
@@ -113,44 +66,40 @@ const belongsToCurrent = useCallback((msg, uid) => {
     setHasMoreMessages(startIndex > 0);
     setLastUpdate(Date.now());
 
-    // sempre vai pro fim depois de renderizar a página
     requestAnimationFrame(() => {
       messageListRef.current?.scrollToBottomInstant?.();
     });
   }, []);
 
+  // 🔄 MELHORADO: handleMessageAdded sincroniza com store
   const handleMessageAdded = useCallback((incomingRaw) => {
-    const base = normalizeMessage(incomingRaw);
-    const ownerId = String(getPossibleOwner(base) ?? userIdSelecionado);
-    // garantimos que a mensagem tenha um user_id consistente
-    const incoming = { user_id: ownerId, ...base };
+    const incoming = normalizeMessage(incomingRaw);
+    const uid = String(userIdSelecionado);
 
     setAllMessages(prev => {
       const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
+      let updated;
+      
       if (existingIndex >= 0) {
-        const updated = [...prev];
+        updated = [...prev];
         updated[existingIndex] = { ...updated[existingIndex], ...incoming };
-        messageCacheRef.current.set(ownerId, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        setMessageVersion(v => v + 1);
-        return updated;
+      } else {
+        updated = [...prev, incoming].sort(
+          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+        );
       }
 
-      const updated = [...prev, incoming].sort(
-        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-      );
-      messageCacheRef.current.set(ownerId, updated);
+      // 🆕 Sincronizar com store
+      setMessagesInCache(uid, updated);
       updateDisplayedMessages(updated, pageRef.current);
-      setMessageVersion(v => v + 1);
 
-      // rola pro fim ao entrar nova mensagem
       requestAnimationFrame(() => {
         messageListRef.current?.scrollToBottomSmooth?.();
       });
 
       return updated;
     });
-  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
+  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado, setMessagesInCache]);
 
   // ---------- Carregar dados iniciais ----------
   useEffect(() => {
@@ -160,19 +109,32 @@ const belongsToCurrent = useCallback((msg, uid) => {
 
     const loadInitialData = async () => {
       try {
-        // usa SEMPRE o ID completo
         const uid = String(userIdSelecionado);
+        console.log('🔄 [ChatWindow] Carregando dados para:', uid);
 
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/api/v1/messages/${encodeURIComponent(uid)}`),
-          apiGet(`/api/v1/clientes/${encodeURIComponent(uid)}`),
-          apiGet(`/api/v1/tickets/${encodeURIComponent(uid)}`),
-          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(uid)}`)
+          apiGet(`/api/v1/messages/${encodeURIComponent(uid)}`).catch(err => {
+            console.error('❌ [ChatWindow] Erro em /messages:', err);
+            return [];
+          }),
+          apiGet(`/api/v1/clientes/${encodeURIComponent(uid)}`).catch(err => {
+            console.error('❌ [ChatWindow] Erro em /clientes:', err);
+            return null;
+          }),
+          apiGet(`/api/v1/tickets/${encodeURIComponent(uid)}`).catch(err => {
+            console.error('❌ [ChatWindow] Erro em /tickets:', err);
+            return null;
+          }),
+          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(uid)}`).catch(err => {
+            console.error('❌ [ChatWindow] Erro em /check-24h:', err);
+            return { can_send_freeform: true };
+          })
         ]);
 
         const { status, assigned_to, fila } = ticketRes || {};
+        
         if (status !== 'open' || assigned_to !== userEmail || !userFilas?.includes(fila)) {
-          console.warn('Acesso negado ao ticket deste usuário.');
+          console.warn('❌ [ChatWindow] Acesso negado');
           setCanSendFreeform(false);
           setAllMessages([]);
           setDisplayedMessages([]);
@@ -185,7 +147,10 @@ const belongsToCurrent = useCallback((msg, uid) => {
           .map(normalizeMessage)
           .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        messageCacheRef.current.set(uid, msgsNorm);
+        console.log('✅ [ChatWindow] Mensagens carregadas:', msgsNorm.length);
+
+        // 🆕 Sincronizar com store
+        setMessagesInCache(uid, msgsNorm);
         setAllMessages(msgsNorm);
         updateDisplayedMessages(msgsNorm, 1);
 
@@ -203,12 +168,6 @@ const belongsToCurrent = useCallback((msg, uid) => {
           status,
           content: typeof lastMsg.content === 'string' ? lastMsg.content : (lastMsg.content?.text ?? '')
         });
-
-        try {
-          marcarMensagensAntesDoTicketComoLidas(uid, msgsNorm);
-        } catch (e) {
-          console.warn('Falha ao marcar como lidas:', e);
-        }
 
         setClienteInfo({
           name: clienteRes?.name,
@@ -229,15 +188,19 @@ const belongsToCurrent = useCallback((msg, uid) => {
         } else {
           setCanSendFreeform(true);
         }
+
+        console.log('✅ [ChatWindow] Dados carregados com sucesso');
+        
       } catch (err) {
-        console.error('Erro ao buscar cliente:', err);
+        console.error('❌ [ChatWindow] Erro ao carregar dados:', err);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadInitialData();
-  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage]);
+  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage, setMessagesInCache]);
+
 
   // ---------- Scroll infinito (topo) ----------
   useEffect(() => {
@@ -337,7 +300,7 @@ const belongsToCurrent = useCallback((msg, uid) => {
   }
 
   return (
-    <div className="chat-window" key={`chat-${userIdSelecionado}-${lastUpdate}`}>
+    <div className="chat-window" key={`chat-${userIdSelecionado}-${messageVersion}`}>
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
       <MessageList
