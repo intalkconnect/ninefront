@@ -208,35 +208,33 @@ const handleMessageAdded = useCallback((incomingRaw) => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage]);
 
-  // Configuração SSE
-  useEffect(() => {
-    if (!userIdSelecionado) return;
-    const uid = String(userIdSelecionado);
+// Configuração SSE (ouvir QUALQUER evento)
+useEffect(() => {
+  if (!userIdSelecionado) return;
+  const uid = String(userIdSelecionado);
 
-    const offNew = on('new_message', (raw) => {
-      const msg = normalizeMessage(raw);
-      if (String(msg.user_id) !== uid) return;
-      handleMessageAdded(msg);
-    });
+  const offAny = on('message', (raw) => {
+    // o sse.js já "desembrulha" e reemite tudo em 'message'
+    const msg = normalizeMessage(raw);
 
-    const offStatus = on('message_status', (raw) => {
-      const msg = normalizeMessage(raw);
-      if (String(msg.user_id) !== uid) return;
-      handleMessageAdded(msg);
-    });
+    // só atualiza a thread aberta
+    if (String(msg.user_id) !== uid) return;
 
-    const offUpdate = on('update_message', (raw) => {
-      const msg = normalizeMessage(raw);
-      if (String(msg.user_id) !== uid) return;
-      handleMessageAdded(msg);
-    });
+    // isso cobre: incoming, outgoing ecoado, update, status e system
+    handleMessageAdded(msg);
+  });
 
-    return () => {
-      offNew?.();
-      offStatus?.();
-      offUpdate?.();
-    };
-  }, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
+  // (opcional) manter 'typing' se quiser feedback de digitação
+  const offTyping = on('typing', (payload) => {
+    // tratar typing se precisar...
+  });
+
+  return () => {
+    offAny?.();
+    offTyping?.();
+  };
+}, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
+
 
   // Renderização
   if (!userIdSelecionado) {
