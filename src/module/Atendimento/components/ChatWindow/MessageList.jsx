@@ -16,7 +16,7 @@ import MessageRow from './MessageRow';
  *  - onImageClick, onPdfClick, onReply: callbacks
  *  - loaderRef: ref para scroll infinito (opcional)
  */
-useEffect(() => { console.log('[MessageList] size', visibleMessages.length); }, [visibleMessages.length]);
+
 
 
 const MessageList = forwardRef(
@@ -26,6 +26,8 @@ const MessageList = forwardRef(
     const [prevScrollHeight, setPrevScrollHeight] = useState(0);
 
     const visibleMessages = messages.slice(-visibleCount);
+
+    useEffect(() => { console.log('[MessageList] size', visibleMessages.length); }, [visibleMessages.length]);
 
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
