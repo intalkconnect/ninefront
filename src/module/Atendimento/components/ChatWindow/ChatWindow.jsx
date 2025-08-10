@@ -88,10 +88,10 @@ export default function ChatWindow({ userIdSelecionado }) {
     (async () => {
       try {
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
+          apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/api/v1/clientes/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/api/v1/tickets/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
         ]);
 
         const { status, assigned_to, fila } = ticketRes || {};
@@ -180,7 +180,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
       (async () => {
         try {
-          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
+          const msgs = await apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`);
           const msgsNorm = (msgs || []).map(normalizeMessage).sort(
             (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
           );
