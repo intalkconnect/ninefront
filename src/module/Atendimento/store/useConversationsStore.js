@@ -31,11 +31,7 @@ const useConversationsStore = create((set, get) => ({
 
     set({ selectedUserId: userId });
 
-    try {
-    joinUserRoom(userId, previousId);
-  } catch (e) {
-    console.warn('[socket] joinUserRoom falhou:', e?.message || e);
-  }
+try { joinUserRoom(userId, previousId); } catch {}
 
     if (previousId && previousId !== userId) {
       get().resetUnread(previousId);
