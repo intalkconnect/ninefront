@@ -16,9 +16,9 @@ import { on } from '../../services/sse';
 
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore(state => state.mergeConversation);
-  const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
-  const userEmail = useConversationsStore(state => state.userEmail);
-  const userFilas = useConversationsStore(state => state.userFilas);
+  const setClienteAtivo   = useConversationsStore(state => state.setClienteAtivo);
+  const userEmail         = useConversationsStore(state => state.userEmail);
+  const userFilas         = useConversationsStore(state => state.userFilas);
 
   const [allMessages, setAllMessages] = useState([]);
   const [displayedMessages, setDisplayedMessages] = useState([]);
@@ -30,7 +30,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
 
-  // “forçadores” de re-render quando a lista muda
+  // “forçadores” (se quiser remover depois, ok)
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [messageVersion, setMessageVersion] = useState(0);
 
@@ -40,16 +40,12 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
 
-  // ---------- Helpers de normalização/identificação ----------
+  // ---------- Helpers ----------
   const normalizeMessage = useCallback((msg) => {
     if (!msg) return msg;
     const id = msg.id || msg.message_id;
     const timestamp =
-      msg.timestamp ||
-      msg.created_at ||
-      msg.createdAt ||
-      msg.updated_at ||
-      new Date().toISOString();
+      msg.timestamp || msg.created_at || msg.createdAt || msg.updated_at || new Date().toISOString();
     return { id, ...msg, timestamp };
   }, []);
 
@@ -63,9 +59,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     return false;
   }, []);
 
-  const sameUser = (a, b) => String(a) === String(b);
-
-  // tenta deduzir o "dono" da msg quando o backend varia o campo
   const getPossibleOwner = (msg) =>
     msg?.user_id ??
     msg?.owner_id ??
@@ -76,11 +69,11 @@ export default function ChatWindow({ userIdSelecionado }) {
     msg?.to_user_id ??
     null;
 
-  // se não há dono claro, assumimos que pertence ao chat aberto
+  // compara SEM normalizar (usa o ID completo com @)
   const belongsToCurrent = (msg, uid) => {
     const candidate = getPossibleOwner(msg);
-    if (candidate == null) return true;
-    return sameUser(candidate, uid);
+    if (candidate == null) return true; // se o backend não mandou, assumimos a conversa aberta
+    return String(candidate) === String(uid);
   };
 
   const updateDisplayedMessages = useCallback((messages, page) => {
@@ -88,9 +81,12 @@ export default function ChatWindow({ userIdSelecionado }) {
     const newMessages = messages.slice(startIndex);
     setDisplayedMessages(newMessages);
     setHasMoreMessages(startIndex > 0);
-
-    // Forçar atualização do MessageList
     setLastUpdate(Date.now());
+
+    // sempre vai pro fim depois de renderizar a página
+    requestAnimationFrame(() => {
+      messageListRef.current?.scrollToBottomInstant?.();
+    });
   }, []);
 
   const handleMessageAdded = useCallback((incomingRaw) => {
@@ -116,6 +112,12 @@ export default function ChatWindow({ userIdSelecionado }) {
       messageCacheRef.current.set(ownerId, updated);
       updateDisplayedMessages(updated, pageRef.current);
       setMessageVersion(v => v + 1);
+
+      // rola pro fim ao entrar nova mensagem
+      requestAnimationFrame(() => {
+        messageListRef.current?.scrollToBottomSmooth?.();
+      });
+
       return updated;
     });
   }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
@@ -128,11 +130,14 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     const loadInitialData = async () => {
       try {
+        // usa SEMPRE o ID completo
+        const uid = String(userIdSelecionado);
+
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/api/v1/clientes/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/api/v1/tickets/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
+          apiGet(`/api/v1/messages/${encodeURIComponent(uid)}`),
+          apiGet(`/api/v1/clientes/${encodeURIComponent(uid)}`),
+          apiGet(`/api/v1/tickets/${encodeURIComponent(uid)}`),
+          apiGet(`/api/v1/messages/check-24h/${encodeURIComponent(uid)}`)
         ]);
 
         const { status, assigned_to, fila } = ticketRes || {};
@@ -146,30 +151,31 @@ export default function ChatWindow({ userIdSelecionado }) {
           return;
         }
 
-        const msgsNorm = (msgRes || []).map(normalizeMessage).sort(
-          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
-        );
+        const msgsNorm = (msgRes || [])
+          .map(normalizeMessage)
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-        messageCacheRef.current.set(String(userIdSelecionado), msgsNorm);
+        messageCacheRef.current.set(uid, msgsNorm);
         setAllMessages(msgsNorm);
         updateDisplayedMessages(msgsNorm, 1);
 
         const lastMsg = msgsNorm[msgsNorm.length - 1] || {};
-        mergeConversation(String(userIdSelecionado), {
+        mergeConversation(uid, {
           channel: lastMsg.channel || clienteRes?.channel,
           ticket_number: clienteRes?.ticket_number || '000000',
           fila: clienteRes?.fila || fila,
-          name: clienteRes?.name || String(userIdSelecionado),
+          name: clienteRes?.name || uid,
           email: clienteRes?.email || '',
           phone: clienteRes?.phone || '',
           documento: clienteRes?.document || '',
-          user_id: clienteRes?.user_id || String(userIdSelecionado),
+          user_id: uid,
           assigned_to,
           status,
+          content: typeof lastMsg.content === 'string' ? lastMsg.content : (lastMsg.content?.text ?? '')
         });
 
         try {
-          marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgsNorm);
+          marcarMensagensAntesDoTicketComoLidas(uid, msgsNorm);
         } catch (e) {
           console.warn('Falha ao marcar como lidas:', e);
         }
@@ -208,8 +214,14 @@ export default function ChatWindow({ userIdSelecionado }) {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
         pageRef.current += 1;
-        const cached = messageCacheRef.current.get(String(userIdSelecionado)) || [];
+        const uid = String(userIdSelecionado);
+        const cached = messageCacheRef.current.get(uid) || [];
         updateDisplayedMessages(cached, pageRef.current);
+
+        // mesmo paginando pelo topo, mantemos no fim
+        requestAnimationFrame(() => {
+          messageListRef.current?.scrollToBottomInstant?.();
+        });
       }
     }, { threshold: 0.1 });
 
@@ -217,18 +229,19 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // ---------- Refetch ao voltar foco (sincronismo) ----------
+  // ---------- Refetch ao voltar foco ----------
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
       (async () => {
         try {
-          const msgs = await apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`);
+          const uid = String(userIdSelecionado);
+          const msgs = await apiGet(`/api/v1/messages/${encodeURIComponent(uid)}`);
           const msgsNorm = (msgs || []).map(normalizeMessage).sort(
             (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
           );
           setAllMessages(msgsNorm);
-          messageCacheRef.current.set(String(userIdSelecionado), msgsNorm);
+          messageCacheRef.current.set(uid, msgsNorm);
           updateDisplayedMessages(msgsNorm, pageRef.current);
         } catch (err) {
           console.error('Erro ao recarregar mensagens:', err);
@@ -239,7 +252,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage]);
 
-  // ---------- SSE: agora “relaxado” e robusto ----------
+  // ---------- SSE ----------
   useEffect(() => {
     if (!userIdSelecionado) return;
     const uid = String(userIdSelecionado);
@@ -248,17 +261,13 @@ export default function ChatWindow({ userIdSelecionado }) {
       const msg = normalizeMessage(raw);
       if (!belongsToCurrent(msg, uid)) return;
 
-      // Se o evento vier sem user_id, forçamos para a conversa aberta:
-      // msg.user_id = uid; // <— deixe assim comentado para você ligar/desligar ao testar
+      // se quiser garantir que SEMPRE tenha o user_id completo, descomente:
+      // msg.user_id = uid; // <— DEIXADO COMENTADO DE PROPÓSITO
 
-      // Mantém Sidebar sincronizado: atualiza o “card” com resumo
       try {
         mergeConversation(uid, {
           user_id: uid,
-          content:
-            typeof msg.content === 'string'
-              ? msg.content
-              : (msg.content?.text ?? ''),
+          content: typeof msg.content === 'string' ? msg.content : (msg.content?.text ?? ''),
           timestamp: msg.timestamp,
           channel: msg.channel,
         });
@@ -271,11 +280,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     const offStatus = on('message_status', wrap);
     const offUpdate = on('update_message', wrap);
 
-    return () => {
-      offNew?.();
-      offStatus?.();
-      offUpdate?.();
-    };
+    return () => { offNew?.(); offStatus?.(); offUpdate?.(); };
   }, [userIdSelecionado, normalizeMessage, handleMessageAdded, mergeConversation]);
 
   // ---------- Render ----------
