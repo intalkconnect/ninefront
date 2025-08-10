@@ -71,35 +71,40 @@ export default function ChatWindow({ userIdSelecionado }) {
 
 // Substitua a função belongsToCurrent existente por esta versão melhorada:
 
-const normalizeUserId = useCallback((id) => {
-  if (!id) return id;
-  const str = String(id);
-  // Remove sufixos como @whatsapp, @telegram, etc.
-  return str.replace(/@.*$/, '');
-}, []);
-
-// E modifique o belongsToCurrent para usar normalização:
-
 const belongsToCurrent = useCallback((msg, uid) => {
   if (!msg || !uid) return false;
   
   const candidate = getPossibleOwner(msg);
   
+  // Se não conseguimos determinar o dono, assumimos que pertence à conversa atual
   if (candidate == null || candidate === undefined) {
-    return true; // Assumir que pertence à conversa atual se não conseguir determinar
+    console.warn('Mensagem sem owner detectado, assumindo conversa atual:', msg);
+    return true;
   }
   
-  const normalizedCandidate = normalizeUserId(candidate);
-  const normalizedUid = normalizeUserId(uid);
+  const candidateStr = String(candidate);
+  const uidStr = String(uid);
   
-  console.log('Comparando IDs normalizados:', {
-    original: { candidate, uid },
-    normalized: { candidate: normalizedCandidate, uid: normalizedUid },
-    match: normalizedCandidate === normalizedUid
+  // Comparação exata
+  if (candidateStr === uidStr) return true;
+  
+  // Comparação sem prefixos/sufixos (ex: "123" vs "123@whatsapp")
+  const candidateClean = candidateStr.replace(/@.*$/, '');
+  const uidClean = uidStr.replace(/@.*$/, '');
+  
+  if (candidateClean === uidClean) return true;
+  
+  // Log para debug quando rejeitar mensagem
+  console.log('Mensagem rejeitada:', {
+    candidate: candidateStr,
+    uid: uidStr,
+    candidateClean,
+    uidClean,
+    message: msg
   });
   
-  return normalizedCandidate === normalizedUid;
-}, [normalizeUserId]);
+  return false;
+}, []);
 
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
