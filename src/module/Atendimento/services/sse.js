@@ -46,7 +46,7 @@ export function connectSSE(initialRooms = []) {
   if (es) { try { es.close(); } catch {} es = null; }
   currentRooms = Array.from(new Set(initialRooms)).filter(Boolean);
   if (currentRooms.length === 0) currentRooms = ['broadcast'];
-
+console.log('[SSE] connectSSE rooms ->', currentRooms);
   const url = buildUrl(currentRooms);
   es = new EventSource(url, { withCredentials: false });
 
@@ -55,7 +55,9 @@ export function connectSSE(initialRooms = []) {
 
   // eventos nomeados
   es.addEventListener('ready', (e) => {
-    try { emitLocal('ready', JSON.parse(e.data)); }
+    try {+   const data = JSON.parse(e.data);
+   console.log('[SSE] READY from server ->', data);
+   emitLocal('ready', data); }
     catch { emitLocal('ready', {}); }
   });
 
