@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiGet, apiPut } from '../services/apiClient';
-import { joinUserRoom } from '../services/socket';
+import { joinUserRoom } from '../services/sse';
 
 const useConversationsStore = create((set, get) => ({
   conversations: {},
