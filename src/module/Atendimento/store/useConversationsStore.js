@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiGet, apiPut } from '../services/apiClient';
-import { joinUserRoom } from '../services/sse';
+import { joinUserRoom, on } from '../services/sse';
 
 const useConversationsStore = create((set, get) => ({
   conversations: {},
@@ -12,26 +12,174 @@ const useConversationsStore = create((set, get) => ({
   userFilas: [],
   agentName: null,
   settings: [],
-  socketStatus: 'online',          // estado da conexão com o socket
-  setSocketStatus: (status) => set({ socketStatus: status }),
+  socketStatus: 'online',
+  
+  // 🆕 NOVO: Cache de mensagens por usuário (para sincronizar com ChatWindow)
+  messagesCache: {},
+  
+  // 🆕 NOVO: Versão para forçar re-renders
+  messageVersion: 0,
+  
+  // 🆕 NOVO: Listeners SSE
+  sseListeners: [],
 
+  setSocketStatus: (status) => set({ socketStatus: status }),
   setSettings: (data) => set({ settings: data }),
+  
   getSettingValue: (key) => {
     const found = get().settings.find(s => s.key === key);
     return found ? found.value : null;
   },
 
-  // Configura email e filas do usuário
-  setUserInfo: ({ email, filas, name }) => set({ userEmail: email, userFilas: filas, agentName: name }),
+  setUserInfo: ({ email, filas, name }) => {
+    set({ userEmail: email, userFilas: filas, agentName: name });
+    
+    // 🆕 Configurar listeners SSE quando temos as informações do usuário
+    if (email && filas?.length > 0) {
+      get().setupSSEListeners();
+    }
+  },
 
-  // Atualiza conversa selecionada, zera não lidas do atual e do anterior
+  // 🆕 NOVO: Configurar listeners SSE globais
+  setupSSEListeners: () => {
+    const { sseListeners, handleSSEMessage } = get();
+    
+    // Evitar listeners duplicados
+    if (sseListeners.length > 0) {
+      console.log('🔌 [Store] SSE listeners já configurados');
+      return;
+    }
+
+    console.log('🔌 [Store] Configurando listeners SSE globais');
+
+    const newListeners = [
+      on('new_message', handleSSEMessage),
+      on('message_status', handleSSEMessage),
+      on('update_message', handleSSEMessage),
+    ];
+
+    set({ sseListeners: newListeners });
+  },
+
+  // 🆕 NOVO: Handler central para mensagens SSE
+  handleSSEMessage: (messageData) => {
+    console.log('📨 [Store] Mensagem SSE recebida:', messageData);
+    
+    if (!messageData || !messageData.user_id) {
+      console.log('❌ [Store] Mensagem SSE inválida');
+      return;
+    }
+
+    const { userEmail, userFilas, selectedUserId } = get();
+    const userId = String(messageData.user_id);
+
+    // Verificar se a mensagem é para este agente
+    const conv = get().conversations[userId];
+    const assignedToMe = messageData.assigned_to 
+      ? messageData.assigned_to === userEmail
+      : (conv?.assigned_to ? conv.assigned_to === userEmail : false);
+      
+    const inMyQueue = messageData.fila 
+      ? userFilas.includes(messageData.fila)
+      : (conv?.fila ? userFilas.includes(conv.fila) : false);
+
+    if (!assignedToMe || !inMyQueue) {
+      console.log('❌ [Store] Mensagem não é para este agente');
+      return;
+    }
+
+    // Atualizar conversa
+    get().mergeConversation(userId, {
+      content: typeof messageData.content === 'string' 
+        ? messageData.content 
+        : (messageData.content?.text ?? ''),
+      timestamp: messageData.timestamp,
+      channel: messageData.channel,
+      assigned_to: messageData.assigned_to,
+      fila: messageData.fila,
+    });
+
+    // 🆕 Adicionar mensagem ao cache
+    get().addMessageToCache(userId, messageData);
+
+    // Incrementar não lidas se não for a conversa ativa
+    if (messageData.direction !== 'outgoing' && userId !== selectedUserId) {
+      get().incrementUnread(userId, messageData.timestamp);
+    }
+
+    console.log('✅ [Store] Mensagem SSE processada');
+  },
+
+  // 🆕 NOVO: Adicionar mensagem ao cache
+  addMessageToCache: (userId, message) => {
+    set((state) => {
+      const currentMessages = state.messagesCache[userId] || [];
+      const messageId = message.id || message.message_id;
+      
+      // Evitar duplicatas
+      const exists = currentMessages.find(m => 
+        (m.id && m.id === messageId) || 
+        (m.message_id && m.message_id === messageId)
+      );
+      
+      if (exists) {
+        console.log('🔄 [Store] Atualizando mensagem existente');
+        return {
+          messagesCache: {
+            ...state.messagesCache,
+            [userId]: currentMessages.map(m => 
+              ((m.id && m.id === messageId) || (m.message_id && m.message_id === messageId))
+                ? { ...m, ...message }
+                : m
+            ),
+          },
+          messageVersion: state.messageVersion + 1,
+        };
+      }
+
+      console.log('🆕 [Store] Adicionando nova mensagem ao cache');
+      const updatedMessages = [...currentMessages, message]
+        .sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+
+      return {
+        messagesCache: {
+          ...state.messagesCache,
+          [userId]: updatedMessages,
+        },
+        messageVersion: state.messageVersion + 1,
+      };
+    });
+  },
+
+  // 🆕 NOVO: Obter mensagens do cache
+  getMessagesFromCache: (userId) => {
+    return get().messagesCache[userId] || [];
+  },
+
+  // 🆕 NOVO: Definir mensagens no cache (para sincronizar com ChatWindow)
+  setMessagesInCache: (userId, messages) => {
+    set((state) => ({
+      messagesCache: {
+        ...state.messagesCache,
+        [userId]: messages,
+      },
+      messageVersion: state.messageVersion + 1,
+    }));
+  },
+
+  // 🔄 MELHORADO: setSelectedUserId com notificação SSE
   setSelectedUserId: async (userId) => {
     const previousId = get().selectedUserId;
     const now = new Date().toISOString();
 
     set({ selectedUserId: userId });
 
-try { joinUserRoom(userId, previousId); } catch {}
+    try { 
+      joinUserRoom(userId, previousId); 
+      console.log('🏠 [Store] Room SSE atualizada para:', userId);
+    } catch (err) {
+      console.error('❌ [Store] Erro ao atualizar room SSE:', err);
+    }
 
     if (previousId && previousId !== userId) {
       get().resetUnread(previousId);
@@ -41,7 +189,6 @@ try { joinUserRoom(userId, previousId); } catch {}
     get().resetUnread(userId);
     get().clearNotified(userId);
 
-    // Atualiza visualmente
     set((state) => ({
       lastRead: {
         ...state.lastRead,
@@ -53,13 +200,10 @@ try { joinUserRoom(userId, previousId); } catch {}
       },
     }));
 
-    // Marcar como lido no backend
     try {
       await apiPut(`/api/v1/messages/read-status/${userId}`, {
         last_read: now,
       });
-
-      // 🔁 Atualiza contagens do backend após marcar como lido
       await get().loadUnreadCounts();
     } catch (err) {
       console.error('Erro ao marcar como lido:', err);
@@ -67,34 +211,39 @@ try { joinUserRoom(userId, previousId); } catch {}
   },
 
   setConversation: (userId, newData) =>
-  set((state) => ({
-    conversations: {
-      ...state.conversations,
-      [userId]: {
-        ...(state.conversations[userId] || {}),
-        ...newData,
-      },
-    },
-  })),
-
-  appendMessage: (userId, msg) =>
-  set((state) => {
-    const prevConv = state.conversations[userId] || {};
-    const prevMsgs = prevConv.messages || [];
-    return {
+    set((state) => ({
       conversations: {
         ...state.conversations,
         [userId]: {
-          ...prevConv,
-          messages: [...prevMsgs, msg], // novo array -> dispara render
+          ...(state.conversations[userId] || {}),
+          ...newData,
         },
       },
-    };
-  }),
+    })),
 
+  // 🔄 MELHORADO: appendMessage agora atualiza o cache também
+  appendMessage: (userId, msg) => {
+    console.log('📝 [Store] appendMessage chamado para:', userId);
+    
+    set((state) => {
+      const prevConv = state.conversations[userId] || {};
+      const prevMsgs = prevConv.messages || [];
+      
+      return {
+        conversations: {
+          ...state.conversations,
+          [userId]: {
+            ...prevConv,
+            messages: [...prevMsgs, msg],
+          },
+        },
+      };
+    });
 
+    // 🆕 Também adicionar ao cache
+    get().addMessageToCache(userId, msg);
+  },
 
-  // Zera contagem de não lidas
   resetUnread: (userId) =>
     set((state) => ({
       unreadCounts: {
@@ -107,17 +256,12 @@ try { joinUserRoom(userId, previousId); } catch {}
       },
     })),
 
-  // Incrementa contagem de não lidas
   incrementUnread: (userId, messageTimestamp) => {
     const { lastRead, unreadCounts } = get();
-
     const last = lastRead[userId] ? new Date(lastRead[userId]) : null;
     const current = new Date(messageTimestamp);
 
-    if (last && current <= last) {
-      // Já foi lida
-      return;
-    }
+    if (last && current <= last) return;
 
     set({
       unreadCounts: {
@@ -129,7 +273,6 @@ try { joinUserRoom(userId, previousId); } catch {}
 
   setClienteAtivo: (info) => set({ clienteAtivo: info }),
 
-  // Adiciona ou atualiza dados de conversa
   mergeConversation: (userId, data) =>
     set((state) => ({
       conversations: {
@@ -141,10 +284,8 @@ try { joinUserRoom(userId, previousId); } catch {}
       },
     })),
 
-  // Retorna nome do contato ou ID
   getContactName: (userId) => get().conversations[userId]?.name || userId,
 
-  // Carrega contagem de não lidas do servidor
   loadUnreadCounts: async () => {
     try {
       const data = await apiGet('/api/v1/messages/unread-counts');
@@ -158,7 +299,6 @@ try { joinUserRoom(userId, previousId); } catch {}
     }
   },
 
-  // Carrega timestamps de leitura do servidor
   loadLastReadTimes: async () => {
     try {
       const data = await apiGet('/api/v1/messages/read-status');
@@ -172,7 +312,6 @@ try { joinUserRoom(userId, previousId); } catch {}
     }
   },
 
-  // Filtra conversas ativas e atribuídas
   getFilteredConversations: () => {
     const { conversations, userEmail, userFilas } = get();
     return Object.fromEntries(
@@ -201,6 +340,23 @@ try { joinUserRoom(userId, previousId); } catch {}
       return { notifiedConversations: updated };
     }),
 
+  // 🆕 NOVO: Cleanup ao desmontar
+  cleanup: () => {
+    const { sseListeners } = get();
+    console.log('🧹 [Store] Limpando listeners SSE');
+    
+    sseListeners.forEach(unsubscribe => {
+      try {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      } catch (err) {
+        console.error('Erro ao limpar listener:', err);
+      }
+    });
+
+    set({ sseListeners: [] });
+  },
 }));
 
 export default useConversationsStore;
