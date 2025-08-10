@@ -37,11 +37,12 @@ const MessageList = forwardRef(
     }));
 
     // Scroll automático ao mudar mensagens visíveis
- useEffect(() => {
-   if (containerRef.current) {
-     containerRef.current.scrollTop = containerRef.current.scrollHeight;
-   }
- }, [visibleMessages]);
+useEffect(() => {
+  if (!containerRef.current) return;
+  const el = containerRef.current;
+  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  if (nearBottom) el.scrollTop = el.scrollHeight;
+}, [visibleMessages.length]);
 
     // Scroll automático ao voltar aba
     useEffect(() => {
@@ -119,7 +120,7 @@ const MessageList = forwardRef(
           );
 
           return (
-            <React.Fragment key={msg.id || index}>
+            <React.Fragment key={msg.id || `${msg.timestamp}-${index}`}>
               {showTicketDivider && (
                 <div className="ticket-divider">Ticket #{msg.ticket_number}</div>
               )}
