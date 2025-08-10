@@ -12,7 +12,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     if (!userIdSelecionado) return;
 
     setLoadingHistorico(true);
-    apiGet(`/tickets/user/${userIdSelecionado}`)
+    apiGet(`/api/v1/tickets/user/${userIdSelecionado}`)
       .then(res => {
         setHistorico(res?.tickets || []);
       })
