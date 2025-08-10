@@ -118,7 +118,7 @@ export default function Atendimento() {
       }
 
       const isFromMe = message.direction === "outgoing";
-      const isActiveChat = message.user_id === selectedUserId;
+      const isActiveChat = String(message.user_id) === String(selectedUserId);
       const isWindowFocused = isWindowActiveRef.current;
 
       mergeConversation(message.user_id, {
