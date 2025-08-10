@@ -122,8 +122,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
 
     // limpa antes de registrar para evitar duplicação
-    socket.off('new_message');
-    socket.off('update_message');
     socket.on('new_message', onNew);
     socket.on('update_message', onUpdate);
 
@@ -255,10 +253,6 @@ export default function ChatWindow({ userIdSelecionado }) {
 
       const socket = getSocket();
       if (!socket.connected) socket.connect();
-
-      // limpar e re-registrar handlers
-      socket.off('new_message');
-      socket.off('update_message');
 
       const onNew = (raw) => {
         const msg = normalizeMessage(raw);
