@@ -202,6 +202,8 @@ export default function ChatWindow({ userIdSelecionado }) {
     const uid = String(userIdSelecionado);
 
     const offNew = on('new_message', (raw) => {
+      console.log('[SSE:new_message]', { uid, msgUser: msg.user_id, text: msg.content?.text || msg.content });
+
       const msg = normalizeMessage(raw);
       // se o backend não mandar user_id, caímos pro selecionado
       const owner = String(msg.user_id ?? uid);
