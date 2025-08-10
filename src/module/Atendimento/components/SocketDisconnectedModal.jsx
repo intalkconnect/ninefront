@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import './SocketDisconnectedModal.css';
-import { getSocket } from '../services/socket';
+import { connectSSE } from '../services/sse';
 import { apiPut } from '../services/apiClient';
 import useConversationsStore from '../store/useConversationsStore';
 
@@ -55,11 +55,9 @@ const waitForSessionAndUpdate = (sessionId, status) => {
   }, [setSocketStatus]);
 
   const reconectar = () => {
-    const socket = getSocket();
-    if (!socket.connected) {
-      socket.connect();
-      socket.emit('join_room', socket.id);
-    }
+    connectSSE(['broadcast']); // volta a ouvir o canal base
+    setSocketStatus('online');
+    waitForSessionAndUpdate(sessionId, 'online');
   };
 
   if (socketStatus !== 'offline') return null;
