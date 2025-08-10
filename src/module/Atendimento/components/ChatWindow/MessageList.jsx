@@ -16,6 +16,8 @@ import MessageRow from './MessageRow';
  *  - onImageClick, onPdfClick, onReply: callbacks
  *  - loaderRef: ref para scroll infinito (opcional)
  */
+useEffect(() => { console.log('[MessageList] size', visibleMessages.length); }, [visibleMessages.length]);
+
 
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
