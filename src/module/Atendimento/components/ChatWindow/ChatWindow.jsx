@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { connectSocket, getSocket } from '../../services/socket';
 import { apiGet } from '../../services/apiClient';
 import useConversationsStore from '../../store/useConversationsStore';
-import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage';
+import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage'; // ajuste o path se necessário
+
 
 import SendMessageForm from '../SendMessageForm/SendMessageForm';
 import MessageList from './MessageList';
@@ -12,196 +14,236 @@ import ChatHeader from './ChatHeader';
 import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
-import { joinUserRoom } from '../../services/sse';
-
 export default function ChatWindow({ userIdSelecionado }) {
-  // ----- Store
-  const setConversation  = useConversationsStore(s => s.setConversation);
-  const mergeConversation = useConversationsStore(s => s.mergeConversation);
-  const setClienteAtivo  = useConversationsStore(s => s.setClienteAtivo);
-  const userEmail        = useConversationsStore(s => s.userEmail);
-  const userFilas        = useConversationsStore(s => s.userFilas);
+  const mergeConversation = useConversationsStore(state => state.mergeConversation);
+  const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
 
-  // IMPORTANTe: evite retornar {} novo a cada render quando não há conversa
-  const conversation = useConversationsStore(
-    s => (userIdSelecionado ? s.conversations?.[String(userIdSelecionado)] ?? null : null)
-  );
-  const messagesFromStore = conversation?.messages ?? [];
-
-  // ----- UI
-  const [modalImage, setModalImage]   = useState(null);
-  const [pdfModal, setPdfModal]       = useState(null);
+  const [allMessages, setAllMessages] = useState([]);
+  const [displayedMessages, setDisplayedMessages] = useState([]);
+  const [modalImage, setModalImage] = useState(null);
+  const [pdfModal, setPdfModal] = useState(null);
   const [clienteInfo, setClienteInfo] = useState(null);
-  const [isLoading, setIsLoading]     = useState(false);
-  const [replyTo, setReplyTo]         = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
 
+
+  const userEmail = useConversationsStore(state => state.userEmail);
+  const userFilas = useConversationsStore(state => state.userFilas);
+
   const messageListRef = useRef(null);
+  const loaderRef = useRef(null);
+  const socketRef = useRef(null);
+  const pageRef = useRef(1);
+  const messageCacheRef = useRef(new Map());
+  const messagesPerPage = 100;
 
-  // ----- Helpers
-  const normalizeMessage = useCallback((msg) => {
-    if (!msg) return msg;
-    const id = msg.id || msg.message_id;
-    const timestamp =
-      msg.timestamp || msg.created_at || msg.createdAt || msg.updated_at || new Date().toISOString();
-    return { id, ...msg, timestamp };
+  // Atualiza mensagens exibidas conforme paginação
+  const updateDisplayedMessages = useCallback((messages, page) => {
+    const startIndex = Math.max(0, messages.length - page * messagesPerPage);
+    const newMessages = messages.slice(startIndex);
+    setDisplayedMessages(newMessages);
+    setHasMoreMessages(startIndex > 0);
   }, []);
 
-  const buildKey = useCallback((m) => {
-    const contentStr =
-      typeof m?.content === 'string'
-        ? m.content
-        : (m?.content?.text ?? (m?.content ? JSON.stringify(m.content) : ''));
-    return (
-      m?.id ||
-      m?.message_id ||
-      m?.whatsapp_message_id ||
-      `${m?.timestamp || ''}-${m?.direction || ''}-${(contentStr || '').slice(0, 64)}`
-    );
-  }, []);
-
-  // Upsert de mensagens na STORE em lote (ou unitário)
-  const upsertMessages = useCallback((uidStr, incomingRaw) => {
-    const incoming = Array.isArray(incomingRaw) ? incomingRaw : [incomingRaw];
-    const norm = incoming.map(normalizeMessage);
-
-    const state = useConversationsStore.getState();
-    const prev  = state.conversations?.[uidStr]?.messages || [];
-
-    const map = new Map();
-    for (const m of prev) map.set(buildKey(m), m);
-    for (const m of norm) {
-      const k = buildKey(m);
-      map.set(k, { ...map.get(k), ...m }); // overwrite/merge
-    }
-    const merged = Array.from(map.values()).sort(
-      (a, b) => new Date(a?.timestamp || 0) - new Date(b?.timestamp || 0)
-    );
-
-    // 1 só set na store -> evita cascata de renders
-    setConversation(uidStr, { messages: merged });
-  }, [setConversation, normalizeMessage, buildKey]);
-
-  // Ordenação final só para passar ao filho (ele próprio tem paginação)
-  const messagesSorted = useMemo(() => {
-    const arr = messagesFromStore.slice();
-    arr.sort((a, b) => new Date(a?.timestamp || 0) - new Date(b?.timestamp || 0));
-    return arr;
-  }, [messagesFromStore]);
-
-  // ----- SSE: entrar na sala do usuário
+  // 1. Sempre inicialize socket e listeners corretamente
   useEffect(() => {
-    if (!userIdSelecionado) return;
-    const uid = String(userIdSelecionado);
-    console.log('[SSE][ChatWindow] joinUserRoom ->', uid);
-    joinUserRoom(uid);
+    connectSocket(); // Garante singleton e conecta se necessário
+    const socket = getSocket();
+    socketRef.current = socket;
+
+    // Listeners de mensagem
+    const handleNew = (msg) => {
+      if (msg.user_id !== userIdSelecionado) return;
+      setAllMessages(prev => {
+        if (prev.find(m => m.id === msg.id)) return prev;
+        const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        messageCacheRef.current.set(msg.user_id, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+    };
+    const handleUpdate = (msg) => {
+      if (msg.user_id !== userIdSelecionado) return;
+      setAllMessages(prev => {
+        const updated = prev.map(m => m.id === msg.id ? msg : m);
+        messageCacheRef.current.set(msg.user_id, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+    };
+
+    // Remove e adiciona listeners SEMPRE (evita duplicação)
+    socket.off('new_message', handleNew);
+    socket.off('update_message', handleUpdate);
+    socket.on('new_message', handleNew);
+    socket.on('update_message', handleUpdate);
+
+    return () => {
+      socket.off('new_message', handleNew);
+      socket.off('update_message', handleUpdate);
+    };
+  }, [userIdSelecionado, updateDisplayedMessages]);
+
+  // 2. join_room ao trocar de usuário selecionado
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !userIdSelecionado) return;
+    socket.emit('join_room', userIdSelecionado);
+    return () => {
+      socket.emit('leave_room', userIdSelecionado);
+    };
   }, [userIdSelecionado]);
 
-  // ----- Fetch inicial: cliente/ticket/mensagens -> upsert em lote
+  // 3. join_room ao reconectar
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+    const handleReconnect = () => {
+      if (userIdSelecionado) {
+        socket.emit('join_room', userIdSelecionado);
+      }
+    };
+    socket.on('connect', handleReconnect);
+    return () => {
+      socket.off('connect', handleReconnect);
+    };
+  }, [userIdSelecionado]);
+
+  // 4. Carrega as mensagens iniciais ao selecionar usuário
   useEffect(() => {
     if (!userIdSelecionado) return;
+    pageRef.current = 1;
     setIsLoading(true);
 
-    const load = async () => {
+    (async () => {
       try {
-        const uidStr = String(userIdSelecionado);
-        const uidEnc = encodeURIComponent(userIdSelecionado);
-
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/api/v1/messages/${uidEnc}`),
-          apiGet(`/api/v1/clientes/${uidEnc}`),
-          apiGet(`/api/v1/tickets/${uidEnc}`),
-          apiGet(`/api/v1/messages/check-24h/${uidEnc}`)
+          apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
         ]);
 
-        const { status, assigned_to, fila } = ticketRes || {};
-        if (status !== 'open' || assigned_to !== userEmail || !userFilas?.includes(fila)) {
+        const { status, assigned_to, fila } = ticketRes;
+        if (status !== 'open' || assigned_to !== userEmail || !userFilas.includes(fila)) {
           console.warn('Acesso negado ao ticket deste usuário.');
-          setCanSendFreeform(false);
-          setClienteInfo(null);
-          setClienteAtivo(null);
           return;
         }
 
-        upsertMessages(uidStr, msgRes || []);
+        const msgs = msgRes;
+        messageCacheRef.current.set(userIdSelecionado, msgs);
+        setAllMessages(msgs);
+        updateDisplayedMessages(msgs, 1);
 
-        const lastMsg = (msgRes && msgRes[msgRes.length - 1]) || {};
-        mergeConversation(uidStr, {
-          channel: lastMsg.channel || clienteRes?.channel || 'desconhecido',
-          ticket_number: clienteRes?.ticket_number || '000000',
-          fila: clienteRes?.fila || fila || 'Orçamento',
-          name: clienteRes?.name || uidStr,
-          email: clienteRes?.email || '',
-          phone: clienteRes?.phone || '',
-          documento: clienteRes?.document || '',
-          user_id: clienteRes?.user_id || uidStr,
-          assigned_to,
-          status,
-        });
+        const lastMsg = msgs[msgs.length - 1] || {};
+mergeConversation(userIdSelecionado, {
+  channel: lastMsg.channel || clienteRes.channel || 'desconhecido',
+  ticket_number: clienteRes.ticket_number || '000000',
+  fila: clienteRes.fila || fila || 'Orçamento',
+  name: clienteRes.name || userIdSelecionado,
+  email: clienteRes.email || '',
+  phone: clienteRes.phone || '',
+  documento: clienteRes.document || '',
+  user_id: clienteRes.user_id || userIdSelecionado,
+  assigned_to,
+  status,
+});
 
-        try {
-          const norm = (msgRes || []).map(normalizeMessage);
-          marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, norm);
-        } catch (e) {
-          console.warn('Falha ao marcar como lidas:', e);
-        }
+
+marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
 
         setClienteInfo({
-          name: clienteRes?.name,
-          phone: clienteRes?.phone,
-          channel: clienteRes?.channel,
-          ticket_number: clienteRes?.ticket_number,
-          fila: clienteRes?.fila,
-          assigned_to,
-          status,
+          name: clienteRes.name,
+          phone: clienteRes.phone,
+          channel: clienteRes.channel,
+          ticket_number: clienteRes.ticket_number,
+          fila: clienteRes.fila,
+          assigned_to, status,
         });
-        setClienteAtivo(clienteRes || null);
 
-        if (check24hRes && typeof check24hRes.can_send_freeform === 'boolean') {
-          setCanSendFreeform(!!check24hRes.can_send_freeform);
-        } else if (typeof check24hRes === 'boolean') {
-          setCanSendFreeform(!!check24hRes);
-        } else {
-          setCanSendFreeform(true);
-        }
+        setClienteAtivo(clienteRes);
       } catch (err) {
         console.error('Erro ao buscar cliente:', err);
       } finally {
         setIsLoading(false);
       }
-    };
+    })();
+  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo]);
 
-    load();
-  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, setClienteAtivo, normalizeMessage, upsertMessages]);
-
-  // ----- Refetch ao voltar a aba visível -> upsert em lote
+  // 5. Scroll infinito ao chegar no topo
   useEffect(() => {
-    const onVis = async () => {
-      if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
-      try {
-        const uidStr = String(userIdSelecionado);
-        const uidEnc = encodeURIComponent(userIdSelecionado);
-        const msgs = await apiGet(`/api/v1/messages/${uidEnc}`);
-        upsertMessages(uidStr, msgs || []);
-      } catch (err) {
-        console.error('Erro ao recarregar mensagens:', err);
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMoreMessages) {
+        pageRef.current += 1;
+        const cached = messageCacheRef.current.get(userIdSelecionado) || [];
+        updateDisplayedMessages(cached, pageRef.current);
       }
-    };
-    document.addEventListener('visibilitychange', onVis);
-    return () => document.removeEventListener('visibilitychange', onVis);
-  }, [userIdSelecionado, upsertMessages]);
+    }, { threshold: 0.1 });
 
-  // ----- Envio otimista (1 msg): upsert unitário + scroll
-  const handleMessageAdded = useCallback((raw) => {
-    const uidStr = String(raw?.user_id || userIdSelecionado);
-    upsertMessages(uidStr, raw);
-    if (messageListRef.current) {
-      messageListRef.current.setAutoScrollEnabled(true);
-      messageListRef.current.scrollToBottomSmooth();
+    if (loaderRef.current) observer.observe(loaderRef.current);
+    return () => loaderRef.current && observer.disconnect();
+  }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
+
+  // 6. (Opcional) Recarrega mensagens do usuário ao voltar para aba
+useEffect(() => {
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible" && userIdSelecionado) {
+      // 1. Reconecta o socket (ele não perde eventos!)
+      const socket = getSocket();
+      if (!socket.connected) socket.connect();
+
+      // 2. Limpa e readiciona os listeners SEMPRE (garante que não ficaram “travados”)
+      socket.off('new_message');
+      socket.off('update_message');
+
+      socket.on('new_message', handleNewMessage);
+      socket.on('update_message', handleUpdateMessage);
+
+      // 3. Faz fetch dos dados, garantindo atualização
+      (async () => {
+        try {
+          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
+          setAllMessages(msgs);
+          updateDisplayedMessages(msgs, pageRef.current);
+        } catch (err) {
+          console.error('Erro ao recarregar mensagens:', err);
+        }
+      })();
     }
-  }, [upsertMessages, userIdSelecionado]);
+  };
 
-  // ----- Render
+  // Funções listeners precisam ser visíveis aqui
+  function handleNewMessage(msg) {
+    if (msg.user_id !== userIdSelecionado) return;
+    setAllMessages(prev => {
+      if (prev.find(m => m.id === msg.id)) return prev;
+      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      messageCacheRef.current.set(msg.user_id, updated);
+      updateDisplayedMessages(updated, pageRef.current);
+      return updated;
+    });
+  }
+
+  function handleUpdateMessage(msg) {
+    if (msg.user_id !== userIdSelecionado) return;
+    setAllMessages(prev => {
+      const updated = prev.map(m => m.id === msg.id ? msg : m);
+      messageCacheRef.current.set(msg.user_id, updated);
+      updateDisplayedMessages(updated, pageRef.current);
+      return updated;
+    });
+  }
+
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
+}, [userIdSelecionado, updateDisplayedMessages]);
+
+
+  // 7. Renderização do componente
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -219,7 +261,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   if (isLoading) {
     return (
       <div className="chat-window loading">
-        <div className="loading-container"><div className="spinner" /></div>
+        <div className="loading-container"><div className="spinner"/></div>
       </div>
     );
   }
@@ -228,24 +270,24 @@ export default function ChatWindow({ userIdSelecionado }) {
     <div className="chat-window">
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
-      {/* Passa TODAS as mensagens ordenadas; o MessageList faz a própria paginação */}
       <MessageList
+        initialKey={userIdSelecionado}
         ref={messageListRef}
-        messages={messagesSorted}
+        messages={displayedMessages}
         onImageClick={setModalImage}
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
-        // sem loaderRef aqui, para não duplicar lógica de paginação
+        loaderRef={hasMoreMessages ? loaderRef : null}
       />
 
       <div className="chat-input">
-        <SendMessageForm
-          userIdSelecionado={userIdSelecionado}
-          replyTo={replyTo}
-          setReplyTo={setReplyTo}
-          canSendFreeform={canSendFreeform}
-          onMessageAdded={handleMessageAdded}
-        />
+<SendMessageForm
+  userIdSelecionado={userIdSelecionado}
+  replyTo={replyTo}
+  setReplyTo={setReplyTo}
+  canSendFreeform={canSendFreeform}
+/>
+
       </div>
 
       {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)} />}

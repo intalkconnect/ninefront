@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { apiGet, apiPut } from '../services/apiClient';
-import { joinUserRoom } from '../services/sse';
 
 const useConversationsStore = create((set, get) => ({
   conversations: {},
@@ -31,8 +30,6 @@ const useConversationsStore = create((set, get) => ({
 
     set({ selectedUserId: userId });
 
-try { joinUserRoom(userId, previousId); } catch {}
-
     if (previousId && previousId !== userId) {
       get().resetUnread(previousId);
       get().clearNotified(previousId);
@@ -55,7 +52,7 @@ try { joinUserRoom(userId, previousId); } catch {}
 
     // Marcar como lido no backend
     try {
-      await apiPut(`/api/v1/messages/read-status/${userId}`, {
+      await apiPut(`/messages/read-status/${userId}`, {
         last_read: now,
       });
 
@@ -76,22 +73,6 @@ try { joinUserRoom(userId, previousId); } catch {}
       },
     },
   })),
-
-  appendMessage: (userId, msg) =>
-  set((state) => {
-    const prevConv = state.conversations[userId] || {};
-    const prevMsgs = prevConv.messages || [];
-    return {
-      conversations: {
-        ...state.conversations,
-        [userId]: {
-          ...prevConv,
-          messages: [...prevMsgs, msg], // novo array -> dispara render
-        },
-      },
-    };
-  }),
-
 
 
   // Zera contagem de não lidas
@@ -147,7 +128,7 @@ try { joinUserRoom(userId, previousId); } catch {}
   // Carrega contagem de não lidas do servidor
   loadUnreadCounts: async () => {
     try {
-      const data = await apiGet('/api/v1/messages/unread-counts');
+      const data = await apiGet('/messages/unread-counts');
       const counts = data.reduce((acc, item) => {
         acc[item.user_id] = item.unread_count;
         return acc;
@@ -161,7 +142,7 @@ try { joinUserRoom(userId, previousId); } catch {}
   // Carrega timestamps de leitura do servidor
   loadLastReadTimes: async () => {
     try {
-      const data = await apiGet('/api/v1/messages/read-status');
+      const data = await apiGet('/messages/read-status');
       const lastReadAcc = data.reduce((acc, item) => {
         acc[item.user_id] = item.last_read;
         return acc;

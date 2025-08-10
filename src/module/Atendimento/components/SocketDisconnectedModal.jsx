@@ -1,57 +1,76 @@
-// src/module/Atendimento/components/SocketDisconnectedModal.jsx
-import { useEffect, useState } from "react";
-import useConversationsStore from "../store/useConversationsStore";
-import { connectSSE, onStatusChange } from "../services/sse";
+import React, { useEffect } from 'react';
+import './SocketDisconnectedModal.css';
+import { getSocket } from '../services/socket';
+import { apiPut } from '../services/apiClient';
+import useConversationsStore from '../store/useConversationsStore';
 
 export default function SocketDisconnectedModal() {
-  const socketStatus = useConversationsStore((s) => s.socketStatus);
-  const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
-  const selectedUserId = useConversationsStore((s) => s.selectedUserId);
+  const socketStatus = useConversationsStore(s => s.socketStatus);
+  const setSocketStatus = useConversationsStore(s => s.setSocketStatus);
 
-  const [open, setOpen] = useState(false);
+  // Atualiza status do atendente pelo sessionId em vez do email
+const waitForSessionAndUpdate = (sessionId, status) => {
+  const interval = setInterval(() => {
+    const isReady = window.sessionStorage.getItem("sessionReady") === "true";
+    if (isReady && sessionId) {
+      clearInterval(interval);
+      apiPut(`/atendentes/status/${sessionId}`, { status })
+        .then(() => console.log(`[status] sessão ${sessionId} → ${status}`))
+        .catch((err) => console.error("Erro ao atualizar status:", err));
+    }
+  }, 300); // Checa a cada 300ms
+};
 
-  // manter o estado em sincronia com SSE (online/offline)
   useEffect(() => {
-    const sub = (st) => {
-      setSocketStatus(st);
-      setOpen(st === "offline");
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleConnect = () => {
+      setSocketStatus('online');
+      waitForSessionAndUpdate(getSocket()?.id, "online");
     };
-    onStatusChange(sub);
-    return () => onStatusChange(null);
+
+    const handleDisconnect = () => {
+      setSocketStatus('offline');
+      waitForSessionAndUpdate(getSocket()?.id, "offline");
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+
+    // Se não conectar em 3s, considera offline
+    const timeout = setTimeout(() => {
+      if (!socket.connected) {
+        setSocketStatus('offline');
+        waitForSessionAndUpdate(getSocket()?.id, "offline");
+      }
+    }, 3000);
+
+    // Limpeza
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      clearTimeout(timeout);
+    };
   }, [setSocketStatus]);
 
-  // reconectar manualmente
   const reconectar = () => {
-    const rooms = ["broadcast"];
-    if (selectedUserId) rooms.push(`chat-${String(selectedUserId)}`);
-    connectSSE(rooms);
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+      socket.emit('join_room', socket.id);
+    }
   };
 
-  if (!open) return null;
+  if (socketStatus !== 'offline') return null;
 
   return (
-    <div className="socket-modal">
-      <div className="socket-modal__card">
-        <h3>Conexão em tempo real perdida</h3>
-        <p>Não estamos recebendo eventos do servidor agora.</p>
-        <div className="socket-modal__actions">
-          <button onClick={reconectar}>Tentar reconectar</button>
-          <button onClick={() => setOpen(false)}>Fechar</button>
-        </div>
-        <small>Status: {socketStatus}</small>
+    <div className="socket-modal-overlay">
+      <div className="socket-modal">
+        <h2>Conexão Perdida</h2>
+        <p>Não foi possível se comunicar com o servidor.</p>
+        <button onClick={reconectar}>Tentar reconectar</button>
       </div>
-      <style jsx>{`
-        .socket-modal {
-          position: fixed; inset: 0; display: grid; place-items: center;
-          background: rgba(0,0,0,.4); z-index: 10000;
-        }
-        .socket-modal__card {
-          background: #fff; padding: 16px 20px; border-radius: 12px;
-          width: 100%; max-width: 460px; box-shadow: 0 10px 30px rgba(0,0,0,.15);
-        }
-        .socket-modal__actions { display: flex; gap: 8px; margin-top: 12px; }
-        .socket-modal__actions button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; }
-      `}</style>
     </div>
   );
 }

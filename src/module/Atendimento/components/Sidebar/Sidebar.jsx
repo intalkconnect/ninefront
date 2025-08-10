@@ -31,7 +31,7 @@ export default function Sidebar() {
 
   const fetchSettingsAndFila = async () => {
     try {
-      const settings = await apiGet("/api/v1/settings");
+      const settings = await apiGet("/settings");
       const distrib = settings.find((s) => s.key === "distribuicao_tickets");
       if (distrib?.value) setDistribuicaoTickets(distrib.value);
       setSettings(settings);
@@ -39,7 +39,7 @@ export default function Sidebar() {
       if (!userFilas || userFilas.length === 0) return;
 
       const params = new URLSearchParams({ filas: userFilas.join(",") });
-      const data = await apiGet(`/api/v1/chats/fila?${params.toString()}`);
+      const data = await apiGet(`/chats/fila?${params.toString()}`);
       setFilaCount(data.length);
     } catch (err) {
       console.error("Erro ao buscar configurações/fila:", err);
@@ -54,7 +54,7 @@ export default function Sidebar() {
 
   const puxarProximoTicket = async () => {
     try {
-      const res = await apiPut("/api/v1/chats/fila/proximo", {
+      const res = await apiPut("/chats/fila/proximo", {
         email: userEmail,
         filas: userFilas,
       });

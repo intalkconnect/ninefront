@@ -1,19 +1,29 @@
-import React, { forwardRef, useImperativeHandle, useRef, useEffect, useState } from 'react';
+import React, {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useEffect,
+  useState
+} from 'react';
+
 import MessageRow from './MessageRow';
+
+/**
+ * MessageList (versão com "Ver mais" e scroll no final)
+ *
+ * Props:
+ *  - messages: array de mensagens ({ id, direction, content, timestamp, status, ... })
+ *  - onImageClick, onPdfClick, onReply: callbacks
+ *  - loaderRef: ref para scroll infinito (opcional)
+ */
 
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
-    const [autoScroll, setAutoScroll] = useState(true);
-    const [prevMessagesLength, setPrevMessagesLength] = useState(0);
-    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [visibleCount, setVisibleCount] = useState(30);
     const [prevScrollHeight, setPrevScrollHeight] = useState(0);
 
-    // Debug: Log de atualizações
-    useEffect(() => {
-      console.log('Messages updated - Count:', messages.length, 'Last message:', messages[messages.length - 1]);
-    }, [messages]);
+    const visibleMessages = messages.slice(-visibleCount);
 
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
@@ -24,62 +34,28 @@ const MessageList = forwardRef(
           });
         }
       },
-      scrollToBottomSmooth: () => {
-        if (containerRef.current) {
-          containerRef.current.scrollTo({
-            top: containerRef.current.scrollHeight,
-            behavior: 'smooth'
-          });
-        }
-      },
-      setAutoScrollEnabled: (enabled) => setAutoScroll(enabled)
     }));
 
-    // Efeito para scroll automático quando novas mensagens chegam
+    // Scroll automático ao mudar mensagens visíveis
     useEffect(() => {
-      if (!containerRef.current || messages.length === 0) return;
-
-      const isNewMessage = messages.length > prevMessagesLength;
-      setPrevMessagesLength(messages.length);
-
-      // No carregamento inicial, rola para baixo imediatamente
-      if (isInitialLoad) {
-        setIsInitialLoad(false);
-        containerRef.current.scrollTo({
-          top: containerRef.current.scrollHeight,
-          behavior: 'auto'
-        });
-        return;
+      if (containerRef.current) {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
       }
+    }, [visibleMessages]);
 
-      // Se não for auto-scroll, não faz nada
-      if (!autoScroll) return;
-
-      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-      const isNearBottom = scrollHeight - scrollTop <= clientHeight + 100;
-
-      // Se for uma nova mensagem e estiver perto do fundo, rola suavemente
-      if (isNewMessage && isNearBottom) {
-        containerRef.current.scrollTo({
-          top: scrollHeight,
-          behavior: 'smooth'
-        });
-      }
-    }, [messages, autoScroll, prevMessagesLength, isInitialLoad]);
-
-    // Observa mudanças no scroll para desativar auto-scroll se o usuário subir
+    // Scroll automático ao voltar aba
     useEffect(() => {
-      const container = containerRef.current;
-      if (!container) return;
-
-      const handleScroll = () => {
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        const isAtBottom = scrollHeight - scrollTop <= clientHeight + 50;
-        setAutoScroll(isAtBottom);
+      const handleVisibility = () => {
+        if (document.visibilityState === 'visible') {
+          setTimeout(() => {
+            if (containerRef.current) {
+              containerRef.current.scrollTop = containerRef.current.scrollHeight;
+            }
+          }, 50);
+        }
       };
-
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
+      document.addEventListener('visibilitychange', handleVisibility);
+      return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, []);
 
     const handleShowMore = () => {
@@ -89,16 +65,14 @@ const MessageList = forwardRef(
       }
     };
 
-    // Ajuste de scroll ao carregar mais mensagens
+    // Após carregar mais mensagens, corrige o scroll para não pular
     useEffect(() => {
       if (visibleCount > 30 && containerRef.current) {
         const newHeight = containerRef.current.scrollHeight;
         const delta = newHeight - prevScrollHeight;
         containerRef.current.scrollTop = delta;
       }
-    }, [visibleCount, prevScrollHeight]);
-
-    const visibleMessages = messages.slice(-visibleCount);
+    }, [visibleCount]);
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
@@ -145,7 +119,7 @@ const MessageList = forwardRef(
           );
 
           return (
-            <React.Fragment key={msg.id || `${msg.timestamp}-${index}`}>
+            <React.Fragment key={msg.id || index}>
               {showTicketDivider && (
                 <div className="ticket-divider">Ticket #{msg.ticket_number}</div>
               )}
