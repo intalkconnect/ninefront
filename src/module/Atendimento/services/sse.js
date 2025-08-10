@@ -62,10 +62,10 @@ export function connectSSE(initialRooms = []) {
  };
 
   // eventos mais usados
- for (const ev of ['new_message', 'message_status', 'typing', 'presence']) {
+ for (const ev of ['new_message', 'update_message', 'message_status', 'typing', 'presence']) {
    es.addEventListener(ev, (e) => {
      try {
-       const obj = JSON.parse(e.data);
+      const obj = JSON.parse(e.data);
        const payload = obj?.data ?? obj; // << idem
        emitLocal(ev, payload);
      } catch {
