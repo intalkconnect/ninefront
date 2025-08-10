@@ -105,6 +105,17 @@ const mergeConversation = useConversationsStore((s) => s.mergeConversation);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [selectedUserId]);
 
+  // Adicione este debug no useEffect do SSE
+useEffect(() => {
+  if (!userEmail) return;
+
+  const offNew = on('new_message', (raw) => {
+    console.log('SSE new_message received:', raw); // Debug
+    handleNewMessage(raw);
+  });
+
+  return () => offNew?.();
+}, [userEmail, handleNewMessage]);
   // handler para novas mensagens (mantido)
   const handleNewMessage = useCallback(
     async (message) => {
