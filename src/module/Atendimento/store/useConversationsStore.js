@@ -55,7 +55,7 @@ try { joinUserRoom(userId, previousId); } catch {}
 
     // Marcar como lido no backend
     try {
-      await apiPut(`/messages/read-status/${userId}`, {
+      await apiPut(`/api/v1/messages/read-status/${userId}`, {
         last_read: now,
       });
 
@@ -131,7 +131,7 @@ try { joinUserRoom(userId, previousId); } catch {}
   // Carrega contagem de não lidas do servidor
   loadUnreadCounts: async () => {
     try {
-      const data = await apiGet('/messages/unread-counts');
+      const data = await apiGet('/api/v1/messages/unread-counts');
       const counts = data.reduce((acc, item) => {
         acc[item.user_id] = item.unread_count;
         return acc;
