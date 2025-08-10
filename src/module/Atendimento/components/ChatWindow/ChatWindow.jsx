@@ -71,8 +71,6 @@ export default function ChatWindow({ userIdSelecionado }) {
 
 // Substitua a função belongsToCurrent existente por esta versão melhorada:
 
-const belongsToCurrent = useCallback((msg, uid) => {// Adicione esta função helper no ChatWindow.jsx:
-
 const normalizeUserId = useCallback((id) => {
   if (!id) return id;
   const str = String(id);
