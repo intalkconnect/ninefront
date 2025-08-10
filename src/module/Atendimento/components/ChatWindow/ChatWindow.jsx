@@ -90,6 +90,12 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     const onNew = (raw) => {
       const msg = normalizeMessage(raw);
+        console.log(
+    '[onNew]',
+    typeof msg.user_id, msg.user_id,
+    'vs',
+    typeof userIdSelecionado, userIdSelecionado
+  );
       if (asId(msg.user_id) !== asId(userIdSelecionado)) return;
 
       setAllMessages(prev => {
