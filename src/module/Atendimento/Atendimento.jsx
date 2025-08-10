@@ -46,7 +46,7 @@ export default function Atendimento() {
 
     (async () => {
       try {
-        const data = await apiGet(`/atendentes/${email}`);
+        const data = await apiGet(`/api/v1/atendentes/${email}`);
         if (data?.email) {
           setUserInfo({
             email: data.email,
@@ -223,7 +223,7 @@ export default function Atendimento() {
         assigned_to: userEmail,
         filas: userFilas.join(","),
       });
-      const data = await apiGet(`/chats?${params.toString()}`);
+      const data = await apiGet(`/api/v1/chats?${params.toString()}`);
       data.forEach((conv) => mergeConversation(conv.user_id, conv));
     } catch (err) {
       console.error("Erro ao buscar /chats:", err);
