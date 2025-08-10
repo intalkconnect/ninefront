@@ -145,7 +145,7 @@ try { joinUserRoom(userId, previousId); } catch {}
   // Carrega timestamps de leitura do servidor
   loadLastReadTimes: async () => {
     try {
-      const data = await apiGet('/messages/read-status');
+      const data = await apiGet('/api/v1/messages/read-status');
       const lastReadAcc = data.reduce((acc, item) => {
         acc[item.user_id] = item.last_read;
         return acc;
