@@ -13,7 +13,7 @@ import ChatHeader from './ChatHeader';
 import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
-const SSE_URL = import.meta.env.VITE_SSE_URL || ''; // ex.: http://localhost:8080
+import { on } from '../../services/sse';
 
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore(state => state.mergeConversation);
@@ -196,66 +196,52 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage, sameMessage]);
 
-  // ---------- 🔊 SSE ----------
+  // ---------- 🔊 SSE (global) ----------
   useEffect(() => {
-    if (!userIdSelecionado || !SSE_URL) return;
+    if (!userIdSelecionado) return;
     const uid = String(userIdSelecionado);
 
-    let es;
-    try {
-      es = new EventSource(`${SSE_URL}/events?user_id=${encodeURIComponent(uid)}`, { withCredentials: true });
-    } catch (e) {
-      console.warn('SSE init fail:', e);
-      return;
-    }
+    const offNew = on('new_message', (raw) => {
+      const msg = normalizeMessage(raw);
+      if (String(msg.user_id) !== uid) return;
+      setAllMessages(prev => {
+        if (prev.find(m => sameMessage(m, msg))) return prev;
+        const updated = [...prev, msg].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+        messageCacheRef.current.set(uid, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+      mergeConversation(uid, {
+        ticket_number: msg.ticket_number || msg.ticket,
+        timestamp: msg.timestamp,
+        content: msg.content,
+        channel: msg.channel,
+      });
+    });
 
-    const onNew = (evt) => {
-      try {
-        const raw = JSON.parse(evt.data);
-        const msg = normalizeMessage(raw);
-        if (String(msg.user_id) !== uid) return;
+    const offStatus = on('message_status', (raw) => {
+      const msg = normalizeMessage(raw);
+      if (String(msg.user_id) !== uid) return;
+      setAllMessages(prev => {
+        const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
+        messageCacheRef.current.set(uid, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+    });
 
-        setAllMessages(prev => {
-          if (prev.find(m => sameMessage(m, msg))) return prev;
-          const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-          messageCacheRef.current.set(uid, updated);
-          updateDisplayedMessages(updated, pageRef.current);
-          return updated;
-        });
+    const offUpdate = on('update_message', (raw) => {
+      const msg = normalizeMessage(raw);
+      if (String(msg.user_id) !== uid) return;
+      setAllMessages(prev => {
+        const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
+        messageCacheRef.current.set(uid, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+    });
 
-        mergeConversation(uid, {
-          ticket_number: msg.ticket_number || msg.ticket,
-          timestamp: msg.timestamp,
-          content: msg.content,
-          channel: msg.channel,
-        });
-      } catch (e) {
-        console.warn('[SSE] parse new_message fail', e);
-      }
-    };
-
-    const onUpdate = (evt) => {
-      try {
-        const raw = JSON.parse(evt.data);
-        const msg = normalizeMessage(raw);
-        if (String(msg.user_id) !== uid) return;
-        setAllMessages(prev => {
-          const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
-          messageCacheRef.current.set(uid, updated);
-          updateDisplayedMessages(updated, pageRef.current);
-          return updated;
-        });
-      } catch (e) {}
-    };
-
-    es.addEventListener('new_message', onNew);
-    es.addEventListener('update_message', onUpdate);
-    es.addEventListener('ready', () => console.log('[SSE] ready for', uid));
-    es.onerror = (e) => console.warn('[SSE] error', e);
-
-    return () => {
-      try { es.close(); } catch {}
-    };
+    return () => { offNew?.(); offStatus?.(); offUpdate?.(); };
   }, [userIdSelecionado, normalizeMessage, sameMessage, updateDisplayedMessages, mergeConversation]);
 
   // ---- render ----
