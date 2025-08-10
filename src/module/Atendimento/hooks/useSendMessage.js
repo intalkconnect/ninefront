@@ -107,7 +107,7 @@ export function useSendMessage() {
       }
 
       console.log('📤 Payload de envio:', payload);
-      const response = await apiPost('/messages/send', payload);
+      const response = await apiPost('/api/v1/messages/send', payload);
       // Sua rota retorna: { success: true, message: savedMessage, channel }
       const saved = response?.message;
 
@@ -197,3 +197,4 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     messages: updatedMessages,
   });
 }
+
