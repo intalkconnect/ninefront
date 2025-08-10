@@ -9,9 +9,12 @@ export function getSocket() {
     if (!SOCKET_URL) throw new Error('Socket URL is not defined.');
     socket = io(SOCKET_URL, {
       path: '/socket.io',
-      autoConnect: true,
-      reconnectionAttempts: 3,
-      transports: ['websocket'],
+ autoConnect: true,
+ reconnection: true,
+ reconnectionAttempts: Infinity,
+ reconnectionDelay: 500,
+ reconnectionDelayMax: 5000,
+ transports: ['websocket', 'polling'], // deixa fallback se necessário
     });
 
     socket.on('connect_error', (err) => {
@@ -43,3 +46,4 @@ export function connectSocket(userId) {
 }
 
 // NÃO export { socket }!
+
