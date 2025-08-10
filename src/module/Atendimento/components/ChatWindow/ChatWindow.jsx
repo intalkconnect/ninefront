@@ -1,4 +1,3 @@
-// src/module/Atendimento/components/ChatWindow/ChatWindow.jsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { apiGet } from '../../services/apiClient';
 import useConversationsStore from '../../store/useConversationsStore';
@@ -30,6 +29,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [replyTo, setReplyTo] = useState(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
   const messageListRef = useRef(null);
   const loaderRef = useRef(null);
@@ -59,6 +59,9 @@ export default function ChatWindow({ userIdSelecionado }) {
     const newMessages = messages.slice(startIndex);
     setDisplayedMessages(newMessages);
     setHasMoreMessages(startIndex > 0);
+    
+    // Forçar atualização do MessageList
+    setLastUpdate(Date.now());
   }, []);
 
   const handleMessageAdded = useCallback((incomingRaw) => {
@@ -66,12 +69,18 @@ export default function ChatWindow({ userIdSelecionado }) {
     const ownerId = String(incoming.user_id || userIdSelecionado);
 
     setAllMessages(prev => {
-      if (prev.some(m => sameMessage(m, incoming))) {
-        const updated = prev.map(m => (sameMessage(m, incoming) ? { ...m, ...incoming } : m));
+      const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
+      
+      if (existingIndex >= 0) {
+        // Atualiza mensagem existente
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], ...incoming };
         messageCacheRef.current.set(ownerId, updated);
         updateDisplayedMessages(updated, pageRef.current);
         return updated;
       }
+      
+      // Adiciona nova mensagem
       const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       messageCacheRef.current.set(ownerId, updated);
       updateDisplayedMessages(updated, pageRef.current);
@@ -79,13 +88,13 @@ export default function ChatWindow({ userIdSelecionado }) {
     });
   }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
 
-  // carregar dados iniciais
+  // Carregar dados iniciais
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
     setIsLoading(true);
 
-    (async () => {
+    const loadInitialData = async () => {
       try {
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
           apiGet(`/api/v1/messages/${encodeURIComponent(userIdSelecionado)}`),
@@ -157,10 +166,12 @@ export default function ChatWindow({ userIdSelecionado }) {
       } finally {
         setIsLoading(false);
       }
-    })();
+    };
+
+    loadInitialData();
   }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage]);
 
-  // scroll infinito (topo)
+  // Scroll infinito (topo)
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -174,7 +185,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // refetch ao voltar foco (garante sincronismo)
+  // Refetch ao voltar foco (garante sincronismo)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
@@ -194,9 +205,9 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage, sameMessage]);
+  }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage]);
 
-  // ---------- 🔊 SSE (global) ----------
+  // Configuração SSE
   useEffect(() => {
     if (!userIdSelecionado) return;
     const uid = String(userIdSelecionado);
@@ -204,47 +215,29 @@ export default function ChatWindow({ userIdSelecionado }) {
     const offNew = on('new_message', (raw) => {
       const msg = normalizeMessage(raw);
       if (String(msg.user_id) !== uid) return;
-      setAllMessages(prev => {
-        if (prev.find(m => sameMessage(m, msg))) return prev;
-        const updated = [...prev, msg].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-        messageCacheRef.current.set(uid, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        return updated;
-      });
-      mergeConversation(uid, {
-        ticket_number: msg.ticket_number || msg.ticket,
-        timestamp: msg.timestamp,
-        content: msg.content,
-        channel: msg.channel,
-      });
+      handleMessageAdded(msg);
     });
 
     const offStatus = on('message_status', (raw) => {
       const msg = normalizeMessage(raw);
       if (String(msg.user_id) !== uid) return;
-      setAllMessages(prev => {
-        const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
-        messageCacheRef.current.set(uid, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        return updated;
-      });
+      handleMessageAdded(msg);
     });
 
     const offUpdate = on('update_message', (raw) => {
       const msg = normalizeMessage(raw);
       if (String(msg.user_id) !== uid) return;
-      setAllMessages(prev => {
-        const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
-        messageCacheRef.current.set(uid, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        return updated;
-      });
+      handleMessageAdded(msg);
     });
 
-    return () => { offNew?.(); offStatus?.(); offUpdate?.(); };
-  }, [userIdSelecionado, normalizeMessage, sameMessage, updateDisplayedMessages, mergeConversation]);
+    return () => {
+      offNew?.();
+      offStatus?.();
+      offUpdate?.();
+    };
+  }, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
 
-  // ---- render ----
+  // Renderização
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -268,11 +261,10 @@ export default function ChatWindow({ userIdSelecionado }) {
   }
 
   return (
-    <div className="chat-window">
+    <div className="chat-window" key={`chat-${userIdSelecionado}-${lastUpdate}`}>
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
       <MessageList
-        initialKey={userIdSelecionado}
         ref={messageListRef}
         messages={displayedMessages}
         onImageClick={setModalImage}
