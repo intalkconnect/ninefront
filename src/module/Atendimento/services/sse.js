@@ -51,23 +51,28 @@ export function connectSSE(initialRooms = []) {
   });
 
   // fallback genérico
-  es.onmessage = (e) => {
-    try {
-      const obj = JSON.parse(e.data);
-      const ev  = obj?.event || 'message';
-      emitLocal(ev, obj);
-    } catch {
-      emitLocal('message', { raw: e.data });
-    }
-  };
+ es.onmessage = (e) => {
+   try {
+     const obj = JSON.parse(e.data);
+     const payload = obj?.data ?? obj; // << desembrulha
+     emitLocal(obj?.event || 'message', payload);
+   } catch {
+     emitLocal('message', { raw: e.data });
+   }
+ };
 
   // eventos mais usados
-  for (const ev of ['new_message', 'message_status', 'typing', 'presence']) {
-    es.addEventListener(ev, (e) => {
-      try { emitLocal(ev, JSON.parse(e.data)); }
-      catch { emitLocal(ev, {}); }
-    });
-  }
+ for (const ev of ['new_message', 'message_status', 'typing', 'presence']) {
+   es.addEventListener(ev, (e) => {
+     try {
+       const obj = JSON.parse(e.data);
+       const payload = obj?.data ?? obj; // << idem
+       emitLocal(ev, payload);
+     } catch {
+       emitLocal(ev, {});
+     }
+   });
+ }
 
   return es;
 }
