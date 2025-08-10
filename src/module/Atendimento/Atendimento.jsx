@@ -19,7 +19,8 @@ export default function Atendimento() {
   const selectedUserId = useConversationsStore((s) => s.selectedUserId);
   const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
   const setUserInfo = useConversationsStore((s) => s.setUserInfo);
-  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
+const mergeConversation = useConversationsStore((s) => s.mergeConversation);
+ const appendMessage     = useConversationsStore((s) => s.appendMessage);
   const loadUnreadCounts = useConversationsStore((s) => s.loadUnreadCounts);
   const loadLastReadTimes = useConversationsStore((s) => s.loadLastReadTimes);
   const incrementUnread = useConversationsStore((s) => s.incrementUnread);
@@ -129,6 +130,9 @@ export default function Atendimento() {
         fila: message.fila ?? conv?.fila,
       });
 
+       // >>> atualiza a thread aberta (imutável)
+ appendMessage(message.user_id, message);
+      
       if (isFromMe) return;
 
       if (isActiveChat && isWindowFocused && assignedToMe && inMyQueue) {
