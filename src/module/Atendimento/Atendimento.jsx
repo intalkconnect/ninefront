@@ -96,7 +96,6 @@ useEffect(() => {
   const handleVisibilityChange = () => {
     if (document.visibilityState === "visible") {
       const socket = getSocket();
-socket.on('connect', () => console.log('SOCKET RECONNECTED:', socket.id));
 socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
 
       console.log('Visibilidade: voltando para aba. Socket conectado?', socket.connected);
