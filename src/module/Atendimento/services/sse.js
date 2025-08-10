@@ -28,9 +28,16 @@ export function on(event, fn) {
 function emitLocal(event, payload) {
   const set = listeners[event];
   if (set) for (const fn of set) { try { fn(payload); } catch {} }
+
   const any = listeners['message'];
-  if (any && event !== 'message') for (const fn of any) { try { fn(payload); } catch {} }
+  if (any) for (const fn of any) {
+    try {
+      // envia também o nome do evento para o catch-all
+      fn({ __event: event, __raw: payload });
+    } catch {}
+  }
 }
+
 
 export function connectSSE(initialRooms = []) {
   // fecha anterior
