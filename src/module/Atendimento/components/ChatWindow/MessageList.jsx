@@ -38,14 +38,10 @@ const MessageList = forwardRef(
 
     // Scroll automático ao mudar mensagens visíveis
  useEffect(() => {
-   if (!containerRef.current) return;
-   // role só se o usuário já estiver perto do fim (evita “puxar” pra baixo ao ler histórico)
-   const el = containerRef.current;
-   const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-   if (nearBottom) {
-     el.scrollTop = el.scrollHeight;
+   if (containerRef.current) {
+     containerRef.current.scrollTop = containerRef.current.scrollHeight;
    }
- }, [visibleMessages.length]); // depende só do tamanho
+ }, [visibleMessages]);
 
     // Scroll automático ao voltar aba
     useEffect(() => {
