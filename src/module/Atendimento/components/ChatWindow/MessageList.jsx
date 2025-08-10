@@ -1,19 +1,14 @@
-import React, { forwardRef, useImperativeHandle, useRef, useEffect, useState, useMemo } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, useEffect, useState } from 'react';
 import MessageRow from './MessageRow';
 
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
+    const [autoScroll, setAutoScroll] = useState(true);
+    const [prevMessagesLength, setPrevMessagesLength] = useState(0);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [visibleCount, setVisibleCount] = useState(30);
     const [prevScrollHeight, setPrevScrollHeight] = useState(0);
-    const [lastMessagesHash, setLastMessagesHash] = useState('');
-
-    // Calcula um hash das mensagens para detectar mudanças
-    const messagesHash = useMemo(() => {
-      return JSON.stringify(messages.slice(-5).map(m => m.id));
-    }, [messages]);
-
-    const visibleMessages = useMemo(() => messages.slice(-visibleCount), [messages, visibleCount]);
 
     // Debug: Log de atualizações
     useEffect(() => {
@@ -36,41 +31,55 @@ const MessageList = forwardRef(
             behavior: 'smooth'
           });
         }
-      }
+      },
+      setAutoScrollEnabled: (enabled) => setAutoScroll(enabled)
     }));
 
-    // Efeito principal para scroll automático
+    // Efeito para scroll automático quando novas mensagens chegam
     useEffect(() => {
       if (!containerRef.current || messages.length === 0) return;
 
-      const isNewMessage = messagesHash !== lastMessagesHash;
-      setLastMessagesHash(messagesHash);
+      const isNewMessage = messages.length > prevMessagesLength;
+      setPrevMessagesLength(messages.length);
+
+      // No carregamento inicial, rola para baixo imediatamente
+      if (isInitialLoad) {
+        setIsInitialLoad(false);
+        containerRef.current.scrollTo({
+          top: containerRef.current.scrollHeight,
+          behavior: 'auto'
+        });
+        return;
+      }
+
+      // Se não for auto-scroll, não faz nada
+      if (!autoScroll) return;
 
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
       const isNearBottom = scrollHeight - scrollTop <= clientHeight + 100;
 
+      // Se for uma nova mensagem e estiver perto do fundo, rola suavemente
       if (isNewMessage && isNearBottom) {
         containerRef.current.scrollTo({
           top: scrollHeight,
           behavior: 'smooth'
         });
       }
-    }, [messages, messagesHash, lastMessagesHash]);
+    }, [messages, autoScroll, prevMessagesLength, isInitialLoad]);
 
-    // Scroll ao voltar para a aba
+    // Observa mudanças no scroll para desativar auto-scroll se o usuário subir
     useEffect(() => {
-      const handleVisibility = () => {
-        if (document.visibilityState === 'visible' && containerRef.current) {
-          setTimeout(() => {
-            containerRef.current.scrollTo({
-              top: containerRef.current.scrollHeight,
-              behavior: 'auto'
-            });
-          }, 50);
-        }
+      const container = containerRef.current;
+      if (!container) return;
+
+      const handleScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isAtBottom = scrollHeight - scrollTop <= clientHeight + 50;
+        setAutoScroll(isAtBottom);
       };
-      document.addEventListener('visibilitychange', handleVisibility);
-      return () => document.removeEventListener('visibilitychange', handleVisibility);
+
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
     }, []);
 
     const handleShowMore = () => {
@@ -88,6 +97,8 @@ const MessageList = forwardRef(
         containerRef.current.scrollTop = delta;
       }
     }, [visibleCount, prevScrollHeight]);
+
+    const visibleMessages = messages.slice(-visibleCount);
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
