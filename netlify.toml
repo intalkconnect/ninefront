@@ -1,0 +1,11 @@
+[[redirects]]
+  from = "/sse"
+  to   = "https://channels.dkdevs.com.br/sse"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/v1/*"
+  to   = "https://channels.dkdevs.com.br/api/v1/:splat"
+  status = 200
+  force = true
