@@ -1,3 +1,18 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { apiGet } from '../../services/apiClient';
+import useConversationsStore from '../../store/useConversationsStore';
+import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage';
+
+import SendMessageForm from '../SendMessageForm/SendMessageForm';
+import MessageList from './MessageList';
+import ImageModal from './modals/ImageModal';
+import PdfModal from './modals/PdfModal';
+import ChatHeader from './ChatHeader';
+
+import './ChatWindow.css';
+import './ChatWindowPagination.css';
+
+import { on } from '../../services/sse';
 // Substitua as partes relevantes do ChatWindow.jsx:
 
 export default function ChatWindow({ userIdSelecionado }) {
