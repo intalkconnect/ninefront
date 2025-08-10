@@ -190,9 +190,9 @@ export default function Atendimento() {
         console.error("Erro ao informar sessão ao servidor:", err);
       }
       socket.emit("identify", { email: userEmail, rooms: userFilas });
-       if (selectedUserId) {
-    socket.emit('join_room', String(selectedUserId));
-  }
+ if (selectedUserId) {
+   socket.emit('join_room', String(selectedUserId)); // reentra após reconectar
+ }
     };
 
     const onDisconnect = () => setSocketStatus("offline");
