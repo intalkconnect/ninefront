@@ -73,6 +73,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     setLastUpdate(Date.now());
   }, []);
 
+// No ChatWindow, modifique o handleMessageAdded para:
 const handleMessageAdded = useCallback((incomingRaw) => {
   const incoming = normalizeMessage(incomingRaw);
   const ownerId = String(incoming.user_id || userIdSelecionado);
@@ -85,14 +86,19 @@ const handleMessageAdded = useCallback((incomingRaw) => {
       updated[existingIndex] = { ...updated[existingIndex], ...incoming };
       messageCacheRef.current.set(ownerId, updated);
       updateDisplayedMessages(updated, pageRef.current);
-      setMessageVersion(v => v + 1); // Força atualização
       return updated;
     }
     
     const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     messageCacheRef.current.set(ownerId, updated);
     updateDisplayedMessages(updated, pageRef.current);
-    setMessageVersion(v => v + 1); // Força atualização
+    
+    // Forçar scroll para baixo quando nova mensagem chegar
+    if (messageListRef.current) {
+      messageListRef.current.setAutoScrollEnabled(true);
+      messageListRef.current.scrollToBottomSmooth();
+    }
+    
     return updated;
   });
 }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
@@ -279,15 +285,14 @@ useEffect(() => {
     <div className="chat-window" key={`chat-${userIdSelecionado}-${lastUpdate}`}>
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
-<MessageList
-  key={`${userIdSelecionado}-${messageVersion}`}
-  ref={messageListRef}
-  messages={displayedMessages}
-  onImageClick={setModalImage}
-  onPdfClick={setPdfModal}
-  onReply={setReplyTo}
-  loaderRef={hasMoreMessages ? loaderRef : null}
-/>
+    <MessageList
+      ref={messageListRef}
+      messages={displayedMessages}
+      onImageClick={setModalImage}
+      onPdfClick={setPdfModal}
+      onReply={setReplyTo}
+      loaderRef={hasMoreMessages ? loaderRef : null}
+    />
 
       <div className="chat-input">
         <SendMessageForm
