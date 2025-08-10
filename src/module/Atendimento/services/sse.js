@@ -1,5 +1,5 @@
 // src/module/Atendimento/services/sse.js
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE_URL = import.meta.env.URL_NOTIFY || '/api/v1';
 const SSE_URL      = `${API_BASE_URL.replace(/\/$/, '')}/sse`;
 
 let es;               // EventSource atual
