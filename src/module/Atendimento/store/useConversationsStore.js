@@ -77,6 +77,22 @@ try { joinUserRoom(userId, previousId); } catch {}
     },
   })),
 
+  appendMessage: (userId, msg) =>
+  set((state) => {
+    const prevConv = state.conversations[userId] || {};
+    const prevMsgs = prevConv.messages || [];
+    return {
+      conversations: {
+        ...state.conversations,
+        [userId]: {
+          ...prevConv,
+          messages: [...prevMsgs, msg], // novo array -> dispara render
+        },
+      },
+    };
+  }),
+
+
 
   // Zera contagem de não lidas
   resetUnread: (userId) =>
