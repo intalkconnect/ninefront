@@ -202,22 +202,11 @@ export default function ChatWindow({ userIdSelecionado }) {
     const uid = String(userIdSelecionado);
 
     const offNew = on('new_message', (raw) => {
-      console.log('[SSE:new_message]', { uid, msgUser: msg.user_id, text: msg.content?.text || msg.content });
-
       const msg = normalizeMessage(raw);
-      // se o backend não mandar user_id, caímos pro selecionado
-      const owner = String(msg.user_id ?? uid);
-      if (owner !== uid) return;
-  
+      if (String(msg.user_id) !== uid) return;
       setAllMessages(prev => {
-        // gere SEMPRE novo array/objetos
-        if (prev.find(m => sameMessage(m, msg))) {
-          const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
-          messageCacheRef.current.set(uid, updated);
-          updateDisplayedMessages([...updated], pageRef.current);
-          return updated;
-        }
-        const updated = [...prev, { ...msg }].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+        if (prev.find(m => sameMessage(m, msg))) return prev;
+        const updated = [...prev, msg].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
         messageCacheRef.current.set(uid, updated);
         updateDisplayedMessages(updated, pageRef.current);
         return updated;
@@ -232,23 +221,22 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     const offStatus = on('message_status', (raw) => {
       const msg = normalizeMessage(raw);
-      const owner = String(msg.user_id ?? uid);
-      if (owner !== uid) return;
+      if (String(msg.user_id) !== uid) return;
       setAllMessages(prev => {
         const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
         messageCacheRef.current.set(uid, updated);
-        updateDisplayedMessages([...updated], pageRef.current);
+        updateDisplayedMessages(updated, pageRef.current);
         return updated;
       });
     });
 
     const offUpdate = on('update_message', (raw) => {
-      const owner = String(msg.user_id ?? uid);
-      if (owner !== uid) return;
+      const msg = normalizeMessage(raw);
+      if (String(msg.user_id) !== uid) return;
       setAllMessages(prev => {
         const updated = prev.map(m => (sameMessage(m, msg) ? { ...m, ...msg } : m));
         messageCacheRef.current.set(uid, updated);
-        updateDisplayedMessages([...updated], pageRef.current);
+        updateDisplayedMessages(updated, pageRef.current);
         return updated;
       });
     });
