@@ -41,12 +41,11 @@ const MessageList = forwardRef(
     }));
 
     // Scroll automático ao mudar mensagens visíveis
-useEffect(() => {
-  if (!containerRef.current) return;
-  const el = containerRef.current;
-  const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-  if (nearBottom) el.scrollTop = el.scrollHeight;
-}, [visibleMessages.length]);
+ useEffect(() => {
+   if (containerRef.current) {
+     containerRef.current.scrollTop = containerRef.current.scrollHeight;
+   }
+ }, [visibleMessages]);
 
     // Scroll automático ao voltar aba
     useEffect(() => {
