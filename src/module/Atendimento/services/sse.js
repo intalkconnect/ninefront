@@ -92,10 +92,14 @@ console.log('[SSE] connectSSE rooms ->', currentRooms);
 
 export function setRooms(rooms) {
   const next = Array.from(new Set(rooms)).filter(Boolean);
-  const same = next.length === currentRooms.length &&
-               next.every((r, i) => r === currentRooms[i]);
-  if (same) return;
-  connectSSE(next); // reconecta com a nova lista
+  console.log('[SSE] setRooms called with ->', next, '| currentRooms:', currentRooms);
+  // const same = next.length === currentRooms.length &&
+  //              next.every((r, i) => r === currentRooms[i]);
+  // if (same) return;
+  // connectSSE(next); // reconecta com a nova lista
+  
+   // DEBUG: força reconectar sempre pra termos certeza que a URL sai com as rooms certas
+ connectSSE(next);
 }
 
 export function joinUserRoom(userId, prevUserId) {
