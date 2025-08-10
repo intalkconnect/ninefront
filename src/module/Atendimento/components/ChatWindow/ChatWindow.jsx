@@ -29,6 +29,8 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [replyTo, setReplyTo] = useState(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
+
+  // “forçadores” de re-render quando a lista muda
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [messageVersion, setMessageVersion] = useState(0);
 
@@ -38,10 +40,16 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef = useRef(new Map());
   const messagesPerPage = 100;
 
+  // ---------- Helpers de normalização/identificação ----------
   const normalizeMessage = useCallback((msg) => {
     if (!msg) return msg;
     const id = msg.id || msg.message_id;
-    const timestamp = msg.timestamp || msg.created_at || msg.createdAt || msg.updated_at || new Date().toISOString();
+    const timestamp =
+      msg.timestamp ||
+      msg.created_at ||
+      msg.createdAt ||
+      msg.updated_at ||
+      new Date().toISOString();
     return { id, ...msg, timestamp };
   }, []);
 
@@ -55,41 +63,64 @@ export default function ChatWindow({ userIdSelecionado }) {
     return false;
   }, []);
 
+  const sameUser = (a, b) => String(a) === String(b);
+
+  // tenta deduzir o "dono" da msg quando o backend varia o campo
+  const getPossibleOwner = (msg) =>
+    msg?.user_id ??
+    msg?.owner_id ??
+    msg?.client_id ??
+    msg?.chat_id ??
+    msg?.whatsapp_user_id ??
+    msg?.from_user_id ??
+    msg?.to_user_id ??
+    null;
+
+  // se não há dono claro, assumimos que pertence ao chat aberto
+  const belongsToCurrent = (msg, uid) => {
+    const candidate = getPossibleOwner(msg);
+    if (candidate == null) return true;
+    return sameUser(candidate, uid);
+  };
+
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * messagesPerPage);
     const newMessages = messages.slice(startIndex);
     setDisplayedMessages(newMessages);
     setHasMoreMessages(startIndex > 0);
-    
+
     // Forçar atualização do MessageList
     setLastUpdate(Date.now());
   }, []);
 
-const handleMessageAdded = useCallback((incomingRaw) => {
-  const incoming = normalizeMessage(incomingRaw);
-  const ownerId = String(incoming.user_id || userIdSelecionado);
+  const handleMessageAdded = useCallback((incomingRaw) => {
+    const base = normalizeMessage(incomingRaw);
+    const ownerId = String(getPossibleOwner(base) ?? userIdSelecionado);
+    // garantimos que a mensagem tenha um user_id consistente
+    const incoming = { user_id: ownerId, ...base };
 
-  setAllMessages(prev => {
-    const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
-    
-    if (existingIndex >= 0) {
-      const updated = [...prev];
-      updated[existingIndex] = { ...updated[existingIndex], ...incoming };
+    setAllMessages(prev => {
+      const existingIndex = prev.findIndex(m => sameMessage(m, incoming));
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], ...incoming };
+        messageCacheRef.current.set(ownerId, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        setMessageVersion(v => v + 1);
+        return updated;
+      }
+
+      const updated = [...prev, incoming].sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
       messageCacheRef.current.set(ownerId, updated);
       updateDisplayedMessages(updated, pageRef.current);
-      setMessageVersion(v => v + 1); // Força atualização
+      setMessageVersion(v => v + 1);
       return updated;
-    }
-    
-    const updated = [...prev, incoming].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    messageCacheRef.current.set(ownerId, updated);
-    updateDisplayedMessages(updated, pageRef.current);
-    setMessageVersion(v => v + 1); // Força atualização
-    return updated;
-  });
-}, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
+    });
+  }, [normalizeMessage, sameMessage, updateDisplayedMessages, userIdSelecionado]);
 
-  // Carregar dados iniciais
+  // ---------- Carregar dados iniciais ----------
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -125,9 +156,9 @@ const handleMessageAdded = useCallback((incomingRaw) => {
 
         const lastMsg = msgsNorm[msgsNorm.length - 1] || {};
         mergeConversation(String(userIdSelecionado), {
-          channel: lastMsg.channel || clienteRes?.channel || 'desconhecido',
+          channel: lastMsg.channel || clienteRes?.channel,
           ticket_number: clienteRes?.ticket_number || '000000',
-          fila: clienteRes?.fila || fila || 'Orçamento',
+          fila: clienteRes?.fila || fila,
           name: clienteRes?.name || String(userIdSelecionado),
           email: clienteRes?.email || '',
           phone: clienteRes?.phone || '',
@@ -172,7 +203,7 @@ const handleMessageAdded = useCallback((incomingRaw) => {
     loadInitialData();
   }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo, normalizeMessage]);
 
-  // Scroll infinito (topo)
+  // ---------- Scroll infinito (topo) ----------
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -186,7 +217,7 @@ const handleMessageAdded = useCallback((incomingRaw) => {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // Refetch ao voltar foco (garante sincronismo)
+  // ---------- Refetch ao voltar foco (sincronismo) ----------
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
@@ -208,37 +239,46 @@ const handleMessageAdded = useCallback((incomingRaw) => {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages, normalizeMessage]);
 
-  // Configuração SSE
+  // ---------- SSE: agora “relaxado” e robusto ----------
   useEffect(() => {
     if (!userIdSelecionado) return;
     const uid = String(userIdSelecionado);
 
-    const offNew = on('new_message', (raw) => {
+    const wrap = (raw) => {
       const msg = normalizeMessage(raw);
-      if (String(msg.user_id) !== uid) return;
-      handleMessageAdded(msg);
-    });
+      if (!belongsToCurrent(msg, uid)) return;
 
-    const offStatus = on('message_status', (raw) => {
-      const msg = normalizeMessage(raw);
-      if (String(msg.user_id) !== uid) return;
-      handleMessageAdded(msg);
-    });
+      // Se o evento vier sem user_id, forçamos para a conversa aberta:
+      // msg.user_id = uid; // <— deixe assim comentado para você ligar/desligar ao testar
 
-    const offUpdate = on('update_message', (raw) => {
-      const msg = normalizeMessage(raw);
-      if (String(msg.user_id) !== uid) return;
+      // Mantém Sidebar sincronizado: atualiza o “card” com resumo
+      try {
+        mergeConversation(uid, {
+          user_id: uid,
+          content:
+            typeof msg.content === 'string'
+              ? msg.content
+              : (msg.content?.text ?? ''),
+          timestamp: msg.timestamp,
+          channel: msg.channel,
+        });
+      } catch {}
+
       handleMessageAdded(msg);
-    });
+    };
+
+    const offNew    = on('new_message',    wrap);
+    const offStatus = on('message_status', wrap);
+    const offUpdate = on('update_message', wrap);
 
     return () => {
       offNew?.();
       offStatus?.();
       offUpdate?.();
     };
-  }, [userIdSelecionado, normalizeMessage, handleMessageAdded]);
+  }, [userIdSelecionado, normalizeMessage, handleMessageAdded, mergeConversation]);
 
-  // Renderização
+  // ---------- Render ----------
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -265,15 +305,15 @@ const handleMessageAdded = useCallback((incomingRaw) => {
     <div className="chat-window" key={`chat-${userIdSelecionado}-${lastUpdate}`}>
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
-<MessageList
-  key={`${userIdSelecionado}-${messageVersion}`}
-  ref={messageListRef}
-  messages={displayedMessages}
-  onImageClick={setModalImage}
-  onPdfClick={setPdfModal}
-  onReply={setReplyTo}
-  loaderRef={hasMoreMessages ? loaderRef : null}
-/>
+      <MessageList
+        key={`${userIdSelecionado}-${messageVersion}`}
+        ref={messageListRef}
+        messages={displayedMessages}
+        onImageClick={setModalImage}
+        onPdfClick={setPdfModal}
+        onReply={setReplyTo}
+        loaderRef={hasMoreMessages ? loaderRef : null}
+      />
 
       <div className="chat-input">
         <SendMessageForm
