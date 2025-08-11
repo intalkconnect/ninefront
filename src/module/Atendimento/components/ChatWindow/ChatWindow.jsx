@@ -13,9 +13,9 @@ import ChatHeader from './ChatHeader';
 import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
-const MESSAGES_PER_PAGE = 30;
+const MESSAGES_PER_PAGE = 100;
 
-// Normaliza qualquer formato de conteúdo para string segura de renderizar
+// ---------- helpers ----------
 function contentToText(content) {
   if (content == null) return '';
   if (typeof content === 'string') {
@@ -25,9 +25,7 @@ function contentToText(content) {
         return parsed.text || parsed.caption || parsed.body || '[mensagem]';
       }
       return content;
-    } catch {
-      return content;
-    }
+    } catch { return content; }
   }
   if (typeof content === 'object') {
     return content.text || content.caption || content.body || '[mensagem]';
@@ -35,26 +33,79 @@ function contentToText(content) {
   return String(content);
 }
 
-// Heurística para “casar” a mensagem oficial com a otimista
-function areSameOutgoing(a, b) {
-  if (!a || !b) return false;
+const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, error: 1, undefined: 0, null: 0 };
 
-  // melhor cenário
-  if (a.client_id && b.client_id && a.client_id === b.client_id) return true;
+function rankStatus(s) { return STATUS_RANK[s] ?? 0; }
 
-  const bothOut = a.direction === 'outgoing' && b.direction === 'outgoing';
-  if (!bothOut) return false;
-
-  const ta = contentToText(a.content).trim().replace(/\s+/g, ' ').toLowerCase();
-  const tb = contentToText(b.content).trim().replace(/\s+/g, ' ').toLowerCase();
-  const sameText = ta === tb;
-
-  const dt = Math.abs(new Date(a.timestamp) - new Date(b.timestamp));
-  const closeInTime = dt < 7000; // 7s cobre latência/clock
-
-  return sameText && closeInTime;
+function normText(x) {
+  return contentToText(x).trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function isOutgoing(m) { return m?.direction === 'outgoing'; }
+
+function closeInTime(a, b, windowMs = 15000) { // 15s p/ cobrir atrasos
+  const ta = new Date(a.timestamp).getTime();
+  const tb = new Date(b.timestamp).getTime();
+  return Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) <= windowMs;
+}
+
+// mesma mensagem? (client_id ou mesmo texto e tempo próximo)
+function isSameOutgoing(a, b) {
+  if (!a || !b || !isOutgoing(a) || !isOutgoing(b)) return false;
+  if (a.client_id && b.client_id && a.client_id === b.client_id) return true;
+  if (!closeInTime(a, b)) return false;
+  return normText(a.content) === normText(b.content);
+}
+
+// mescla campos, priorizando a “melhor” (status maior, id real etc.)
+function mergeOutgoing(a, b) {
+  // define quem tem melhor status
+  const first = rankStatus(a.status) >= rankStatus(b.status) ? a : b;
+  const second = first === a ? b : a;
+
+  return {
+    ...first,
+    id: first.id || second.id,
+    client_id: first.client_id || second.client_id,
+    pending: (first.pending && !first.id) ? true : false,
+    // mantém timestamp do servidor se vier
+    timestamp: first.id ? first.timestamp : (second.id ? second.timestamp : first.timestamp),
+    // conserva content normalizado do melhor
+    content: first.content ?? second.content,
+    // conserva possíveis metadados úteis
+    channel: first.channel || second.channel,
+    reply_to: first.reply_to ?? second.reply_to,
+    reply_direction: first.reply_direction ?? second.reply_direction,
+  };
+}
+
+// garante que ao inserir/atualizar um outgoing não crie duplicata
+function upsertOutgoing(list, msg) {
+  const byId = msg.id ? list.findIndex(m => m.id === msg.id) : -1;
+  if (byId >= 0) {
+    const clone = [...list];
+    clone[byId] = mergeOutgoing(clone[byId], msg);
+    return clone;
+  }
+
+  // procura similar entre as últimas N (economiza)
+  const N = 20;
+  for (let i = Math.max(0, list.length - N); i < list.length; i++) {
+    const m = list[i];
+    if (isSameOutgoing(m, msg)) {
+      const clone = [...list];
+      clone[i] = mergeOutgoing(m, msg);
+      return clone;
+    }
+  }
+
+  // senão, adiciona e ordena
+  const added = [...list, msg];
+  added.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
+  return added;
+}
+
+// ---------- componente ----------
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation   = useConversationsStore(state => state.mergeConversation);
   const setClienteAtivo     = useConversationsStore(state => state.setClienteAtivo);
@@ -78,7 +129,6 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef= useRef(new Map());
   const bottomRef      = useRef(null);
 
-  // paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * MESSAGES_PER_PAGE);
     const slice = messages.slice(startIndex);
@@ -90,34 +140,35 @@ export default function ChatWindow({ userIdSelecionado }) {
     bottomRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
   }, []);
 
-  // conecta socket (idempotente)
   useEffect(() => {
     connectSocket();
     const socket = getSocket();
     socketRef.current = socket;
   }, []);
 
-  // ===== Handlers de socket (locais) =====
+  // ------ socket handlers ------
   const handleNewMessage = useCallback((msg) => {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      // 1) já existe por id?
-      if (prev.some(m => m.id && m.id === msg.id)) return prev;
-
-      // 2) existe uma otimista parecida? -> substitui (mesmo balão evolui)
-      const idxApprox = prev.findIndex(m => m.pending === true && areSameOutgoing(m, msg));
-      if (idxApprox >= 0) {
-        const clone = [...prev];
-        clone[idxApprox] = { ...clone[idxApprox], ...msg, pending: false };
-        clone.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      // se já existe por id, atualiza e sai
+      if (msg.id && prev.some(m => m.id === msg.id)) {
+        const clone = prev.map(m => (m.id === msg.id ? mergeOutgoing(m, msg) : m));
         messageCacheRef.current.set(msg.user_id, clone);
         updateDisplayedMessages(clone, pageRef.current);
         return clone;
       }
 
-      // 3) senão, adiciona normal
-      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      // trata outgoing: upsert sem duplicar
+      if (isOutgoing(msg)) {
+        const next = upsertOutgoing(prev, { ...msg, pending: false });
+        messageCacheRef.current.set(msg.user_id, next);
+        updateDisplayedMessages(next, pageRef.current);
+        return next;
+      }
+
+      // incoming normal: adiciona
+      const updated = [...prev, msg].sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
       messageCacheRef.current.set(msg.user_id, updated);
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
@@ -128,63 +179,58 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      // 1) por id
-      const idxById = prev.findIndex(m => m.id && m.id === msg.id);
-      if (idxById >= 0) {
-        const clone = [...prev];
-        clone[idxById] = { ...clone[idxById], ...msg, pending: false };
-        messageCacheRef.current.set(msg.user_id, clone);
-        updateDisplayedMessages(clone, pageRef.current);
-        return clone;
+      // por id
+      if (msg.id) {
+        const idx = prev.findIndex(m => m.id === msg.id);
+        if (idx >= 0) {
+          const clone = [...prev];
+          clone[idx] = mergeOutgoing(clone[idx], msg);
+          messageCacheRef.current.set(msg.user_id, clone);
+          updateDisplayedMessages(clone, pageRef.current);
+          return clone;
+        }
       }
-      // 2) conciliação com otimista
-      const idxApprox = prev.findIndex(m => m.pending === true && areSameOutgoing(m, msg));
-      if (idxApprox >= 0) {
-        const clone = [...prev];
-        clone[idxApprox] = { ...clone[idxApprox], ...msg, pending: false };
-        messageCacheRef.current.set(msg.user_id, clone);
-        updateDisplayedMessages(clone, pageRef.current);
-        return clone;
+
+      // sem id ou não achou: se for outgoing, tenta conciliar por similaridade
+      if (isOutgoing(msg)) {
+        const next = upsertOutgoing(prev, { ...msg, pending: false });
+        messageCacheRef.current.set(msg.user_id, next);
+        updateDisplayedMessages(next, pageRef.current);
+        return next;
       }
+
       return prev;
     });
   }, [userIdSelecionado, updateDisplayedMessages]);
 
-  // registra/deregistra listeners locais
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
-
     socket.on('new_message', handleNewMessage);
     socket.on('update_message', handleUpdateMessage);
-
     return () => {
       socket.off('new_message', handleNewMessage);
       socket.off('update_message', handleUpdateMessage);
     };
   }, [handleNewMessage, handleUpdateMessage]);
 
-  // ===== Salas =====
+  // ------ rooms ------
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !userIdSelecionado) return;
     socket.emit('join_room', userIdSelecionado);
-    return () => {
-      socket.emit('leave_room', userIdSelecionado);
-    };
+    return () => socket.emit('leave_room', userIdSelecionado);
   }, [userIdSelecionado]);
 
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
-    const onConnect = () => {
-      if (userIdSelecionado) socket.emit('join_room', userIdSelecionado);
-    };
+    const onConnect = () => { if (userIdSelecionado) socket.emit('join_room', userIdSelecionado); };
     socket.on('connect', onConnect);
     return () => socket.off('connect', onConnect);
   }, [userIdSelecionado]);
 
-  // ===== Carregamento quando troca de usuário =====
+  // ------ load on user change ------
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -207,7 +253,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         }
 
         const msgs = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
-        msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        msgs.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
 
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
@@ -260,7 +306,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     scrollToBottom,
   ]);
 
-  // ===== Infinito: carrega página anterior ao chegar no topo =====
+  // ------ infinite scroll ------
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -274,7 +320,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // ===== Voltar para aba: garante conexão e refresh das mensagens =====
+  // ------ tab visible refresh ------
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
@@ -285,7 +331,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         try {
           const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
           const arr = Array.isArray(msgs) ? msgs : (msgs?.data || []);
-          arr.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          arr.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
           setAllMessages(arr);
           messageCacheRef.current.set(userIdSelecionado, arr);
           updateDisplayedMessages(arr, pageRef.current);
@@ -299,22 +345,26 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages]);
 
-  // ===== Envio otimista + update do card + limpar reply =====
+  // ------ envio otimista ------
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
 
-    // gera um client_id local para auxiliar a conciliação quando o servidor responder
     const client_id = tempMsg.client_id || `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-    const optimistic = { ...tempMsg, pending: true, direction: 'outgoing', client_id, reply_to: tempMsg.reply_to || null };
+    const optimistic = {
+      ...tempMsg,
+      pending: true,
+      direction: 'outgoing',
+      client_id,
+      reply_to: tempMsg.reply_to || null,
+    };
 
     setAllMessages(prev => {
-      const updated = [...prev, optimistic].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      messageCacheRef.current.set(userIdSelecionado, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
+      const next = upsertOutgoing(prev, optimistic);
+      messageCacheRef.current.set(userIdSelecionado, next);
+      updateDisplayedMessages(next, pageRef.current);
+      return next;
     });
 
-    // atualiza card já com texto normalizado
     mergeConversation(userIdSelecionado, {
       content: contentToText(tempMsg.content),
       timestamp: tempMsg.timestamp || new Date().toISOString(),
@@ -322,14 +372,11 @@ export default function ChatWindow({ userIdSelecionado }) {
       direction: 'outgoing',
     });
 
-    // garante que não fique preso em reply
     setReplyTo(null);
-
-    // rola pro fim
     setTimeout(scrollToBottom, 0);
   }, [mergeConversation, updateDisplayedMessages, userIdSelecionado, scrollToBottom]);
 
-  // ===== Render =====
+  // ------ render ------
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
