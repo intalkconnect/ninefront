@@ -1,297 +1,227 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { connectSocket, getSocket } from '../../services/socket';
-import { apiGet } from '../../services/apiClient';
-import useConversationsStore from '../../store/useConversationsStore';
-import { marcarMensagensAntesDoTicketComoLidas } from '../../hooks/useSendMessage'; // ajuste o path se necessário
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { apiGet } from "../../services/apiClient";
+import { getSocket } from "../../services/socket";
 
+import useConversationsStore from "../../store/useConversationsStore";
 
-import SendMessageForm from '../SendMessageForm/SendMessageForm';
-import MessageList from './MessageList';
-import ImageModal from './modals/ImageModal';
-import PdfModal from './modals/PdfModal';
-import ChatHeader from './ChatHeader';
+import SendMessageForm from "../SendMessageForm/SendMessageForm";
+import MessageList from "./MessageList";
+import ChatHeader from "./ChatHeader";
+// Se você tiver modais de mídia, importe-os se usar:
+import ImageModal from "./modals/ImageModal";
+import PdfModal from "./modals/PdfModal";
 
-import './ChatWindow.css';
-import './ChatWindowPagination.css';
+import "./ChatWindow.css";
+import "./ChatWindowPagination.css";
+
+const PAGE_SIZE = 100;
 
 export default function ChatWindow({ userIdSelecionado }) {
-  const mergeConversation = useConversationsStore(state => state.mergeConversation);
-  const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
+  const socket = getSocket?.();
 
-  const [allMessages, setAllMessages] = useState([]);
-  const [displayedMessages, setDisplayedMessages] = useState([]);
-  const [modalImage, setModalImage] = useState(null);
-  const [pdfModal, setPdfModal] = useState(null);
-  const [clienteInfo, setClienteInfo] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [replyTo, setReplyTo] = useState(null);
-  const [hasMoreMessages, setHasMoreMessages] = useState(false);
-  const [canSendFreeform, setCanSendFreeform] = useState(true);
+  const {
+    mergeConversation, // atualiza card
+  } = useConversationsStore((s) => ({
+    mergeConversation: s.mergeConversation,
+  }));
 
-
-  const userEmail = useConversationsStore(state => state.userEmail);
-  const userFilas = useConversationsStore(state => state.userFilas);
-
-  const messageListRef = useRef(null);
-  const loaderRef = useRef(null);
-  const socketRef = useRef(null);
+  const [allMessages, setAllMessages] = useState([]);   // cache completo da conversa selecionada
+  const [displayed, setDisplayed] = useState([]);       // mensagens paginadas
   const pageRef = useRef(1);
   const messageCacheRef = useRef(new Map());
-  const messagesPerPage = 100;
 
-  // Atualiza mensagens exibidas conforme paginação
+  const [clienteInfo, setClienteInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const bottomRef = useRef(null);
+
+  // -------------- Helpers de paginação/scroll --------------
   const updateDisplayedMessages = useCallback((messages, page) => {
-    const startIndex = Math.max(0, messages.length - page * messagesPerPage);
-    const newMessages = messages.slice(startIndex);
-    setDisplayedMessages(newMessages);
-    setHasMoreMessages(startIndex > 0);
+    const startIndex = Math.max(0, messages.length - page * PAGE_SIZE);
+    const slice = messages.slice(startIndex);
+    setDisplayed(slice);
   }, []);
 
-  // 1. Sempre inicialize socket e listeners corretamente
-  useEffect(() => {
-    connectSocket(); // Garante singleton e conecta se necessário
-    const socket = getSocket();
-    socketRef.current = socket;
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
+  }, []);
 
-    // Listeners de mensagem
-    const handleNew = (msg) => {
-      if (msg.user_id !== userIdSelecionado) return;
-      setAllMessages(prev => {
-        if (prev.find(m => m.id === msg.id)) return prev;
-        const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        messageCacheRef.current.set(msg.user_id, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        return updated;
+  // -------------- Carrega conversa e cliente --------------
+  const fetchConversation = useCallback(async (userId) => {
+    setLoading(true);
+    try {
+      // Ajuste os endpoints conforme seu backend
+      const [msgsRes, clienteRes] = await Promise.all([
+        apiGet(`/conversations/${userId}/messages`),
+        apiGet(`/clients/${userId}`),
+      ]);
+
+      const msgs = (msgsRes?.data || []).sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
+
+      messageCacheRef.current.set(userId, msgs);
+      setAllMessages(msgs);
+      pageRef.current = 1;
+      updateDisplayedMessages(msgs, 1);
+
+      setClienteInfo({
+        name: clienteRes?.data?.name || clienteRes?.name,
+        phone: clienteRes?.data?.phone || clienteRes?.phone,
+        channel: clienteRes?.data?.channel || clienteRes?.channel || "whatsapp",
+        ticket_number: clienteRes?.data?.ticket_number || clienteRes?.ticket_number,
       });
-    };
-    const handleUpdate = (msg) => {
-      if (msg.user_id !== userIdSelecionado) return;
-      setAllMessages(prev => {
-        const updated = prev.map(m => m.id === msg.id ? msg : m);
-        messageCacheRef.current.set(msg.user_id, updated);
-        updateDisplayedMessages(updated, pageRef.current);
-        return updated;
-      });
-    };
 
-    // Remove e adiciona listeners SEMPRE (evita duplicação)
-    socket.off('new_message', handleNew);
-    socket.off('update_message', handleUpdate);
-    socket.on('new_message', handleNew);
-    socket.on('update_message', handleUpdate);
+    } catch (e) {
+      console.error("Erro ao buscar conversa:", e);
+    } finally {
+      setLoading(false);
+      // rola pro final quando carrega
+      setTimeout(scrollToBottom, 50);
+    }
+  }, [scrollToBottom, updateDisplayedMessages]);
 
-    return () => {
-      socket.off('new_message', handleNew);
-      socket.off('update_message', handleUpdate);
-    };
-  }, [userIdSelecionado, updateDisplayedMessages]);
-
-  // 2. join_room ao trocar de usuário selecionado
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket || !userIdSelecionado) return;
-    socket.emit('join_room', userIdSelecionado);
-    return () => {
-      socket.emit('leave_room', userIdSelecionado);
-    };
-  }, [userIdSelecionado]);
-
-  // 3. join_room ao reconectar
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-    const handleReconnect = () => {
-      if (userIdSelecionado) {
-        socket.emit('join_room', userIdSelecionado);
-      }
-    };
-    socket.on('connect', handleReconnect);
-    return () => {
-      socket.off('connect', handleReconnect);
-    };
-  }, [userIdSelecionado]);
-
-  // 4. Carrega as mensagens iniciais ao selecionar usuário
+  // -------------- Monta/desmonta ao trocar de conversa --------------
   useEffect(() => {
     if (!userIdSelecionado) return;
-    pageRef.current = 1;
-    setIsLoading(true);
-
-    (async () => {
-      try {
-        const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`)
-        ]);
-
-        const { status, assigned_to, fila } = ticketRes;
-        if (status !== 'open' || assigned_to !== userEmail || !userFilas.includes(fila)) {
-          console.warn('Acesso negado ao ticket deste usuário.');
-          return;
-        }
-
-        const msgs = msgRes;
-        messageCacheRef.current.set(userIdSelecionado, msgs);
-        setAllMessages(msgs);
-        updateDisplayedMessages(msgs, 1);
-
-        const lastMsg = msgs[msgs.length - 1] || {};
-mergeConversation(userIdSelecionado, {
-  channel: lastMsg.channel || clienteRes.channel || 'desconhecido',
-  ticket_number: clienteRes.ticket_number || '000000',
-  fila: clienteRes.fila || fila || 'Orçamento',
-  name: clienteRes.name || userIdSelecionado,
-  email: clienteRes.email || '',
-  phone: clienteRes.phone || '',
-  documento: clienteRes.document || '',
-  user_id: clienteRes.user_id || userIdSelecionado,
-  assigned_to,
-  status,
-});
-
-
-marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
-
-        setClienteInfo({
-          name: clienteRes.name,
-          phone: clienteRes.phone,
-          channel: clienteRes.channel,
-          ticket_number: clienteRes.ticket_number,
-          fila: clienteRes.fila,
-          assigned_to, status,
-        });
-
-        setClienteAtivo(clienteRes);
-      } catch (err) {
-        console.error('Erro ao buscar cliente:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [userIdSelecionado, userEmail, userFilas, mergeConversation, updateDisplayedMessages, setClienteAtivo]);
-
-  // 5. Scroll infinito ao chegar no topo
-  useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMoreMessages) {
-        pageRef.current += 1;
-        const cached = messageCacheRef.current.get(userIdSelecionado) || [];
-        updateDisplayedMessages(cached, pageRef.current);
-      }
-    }, { threshold: 0.1 });
-
-    if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => loaderRef.current && observer.disconnect();
-  }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
-
-  // 6. (Opcional) Recarrega mensagens do usuário ao voltar para aba
-useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible" && userIdSelecionado) {
-      // 1. Reconecta o socket (ele não perde eventos!)
-      const socket = getSocket();
-      if (!socket.connected) socket.connect();
-
-      // 2. Limpa e readiciona os listeners SEMPRE (garante que não ficaram “travados”)
-      socket.off('new_message');
-      socket.off('update_message');
-
-      socket.on('new_message', handleNewMessage);
-      socket.on('update_message', handleUpdateMessage);
-
-      // 3. Faz fetch dos dados, garantindo atualização
-      (async () => {
-        try {
-          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
-          setAllMessages(msgs);
-          updateDisplayedMessages(msgs, pageRef.current);
-        } catch (err) {
-          console.error('Erro ao recarregar mensagens:', err);
-        }
-      })();
+    const cached = messageCacheRef.current.get(userIdSelecionado);
+    if (cached) {
+      setAllMessages(cached);
+      pageRef.current = 1;
+      updateDisplayedMessages(cached, 1);
+      setTimeout(scrollToBottom, 0);
+    } else {
+      fetchConversation(userIdSelecionado);
     }
-  };
+  }, [userIdSelecionado, fetchConversation, scrollToBottom, updateDisplayedMessages]);
 
-  // Funções listeners precisam ser visíveis aqui
-  function handleNewMessage(msg) {
-    if (msg.user_id !== userIdSelecionado) return;
-    setAllMessages(prev => {
-      if (prev.find(m => m.id === msg.id)) return prev;
-      const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      messageCacheRef.current.set(msg.user_id, updated);
+  // -------------- Handlers de socket (APENAS LOCAIS) --------------
+  const handleNewMessage = useCallback((message) => {
+    if (!message || message.user_id !== userIdSelecionado) return;
+
+    setAllMessages((prev) => {
+      const updated = [...prev, message].sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
+      messageCacheRef.current.set(userIdSelecionado, updated);
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
     });
-  }
 
-  function handleUpdateMessage(msg) {
-    if (msg.user_id !== userIdSelecionado) return;
-    setAllMessages(prev => {
-      const updated = prev.map(m => m.id === msg.id ? msg : m);
-      messageCacheRef.current.set(msg.user_id, updated);
+    // não atualizamos o card aqui — o Atendimento já tem um handler GLOBAL
+    // que faz o mergeConversation para todas as mensagens recebidas.
+  }, [updateDisplayedMessages, userIdSelecionado]);
+
+  const handleUpdateMessage = useCallback((payload) => {
+    if (!payload || payload.user_id !== userIdSelecionado) return;
+
+    setAllMessages((prev) => {
+      const updated = prev.map((m) =>
+        m.id === payload.id ? { ...m, ...payload } : m
+      );
+      messageCacheRef.current.set(userIdSelecionado, updated);
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
     });
-  }
+  }, [updateDisplayedMessages, userIdSelecionado]);
 
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-}, [userIdSelecionado, updateDisplayedMessages]);
+  // Registrar handlers SEM NUNCA chamar off global (correção do bug #2)
+  useEffect(() => {
+    if (!socket) return;
 
+    socket.on("new_message", handleNewMessage);
+    socket.on("update_message", handleUpdateMessage);
 
-  // 7. Renderização do componente
-  if (!userIdSelecionado) {
-    return (
-      <div className="chat-window placeholder">
-        <div className="chat-placeholder">
-          <svg className="chat-icon" width="80" height="80" viewBox="0 0 24 24" fill="var(--color-border)">
-            <path d="M4 2h16a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2H6l-4 4V4a2 2 0 0 1 2 -2z" />
-          </svg>
-          <h2 className="placeholder-title">Tudo pronto para atender</h2>
-          <p className="placeholder-subtitle">Escolha um ticket na lista ao lado para abrir a conversa</p>
-        </div>
-      </div>
-    );
-  }
+    return () => {
+      try {
+        socket.off("new_message", handleNewMessage);
+        socket.off("update_message", handleUpdateMessage);
+      } catch {}
+    };
+  }, [socket, handleNewMessage, handleUpdateMessage]);
 
-  if (isLoading) {
-    return (
-      <div className="chat-window loading">
-        <div className="loading-container"><div className="spinner"/></div>
-      </div>
-    );
+  // -------------- Envio: atualização otimista + atualização do card --------------
+  const onMessageAdded = useCallback(
+    (tempMsg) => {
+      if (!tempMsg) return;
+
+      // 1) Atualiza o chat imediatamente (otimista)
+      setAllMessages((prev) => {
+        const updated = [...prev, tempMsg].sort(
+          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+        );
+        messageCacheRef.current.set(userIdSelecionado, updated);
+        updateDisplayedMessages(updated, pageRef.current);
+        return updated;
+      });
+
+      // 2) Atualiza o card imediatamente
+      const contentStr =
+        typeof tempMsg.content === "object"
+          ? tempMsg.content?.text ||
+            tempMsg.content?.caption ||
+            "[mensagem]"
+          : tempMsg.content ?? "";
+
+      mergeConversation?.(userIdSelecionado, {
+        content: contentStr,
+        timestamp: tempMsg.timestamp || new Date().toISOString(),
+        channel: tempMsg.channel || "whatsapp",
+        direction: "outgoing",
+      });
+
+      // 3) rolar pra baixo
+      setTimeout(scrollToBottom, 0);
+    },
+    [mergeConversation, scrollToBottom, updateDisplayedMessages, userIdSelecionado]
+  );
+
+  // -------------- Paginação (carregar mais) --------------
+  const handleLoadMore = useCallback(() => {
+    const total = allMessages.length;
+    const nextPage = pageRef.current + 1;
+    const maxPage = Math.ceil(total / PAGE_SIZE);
+    if (nextPage > maxPage) return;
+
+    pageRef.current = nextPage;
+    updateDisplayedMessages(allMessages, nextPage);
+  }, [allMessages, updateDisplayedMessages]);
+
+  const canLoadMore = useMemo(() => {
+    return allMessages.length > displayed.length;
+  }, [allMessages.length, displayed.length]);
+
+  // -------------- UI --------------
+  if (loading && !displayed.length) {
+    return <div className="chat-window loading">Carregando…</div>;
   }
 
   return (
     <div className="chat-window">
-      <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
+      <ChatHeader cliente={clienteInfo} />
 
-      <MessageList
-        initialKey={userIdSelecionado}
-        ref={messageListRef}
-        messages={displayedMessages}
-        onImageClick={setModalImage}
-        onPdfClick={setPdfModal}
-        onReply={setReplyTo}
-        loaderRef={hasMoreMessages ? loaderRef : null}
-      />
+      <div className="message-list-container">
+        {canLoadMore && (
+          <button className="load-more" onClick={handleLoadMore}>
+            Carregar mensagens anteriores
+          </button>
+        )}
 
-      <div className="chat-input">
-<SendMessageForm
-  userIdSelecionado={userIdSelecionado}
-  replyTo={replyTo}
-  setReplyTo={setReplyTo}
-  canSendFreeform={canSendFreeform}
-/>
-
+        <MessageList messages={displayed} />
+        <div ref={bottomRef} />
       </div>
 
-      {modalImage && <ImageModal url={modalImage} onClose={() => setModalImage(null)} />}
-      {pdfModal && <PdfModal url={pdfModal} onClose={() => setPdfModal(null)} />}
+      <div className="chat-input">
+        <SendMessageForm
+          userIdSelecionado={userIdSelecionado}
+          // Passe SEMPRE o callback para garantir update otimista (correção do bug #1)
+          onMessageAdded={onMessageAdded}
+        />
+      </div>
+
+      {/* Se usar modais de mídia, mantenha-os montados/condicionais */}
+      <ImageModal />
+      <PdfModal />
     </div>
   );
 }
