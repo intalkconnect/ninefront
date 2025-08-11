@@ -1,318 +1,211 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import { apiGet, apiPut } from "./services/apiClient";
-import { connectSocket, getSocket } from "./services/socket";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import Sidebar from "./components/Sidebar/Sidebar";
 import ChatWindow from "./components/ChatWindow/ChatWindow";
 import DetailsPanel from "./components/DetailsPanel/DetailsPanel";
 import SocketDisconnectedModal from "./components/SocketDisconnectedModal";
+
 import useConversationsStore from "./store/useConversationsStore";
+
+import { apiGet } from "./services/apiClient";
+import { connectSocket, getSocket } from "./services/socket";
+
 import notificationSound from "./assets/notification.mp3";
 import "./Atendimento.css";
-import { parseJwt } from "../../utils/auth";
+
+// Se você usa auth por JWT, ajuste/importe daqui:
+import { parseJwt } from "../../utils/auth"; // ajuste o path se necessário
 
 export default function Atendimento() {
   const audioPlayer = useRef(null);
   const socketRef = useRef(null);
   const isWindowActiveRef = useRef(true);
 
-  const selectedUserId = useConversationsStore((s) => s.selectedUserId);
-  const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
-  const setUserInfo = useConversationsStore((s) => s.setUserInfo);
-  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
-  const loadUnreadCounts = useConversationsStore((s) => s.loadUnreadCounts);
-  const loadLastReadTimes = useConversationsStore((s) => s.loadLastReadTimes);
-  const incrementUnread = useConversationsStore((s) => s.incrementUnread);
-  const getContactName = useConversationsStore((s) => s.getContactName);
-  const conversations = useConversationsStore((s) => s.conversations);
-  const notifiedConversations = useConversationsStore(
-    (s) => s.notifiedConversations
-  );
-  const markNotified = useConversationsStore((s) => s.markNotified);
-  const userEmail = useConversationsStore((s) => s.userEmail);
-  const userFilas = useConversationsStore((s) => s.userFilas);
-  const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
+  // ---- Zustand store (ajuste nomes se seu store divergir) ----
+  const {
+    conversations,
+    selectedUserId,
+    setSelectedUserId,           // <- garanta que exista no seu store. Se for outro nome, ajuste aqui.
+    mergeConversation,           // <- usado para atualizar o card com última mensagem, timestamp, etc.
+    setSocketStatus,             // opcional: exibir status do socket
+    socketStatus,                // opcional: status atual
+  } = useConversationsStore((s) => ({
+    conversations: s.conversations,
+    selectedUserId: s.selectedUserId,
+    setSelectedUserId: s.setSelectedUserId ?? s.selectConversation, // fallback
+    mergeConversation: s.mergeConversation,
+    setSocketStatus: s.setSocketStatus,
+    socketStatus: s.socketStatus,
+  }));
 
-  const [isWindowActive, setIsWindowActive] = useState(true);
+  const [isSocketModalOpen, setIsSocketModalOpen] = useState(false);
 
-useEffect(() => {
-  document.title = "HubHMG - Atendimento";
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  const { email } = parseJwt(token);
-  if (!email) return;
-
-  setUserInfo({ email, filas: [] }); // limpa antes
-
-  (async () => {
+  // ---- Helpers ----
+  const playNotification = useCallback(() => {
     try {
-      const data = await apiGet(`/atendentes/${email}`);
-      if (data?.email) {
-        setUserInfo({
-          email: data.email,
-          filas: data.filas || [],
-          name: `${data.name} ${data.lastname}`.trim(),
-        });
+      if (audioPlayer.current) {
+        audioPlayer.current.currentTime = 0;
+        audioPlayer.current.play().catch(() => {});
       }
-    } catch (err) {
-      console.error("Erro ao buscar dados do atendente:", err);
-    }
-  })();
-}, [setUserInfo]);
-
-
-  useEffect(() => {
-    audioPlayer.current = new Audio(notificationSound);
-    audioPlayer.current.volume = 0.3;
-    return () => audioPlayer.current?.pause();
+    } catch {}
   }, []);
 
+  const notify = useCallback((msg) => {
+    toast(msg, { type: "info", autoClose: 3000 });
+  }, []);
+
+  // ---- Foco da janela (p/ evitar barulho quando usuário fora) ----
   useEffect(() => {
-    const onFocus = () => {
-      isWindowActiveRef.current = true;
-      setIsWindowActive(true);
-    };
-    const onBlur = () => {
-      isWindowActiveRef.current = false;
-      setIsWindowActive(false);
-    };
+    const onFocus = () => (isWindowActiveRef.current = true);
+    const onBlur  = () => (isWindowActiveRef.current = false);
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onBlur);
-
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("blur", onBlur);
     };
   }, []);
 
-  // Força reconexão do socket quando volta para aba
-useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      const socket = getSocket();
-socket.on('connect', () => console.log('SOCKET RECONNECTED:', socket.id));
-socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
-
-      console.log('Visibilidade: voltando para aba. Socket conectado?', socket.connected);
-      if (socket && !socket.connected) {
-        // Força reconexão do socket
-        socket.connect();
-        // Opcional: envie novamente o identify se necessário
-        // socket.emit("identify", { email: userEmail, rooms: userFilas });
-      }
-    }
-  };
-
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-
-  return () => {
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
-  };
-}, [userEmail, userFilas]);
-
-
-  const handleNewMessage = useCallback(
-    async (message) => {
-      if (!message || !message.content || message.assigned_to !== userEmail) {
-        console.warn(
-          "[Notificação] Mensagem ignorada: dados incompletos ou não atribuída a este atendente."
-        );
-        return;
-      }
-
-      const isFromMe = message.direction === "outgoing";
-      const isActiveChat = message.user_id === selectedUserId;
-      const isWindowFocused = isWindowActiveRef.current;
-
-      mergeConversation(message.user_id, {
-        ticket_number: message.ticket_number || message.ticket,
-        timestamp: message.timestamp,
-        content: message.content,
-        channel: message.channel,
-      });
-      if (isFromMe) return;
-
-      if (isActiveChat && isWindowFocused) {
-        await apiPut(`/messages/read-status/${message.user_id}`, {
-          last_read: new Date().toISOString(),
-        });
-        await loadUnreadCounts();
-      } else {
-        incrementUnread(message.user_id, message.timestamp);
-        await loadUnreadCounts();
-
-        if (!isWindowFocused && !notifiedConversations[message.user_id]) {
-          const contactName = getContactName(message.user_id);
-          showNotification(message, contactName);
-          try {
-            const player = audioPlayer.current;
-            if (player) {
-              await player.pause();
-              player.currentTime = 0;
-              await player.play();
-            }
-          } catch (err) {
-            console.error("Erro ao tocar som de notificação:", err);
-          }
-          markNotified(message.user_id);
-        }
-      }
-    },
-    [
-      userEmail,
-      selectedUserId,
-      mergeConversation,
-      incrementUnread,
-      loadUnreadCounts,
-      getContactName,
-      markNotified,
-      notifiedConversations,
-    ]
-  );
-
+  // ---- Conexão de socket ----
   useEffect(() => {
-    if (!userEmail || !userFilas.length) return;
     let mounted = true;
-    (async () => {
+
+    const doConnect = async () => {
       try {
-        await Promise.all([
-          fetchConversations(),
-          loadLastReadTimes(),
-          loadUnreadCounts(),
-        ]);
-        if (!mounted) return;
-
-        connectSocket();
-        const socket = getSocket();
-        socketRef.current = socket;
-
-        socket.on("connect", async () => {
-          setSocketStatus("online");
-          const sessionId = socket.id;
+        // se você precisa de token/tenant/etc, recupere aqui
+        const token = localStorage.getItem("token");
+        const tenant = (() => {
           try {
-            await apiPut(`/atendentes/session/${userEmail}`, {
-              session: sessionId,
-            });
-
-            // ✅ Sinalizar que está pronto para SocketDisconnectedModal
-            window.sessionStorage.setItem("sessionReady", "true");
-          } catch (err) {
-            console.error("Erro ao informar sessão ao servidor:", err);
+            const parsed = parseJwt?.(token);
+            return parsed?.tenant || parsed?.tenant_id || null;
+          } catch {
+            return null;
           }
+        })();
 
-          socket.emit("identify", { email: userEmail, rooms: userFilas });
-        });
+        const socket = await connectSocket({ token, tenant });
+        socketRef.current = socket;
+        setSocketStatus?.("online");
+        setIsSocketModalOpen(false);
 
-        socket.on("disconnect", () => setSocketStatus("offline"));
-        socket.on("new_message", handleNewMessage);
+        // -------- Handlers GLOBAIS (não remova em ChatWindow!) --------
+        const onNewMessage = (message) => {
+          // dados mínimos
+          if (!message || !message.user_id || !message.timestamp) return;
+
+          // card: sempre atualiza
+          mergeConversation?.(message.user_id, {
+            ticket_number: message.ticket_number || message.ticket,
+            timestamp: message.timestamp,
+            content: message.content,
+            channel: message.channel || "whatsapp",
+            direction: message.direction, // incoming/outgoing
+          });
+
+          // notificação sonora/visual
+          const isActiveChat  = message.user_id === selectedUserId;
+          const isFromMe      = message.direction === "outgoing";
+          const windowFocused = isWindowActiveRef.current;
+
+          if (!isFromMe) {
+            if (!windowFocused || !isActiveChat) {
+              playNotification();
+            }
+          }
+        };
+
+        const onUpdateMessage = (payload) => {
+          // opcional: atualizar status/read, etc.
+          if (!payload?.user_id) return;
+          // Se precisar tocar no card quando “editada/entregue/lida”
+          // mergeConversation?.(payload.user_id, { ... });
+        };
+
+        const onConnect = () => {
+          setSocketStatus?.("online");
+          setIsSocketModalOpen(false);
+        };
+        const onDisconnect = () => {
+          setSocketStatus?.("offline");
+          setIsSocketModalOpen(true);
+        };
+
+        socket.on("connect", onConnect);
+        socket.on("disconnect", onDisconnect);
+        socket.on("new_message", onNewMessage);
+        socket.on("update_message", onUpdateMessage);
+
+        // cleanup
+        return () => {
+          if (!mounted) return;
+          try {
+            socket.off("connect", onConnect);
+            socket.off("disconnect", onDisconnect);
+            socket.off("new_message", onNewMessage);
+            socket.off("update_message", onUpdateMessage);
+            socket.close?.();
+          } catch {}
+        };
       } catch (err) {
-        console.error("Erro na inicialização:", err);
+        setSocketStatus?.("offline");
+        setIsSocketModalOpen(true);
+        console.error("Erro ao conectar socket:", err);
       }
-    })();
+    };
+
+    doConnect();
 
     return () => {
       mounted = false;
-      const socket = getSocket();
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("new_message");
+      try {
+        const s = getSocket?.();
+        s?.close?.();
+      } catch {}
     };
-  }, [
-    userEmail,
-    userFilas,
-    handleNewMessage,
-    loadUnreadCounts,
-    loadLastReadTimes,
-  ]);
+  }, [mergeConversation, playNotification, selectedUserId, setSocketStatus]);
 
-  const fetchConversations = async () => {
-    try {
-      const params = new URLSearchParams({
-        assigned_to: userEmail,
-        filas: userFilas.join(","),
-      });
-      const data = await apiGet(`/chats?${params.toString()}`);
-      data.forEach((conv) => mergeConversation(conv.user_id, conv));
-    } catch (err) {
-      console.error("Erro ao buscar /chats:", err);
-    }
-  };
-
-  const showNotification = (message, contactName) => {
-    if (!("Notification" in window)) {
-      console.warn("[Notificação] API Notification não está disponível.");
-      return;
-    }
-
-    if (Notification.permission === "default") {
-      Notification.requestPermission().then((permission) => {
-        if (permission === "granted") {
-          showNotification(message, contactName);
-        } else {
-          console.warn("[Notificação] Permissão negada.");
-        }
-      });
-      return;
-    }
-
-    if (Notification.permission !== "granted") {
-      console.warn("[Notificação] Permissão não concedida.");
-      return;
-    }
-
-    let body;
-    try {
-      const parsed = JSON.parse(message.content);
-      body = parsed.text || parsed.caption || "[mensagem]";
-    } catch {
-      body =
-        message.content.length > 50
-          ? message.content.slice(0, 47) + "..."
-          : message.content;
-    }
-
-    const notif = new Notification(
-      `Nova mensagem de ${contactName || message.user_id}`,
-      {
-        body,
-        icon: "/icons/whatsapp.png",
-        vibrate: [200, 100, 200],
+  // ---- Seleção inicial (opcional) ----
+  useEffect(() => {
+    // Exemplo: se não houver seleção e existirem conversas, seleciona a primeira
+    if (!selectedUserId) {
+      const ids = Object.keys(conversations || {});
+      if (ids.length > 0) {
+        setSelectedUserId?.(ids[0]);
       }
-    );
+    }
+  }, [conversations, selectedUserId, setSelectedUserId]);
 
-    notif.onclick = () => {
-      window.focus();
-      setSelectedUserId(message.user_id);
-    };
-  };
-
-  const conversaSelecionada = selectedUserId
-    ? conversations[selectedUserId]
-    : null;
+  const conversaSelecionada = useMemo(() => {
+    return (conversations && selectedUserId && conversations[selectedUserId]) || null;
+  }, [conversations, selectedUserId]);
 
   return (
     <>
-      <SocketDisconnectedModal />
-      <div className="app-layout">
-        <div className="app-container">
-<aside className="sidebar-wrapper">
-  <div className="sidebar">
-    <Sidebar />
-  </div>
-</aside>
+      <audio ref={audioPlayer} src={notificationSound} preload="auto" />
+      <div className="atendimento-root">
+        <header className="topbar">
+          <div className="brand">Atendimento</div>
+          <div className={`socket-dot ${socketStatus === "online" ? "online" : "offline"}`} />
+        </header>
 
-          <main className="chat-container">
-            <ChatWindow
-              userIdSelecionado={selectedUserId}
-              conversaSelecionada={conversaSelecionada}
+        <div className="workspace">
+          <aside className="sidebar">
+            <Sidebar
+              selectedUserId={selectedUserId}
+              onSelectUser={(id) => setSelectedUserId?.(id)}
             />
+          </aside>
+
+          <main className="chat-area">
+            {selectedUserId ? (
+              <ChatWindow userIdSelecionado={selectedUserId} />
+            ) : (
+              <div className="empty-state">Selecione uma conversa ao lado</div>
+            )}
           </main>
+
           <aside className="details-panel">
             <DetailsPanel
               userIdSelecionado={selectedUserId}
@@ -320,8 +213,17 @@ socket.on('disconnect', reason => console.log('SOCKET DISCONNECTED:', reason));
             />
           </aside>
         </div>
-         {/* 🔽 Mover o Toast para aqui */}
-  <ToastContainer position="bottom-right" style={{ zIndex: 9999 }} />
+
+        <ToastContainer position="bottom-right" style={{ zIndex: 9999 }} />
+
+        <SocketDisconnectedModal
+          isOpen={isSocketModalOpen}
+          onReconnect={() => {
+            try {
+              getSocket()?.connect?.();
+            } catch {}
+          }}
+        />
       </div>
     </>
   );
