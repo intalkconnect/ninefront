@@ -72,7 +72,7 @@ const MessageList = forwardRef(
         const delta = newHeight - prevScrollHeight;
         containerRef.current.scrollTop = delta;
       }
-    }, [visibleCount]);
+    }, [visibleCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
@@ -96,7 +96,7 @@ const MessageList = forwardRef(
             let systemText = '';
             if (typeof msg.content === 'string') {
               systemText = msg.content.replace(/^"(.*)"$/, '$1');
-            } else if (typeof msg.content === 'object' && msg.content.text) {
+            } else if (typeof msg.content === 'object' && msg.content?.text) {
               systemText = msg.content.text;
             }
 
@@ -114,9 +114,13 @@ const MessageList = forwardRef(
             msg.ticket_number &&
             (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
-          const replyToMessage = messages.find(
-            (m) => m.whatsapp_message_id === msg.reply_to
-          );
+          // ✅ Só tenta achar reply se reply_to é string NÃO vazia
+          const hasReplyRef =
+            typeof msg.reply_to === 'string' && msg.reply_to.trim() !== '';
+
+          const replyToMessage = hasReplyRef
+            ? messages.find(m => m.whatsapp_message_id === msg.reply_to) || null
+            : null;
 
           return (
             <React.Fragment key={msg.id || index}>
