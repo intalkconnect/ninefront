@@ -14,46 +14,49 @@ import notificationSound from "./assets/notification.mp3";
 import "./Atendimento.css";
 import { parseJwt } from "../../utils/auth";
 
+// Normaliza conteúdo para string segura (evita quebra no card)
 function contentToText(content) {
-  if (content == null) return '';
-  if (typeof content === 'string') {
+  if (content == null) return "";
+  if (typeof content === "string") {
     try {
       const parsed = JSON.parse(content);
-      if (parsed && typeof parsed === 'object') {
-        return parsed.text || parsed.caption || parsed.body || '[mensagem]';
+      if (parsed && typeof parsed === "object") {
+        return parsed.text || parsed.caption || parsed.body || "[mensagem]";
       }
       return content;
-    } catch { return content; }
+    } catch {
+      return content;
+    }
   }
-  if (typeof content === 'object') {
-    return content.text || content.caption || content.body || '[mensagem]';
+  if (typeof content === "object") {
+    return content.text || content.caption || content.body || "[mensagem]";
   }
   return String(content);
 }
 
 export default function Atendimento() {
-  const audioPlayer        = useRef(null);
-  const socketRef          = useRef(null);
-  const isWindowActiveRef  = useRef(true);
+  const audioPlayer = useRef(null);
+  const socketRef = useRef(null);
+  const isWindowActiveRef = useRef(true);
 
-  const selectedUserId     = useConversationsStore((s) => s.selectedUserId);
-  const setSelectedUserId  = useConversationsStore((s) => s.setSelectedUserId);
-  const setUserInfo        = useConversationsStore((s) => s.setUserInfo);
-  const mergeConversation  = useConversationsStore((s) => s.mergeConversation);
-  const loadUnreadCounts   = useConversationsStore((s) => s.loadUnreadCounts);
-  const loadLastReadTimes  = useConversationsStore((s) => s.loadLastReadTimes);
-  const incrementUnread    = useConversationsStore((s) => s.incrementUnread);
-  const getContactName     = useConversationsStore((s) => s.getContactName);
-  const conversations      = useConversationsStore((s) => s.conversations);
+  const selectedUserId = useConversationsStore((s) => s.selectedUserId);
+  const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
+  const setUserInfo = useConversationsStore((s) => s.setUserInfo);
+  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
+  const loadUnreadCounts = useConversationsStore((s) => s.loadUnreadCounts);
+  const loadLastReadTimes = useConversationsStore((s) => s.loadLastReadTimes);
+  const incrementUnread = useConversationsStore((s) => s.incrementUnread);
+  const getContactName = useConversationsStore((s) => s.getContactName);
+  const conversations = useConversationsStore((s) => s.conversations);
   const notifiedConversations = useConversationsStore((s) => s.notifiedConversations);
-  const markNotified       = useConversationsStore((s) => s.markNotified);
-  const userEmail          = useConversationsStore((s) => s.userEmail);
-  const userFilas          = useConversationsStore((s) => s.userFilas);
-  const setSocketStatus    = useConversationsStore((s) => s.setSocketStatus);
+  const markNotified = useConversationsStore((s) => s.markNotified);
+  const userEmail = useConversationsStore((s) => s.userEmail);
+  const userFilas = useConversationsStore((s) => s.userFilas);
+  const setSocketStatus = useConversationsStore((s) => s.setSocketStatus);
 
   const [isWindowActive, setIsWindowActive] = useState(true);
 
-  // Título e bootstrap do atendente
+  // Bootstrap do atendente
   useEffect(() => {
     document.title = "HubHMG - Atendimento";
     const token = localStorage.getItem("token");
@@ -70,7 +73,7 @@ export default function Atendimento() {
           setUserInfo({
             email: data.email,
             filas: data.filas || [],
-            name: `${data.name || ''} ${data.lastname || ''}`.trim(),
+            name: `${data.name || ""} ${data.lastname || ""}`.trim(),
           });
         }
       } catch (err) {
@@ -86,10 +89,16 @@ export default function Atendimento() {
     return () => audioPlayer.current?.pause();
   }, []);
 
-  // Foco/blur da janela e permissão de notificação
+  // Foco/blur e permissão de notificação
   useEffect(() => {
-    const onFocus = () => { isWindowActiveRef.current = true; setIsWindowActive(true); };
-    const onBlur  = () => { isWindowActiveRef.current = false; setIsWindowActive(false); };
+    const onFocus = () => {
+      isWindowActiveRef.current = true;
+      setIsWindowActive(true);
+    };
+    const onBlur = () => {
+      isWindowActiveRef.current = false;
+      setIsWindowActive(false);
+    };
     window.addEventListener("focus", onFocus);
     window.addEventListener("blur", onBlur);
 
@@ -103,7 +112,7 @@ export default function Atendimento() {
     };
   }, []);
 
-  // Reforça a conexão ao voltar para a aba (não mexe nos listeners globais)
+  // Reforça a conexão ao voltar para a aba (sem mexer nos listeners globais)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
@@ -116,7 +125,7 @@ export default function Atendimento() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // Normaliza conteúdo e notifica
+  // Notificação desktop
   const showNotification = (message, contactName) => {
     if (!("Notification" in window)) return;
     if (Notification.permission === "default") {
@@ -139,78 +148,79 @@ export default function Atendimento() {
     };
   };
 
-  // Handler GLOBAL de novas mensagens (mantido — ChatWindow não o remove)
-    const handleNewMessage = useCallback(
+  // Listener GLOBAL de novas mensagens
+  const handleNewMessage = useCallback(
     async (message) => {
       if (!message || !message.content) return;
 
+      const isFromMe = message.direction === "outgoing";
+      const isActiveChat = message.user_id === selectedUserId;
+      const isWindowFocused = isWindowActiveRef.current;
 
-    const isFromMe        = message.direction === "outgoing";
-    const isActiveChat    = message.user_id === selectedUserId;
-    const isWindowFocused = isWindowActiveRef.current;
+      // ✅ Atualiza SEMPRE o card (mesmo se a conversa não estiver aberta)
+      mergeConversation(message.user_id, {
+        ticket_number: message.ticket_number || message.ticket,
+        timestamp: message.timestamp,
+        content: contentToText(message.content),
+        channel: message.channel || "whatsapp",
+        direction: message.direction,
+        assigned_to: message.assigned_to,
+        status: message.status,
+      });
 
-    mergeConversation(message.user_id, {
-      ticket_number: message.ticket_number || message.ticket,
-      timestamp: message.timestamp,
-      content: contentToText(message.content),
-      channel: message.channel,
-      direction: message.direction,
-    });
+      // A partir daqui, só efeitos para o atendente dono do ticket
+      if (isFromMe || message.assigned_to !== userEmail) return;
 
-    if (isFromMe || message.assigned_to !== userEmail) return;
-
-    if (isActiveChat && isWindowFocused) {
-      try {
-        await apiPut(`/messages/read-status/${message.user_id}`, {
-          last_read: new Date().toISOString(),
-        });
-        await loadUnreadCounts();
-      } catch (e) {
-        console.error('Erro ao marcar como lida:', e);
-      }
-    } else {
-      incrementUnread(message.user_id, message.timestamp);
-      await loadUnreadCounts();
-
-      if (!isWindowFocused && !notifiedConversations[message.user_id]) {
-        const contactName = getContactName(message.user_id);
-        showNotification(message, contactName);
+      if (isActiveChat && isWindowFocused) {
         try {
-          const player = audioPlayer.current;
-          if (player) {
-            await player.pause();
-            player.currentTime = 0;
-            await player.play();
-          }
-        } catch (err) {
-          console.error("Erro ao tocar som de notificação:", err);
+          await apiPut(`/messages/read-status/${message.user_id}`, {
+            last_read: new Date().toISOString(),
+          });
+          await loadUnreadCounts();
+        } catch (e) {
+          console.error("Erro ao marcar como lida:", e);
         }
-        markNotified(message.user_id);
-      }
-    }
-  }, [
-    userEmail,
-    selectedUserId,
-    mergeConversation,
-    incrementUnread,
-    loadUnreadCounts,
-    getContactName,
-    markNotified,
-    notifiedConversations,
-  ]);
+      } else {
+        incrementUnread(message.user_id, message.timestamp);
+        await loadUnreadCounts();
 
-  // Bootstrap: carrega conversas, contadores e conecta socket
+        if (!isWindowFocused && !notifiedConversations[message.user_id]) {
+          const contactName = getContactName(message.user_id);
+          showNotification(message, contactName);
+          try {
+            const player = audioPlayer.current;
+            if (player) {
+              await player.pause();
+              player.currentTime = 0;
+              await player.play();
+            }
+          } catch (err) {
+            console.error("Erro ao tocar som de notificação:", err);
+          }
+          markNotified(message.user_id);
+        }
+      }
+    },
+    [
+      userEmail,
+      selectedUserId,
+      mergeConversation,
+      incrementUnread,
+      loadUnreadCounts,
+      getContactName,
+      markNotified,
+      notifiedConversations,
+    ]
+  );
+
+  // Carrega conversas e conecta socket
   useEffect(() => {
     if (!userEmail || !(userFilas || []).length) return;
     let mounted = true;
 
     (async () => {
       try {
-        await Promise.all([
-          fetchConversations(),
-          loadLastReadTimes(),
-          loadUnreadCounts(),
-        ]);
+        await Promise.all([fetchConversations(), loadLastReadTimes(), loadUnreadCounts()]);
         if (!mounted) return;
 
         connectSocket();
@@ -225,11 +235,12 @@ export default function Atendimento() {
           } catch (err) {
             console.error("Erro ao informar sessão ao servidor:", err);
           }
-          // se o backend usa “identify” com rooms/filas
           socket.emit("identify", { email: userEmail, rooms: userFilas });
         });
 
         socket.on("disconnect", () => setSocketStatus?.("offline"));
+
+        // IMPORTANTE: registra handler global (e remove por referência no cleanup)
         socket.on("new_message", handleNewMessage);
       } catch (err) {
         console.error("Erro na inicialização:", err);
@@ -239,12 +250,14 @@ export default function Atendimento() {
     return () => {
       mounted = false;
       const socket = getSocket();
+      if (!socket) return;
       socket.off("connect");
       socket.off("disconnect");
       socket.off("new_message", handleNewMessage);
     };
   }, [userEmail, userFilas, handleNewMessage, loadUnreadCounts, loadLastReadTimes, setSocketStatus]);
 
+  // Busca/merge das conversas para os cards
   const fetchConversations = async () => {
     try {
       const params = new URLSearchParams({
@@ -277,17 +290,11 @@ export default function Atendimento() {
           </aside>
 
           <main className="chat-container">
-            <ChatWindow
-              userIdSelecionado={selectedUserId}
-              conversaSelecionada={conversaSelecionada}
-            />
+            <ChatWindow userIdSelecionado={selectedUserId} conversaSelecionada={conversaSelecionada} />
           </main>
 
           <aside className="details-panel">
-            <DetailsPanel
-              userIdSelecionado={selectedUserId}
-              conversaSelecionada={conversaSelecionada}
-            />
+            <DetailsPanel userIdSelecionado={selectedUserId} conversaSelecionada={conversaSelecionada} />
           </aside>
         </div>
 
