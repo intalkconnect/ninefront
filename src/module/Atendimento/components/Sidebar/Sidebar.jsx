@@ -118,7 +118,7 @@ export default function Sidebar() {
     const autorizado =
       conv.status === "open" &&
       conv.assigned_to === userEmail &&
-      userFilas.includes(conv.fila);
+      (!conv.fila || userFilas.includes(conv.fila));
 
     if (!autorizado) return false;
 
