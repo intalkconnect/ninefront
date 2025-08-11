@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { connectSocket, getSocket } from '../../services/socket';
 import { apiGet } from '../../services/apiClient';
 import useConversationsStore from '../../store/useConversationsStore';
@@ -15,10 +15,10 @@ import './ChatWindowPagination.css';
 
 const MESSAGES_PER_PAGE = 100;
 
+// Normaliza qualquer formato de conteúdo para string segura de renderizar
 function contentToText(content) {
   if (content == null) return '';
   if (typeof content === 'string') {
-    // pode ser string “pura” ou um JSON serializado
     try {
       const parsed = JSON.parse(content);
       if (parsed && typeof parsed === 'object') {
@@ -33,6 +33,24 @@ function contentToText(content) {
     return content.text || content.caption || content.body || '[mensagem]';
   }
   return String(content);
+}
+
+// Heurística para “casar” a mensagem oficial com a otimista
+function areSameOutgoing(a, b) {
+  if (!a || !b) return false;
+  if (a.client_id && b.client_id && a.client_id === b.client_id) return true; // melhor cenário
+
+  const bothOut = a.direction === 'outgoing' && b.direction === 'outgoing';
+  if (!bothOut) return false;
+
+  const ta = contentToText(a.content);
+  const tb = contentToText(b.content);
+  const sameText = ta === tb;
+
+  const dt = Math.abs(new Date(a.timestamp) - new Date(b.timestamp));
+  const closeInTime = dt < 5000; // 5s
+
+  return sameText && closeInTime;
 }
 
 export default function ChatWindow({ userIdSelecionado }) {
@@ -58,6 +76,7 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef= useRef(new Map());
   const bottomRef      = useRef(null);
 
+  // paginação
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * MESSAGES_PER_PAGE);
     const slice = messages.slice(startIndex);
@@ -69,18 +88,33 @@ export default function ChatWindow({ userIdSelecionado }) {
     bottomRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
   }, []);
 
-  // --- Socket (singleton) e listeners locais
+  // conecta socket (idempotente)
   useEffect(() => {
-    connectSocket(); // idempotente
+    connectSocket();
     const socket = getSocket();
     socketRef.current = socket;
   }, []);
 
+  // ===== Handlers de socket (locais) =====
   const handleNewMessage = useCallback((msg) => {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      if (prev.find(m => m.id === msg.id)) return prev;
+      // 1) se já existe por id, ignore
+      if (prev.some(m => m.id === msg.id)) return prev;
+
+      // 2) se existe uma otimista pending parecida, substitui
+      const idxApprox = prev.findIndex(m => m.pending === true && areSameOutgoing(m, msg));
+      if (idxApprox >= 0) {
+        const clone = [...prev];
+        clone[idxApprox] = { ...clone[idxApprox], ...msg, pending: false };
+        clone.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        messageCacheRef.current.set(msg.user_id, clone);
+        updateDisplayedMessages(clone, pageRef.current);
+        return clone;
+      }
+
+      // 3) senão, adiciona normal
       const updated = [...prev, msg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       messageCacheRef.current.set(msg.user_id, updated);
       updateDisplayedMessages(updated, pageRef.current);
@@ -92,13 +126,29 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      const updated = prev.map(m => (m.id === msg.id ? { ...m, ...msg } : m));
-      messageCacheRef.current.set(msg.user_id, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
+      // tenta por id
+      const idxById = prev.findIndex(m => m.id === msg.id);
+      if (idxById >= 0) {
+        const clone = [...prev];
+        clone[idxById] = { ...clone[idxById], ...msg, pending: false };
+        messageCacheRef.current.set(msg.user_id, clone);
+        updateDisplayedMessages(clone, pageRef.current);
+        return clone;
+      }
+      // fallback: se for a “oficial” de uma otimista, concilia
+      const idxApprox = prev.findIndex(m => m.pending === true && areSameOutgoing(m, msg));
+      if (idxApprox >= 0) {
+        const clone = [...prev];
+        clone[idxApprox] = { ...clone[idxApprox], ...msg, pending: false };
+        messageCacheRef.current.set(msg.user_id, clone);
+        updateDisplayedMessages(clone, pageRef.current);
+        return clone;
+      }
+      return prev;
     });
   }, [userIdSelecionado, updateDisplayedMessages]);
 
+  // registra/deregistra listeners locais
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
@@ -112,7 +162,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, [handleNewMessage, handleUpdateMessage]);
 
-  // --- Entrar/sair da sala da conversa
+  // ===== Salas =====
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !userIdSelecionado) return;
@@ -122,7 +172,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, [userIdSelecionado]);
 
-  // --- Reentrar na sala ao reconectar
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket) return;
@@ -133,7 +182,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => socket.off('connect', onConnect);
   }, [userIdSelecionado]);
 
-  // --- Carregar dados quando troca de usuário
+  // ===== Carregamento quando troca de usuário =====
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -209,7 +258,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     scrollToBottom,
   ]);
 
-  // --- Infinito: carregar página anterior quando chega no topo
+  // ===== Infinito: carrega página anterior ao chegar no topo =====
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -223,7 +272,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // --- Voltar para aba: só garante conexão e refresh das mensagens (NÃO apaga handlers globais)
+  // ===== Voltar para aba: garante conexão e refresh das mensagens =====
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
@@ -248,17 +297,21 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages]);
 
-  // --- Envio otimista + update do card
+  // ===== Envio otimista + update do card + limpar reply =====
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
 
+    // marca como pending (para conciliação)
+    const optimistic = { ...tempMsg, pending: true, direction: 'outgoing' };
+
     setAllMessages(prev => {
-      const updated = [...prev, tempMsg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const updated = [...prev, optimistic].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
       messageCacheRef.current.set(userIdSelecionado, updated);
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
     });
 
+    // atualiza card já com texto normalizado
     mergeConversation(userIdSelecionado, {
       content: contentToText(tempMsg.content),
       timestamp: tempMsg.timestamp || new Date().toISOString(),
@@ -266,10 +319,14 @@ export default function ChatWindow({ userIdSelecionado }) {
       direction: 'outgoing',
     });
 
+    // garante que não fique preso em reply
+    setReplyTo(null);
+
+    // rola pro fim
     setTimeout(scrollToBottom, 0);
   }, [mergeConversation, updateDisplayedMessages, userIdSelecionado, scrollToBottom]);
 
-  // --- Render
+  // ===== Render =====
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
@@ -314,7 +371,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           replyTo={replyTo}
           setReplyTo={setReplyTo}
           canSendFreeform={canSendFreeform}
-          onMessageAdded={onMessageAdded}  // <-- essencial para update otimista
+          onMessageAdded={onMessageAdded}
         />
       </div>
 
