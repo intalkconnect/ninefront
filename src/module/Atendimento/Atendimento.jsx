@@ -140,8 +140,10 @@ export default function Atendimento() {
   };
 
   // Handler GLOBAL de novas mensagens (mantido — ChatWindow não o remove)
-  const handleNewMessage = useCallback(async (message) => {
-    if (!message || message.assigned_to !== userEmail) return;
+    const handleNewMessage = useCallback(
+    async (message) => {
+      if (!message || !message.content) return;
+
 
     const isFromMe        = message.direction === "outgoing";
     const isActiveChat    = message.user_id === selectedUserId;
@@ -155,7 +157,7 @@ export default function Atendimento() {
       direction: message.direction,
     });
 
-    if (isFromMe) return;
+    if (isFromMe || message.assigned_to !== userEmail) return;
 
     if (isActiveChat && isWindowFocused) {
       try {
