@@ -79,9 +79,9 @@ export default function SendMessageForm({
   }, []);
 
   useEffect(() => {
-    setText("");
-    setFile(null);
-    setReplyTo(null);
+   setText('');
+   setFile(null);
+   setReplyTo?.(null);
   }, [userIdSelecionado]);
 
   useEffect(() => {
@@ -308,3 +308,4 @@ export default function SendMessageForm({
     </>
   );
 }
+
