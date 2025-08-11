@@ -199,7 +199,7 @@ const renderTimeAndStatus = () => (
               </div>
             )}
           </div>
-          {msg.replyTo && (
+          {msg.replyTo && msg.reply_to && typeof msg.reply_to === 'string' && msg.reply_to.trim() !== '' && (
             <div className="replied-message">
               <div className="replied-content">
                 {(msg.reply_direction === 'outgoing') && <strong>Você</strong>}
