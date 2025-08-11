@@ -13,7 +13,7 @@ import ChatHeader from './ChatHeader';
 import './ChatWindow.css';
 import './ChatWindowPagination.css';
 
-const MESSAGES_PER_PAGE = 100;
+const MESSAGES_PER_PAGE = 30;
 
 // Normaliza qualquer formato de conteúdo para string segura de renderizar
 function contentToText(content) {
@@ -305,7 +305,7 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     // gera um client_id local para auxiliar a conciliação quando o servidor responder
     const client_id = tempMsg.client_id || `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-    const optimistic = { ...tempMsg, pending: true, direction: 'outgoing', client_id };
+    const optimistic = { ...tempMsg, pending: true, direction: 'outgoing', client_id, reply_to: tempMsg.reply_to || null };
 
     setAllMessages(prev => {
       const updated = [...prev, optimistic].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
