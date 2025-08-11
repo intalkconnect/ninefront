@@ -38,17 +38,19 @@ function contentToText(content) {
 // Heurística para “casar” a mensagem oficial com a otimista
 function areSameOutgoing(a, b) {
   if (!a || !b) return false;
-  if (a.client_id && b.client_id && a.client_id === b.client_id) return true; // melhor cenário
+
+  // melhor cenário
+  if (a.client_id && b.client_id && a.client_id === b.client_id) return true;
 
   const bothOut = a.direction === 'outgoing' && b.direction === 'outgoing';
   if (!bothOut) return false;
 
-  const ta = contentToText(a.content);
-  const tb = contentToText(b.content);
+  const ta = contentToText(a.content).trim().replace(/\s+/g, ' ').toLowerCase();
+  const tb = contentToText(b.content).trim().replace(/\s+/g, ' ').toLowerCase();
   const sameText = ta === tb;
 
   const dt = Math.abs(new Date(a.timestamp) - new Date(b.timestamp));
-  const closeInTime = dt < 5000; // 5s
+  const closeInTime = dt < 7000; // 7s cobre latência/clock
 
   return sameText && closeInTime;
 }
@@ -100,10 +102,10 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      // 1) se já existe por id, ignore
-      if (prev.some(m => m.id === msg.id)) return prev;
+      // 1) já existe por id?
+      if (prev.some(m => m.id && m.id === msg.id)) return prev;
 
-      // 2) se existe uma otimista pending parecida, substitui
+      // 2) existe uma otimista parecida? -> substitui (mesmo balão evolui)
       const idxApprox = prev.findIndex(m => m.pending === true && areSameOutgoing(m, msg));
       if (idxApprox >= 0) {
         const clone = [...prev];
@@ -126,8 +128,8 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      // tenta por id
-      const idxById = prev.findIndex(m => m.id === msg.id);
+      // 1) por id
+      const idxById = prev.findIndex(m => m.id && m.id === msg.id);
       if (idxById >= 0) {
         const clone = [...prev];
         clone[idxById] = { ...clone[idxById], ...msg, pending: false };
@@ -135,7 +137,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         updateDisplayedMessages(clone, pageRef.current);
         return clone;
       }
-      // fallback: se for a “oficial” de uma otimista, concilia
+      // 2) conciliação com otimista
       const idxApprox = prev.findIndex(m => m.pending === true && areSameOutgoing(m, msg));
       if (idxApprox >= 0) {
         const clone = [...prev];
@@ -301,8 +303,9 @@ export default function ChatWindow({ userIdSelecionado }) {
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
 
-    // marca como pending (para conciliação)
-    const optimistic = { ...tempMsg, pending: true, direction: 'outgoing' };
+    // gera um client_id local para auxiliar a conciliação quando o servidor responder
+    const client_id = tempMsg.client_id || `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const optimistic = { ...tempMsg, pending: true, direction: 'outgoing', client_id };
 
     setAllMessages(prev => {
       const updated = [...prev, optimistic].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
