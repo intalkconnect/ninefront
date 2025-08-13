@@ -37,7 +37,7 @@ export default function Admin() {
     <div className={styles['layout-wrapper']}>
       <aside className={styles['sidebar']}>
         <div>
-          <div className={styles.logo}>HubHMG</div>
+          <div className={styles.logo}>NineChat - Admin</div>
           <nav className={styles['sidebar-nav']}>
             <MenuIcon to="" icon={<Home size={18} />} label="Dashboard" />
             <MenuIcon to="chatbot" icon={<Bot size={18} />} label="Chatbot" />
