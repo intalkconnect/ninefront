@@ -76,11 +76,6 @@ const MessageList = forwardRef(
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
-        {loaderRef && (
-          <div ref={loaderRef} className="pagination-loader">
-            Carregando mensagens mais antigas...
-          </div>
-        )}
 
         {messages.length > visibleMessages.length && (
           <div className="show-more-messages">
