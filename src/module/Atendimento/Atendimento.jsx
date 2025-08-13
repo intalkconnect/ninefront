@@ -55,7 +55,7 @@ export default function Atendimento() {
 
   // Título e bootstrap do atendente
   useEffect(() => {
-    document.title = "HubHMG - Atendimento";
+    document.title = "NineChat - Atendimento";
     const token = localStorage.getItem("token");
     if (!token) return;
     const { email } = parseJwt(token) || {};
