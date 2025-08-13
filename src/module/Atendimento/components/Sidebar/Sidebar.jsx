@@ -142,7 +142,7 @@ export default function Sidebar() {
  return (
   <div className="sidebar-container">
     <div className="sidebar-header">
-      <img src="/logo.svg" alt="omni" className="logo-img" />
+      <img src="/logo-front.png" alt="omni" className="logo-img" />
 
       <div className="header-actions">
         <button className="icon-button" onClick={() => alert("Abrir perfil")}>
