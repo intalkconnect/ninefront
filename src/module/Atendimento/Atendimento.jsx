@@ -21,12 +21,7 @@ function contentToText(content) {
     try {
       const parsed = JSON.parse(content);
       if (parsed && typeof parsed === "object") {
-        return (
-          parsed.text ||
-          parsed.caption ||
-          parsed.body ||
-          "[mensagem]"
-        );
+        return parsed.text || parsed.caption || parsed.body || "[mensagem]";
       }
       return content;
     } catch {
@@ -66,6 +61,9 @@ export default function Atendimento() {
   const socketRef          = useRef(null);
   const isWindowActiveRef  = useRef(true);
 
+  // rooms já aderidos (evita re-join repetido)
+  const joinedRoomsRef     = useRef(new Set());
+
   const selectedUserId     = useConversationsStore((s) => s.selectedUserId);
   const setSelectedUserId  = useConversationsStore((s) => s.setSelectedUserId);
   const setUserInfo        = useConversationsStore((s) => s.setUserInfo);
@@ -82,6 +80,16 @@ export default function Atendimento() {
   const setSocketStatus    = useConversationsStore((s) => s.setSocketStatus);
 
   const [isWindowActive, setIsWindowActive] = useState(true);
+
+  // util: juntar no room (apenas uma vez)
+  const joinRoom = useCallback((userId) => {
+    if (!userId) return;
+    if (joinedRoomsRef.current.has(userId)) return;
+    const s = getSocket();
+    if (!s) return;
+    s.emit("join_room", userId);
+    joinedRoomsRef.current.add(userId);
+  }, []);
 
   // Título e bootstrap do atendente
   useEffect(() => {
@@ -193,6 +201,11 @@ export default function Atendimento() {
         updated_at: ts
       });
 
+      // Garante que estamos no room dessa conversa se for atribuída a mim
+      if (message.assigned_to === userEmail) {
+        joinRoom(message.user_id);
+      }
+
       // Notificação/unread apenas se atribuído a mim e conversa não ativa
       if (isFromMe || message.assigned_to !== userEmail) return;
 
@@ -235,10 +248,11 @@ export default function Atendimento() {
       getContactName,
       markNotified,
       notifiedConversations,
+      joinRoom,
     ]
   );
 
-  // GLOBAL: updates (envio confirmado/erro) — opcional, também atualiza card
+  // GLOBAL: updates (envio confirmado/erro) — também atualiza card
   const handleUpdateMessage = useCallback(
     async (message) => {
       if (!message) return;
@@ -255,8 +269,13 @@ export default function Atendimento() {
         updated_at: ts,
         status: message.status, // sent/error, se sua sidebar usa
       });
+
+      // se for minha conversa, garanto join do room
+      if (message.assigned_to === userEmail) {
+        joinRoom(message.user_id);
+      }
     },
-    [mergeConversation]
+    [mergeConversation, joinRoom, userEmail]
   );
 
   // Bootstrap: carrega conversas, contadores e conecta socket
@@ -267,7 +286,7 @@ export default function Atendimento() {
     (async () => {
       try {
         await Promise.all([
-          fetchConversations(),
+          fetchConversations(),     // <- fará join nos rooms atribuídos
           loadLastReadTimes(),
           loadUnreadCounts(),
         ]);
@@ -285,13 +304,18 @@ export default function Atendimento() {
           } catch (err) {
             console.error("Erro ao informar sessão ao servidor:", err);
           }
-          // se o backend usa “identify” com rooms/filas
+          // opcional: identificação no backend (se ele usar)
           socket.emit("identify", { email: userEmail, rooms: userFilas });
+
+          // reentra nos rooms já conhecidos (em caso de reconexão)
+          for (const rid of joinedRoomsRef.current) {
+            socket.emit("join_room", rid);
+          }
         });
 
         socket.on("disconnect", () => setSocketStatus?.("offline"));
         socket.on("new_message", handleNewMessage);
-        socket.on("update_message", handleUpdateMessage); // <- mantém card atualizado em envios
+        socket.on("update_message", handleUpdateMessage); // mantém card atualizado em envios
 
       } catch (err) {
         console.error("Erro na inicialização:", err);
@@ -316,6 +340,7 @@ export default function Atendimento() {
     setSocketStatus,
   ]);
 
+  // Carrega conversas e entra nos rooms atribuídos
   const fetchConversations = async () => {
     try {
       const params = new URLSearchParams({
@@ -323,8 +348,13 @@ export default function Atendimento() {
         filas: (userFilas || []).join(","),
       });
       const data = await apiGet(`/chats?${params.toString()}`);
+
+      const socket = getSocket();
+
       (data || []).forEach((conv) => {
         const ts = conv.timestamp || conv.updated_at || new Date().toISOString();
+
+        // atualiza card com preview
         mergeConversation(conv.user_id, {
           ...conv,
           content: contentToText(conv.content),
@@ -332,6 +362,13 @@ export default function Atendimento() {
           last_message_at: ts,
           updated_at: ts,
         });
+
+        // se está atribuído a mim e aberto, entra no room para receber realtime do card
+        const isMine = conv.assigned_to === userEmail;
+        const isOpen = !conv.status || String(conv.status).toLowerCase() === "open";
+        if (socket && isMine && isOpen) {
+          joinRoom(conv.user_id);
+        }
       });
     } catch (err) {
       console.error("Erro ao buscar /chats:", err);
