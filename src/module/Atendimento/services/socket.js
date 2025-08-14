@@ -2,20 +2,20 @@
 import { io } from 'socket.io-client';
 
 // ====== ENV ======
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080'; // ajuste no .env
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
 const DEFAULT_TENANT = import.meta.env.VITE_TENANT_ID || undefined;
 
 // ====== SINGLETON ======
 let socket = null;
 let hasBaseListeners = false;
 
-// credenciais atuais do handshake (podem ser atualizadas via setAuth)
+// credenciais do handshake (podem ser atualizadas via setAuth)
 let currentAuth = {
   tenantId: DEFAULT_TENANT,
   token: null,
 };
 
-// tenta obter token salvo no browser (opcional)
+// tenta obter token salvo (opcional)
 function getStoredToken() {
   try {
     return localStorage.getItem('token') || sessionStorage.getItem('token') || null;
@@ -49,13 +49,11 @@ function buildClientOptions() {
 
 function ensureSocket() {
   if (socket) return socket;
-
   if (!SOCKET_URL) throw new Error('VITE_SOCKET_URL não definido');
 
   socket = io(SOCKET_URL, buildClientOptions());
 
   socket.on('connect_error', (err) => {
-    // não explode a UI — apenas loga para debug
     console.error('[socket] connect_error:', err?.message || err);
   });
 
@@ -85,7 +83,7 @@ export function setAuth({ tenantId, token } = {}) {
     delete socket.auth.token;
   }
 
-  // se já está conectado, reconecta p/ aplicar o novo handshake
+  // se já está conectado, reconecta para aplicar o novo handshake
   if (socket.connected) {
     socket.disconnect();
     socket.connect();
@@ -116,13 +114,20 @@ export function connectSocket(userId) {
   if (!hasBaseListeners) {
     s.on('connect', () => {
       console.log('[socket] Connected:', s.id);
-      // rejoin de rooms específicas pode ser feito aqui se precisar
     });
     hasBaseListeners = true;
   }
 
   // compat: se passar userId, entra/saí da sala conforme seu fluxo atual
   if (userId) {
-    if (s.connected) s.emit('join_room', userId);
-    // também reentra quando reconectar
-    const onC
+    const onConnect = () => s.emit('join_room', userId);
+    if (s.connected) onConnect();
+    s.off('connect', onConnect); // evita duplicar
+    s.on('connect', onConnect);
+  }
+
+  return s;
+}
+
+// NÃO exporte o objeto socket diretamente.
+// Use getSocket(), connectSocket() e setAuth().
