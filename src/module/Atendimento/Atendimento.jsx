@@ -14,21 +14,51 @@ import notificationSound from "./assets/notification.mp3";
 import "./Atendimento.css";
 import { parseJwt } from "../../utils/auth";
 
+/** Converte diferentes formatos de content para texto */
 function contentToText(content) {
-  if (content == null) return '';
-  if (typeof content === 'string') {
+  if (content == null) return "";
+  if (typeof content === "string") {
     try {
       const parsed = JSON.parse(content);
-      if (parsed && typeof parsed === 'object') {
-        return parsed.text || parsed.caption || parsed.body || '[mensagem]';
+      if (parsed && typeof parsed === "object") {
+        return (
+          parsed.text ||
+          parsed.caption ||
+          parsed.body ||
+          "[mensagem]"
+        );
       }
       return content;
-    } catch { return content; }
+    } catch {
+      return content;
+    }
   }
-  if (typeof content === 'object') {
-    return content.text || content.caption || content.body || '[mensagem]';
+  if (typeof content === "object") {
+    return content.text || content.caption || content.body || "[mensagem]";
   }
   return String(content);
+}
+
+/** Texto curto que aparece no card da sidebar */
+function buildPreview(msg) {
+  const c = msg?.content || {};
+  const plain =
+    c.text ||
+    c.body ||
+    c.caption ||
+    c.message ||
+    contentToText(c) ||
+    "";
+
+  if (plain) return String(plain).slice(0, 120);
+
+  // rótulos para mídias
+  if (c.image || c.photo || c.url?.match(/\.(png|jpe?g|gif|webp|bmp|svg)$/i)) return "📷 Imagem";
+  if (c.document || c.url?.match(/\.(pdf|docx?|xlsx?|pptx?)$/i)) return "📄 Documento";
+  if (c.audio || c.voice) return "🎙️ Áudio";
+  if (c.video) return "🎬 Vídeo";
+  if (c.location || (c.latitude && c.longitude)) return "📍 Localização";
+  return "[mensagem]";
 }
 
 export default function Atendimento() {
@@ -70,7 +100,7 @@ export default function Atendimento() {
           setUserInfo({
             email: data.email,
             filas: data.filas || [],
-            name: `${data.name || ''} ${data.lastname || ''}`.trim(),
+            name: `${data.name || ""} ${data.lastname || ""}`.trim(),
           });
         }
       } catch (err) {
@@ -116,7 +146,7 @@ export default function Atendimento() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // Normaliza conteúdo e notifica
+  // Notificações do navegador
   const showNotification = (message, contactName) => {
     if (!("Notification" in window)) return;
     if (Notification.permission === "default") {
@@ -139,65 +169,95 @@ export default function Atendimento() {
     };
   };
 
-  // Handler GLOBAL de novas mensagens (mantido — ChatWindow não o remove)
-    const handleNewMessage = useCallback(
+  // GLOBAL: novas mensagens (incoming) — atualiza card + unread + notificação
+  const handleNewMessage = useCallback(
     async (message) => {
       if (!message || !message.content) return;
 
+      const isFromMe        = message.direction === "outgoing";
+      const isActiveChat    = message.user_id === selectedUserId;
+      const isWindowFocused = isWindowActiveRef.current;
 
-    const isFromMe        = message.direction === "outgoing";
-    const isActiveChat    = message.user_id === selectedUserId;
-    const isWindowFocused = isWindowActiveRef.current;
+      const ts = message.timestamp || new Date().toISOString();
+      const preview = buildPreview(message);
 
-    mergeConversation(message.user_id, {
-      ticket_number: message.ticket_number || message.ticket,
-      timestamp: message.timestamp,
-      content: contentToText(message.content),
-      channel: message.channel,
-      direction: message.direction,
-    });
+      // Atualiza dados do card (preview/horário) e também guarda um espelho do content
+      mergeConversation(message.user_id, {
+        ticket_number: message.ticket_number || message.ticket,
+        content: contentToText(message.content),
+        channel: message.channel,
+        direction: message.direction,
+        timestamp: ts,
+        last_message: preview,       // <- usado pela sidebar
+        last_message_at: ts,         // <- usado para ordenação/preview
+        updated_at: ts
+      });
 
-    if (isFromMe || message.assigned_to !== userEmail) return;
+      // Notificação/unread apenas se atribuído a mim e conversa não ativa
+      if (isFromMe || message.assigned_to !== userEmail) return;
 
-    if (isActiveChat && isWindowFocused) {
-      try {
-        await apiPut(`/messages/read-status/${message.user_id}`, {
-          last_read: new Date().toISOString(),
-        });
-        await loadUnreadCounts();
-      } catch (e) {
-        console.error('Erro ao marcar como lida:', e);
-      }
-    } else {
-      incrementUnread(message.user_id, message.timestamp);
-      await loadUnreadCounts();
-
-      if (!isWindowFocused && !notifiedConversations[message.user_id]) {
-        const contactName = getContactName(message.user_id);
-        showNotification(message, contactName);
+      if (isActiveChat && isWindowFocused) {
         try {
-          const player = audioPlayer.current;
-          if (player) {
-            await player.pause();
-            player.currentTime = 0;
-            await player.play();
-          }
-        } catch (err) {
-          console.error("Erro ao tocar som de notificação:", err);
+          await apiPut(`/messages/read-status/${message.user_id}`, {
+            last_read: new Date().toISOString(),
+          });
+          await loadUnreadCounts();
+        } catch (e) {
+          console.error("Erro ao marcar como lida:", e);
         }
-        markNotified(message.user_id);
+      } else {
+        incrementUnread(message.user_id, ts);
+        await loadUnreadCounts();
+
+        if (!isWindowFocused && !notifiedConversations[message.user_id]) {
+          const contactName = getContactName(message.user_id);
+          showNotification(message, contactName);
+          try {
+            const player = audioPlayer.current;
+            if (player) {
+              await player.pause();
+              player.currentTime = 0;
+              await player.play();
+            }
+          } catch (err) {
+            console.error("Erro ao tocar som de notificação:", err);
+          }
+          markNotified(message.user_id);
+        }
       }
-    }
-  }, [
-    userEmail,
-    selectedUserId,
-    mergeConversation,
-    incrementUnread,
-    loadUnreadCounts,
-    getContactName,
-    markNotified,
-    notifiedConversations,
-  ]);
+    },
+    [
+      userEmail,
+      selectedUserId,
+      mergeConversation,
+      incrementUnread,
+      loadUnreadCounts,
+      getContactName,
+      markNotified,
+      notifiedConversations,
+    ]
+  );
+
+  // GLOBAL: updates (envio confirmado/erro) — opcional, também atualiza card
+  const handleUpdateMessage = useCallback(
+    async (message) => {
+      if (!message) return;
+      const ts = message.timestamp || new Date().toISOString();
+      const preview = buildPreview(message);
+
+      mergeConversation(message.user_id, {
+        content: contentToText(message.content),
+        channel: message.channel,
+        direction: message.direction,
+        timestamp: ts,
+        last_message: preview,
+        last_message_at: ts,
+        updated_at: ts,
+        status: message.status, // sent/error, se sua sidebar usa
+      });
+    },
+    [mergeConversation]
+  );
 
   // Bootstrap: carrega conversas, contadores e conecta socket
   useEffect(() => {
@@ -231,6 +291,8 @@ export default function Atendimento() {
 
         socket.on("disconnect", () => setSocketStatus?.("offline"));
         socket.on("new_message", handleNewMessage);
+        socket.on("update_message", handleUpdateMessage); // <- mantém card atualizado em envios
+
       } catch (err) {
         console.error("Erro na inicialização:", err);
       }
@@ -242,8 +304,17 @@ export default function Atendimento() {
       socket.off("connect");
       socket.off("disconnect");
       socket.off("new_message", handleNewMessage);
+      socket.off("update_message", handleUpdateMessage);
     };
-  }, [userEmail, userFilas, handleNewMessage, loadUnreadCounts, loadLastReadTimes, setSocketStatus]);
+  }, [
+    userEmail,
+    userFilas,
+    handleNewMessage,
+    handleUpdateMessage,
+    loadUnreadCounts,
+    loadLastReadTimes,
+    setSocketStatus,
+  ]);
 
   const fetchConversations = async () => {
     try {
@@ -253,9 +324,13 @@ export default function Atendimento() {
       });
       const data = await apiGet(`/chats?${params.toString()}`);
       (data || []).forEach((conv) => {
+        const ts = conv.timestamp || conv.updated_at || new Date().toISOString();
         mergeConversation(conv.user_id, {
           ...conv,
           content: contentToText(conv.content),
+          last_message: buildPreview(conv),
+          last_message_at: ts,
+          updated_at: ts,
         });
       });
     } catch (err) {
