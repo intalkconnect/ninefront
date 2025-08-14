@@ -15,7 +15,7 @@ import './ChatWindowPagination.css';
 
 const MESSAGES_PER_PAGE = 100;
 
-// ---------- helpers ----------
+/* -------------------- helpers -------------------- */
 function contentToText(content) {
   if (content == null) return '';
   if (typeof content === 'string') {
@@ -34,16 +34,13 @@ function contentToText(content) {
 }
 
 const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, error: 1, undefined: 0, null: 0 };
-
 function rankStatus(s) { return STATUS_RANK[s] ?? 0; }
 
 function normText(x) {
   return contentToText(x).trim().replace(/\s+/g, ' ').toLowerCase();
 }
-
 function isOutgoing(m) { return m?.direction === 'outgoing'; }
-
-function closeInTime(a, b, windowMs = 15000) { // 15s p/ cobrir atrasos
+function closeInTime(a, b, windowMs = 15000) {
   const ta = new Date(a.timestamp).getTime();
   const tb = new Date(b.timestamp).getTime();
   return Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) <= windowMs;
@@ -59,7 +56,6 @@ function isSameOutgoing(a, b) {
 
 // mescla campos, priorizando a “melhor” (status maior, id real etc.)
 function mergeOutgoing(a, b) {
-  // define quem tem melhor status
   const first = rankStatus(a.status) >= rankStatus(b.status) ? a : b;
   const second = first === a ? b : a;
 
@@ -68,11 +64,8 @@ function mergeOutgoing(a, b) {
     id: first.id || second.id,
     client_id: first.client_id || second.client_id,
     pending: (first.pending && !first.id) ? true : false,
-    // mantém timestamp do servidor se vier
     timestamp: first.id ? first.timestamp : (second.id ? second.timestamp : first.timestamp),
-    // conserva content normalizado do melhor
     content: first.content ?? second.content,
-    // conserva possíveis metadados úteis
     channel: first.channel || second.channel,
     reply_to: first.reply_to ?? second.reply_to,
     reply_direction: first.reply_direction ?? second.reply_direction,
@@ -88,7 +81,6 @@ function upsertOutgoing(list, msg) {
     return clone;
   }
 
-  // procura similar entre as últimas N (economiza)
   const N = 20;
   for (let i = Math.max(0, list.length - N); i < list.length; i++) {
     const m = list[i];
@@ -99,13 +91,12 @@ function upsertOutgoing(list, msg) {
     }
   }
 
-  // senão, adiciona e ordena
   const added = [...list, msg];
   added.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
   return added;
 }
 
-// ---------- componente ----------
+/* -------------------- componente -------------------- */
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation   = useConversationsStore(state => state.mergeConversation);
   const setClienteAtivo     = useConversationsStore(state => state.setClienteAtivo);
@@ -129,6 +120,9 @@ export default function ChatWindow({ userIdSelecionado }) {
   const messageCacheRef= useRef(new Map());
   const bottomRef      = useRef(null);
 
+  // rooms já aderidos (NÃO fazer leave_room)
+  const joinedRoomsRef = useRef(new Set());
+
   const updateDisplayedMessages = useCallback((messages, page) => {
     const startIndex = Math.max(0, messages.length - page * MESSAGES_PER_PAGE);
     const slice = messages.slice(startIndex);
@@ -146,12 +140,11 @@ export default function ChatWindow({ userIdSelecionado }) {
     socketRef.current = socket;
   }, []);
 
-  // ------ socket handlers ------
+  /* ------ socket handlers ------ */
   const handleNewMessage = useCallback((msg) => {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      // se já existe por id, atualiza e sai
       if (msg.id && prev.some(m => m.id === msg.id)) {
         const clone = prev.map(m => (m.id === msg.id ? mergeOutgoing(m, msg) : m));
         messageCacheRef.current.set(msg.user_id, clone);
@@ -159,7 +152,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         return clone;
       }
 
-      // trata outgoing: upsert sem duplicar
       if (isOutgoing(msg)) {
         const next = upsertOutgoing(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
@@ -167,7 +159,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         return next;
       }
 
-      // incoming normal: adiciona
       const updated = [...prev, msg].sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
       messageCacheRef.current.set(msg.user_id, updated);
       updateDisplayedMessages(updated, pageRef.current);
@@ -179,7 +170,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      // por id
       if (msg.id) {
         const idx = prev.findIndex(m => m.id === msg.id);
         if (idx >= 0) {
@@ -191,7 +181,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         }
       }
 
-      // sem id ou não achou: se for outgoing, tenta conciliar por similaridade
       if (isOutgoing(msg)) {
         const next = upsertOutgoing(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
@@ -214,23 +203,32 @@ export default function ChatWindow({ userIdSelecionado }) {
     };
   }, [handleNewMessage, handleUpdateMessage]);
 
-  // ------ rooms ------
+  /* ------ rooms (sem leave_room) ------ */
   useEffect(() => {
     const socket = socketRef.current;
     if (!socket || !userIdSelecionado) return;
-    socket.emit('join_room', userIdSelecionado);
-    return () => socket.emit('leave_room', userIdSelecionado);
-  }, [userIdSelecionado]);
 
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-    const onConnect = () => { if (userIdSelecionado) socket.emit('join_room', userIdSelecionado); };
+    // entra apenas uma vez no room
+    if (!joinedRoomsRef.current.has(userIdSelecionado)) {
+      socket.emit('join_room', userIdSelecionado);
+      joinedRoomsRef.current.add(userIdSelecionado);
+    }
+
+    // em reconexão, reentra em todos os rooms já conhecidos
+    const onConnect = () => {
+      for (const room of joinedRoomsRef.current) {
+        socket.emit('join_room', room);
+      }
+    };
     socket.on('connect', onConnect);
-    return () => socket.off('connect', onConnect);
+
+    return () => {
+      socket.off('connect', onConnect);
+      // ⚠️ NÃO fazer: socket.emit('leave_room', userIdSelecionado)
+    };
   }, [userIdSelecionado]);
 
-  // ------ load on user change ------
+  /* ------ load on user change ------ */
   useEffect(() => {
     if (!userIdSelecionado) return;
     pageRef.current = 1;
@@ -306,7 +304,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     scrollToBottom,
   ]);
 
-  // ------ infinite scroll ------
+  /* ------ infinite scroll ------ */
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMoreMessages) {
@@ -320,7 +318,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
 
-  // ------ tab visible refresh ------
+  /* ------ tab visible refresh ------ */
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' || !userIdSelecionado) return;
@@ -345,7 +343,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [userIdSelecionado, updateDisplayedMessages]);
 
-  // ------ envio otimista ------
+  /* ------ envio otimista ------ */
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
 
@@ -376,7 +374,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     setTimeout(scrollToBottom, 0);
   }, [mergeConversation, updateDisplayedMessages, userIdSelecionado, scrollToBottom]);
 
-  // ------ render ------
+  /* ------ render ------ */
   if (!userIdSelecionado) {
     return (
       <div className="chat-window placeholder">
