@@ -14,7 +14,7 @@ import notificationSound from "./assets/notification.mp3";
 import "./Atendimento.css";
 import { parseJwt } from "../../utils/auth";
 
-/** Converte diferentes formatos de content para texto */
+/** Converte diferentes formatos de content para texto (para preview/armazenar) */
 function contentToText(content) {
   if (content == null) return "";
   if (typeof content === "string") {
@@ -34,7 +34,7 @@ function contentToText(content) {
   return String(content);
 }
 
-/** Texto curto que aparece no card da sidebar */
+/** Texto curto para o card (sem distinguir canal) */
 function buildPreview(msg) {
   const c = msg?.content || {};
   const plain =
@@ -61,6 +61,10 @@ export default function Atendimento() {
   const socketRef          = useRef(null);
   const isWindowActiveRef  = useRef(true);
 
+  // agregador de notificações
+  const notifBucketRef     = useRef({ total: 0, perUser: new Map() });
+  const notifTimerRef      = useRef(null);
+
   // rooms já aderidos (evita re-join repetido)
   const joinedRoomsRef     = useRef(new Set());
 
@@ -73,8 +77,6 @@ export default function Atendimento() {
   const incrementUnread    = useConversationsStore((s) => s.incrementUnread);
   const getContactName     = useConversationsStore((s) => s.getContactName);
   const conversations      = useConversationsStore((s) => s.conversations);
-  const notifiedConversations = useConversationsStore((s) => s.notifiedConversations);
-  const markNotified       = useConversationsStore((s) => s.markNotified);
   const userEmail          = useConversationsStore((s) => s.userEmail);
   const userFilas          = useConversationsStore((s) => s.userFilas);
   const setSocketStatus    = useConversationsStore((s) => s.setSocketStatus);
@@ -90,6 +92,73 @@ export default function Atendimento() {
     s.emit("join_room", userId);
     joinedRoomsRef.current.add(userId);
   }, []);
+
+  // agrega notificações e mostra uma única popup
+  const flushAggregateNotification = useCallback(async () => {
+    const bucket = notifBucketRef.current;
+    const total  = bucket.total;
+    const convs  = bucket.perUser.size;
+
+    if (!total) return;
+
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+      try { await Notification.requestPermission(); } catch {}
+    }
+    if (Notification.permission !== "granted") {
+      // limpa o balde mesmo que não tenha permissão
+      bucket.total = 0;
+      bucket.perUser.clear();
+      return;
+    }
+
+    const title = `Você tem ${total} nova${total > 1 ? "s" : ""} mensagem${total > 1 ? "s" : ""}`;
+    const body  = convs > 1 ? `em ${convs} conversas` : `em 1 conversa`;
+
+    try {
+      const n = new Notification(title, {
+        body,
+        icon: "/logo-front.png",   // ícone genérico da sua app
+        tag: "new-messages",       // mesma tag => substitui a notificação anterior
+        renotify: true,
+        vibrate: [200, 100, 200],
+      });
+      n.onclick = () => {
+        window.focus();
+        // não direciona para conversa específica; o agente escolhe
+      };
+
+      // som 1x por flush
+      try {
+        const player = audioPlayer.current;
+        if (player) {
+          await player.pause();
+          player.currentTime = 0;
+          await player.play();
+        }
+      } catch (err) {
+        console.error("Erro ao tocar som de notificação:", err);
+      }
+    } finally {
+      // zera o agregador
+      bucket.total = 0;
+      bucket.perUser.clear();
+    }
+  }, []);
+
+  const queueAggregateNotification = useCallback((msg) => {
+    // só notifica se a aba NÃO estiver ativa
+    if (isWindowActiveRef.current) return;
+
+    const bucket = notifBucketRef.current;
+    const uid    = msg?.user_id;
+    bucket.total += 1;
+    if (uid) bucket.perUser.set(uid, (bucket.perUser.get(uid) || 0) + 1);
+
+    // debounce curto para agrupar rajadas
+    if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+    notifTimerRef.current = setTimeout(flushAggregateNotification, 800);
+  }, [flushAggregateNotification]);
 
   // Título e bootstrap do atendente
   useEffect(() => {
@@ -121,7 +190,10 @@ export default function Atendimento() {
   useEffect(() => {
     audioPlayer.current = new Audio(notificationSound);
     audioPlayer.current.volume = 0.3;
-    return () => audioPlayer.current?.pause();
+    return () => {
+      audioPlayer.current?.pause();
+      if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
+    };
   }, []);
 
   // Foco/blur da janela e permissão de notificação
@@ -141,7 +213,7 @@ export default function Atendimento() {
     };
   }, []);
 
-  // Reforça a conexão ao voltar para a aba (não mexe nos listeners globais)
+  // Reforça a conexão ao voltar para a aba
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
@@ -154,54 +226,30 @@ export default function Atendimento() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // Notificações do navegador
-  const showNotification = (message, contactName) => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "default") {
-      Notification.requestPermission().then((perm) => {
-        if (perm === "granted") showNotification(message, contactName);
-      });
-      return;
-    }
-    if (Notification.permission !== "granted") return;
-
-    const body = contentToText(message.content);
-    const notif = new Notification(`Nova mensagem de ${contactName || message.user_id}`, {
-      body,
-      icon: "/icons/whatsapp.png",
-      vibrate: [200, 100, 200],
-    });
-    notif.onclick = () => {
-      window.focus();
-      setSelectedUserId(message.user_id);
-    };
-  };
-
-  // GLOBAL: novas mensagens (incoming) — atualiza card + unread + notificação
+  // GLOBAL: novas mensagens (incoming) — atualiza card + unread + notificação agregada
   const handleNewMessage = useCallback(
     async (message) => {
       if (!message || !message.content) return;
 
       const isFromMe        = message.direction === "outgoing";
       const isActiveChat    = message.user_id === selectedUserId;
-      const isWindowFocused = isWindowActiveRef.current;
 
       const ts = message.timestamp || new Date().toISOString();
       const preview = buildPreview(message);
 
-      // Atualiza dados do card (preview/horário) e também guarda um espelho do content
+      // Atualiza dados do card (preview/horário)
       mergeConversation(message.user_id, {
         ticket_number: message.ticket_number || message.ticket,
         content: contentToText(message.content),
         channel: message.channel,
         direction: message.direction,
         timestamp: ts,
-        last_message: preview,       // <- usado pela sidebar
-        last_message_at: ts,         // <- usado para ordenação/preview
+        last_message: preview,
+        last_message_at: ts,
         updated_at: ts
       });
 
-      // Garante que estamos no room dessa conversa se for atribuída a mim
+      // Garante join do room se for atribuído a mim
       if (message.assigned_to === userEmail) {
         joinRoom(message.user_id);
       }
@@ -209,7 +257,7 @@ export default function Atendimento() {
       // Notificação/unread apenas se atribuído a mim e conversa não ativa
       if (isFromMe || message.assigned_to !== userEmail) return;
 
-      if (isActiveChat && isWindowFocused) {
+      if (isActiveChat && isWindowActiveRef.current) {
         try {
           await apiPut(`/messages/read-status/${message.user_id}`, {
             last_read: new Date().toISOString(),
@@ -222,21 +270,8 @@ export default function Atendimento() {
         incrementUnread(message.user_id, ts);
         await loadUnreadCounts();
 
-        if (!isWindowFocused && !notifiedConversations[message.user_id]) {
-          const contactName = getContactName(message.user_id);
-          showNotification(message, contactName);
-          try {
-            const player = audioPlayer.current;
-            if (player) {
-              await player.pause();
-              player.currentTime = 0;
-              await player.play();
-            }
-          } catch (err) {
-            console.error("Erro ao tocar som de notificação:", err);
-          }
-          markNotified(message.user_id);
-        }
+        // 🔔 Notificação AGREGADA (independe do canal)
+        queueAggregateNotification(message);
       }
     },
     [
@@ -245,10 +280,8 @@ export default function Atendimento() {
       mergeConversation,
       incrementUnread,
       loadUnreadCounts,
-      getContactName,
-      markNotified,
-      notifiedConversations,
       joinRoom,
+      queueAggregateNotification,
     ]
   );
 
@@ -267,10 +300,9 @@ export default function Atendimento() {
         last_message: preview,
         last_message_at: ts,
         updated_at: ts,
-        status: message.status, // sent/error, se sua sidebar usa
+        status: message.status,
       });
 
-      // se for minha conversa, garanto join do room
       if (message.assigned_to === userEmail) {
         joinRoom(message.user_id);
       }
@@ -286,7 +318,7 @@ export default function Atendimento() {
     (async () => {
       try {
         await Promise.all([
-          fetchConversations(),     // <- fará join nos rooms atribuídos
+          fetchConversations(),
           loadLastReadTimes(),
           loadUnreadCounts(),
         ]);
@@ -304,10 +336,10 @@ export default function Atendimento() {
           } catch (err) {
             console.error("Erro ao informar sessão ao servidor:", err);
           }
-          // opcional: identificação no backend (se ele usar)
+          // opcional: identificação por filas
           socket.emit("identify", { email: userEmail, rooms: userFilas });
 
-          // reentra nos rooms já conhecidos (em caso de reconexão)
+          // reentra nos rooms já conhecidos (reconexão)
           for (const rid of joinedRoomsRef.current) {
             socket.emit("join_room", rid);
           }
@@ -315,7 +347,7 @@ export default function Atendimento() {
 
         socket.on("disconnect", () => setSocketStatus?.("offline"));
         socket.on("new_message", handleNewMessage);
-        socket.on("update_message", handleUpdateMessage); // mantém card atualizado em envios
+        socket.on("update_message", handleUpdateMessage);
 
       } catch (err) {
         console.error("Erro na inicialização:", err);
@@ -340,7 +372,7 @@ export default function Atendimento() {
     setSocketStatus,
   ]);
 
-  // Carrega conversas e entra nos rooms atribuídos
+  // Carrega conversas e entra nos rooms atribuídos e abertos
   const fetchConversations = async () => {
     try {
       const params = new URLSearchParams({
@@ -363,7 +395,7 @@ export default function Atendimento() {
           updated_at: ts,
         });
 
-        // se está atribuído a mim e aberto, entra no room para receber realtime do card
+        // se está atribuído a mim e aberto, entra no room
         const isMine = conv.assigned_to === userEmail;
         const isOpen = !conv.status || String(conv.status).toLowerCase() === "open";
         if (socket && isMine && isOpen) {
