@@ -14,7 +14,7 @@ import notificationSound from "./assets/notification.mp3";
 import "./Atendimento.css";
 import { parseJwt } from "../../utils/auth";
 
-/** Converte diferentes formatos de content para texto (para preview/armazenar) */
+/** Converte diferentes formatos de content para texto */
 function contentToText(content) {
   if (content == null) return "";
   if (typeof content === "string") {
@@ -34,7 +34,7 @@ function contentToText(content) {
   return String(content);
 }
 
-/** Texto curto para o card (sem distinguir canal) */
+/** Texto curto para o card da sidebar (independe do canal) */
 function buildPreview(msg) {
   const c = msg?.content || {};
   const plain =
@@ -75,7 +75,6 @@ export default function Atendimento() {
   const loadUnreadCounts   = useConversationsStore((s) => s.loadUnreadCounts);
   const loadLastReadTimes  = useConversationsStore((s) => s.loadLastReadTimes);
   const incrementUnread    = useConversationsStore((s) => s.incrementUnread);
-  const getContactName     = useConversationsStore((s) => s.getContactName);
   const conversations      = useConversationsStore((s) => s.conversations);
   const userEmail          = useConversationsStore((s) => s.userEmail);
   const userFilas          = useConversationsStore((s) => s.userFilas);
@@ -83,7 +82,7 @@ export default function Atendimento() {
 
   const [isWindowActive, setIsWindowActive] = useState(true);
 
-  // util: juntar no room (apenas uma vez)
+  // ————— utils —————
   const joinRoom = useCallback((userId) => {
     if (!userId) return;
     if (joinedRoomsRef.current.has(userId)) return;
@@ -93,7 +92,7 @@ export default function Atendimento() {
     joinedRoomsRef.current.add(userId);
   }, []);
 
-  // agrega notificações e mostra uma única popup
+  // agrega notificações e mostra uma única popup (todas as origens/canais)
   const flushAggregateNotification = useCallback(async () => {
     const bucket = notifBucketRef.current;
     const total  = bucket.total;
@@ -101,14 +100,15 @@ export default function Atendimento() {
 
     if (!total) return;
 
-    if (!("Notification" in window)) return;
+    if (!("Notification" in window)) {
+      bucket.total = 0; bucket.perUser.clear();
+      return;
+    }
     if (Notification.permission === "default") {
       try { await Notification.requestPermission(); } catch {}
     }
     if (Notification.permission !== "granted") {
-      // limpa o balde mesmo que não tenha permissão
-      bucket.total = 0;
-      bucket.perUser.clear();
+      bucket.total = 0; bucket.perUser.clear();
       return;
     }
 
@@ -118,16 +118,12 @@ export default function Atendimento() {
     try {
       const n = new Notification(title, {
         body,
-        icon: "/logo-front.png",   // ícone genérico da sua app
-        tag: "new-messages",       // mesma tag => substitui a notificação anterior
+        icon: "/logo-front.png",
+        tag: "new-messages",  // substitui a anterior
         renotify: true,
         vibrate: [200, 100, 200],
       });
-      n.onclick = () => {
-        window.focus();
-        // não direciona para conversa específica; o agente escolhe
-      };
-
+      n.onclick = () => { window.focus(); };
       // som 1x por flush
       try {
         const player = audioPlayer.current;
@@ -136,11 +132,8 @@ export default function Atendimento() {
           player.currentTime = 0;
           await player.play();
         }
-      } catch (err) {
-        console.error("Erro ao tocar som de notificação:", err);
-      }
+      } catch (err) { console.error("Erro ao tocar som de notificação:", err); }
     } finally {
-      // zera o agregador
       bucket.total = 0;
       bucket.perUser.clear();
     }
@@ -155,12 +148,11 @@ export default function Atendimento() {
     bucket.total += 1;
     if (uid) bucket.perUser.set(uid, (bucket.perUser.get(uid) || 0) + 1);
 
-    // debounce curto para agrupar rajadas
     if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
     notifTimerRef.current = setTimeout(flushAggregateNotification, 800);
   }, [flushAggregateNotification]);
 
-  // Título e bootstrap do atendente
+  // ————— bootstrap do atendente —————
   useEffect(() => {
     document.title = "NineChat - Atendimento";
     const token = localStorage.getItem("token");
@@ -186,7 +178,7 @@ export default function Atendimento() {
     })();
   }, [setUserInfo]);
 
-  // Áudio de notificação
+  // som de notificação e limpeza
   useEffect(() => {
     audioPlayer.current = new Audio(notificationSound);
     audioPlayer.current.volume = 0.3;
@@ -196,7 +188,7 @@ export default function Atendimento() {
     };
   }, []);
 
-  // Foco/blur da janela e permissão de notificação
+  // foco/blur
   useEffect(() => {
     const onFocus = () => { isWindowActiveRef.current = true; setIsWindowActive(true); };
     const onBlur  = () => { isWindowActiveRef.current = false; setIsWindowActive(false); };
@@ -206,38 +198,36 @@ export default function Atendimento() {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-
     return () => {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("blur", onBlur);
     };
   }, []);
 
-  // Reforça a conexão ao voltar para a aba
+  // reforça conexão ao voltar pro foreground
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
       const socket = getSocket();
-      if (socket && !socket.connected) {
-        socket.connect();
-      }
+      if (socket && !socket.connected) socket.connect();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // GLOBAL: novas mensagens (incoming) — atualiza card + unread + notificação agregada
+  // ————— handlers de realtime —————
+
+  // Atualiza cards, unread e notificação agregada (todos os canais)
   const handleNewMessage = useCallback(
     async (message) => {
       if (!message || !message.content) return;
 
-      const isFromMe        = message.direction === "outgoing";
-      const isActiveChat    = message.user_id === selectedUserId;
+      const isFromMe     = message.direction === "outgoing";
+      const isActiveChat = message.user_id === selectedUserId;
+      const ts           = message.timestamp || new Date().toISOString();
+      const preview      = buildPreview(message);
 
-      const ts = message.timestamp || new Date().toISOString();
-      const preview = buildPreview(message);
-
-      // Atualiza dados do card (preview/horário)
+      // Atualiza card (preview/horário)
       mergeConversation(message.user_id, {
         ticket_number: message.ticket_number || message.ticket,
         content: contentToText(message.content),
@@ -249,29 +239,31 @@ export default function Atendimento() {
         updated_at: ts
       });
 
-      // Garante join do room se for atribuído a mim
-      if (message.assigned_to === userEmail) {
-        joinRoom(message.user_id);
-      }
+      // Determina se a conversa é “minha”:
+      const state       = useConversationsStore.getState();
+      const convStore   = state.conversations?.[message.user_id];
+      const assignedTo  = message.assigned_to ?? convStore?.assigned_to;
+      const isMine      = assignedTo ? (assignedTo === userEmail) : true; // fallback seguro
 
-      // Notificação/unread apenas se atribuído a mim e conversa não ativa
-      if (isFromMe || message.assigned_to !== userEmail) return;
+      if (isMine) joinRoom(message.user_id);
+      if (isFromMe) return; // saídas não geram unread/notificação
 
-      if (isActiveChat && isWindowActiveRef.current) {
-        try {
-          await apiPut(`/messages/read-status/${message.user_id}`, {
-            last_read: new Date().toISOString(),
-          });
+      if (isMine) {
+        if (isActiveChat && isWindowActiveRef.current) {
+          try {
+            await apiPut(`/messages/read-status/${message.user_id}`, {
+              last_read: new Date().toISOString(),
+            });
+            await loadUnreadCounts();
+          } catch (e) {
+            console.error("Erro ao marcar como lida:", e);
+          }
+        } else {
+          incrementUnread(message.user_id, ts);
           await loadUnreadCounts();
-        } catch (e) {
-          console.error("Erro ao marcar como lida:", e);
+          // 🔔 agrega notificação (independe do canal)
+          queueAggregateNotification(message);
         }
-      } else {
-        incrementUnread(message.user_id, ts);
-        await loadUnreadCounts();
-
-        // 🔔 Notificação AGREGADA (independe do canal)
-        queueAggregateNotification(message);
       }
     },
     [
@@ -285,11 +277,11 @@ export default function Atendimento() {
     ]
   );
 
-  // GLOBAL: updates (envio confirmado/erro) — também atualiza card
+  // Confirmações/erros de envio também atualizam o card
   const handleUpdateMessage = useCallback(
     async (message) => {
       if (!message) return;
-      const ts = message.timestamp || new Date().toISOString();
+      const ts      = message.timestamp || new Date().toISOString();
       const preview = buildPreview(message);
 
       mergeConversation(message.user_id, {
@@ -303,14 +295,16 @@ export default function Atendimento() {
         status: message.status,
       });
 
-      if (message.assigned_to === userEmail) {
-        joinRoom(message.user_id);
-      }
+      const state       = useConversationsStore.getState();
+      const convStore   = state.conversations?.[message.user_id];
+      const assignedTo  = message.assigned_to ?? convStore?.assigned_to;
+      const isMine      = assignedTo ? (assignedTo === userEmail) : true;
+      if (isMine) joinRoom(message.user_id);
     },
     [mergeConversation, joinRoom, userEmail]
   );
 
-  // Bootstrap: carrega conversas, contadores e conecta socket
+  // ————— bootstrap socket + listeners —————
   useEffect(() => {
     if (!userEmail || !(userFilas || []).length) return;
     let mounted = true;
@@ -336,10 +330,10 @@ export default function Atendimento() {
           } catch (err) {
             console.error("Erro ao informar sessão ao servidor:", err);
           }
-          // opcional: identificação por filas
+          // identificação opcional
           socket.emit("identify", { email: userEmail, rooms: userFilas });
 
-          // reentra nos rooms já conhecidos (reconexão)
+          // reentra em todos os rooms conhecidos após reconectar
           for (const rid of joinedRoomsRef.current) {
             socket.emit("join_room", rid);
           }
@@ -372,7 +366,7 @@ export default function Atendimento() {
     setSocketStatus,
   ]);
 
-  // Carrega conversas e entra nos rooms atribuídos e abertos
+  // ————— carga inicial de conversas + auto-join rooms atribuídos —————
   const fetchConversations = async () => {
     try {
       const params = new URLSearchParams({
@@ -395,7 +389,7 @@ export default function Atendimento() {
           updated_at: ts,
         });
 
-        // se está atribuído a mim e aberto, entra no room
+        // se está atribuído e aberto, entra no room
         const isMine = conv.assigned_to === userEmail;
         const isOpen = !conv.status || String(conv.status).toLowerCase() === "open";
         if (socket && isMine && isOpen) {
