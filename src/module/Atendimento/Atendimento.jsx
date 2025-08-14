@@ -82,6 +82,25 @@ export default function Atendimento() {
 
   const [isWindowActive, setIsWindowActive] = useState(true);
 
+useEffect(() => {
+  const onRoomClosed = (e) => {
+    const rid = e?.detail?.userId;
+    if (!rid) return;
+
+   // opcional: garante leave no servidor também (idempotente)
+   try {
+     const s = getSocket();
+     if (s?.connected) s.emit('leave_room', rid);
+   } catch {}
+
+    if (joinedRoomsRef.current.has(rid)) {
+      joinedRoomsRef.current.delete(rid); // impede re-join futuro
+    }
+  };
+  window.addEventListener('room-closed', onRoomClosed);
+  return () => window.removeEventListener('room-closed', onRoomClosed);
+}, []);
+
   // ————— utils —————
   const joinRoom = useCallback((userId) => {
     if (!userId) return;
