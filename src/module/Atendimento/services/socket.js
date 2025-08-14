@@ -17,12 +17,9 @@ let currentAuth = {
 
 // tenta obter token salvo (opcional)
 function getStoredToken() {
-  try {
-    return localStorage.getItem('token') || sessionStorage.getItem('token') || null;
-  } catch {
-    return null;
-  }
+  return import.meta.env.VITE_SOCKET_TOKEN || null;
 }
+
 
 function buildClientOptions() {
   const opts = {
@@ -131,3 +128,4 @@ export function connectSocket(userId) {
 
 // NÃO exporte o objeto socket diretamente.
 // Use getSocket(), connectSocket() e setAuth().
+
