@@ -1,97 +1,123 @@
-import { useState, useRef, useCallback } from 'react';
-import { toast } from 'react-toastify';
+import { useEffect, useRef, useState } from 'react';
 
+function pickSupportedMimeType() {
+  if (typeof window === 'undefined' || !window.MediaRecorder) return null;
+  const candidates = [
+    'audio/ogg;codecs=opus',     // ✅ melhor p/ WA/TG
+    'audio/webm;codecs=opus',    // fallback comum (Chrome)
+    'audio/mp4',                 // Safari
+    'audio/webm',                // fallback genérico
+  ];
+  for (const t of candidates) {
+    try {
+      if (MediaRecorder.isTypeSupported(t)) return t;
+    } catch {}
+  }
+  return null;
+}
+
+function extFromMime(m) {
+  if (!m) return 'ogg';
+  if (m.startsWith('audio/ogg')) return 'ogg';
+  if (m.startsWith('audio/webm')) return 'webm';
+  if (m.startsWith('audio/mp4')) return 'm4a';
+  return 'ogg';
+}
+
+/**
+ * Gravação leve (Opus) sem conversão para MP3.
+ * - Gera File pequeno (OGG/WebM/M4A) com mimeType correto
+ * - Marca file._isVoice = true para envio como “voice note”
+ */
 export function useAudioRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedFile, setRecordedFile] = useState(null);
-  const [recordingTime, setRecordingTime] = useState(0); // <-- novo estado
+  const [recordingTime, setRecordingTime] = useState(0);
 
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const timerRef = useRef(null); // <-- novo ref
+  const mediaStreamRef = useRef(null);
+  const recorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const tickRef = useRef(null);
 
-  const startRecording = useCallback(async () => {
-    if (
-      window.location.protocol !== 'https:' &&
-      window.location.hostname !== 'localhost'
-    ) {
-      alert('Gravação de áudio só funciona em HTTPS ou em localhost.');
-      return;
-    }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-      alert('Este navegador não suporta gravação de áudio.');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, sampleRate: 48000 },
-      });
-
-      if (!MediaRecorder.isTypeSupported('audio/webm; codecs=opus')) {
-        alert('Seu navegador não suporta gravação em WebM/Opus.');
-        stream.getTracks().forEach((t) => t.stop());
-        return;
+  useEffect(() => {
+    return () => {
+      try { stopRecording(); } catch {}
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(t => t.stop());
+        mediaStreamRef.current = null;
       }
-
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm; codecs=opus',
-      });
-
-      audioChunksRef.current = [];
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      mediaRecorder.onstop = () => {
-        const mime = mediaRecorder.mimeType;
-        const blob = new Blob(audioChunksRef.current, { type: mime });
-        if (blob.size > 5 * 1024 * 1024) {
-          toast.error('Áudio muito grande. Máximo permitido: 5 MB.', {
-            position: 'bottom-right',
-            autoClose: 2000,
-          });
-          return;
-        }
-        const filename = `gravacao_${Date.now()}.webm`;
-        const fileObj = new File([blob], filename, { type: mime });
-        setRecordedFile(fileObj);
-      };
-
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0); // zerar contador
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
-
-      toast.info('Gravando áudio… clique novamente para parar.', {
-        position: 'bottom-right',
-        autoClose: 1500,
-      });
-    } catch (err) {
-      console.error('[❌ Erro ao iniciar gravação]', err);
-      alert(`Não foi possível iniciar gravação:\n${err.name} – ${err.message}`);
-    }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      clearInterval(timerRef.current);     // <-- limpar o contador
+  async function startRecording() {
+    if (isRecording) return;
+
+    const mimeType = pickSupportedMimeType();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaStreamRef.current = stream;
+
+    chunksRef.current = [];
+    setRecordingTime(0);
+
+    const rec = new MediaRecorder(stream, {
+      mimeType: mimeType || undefined,
+      audioBitsPerSecond: 32000, // 32kbps opus => bem leve
+    });
+    recorderRef.current = rec;
+
+    rec.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    rec.onstop = () => {
+      const type = mimeType || 'audio/ogg;codecs=opus';
+      const blob = new Blob(chunksRef.current, { type });
+      const ext = extFromMime(type);
+      const file = new File([blob], `voice-${Date.now()}.${ext}`, { type });
+      // marca como “mensagem de voz” pro sender
+      // eslint-disable-next-line no-underscore-dangle
+      file._isVoice = true;
+
+      setRecordedFile(file);
+      chunksRef.current = [];
+
+      // encerra tracks
+      try { stream.getTracks().forEach(t => t.stop()); } catch {}
+      mediaStreamRef.current = null;
+    };
+
+    // cronômetro simples (opcional: limite de 60s, por ex.)
+    tickRef.current = setInterval(() => {
+      setRecordingTime((t) => t + 1);
+    }, 1000);
+
+    rec.start(200); // coleta em chunks pequenos
+    setIsRecording(true);
+  }
+
+  function stopRecording() {
+    if (!isRecording) return;
+    try { recorderRef.current?.stop(); } catch {}
+    recorderRef.current = null;
+    setIsRecording(false);
+    if (tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
     }
-  }, []);
+  }
+
+  function clearRecordedFile() {
+    setRecordedFile(null);
+    setRecordingTime(0);
+  }
 
   return {
     isRecording,
     startRecording,
     stopRecording,
     recordedFile,
-    recordingTime,                         // <-- exporta o tempo
-    clearRecordedFile: () => setRecordedFile(null),
+    clearRecordedFile,
+    recordingTime,
   };
 }
