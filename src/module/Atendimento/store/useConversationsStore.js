@@ -1,16 +1,60 @@
 import { create } from 'zustand';
 import { apiGet, apiPut } from '../services/apiClient';
 
-// ----- helpers para derivar preview -----
-function pickLastNonSystem(messages = []) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const m = messages[i];
-    if (!m) continue;
-    const isSystem = m.type === 'system' || m.direction === 'system';
-    if (isSystem) continue;
-    return m;
+function snapshotContentFromMsg(msg = {}) {
+  const t = (msg.type || '').toLowerCase();
+  const c = msg.content;
+
+  // Texto puro
+  if (t === 'text') {
+    if (typeof c === 'string') return c;
+    if (c && typeof c === 'object') return c.body || c.text || c.caption || '';
+    return '';
   }
-  return null;
+
+  // Áudio
+  if (t === 'audio') {
+    // Sinaliza "Áudio" pro snippet (voz/filename/url ajudam a detectar)
+    return {
+      type: 'audio',
+      voice: (c && (c.voice === true)) || undefined,
+      filename: c?.filename || 'audio.ogg',
+      url: c?.url,
+    };
+  }
+
+  // Imagem
+  if (t === 'image') {
+    return {
+      type: 'image',
+      filename: c?.filename || 'image.jpg',
+      url: c?.url,
+      caption: c?.caption,
+    };
+  }
+
+  // Documento
+  if (t === 'document') {
+    return {
+      type: 'document',
+      filename: c?.filename || 'arquivo.pdf',
+      url: c?.url,
+      caption: c?.caption,
+    };
+  }
+
+  // Vídeo
+  if (t === 'video') {
+    return {
+      type: 'video',
+      filename: c?.filename || 'video.mp4',
+      url: c?.url,
+      caption: c?.caption,
+    };
+  }
+
+  // Fallback
+  return typeof c === 'string' ? c : (c?.body || c?.text || c?.caption || c?.filename || c?.url || '[mensagem]');
 }
 
 const useConversationsStore = create((set, get) => ({
@@ -32,11 +76,10 @@ const useConversationsStore = create((set, get) => ({
     return found ? found.value : null;
   },
 
-  // Configura email/filas do usuário
-  setUserInfo: ({ email, filas, name }) =>
-    set({ userEmail: email, userFilas: filas, agentName: name }),
+  // Configura email e filas do usuário
+  setUserInfo: ({ email, filas, name }) => set({ userEmail: email, userFilas: filas, agentName: name }),
 
-  // Seleciona conversa e marca como lida
+  // Atualiza conversa selecionada, zera não lidas do atual e do anterior
   setSelectedUserId: async (userId) => {
     const previousId = get().selectedUserId;
     const now = new Date().toISOString();
@@ -51,11 +94,13 @@ const useConversationsStore = create((set, get) => ({
     get().resetUnread(userId);
     get().clearNotified(userId);
 
+    // Atualiza visualmente
     set((state) => ({
       lastRead: { ...state.lastRead, [userId]: now },
       unreadCounts: { ...state.unreadCounts, [userId]: 0 },
     }));
 
+    // Marcar como lido no backend
     try {
       await apiPut(`/messages/read-status/${userId}`, { last_read: now });
       await get().loadUnreadCounts();
@@ -64,116 +109,116 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  /**
-   * setConversation:
-   * - continua genérico
-   * - SE chegar {messages}, recalcula preview (content/type/timestamp) baseado
-   *   na última mensagem não-system. Mantém `content` como o OBJETO/valor da mensagem.
-   */
+  // Mantida (merge imutável)
   setConversation: (userId, newData) =>
+    set((state) => ({
+      conversations: {
+        ...state.conversations,
+        [userId]: {
+          ...(state.conversations[userId] || {}),
+          ...newData,
+        },
+      },
+    })),
+
+  // Mantida (merge imutável)
+  mergeConversation: (userId, data) =>
+    set((state) => ({
+      conversations: {
+        ...state.conversations,
+        [userId]: {
+          ...(state.conversations[userId] || {}),
+          ...data,
+        },
+      },
+    })),
+
+  // ✅ NOVO: adiciona mensagem de forma imutável e atualiza snapshot do card
+  appendMessage: (userId, msg) =>
     set((state) => {
-      const prev = state.conversations[userId] || {};
-      const next = { ...prev, ...newData };
+      const prevConv = state.conversations[userId] || { user_id: userId, messages: [] };
+      const prevMsgs = Array.isArray(prevConv.messages) ? prevConv.messages : [];
+      const nextMsgs = [...prevMsgs, msg];
 
-      if (Array.isArray(newData?.messages)) {
-        const msgs = [...newData.messages]; // novo array p/ disparar render
-        next.messages = msgs;
-
-        const last = pickLastNonSystem(msgs);
-        if (last) {
-          next.type = last.type;
-          next.content = last.content ?? last.text ?? last.caption ?? last.body ?? '';
-          next.timestamp = last.timestamp || Date.now();
-        }
-      }
-
-      return { conversations: { ...state.conversations, [userId]: next } };
-    }),
-
-  /**
-   * setMessages:
-   * - util direto para quando você já tem o array completo.
-   */
-  setMessages: (userId, messages = []) =>
-    set((state) => {
-      const prev = state.conversations[userId] || {};
-      const msgs = [...messages];
-      const last = pickLastNonSystem(msgs);
+      const nextConv = {
+        ...prevConv,
+        messages: nextMsgs,
+        content: snapshotContentFromMsg(msg), // <- snippet do card
+        timestamp: msg.timestamp || Date.now(), // <- ordenação do card
+        channel: prevConv.channel || msg.channel, // mantém canal
+      };
 
       return {
         conversations: {
           ...state.conversations,
-          [userId]: {
-            ...prev,
-            messages: msgs,
-            type: last ? last.type : prev.type,
-            content: last
-              ? (last.content ?? last.text ?? last.caption ?? last.body ?? '')
-              : (prev.content ?? ''),
-            timestamp: last ? (last.timestamp || Date.now()) : (prev.timestamp || Date.now()),
-          },
+          [userId]: nextConv,
         },
       };
     }),
 
-  /**
-   * appendMessage:
-   * - adiciona 1 msg e atualiza preview se não for "system".
-   */
-  appendMessage: (userId, message) =>
+  // ✅ NOVO: atualiza status/ids da mensagem (immutável) sem perder snapshot
+  updateMessageStatus: (userId, messageIdOrTempId, patch) =>
     set((state) => {
-      const prev = state.conversations[userId] || {};
-      const list = Array.isArray(prev.messages) ? prev.messages : [];
-      const newList = [...list, message];
+      const prevConv = state.conversations[userId];
+      if (!prevConv) return {};
 
-      let content = prev.content;
-      let type = prev.type;
-      let ts = prev.timestamp || Date.now();
+      const nextMsgs = (prevConv.messages || []).map((m) => {
+        const same =
+          m.id === messageIdOrTempId ||
+          m.message_id === messageIdOrTempId ||
+          m.whatsapp_message_id === messageIdOrTempId ||
+          m.telegram_message_id === messageIdOrTempId ||
+          m.provider_id === messageIdOrTempId;
+        return same ? { ...m, ...patch } : m;
+      });
 
-      const isSystem = message?.type === 'system' || message?.direction === 'system';
-      if (!isSystem) {
-        type = message?.type;
-        content = message?.content ?? message?.text ?? message?.caption ?? message?.body ?? '';
-        ts = message?.timestamp || Date.now();
-      }
+      // Mantém snapshot atual (ele já foi atualizado no appendMessage). Se quiser
+      // garantir que o snapshot siga SEMPRE a última mensagem real:
+      const lastMsg = nextMsgs[nextMsgs.length - 1] || null;
+      const nextConv = {
+        ...prevConv,
+        messages: nextMsgs,
+        ...(lastMsg
+          ? {
+              content: snapshotContentFromMsg(lastMsg),
+              timestamp: lastMsg.timestamp || prevConv.timestamp || Date.now(),
+            }
+          : {}),
+      };
 
       return {
         conversations: {
           ...state.conversations,
-          [userId]: { ...prev, messages: newList, content, type, timestamp: ts },
+          [userId]: nextConv,
         },
       };
     }),
 
-  // Unreads
+  // Zera contagem de não lidas
   resetUnread: (userId) =>
     set((state) => ({
       unreadCounts: { ...state.unreadCounts, [userId]: 0 },
       lastRead: { ...state.lastRead, [userId]: new Date().toISOString() },
     })),
 
+  // Incrementa contagem de não lidas (respeita lastRead)
   incrementUnread: (userId, messageTimestamp) => {
     const { lastRead, unreadCounts } = get();
     const last = lastRead[userId] ? new Date(lastRead[userId]) : null;
     const current = new Date(messageTimestamp);
     if (last && current <= last) return;
-    set({ unreadCounts: { ...unreadCounts, [userId]: (unreadCounts[userId] || 0) + 1 } });
-    },
+
+    set({
+      unreadCounts: { ...unreadCounts, [userId]: (unreadCounts[userId] || 0) + 1 },
+    });
+  },
 
   setClienteAtivo: (info) => set({ clienteAtivo: info }),
 
-  // Atualização genérica
-  mergeConversation: (userId, data) =>
-    set((state) => ({
-      conversations: {
-        ...state.conversations,
-        [userId]: { ...(state.conversations[userId] || {}), ...data },
-      },
-    })),
-
+  // Retorna nome do contato ou ID
   getContactName: (userId) => get().conversations[userId]?.name || userId,
 
-  // server helpers
+  // Carrega contagem de não lidas do servidor
   loadUnreadCounts: async () => {
     try {
       const data = await apiGet('/messages/unread-counts');
@@ -187,6 +232,7 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
+  // Carrega timestamps de leitura do servidor
   loadLastReadTimes: async () => {
     try {
       const data = await apiGet('/messages/read-status');
@@ -200,24 +246,26 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  // filtros
+  // Filtra conversas ativas e atribuídas
   getFilteredConversations: () => {
     const { conversations, userEmail, userFilas } = get();
     return Object.fromEntries(
-      Object.entries(conversations).filter(([_, conv]) =>
-        conv.status === 'open' &&
-        conv.assigned_to === userEmail &&
-        userFilas.includes(conv.fila)
+      Object.entries(conversations).filter(
+        ([_, conv]) =>
+          conv.status === 'open' &&
+          conv.assigned_to === userEmail &&
+          userFilas.includes(conv.fila)
       )
     );
   },
 
-  // notificação visual
   notifiedConversations: {},
+
   markNotified: (userId) =>
     set((state) => ({
       notifiedConversations: { ...state.notifiedConversations, [userId]: true },
     })),
+
   clearNotified: (userId) =>
     set((state) => {
       const updated = { ...state.notifiedConversations };
