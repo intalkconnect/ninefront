@@ -1,4 +1,3 @@
-// hooks/useSendMessage.js
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { apiPost } from '../services/apiClient';
@@ -26,10 +25,60 @@ const getTypeFromFile = (file) => {
   return 'document';
 };
 
+// Normaliza content da msg referenciada para preview
+function normalizeReplyContent(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'string') return { body: raw };
+
+  const c = { ...(raw || {}) };
+  // já favorece body/text/caption
+  if (typeof c.body === 'string' && c.body.trim()) return { body: c.body };
+  if (typeof c.text === 'string' && c.text.trim()) return { body: c.text };
+  if (typeof c.caption === 'string' && c.caption.trim()) return { body: c.caption };
+
+  // mantém url/filename/voice p/ dedução de snippet no componente
+  return {
+    ...(c.url ? { url: c.url } : {}),
+    ...(c.filename ? { filename: c.filename } : {}),
+    ...(c.voice ? { voice: true } : {})
+  };
+}
+
+// Cria um snapshot seguro da mensagem sendo respondida
+function makeReplySnapshot(replyToFull) {
+  if (!replyToFull || typeof replyToFull !== 'object') return null;
+
+  const replyId =
+    replyToFull.message_id ||
+    replyToFull.whatsapp_message_id ||
+    replyToFull.telegram_message_id ||
+    replyToFull.provider_id ||
+    replyToFull.id ||
+    null;
+
+  return {
+    // usado pelo MessageList para achar alvo também
+    message_id: replyId || undefined,
+    direction: replyToFull.direction,
+    name: replyToFull.name || replyToFull.sender_name || undefined,
+    type: replyToFull.type,
+    content: normalizeReplyContent(replyToFull.content),
+  };
+}
+
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
-  const sendMessage = async ({ text, file, userId, replyTo }, onMessageAdded) => {
+  const sendMessage = async (
+    {
+      text,
+      file,
+      userId,
+      replyTo,      // (string) id da msg original
+      replyToFull,  // (objeto) msg original completa -> NOVO para preview imediato
+    },
+    onMessageAdded
+  ) => {
     const channel = getChannelFromUserId(userId);
     const to = extractRawUserId(userId || '');
 
@@ -40,6 +89,8 @@ export function useSendMessage() {
       to,
       text: text?.trim(),
       file: file?.name,
+      replyTo,
+      replyToFull,
     });
 
     // validação básica
@@ -51,31 +102,12 @@ export function useSendMessage() {
       return;
     }
 
-    // validação de arquivo ANTES da provisória
-    if (file) {
-      const { valid, errorMsg } = validateFile(file);
-      if (!valid) {
-        toast.warn(errorMsg || 'Arquivo inválido', {
-          position: 'bottom-right',
-          autoClose: 2000,
-        });
-        return;
-      }
-    }
-
     // cria mensagem provisória (feedback instantâneo na UI)
     const tempId = Date.now();
     const now = new Date();
 
     const provisionalType = file ? getTypeFromFile(file) : 'text';
-
-    // ✅ preview local imediato (blob:)
-    let localUrl = null;
-    if (file) {
-      try {
-        localUrl = URL.createObjectURL(file);
-      } catch {}
-    }
+    const replySnapshot = makeReplySnapshot(replyToFull); // <- snapshot p/ render imediata
 
     const provisionalMessage = {
       id: tempId,
@@ -84,16 +116,10 @@ export function useSendMessage() {
       readableTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'sending',
       type: provisionalType,
-      // 🔥 já coloca url para render instantâneo quando há arquivo
-      content: file
-        ? {
-            url: localUrl, // blob:… → render imediato
-            filename: file.name,
-            ...(text?.trim() ? { caption: text.trim() } : {}),
-            _local: true,
-          }
-        : { body: text?.trim() || '' },
+      content: text?.trim() || (file ? { filename: file.name } : ''),
       channel,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(replySnapshot ? { replyTo: replySnapshot } : {}),
     };
 
     if (typeof onMessageAdded === 'function') {
@@ -112,36 +138,26 @@ export function useSendMessage() {
       };
 
       if (file) {
-        // sobe o arquivo pra obter URL pública
+        // valida e sobe o arquivo pra obter URL
+        const { valid, errorMsg } = validateFile(file);
+        if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
+
         const fileUrl = await uploadFileAndGetURL(file);
         if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
         // WhatsApp/Telegram no seu backend esperam { url, caption?, filename? }
         payload.content = {
           url: fileUrl,
-          // áudio no WhatsApp não usa filename; mantemos compat: só incluímos se não for áudio
           ...(provisionalType !== 'audio' && file.name ? { filename: file.name } : {}),
           ...(text?.trim() ? { caption: text.trim() } : {}),
         };
-
-        // 🔁 atualiza a provisória com a URL pública (mesmo id)
-        if (typeof onMessageAdded === 'function') {
-          onMessageAdded({
-            ...provisionalMessage,
-            content: { ...(provisionalMessage.content || {}), url: fileUrl, _local: false },
-          });
-        }
-        // libera o blob quando já temos a URL pública
-        try {
-          if (localUrl) URL.revokeObjectURL(localUrl);
-        } catch {}
       } else {
         // texto simples: { body }
         payload.content = { body: text.trim() };
       }
 
       if (replyTo) {
-        payload.context = { message_id: replyTo };
+        payload.context = { message_id: replyTo }; // mantém referência real para a plataforma
       }
 
       console.log('📤 Payload de envio:', payload);
@@ -155,10 +171,6 @@ export function useSendMessage() {
           status: 'sent',
           message_id: saved?.message_id,
           serverResponse: response,
-          // garante que a URL pública prevaleça
-          ...(file
-            ? { content: { ...(provisionalMessage.content || {}), url: payload.content.url, _local: false } }
-            : {}),
         });
       }
 
@@ -183,7 +195,6 @@ export function useSendMessage() {
       // mensagens específicas
       const platformError = err?.response?.data;
 
-      // erro 24h do seu backend (WhatsApp)
       if (platformError?.error?.toString?.().toLowerCase?.().includes('24h')) {
         toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', {
           position: 'bottom-right',
