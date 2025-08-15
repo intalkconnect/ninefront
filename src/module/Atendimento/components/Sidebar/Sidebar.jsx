@@ -172,52 +172,86 @@ export default function Sidebar() {
   };
 
   // ------- helpers UI -------
-  const getSnippet = (rawContent) => {
-    if (!rawContent) return "";
-    if (typeof rawContent === "string" && /^\d+$/.test(rawContent))
-      return rawContent;
+ const getSnippet = (rawContent) => {
+  if (rawContent == null) return "";
 
-    if (
-      typeof rawContent === "string" &&
-      (rawContent.trim().startsWith("{") || rawContent.trim().startsWith("["))
-    ) {
-      try {
-        const parsed = JSON.parse(rawContent);
-              // se for voice (mesmo sem extensão/URL), já mostra "Áudio"
-      if (parsed.voice === true || parsed.type === 'audio') {
-         return (
-           <span className="chat-icon-snippet">
-             <Mic size={18} /> Áudio
-           </span>
-         );
-       }
-        if (parsed.url) {
-          const url = parsed.url.toLowerCase();
-          if (url.match(/\.(ogg|mp3|wav)$/))
-            return (
-              <span className="chat-icon-snippet">
-                <Mic size={18} /> Áudio
-              </span>
-            );
-          if (url.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/))
-            return (
-              <span className="chat-icon-snippet">
-                <File size={18} /> Imagem
-              </span>
-            );
-          return (
-            <span className="chat-icon-snippet">
-              <File size={18} /> Arquivo
-            </span>
-          );
-        }
-        return parsed.text || parsed.caption || "";
-      } catch {}
+  // números puros
+  if (typeof rawContent === "string" && /^\d+$/.test(rawContent)) {
+    return rawContent;
+  }
+
+  // tenta parsear JSON quando for string com cara de JSON
+  if (typeof rawContent === "string" &&
+      (rawContent.trim().startsWith("{") || rawContent.trim().startsWith("["))) {
+    try {
+      rawContent = JSON.parse(rawContent);
+    } catch {
+      // fica como string mesmo
+    }
+  }
+
+  // --- Agora cobre quando já é OBJETO ---
+  if (typeof rawContent === "object" && rawContent) {
+    const c = rawContent;
+    const url = String(c.url || "").toLowerCase();
+    const filename = String(c.filename || "").toLowerCase();
+
+    // texto "puro" dentro do objeto
+    if (c.body || c.text || c.caption) {
+      const txt = c.body || c.text || c.caption || "";
+      return txt.length > 40 ? txt.slice(0, 37) + "..." : txt;
     }
 
-    const contentStr = String(rawContent);
-    return contentStr.length > 40 ? contentStr.slice(0, 37) + "..." : contentStr;
-  };
+    // áudio (voz)
+    if (
+      c.voice === true ||
+      c.type === "audio" ||
+      /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) ||
+      /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename)
+    ) {
+      return (
+        <span className="chat-icon-snippet">
+          <Mic size={18} /> Áudio
+        </span>
+      );
+    }
+
+    // imagem
+    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename)) {
+      return (
+        <span className="chat-icon-snippet">
+          <File size={18} /> Imagem
+        </span>
+      );
+    }
+
+    // pdf/documento
+    if (filename.endsWith(".pdf")) {
+      return (
+        <span className="chat-icon-snippet">
+          <File size={18} /> Arquivo
+        </span>
+      );
+    }
+
+    // se tiver url/filename mas não bateu nas regras acima => "Arquivo"
+    if (c.url || c.filename) {
+      return (
+        <span className="chat-icon-snippet">
+          <File size={18} /> Arquivo
+        </span>
+      );
+    }
+
+    // último recurso
+    return "";
+  }
+
+  // string comum
+  const contentStr = String(rawContent);
+  return contentStr.length > 40 ? contentStr.slice(0, 37) + "..." : contentStr;
+};
+
 
   const filteredConversations = Object.values(conversations).filter((conv) => {
     const autorizado =
