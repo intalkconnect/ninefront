@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
 import { getSocket } from "../../services/socket";
-import {
-  File, Mic, User, Circle, LogOut, Timer,
-  ArrowDownUp, ArrowUpDown, Search
-} from "lucide-react";
+import { File, Mic, User, Circle, LogOut, Timer, ArrowDownUp, ArrowUpDown, Search } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from '../../../components/LogoutButton';
 import { stringToColor } from '../../utils/color';
@@ -14,25 +11,23 @@ import ChannelIcon from './ChannelIcon';
 import "./Sidebar.css";
 
 export default function Sidebar() {
-  const conversations   = useConversationsStore((state) => state.conversations);
-  const unreadCounts    = useConversationsStore((state) => state.unreadCounts);
-  const userEmail       = useConversationsStore((state) => state.userEmail);
-  const userFilas       = useConversationsStore((state) => state.userFilas);
-  const selectedUserId  = useConversationsStore((state) => state.selectedUserId);
-  const setSelectedUserId = useConversationsStore((state) => state.setSelectedUserId);
-  const mergeConversation = useConversationsStore((state) => state.mergeConversation);
-  const setSettings     = useConversationsStore((state) => state.setSettings);
+  const conversations   = useConversationsStore((s) => s.conversations);
+  const unreadCounts    = useConversationsStore((s) => s.unreadCounts);
+  const userEmail       = useConversationsStore((s) => s.userEmail);
+  const userFilas       = useConversationsStore((s) => s.userFilas);
+  const selectedUserId  = useConversationsStore((s) => s.selectedUserId);
+  const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
+  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
+  const setSettings     = useConversationsStore((s) => s.setSettings);
 
-  const [ordemAscendente, setOrdemAscendente] = useState(false); // false = mais novo primeiro
+  const [ordemAscendente, setOrdemAscendente] = useState(false);
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("online"); // 'online' | 'offline' | 'pausado'
+  const [status, setStatus] = useState("online");
 
-  // rooms de fila já ingressados para evitar duplicar join/leave
   const queueRoomsRef = useRef(new Set());
 
-  // ------- fetch baseline (settings + fila) -------
   const fetchSettingsAndFila = async () => {
     try {
       const settings = await apiGet("/settings");
@@ -44,7 +39,6 @@ export default function Sidebar() {
         setFilaCount(0);
         return;
       }
-
       const params = new URLSearchParams({ filas: userFilas.join(",") });
       const data = await apiGet(`/chats/fila?${params.toString()}`);
       setFilaCount(Array.isArray(data) ? data.length : (data?.length || 0));
@@ -54,18 +48,14 @@ export default function Sidebar() {
   };
 
   useEffect(() => {
-    if (userEmail && userFilas && userFilas.length > 0) {
-      fetchSettingsAndFila();
-    }
+    if (userEmail && userFilas && userFilas.length > 0) fetchSettingsAndFila();
   }, [userEmail, userFilas]);
 
-  // ------- realtime: join rooms de fila + listeners de eventos -------
   useEffect(() => {
     if (!userFilas || userFilas.length === 0) return;
     const socket = getSocket();
     if (!socket) return;
 
-    // entra nos rooms `queue:<fila>` que ainda não entrou
     userFilas.forEach((fila) => {
       const room = `queue:${fila}`;
       if (!queueRoomsRef.current.has(room)) {
@@ -73,8 +63,6 @@ export default function Sidebar() {
         queueRoomsRef.current.add(room);
       }
     });
-
-    // sai de rooms que não pertencem mais às filas do usuário
     [...queueRoomsRef.current].forEach((room) => {
       const fila = room.replace(/^queue:/, "");
       if (!userFilas.includes(fila)) {
@@ -83,59 +71,35 @@ export default function Sidebar() {
       }
     });
 
-    // Handlers
-    const onPush = (payload = {}) => {
-      if (distribuicaoTickets !== "manual") return;
-      const { fila } = payload;
-      if (fila && !userFilas.includes(fila)) return;
-      setFilaCount((prev) => prev + 1);
-    };
+    const onPush  = ({ fila } = {}) => { if (distribuicaoTickets !== "manual") return; if (fila && !userFilas.includes(fila)) return; setFilaCount((p) => p + 1); };
+    const onPop   = ({ fila } = {}) => { if (distribuicaoTickets !== "manual") return; if (fila && !userFilas.includes(fila)) return; setFilaCount((p) => Math.max(0, p - 1)); };
+    const onCount = ({ fila, count } = {}) => { if (fila && !userFilas.includes(fila)) return; if (typeof count === "number") setFilaCount(count); };
 
-    const onPop = (payload = {}) => {
-      if (distribuicaoTickets !== "manual") return;
-      const { fila } = payload;
-      if (fila && !userFilas.includes(fila)) return;
-      setFilaCount((prev) => Math.max(0, prev - 1));
-    };
-
-    const onCount = (payload = {}) => {
-      const { fila, count } = payload;
-      if (fila && !userFilas.includes(fila)) return;
-      if (typeof count === "number") setFilaCount(count);
-    };
-
-    // Fallbacks se o backend emitir eventos mais genéricos
     const onTicketCreated = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
-      if (assigned_to) return;                 // só interessa sem proprietário
+      if (assigned_to) return;
       if (fila && !userFilas.includes(fila)) return;
-      setFilaCount((prev) => prev + 1);
+      setFilaCount((p) => p + 1);
     };
-
     const onTicketClosed = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
-      if (assigned_to) return;                 // se estava sem dono e foi fechado, decrementa
+      if (assigned_to) return;
       if (fila && !userFilas.includes(fila)) return;
-      setFilaCount((prev) => Math.max(0, prev - 1));
+      setFilaCount((p) => Math.max(0, p - 1));
     };
 
     socket.on("queue_push", onPush);
     socket.on("queue_pop", onPop);
     socket.on("queue_count", onCount);
-
     socket.on("ticket_created", onTicketCreated);
     socket.on("ticket_closed", onTicketClosed);
 
-    // sincroniza ao reconectar
     const onConnect = () => fetchSettingsAndFila();
     socket.on("connect", onConnect);
 
-    // sincroniza ao voltar o foco
-    const onVis = () => {
-      if (document.visibilityState === "visible") fetchSettingsAndFila();
-    };
+    const onVis = () => { if (document.visibilityState === "visible") fetchSettingsAndFila(); };
     document.addEventListener("visibilitychange", onVis);
 
     return () => {
@@ -149,16 +113,120 @@ export default function Sidebar() {
     };
   }, [userFilas, distribuicaoTickets]);
 
-  // ------- ações -------
+  // ------- helpers UI (snippet) -------
+  const getSnippet = (raw) => {
+    if (raw == null) return "";
+
+    // objetos (mídia/estruturados) — preferido
+    if (typeof raw === "object") {
+      const c = raw;
+      const url = String(c.url || "").toLowerCase();
+      const filename = String(c.filename || "").toLowerCase();
+      const text = c.body || c.text || c.caption;
+
+      if (text) return text.length > 40 ? text.slice(0, 37) + "..." : text;
+
+      const isAudio = c.voice === true || c.type === "audio" ||
+        /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) || /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename);
+      if (isAudio) return (<span className="chat-icon-snippet"><Mic size={18}/> Áudio</span>);
+
+      const isImg = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
+                    /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename);
+      if (isImg) return (<span className="chat-icon-snippet"><File size={18}/> Imagem</span>);
+
+      if (filename.endsWith('.pdf')) {
+        return (<span className="chat-icon-snippet"><File size={18}/> Arquivo</span>);
+      }
+      if (c.url || c.filename) {
+        return (<span className="chat-icon-snippet"><File size={18}/> Arquivo</span>);
+      }
+      return "";
+    }
+
+    // strings
+    if (typeof raw === "string") {
+      const s = raw.trim();
+
+      // se vier JSON serializado, tenta extrair como objeto
+      if (s.startsWith("{") || s.startsWith("[")) {
+        try {
+          return getSnippet(JSON.parse(s));
+        } catch {}
+      }
+
+      // se for URL de mídia, mostra ícone certo
+      const sl = s.toLowerCase();
+      if (/\.(ogg|oga|mp3|wav|m4a)(\?|#|$)/i.test(sl)) {
+        return (<span className="chat-icon-snippet"><Mic size={18}/> Áudio</span>);
+      }
+      if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i.test(sl)) {
+        return (<span className="chat-icon-snippet"><File size={18}/> Imagem</span>);
+      }
+      if (/\.pdf(\?|#|$)/i.test(sl)) {
+        return (<span className="chat-icon-snippet"><File size={18}/> Arquivo</span>);
+      }
+
+      // texto simples
+      return s.length > 40 ? s.slice(0, 37) + "..." : s;
+    }
+
+    return String(raw);
+  };
+
+  // search helpers
+  const contentToString = (c) => {
+    if (c == null) return "";
+    if (typeof c === "string") {
+      const s = c.trim();
+      if (s.startsWith("{") || s.startsWith("[")) {
+        try {
+          const j = JSON.parse(s);
+          return j?.body || j?.text || j?.caption || j?.filename || j?.url || "";
+        } catch {}
+      }
+      return s;
+    }
+    if (typeof c === "number" || typeof c === "boolean") return String(c);
+    if (typeof c === "object") return c.body || c.text || c.caption || c.filename || c.url || "";
+    return String(c);
+  };
+
+  const filteredConversations = React.useMemo(() => {
+    const term = (searchTerm || "").trim().toLowerCase();
+    return Object.values(conversations).filter((conv) => {
+      const autorizado =
+        conv.status === "open" &&
+        conv.assigned_to === userEmail &&
+        (!conv.fila || userFilas.includes(conv.fila));
+      if (!autorizado) return false;
+      if (!term) return true;
+
+      const contentStr = contentToString(conv.content).toLowerCase();
+      return (
+        (conv.name || "").toLowerCase().includes(term) ||
+        (conv.user_id || "").toLowerCase().includes(term) ||
+        contentStr.includes(term)
+      );
+    });
+  }, [conversations, userEmail, userFilas, searchTerm]);
+
+  const sortedConversations = React.useMemo(() => {
+    const arr = [...filteredConversations];
+    arr.sort((a, b) => {
+      const dateA = new Date(a.timestamp || 0);
+      const dateB = new Date(b.timestamp || 0);
+      return ordemAscendente ? dateA - dateB : dateB - dateA;
+    });
+    return arr;
+  }, [filteredConversations, ordemAscendente]);
+
+  // ações
   const puxarProximoTicket = async () => {
     try {
       const res = await apiPut("/chats/fila/proximo", {
-        email: userEmail,
-        filas: userFilas,
+        email: userEmail, filas: userFilas,
       });
-
-      await fetchSettingsAndFila(); // Atualiza contagem da fila
-
+      await fetchSettingsAndFila();
       if (res && res.user_id) {
         mergeConversation(res.user_id, res);
         setSelectedUserId(res.user_id);
@@ -171,141 +239,21 @@ export default function Sidebar() {
     }
   };
 
-  // ------- helpers UI -------
-const getSnippet = (conv) => {
-  // 1) pega o "content" que veio no card
-  let raw = conv?.content;
-
-  // 2) se for placeholder ou vazio, tenta a última mensagem do store
-  const convFromStore = conversations?.[conv.user_id];
-  const lastMsg = Array.isArray(convFromStore?.messages)
-    ? convFromStore.messages[convFromStore.messages.length - 1]
-    : null;
-
-  const looksLikePlaceholder = (v) => {
-    const s = String(v || '').trim().toLowerCase();
-    return s === '[mensagem]' || s === '[message]' || s === '[msg]';
-  };
-
-  if (!raw || looksLikePlaceholder(raw)) {
-    raw = lastMsg?.content ?? raw;
-  }
-
-  // 3) se vier string numérica, devolve direto
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return raw;
-
-  // 4) se for string com cara de JSON, tenta parsear
-  if (typeof raw === 'string') {
-    const s = raw.trim();
-    if (s.startsWith('{') || s.startsWith('[')) {
-      try { raw = JSON.parse(s); } catch {/* mantém string */}
-    }
-  }
-
-  // 5) inferências para OBJETO (mídia)
-  if (raw && typeof raw === 'object') {
-    const url = String(raw.url || '').toLowerCase();
-    const filename = String(raw.filename || '').toLowerCase();
-    const txt = raw.body || raw.text || raw.caption || '';
-
-    if (txt) return txt.length > 40 ? txt.slice(0, 37) + '…' : txt;
-
-    // áudio (inclui "voice" do WA/TG)
-    if (
-      raw.voice === true ||
-      (lastMsg?.type === 'audio') ||
-      /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) ||
-      /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename)
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <Mic size={18} /> Áudio
-        </span>
-      );
-    }
-
-    // imagem
-    if (
-      lastMsg?.type === 'image' ||
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename)
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <File size={18} /> Imagem
-        </span>
-      );
-    }
-
-    // documento (inclui pdf)
-    if (
-      lastMsg?.type === 'document' ||
-      filename.endsWith('.pdf') ||
-      (url && !/\.(jpg|jpeg|png|gif|webp|svg|bmp|ogg|oga|mp3|wav|m4a)$/i.test(url))
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <File size={18} /> Arquivo
-        </span>
-      );
-    }
-
-    return ''; // sem nada útil
-  }
-
-  // 6) string comum
-  if (typeof raw === 'string') {
-    const s = raw;
-    return s.length > 40 ? s.slice(0, 37) + '…' : s;
-  }
-
-  return '';
-};
- 
-
-
-  const filteredConversations = Object.values(conversations).filter((conv) => {
-    const autorizado =
-      conv.status === "open" &&
-      conv.assigned_to === userEmail &&
-      (!conv.fila || userFilas.includes(conv.fila));
-
-    if (!autorizado) return false;
-
-    if (!searchTerm) return true;
-
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      conv.name?.toLowerCase().includes(searchLower) ||
-      conv.user_id?.toLowerCase().includes(searchLower) ||
-      conv.content?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const sortedConversations = [...filteredConversations].sort((a, b) => {
-    const dateA = new Date(a.timestamp || 0);
-    const dateB = new Date(b.timestamp || 0);
-    return ordemAscendente ? dateA - dateB : dateB - dateA;
-  });
-
-  // ------- render -------
+  // render
   return (
     <div className="sidebar-container">
       <div className="sidebar-header">
         <img src="/logo-front.png" alt="omni" className="logo-img" />
-
         <div className="header-actions">
           <button className="icon-button" onClick={() => alert("Abrir perfil")}>
             <User size={20} />
           </button>
-
           <LogoutButton className="logout-button">
             <LogOut size={16} />
           </LogoutButton>
         </div>
       </div>
 
-      {/* Fila Info */}
       <div className="fila-info">
         <div className="fila-status-line">
           <div className="fila-pessoas">
@@ -318,23 +266,14 @@ const getSnippet = (conv) => {
                 </div>
               </>
             ) : (
-              <div className="fila-textos">
-                <strong>Não há clientes aguardando</strong>
-              </div>
+              <div className="fila-textos"><strong>Não há clientes aguardando</strong></div>
             )}
           </div>
-
           {distribuicaoTickets === "manual" ? (
-            <button
-              className="botao-proximo"
-              onClick={puxarProximoTicket}
-              disabled={filaCount === 0}
-            >
+            <button className="botao-proximo" onClick={puxarProximoTicket} disabled={filaCount === 0}>
               Próximo →
             </button>
-          ) : (
-            <span className="distribuicao-badge automatica">Automática</span>
-          )}
+          ) : (<span className="distribuicao-badge automatica">Automática</span>)}
         </div>
       </div>
 
@@ -346,9 +285,7 @@ const getSnippet = (conv) => {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <span className="search-icon-right">
-          <Search size={20} strokeWidth={2} />
-        </span>
+        <span className="search-icon-right"><Search size={20} strokeWidth={2} /></span>
       </div>
 
       <ul className="chat-list">
@@ -358,55 +295,49 @@ const getSnippet = (conv) => {
           const unreadCount = unreadCounts[fullId] || 0;
           const showUnread = !isSelected && unreadCount > 0;
 
-          return (
-            <li
-              key={fullId}
-              className={`chat-list-item ${isSelected ? "active" : ""}`}
-              onClick={() => setSelectedUserId(fullId)}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="chat-main-content">
-                <div className="chat-avatar-initial">
-                  <div
-                    className="avatar-circle"
-                    style={{
-                      backgroundColor: stringToColor(conv.name || conv.user_id),
-                    }}
-                  >
-                    {conv.name?.charAt(0).toUpperCase() || "U"}
-                  </div>
-                  <div className="channel-icon-overlay">
-                    <ChannelIcon channel={conv.channel} size={14} />
-                  </div>
+        return (
+          <li
+            key={fullId}
+            className={`chat-list-item ${isSelected ? "active" : ""}`}
+            onClick={() => setSelectedUserId(fullId)}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="chat-main-content">
+              <div className="chat-avatar-initial">
+                <div
+                  className="avatar-circle"
+                  style={{ backgroundColor: stringToColor(conv.name || conv.user_id) }}
+                >
+                  {conv.name?.charAt(0).toUpperCase() || "U"}
                 </div>
+                <div className="channel-icon-overlay">
+                  <ChannelIcon channel={conv.channel} size={14} />
+                </div>
+              </div>
 
-                <div className="chat-details">
-                  <div className="chat-title-row">
-                    <div className="chat-title">
-                      {conv.name || fullId}
-                    </div>
-                    <div className="chat-time">
-                      {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
-                    </div>
+              <div className="chat-details">
+                <div className="chat-title-row">
+                  <div className="chat-title">{conv.name || fullId}</div>
+                  <div className="chat-time">
+                    {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
                   </div>
-                  <div className="chat-snippet">{getSnippet(conv)}</div>
                 </div>
+                <div className="chat-snippet">{getSnippet(conv.content)}</div>
               </div>
-              <div className="chat-bottom-section">
-                <div className="chat-divider"></div>
-                <div className="chat-meta">
-                  <span
-                    className="chat-queue-badge"
-                    style={{ backgroundColor: conv.fila_color }}
-                  >
-                    {conv.fila}
-                  </span>
-                  {showUnread && <span className="unread-dot"></span>}
-                </div>
+            </div>
+
+            <div className="chat-bottom-section">
+              <div className="chat-divider"></div>
+              <div className="chat-meta">
+                <span className="chat-queue-badge" style={{ backgroundColor: conv.fila_color }}>
+                  {conv.fila}
+                </span>
+                {showUnread && <span className="unread-dot"></span>}
               </div>
-            </li>
-          );
+            </div>
+          </li>
+        );
         })}
       </ul>
 
@@ -418,26 +349,10 @@ const getSnippet = (conv) => {
             <span className="status-label">Status:</span>
             <Circle
               size={10}
-              color={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausa"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
-              fill={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausa"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
+              color={status === "online" ? "#25D366" : status === "pausa" ? "#f0ad4e" : "#d9534f"}
+              fill={status === "online" ? "#25D366" : status === "pausa" ? "#f0ad4e" : "#d9534f"}
             />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="status-select"
-            >
+            <select value={status} onChange={(e) => setStatus(e.target.value)} className="status-select">
               <option value="online">Online</option>
               <option value="pausado">Pausa</option>
               <option value="offline">Offline</option>
@@ -448,15 +363,9 @@ const getSnippet = (conv) => {
 
           <div className="sort-wrapper">
             <div className="sort-toggle-wrapper">
-              <button
-                className="sort-toggle-button"
-                onClick={() => setOrdemAscendente((prev) => !prev)}
-              >
-                {ordemAscendente ? (
-                  <ArrowUpDown size={16} className="sort-icon" />
-                ) : (
-                  <ArrowDownUp size={16} className="sort-icon" />
-                )}
+              <button className="sort-toggle-button" onClick={() => setOrdemAscendente((p) => !p)}>
+                {ordemAscendente ? (<ArrowUpDown size={16} className="sort-icon" />)
+                                 : (<ArrowDownUp size={16} className="sort-icon" />)}
                 {ordemAscendente ? "Crescente" : "Decrescente"}
               </button>
             </div>
