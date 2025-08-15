@@ -183,6 +183,14 @@ export default function Sidebar() {
     ) {
       try {
         const parsed = JSON.parse(rawContent);
+              // se for voice (mesmo sem extensão/URL), já mostra "Áudio"
+      if (parsed.voice === true || parsed.type === 'audio') {
+         return (
+           <span className="chat-icon-snippet">
+             <Mic size={18} /> Áudio
+           </span>
+         );
+       }
         if (parsed.url) {
           const url = parsed.url.toLowerCase();
           if (url.match(/\.(ogg|mp3|wav)$/))
