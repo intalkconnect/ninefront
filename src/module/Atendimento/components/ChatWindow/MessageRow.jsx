@@ -12,36 +12,42 @@ import { renderReplyContent } from '../../utils/renderUtils';
 import './MessageRow.css';
 import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from 'lucide-react';
 
-function buildReplyPreview(msg) {
-  if (!msg) return null;
+// ---------- helpers (preview de resposta) ----------
+function pickSnippet(c) {
+  if (!c) return '';
+  if (typeof c === 'string') return c;
+  if (typeof c === 'object') {
+    if (typeof c.body === 'string' && c.body.trim()) return c.body;
+    if (typeof c.text === 'string' && c.text.trim()) return c.text;
+    if (typeof c.caption === 'string' && c.caption.trim()) return c.caption;
 
-  if (typeof msg === 'string') {
-    const s = msg.trim();
+    const url = String(c.url || '').toLowerCase();
+    if (!url) return '';
+
+    if (/\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
+    if (/\.(ogg|mp3|wav|m4a|opus)$/.test(url) || c.voice) return 'Áudio';
+    if (/\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
+    if (c.filename) return c.filename;
+    return 'Documento';
+  }
+  return '';
+}
+
+function buildReplyPreview(raw) {
+  if (!raw) return null;
+
+  if (typeof raw === 'string') {
+    const s = raw.trim();
     const m = s.match(/^\*(.+?)\*:\s*(.*)$/);
     if (m) return { title: m[1], snippet: m[2] };
-    return { title: 'Mensagem', snippet: s };
+    return { title: '', snippet: s };
   }
 
-  // É uma mensagem completa
-  const title =
-    msg.reply_name ||
-    (msg.reply_direction === 'outgoing' ? 'Você' : (msg.name || msg.sender_name || 'Contato'));
+  const title = raw.direction === 'outgoing'
+    ? 'Você'
+    : (raw.name || raw.sender_name || ''); // <- sem "Contato"
 
-  const c = msg.content || {};
-  const url = c.url ? String(c.url) : '';
-  const urlLower = url.toLowerCase();
-
-  let snippet = c.body || c.text || c.caption || (typeof c === 'string' ? c : '');
-
-  if (!snippet) {
-    const t = (msg.type || '').toLowerCase();
-    if (t === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(urlLower)) snippet = 'Imagem';
-    else if (t === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(urlLower)) snippet = 'Áudio';
-    else if (t === 'video' || /\.(mp4|mov|webm)$/.test(urlLower)) snippet = 'Vídeo';
-    else if (t === 'document' || c.filename) snippet = c.filename || 'Documento';
-    else snippet = 'Mensagem';
-  }
-
+  const snippet = pickSnippet(raw.content);
   return { title, snippet };
 }
 
@@ -68,10 +74,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
 
   const renderTimeAndStatus = () => (
     <div className="message-time">
-      {new Date(msg.timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}
+      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       {isOutgoing && (
         <span className="message-status">
           {msg.status === 'read' ? (
@@ -91,16 +94,11 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   );
 
   const urlLower = String(content?.url || '').toLowerCase();
-  const isAudio =
-    msg.type === 'audio' || content?.voice || /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
-  const isImage =
-    msg.type === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(content?.url || '') || urlLower.startsWith('blob:');
-  const isPdf =
-    (msg.type === 'document' || content?.filename) && content?.filename?.toLowerCase().endsWith('.pdf');
-  const isList =
-    (content?.type === 'list' || content?.body?.type === 'list') && (content?.action || content?.body?.action);
-  const isQuickReply =
-    content?.type === 'button' && Array.isArray(content?.action?.buttons);
+  const isAudio = msg.type === 'audio' || content?.voice || /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
+  const isImage = msg.type === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(content?.url || '') || urlLower.startsWith('blob:');
+  const isPdf = (msg.type === 'document' || content?.filename) && content?.filename?.toLowerCase().endsWith('.pdf');
+  const isList = (content?.type === 'list' || content?.body?.type === 'list') && (content?.action || content?.body?.action);
+  const isQuickReply = content?.type === 'button' && Array.isArray(content?.action?.buttons);
 
   let messageContent = null;
 
@@ -112,6 +110,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
     );
   }
 
+  // render principal
   if (!messageContent) {
     if (typeof content === 'string' && /^\d+$/.test(content)) {
       messageContent = <TextMessage content={content} />;
@@ -192,7 +191,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ░░░ Cabeçalho de resposta no balão (estilo WhatsApp) ░░░
+  // Cabeçalho de resposta no balão (estilo WhatsApp)
   const replyPreview =
     buildReplyPreview(msg.replyTo) ||
     buildReplyPreview(msg.reply_preview) ||
@@ -236,7 +235,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
                 <div className="replied-bar" />
                 <div className="replied-content">
                   <div className="replied-title">
-                    <strong>{replyPreview.title}</strong>
+                    <strong>{replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}</strong>
                   </div>
                   <div className="replied-text">
                     {renderReplyContent(replyPreview.snippet)}
