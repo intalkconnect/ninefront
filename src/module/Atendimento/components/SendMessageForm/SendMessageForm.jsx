@@ -15,6 +15,42 @@ import EmojiPicker from "./EmojiPicker";
 import UploadFileModal from "./UploadFileModal";
 import QuickReplies from "./QuickReplies";
 
+function buildReplyPreview(replyTo) {
+  if (!replyTo) return null;
+
+  // Se vier string, já é o snippet
+  if (typeof replyTo === 'string') {
+    // pode vir como "*Nome:* texto"
+    const m = replyTo.trim().match(/^\*(.+?)\*:\s*(.*)$/);
+    if (m) return { title: m[1], snippet: m[2] };
+    return { title: 'Mensagem', snippet: replyTo };
+  }
+
+  // Objeto de mensagem
+  const title =
+    replyTo.reply_name ||
+    (replyTo.reply_direction === 'outgoing' ? 'Você' : (replyTo.name || replyTo.sender_name || 'Contato'));
+
+  const url = (replyTo.content && replyTo.content.url) ? String(replyTo.content.url) : '';
+  const urlLower = url.toLowerCase();
+
+  let snippet =
+    (replyTo.content && (replyTo.content.body || replyTo.content.text || replyTo.content.caption)) ||
+    (typeof replyTo.content === 'string' ? replyTo.content : '') ||
+    '';
+
+  if (!snippet) {
+    const t = (replyTo.type || '').toLowerCase();
+    if (t === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(urlLower)) snippet = 'Imagem';
+    else if (t === 'audio' || replyTo.content?.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(urlLower)) snippet = 'Áudio';
+    else if (t === 'video' || /\.(mp4|mov|webm)$/.test(urlLower)) snippet = 'Vídeo';
+    else if (t === 'document' || replyTo.content?.filename) snippet = replyTo.content?.filename || 'Documento';
+    else snippet = 'Mensagem';
+  }
+
+  return { title, snippet };
+}
+
 export default function SendMessageForm({
   userIdSelecionado,
   onMessageAdded,
@@ -52,21 +88,21 @@ export default function SendMessageForm({
   const { agentName, getSettingValue } = useConversationsStore();
   const isSignatureEnabled = getSettingValue("enable_signature") === "true";
 
-  // Identifica o canal pelo userId
+  // Canal atual
   const getChannelFromUserId = (userId) => {
     if (!userId) return 'whatsapp';
     if (userId.endsWith('@t.msgcli.net')) return 'telegram';
-    return 'whatsapp'; // default
+    return 'whatsapp';
   };
-
   const currentChannel = getChannelFromUserId(userIdSelecionado);
 
-  // Efeitos
+  // Fechar popovers ao clicar fora
   useClickOutside([emojiPickerRef, quickReplyRef], () => {
     setShowEmoji(false);
     setShowQuickReplies(false);
   });
 
+  // QuickReplies existe?
   useEffect(() => {
     (async () => {
       try {
@@ -78,39 +114,37 @@ export default function SendMessageForm({
     })();
   }, []);
 
+  // Troca de conversa => limpa input/arquivo/reply
   useEffect(() => {
-   setText('');
-   setFile(null);
-   setReplyTo?.(null);
+    setText('');
+    setFile(null);
+    setReplyTo?.(null);
   }, [userIdSelecionado]);
 
+  // Quando terminar de gravar, injeta arquivo
   useEffect(() => {
     if (recordedFile) setFile(recordedFile);
   }, [recordedFile]);
 
-  // Handlers
+  // Enviar
   const handleSend = (e) => {
     e.preventDefault();
-    
     if (isRecording) return stopRecording();
 
     const trimmedText = text.trim();
     const hasTextOrFile = trimmedText || file;
-
     if (!hasTextOrFile) {
       startRecording();
       return;
     }
 
-    // Verificação específica para WhatsApp
+    // Regra do WhatsApp 24h
     if (currentChannel === 'whatsapp' && !canSendFreeform) {
-      toast.warn('Fora da janela de 24h. Envie um template.', {
-        position: 'bottom-right'
-      });
+      toast.warn('Fora da janela de 24h. Envie um template.', { position: 'bottom-right' });
       return;
     }
 
-    // Formata mensagem com assinatura se necessário
+    // Assinatura opcional no WhatsApp
     let finalText = trimmedText;
     if (isSignatureEnabled && trimmedText && currentChannel === 'whatsapp') {
       finalText = `*${agentName}:*\n\n${trimmedText}`;
@@ -121,7 +155,7 @@ export default function SendMessageForm({
         text: finalText,
         file,
         userId: userIdSelecionado,
-        replyTo: replyTo?.message_id || null, // Usa message_id genérico
+        replyTo: replyTo?.message_id || null, // id da msg original (quando houver)
       },
       onMessageAdded
     );
@@ -143,8 +177,8 @@ export default function SendMessageForm({
     setText(value);
     setShowQuickReplies(
       hasQuickReplies &&
-        value.trim().startsWith("/") &&
-        value.trim().length === 1
+      value.trim().startsWith("/") &&
+      value.trim().length === 1
     );
   };
 
@@ -155,15 +189,24 @@ export default function SendMessageForm({
     imageInputRef.current.value = "";
   };
 
-  // Render
+  const preview = buildReplyPreview(replyTo);
+
   return (
     <>
       {replyTo && (
         <div className="reply-preview">
           <div className="reply-content">
-            <div className="reply-author">Você está respondendo:</div>
+            <div className="reply-author">
+              Você está respondendo:
+            </div>
             <div className="reply-text">
-              {replyTo.content?.text || replyTo.content || "[Mensagem]"}
+              {preview ? (
+                <>
+                  <strong>*{preview.title}:*</strong> {preview.snippet}
+                </>
+              ) : (
+                replyTo?.content?.text || replyTo?.content?.body || replyTo?.content || "[Mensagem]"
+              )}
             </div>
           </div>
           <button
@@ -202,61 +245,27 @@ export default function SendMessageForm({
         </div>
 
         <div className="send-button-group">
-          <button
-            type="button"
-            className="btn-attachment"
-            onClick={() => setShowEmoji((v) => !v)}
-          >
+          <button type="button" className="btn-attachment" onClick={() => setShowEmoji((v) => !v)}>
             <Smile size={24} color="#555" />
           </button>
 
-          {/* Mostra botões de arquivo apenas se suportado pelo canal */}
           {(currentChannel === 'whatsapp' || currentChannel === 'telegram') && (
             <>
-              <button
-                type="button"
-                className="btn-attachment"
-                onClick={() => fileInputRef.current.click()}
-              >
+              <button type="button" className="btn-attachment" onClick={() => fileInputRef.current.click()}>
                 <Paperclip size={24} color="#555" />
               </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                onChange={(e) => setFileToConfirm(e.target.files[0])}
-              />
+              <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={(e) => setFileToConfirm(e.target.files[0])} />
 
-              <button
-                type="button"
-                className="btn-attachment"
-                onClick={() => imageInputRef.current.click()}
-              >
+              <button type="button" className="btn-attachment" onClick={() => imageInputRef.current.click()}>
                 <Image size={24} color="#555" />
               </button>
-              <input
-                type="file"
-                ref={imageInputRef}
-                style={{ display: "none" }}
-                accept="image/*"
-                onChange={(e) => setFileToConfirm(e.target.files[0])}
-              />
+              <input type="file" ref={imageInputRef} style={{ display: "none" }} accept="image/*" onChange={(e) => setFileToConfirm(e.target.files[0])} />
             </>
           )}
 
-          <FilePreview
-            file={file}
-            onRemove={handleRemoveFile}
-            isSending={isSending}
-            isRecording={isRecording}
-          />
+          <FilePreview file={file} onRemove={handleRemoveFile} isSending={isSending} isRecording={isRecording} />
 
-          <button
-            type="submit"
-            className="btn-send"
-            onClick={handleSend}
-            disabled={isSending}
-          >
+          <button type="submit" className="btn-send" onClick={handleSend} disabled={isSending}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff">
               <path
                 d={
@@ -280,10 +289,7 @@ export default function SendMessageForm({
 
       {showQuickReplies && (
         <div ref={quickReplyRef} className="quick-replies-container">
-          <QuickReplies
-            onSelect={handleQuickReplySelect}
-            onClose={() => setShowQuickReplies(false)}
-          />
+          <QuickReplies onSelect={handleQuickReplySelect} onClose={() => setShowQuickReplies(false)} />
         </div>
       )}
 
@@ -308,4 +314,3 @@ export default function SendMessageForm({
     </>
   );
 }
-
