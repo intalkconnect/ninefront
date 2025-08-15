@@ -13,122 +13,26 @@ import ChannelIcon from './ChannelIcon';
 
 import "./Sidebar.css";
 
-/** ---------------- helpers de preview ---------------- */
-function lastNonSystem(messages = []) {
-  if (!Array.isArray(messages)) return null;
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const m = messages[i];
-    if (!m) continue;
-    const isSystem = m.type === "system" || m.direction === "system";
-    if (!isSystem) return m;
-  }
-  return null;
-}
-
-function extractPreviewContent(msgOrRaw) {
-  // entrada pode ser uma mensagem (objeto) ou o conv.content (string/obj)
-  if (!msgOrRaw) return "";
-
-  // Se veio uma "mensagem" do array
-  if (msgOrRaw && typeof msgOrRaw === "object" && ("type" in msgOrRaw || "direction" in msgOrRaw)) {
-    const m = msgOrRaw;
-    // preferir campos usuais de texto
-    return m.content ?? m.text ?? m.caption ?? m.body ?? "";
-  }
-
-  // Se já é o conv.content (string/obj)
-  if (typeof msgOrRaw === "object") {
-    return msgOrRaw;
-  }
-  if (typeof msgOrRaw === "string") {
-    // pode ser JSON serializado
-    const s = msgOrRaw.trim();
-    if (s.startsWith("{") || s.startsWith("[")) {
-      try { return JSON.parse(s); } catch {}
-    }
-    return s;
-  }
-  if (typeof msgOrRaw === "number" || typeof msgOrRaw === "boolean") {
-    return String(msgOrRaw);
-  }
-  return "";
-}
-
-/** converte qualquer conteúdo em string simples para busca */
-function contentToSearchString(c) {
-  const raw = extractPreviewContent(c);
-  if (typeof raw === "string") return raw;
-  if (raw && typeof raw === "object") {
-    return raw.body || raw.text || raw.caption || raw.filename || raw.url || "";
-  }
-  return String(raw ?? "");
-}
-
-/** Renderiza snippet bonitinho (ícone para mídia) */
-function Snippet({ value }) {
-  const c = extractPreviewContent(value);
-
-  // string simples
-  if (typeof c === "string") {
-    const s = c.trim();
-    // se for URL de mídia, ícone
-    const sl = s.toLowerCase();
-    if (/\.(ogg|oga|mp3|wav|m4a)(\?|#|$)/i.test(sl)) {
-      return <span className="chat-icon-snippet"><Mic size={18}/> Áudio</span>;
-    }
-    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i.test(sl)) {
-      return <span className="chat-icon-snippet"><File size={18}/> Imagem</span>;
-    }
-    if (/\.pdf(\?|#|$)/i.test(sl)) {
-      return <span className="chat-icon-snippet"><File size={18}/> Arquivo</span>;
-    }
-    return <>{s.length > 40 ? s.slice(0, 37) + "..." : s}</>;
-  }
-
-  // objeto (mídia estruturada)
-  if (c && typeof c === "object") {
-    const url = String(c.url || "").toLowerCase();
-    const filename = String(c.filename || "").toLowerCase();
-    const text = c.body || c.text || c.caption;
-
-    if (text) return <>{text.length > 40 ? text.slice(0, 37) + "..." : text}</>;
-
-    const isAudio = c.voice === true || c.type === "audio" ||
-      /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) || /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename);
-    if (isAudio) return <span className="chat-icon-snippet"><Mic size={18}/> Áudio</span>;
-
-    const isImg = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
-                  /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename);
-    if (isImg) return <span className="chat-icon-snippet"><File size={18}/> Imagem</span>;
-
-    if (filename.endsWith(".pdf") || c.url || c.filename) {
-      return <span className="chat-icon-snippet"><File size={18}/> Arquivo</span>;
-    }
-    return <></>;
-  }
-
-  return <>{String(c ?? "")}</>;
-}
-
 export default function Sidebar() {
-  const conversations   = useConversationsStore((state) => state.conversations);
-  const unreadCounts    = useConversationsStore((state) => state.unreadCounts);
-  const userEmail       = useConversationsStore((state) => state.userEmail);
-  const userFilas       = useConversationsStore((state) => state.userFilas);
-  const selectedUserId  = useConversationsStore((state) => state.selectedUserId);
+  const conversations     = useConversationsStore((state) => state.conversations);
+  const unreadCounts      = useConversationsStore((state) => state.unreadCounts);
+  const userEmail         = useConversationsStore((state) => state.userEmail);
+  const userFilas         = useConversationsStore((state) => state.userFilas);
+  const selectedUserId    = useConversationsStore((state) => state.selectedUserId);
   const setSelectedUserId = useConversationsStore((state) => state.setSelectedUserId);
   const mergeConversation = useConversationsStore((state) => state.mergeConversation);
-  const setSettings     = useConversationsStore((state) => state.setSettings);
+  const setSettings       = useConversationsStore((state) => state.setSettings);
 
-  const [ordemAscendente, setOrdemAscendente] = useState(false);
+  const [ordemAscendente, setOrdemAscendente] = useState(false); // false = mais novo primeiro
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("online");
+  const [status, setStatus] = useState("online"); // 'online' | 'offline' | 'pausado'
 
+  // rooms de fila já ingressados para evitar duplicar join/leave
   const queueRoomsRef = useRef(new Set());
 
-  /** --------- carregar settings + fila --------- */
+  // ------- fetch baseline (settings + fila) -------
   const fetchSettingsAndFila = async () => {
     try {
       const settings = await apiGet("/settings");
@@ -155,12 +59,13 @@ export default function Sidebar() {
     }
   }, [userEmail, userFilas]);
 
-  /** --------- socket de fila --------- */
+  // ------- realtime: join rooms de fila + listeners de eventos -------
   useEffect(() => {
     if (!userFilas || userFilas.length === 0) return;
     const socket = getSocket();
     if (!socket) return;
 
+    // entra nos rooms `queue:<fila>` que ainda não entrou
     userFilas.forEach((fila) => {
       const room = `queue:${fila}`;
       if (!queueRoomsRef.current.has(room)) {
@@ -169,6 +74,7 @@ export default function Sidebar() {
       }
     });
 
+    // sai de rooms que não pertencem mais às filas do usuário
     [...queueRoomsRef.current].forEach((room) => {
       const fila = room.replace(/^queue:/, "");
       if (!userFilas.includes(fila)) {
@@ -177,21 +83,28 @@ export default function Sidebar() {
       }
     });
 
-    const onPush = ({ fila } = {}) => {
+    // Handlers de fila
+    const onPush = (payload = {}) => {
       if (distribuicaoTickets !== "manual") return;
+      const { fila } = payload;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => prev + 1);
     };
-    const onPop = ({ fila } = {}) => {
+
+    const onPop = (payload = {}) => {
       if (distribuicaoTickets !== "manual") return;
+      const { fila } = payload;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => Math.max(0, prev - 1));
     };
-    const onCount = ({ fila, count } = {}) => {
+
+    const onCount = (payload = {}) => {
+      const { fila, count } = payload;
       if (fila && !userFilas.includes(fila)) return;
       if (typeof count === "number") setFilaCount(count);
     };
 
+    // Fallbacks
     const onTicketCreated = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
@@ -199,6 +112,7 @@ export default function Sidebar() {
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => prev + 1);
     };
+
     const onTicketClosed = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
@@ -213,9 +127,11 @@ export default function Sidebar() {
     socket.on("ticket_created", onTicketCreated);
     socket.on("ticket_closed", onTicketClosed);
 
+    // sincroniza ao reconectar
     const onConnect = () => fetchSettingsAndFila();
     socket.on("connect", onConnect);
 
+    // sincroniza ao voltar o foco
     const onVis = () => {
       if (document.visibilityState === "visible") fetchSettingsAndFila();
     };
@@ -232,50 +148,7 @@ export default function Sidebar() {
     };
   }, [userFilas, distribuicaoTickets]);
 
-  /** --------- linhas derivadas: preview SEMPRE por mensagens --------- */
-  const rows = React.useMemo(() => {
-    const term = (searchTerm || "").trim().toLowerCase();
-
-    const list = Object.values(conversations).map((conv) => {
-      const last = lastNonSystem(conv.messages);
-      const previewContent = extractPreviewContent(
-        last ? last : conv.content // usa última msg se existir
-      );
-      const previewTs = last?.timestamp || conv.timestamp || 0;
-
-      return {
-        ...conv,
-        __previewContent: previewContent,
-        __previewTs: previewTs,
-      };
-    });
-
-    // filtra conversas do agente + busca
-    const filtered = list.filter((conv) => {
-      const autorizado =
-        conv.status === "open" &&
-        conv.assigned_to === userEmail &&
-        (!conv.fila || userFilas.includes(conv.fila));
-      if (!autorizado) return false;
-      if (!term) return true;
-
-      const searchIn = contentToSearchString(conv.__previewContent).toLowerCase();
-      return (
-        (conv.name || "").toLowerCase().includes(term) ||
-        (conv.user_id || "").toLowerCase().includes(term) ||
-        searchIn.includes(term)
-      );
-    });
-
-    // ordena por timestamp efetivo do preview
-    filtered.sort((a, b) =>
-      (ordemAscendente ? a.__previewTs - b.__previewTs : b.__previewTs - a.__previewTs)
-    );
-
-    return filtered;
-  }, [conversations, userEmail, userFilas, searchTerm, ordemAscendente]);
-
-  /** --------- ações --------- */
+  // ------- ações -------
   const puxarProximoTicket = async () => {
     try {
       const res = await apiPut("/chats/fila/proximo", {
@@ -283,7 +156,7 @@ export default function Sidebar() {
         filas: userFilas,
       });
 
-      await fetchSettingsAndFila();
+      await fetchSettingsAndFila(); // Atualiza contagem da fila
 
       if (res && res.user_id) {
         mergeConversation(res.user_id, res);
@@ -297,7 +170,159 @@ export default function Sidebar() {
     }
   };
 
-  /** --------- render --------- */
+  // ------- helpers: snippet --------
+  const TypeChip = ({ icon, label }) => (
+    <span className="chat-icon-snippet">
+      {icon} {label}
+    </span>
+  );
+
+  const snippetFromType = (type) => {
+    const t = String(type || "").toLowerCase();
+    if (!t) return "";
+    if (t === "audio" || t === "voice")
+      return <TypeChip icon={<Mic size={18} />} label="Áudio" />;
+    if (t === "image" || t === "photo")
+      return <TypeChip icon={<File size={18} />} label="Imagem" />;
+    if (t === "video")
+      return <TypeChip icon={<File size={18} />} label="Vídeo" />;
+    if (t === "document" || t === "file" || t === "pdf")
+      return <TypeChip icon={<File size={18} />} label="Arquivo" />;
+    if (t === "location")
+      return <TypeChip icon={<File size={18} />} label="Localização" />;
+    return ""; // deixa cair para outras heurísticas
+  };
+
+  const tryParseJson = (v) => {
+    if (typeof v !== "string") return v;
+    const s = v.trim();
+    if (!s || (s[0] !== "{" && s[0] !== "[")) return v;
+    try { return JSON.parse(s); } catch { return v; }
+  };
+
+  // Agora recebe a conversa inteira (não só o content)
+  const getSnippet = (conv) => {
+    const rawContent = conv?.content;
+    const typeHint   = conv?.type;
+
+    // 1) se vier um objeto já normalizado
+    const parsed = tryParseJson(rawContent);
+
+    // números puros
+    if (typeof parsed === "string" && /^\d+$/.test(parsed)) {
+      return parsed;
+    }
+
+    // objeto rico (com campos)
+    if (parsed && typeof parsed === "object") {
+      const c   = parsed;
+      const url = String(c.url || "").toLowerCase();
+      const fn  = String(c.filename || "").toLowerCase();
+
+      // texto direto
+      if (c.body || c.text || c.caption) {
+        const txt = c.body || c.text || c.caption || "";
+        return txt.length > 40 ? txt.slice(0, 37) + "..." : txt;
+      }
+
+      // Áudio
+      if (c.voice === true ||
+          c.type === "audio" ||
+          /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) ||
+          /\.(ogg|oga|mp3|wav|m4a)$/i.test(fn)) {
+        return <TypeChip icon={<Mic size={18} />} label="Áudio" />;
+      }
+
+      // Imagem
+      if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
+          /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(fn)) {
+        return <TypeChip icon={<File size={18} />} label="Imagem" />;
+      }
+
+      // Documento
+      if (fn.endsWith(".pdf") || c.url || c.filename) {
+        return <TypeChip icon={<File size={18} />} label="Arquivo" />;
+      }
+    }
+
+    // 2) se for string simples
+    if (typeof parsed === "string") {
+      const s = parsed.trim();
+
+      // o backend às vezes manda "[mensagem]" p/ não-texto → usa hint de type
+      if (s === "[mensagem]" || s === "" || s === "[arquivo]" || s === "[áudio]") {
+        const byType = snippetFromType(typeHint);
+        if (byType) return byType;
+        // última tentativa: manter um rótulo neutro
+        return <TypeChip icon={<File size={18} />} label="Mensagem" />;
+      }
+
+      // string textual comum
+      return s.length > 40 ? s.slice(0, 37) + "..." : s;
+    }
+
+    // 3) se ainda não conseguimos decidir, usa hint de type
+    const byType = snippetFromType(typeHint);
+    if (byType) return byType;
+
+    return ""; // vazio mesmo
+  };
+
+  // ------- busca --------
+  const contentToString = (c) => {
+    if (c == null) return "";
+    if (typeof c === "string") {
+      const s = c.trim();
+      if (s.startsWith("{") || s.startsWith("[")) {
+        try {
+          const j = JSON.parse(s);
+          if (j && typeof j === "object") {
+            return j.body || j.text || j.caption || j.filename || j.url || "";
+          }
+        } catch {}
+      }
+      return c; // string simples
+    }
+    if (typeof c === "number" || typeof c === "boolean") return String(c);
+    if (typeof c === "object") {
+      return c.body || c.text || c.caption || c.filename || c.url || "";
+    }
+    return String(c);
+  };
+
+  const filteredConversations = React.useMemo(() => {
+    const term = (searchTerm || "").trim().toLowerCase();
+
+    return Object.values(conversations).filter((conv) => {
+      const autorizado =
+        conv.status === "open" &&
+        conv.assigned_to === userEmail &&
+        (!conv.fila || (userFilas || []).includes(conv.fila));
+
+      if (!autorizado) return false;
+      if (!term) return true;
+
+      const contentStr = contentToString(conv.content).toLowerCase();
+
+      return (
+        (conv.name || "").toLowerCase().includes(term) ||
+        (conv.user_id || "").toLowerCase().includes(term) ||
+        contentStr.includes(term)
+      );
+    });
+  }, [conversations, userEmail, userFilas, searchTerm]);
+
+  const sortedConversations = React.useMemo(() => {
+    const arr = [...filteredConversations];
+    arr.sort((a, b) => {
+      const dateA = new Date(a.timestamp || 0);
+      const dateB = new Date(b.timestamp || 0);
+      return ordemAscendente ? dateA - dateB : dateB - dateA;
+    });
+    return arr;
+  }, [filteredConversations, ordemAscendente]);
+
+  // ------- render -------
   return (
     <div className="sidebar-container">
       <div className="sidebar-header">
@@ -361,7 +386,7 @@ export default function Sidebar() {
       </div>
 
       <ul className="chat-list">
-        {rows.map((conv) => {
+        {sortedConversations.map((conv) => {
           const fullId = conv.user_id;
           const isSelected = fullId === selectedUserId;
           const unreadCount = unreadCounts[fullId] || 0;
@@ -390,23 +415,26 @@ export default function Sidebar() {
 
                 <div className="chat-details">
                   <div className="chat-title-row">
-                    <div className="chat-title">{conv.name || fullId}</div>
+                    <div className="chat-title">
+                      {conv.name || fullId}
+                    </div>
                     <div className="chat-time">
-                      {conv.__previewTs ? getRelativeTime(conv.__previewTs) : "--:--"}
+                      {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
                     </div>
                   </div>
 
-                  {/* <<< snippet sempre baseado na última mensagem se houver >>> */}
-                  <div className="chat-snippet">
-                    <Snippet value={conv.__previewContent} />
-                  </div>
+                  {/* ⬇️ Snippet agora usa a conversa inteira para decidir */}
+                  <div className="chat-snippet">{getSnippet(conv)}</div>
                 </div>
               </div>
 
               <div className="chat-bottom-section">
                 <div className="chat-divider"></div>
                 <div className="chat-meta">
-                  <span className="chat-queue-badge" style={{ backgroundColor: conv.fila_color }}>
+                  <span
+                    className="chat-queue-badge"
+                    style={{ backgroundColor: conv.fila_color }}
+                  >
                     {conv.fila}
                   </span>
                   {showUnread && <span className="unread-dot"></span>}
@@ -425,8 +453,14 @@ export default function Sidebar() {
             <span className="status-label">Status:</span>
             <Circle
               size={10}
-              color={status === "online" ? "#25D366" : status === "pausa" ? "#f0ad4e" : "#d9534f"}
-              fill={status === "online" ? "#25D366" : status === "pausa" ? "#f0ad4e" : "#d9534f"}
+              color={
+                status === "online" ? "#25D366" :
+                status === "pausa"  ? "#f0ad4e"  : "#d9534f"
+              }
+              fill={
+                status === "online" ? "#25D366" :
+                status === "pausa"  ? "#f0ad4e"  : "#d9534f"
+              }
             />
             <select
               value={status}
