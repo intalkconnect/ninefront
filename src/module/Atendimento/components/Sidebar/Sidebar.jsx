@@ -13,6 +13,103 @@ import ChannelIcon from './ChannelIcon';
 
 import "./Sidebar.css";
 
+/** ---------------- helpers de preview ---------------- */
+function lastNonSystem(messages = []) {
+  if (!Array.isArray(messages)) return null;
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    if (!m) continue;
+    const isSystem = m.type === "system" || m.direction === "system";
+    if (!isSystem) return m;
+  }
+  return null;
+}
+
+function extractPreviewContent(msgOrRaw) {
+  // entrada pode ser uma mensagem (objeto) ou o conv.content (string/obj)
+  if (!msgOrRaw) return "";
+
+  // Se veio uma "mensagem" do array
+  if (msgOrRaw && typeof msgOrRaw === "object" && ("type" in msgOrRaw || "direction" in msgOrRaw)) {
+    const m = msgOrRaw;
+    // preferir campos usuais de texto
+    return m.content ?? m.text ?? m.caption ?? m.body ?? "";
+  }
+
+  // Se já é o conv.content (string/obj)
+  if (typeof msgOrRaw === "object") {
+    return msgOrRaw;
+  }
+  if (typeof msgOrRaw === "string") {
+    // pode ser JSON serializado
+    const s = msgOrRaw.trim();
+    if (s.startsWith("{") || s.startsWith("[")) {
+      try { return JSON.parse(s); } catch {}
+    }
+    return s;
+  }
+  if (typeof msgOrRaw === "number" || typeof msgOrRaw === "boolean") {
+    return String(msgOrRaw);
+  }
+  return "";
+}
+
+/** converte qualquer conteúdo em string simples para busca */
+function contentToSearchString(c) {
+  const raw = extractPreviewContent(c);
+  if (typeof raw === "string") return raw;
+  if (raw && typeof raw === "object") {
+    return raw.body || raw.text || raw.caption || raw.filename || raw.url || "";
+  }
+  return String(raw ?? "");
+}
+
+/** Renderiza snippet bonitinho (ícone para mídia) */
+function Snippet({ value }) {
+  const c = extractPreviewContent(value);
+
+  // string simples
+  if (typeof c === "string") {
+    const s = c.trim();
+    // se for URL de mídia, ícone
+    const sl = s.toLowerCase();
+    if (/\.(ogg|oga|mp3|wav|m4a)(\?|#|$)/i.test(sl)) {
+      return <span className="chat-icon-snippet"><Mic size={18}/> Áudio</span>;
+    }
+    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i.test(sl)) {
+      return <span className="chat-icon-snippet"><File size={18}/> Imagem</span>;
+    }
+    if (/\.pdf(\?|#|$)/i.test(sl)) {
+      return <span className="chat-icon-snippet"><File size={18}/> Arquivo</span>;
+    }
+    return <>{s.length > 40 ? s.slice(0, 37) + "..." : s}</>;
+  }
+
+  // objeto (mídia estruturada)
+  if (c && typeof c === "object") {
+    const url = String(c.url || "").toLowerCase();
+    const filename = String(c.filename || "").toLowerCase();
+    const text = c.body || c.text || c.caption;
+
+    if (text) return <>{text.length > 40 ? text.slice(0, 37) + "..." : text}</>;
+
+    const isAudio = c.voice === true || c.type === "audio" ||
+      /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) || /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename);
+    if (isAudio) return <span className="chat-icon-snippet"><Mic size={18}/> Áudio</span>;
+
+    const isImg = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
+                  /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename);
+    if (isImg) return <span className="chat-icon-snippet"><File size={18}/> Imagem</span>;
+
+    if (filename.endsWith(".pdf") || c.url || c.filename) {
+      return <span className="chat-icon-snippet"><File size={18}/> Arquivo</span>;
+    }
+    return <></>;
+  }
+
+  return <>{String(c ?? "")}</>;
+}
+
 export default function Sidebar() {
   const conversations   = useConversationsStore((state) => state.conversations);
   const unreadCounts    = useConversationsStore((state) => state.unreadCounts);
@@ -23,16 +120,15 @@ export default function Sidebar() {
   const mergeConversation = useConversationsStore((state) => state.mergeConversation);
   const setSettings     = useConversationsStore((state) => state.setSettings);
 
-  const [ordemAscendente, setOrdemAscendente] = useState(false); // false = mais novo primeiro
+  const [ordemAscendente, setOrdemAscendente] = useState(false);
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("online"); // 'online' | 'offline' | 'pausado'
+  const [status, setStatus] = useState("online");
 
-  // rooms de fila já ingressados para evitar duplicar join/leave
   const queueRoomsRef = useRef(new Set());
 
-  // ------- fetch baseline (settings + fila) -------
+  /** --------- carregar settings + fila --------- */
   const fetchSettingsAndFila = async () => {
     try {
       const settings = await apiGet("/settings");
@@ -59,13 +155,12 @@ export default function Sidebar() {
     }
   }, [userEmail, userFilas]);
 
-  // ------- realtime: join rooms de fila + listeners de eventos -------
+  /** --------- socket de fila --------- */
   useEffect(() => {
     if (!userFilas || userFilas.length === 0) return;
     const socket = getSocket();
     if (!socket) return;
 
-    // entra nos rooms `queue:<fila>` que ainda não entrou
     userFilas.forEach((fila) => {
       const room = `queue:${fila}`;
       if (!queueRoomsRef.current.has(room)) {
@@ -74,7 +169,6 @@ export default function Sidebar() {
       }
     });
 
-    // sai de rooms que não pertencem mais às filas do usuário
     [...queueRoomsRef.current].forEach((room) => {
       const fila = room.replace(/^queue:/, "");
       if (!userFilas.includes(fila)) {
@@ -83,40 +177,32 @@ export default function Sidebar() {
       }
     });
 
-    // Handlers
-    const onPush = (payload = {}) => {
+    const onPush = ({ fila } = {}) => {
       if (distribuicaoTickets !== "manual") return;
-      const { fila } = payload;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => prev + 1);
     };
-
-    const onPop = (payload = {}) => {
+    const onPop = ({ fila } = {}) => {
       if (distribuicaoTickets !== "manual") return;
-      const { fila } = payload;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => Math.max(0, prev - 1));
     };
-
-    const onCount = (payload = {}) => {
-      const { fila, count } = payload;
+    const onCount = ({ fila, count } = {}) => {
       if (fila && !userFilas.includes(fila)) return;
       if (typeof count === "number") setFilaCount(count);
     };
 
-    // Fallbacks se o backend emitir eventos mais genéricos
     const onTicketCreated = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
-      if (assigned_to) return;                 // só interessa sem proprietário
+      if (assigned_to) return;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => prev + 1);
     };
-
     const onTicketClosed = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
-      if (assigned_to) return;                 // se estava sem dono e foi fechado, decrementa
+      if (assigned_to) return;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => Math.max(0, prev - 1));
     };
@@ -124,15 +210,12 @@ export default function Sidebar() {
     socket.on("queue_push", onPush);
     socket.on("queue_pop", onPop);
     socket.on("queue_count", onCount);
-
     socket.on("ticket_created", onTicketCreated);
     socket.on("ticket_closed", onTicketClosed);
 
-    // sincroniza ao reconectar
     const onConnect = () => fetchSettingsAndFila();
     socket.on("connect", onConnect);
 
-    // sincroniza ao voltar o foco
     const onVis = () => {
       if (document.visibilityState === "visible") fetchSettingsAndFila();
     };
@@ -149,7 +232,50 @@ export default function Sidebar() {
     };
   }, [userFilas, distribuicaoTickets]);
 
-  // ------- ações -------
+  /** --------- linhas derivadas: preview SEMPRE por mensagens --------- */
+  const rows = React.useMemo(() => {
+    const term = (searchTerm || "").trim().toLowerCase();
+
+    const list = Object.values(conversations).map((conv) => {
+      const last = lastNonSystem(conv.messages);
+      const previewContent = extractPreviewContent(
+        last ? last : conv.content // usa última msg se existir
+      );
+      const previewTs = last?.timestamp || conv.timestamp || 0;
+
+      return {
+        ...conv,
+        __previewContent: previewContent,
+        __previewTs: previewTs,
+      };
+    });
+
+    // filtra conversas do agente + busca
+    const filtered = list.filter((conv) => {
+      const autorizado =
+        conv.status === "open" &&
+        conv.assigned_to === userEmail &&
+        (!conv.fila || userFilas.includes(conv.fila));
+      if (!autorizado) return false;
+      if (!term) return true;
+
+      const searchIn = contentToSearchString(conv.__previewContent).toLowerCase();
+      return (
+        (conv.name || "").toLowerCase().includes(term) ||
+        (conv.user_id || "").toLowerCase().includes(term) ||
+        searchIn.includes(term)
+      );
+    });
+
+    // ordena por timestamp efetivo do preview
+    filtered.sort((a, b) =>
+      (ordemAscendente ? a.__previewTs - b.__previewTs : b.__previewTs - a.__previewTs)
+    );
+
+    return filtered;
+  }, [conversations, userEmail, userFilas, searchTerm, ordemAscendente]);
+
+  /** --------- ações --------- */
   const puxarProximoTicket = async () => {
     try {
       const res = await apiPut("/chats/fila/proximo", {
@@ -157,7 +283,7 @@ export default function Sidebar() {
         filas: userFilas,
       });
 
-      await fetchSettingsAndFila(); // Atualiza contagem da fila
+      await fetchSettingsAndFila();
 
       if (res && res.user_id) {
         mergeConversation(res.user_id, res);
@@ -171,124 +297,7 @@ export default function Sidebar() {
     }
   };
 
-  // ------- helpers UI -------
-const getSnippet = (conv) => {
-  // 1) pega o "content" que veio no card
-  let raw = conv?.content;
-
-  // 2) se for placeholder ou vazio, tenta a última mensagem do store
-  const convFromStore = conversations?.[conv.user_id];
-  const lastMsg = Array.isArray(convFromStore?.messages)
-    ? convFromStore.messages[convFromStore.messages.length - 1]
-    : null;
-
-  const looksLikePlaceholder = (v) => {
-    const s = String(v || '').trim().toLowerCase();
-    return s === '[mensagem]' || s === '[message]' || s === '[msg]';
-  };
-
-  if (!raw || looksLikePlaceholder(raw)) {
-    raw = lastMsg?.content ?? raw;
-  }
-
-  // 3) se vier string numérica, devolve direto
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return raw;
-
-  // 4) se for string com cara de JSON, tenta parsear
-  if (typeof raw === 'string') {
-    const s = raw.trim();
-    if (s.startsWith('{') || s.startsWith('[')) {
-      try { raw = JSON.parse(s); } catch {/* mantém string */}
-    }
-  }
-
-  // 5) inferências para OBJETO (mídia)
-  if (raw && typeof raw === 'object') {
-    const url = String(raw.url || '').toLowerCase();
-    const filename = String(raw.filename || '').toLowerCase();
-    const txt = raw.body || raw.text || raw.caption || '';
-
-    if (txt) return txt.length > 40 ? txt.slice(0, 37) + '…' : txt;
-
-    // áudio (inclui "voice" do WA/TG)
-    if (
-      raw.voice === true ||
-      (lastMsg?.type === 'audio') ||
-      /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) ||
-      /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename)
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <Mic size={18} /> Áudio
-        </span>
-      );
-    }
-
-    // imagem
-    if (
-      lastMsg?.type === 'image' ||
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename)
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <File size={18} /> Imagem
-        </span>
-      );
-    }
-
-    // documento (inclui pdf)
-    if (
-      lastMsg?.type === 'document' ||
-      filename.endsWith('.pdf') ||
-      (url && !/\.(jpg|jpeg|png|gif|webp|svg|bmp|ogg|oga|mp3|wav|m4a)$/i.test(url))
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <File size={18} /> Arquivo
-        </span>
-      );
-    }
-
-    return ''; // sem nada útil
-  }
-
-  // 6) string comum
-  if (typeof raw === 'string') {
-    const s = raw;
-    return s.length > 40 ? s.slice(0, 37) + '…' : s;
-  }
-
-  return '';
-};
- 
-
-
-  const filteredConversations = Object.values(conversations).filter((conv) => {
-    const autorizado =
-      conv.status === "open" &&
-      conv.assigned_to === userEmail &&
-      (!conv.fila || userFilas.includes(conv.fila));
-
-    if (!autorizado) return false;
-
-    if (!searchTerm) return true;
-
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      conv.name?.toLowerCase().includes(searchLower) ||
-      conv.user_id?.toLowerCase().includes(searchLower) ||
-      conv.content?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const sortedConversations = [...filteredConversations].sort((a, b) => {
-    const dateA = new Date(a.timestamp || 0);
-    const dateB = new Date(b.timestamp || 0);
-    return ordemAscendente ? dateA - dateB : dateB - dateA;
-  });
-
-  // ------- render -------
+  /** --------- render --------- */
   return (
     <div className="sidebar-container">
       <div className="sidebar-header">
@@ -352,7 +361,7 @@ const getSnippet = (conv) => {
       </div>
 
       <ul className="chat-list">
-        {sortedConversations.map((conv) => {
+        {rows.map((conv) => {
           const fullId = conv.user_id;
           const isSelected = fullId === selectedUserId;
           const unreadCount = unreadCounts[fullId] || 0;
@@ -370,9 +379,7 @@ const getSnippet = (conv) => {
                 <div className="chat-avatar-initial">
                   <div
                     className="avatar-circle"
-                    style={{
-                      backgroundColor: stringToColor(conv.name || conv.user_id),
-                    }}
+                    style={{ backgroundColor: stringToColor(conv.name || conv.user_id) }}
                   >
                     {conv.name?.charAt(0).toUpperCase() || "U"}
                   </div>
@@ -383,23 +390,23 @@ const getSnippet = (conv) => {
 
                 <div className="chat-details">
                   <div className="chat-title-row">
-                    <div className="chat-title">
-                      {conv.name || fullId}
-                    </div>
+                    <div className="chat-title">{conv.name || fullId}</div>
                     <div className="chat-time">
-                      {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
+                      {conv.__previewTs ? getRelativeTime(conv.__previewTs) : "--:--"}
                     </div>
                   </div>
-                  <div className="chat-snippet">{getSnippet(conv)}</div>
+
+                  {/* <<< snippet sempre baseado na última mensagem se houver >>> */}
+                  <div className="chat-snippet">
+                    <Snippet value={conv.__previewContent} />
+                  </div>
                 </div>
               </div>
+
               <div className="chat-bottom-section">
                 <div className="chat-divider"></div>
                 <div className="chat-meta">
-                  <span
-                    className="chat-queue-badge"
-                    style={{ backgroundColor: conv.fila_color }}
-                  >
+                  <span className="chat-queue-badge" style={{ backgroundColor: conv.fila_color }}>
                     {conv.fila}
                   </span>
                   {showUnread && <span className="unread-dot"></span>}
@@ -418,20 +425,8 @@ const getSnippet = (conv) => {
             <span className="status-label">Status:</span>
             <Circle
               size={10}
-              color={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausa"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
-              fill={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausa"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
+              color={status === "online" ? "#25D366" : status === "pausa" ? "#f0ad4e" : "#d9534f"}
+              fill={status === "online" ? "#25D366" : status === "pausa" ? "#f0ad4e" : "#d9534f"}
             />
             <select
               value={status}
