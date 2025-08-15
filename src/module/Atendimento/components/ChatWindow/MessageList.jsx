@@ -8,15 +8,23 @@ import React, {
 
 import MessageRow from './MessageRow';
 
+function findReplyTarget(messages, refId) {
+  if (!refId) return null;
+  return messages.find(m => {
+    const ids = [
+      m.message_id,
+      m.whatsapp_message_id,
+      m.telegram_message_id,
+      m.provider_id,
+      m.id
+    ].filter(Boolean);
+    return ids.some((x) => String(x) === String(refId));
+  }) || null;
+}
+
 /**
  * MessageList (versão com "Ver mais" e scroll no final)
- *
- * Props:
- *  - messages: array de mensagens ({ id, direction, content, timestamp, status, ... })
- *  - onImageClick, onPdfClick, onReply: callbacks
- *  - loaderRef: ref para scroll infinito (opcional)
  */
-
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
@@ -36,14 +44,12 @@ const MessageList = forwardRef(
       },
     }));
 
-    // Scroll automático ao mudar mensagens visíveis
     useEffect(() => {
       if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
       }
     }, [visibleMessages]);
 
-    // Scroll automático ao voltar aba
     useEffect(() => {
       const handleVisibility = () => {
         if (document.visibilityState === 'visible') {
@@ -65,7 +71,6 @@ const MessageList = forwardRef(
       }
     };
 
-    // Após carregar mais mensagens, corrige o scroll para não pular
     useEffect(() => {
       if (visibleCount > 30 && containerRef.current) {
         const newHeight = containerRef.current.scrollHeight;
@@ -94,7 +99,6 @@ const MessageList = forwardRef(
             } else if (typeof msg.content === 'object' && msg.content?.text) {
               systemText = msg.content.text;
             }
-
             return (
               <div key={msg.id || index} className="ticket-divider">
                 {systemText}
@@ -109,13 +113,14 @@ const MessageList = forwardRef(
             msg.ticket_number &&
             (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
-          // ✅ Só tenta achar reply se reply_to é string NÃO vazia
-          const hasReplyRef =
-            typeof msg.reply_to === 'string' && msg.reply_to.trim() !== '';
-
-          const replyToMessage = hasReplyRef
-            ? messages.find(m => m.whatsapp_message_id === msg.reply_to) || null
-            : null;
+          // 🧩 Resolução do alvo de resposta:
+          // - aceita msg.replyTo (objeto)
+          // - tenta achar pelo reply_to/context.message_id quando forem ids
+          let replyToMessage = msg.replyTo || null;
+          const replyId = msg.reply_to || msg.context?.message_id || null;
+          if (!replyToMessage && typeof replyId === 'string' && replyId.trim() !== '') {
+            replyToMessage = findReplyTarget(messages, replyId);
+          }
 
           return (
             <React.Fragment key={msg.id || index}>
