@@ -14,25 +14,113 @@ import ChannelIcon from './ChannelIcon';
 import "./Sidebar.css";
 
 export default function Sidebar() {
-  const conversations   = useConversationsStore((state) => state.conversations);
-  const unreadCounts    = useConversationsStore((state) => state.unreadCounts);
-  const userEmail       = useConversationsStore((state) => state.userEmail);
-  const userFilas       = useConversationsStore((state) => state.userFilas);
-  const selectedUserId  = useConversationsStore((state) => state.selectedUserId);
+  const conversations     = useConversationsStore((state) => state.conversations);
+  const unreadCounts      = useConversationsStore((state) => state.unreadCounts);
+  const userEmail         = useConversationsStore((state) => state.userEmail);
+  const userFilas         = useConversationsStore((state) => state.userFilas);
+  const selectedUserId    = useConversationsStore((state) => state.selectedUserId);
   const setSelectedUserId = useConversationsStore((state) => state.setSelectedUserId);
   const mergeConversation = useConversationsStore((state) => state.mergeConversation);
-  const setSettings     = useConversationsStore((state) => state.setSettings);
+  const setSettings       = useConversationsStore((state) => state.setSettings);
 
-  const [ordemAscendente, setOrdemAscendente] = useState(false); // false = mais novo primeiro
+  const [ordemAscendente, setOrdemAscendente] = useState(false);
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
   const [filaCount, setFilaCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [status, setStatus] = useState("online"); // 'online' | 'offline' | 'pausado'
+  const [status, setStatus] = useState("online");
 
   // rooms de fila já ingressados para evitar duplicar join/leave
   const queueRoomsRef = useRef(new Set());
 
-  // ------- fetch baseline (settings + fila) -------
+  // ---------------- helpers UI (snippet) ----------------
+  const TypeChip = ({ icon, label }) => (
+    <span className="chat-icon-snippet">
+      {icon} {label}
+    </span>
+  );
+
+  const tryParseJson = (v) => {
+    if (typeof v !== "string") return v;
+    const s = v.trim();
+    if (!s || (s[0] !== "{" && s[0] !== "[")) return v;
+    try { return JSON.parse(s); } catch { return v; }
+  };
+
+  const snippetFromType = (type) => {
+    const t = String(type || "").toLowerCase();
+    if (!t) return "";
+    if (t === "audio" || t === "voice")  return <TypeChip icon={<Mic size={18} />} label="Áudio" />;
+    if (t === "image" || t === "photo")  return <TypeChip icon={<File size={18} />} label="Imagem" />;
+    if (t === "video")                   return <TypeChip icon={<File size={18} />} label="Vídeo" />;
+    if (t === "document" || t === "file" || t === "pdf")
+                                        return <TypeChip icon={<File size={18} />} label="Arquivo" />;
+    if (t === "location")               return <TypeChip icon={<File size={18} />} label="Localização" />;
+    return "";
+  };
+
+  // ❗ Usa a conversa inteira, pois agora o back manda `type`
+  const getSnippet = (conv) => {
+    if (!conv) return "";
+    const type = (conv.type || "").toLowerCase();
+    const parsed = tryParseJson(conv.content);
+
+    // Se não for texto, mostre chip imediatamente
+    if (type && type !== "text") {
+      return snippetFromType(type);
+    }
+
+    // Texto (ou sem type): tente extrair do content
+    if (parsed && typeof parsed === "object") {
+      const txt = parsed.body || parsed.text || parsed.caption || "";
+      if (txt) return txt.length > 40 ? txt.slice(0, 37) + "..." : txt;
+
+      // sem texto — tente deduzir por url/filename
+      const url = String(parsed.url || "").toLowerCase();
+      const fn  = String(parsed.filename || "").toLowerCase();
+
+      if (parsed.voice === true ||
+          /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) || /\.(ogg|oga|mp3|wav|m4a)$/i.test(fn)) {
+        return <TypeChip icon={<Mic size={18} />} label="Áudio" />;
+      }
+      if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
+          /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(fn)) {
+        return <TypeChip icon={<File size={18} />} label="Imagem" />;
+      }
+      if (fn.endsWith(".pdf") || parsed.url || parsed.filename) {
+        return <TypeChip icon={<File size={18} />} label="Arquivo" />;
+      }
+      return "";
+    }
+
+    if (typeof parsed === "string") {
+      const s = parsed.trim();
+      if (!s || s === "[mensagem]") {
+        // quando vier esse marcador, use hint do type (se algum)
+        return snippetFromType(type) || "";
+      }
+      return s.length > 40 ? s.slice(0, 37) + "..." : s;
+    }
+
+    return snippetFromType(type) || "";
+  };
+
+  // Para a busca: converte conteúdo da conversa em string
+  const contentToString = (conv) => {
+    if (!conv) return "";
+    const type = (conv.type || "").toLowerCase();
+    const parsed = tryParseJson(conv.content);
+
+    // Para mídias, retorna um rótulo curto — já ajuda a encontrar “audio”, “imagem”, etc.
+    if (type && type !== "text") return type;
+
+    if (typeof parsed === "string") return parsed;
+    if (parsed && typeof parsed === "object") {
+      return parsed.body || parsed.text || parsed.caption || parsed.filename || parsed.url || "";
+    }
+    return "";
+  };
+
+  // ---------------- fetch baseline (settings + fila) ----------------
   const fetchSettingsAndFila = async () => {
     try {
       const settings = await apiGet("/settings");
@@ -59,7 +147,7 @@ export default function Sidebar() {
     }
   }, [userEmail, userFilas]);
 
-  // ------- realtime: join rooms de fila + listeners de eventos -------
+  // ---------------- realtime: join rooms de fila + listeners ----------------
   useEffect(() => {
     if (!userFilas || userFilas.length === 0) return;
     const socket = getSocket();
@@ -83,7 +171,7 @@ export default function Sidebar() {
       }
     });
 
-    // Handlers
+    // contadores da fila (modo manual)
     const onPush = (payload = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { fila } = payload;
@@ -104,11 +192,11 @@ export default function Sidebar() {
       if (typeof count === "number") setFilaCount(count);
     };
 
-    // Fallbacks se o backend emitir eventos mais genéricos
+    // Fallbacks (se o backend emitir eventos mais genéricos)
     const onTicketCreated = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
-      if (assigned_to) return;                 // só interessa sem proprietário
+      if (assigned_to) return;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => prev + 1);
     };
@@ -116,7 +204,7 @@ export default function Sidebar() {
     const onTicketClosed = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
-      if (assigned_to) return;                 // se estava sem dono e foi fechado, decrementa
+      if (assigned_to) return;
       if (fila && !userFilas.includes(fila)) return;
       setFilaCount((prev) => Math.max(0, prev - 1));
     };
@@ -124,7 +212,6 @@ export default function Sidebar() {
     socket.on("queue_push", onPush);
     socket.on("queue_pop", onPop);
     socket.on("queue_count", onCount);
-
     socket.on("ticket_created", onTicketCreated);
     socket.on("ticket_closed", onTicketClosed);
 
@@ -149,7 +236,7 @@ export default function Sidebar() {
     };
   }, [userFilas, distribuicaoTickets]);
 
-  // ------- ações -------
+  // ---------------- ações ----------------
   const puxarProximoTicket = async () => {
     try {
       const res = await apiPut("/chats/fila/proximo", {
@@ -157,7 +244,7 @@ export default function Sidebar() {
         filas: userFilas,
       });
 
-      await fetchSettingsAndFila(); // Atualiza contagem da fila
+      await fetchSettingsAndFila();
 
       if (res && res.user_id) {
         mergeConversation(res.user_id, res);
@@ -171,124 +258,40 @@ export default function Sidebar() {
     }
   };
 
-  // ------- helpers UI -------
-const getSnippet = (conv) => {
-  // 1) pega o "content" que veio no card
-  let raw = conv?.content;
+  // ---------------- filtros/ordenação ----------------
+  const filteredConversations = React.useMemo(() => {
+    const term = (searchTerm || "").trim().toLowerCase();
+    return Object.values(conversations).filter((conv) => {
+      const autorizado =
+        conv.status === "open" &&
+        conv.assigned_to === userEmail &&
+        (!conv.fila || userFilas.includes(conv.fila));
 
-  // 2) se for placeholder ou vazio, tenta a última mensagem do store
-  const convFromStore = conversations?.[conv.user_id];
-  const lastMsg = Array.isArray(convFromStore?.messages)
-    ? convFromStore.messages[convFromStore.messages.length - 1]
-    : null;
+      if (!autorizado) return false;
+      if (!term) return true;
 
-  const looksLikePlaceholder = (v) => {
-    const s = String(v || '').trim().toLowerCase();
-    return s === '[mensagem]' || s === '[message]' || s === '[msg]';
-  };
+      const haystack =
+        (conv.name || "").toLowerCase() +
+        " " +
+        (conv.user_id || "").toLowerCase() +
+        " " +
+        contentToString(conv).toLowerCase();
 
-  if (!raw || looksLikePlaceholder(raw)) {
-    raw = lastMsg?.content ?? raw;
-  }
+      return haystack.includes(term);
+    });
+  }, [conversations, userEmail, userFilas, searchTerm]);
 
-  // 3) se vier string numérica, devolve direto
-  if (typeof raw === 'string' && /^\d+$/.test(raw)) return raw;
+  const sortedConversations = React.useMemo(() => {
+    const arr = [...filteredConversations];
+    arr.sort((a, b) => {
+      const dateA = new Date(a.timestamp || 0);
+      const dateB = new Date(b.timestamp || 0);
+      return ordemAscendente ? dateA - dateB : dateB - dateA;
+    });
+    return arr;
+  }, [filteredConversations, ordemAscendente]);
 
-  // 4) se for string com cara de JSON, tenta parsear
-  if (typeof raw === 'string') {
-    const s = raw.trim();
-    if (s.startsWith('{') || s.startsWith('[')) {
-      try { raw = JSON.parse(s); } catch {/* mantém string */}
-    }
-  }
-
-  // 5) inferências para OBJETO (mídia)
-  if (raw && typeof raw === 'object') {
-    const url = String(raw.url || '').toLowerCase();
-    const filename = String(raw.filename || '').toLowerCase();
-    const txt = raw.body || raw.text || raw.caption || '';
-
-    if (txt) return txt.length > 40 ? txt.slice(0, 37) + '…' : txt;
-
-    // áudio (inclui "voice" do WA/TG)
-    if (
-      raw.voice === true ||
-      (lastMsg?.type === 'audio') ||
-      /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) ||
-      /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename)
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <Mic size={18} /> Áudio
-        </span>
-      );
-    }
-
-    // imagem
-    if (
-      lastMsg?.type === 'image' ||
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
-      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename)
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <File size={18} /> Imagem
-        </span>
-      );
-    }
-
-    // documento (inclui pdf)
-    if (
-      lastMsg?.type === 'document' ||
-      filename.endsWith('.pdf') ||
-      (url && !/\.(jpg|jpeg|png|gif|webp|svg|bmp|ogg|oga|mp3|wav|m4a)$/i.test(url))
-    ) {
-      return (
-        <span className="chat-icon-snippet">
-          <File size={18} /> Arquivo
-        </span>
-      );
-    }
-
-    return ''; // sem nada útil
-  }
-
-  // 6) string comum
-  if (typeof raw === 'string') {
-    const s = raw;
-    return s.length > 40 ? s.slice(0, 37) + '…' : s;
-  }
-
-  return '';
-};
- 
-
-
-  const filteredConversations = Object.values(conversations).filter((conv) => {
-    const autorizado =
-      conv.status === "open" &&
-      conv.assigned_to === userEmail &&
-      (!conv.fila || userFilas.includes(conv.fila));
-
-    if (!autorizado) return false;
-
-    if (!searchTerm) return true;
-
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      conv.name?.toLowerCase().includes(searchLower) ||
-      conv.user_id?.toLowerCase().includes(searchLower) ||
-      conv.content?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const sortedConversations = [...filteredConversations].sort((a, b) => {
-    const dateA = new Date(a.timestamp || 0);
-    const dateB = new Date(b.timestamp || 0);
-    return ordemAscendente ? dateA - dateB : dateB - dateA;
-  });
-
-  // ------- render -------
+  // ---------------- render ----------------
   return (
     <div className="sidebar-container">
       <div className="sidebar-header">
@@ -370,9 +373,7 @@ const getSnippet = (conv) => {
                 <div className="chat-avatar-initial">
                   <div
                     className="avatar-circle"
-                    style={{
-                      backgroundColor: stringToColor(conv.name || conv.user_id),
-                    }}
+                    style={{ backgroundColor: stringToColor(conv.name || conv.user_id) }}
                   >
                     {conv.name?.charAt(0).toUpperCase() || "U"}
                   </div>
@@ -390,9 +391,12 @@ const getSnippet = (conv) => {
                       {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
                     </div>
                   </div>
+
+                  {/* ⬇️ Agora o snippet usa conv (tem type) */}
                   <div className="chat-snippet">{getSnippet(conv)}</div>
                 </div>
               </div>
+
               <div className="chat-bottom-section">
                 <div className="chat-divider"></div>
                 <div className="chat-meta">
