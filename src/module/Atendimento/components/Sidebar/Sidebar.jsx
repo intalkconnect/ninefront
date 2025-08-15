@@ -172,40 +172,49 @@ export default function Sidebar() {
   };
 
   // ------- helpers UI -------
- const getSnippet = (rawContent) => {
-  if (rawContent == null) return "";
+ const getSnippet = (rawContent) => {// ✅ Novo getSnippet: usa conv inteiro e faz fallback para a última mensagem real
+const getSnippet = (conv) => {
+  // 1) pega o "content" que veio no card
+  let raw = conv?.content;
 
-  // números puros
-  if (typeof rawContent === "string" && /^\d+$/.test(rawContent)) {
-    return rawContent;
+  // 2) se for placeholder ou vazio, tenta a última mensagem do store
+  const convFromStore = conversations?.[conv.user_id];
+  const lastMsg = Array.isArray(convFromStore?.messages)
+    ? convFromStore.messages[convFromStore.messages.length - 1]
+    : null;
+
+  const looksLikePlaceholder = (v) => {
+    const s = String(v || '').trim().toLowerCase();
+    return s === '[mensagem]' || s === '[message]' || s === '[msg]';
+  };
+
+  if (!raw || looksLikePlaceholder(raw)) {
+    raw = lastMsg?.content ?? raw;
   }
 
-  // tenta parsear JSON quando for string com cara de JSON
-  if (typeof rawContent === "string" &&
-      (rawContent.trim().startsWith("{") || rawContent.trim().startsWith("["))) {
-    try {
-      rawContent = JSON.parse(rawContent);
-    } catch {
-      // fica como string mesmo
+  // 3) se vier string numérica, devolve direto
+  if (typeof raw === 'string' && /^\d+$/.test(raw)) return raw;
+
+  // 4) se for string com cara de JSON, tenta parsear
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    if (s.startsWith('{') || s.startsWith('[')) {
+      try { raw = JSON.parse(s); } catch {/* mantém string */}
     }
   }
 
-  // --- Agora cobre quando já é OBJETO ---
-  if (typeof rawContent === "object" && rawContent) {
-    const c = rawContent;
-    const url = String(c.url || "").toLowerCase();
-    const filename = String(c.filename || "").toLowerCase();
+  // 5) inferências para OBJETO (mídia)
+  if (raw && typeof raw === 'object') {
+    const url = String(raw.url || '').toLowerCase();
+    const filename = String(raw.filename || '').toLowerCase();
+    const txt = raw.body || raw.text || raw.caption || '';
 
-    // texto "puro" dentro do objeto
-    if (c.body || c.text || c.caption) {
-      const txt = c.body || c.text || c.caption || "";
-      return txt.length > 40 ? txt.slice(0, 37) + "..." : txt;
-    }
+    if (txt) return txt.length > 40 ? txt.slice(0, 37) + '…' : txt;
 
-    // áudio (voz)
+    // áudio (inclui "voice" do WA/TG)
     if (
-      c.voice === true ||
-      c.type === "audio" ||
+      raw.voice === true ||
+      (lastMsg?.type === 'audio') ||
       /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) ||
       /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename)
     ) {
@@ -217,7 +226,11 @@ export default function Sidebar() {
     }
 
     // imagem
-    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename)) {
+    if (
+      lastMsg?.type === 'image' ||
+      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
+      /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename)
+    ) {
       return (
         <span className="chat-icon-snippet">
           <File size={18} /> Imagem
@@ -225,8 +238,12 @@ export default function Sidebar() {
       );
     }
 
-    // pdf/documento
-    if (filename.endsWith(".pdf")) {
+    // documento (inclui pdf)
+    if (
+      lastMsg?.type === 'document' ||
+      filename.endsWith('.pdf') ||
+      (url && !/\.(jpg|jpeg|png|gif|webp|svg|bmp|ogg|oga|mp3|wav|m4a)$/i.test(url))
+    ) {
       return (
         <span className="chat-icon-snippet">
           <File size={18} /> Arquivo
@@ -234,23 +251,18 @@ export default function Sidebar() {
       );
     }
 
-    // se tiver url/filename mas não bateu nas regras acima => "Arquivo"
-    if (c.url || c.filename) {
-      return (
-        <span className="chat-icon-snippet">
-          <File size={18} /> Arquivo
-        </span>
-      );
-    }
-
-    // último recurso
-    return "";
+    return ''; // sem nada útil
   }
 
-  // string comum
-  const contentStr = String(rawContent);
-  return contentStr.length > 40 ? contentStr.slice(0, 37) + "..." : contentStr;
+  // 6) string comum
+  if (typeof raw === 'string') {
+    const s = raw;
+    return s.length > 40 ? s.slice(0, 37) + '…' : s;
+  }
+
+  return '';
 };
+
 
 
   const filteredConversations = Object.values(conversations).filter((conv) => {
@@ -379,7 +391,7 @@ export default function Sidebar() {
                       {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
                     </div>
                   </div>
-                  <div className="chat-snippet">{getSnippet(conv.content)}</div>
+                  <div className="chat-snippet">{getSnippet(conv)}</div>
                 </div>
               </div>
               <div className="chat-bottom-section">
