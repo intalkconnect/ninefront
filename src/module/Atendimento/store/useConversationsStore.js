@@ -1,28 +1,7 @@
 import { create } from 'zustand';
 import { apiGet, apiPut } from '../services/apiClient';
 
-// ————— helpers p/ derivar snippet do card —————
-function normalizePreviewContent(raw) {
-  if (raw == null) return '';
-  if (typeof raw === 'string') {
-    const s = raw.trim();
-    if (s.startsWith('{') || s.startsWith('[')) {
-      try {
-        const j = JSON.parse(s);
-        if (j && typeof j === 'object') {
-          return j.body || j.text || j.caption || j.filename || j.url || '';
-        }
-      } catch {}
-    }
-    return raw;
-  }
-  if (typeof raw === 'number' || typeof raw === 'boolean') return String(raw);
-  if (typeof raw === 'object') {
-    return raw.body || raw.text || raw.caption || raw.filename || raw.url || '';
-  }
-  return String(raw);
-}
-
+// ----- helpers para derivar preview -----
 function pickLastNonSystem(messages = []) {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const m = messages[i];
@@ -53,11 +32,11 @@ const useConversationsStore = create((set, get) => ({
     return found ? found.value : null;
   },
 
-  // Configura email e filas do usuário
+  // Configura email/filas do usuário
   setUserInfo: ({ email, filas, name }) =>
     set({ userEmail: email, userFilas: filas, agentName: name }),
 
-  // Atualiza conversa selecionada, zera não lidas do atual e do anterior
+  // Seleciona conversa e marca como lida
   setSelectedUserId: async (userId) => {
     const previousId = get().selectedUserId;
     const now = new Date().toISOString();
@@ -73,14 +52,8 @@ const useConversationsStore = create((set, get) => ({
     get().clearNotified(userId);
 
     set((state) => ({
-      lastRead: {
-        ...state.lastRead,
-        [userId]: now,
-      },
-      unreadCounts: {
-        ...state.unreadCounts,
-        [userId]: 0,
-      },
+      lastRead: { ...state.lastRead, [userId]: now },
+      unreadCounts: { ...state.unreadCounts, [userId]: 0 },
     }));
 
     try {
@@ -92,8 +65,10 @@ const useConversationsStore = create((set, get) => ({
   },
 
   /**
-   * ✅ setConversation: continua genérico, mas
-   *    SE receber `messages`, já atualiza o preview (content/type/timestamp).
+   * setConversation:
+   * - continua genérico
+   * - SE chegar {messages}, recalcula preview (content/type/timestamp) baseado
+   *   na última mensagem não-system. Mantém `content` como o OBJETO/valor da mensagem.
    */
   setConversation: (userId, newData) =>
     set((state) => {
@@ -101,67 +76,55 @@ const useConversationsStore = create((set, get) => ({
       const next = { ...prev, ...newData };
 
       if (Array.isArray(newData?.messages)) {
-        // garante novo array p/ re-render
-        next.messages = [...newData.messages];
+        const msgs = [...newData.messages]; // novo array p/ disparar render
+        next.messages = msgs;
 
-        const last = pickLastNonSystem(newData.messages);
+        const last = pickLastNonSystem(msgs);
         if (last) {
-          next.content = normalizePreviewContent(last.content);
           next.type = last.type;
+          next.content = last.content ?? last.text ?? last.caption ?? last.body ?? '';
           next.timestamp = last.timestamp || Date.now();
-        } else {
-          // sem não-system -> mantém o que já tinha
-          next.content = typeof next.content === 'undefined' ? (prev.content || '') : next.content;
-          next.type = typeof next.type === 'undefined' ? prev.type : next.type;
-          next.timestamp = typeof next.timestamp === 'undefined'
-            ? (prev.timestamp || Date.now())
-            : next.timestamp;
         }
       }
 
-      return {
-        conversations: {
-          ...state.conversations,
-          [userId]: next,
-        },
-      };
+      return { conversations: { ...state.conversations, [userId]: next } };
     }),
 
   /**
-   * ✅ Opcional: quando você tiver o array completo de mensagens
-   *    e quiser salvar + atualizar preview de uma vez.
+   * setMessages:
+   * - util direto para quando você já tem o array completo.
    */
   setMessages: (userId, messages = []) =>
     set((state) => {
       const prev = state.conversations[userId] || {};
-      const last = pickLastNonSystem(messages);
-      const previewContent = last ? normalizePreviewContent(last.content) : prev.content || '';
-      const previewType = last ? last.type : prev.type;
-      const previewTs = last ? (last.timestamp || Date.now()) : (prev.timestamp || Date.now());
+      const msgs = [...messages];
+      const last = pickLastNonSystem(msgs);
 
       return {
         conversations: {
           ...state.conversations,
           [userId]: {
             ...prev,
-            messages: [...messages],
-            content: previewContent,
-            type: previewType,
-            timestamp: previewTs,
+            messages: msgs,
+            type: last ? last.type : prev.type,
+            content: last
+              ? (last.content ?? last.text ?? last.caption ?? last.body ?? '')
+              : (prev.content ?? ''),
+            timestamp: last ? (last.timestamp || Date.now()) : (prev.timestamp || Date.now()),
           },
         },
       };
     }),
 
   /**
-   * ✅ Opcional: ao receber 1 mensagem (envio local ou socket),
-   *    adiciona e já atualiza preview.
+   * appendMessage:
+   * - adiciona 1 msg e atualiza preview se não for "system".
    */
   appendMessage: (userId, message) =>
     set((state) => {
       const prev = state.conversations[userId] || {};
-      const oldList = Array.isArray(prev.messages) ? prev.messages : [];
-      const newList = [...oldList, message];
+      const list = Array.isArray(prev.messages) ? prev.messages : [];
+      const newList = [...list, message];
 
       let content = prev.content;
       let type = prev.type;
@@ -169,72 +132,48 @@ const useConversationsStore = create((set, get) => ({
 
       const isSystem = message?.type === 'system' || message?.direction === 'system';
       if (!isSystem) {
-        content = normalizePreviewContent(message?.content);
         type = message?.type;
+        content = message?.content ?? message?.text ?? message?.caption ?? message?.body ?? '';
         ts = message?.timestamp || Date.now();
       }
 
       return {
         conversations: {
           ...state.conversations,
-          [userId]: {
-            ...prev,
-            messages: newList,
-            content,
-            type,
-            timestamp: ts,
-          },
+          [userId]: { ...prev, messages: newList, content, type, timestamp: ts },
         },
       };
     }),
 
-  // Zera contagem de não lidas
+  // Unreads
   resetUnread: (userId) =>
     set((state) => ({
-      unreadCounts: {
-        ...state.unreadCounts,
-        [userId]: 0,
-      },
-      lastRead: {
-        ...state.lastRead,
-        [userId]: new Date().toISOString(),
-      },
+      unreadCounts: { ...state.unreadCounts, [userId]: 0 },
+      lastRead: { ...state.lastRead, [userId]: new Date().toISOString() },
     })),
 
-  // Incrementa contagem de não lidas
   incrementUnread: (userId, messageTimestamp) => {
     const { lastRead, unreadCounts } = get();
-
     const last = lastRead[userId] ? new Date(lastRead[userId]) : null;
     const current = new Date(messageTimestamp);
     if (last && current <= last) return;
-
-    set({
-      unreadCounts: {
-        ...unreadCounts,
-        [userId]: (unreadCounts[userId] || 0) + 1,
-      },
-    });
-  },
+    set({ unreadCounts: { ...unreadCounts, [userId]: (unreadCounts[userId] || 0) + 1 } });
+    },
 
   setClienteAtivo: (info) => set({ clienteAtivo: info }),
 
-  // Atualizações genéricas
+  // Atualização genérica
   mergeConversation: (userId, data) =>
     set((state) => ({
       conversations: {
         ...state.conversations,
-        [userId]: {
-          ...(state.conversations[userId] || {}),
-          ...data,
-        },
+        [userId]: { ...(state.conversations[userId] || {}), ...data },
       },
     })),
 
-  // Nome do contato
   getContactName: (userId) => get().conversations[userId]?.name || userId,
 
-  // Unread do servidor
+  // server helpers
   loadUnreadCounts: async () => {
     try {
       const data = await apiGet('/messages/unread-counts');
@@ -248,7 +187,6 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  // last_read do servidor
   loadLastReadTimes: async () => {
     try {
       const data = await apiGet('/messages/read-status');
@@ -262,7 +200,7 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  // Conversas ativas atribuídas
+  // filtros
   getFilteredConversations: () => {
     const { conversations, userEmail, userFilas } = get();
     return Object.fromEntries(
@@ -274,16 +212,12 @@ const useConversationsStore = create((set, get) => ({
     );
   },
 
+  // notificação visual
   notifiedConversations: {},
-
   markNotified: (userId) =>
     set((state) => ({
-      notifiedConversations: {
-        ...state.notifiedConversations,
-        [userId]: true,
-      },
+      notifiedConversations: { ...state.notifiedConversations, [userId]: true },
     })),
-
   clearNotified: (userId) =>
     set((state) => {
       const updated = { ...state.notifiedConversations };
