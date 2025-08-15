@@ -172,7 +172,6 @@ export default function Sidebar() {
   };
 
   // ------- helpers UI -------
- const getSnippet = (rawContent) => {// ✅ Novo getSnippet: usa conv inteiro e faz fallback para a última mensagem real
 const getSnippet = (conv) => {
   // 1) pega o "content" que veio no card
   let raw = conv?.content;
@@ -262,7 +261,7 @@ const getSnippet = (conv) => {
 
   return '';
 };
-
+ 
 
 
   const filteredConversations = Object.values(conversations).filter((conv) => {
