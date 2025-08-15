@@ -5,13 +5,18 @@ import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
+// Helper: identifica o canal pelo userId completo
 const getChannelFromUserId = (userId) => {
   if (!userId) return 'webchat';
   if (userId.endsWith('@w.msgcli.net')) return 'whatsapp';
   if (userId.endsWith('@t.msgcli.net')) return 'telegram';
   return 'webchat';
 };
+
+// Helper: remove sufixo @w.msgcli.net / @t.msgcli.net
 const extractRawUserId = (userId) => userId.replace(/@[wt]\.msgcli\.net$/, '');
+
+// Helper: deduz o "type" a partir do arquivo
 const getTypeFromFile = (file) => {
   if (!file) return 'text';
   const mt = (file.type || '').toLowerCase();
@@ -21,143 +26,125 @@ const getTypeFromFile = (file) => {
   return 'document';
 };
 
-// Helpers de store p/ adicionar/alterar msg e atualizar snippet da sidebar
-function computePreview(msg) {
-  if (msg.type === 'text') {
-    if (typeof msg.content === 'string') return msg.content;
-    return msg.content?.body || msg.content?.text || msg.content?.caption || '';
-  }
-  const c = msg.content || {};
+// Normaliza content da msg referenciada para preview
+function normalizeReplyContent(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'string') return { body: raw };
+
+  const c = { ...(raw || {}) };
+  if (typeof c.body === 'string' && c.body.trim()) return { body: c.body };
+  if (typeof c.text === 'string' && c.text.trim()) return { body: c.text };
+  if (typeof c.caption === 'string' && c.caption.trim()) return { body: c.caption };
+
   return {
     ...(c.url ? { url: c.url } : {}),
     ...(c.filename ? { filename: c.filename } : {}),
-    ...(c.caption ? { caption: c.caption } : {}),
-    ...(c.voice ? { voice: true } : {}),
-    ...(msg.type ? { type: msg.type } : {}),
+    ...(c.voice ? { voice: true } : {})
   };
 }
-function appendMsg(userId, newMsg) {
-  const store = useConversationsStore.getState();
-  const conv = store.conversations[userId] || { user_id: userId, messages: [] };
-  const messages = Array.isArray(conv.messages) ? conv.messages.slice() : [];
-  messages.push(newMsg);
-  store.setConversation(userId, {
-    ...conv,
-    messages,
-    content: computePreview(newMsg),
-    timestamp: newMsg.timestamp || Date.now(),
-  });
-}
-function patchMsg(userId, matchId, patch) {
-  const store = useConversationsStore.getState();
-  const conv = store.conversations[userId];
-  if (!conv) return;
-  const messages = Array.isArray(conv.messages) ? conv.messages.slice() : [];
-  const i = messages.findIndex(m => m?.id === matchId || m?.message_id === matchId);
-  if (i === -1) return;
-  messages[i] = { ...messages[i], ...patch };
-  store.setConversation(userId, {
-    ...conv,
-    messages,
-    content: computePreview(messages[i]),
-    timestamp: messages[i].timestamp || conv.timestamp || Date.now(),
-  });
-}
-// remap quando o backend devolver outro message_id
-function remapMsgId(userId, oldId, newId) {
-  const store = useConversationsStore.getState();
-  const conv = store.conversations[userId];
-  if (!conv) return;
-  const messages = (conv.messages || []).map(m =>
-    (m.id === oldId || m.message_id === oldId) ? { ...m, id: newId, message_id: newId } : m
-  );
-  store.setConversation(userId, { ...conv, messages });
-}
 
-// Marca lidas antes do primeiro "system"
-export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
-  const store = useConversationsStore.getState();
-  const conversation = store.conversations[userId] || {};
-  if (!mensagens) mensagens = conversation.messages || [];
-  const systemIndex = mensagens.findIndex((m) => m.type === 'system');
-  if (systemIndex === -1) return;
-  const updated = mensagens.map((m, idx) => (idx < systemIndex ? { ...m, status: 'read' } : m));
-  store.setConversation(userId, { ...conversation, messages: updated });
+// Cria um snapshot seguro da mensagem sendo respondida
+function makeReplySnapshot(replyToFull) {
+  if (!replyToFull || typeof replyToFull !== 'object') return null;
+
+  const replyId =
+    replyToFull.message_id ||
+    replyToFull.whatsapp_message_id ||
+    replyToFull.telegram_message_id ||
+    replyToFull.provider_id ||
+    replyToFull.id ||
+    null;
+
+  return {
+    message_id: replyId || undefined,
+    direction: replyToFull.direction,
+    name: replyToFull.name || replyToFull.sender_name || undefined,
+    type: replyToFull.type,
+    content: normalizeReplyContent(replyToFull.content),
+  };
 }
 
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
-  const sendMessage = async ({ text, file, userId, replyTo, replyToFull }, onMessageAdded) => {
+  const sendMessage = async (
+    {
+      text,
+      file,
+      userId,
+      replyTo,      // (string) id da msg original
+      replyToFull,  // (objeto) msg original completa -> preview imediato
+    },
+    onMessageAdded
+  ) => {
     const channel = getChannelFromUserId(userId);
     const to = extractRawUserId(userId || '');
 
+    // validação básica
     if (!text?.trim() && !file) {
-      toast.warn('Digite algo ou anexe um arquivo antes de enviar.', { position: 'bottom-right' });
+      toast.warn('Digite algo ou anexe um arquivo antes de enviar.', {
+        position: 'bottom-right',
+        autoClose: 2000,
+      });
       return;
     }
 
-    // 🔴 tempId único e usado em tudo
-    const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-    const now = Date.now();
-    const type = file ? getTypeFromFile(file) : 'text';
+    const tempId = Date.now();
+    const now = new Date();
+    const provisionalType = file ? getTypeFromFile(file) : 'text';
+    const replySnapshot  = makeReplySnapshot(replyToFull);
 
-    // provisória
-    const provisional = {
+    // 1) Cria a mensagem provisória (rápida)
+    const provisionalMessage = {
       id: tempId,
-      message_id: tempId,          // <- CRÍTICO p/ casar com o worker/DB
       direction: 'outgoing',
-      timestamp: now,
-      readableTime: new Date(now).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: now.getTime(),
+      readableTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'sending',
-      type,
+      type: provisionalType,
       content: text?.trim() || (file ? { filename: file.name } : ''),
       channel,
       ...(replyTo ? { reply_to: replyTo } : {}),
-      ...(replyToFull ? { replyTo: {
-        message_id:
-          replyToFull.message_id ||
-          replyToFull.whatsapp_message_id ||
-          replyToFull.telegram_message_id ||
-          replyToFull.provider_id || replyToFull.id,
-        direction: replyToFull.direction,
-        type: replyToFull.type,
-        content: (() => {
-          const c = replyToFull.content || {};
-          return typeof c === 'string' ? { body: c } :
-                 c.body ? { body: c.body } :
-                 c.text ? { body: c.text } :
-                 c.caption ? { body: c.caption } :
-                 { ...(c.url ? { url: c.url } : {}), ...(c.filename ? { filename: c.filename } : {}), ...(c.voice ? { voice: true } : {}) };
-        })(),
-      }} : {}),
+      ...(replySnapshot ? { replyTo: replySnapshot } : {}),
     };
+    if (typeof onMessageAdded === 'function') onMessageAdded(provisionalMessage);
 
-    appendMsg(userId, provisional);
-    if (onMessageAdded) onMessageAdded(provisional);
     setIsSending(true);
 
-    let uploadedContent = null;
+    let uploadedContent = null; // vamos preencher com a URL assim que o upload terminar
 
     try {
-      // payload p/ API — manda tempId
-      const payload = { tempId, to, channel, type, content: {} };
+      // 2) Monta payload do backend
+      const payload = {
+        to,
+        channel, // 'whatsapp' | 'telegram'
+        type: provisionalType,
+        content: {},
+      };
 
       if (file) {
         const { valid, errorMsg } = validateFile(file);
         if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
-        const url = await uploadFileAndGetURL(file);
-        if (!url) throw new Error('Falha no upload do arquivo');
+
+        // ⚡ Faz upload E JÁ ATUALIZA a mensagem provisória com a URL (para tocar/imagem aparecer)
+        const fileUrl = await uploadFileAndGetURL(file);
+        if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
         uploadedContent = {
-          url,
-          ...(type !== 'audio' && file.name ? { filename: file.name } : {}),
+          url: fileUrl,
+          ...(provisionalType !== 'audio' && file.name ? { filename: file.name } : {}),
           ...(text?.trim() ? { caption: text.trim() } : {}),
-          ...(type === 'audio' && file?._isVoice ? { voice: true } : {}),
+          ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
         };
 
-        // Atualiza a provisória com a URL para tocar/mostrar já
-        patchMsg(userId, tempId, { content: uploadedContent, status: 'sending' });
+        // Atualiza a provisória com a URL para render imediato do player/imagem
+        if (typeof onMessageAdded === 'function') {
+          onMessageAdded({
+            ...provisionalMessage,
+            content: uploadedContent, // agora há url
+            status: 'sending',
+          });
+        }
 
         payload.content = uploadedContent;
       } else {
@@ -166,42 +153,57 @@ export function useSendMessage() {
 
       if (replyTo) payload.context = { message_id: replyTo };
 
-      // envia
-      const resp = await apiPost('/messages/send', payload);
-      const saved = resp?.message;
+      // 3) Envia pro backend
+      const response = await apiPost('/messages/send', payload);
+      const saved = response?.message;
 
-      // Se o backend salvar com outro message_id, remapeia para não quebrar os updates
-      if (saved?.message_id && saved.message_id !== tempId) {
-        remapMsgId(userId, tempId, saved.message_id);
+      // 4) Atualiza como 'sent' mantendo o conteúdo (principalmente para mídia)
+      if (typeof onMessageAdded === 'function') {
+        onMessageAdded({
+          ...provisionalMessage,
+          status: 'sent',
+          content: uploadedContent || provisionalMessage.content,
+          message_id: saved?.message_id,
+          serverResponse: response,
+        });
       }
 
-      patchMsg(userId, saved?.message_id || tempId, {
-        status: 'sent',
-        provider_id: saved?.provider_id || saved?.whatsapp_message_id || saved?.telegram_message_id,
-        content: uploadedContent || provisional.content,
-      });
-
+      // lidas antes do system (conveniência)
       marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
-      console.error('[sendMessage] erro:', err);
-      patchMsg(userId, tempId, {
-        status: 'error',
-        content: uploadedContent || provisional.content,
-        errorMessage:
-          err?.response?.data?.error ||
-          err?.response?.data?.details ||
-          err?.message || 'Erro desconhecido',
-      });
+      console.error('[❌ Erro ao enviar mensagem]', err);
 
-      const e = err?.response?.data;
-      if (e?.error?.toString?.().toLowerCase?.().includes('24h') || e?.error === 'Message outside 24h window') {
-        toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', { position: 'bottom-right' });
-      } else if (e?.error === 'Recipient not in allowed list' || e?.error?.code === 131030) {
-        toast.error('Número não permitido no WhatsApp. Use um número de teste cadastrado.', { position: 'bottom-right' });
-      } else if (e?.error === 'Message text cannot be empty') {
-        toast.error('Mensagem vazia no Telegram.', { position: 'bottom-right' });
+      if (typeof onMessageAdded === 'function') {
+        onMessageAdded({
+          ...provisionalMessage,
+          content: uploadedContent || provisionalMessage.content,
+          status: 'error',
+          errorMessage:
+            err?.response?.data?.error ||
+            err?.response?.data?.details ||
+            err?.message ||
+            'Erro desconhecido',
+        });
+      }
+
+      const platformError = err?.response?.data;
+      if (platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
+          platformError?.error === 'Message outside 24h window') {
+        toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', {
+          position: 'bottom-right', autoClose: 5000,
+        });
+      } else if (platformError?.error === 'Recipient not in allowed list' || platformError?.error?.code === 131030) {
+        toast.error('Número não permitido no WhatsApp. Use um número de teste cadastrado.', {
+          position: 'bottom-right', autoClose: 5000,
+        });
+      } else if (platformError?.error === 'Message text cannot be empty') {
+        toast.error('Mensagem vazia no Telegram.', {
+          position: 'bottom-right', autoClose: 3000,
+        });
       } else {
-        toast.error(`Erro ao enviar mensagem: ${err.message}`, { position: 'bottom-right' });
+        toast.error(`Erro ao enviar mensagem: ${err.message}`, {
+          position: 'bottom-right', autoClose: 3000,
+        });
       }
     } finally {
       setIsSending(false);
@@ -209,4 +211,24 @@ export function useSendMessage() {
   };
 
   return { isSending, sendMessage };
+}
+
+// Auxiliar: marca mensagens como lidas antes do primeiro "system"
+export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
+  const store = useConversationsStore.getState();
+  const conversation = store.conversations[userId] || {};
+
+  if (!mensagens) mensagens = conversation.messages || [];
+
+  const systemIndex = mensagens.findIndex((m) => m.type === 'system');
+  if (systemIndex === -1) return;
+
+  const updatedMessages = mensagens.map((msg, idx) =>
+    idx < systemIndex ? { ...msg, status: 'read' } : msg
+  );
+
+  store.setConversation(userId, {
+    ...conversation,
+    messages: updatedMessages,
+  });
 }
