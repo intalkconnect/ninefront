@@ -15,40 +15,48 @@ import EmojiPicker from "./EmojiPicker";
 import UploadFileModal from "./UploadFileModal";
 import QuickReplies from "./QuickReplies";
 
+// -------- helpers de preview de resposta (estilo WhatsApp) --------
+function pickSnippetFromContent(c) {
+  if (!c) return '';
+  if (typeof c === 'string') return c;
+  if (typeof c === 'object') {
+    if (typeof c.body === 'string' && c.body.trim()) return c.body;
+    if (typeof c.text === 'string' && c.text.trim()) return c.text;
+    if (typeof c.caption === 'string' && c.caption.trim()) return c.caption;
+
+    const url = String(c.url || '').toLowerCase();
+    if (!url) return '';
+
+    if (/\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
+    if (/\.(ogg|mp3|wav|m4a|opus)$/.test(url) || c.voice) return 'Áudio';
+    if (/\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
+    if (c.filename) return c.filename;
+    return 'Documento';
+  }
+  return '';
+}
+
 function buildReplyPreview(replyTo) {
   if (!replyTo) return null;
 
-  // Se vier string, já é o snippet
+  // objeto de mensagem
+  if (typeof replyTo === 'object') {
+    const title = replyTo.direction === 'outgoing'
+      ? 'Você'
+      : (replyTo.name || replyTo.sender_name || ''); // <- sem "Contato"
+    const snippet = pickSnippetFromContent(replyTo.content);
+    return { title, snippet };
+  }
+
+  // string solta (ex.: "*Nome:* texto" ou apenas texto)
   if (typeof replyTo === 'string') {
-    // pode vir como "*Nome:* texto"
-    const m = replyTo.trim().match(/^\*(.+?)\*:\s*(.*)$/);
+    const s = replyTo.trim();
+    const m = s.match(/^\*(.+?)\*:\s*(.*)$/);
     if (m) return { title: m[1], snippet: m[2] };
-    return { title: 'Mensagem', snippet: replyTo };
+    return { title: '', snippet: s };
   }
 
-  // Objeto de mensagem
-  const title =
-    replyTo.reply_name ||
-    (replyTo.reply_direction === 'outgoing' ? 'Você' : (replyTo.name || replyTo.sender_name || 'Contato'));
-
-  const url = (replyTo.content && replyTo.content.url) ? String(replyTo.content.url) : '';
-  const urlLower = url.toLowerCase();
-
-  let snippet =
-    (replyTo.content && (replyTo.content.body || replyTo.content.text || replyTo.content.caption)) ||
-    (typeof replyTo.content === 'string' ? replyTo.content : '') ||
-    '';
-
-  if (!snippet) {
-    const t = (replyTo.type || '').toLowerCase();
-    if (t === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(urlLower)) snippet = 'Imagem';
-    else if (t === 'audio' || replyTo.content?.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(urlLower)) snippet = 'Áudio';
-    else if (t === 'video' || /\.(mp4|mov|webm)$/.test(urlLower)) snippet = 'Vídeo';
-    else if (t === 'document' || replyTo.content?.filename) snippet = replyTo.content?.filename || 'Documento';
-    else snippet = 'Mensagem';
-  }
-
-  return { title, snippet };
+  return null;
 }
 
 export default function SendMessageForm({
@@ -76,12 +84,8 @@ export default function SendMessageForm({
   // Hooks
   const { isSending, sendMessage } = useSendMessage();
   const {
-    isRecording,
-    startRecording,
-    stopRecording,
-    recordedFile,
-    clearRecordedFile,
-    recordingTime,
+    isRecording, startRecording, stopRecording,
+    recordedFile, clearRecordedFile, recordingTime
   } = useAudioRecorder();
 
   // Dados do atendente
@@ -96,7 +100,7 @@ export default function SendMessageForm({
   };
   const currentChannel = getChannelFromUserId(userIdSelecionado);
 
-  // Fechar popovers ao clicar fora
+  // Fechar popovers
   useClickOutside([emojiPickerRef, quickReplyRef], () => {
     setShowEmoji(false);
     setShowQuickReplies(false);
@@ -119,9 +123,9 @@ export default function SendMessageForm({
     setText('');
     setFile(null);
     setReplyTo?.(null);
-  }, [userIdSelecionado]);
+  }, [userIdSelecionado, setReplyTo]);
 
-  // Quando terminar de gravar, injeta arquivo
+  // fim da gravação
   useEffect(() => {
     if (recordedFile) setFile(recordedFile);
   }, [recordedFile]);
@@ -138,7 +142,7 @@ export default function SendMessageForm({
       return;
     }
 
-    // Regra do WhatsApp 24h
+    // Janela 24h (WhatsApp)
     if (currentChannel === 'whatsapp' && !canSendFreeform) {
       toast.warn('Fora da janela de 24h. Envie um template.', { position: 'bottom-right' });
       return;
@@ -155,7 +159,7 @@ export default function SendMessageForm({
         text: finalText,
         file,
         userId: userIdSelecionado,
-        replyTo: replyTo?.message_id || null, // id da msg original (quando houver)
+        replyTo: replyTo?.message_id || null,
       },
       onMessageAdded
     );
@@ -176,9 +180,7 @@ export default function SendMessageForm({
     const value = e.target.value;
     setText(value);
     setShowQuickReplies(
-      hasQuickReplies &&
-      value.trim().startsWith("/") &&
-      value.trim().length === 1
+      hasQuickReplies && value.trim().startsWith("/") && value.trim().length === 1
     );
   };
 
@@ -196,16 +198,14 @@ export default function SendMessageForm({
       {replyTo && (
         <div className="reply-preview">
           <div className="reply-content">
-            <div className="reply-author">
-              Você está respondendo:
-            </div>
+            <div className="reply-author">Você está respondendo:</div>
             <div className="reply-text">
-              {preview ? (
+              {preview && (
                 <>
-                  <strong>*{preview.title}:*</strong> {preview.snippet}
+                  <strong>{preview.title || (replyTo?.direction === 'outgoing' ? 'Você' : '')}</strong>
+                  {preview.title && ' '}
+                  {preview.snippet}
                 </>
-              ) : (
-                replyTo?.content?.text || replyTo?.content?.body || replyTo?.content || "[Mensagem]"
               )}
             </div>
           </div>
