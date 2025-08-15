@@ -5,7 +5,7 @@ import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
-// Helper: identifica o canal pelo userId completo
+// Canal pelo sufixo
 const getChannelFromUserId = (userId) => {
   if (!userId) return 'webchat';
   if (userId.endsWith('@w.msgcli.net')) return 'whatsapp';
@@ -13,10 +13,10 @@ const getChannelFromUserId = (userId) => {
   return 'webchat';
 };
 
-// Helper: remove sufixo @w.msgcli.net / @t.msgcli.net
+// Remove @w.@t
 const extractRawUserId = (userId) => userId.replace(/@[wt]\.msgcli\.net$/, '');
 
-// Helper: deduz o "type" a partir do arquivo
+// Deduza type pelo file
 const getTypeFromFile = (file) => {
   if (!file) return 'text';
   const mt = (file.type || '').toLowerCase();
@@ -26,7 +26,7 @@ const getTypeFromFile = (file) => {
   return 'document';
 };
 
-// Normaliza content da msg referenciada para preview
+// Normaliza conteúdo de reply para preview
 function normalizeReplyContent(raw) {
   if (!raw) return {};
   if (typeof raw === 'string') return { body: raw };
@@ -39,11 +39,11 @@ function normalizeReplyContent(raw) {
   return {
     ...(c.url ? { url: c.url } : {}),
     ...(c.filename ? { filename: c.filename } : {}),
-    ...(c.voice ? { voice: true } : {})
+    ...(c.voice ? { voice: true } : {}),
   };
 }
 
-// Cria um snapshot seguro da mensagem sendo respondida
+// Snapshot seguro da msg respondida
 function makeReplySnapshot(replyToFull) {
   if (!replyToFull || typeof replyToFull !== 'object') return null;
 
@@ -71,9 +71,9 @@ export function useSendMessage() {
     {
       text,
       file,
-      userId,
-      replyTo,      // (string) id da msg original
-      replyToFull,  // (objeto) msg original completa -> preview imediato
+      userId,       // <- sempre o ID "cheio", com sufixo
+      replyTo,      // id da msg original na plataforma
+      replyToFull,  // objeto da msg original (para preview imediato)
     },
     onMessageAdded
   ) => {
@@ -92,9 +92,9 @@ export function useSendMessage() {
     const tempId = Date.now();
     const now = new Date();
     const provisionalType = file ? getTypeFromFile(file) : 'text';
-    const replySnapshot  = makeReplySnapshot(replyToFull);
+    const replySnapshot = makeReplySnapshot(replyToFull);
 
-    // 1) Cria a mensagem provisória (rápida)
+    // Mensagem provisória (sem URL ainda quando é mídia)
     const provisionalMessage = {
       id: tempId,
       direction: 'outgoing',
@@ -107,26 +107,40 @@ export function useSendMessage() {
       ...(replyTo ? { reply_to: replyTo } : {}),
       ...(replySnapshot ? { replyTo: replySnapshot } : {}),
     };
-    if (typeof onMessageAdded === 'function') onMessageAdded(provisionalMessage);
+
+    // Adiciona no store (preferencial) ou usa callback legado
+    const store = useConversationsStore.getState();
+    const alreadyExists =
+      store.conversations[userId]?.messages?.some(
+        (m) => m.id === tempId || m.message_id === tempId
+      ) || false;
+
+    if (!alreadyExists) {
+      if (typeof store.appendMessage === 'function') {
+        store.appendMessage(userId, provisionalMessage);
+      } else if (typeof onMessageAdded === 'function') {
+        onMessageAdded(provisionalMessage);
+      }
+    }
 
     setIsSending(true);
 
-    let uploadedContent = null; // vamos preencher com a URL assim que o upload terminar
+    let uploadedContent = null;
 
     try {
-      // 2) Monta payload do backend
+      // Monta payload
       const payload = {
         to,
         channel, // 'whatsapp' | 'telegram'
-        type: provisionalType,
+        type: provisionalType, // 'text' | 'image' | 'audio' | 'video' | 'document'
         content: {},
       };
 
       if (file) {
+        // valida e sobe arquivo
         const { valid, errorMsg } = validateFile(file);
         if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
 
-        // ⚡ Faz upload E JÁ ATUALIZA a mensagem provisória com a URL (para tocar/imagem aparecer)
         const fileUrl = await uploadFileAndGetURL(file);
         if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
@@ -134,16 +148,15 @@ export function useSendMessage() {
           url: fileUrl,
           ...(provisionalType !== 'audio' && file.name ? { filename: file.name } : {}),
           ...(text?.trim() ? { caption: text.trim() } : {}),
+          // se gravador marcou como voz, já mandamos flag
           ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
         };
 
-        // Atualiza a provisória com a URL para render imediato do player/imagem
-        if (typeof onMessageAdded === 'function') {
-          onMessageAdded({
-            ...provisionalMessage,
-            content: uploadedContent, // agora há url
-            status: 'sending',
-          });
+        // Atualiza a provisória com a URL para render imediato
+        if (typeof store.updateMessageStatus === 'function') {
+          store.updateMessageStatus(userId, tempId, { content: uploadedContent });
+        } else if (typeof onMessageAdded === 'function') {
+          onMessageAdded({ ...provisionalMessage, content: uploadedContent, status: 'sending' });
         }
 
         payload.content = uploadedContent;
@@ -153,56 +166,75 @@ export function useSendMessage() {
 
       if (replyTo) payload.context = { message_id: replyTo };
 
-      // 3) Envia pro backend
+      // Envia ao backend
       const response = await apiPost('/messages/send', payload);
       const saved = response?.message;
 
-      // 4) Atualiza como 'sent' mantendo o conteúdo (principalmente para mídia)
-      if (typeof onMessageAdded === 'function') {
+      // Marca como sent no store (preferencial) ou callback
+      if (typeof store.updateMessageStatus === 'function') {
+        store.updateMessageStatus(userId, tempId, {
+          status: 'sent',
+          message_id: saved?.message_id,
+          // mantém o content já atualizado se era mídia
+          ...(uploadedContent ? { content: uploadedContent } : {}),
+        });
+      } else if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
-          content: uploadedContent || provisionalMessage.content,
           message_id: saved?.message_id,
+          content: uploadedContent || provisionalMessage.content,
           serverResponse: response,
         });
       }
 
-      // lidas antes do system (conveniência)
+      // Conveniência: marca mensagens anteriores como lidas
       marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
 
-      if (typeof onMessageAdded === 'function') {
-        onMessageAdded({
-          ...provisionalMessage,
-          content: uploadedContent || provisionalMessage.content,
-          status: 'error',
-          errorMessage:
-            err?.response?.data?.error ||
-            err?.response?.data?.details ||
-            err?.message ||
-            'Erro desconhecido',
-        });
+      const errorPatch = {
+        status: 'error',
+        errorMessage:
+          err?.response?.data?.error ||
+          err?.response?.data?.details ||
+          err?.message ||
+          'Erro desconhecido',
+        ...(uploadedContent ? { content: uploadedContent } : {}),
+      };
+
+      if (typeof store.updateMessageStatus === 'function') {
+        store.updateMessageStatus(userId, tempId, errorPatch);
+      } else if (typeof onMessageAdded === 'function') {
+        onMessageAdded({ ...provisionalMessage, ...errorPatch });
       }
 
       const platformError = err?.response?.data;
-      if (platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
-          platformError?.error === 'Message outside 24h window') {
+      if (
+        platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
+        platformError?.error === 'Message outside 24h window'
+      ) {
         toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', {
-          position: 'bottom-right', autoClose: 5000,
+          position: 'bottom-right',
+          autoClose: 5000,
         });
-      } else if (platformError?.error === 'Recipient not in allowed list' || platformError?.error?.code === 131030) {
+      } else if (
+        platformError?.error === 'Recipient not in allowed list' ||
+        platformError?.error?.code === 131030
+      ) {
         toast.error('Número não permitido no WhatsApp. Use um número de teste cadastrado.', {
-          position: 'bottom-right', autoClose: 5000,
+          position: 'bottom-right',
+          autoClose: 5000,
         });
       } else if (platformError?.error === 'Message text cannot be empty') {
         toast.error('Mensagem vazia no Telegram.', {
-          position: 'bottom-right', autoClose: 3000,
+          position: 'bottom-right',
+          autoClose: 3000,
         });
       } else {
         toast.error(`Erro ao enviar mensagem: ${err.message}`, {
-          position: 'bottom-right', autoClose: 3000,
+          position: 'bottom-right',
+          autoClose: 3000,
         });
       }
     } finally {
@@ -227,8 +259,10 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     idx < systemIndex ? { ...msg, status: 'read' } : msg
   );
 
-  store.setConversation(userId, {
-    ...conversation,
-    messages: updatedMessages,
-  });
+  if (typeof store.setConversation === 'function') {
+    store.setConversation(userId, {
+      ...conversation,
+      messages: updatedMessages,
+    });
+  }
 }
