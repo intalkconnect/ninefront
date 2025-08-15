@@ -51,11 +51,32 @@ export function useSendMessage() {
       return;
     }
 
+    // validação de arquivo ANTES da provisória
+    if (file) {
+      const { valid, errorMsg } = validateFile(file);
+      if (!valid) {
+        toast.warn(errorMsg || 'Arquivo inválido', {
+          position: 'bottom-right',
+          autoClose: 2000,
+        });
+        return;
+      }
+    }
+
     // cria mensagem provisória (feedback instantâneo na UI)
     const tempId = Date.now();
     const now = new Date();
 
     const provisionalType = file ? getTypeFromFile(file) : 'text';
+
+    // ✅ preview local imediato (blob:)
+    let localUrl = null;
+    if (file) {
+      try {
+        localUrl = URL.createObjectURL(file);
+      } catch {}
+    }
+
     const provisionalMessage = {
       id: tempId,
       direction: 'outgoing',
@@ -63,7 +84,15 @@ export function useSendMessage() {
       readableTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'sending',
       type: provisionalType,
-      content: text?.trim() || (file ? { filename: file.name } : ''),
+      // 🔥 já coloca url para render instantâneo quando há arquivo
+      content: file
+        ? {
+            url: localUrl, // blob:… → render imediato
+            filename: file.name,
+            ...(text?.trim() ? { caption: text.trim() } : {}),
+            _local: true,
+          }
+        : { body: text?.trim() || '' },
       channel,
     };
 
@@ -83,10 +112,7 @@ export function useSendMessage() {
       };
 
       if (file) {
-        // valida e sobe o arquivo pra obter URL
-        const { valid, errorMsg } = validateFile(file);
-        if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
-
+        // sobe o arquivo pra obter URL pública
         const fileUrl = await uploadFileAndGetURL(file);
         if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
@@ -97,6 +123,18 @@ export function useSendMessage() {
           ...(provisionalType !== 'audio' && file.name ? { filename: file.name } : {}),
           ...(text?.trim() ? { caption: text.trim() } : {}),
         };
+
+        // 🔁 atualiza a provisória com a URL pública (mesmo id)
+        if (typeof onMessageAdded === 'function') {
+          onMessageAdded({
+            ...provisionalMessage,
+            content: { ...(provisionalMessage.content || {}), url: fileUrl, _local: false },
+          });
+        }
+        // libera o blob quando já temos a URL pública
+        try {
+          if (localUrl) URL.revokeObjectURL(localUrl);
+        } catch {}
       } else {
         // texto simples: { body }
         payload.content = { body: text.trim() };
@@ -117,6 +155,10 @@ export function useSendMessage() {
           status: 'sent',
           message_id: saved?.message_id,
           serverResponse: response,
+          // garante que a URL pública prevaleça
+          ...(file
+            ? { content: { ...(provisionalMessage.content || {}), url: payload.content.url, _local: false } }
+            : {}),
         });
       }
 
