@@ -150,6 +150,7 @@ export function useSendMessage() {
           url: fileUrl,
           ...(provisionalType !== 'audio' && file.name ? { filename: file.name } : {}),
           ...(text?.trim() ? { caption: text.trim() } : {}),
+          ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
         };
       } else {
         // texto simples: { body }
@@ -250,3 +251,4 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     messages: updatedMessages,
   });
 }
+
