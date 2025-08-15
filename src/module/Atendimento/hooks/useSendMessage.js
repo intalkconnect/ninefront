@@ -57,13 +57,12 @@ function makeReplySnapshot(replyToFull) {
   };
 }
 
-// --------- helper: atualizar “card” no store (Sidebar) ---------
+// --------- helper para atualizar o “card” (Sidebar) ---------
 function updateConversationCard(userId, patch) {
   const store = useConversationsStore.getState();
   store.setConversation(userId, patch);
 }
 
-// ----------------------------------------------------------------
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
@@ -73,7 +72,7 @@ export function useSendMessage() {
       file,
       userId,
       replyTo,      // id da msg original
-      replyToFull,  // objeto completo da msg original (para preview imediato)
+      replyToFull,  // objeto completo da msg original (para preview)
     },
     onMessageAdded
   ) => {
@@ -93,6 +92,14 @@ export function useSendMessage() {
     const provisionalType = file ? getTypeFromFile(file) : 'text';
     const replySnapshot  = makeReplySnapshot(replyToFull);
 
+    // 🔹 para imagem, criamos uma URL local (preview) para renderizar na hora
+    let localUrl;
+    if (file && provisionalType === 'image') {
+      try {
+        localUrl = URL.createObjectURL(file);
+      } catch {}
+    }
+
     // ---------- Mensagem provisória (ChatWindow) ----------
     const provisionalMessage = {
       id: tempId,
@@ -101,21 +108,31 @@ export function useSendMessage() {
       readableTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'sending',
       type: provisionalType,
-      content: text?.trim() || (file ? { filename: file.name } : ''),
+      content: (() => {
+        if (!file) return text?.trim() || '';
+        if (provisionalType === 'image' && localUrl) {
+          // já nasce com url local para aparecer imediatamente
+          return {
+            url: localUrl,
+            filename: file.name,
+            ...(text?.trim() ? { caption: text.trim() } : {}),
+          };
+        }
+        // demais tipos mantêm nome até o upload retornar a URL
+        return { filename: file.name };
+      })(),
       channel,
       ...(replyTo ? { reply_to: replyTo } : {}),
       ...(replySnapshot ? { replyTo: replySnapshot } : {}),
     };
     if (typeof onMessageAdded === 'function') onMessageAdded(provisionalMessage);
 
-    // ---------- Atualização OTIMISTA do CARD (Sidebar) ----------
-    // Mostra imediatamente o snippet correto (texto/áudio/imagem/documento)
+    // ---------- Atualização do CARD (Sidebar) ----------
     updateConversationCard(userId, {
-      // Mantém dados já existentes e apenas atualiza estes campos
       content: provisionalMessage.content,
       type: provisionalType,
       timestamp: now.toISOString(),
-      channel, // por segurança
+      channel,
     });
 
     setIsSending(true);
@@ -123,11 +140,11 @@ export function useSendMessage() {
     let uploadedContent = null;
 
     try {
-      // ---------- Monta payload do backend ----------
+      // ---------- Monta payload ----------
       const payload = {
         to,
-        channel,                    // 'whatsapp' | 'telegram'
-        type: provisionalType,      // 'text' | 'image' | 'audio' | 'video' | 'document'
+        channel,
+        type: provisionalType,
         content: {},
       };
 
@@ -135,7 +152,7 @@ export function useSendMessage() {
         const { valid, errorMsg } = validateFile(file);
         if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
 
-        // Sobe o arquivo e ATUALIZA a mensagem provisória + card com a URL
+        // Sobe arquivo
         const fileUrl = await uploadFileAndGetURL(file);
         if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
@@ -146,7 +163,7 @@ export function useSendMessage() {
           ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
         };
 
-        // ChatWindow: atualiza a bolha provisória com URL (player/imagem já renderizam)
+        // ChatWindow: troca o conteúdo da provisória para a URL do bucket
         if (typeof onMessageAdded === 'function') {
           onMessageAdded({
             ...provisionalMessage,
@@ -154,8 +171,7 @@ export function useSendMessage() {
             status: 'sending',
           });
         }
-
-        // Sidebar: atualiza o card com URL (snippet muda para Ícone Áudio/Imagem etc.)
+        // Sidebar: atualiza snippet com a URL definitiva
         updateConversationCard(userId, {
           content: uploadedContent,
           type: provisionalType,
@@ -173,7 +189,7 @@ export function useSendMessage() {
       const response = await apiPost('/messages/send', payload);
       const saved = response?.message;
 
-      // ChatWindow: marca como sent (mantendo conteúdo já mostrado)
+      // ChatWindow: marca como sent mantendo o conteúdo atual (com url do bucket)
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
@@ -184,7 +200,7 @@ export function useSendMessage() {
         });
       }
 
-      // Sidebar: garante que o card permaneça com o último conteúdo e horário
+      // Sidebar: garante card atualizado
       updateConversationCard(userId, {
         content: uploadedContent || provisionalMessage.content,
         type: provisionalType,
@@ -208,7 +224,7 @@ export function useSendMessage() {
         });
       }
 
-      // Mesmo em erro, mantenha o card com o último conteúdo para o snippet
+      // Mantém o card com o último conteúdo
       updateConversationCard(userId, {
         content: uploadedContent || provisionalMessage.content,
         type: provisionalType,
@@ -236,6 +252,10 @@ export function useSendMessage() {
       }
     } finally {
       setIsSending(false);
+      // opcional: revogar URL local para liberar memória
+      if (localUrl) {
+        try { URL.revokeObjectURL(localUrl); } catch {}
+      }
     }
   };
 
