@@ -1,3 +1,4 @@
+// src/hooks/useSendMessage.js
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { apiPost } from '../services/apiClient';
@@ -31,12 +32,10 @@ function normalizeReplyContent(raw) {
   if (typeof raw === 'string') return { body: raw };
 
   const c = { ...(raw || {}) };
-  // já favorece body/text/caption
   if (typeof c.body === 'string' && c.body.trim()) return { body: c.body };
   if (typeof c.text === 'string' && c.text.trim()) return { body: c.text };
   if (typeof c.caption === 'string' && c.caption.trim()) return { body: c.caption };
 
-  // mantém url/filename/voice p/ dedução de snippet no componente
   return {
     ...(c.url ? { url: c.url } : {}),
     ...(c.filename ? { filename: c.filename } : {}),
@@ -57,7 +56,6 @@ function makeReplySnapshot(replyToFull) {
     null;
 
   return {
-    // usado pelo MessageList para achar alvo também
     message_id: replyId || undefined,
     direction: replyToFull.direction,
     name: replyToFull.name || replyToFull.sender_name || undefined,
@@ -75,23 +73,12 @@ export function useSendMessage() {
       file,
       userId,
       replyTo,      // (string) id da msg original
-      replyToFull,  // (objeto) msg original completa -> NOVO para preview imediato
+      replyToFull,  // (objeto) msg original completa -> preview imediato
     },
     onMessageAdded
   ) => {
     const channel = getChannelFromUserId(userId);
     const to = extractRawUserId(userId || '');
-
-    // log bonitinho pra debug
-    console.log('📨 Enviando mensagem:', {
-      channel,
-      userId,
-      to,
-      text: text?.trim(),
-      file: file?.name,
-      replyTo,
-      replyToFull,
-    });
 
     // validação básica
     if (!text?.trim() && !file) {
@@ -102,13 +89,12 @@ export function useSendMessage() {
       return;
     }
 
-    // cria mensagem provisória (feedback instantâneo na UI)
     const tempId = Date.now();
     const now = new Date();
-
     const provisionalType = file ? getTypeFromFile(file) : 'text';
-    const replySnapshot = makeReplySnapshot(replyToFull); // <- snapshot p/ render imediata
+    const replySnapshot  = makeReplySnapshot(replyToFull);
 
+    // 1) Cria a mensagem provisória (rápida)
     const provisionalMessage = {
       id: tempId,
       direction: 'outgoing',
@@ -121,69 +107,76 @@ export function useSendMessage() {
       ...(replyTo ? { reply_to: replyTo } : {}),
       ...(replySnapshot ? { replyTo: replySnapshot } : {}),
     };
-
-    if (typeof onMessageAdded === 'function') {
-      onMessageAdded(provisionalMessage);
-    }
+    if (typeof onMessageAdded === 'function') onMessageAdded(provisionalMessage);
 
     setIsSending(true);
 
+    let uploadedContent = null; // vamos preencher com a URL assim que o upload terminar
+
     try {
-      // monta payload do JEITO QUE O BACKEND ESPERA
+      // 2) Monta payload do backend
       const payload = {
         to,
         channel, // 'whatsapp' | 'telegram'
-        type: provisionalType, // 'text' | 'image' | 'audio' | 'video' | 'document'
+        type: provisionalType,
         content: {},
       };
 
       if (file) {
-        // valida e sobe o arquivo pra obter URL
         const { valid, errorMsg } = validateFile(file);
         if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
 
+        // ⚡ Faz upload E JÁ ATUALIZA a mensagem provisória com a URL (para tocar/imagem aparecer)
         const fileUrl = await uploadFileAndGetURL(file);
         if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
-        // WhatsApp/Telegram no seu backend esperam { url, caption?, filename? }
-        payload.content = {
+        uploadedContent = {
           url: fileUrl,
           ...(provisionalType !== 'audio' && file.name ? { filename: file.name } : {}),
           ...(text?.trim() ? { caption: text.trim() } : {}),
           ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
         };
+
+        // Atualiza a provisória com a URL para render imediato do player/imagem
+        if (typeof onMessageAdded === 'function') {
+          onMessageAdded({
+            ...provisionalMessage,
+            content: uploadedContent, // agora há url
+            status: 'sending',
+          });
+        }
+
+        payload.content = uploadedContent;
       } else {
-        // texto simples: { body }
         payload.content = { body: text.trim() };
       }
 
-      if (replyTo) {
-        payload.context = { message_id: replyTo }; // mantém referência real para a plataforma
-      }
+      if (replyTo) payload.context = { message_id: replyTo };
 
-      console.log('📤 Payload de envio:', payload);
+      // 3) Envia pro backend
       const response = await apiPost('/messages/send', payload);
-      // Sua rota retorna: { success: true, message: savedMessage, channel }
       const saved = response?.message;
 
+      // 4) Atualiza como 'sent' mantendo o conteúdo (principalmente para mídia)
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
+          content: uploadedContent || provisionalMessage.content,
           message_id: saved?.message_id,
           serverResponse: response,
         });
       }
 
-      // marca como lidas (abaixo tem helper)
+      // lidas antes do system (conveniência)
       marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
 
-      // atualiza provisória como erro
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
+          content: uploadedContent || provisionalMessage.content,
           status: 'error',
           errorMessage:
             err?.response?.data?.error ||
@@ -193,33 +186,23 @@ export function useSendMessage() {
         });
       }
 
-      // mensagens específicas
       const platformError = err?.response?.data;
-
-      if (platformError?.error?.toString?.().toLowerCase?.().includes('24h')) {
+      if (platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
+          platformError?.error === 'Message outside 24h window') {
         toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', {
-          position: 'bottom-right',
-          autoClose: 5000,
-        });
-      } else if (platformError?.error === 'Message outside 24h window') {
-        toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', {
-          position: 'bottom-right',
-          autoClose: 5000,
+          position: 'bottom-right', autoClose: 5000,
         });
       } else if (platformError?.error === 'Recipient not in allowed list' || platformError?.error?.code === 131030) {
         toast.error('Número não permitido no WhatsApp. Use um número de teste cadastrado.', {
-          position: 'bottom-right',
-          autoClose: 5000,
+          position: 'bottom-right', autoClose: 5000,
         });
       } else if (platformError?.error === 'Message text cannot be empty') {
         toast.error('Mensagem vazia no Telegram.', {
-          position: 'bottom-right',
-          autoClose: 3000,
+          position: 'bottom-right', autoClose: 3000,
         });
       } else {
         toast.error(`Erro ao enviar mensagem: ${err.message}`, {
-          position: 'bottom-right',
-          autoClose: 3000,
+          position: 'bottom-right', autoClose: 3000,
         });
       }
     } finally {
@@ -235,9 +218,7 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
   const store = useConversationsStore.getState();
   const conversation = store.conversations[userId] || {};
 
-  if (!mensagens) {
-    mensagens = conversation.messages || [];
-  }
+  if (!mensagens) mensagens = conversation.messages || [];
 
   const systemIndex = mensagens.findIndex((m) => m.type === 'system');
   if (systemIndex === -1) return;
@@ -251,4 +232,3 @@ export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
     messages: updatedMessages,
   });
 }
-
