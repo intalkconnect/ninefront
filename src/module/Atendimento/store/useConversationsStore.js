@@ -11,7 +11,8 @@ const useConversationsStore = create((set, get) => ({
   userFilas: [],
   agentName: null,
   settings: [],
-  socketStatus: 'online',          // estado da conexão com o socket
+  socketStatus: 'online',
+
   setSocketStatus: (status) => set({ socketStatus: status }),
 
   setSettings: (data) => set({ settings: data }),
@@ -20,10 +21,10 @@ const useConversationsStore = create((set, get) => ({
     return found ? found.value : null;
   },
 
-  // Configura email e filas do usuário
-  setUserInfo: ({ email, filas, name }) => set({ userEmail: email, userFilas: filas, agentName: name }),
+  setUserInfo: ({ email, filas, name }) =>
+    set({ userEmail: email, userFilas: filas, agentName: name }),
 
-  // Atualiza conversa selecionada, zera não lidas do atual e do anterior
+  // troca de chat + zera não lidas
   setSelectedUserId: async (userId) => {
     const previousId = get().selectedUserId;
     const now = new Date().toISOString();
@@ -38,31 +39,22 @@ const useConversationsStore = create((set, get) => ({
     get().resetUnread(userId);
     get().clearNotified(userId);
 
-    // Atualiza visualmente
+    // otimiza UI
     set((state) => ({
-      lastRead: {
-        ...state.lastRead,
-        [userId]: now,
-      },
-      unreadCounts: {
-        ...state.unreadCounts,
-        [userId]: 0,
-      },
+      lastRead: { ...state.lastRead, [userId]: now },
+      unreadCounts: { ...state.unreadCounts, [userId]: 0 },
     }));
 
-    // Marcar como lido no backend
+    // backend
     try {
-      await apiPut(`/messages/read-status/${userId}`, {
-        last_read: now,
-      });
-
-      // 🔁 Atualiza contagens do backend após marcar como lido
+      await apiPut(`/messages/read-status/${userId}`, { last_read: now });
       await get().loadUnreadCounts();
     } catch (err) {
       console.error('Erro ao marcar como lido:', err);
     }
   },
 
+  // merge de conversa
   setConversation: (userId, newData) =>
     set((state) => ({
       conversations: {
@@ -74,21 +66,24 @@ const useConversationsStore = create((set, get) => ({
       },
     })),
 
-  // 🔹 Upsert de mensagem (resolve “segunda mídia não aparece até a terceira”)
+  // ✅ upsert de mensagem — força re-render confiável
   addOrUpdateMessage: (userId, message) =>
     set((state) => {
       const conv = state.conversations[userId] || {};
       const list = Array.isArray(conv.messages) ? [...conv.messages] : [];
 
-      // chave preferencial: message_id (definitivo) → id (tempId)
-      const keyOf = (m) => m?.message_id || m?.id;
+      const keyOf = (m) =>
+        m?.message_id ||
+        m?.whatsapp_message_id ||
+        m?.telegram_message_id ||
+        m?.provider_id ||
+        m?.id;
+
       const k = keyOf(message);
       let idx = -1;
-
       if (k) idx = list.findIndex((m) => keyOf(m) === k);
 
       if (idx >= 0) {
-        // substitui por um NOVO objeto para forçar re-render
         list[idx] = { ...list[idx], ...message };
       } else {
         list.push(message);
@@ -102,13 +97,14 @@ const useConversationsStore = create((set, get) => ({
       };
     }),
 
-  // 🔹 Atualiza campos do “card” (snippet, type, timestamp, channel)
-  updateConversationCard: (userId, { content, type, timestamp, channel }) =>
+  // ✅ atualiza o “card” (snippet) de forma consistente
+  updateConversationCard: (userId, { content, type, timestamp, channel, name }) =>
     set((state) => ({
       conversations: {
         ...state.conversations,
         [userId]: {
           ...(state.conversations[userId] || {}),
+          ...(name ? { name } : {}),
           ...(channel ? { channel } : {}),
           ...(content !== undefined ? { content } : {}),
           ...(type ? { type } : {}),
@@ -117,30 +113,18 @@ const useConversationsStore = create((set, get) => ({
       },
     })),
 
-  // Zera contagem de não lidas
+  // não lidas
   resetUnread: (userId) =>
     set((state) => ({
-      unreadCounts: {
-        ...state.unreadCounts,
-        [userId]: 0,
-      },
-      lastRead: {
-        ...state.lastRead,
-        [userId]: new Date().toISOString(),
-      },
+      unreadCounts: { ...state.unreadCounts, [userId]: 0 },
+      lastRead: { ...state.lastRead, [userId]: new Date().toISOString() },
     })),
 
-  // Incrementa contagem de não lidas
   incrementUnread: (userId, messageTimestamp) => {
     const { lastRead, unreadCounts } = get();
-
     const last = lastRead[userId] ? new Date(lastRead[userId]) : null;
     const current = new Date(messageTimestamp);
-
-    if (last && current <= last) {
-      // Já foi lida
-      return;
-    }
+    if (last && current <= last) return;
 
     set({
       unreadCounts: {
@@ -152,7 +136,6 @@ const useConversationsStore = create((set, get) => ({
 
   setClienteAtivo: (info) => set({ clienteAtivo: info }),
 
-  // Adiciona ou atualiza dados de conversa
   mergeConversation: (userId, data) =>
     set((state) => ({
       conversations: {
@@ -164,10 +147,9 @@ const useConversationsStore = create((set, get) => ({
       },
     })),
 
-  // Retorna nome do contato ou ID
-  getContactName: (userId) => get().conversations[userId]?.name || userId,
+  getContactName: (userId) =>
+    get().conversations[userId]?.name || userId,
 
-  // Carrega contagem de não lidas do servidor
   loadUnreadCounts: async () => {
     try {
       const data = await apiGet('/messages/unread-counts');
@@ -181,7 +163,6 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  // Carrega timestamps de leitura do servidor
   loadLastReadTimes: async () => {
     try {
       const data = await apiGet('/messages/read-status');
@@ -195,14 +176,14 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  // Filtra conversas ativas e atribuídas
   getFilteredConversations: () => {
     const { conversations, userEmail, userFilas } = get();
     return Object.fromEntries(
-      Object.entries(conversations).filter(([_, conv]) =>
-        conv.status === 'open' &&
-        conv.assigned_to === userEmail &&
-        userFilas.includes(conv.fila)
+      Object.entries(conversations).filter(
+        ([_, conv]) =>
+          conv.status === 'open' &&
+          conv.assigned_to === userEmail &&
+          (!conv.fila || userFilas.includes(conv.fila))
       )
     );
   },
@@ -223,7 +204,6 @@ const useConversationsStore = create((set, get) => ({
       delete updated[userId];
       return { notifiedConversations: updated };
     }),
-
 }));
 
 export default useConversationsStore;
