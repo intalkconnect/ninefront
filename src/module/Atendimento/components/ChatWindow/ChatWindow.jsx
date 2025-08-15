@@ -16,42 +16,97 @@ import './ChatWindowPagination.css';
 const MESSAGES_PER_PAGE = 100;
 
 /* -------------------- helpers -------------------- */
-function contentToText(content) {
-  if (content == null) return '';
-  if (typeof content === 'string') {
-    try {
-      const parsed = JSON.parse(content);
-      if (parsed && typeof parsed === 'object') {
-        return parsed.text || parsed.caption || parsed.body || '[mensagem]';
+function extractText(c) {
+  if (c == null) return '';
+  if (typeof c === 'string') {
+    const s = c.trim();
+    if (s.startsWith('{') || s.startsWith('[')) {
+      try {
+        const j = JSON.parse(s);
+        return extractText(j);
+      } catch {
+        return s;
       }
-      return content;
-    } catch { return content; }
+    }
+    return s;
   }
-  if (typeof content === 'object') {
-    return content.text || content.caption || content.body || '[mensagem]';
+  if (typeof c === 'object') {
+    return String(c.text || c.caption || c.body || '').trim();
   }
-  return String(content);
+  return String(c).trim();
 }
-
+function extractUrlOrFilename(c) {
+  if (!c) return '';
+  if (typeof c === 'string') {
+    try { const j = JSON.parse(c); return extractUrlOrFilename(j); } catch { return ''; }
+  }
+  if (typeof c === 'object') {
+    return String(c.url || c.filename || '').trim().toLowerCase();
+  }
+  return '';
+}
+function contentToText(content) {
+  const t = extractText(content);
+  if (t) return t;
+  // fallback legível para card/snippet se precisar
+  const uf = extractUrlOrFilename(content);
+  if (uf) return '[arquivo]';
+  return '[mensagem]';
+}
 const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, error: 1, undefined: 0, null: 0 };
 function rankStatus(s) { return STATUS_RANK[s] ?? 0; }
 
 function normText(x) {
-  return contentToText(x).trim().replace(/\s+/g, ' ').toLowerCase();
+  return extractText(x).replace(/\s+/g, ' ').toLowerCase();
 }
 function isOutgoing(m) { return m?.direction === 'outgoing'; }
+
+function tsOf(m) {
+  const t = m?.timestamp || m?.created_at || null;
+  const n = t ? new Date(t).getTime() : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
 function closeInTime(a, b, windowMs = 15000) {
-  const ta = new Date(a.timestamp).getTime();
-  const tb = new Date(b.timestamp).getTime();
-  return Number.isFinite(ta) && Number.isFinite(tb) && Math.abs(ta - tb) <= windowMs;
+  const ta = tsOf(a);
+  const tb = tsOf(b);
+  return Math.abs(ta - tb) <= windowMs;
 }
 
-// mesma mensagem? (client_id ou mesmo texto e tempo próximo)
+// comparação por quaisquer chaves fortes
+function sameByAnyId(a, b) {
+  const keysA = new Set(
+    [a?.id, a?.message_id, a?.provider_id, a?.client_id].filter(Boolean).map(String)
+  );
+  const keysB = [b?.id, b?.message_id, b?.provider_id, b?.client_id].filter(Boolean).map(String);
+  return keysB.some(k => keysA.has(k));
+}
+
+// mesma mensagem? (regras mais seguras)
 function isSameOutgoing(a, b) {
   if (!a || !b || !isOutgoing(a) || !isOutgoing(b)) return false;
+
+  // se houver client_id em ambos e igual → é a mesma
   if (a.client_id && b.client_id && a.client_id === b.client_id) return true;
+
+  // se não estiverem próximos no tempo, não une
   if (!closeInTime(a, b)) return false;
-  return normText(a.content) === normText(b.content);
+
+  // tipos diferentes → não une
+  if ((a.type || 'text') !== (b.type || 'text')) return false;
+
+  const ta = normText(a.content);
+  const tb = normText(b.content);
+
+  // se houver texto/caption em pelo menos um, só une se iguais
+  if (ta || tb) return ta === tb;
+
+  // sem texto/caption: só une se url/filename iguais
+  const ua = extractUrlOrFilename(a.content);
+  const ub = extractUrlOrFilename(b.content);
+  if (ua && ub) return ua === ub;
+
+  // caso contrário, NÃO une (ex.: 2 mídias diferentes sem texto)
+  return false;
 }
 
 // mescla campos, priorizando a “melhor” (status maior, id real etc.)
@@ -62,37 +117,55 @@ function mergeOutgoing(a, b) {
   return {
     ...first,
     id: first.id || second.id,
+    message_id: first.message_id || second.message_id,
+    provider_id: first.provider_id || second.provider_id,
     client_id: first.client_id || second.client_id,
-    pending: (first.pending && !first.id) ? true : false,
-    timestamp: first.id ? first.timestamp : (second.id ? second.timestamp : first.timestamp),
+    pending: (first.pending && !first.id && !first.message_id && !first.provider_id) ? true : false,
+    timestamp: first.timestamp || second.timestamp,
     content: first.content ?? second.content,
     channel: first.channel || second.channel,
+    type: first.type || second.type,
     reply_to: first.reply_to ?? second.reply_to,
     reply_direction: first.reply_direction ?? second.reply_direction,
   };
 }
 
+// acha índice por qualquer id forte
+function findIndexByAnyId(list, msg) {
+  const keys = new Set([msg?.id, msg?.message_id, msg?.provider_id, msg?.client_id].filter(Boolean).map(String));
+  if (!keys.size) return -1;
+  return list.findIndex(m => {
+    const ks = [m?.id, m?.message_id, m?.provider_id, m?.client_id].filter(Boolean).map(String);
+    return ks.some(k => keys.has(k));
+  });
+}
+
 // garante que ao inserir/atualizar um outgoing não crie duplicata
 function upsertOutgoing(list, msg) {
-  const byId = msg.id ? list.findIndex(m => m.id === msg.id) : -1;
-  if (byId >= 0) {
+  // 1) tentar casar por id/message_id/provider_id/client_id
+  const byStrong = findIndexByAnyId(list, msg);
+  if (byStrong >= 0) {
     const clone = [...list];
-    clone[byId] = mergeOutgoing(clone[byId], msg);
+    clone[byStrong] = mergeOutgoing(clone[byStrong], msg);
+    clone.sort((a,b)=> tsOf(a) - tsOf(b));
     return clone;
   }
 
+  // 2) heurística de “mesma mensagem” (texto igual, ou mesma url/filename) em janela curta
   const N = 20;
   for (let i = Math.max(0, list.length - N); i < list.length; i++) {
     const m = list[i];
     if (isSameOutgoing(m, msg)) {
       const clone = [...list];
       clone[i] = mergeOutgoing(m, msg);
+      clone.sort((a,b)=> tsOf(a) - tsOf(b));
       return clone;
     }
   }
 
+  // 3) adicionar novo
   const added = [...list, msg];
-  added.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
+  added.sort((a,b)=> tsOf(a) - tsOf(b));
   return added;
 }
 
@@ -145,8 +218,12 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      if (msg.id && prev.some(m => m.id === msg.id)) {
-        const clone = prev.map(m => (m.id === msg.id ? mergeOutgoing(m, msg) : m));
+      // tenta casar por qualquer id
+      const idx = findIndexByAnyId(prev, msg);
+      if (idx >= 0) {
+        const clone = [...prev];
+        clone[idx] = mergeOutgoing(clone[idx], msg);
+        clone.sort((a,b)=> tsOf(a) - tsOf(b));
         messageCacheRef.current.set(msg.user_id, clone);
         updateDisplayedMessages(clone, pageRef.current);
         return clone;
@@ -159,7 +236,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         return next;
       }
 
-      const updated = [...prev, msg].sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
+      const updated = [...prev, msg].sort((a,b)=> tsOf(a) - tsOf(b));
       messageCacheRef.current.set(msg.user_id, updated);
       updateDisplayedMessages(updated, pageRef.current);
       return updated;
@@ -170,15 +247,14 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
-      if (msg.id) {
-        const idx = prev.findIndex(m => m.id === msg.id);
-        if (idx >= 0) {
-          const clone = [...prev];
-          clone[idx] = mergeOutgoing(clone[idx], msg);
-          messageCacheRef.current.set(msg.user_id, clone);
-          updateDisplayedMessages(clone, pageRef.current);
-          return clone;
-        }
+      const idx = findIndexByAnyId(prev, msg);
+      if (idx >= 0) {
+        const clone = [...prev];
+        clone[idx] = mergeOutgoing(clone[idx], msg);
+        clone.sort((a,b)=> tsOf(a) - tsOf(b));
+        messageCacheRef.current.set(msg.user_id, clone);
+        updateDisplayedMessages(clone, pageRef.current);
+        return clone;
       }
 
       if (isOutgoing(msg)) {
@@ -224,7 +300,6 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     return () => {
       socket.off('connect', onConnect);
-      // ⚠️ NÃO fazer: socket.emit('leave_room', userIdSelecionado)
     };
   }, [userIdSelecionado]);
 
@@ -251,7 +326,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         }
 
         const msgs = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
-        msgs.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
+        msgs.sort((a,b)=> tsOf(a) - tsOf(b));
 
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
@@ -271,6 +346,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           status,
           content: contentToText(lastMsg?.content),
           timestamp: lastMsg?.timestamp,
+          type: lastMsg?.type,
         });
 
         marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
@@ -329,7 +405,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         try {
           const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
           const arr = Array.isArray(msgs) ? msgs : (msgs?.data || []);
-          arr.sort((a,b)=> new Date(a.timestamp) - new Date(b.timestamp));
+          arr.sort((a,b)=> tsOf(a) - tsOf(b));
           setAllMessages(arr);
           messageCacheRef.current.set(userIdSelecionado, arr);
           updateDisplayedMessages(arr, pageRef.current);
@@ -368,6 +444,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       timestamp: tempMsg.timestamp || new Date().toISOString(),
       channel: tempMsg.channel || 'whatsapp',
       direction: 'outgoing',
+      type: tempMsg.type,
     });
 
     setReplyTo(null);
