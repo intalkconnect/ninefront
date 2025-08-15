@@ -7,12 +7,10 @@ import QuickReplyMessage from './messageTypes/QuickReplyMessage';
 
 import AudioMessage from './messageTypes/AudioMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
-import { renderReplyContent } from '../../utils/renderUtils';
-
 import './MessageRow.css';
 import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from 'lucide-react';
 
-// ---------- helpers (preview de resposta) ----------
+// -------- helpers para o cabeçalho de resposta --------
 function pickSnippet(c) {
   if (!c) return '';
   if (typeof c === 'string') return c;
@@ -45,7 +43,7 @@ function buildReplyPreview(raw) {
 
   const title = raw.direction === 'outgoing'
     ? 'Você'
-    : (raw.name || raw.sender_name || ''); // <- sem "Contato"
+    : (raw.name || raw.sender_name || '');
 
   const snippet = pickSnippet(raw.content);
   return { title, snippet };
@@ -55,7 +53,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
 
-  // ---------- normalização do content ----------
+  // normaliza content
   let content = msg.content;
   if (typeof content === 'string') {
     if (!/^\d+$/.test(content)) {
@@ -74,7 +72,10 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
 
   const renderTimeAndStatus = () => (
     <div className="message-time">
-      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      {new Date(msg.timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}
       {isOutgoing && (
         <span className="message-status">
           {msg.status === 'read' ? (
@@ -110,7 +111,6 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
     );
   }
 
-  // render principal
   if (!messageContent) {
     if (typeof content === 'string' && /^\d+$/.test(content)) {
       messageContent = <TextMessage content={content} />;
@@ -191,7 +191,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Cabeçalho de resposta no balão (estilo WhatsApp)
+  // Cabeçalho de resposta (igual WhatsApp)
   const replyPreview =
     buildReplyPreview(msg.replyTo) ||
     buildReplyPreview(msg.reply_preview) ||
@@ -235,10 +235,13 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
                 <div className="replied-bar" />
                 <div className="replied-content">
                   <div className="replied-title">
-                    <strong>{replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}</strong>
+                    <strong>
+                      {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
+                    </strong>
                   </div>
                   <div className="replied-text">
-                    {renderReplyContent(replyPreview.snippet)}
+                    {/* usa o snippet direto, sem "[mensagem]" */}
+                    {replyPreview.snippet}
                   </div>
                 </div>
               </div>
