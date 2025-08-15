@@ -5,18 +5,14 @@ import { apiPost } from '../services/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
-// Helper: identifica o canal pelo userId completo
+// --------- helpers de canal/id ---------
 const getChannelFromUserId = (userId) => {
   if (!userId) return 'webchat';
   if (userId.endsWith('@w.msgcli.net')) return 'whatsapp';
   if (userId.endsWith('@t.msgcli.net')) return 'telegram';
   return 'webchat';
 };
-
-// Helper: remove sufixo @w.msgcli.net / @t.msgcli.net
 const extractRawUserId = (userId) => userId.replace(/@[wt]\.msgcli\.net$/, '');
-
-// Helper: deduz o "type" a partir do arquivo
 const getTypeFromFile = (file) => {
   if (!file) return 'text';
   const mt = (file.type || '').toLowerCase();
@@ -26,7 +22,7 @@ const getTypeFromFile = (file) => {
   return 'document';
 };
 
-// Normaliza content da msg referenciada para preview
+// --------- helpers de reply ---------
 function normalizeReplyContent(raw) {
   if (!raw) return {};
   if (typeof raw === 'string') return { body: raw };
@@ -42,11 +38,8 @@ function normalizeReplyContent(raw) {
     ...(c.voice ? { voice: true } : {})
   };
 }
-
-// Cria um snapshot seguro da mensagem sendo respondida
 function makeReplySnapshot(replyToFull) {
   if (!replyToFull || typeof replyToFull !== 'object') return null;
-
   const replyId =
     replyToFull.message_id ||
     replyToFull.whatsapp_message_id ||
@@ -64,6 +57,13 @@ function makeReplySnapshot(replyToFull) {
   };
 }
 
+// --------- helper: atualizar “card” no store (Sidebar) ---------
+function updateConversationCard(userId, patch) {
+  const store = useConversationsStore.getState();
+  store.setConversation(userId, patch);
+}
+
+// ----------------------------------------------------------------
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
@@ -72,15 +72,14 @@ export function useSendMessage() {
       text,
       file,
       userId,
-      replyTo,      // (string) id da msg original
-      replyToFull,  // (objeto) msg original completa -> preview imediato
+      replyTo,      // id da msg original
+      replyToFull,  // objeto completo da msg original (para preview imediato)
     },
     onMessageAdded
   ) => {
     const channel = getChannelFromUserId(userId);
     const to = extractRawUserId(userId || '');
 
-    // validação básica
     if (!text?.trim() && !file) {
       toast.warn('Digite algo ou anexe um arquivo antes de enviar.', {
         position: 'bottom-right',
@@ -94,7 +93,7 @@ export function useSendMessage() {
     const provisionalType = file ? getTypeFromFile(file) : 'text';
     const replySnapshot  = makeReplySnapshot(replyToFull);
 
-    // 1) Cria a mensagem provisória (rápida)
+    // ---------- Mensagem provisória (ChatWindow) ----------
     const provisionalMessage = {
       id: tempId,
       direction: 'outgoing',
@@ -109,16 +108,26 @@ export function useSendMessage() {
     };
     if (typeof onMessageAdded === 'function') onMessageAdded(provisionalMessage);
 
+    // ---------- Atualização OTIMISTA do CARD (Sidebar) ----------
+    // Mostra imediatamente o snippet correto (texto/áudio/imagem/documento)
+    updateConversationCard(userId, {
+      // Mantém dados já existentes e apenas atualiza estes campos
+      content: provisionalMessage.content,
+      type: provisionalType,
+      timestamp: now.toISOString(),
+      channel, // por segurança
+    });
+
     setIsSending(true);
 
-    let uploadedContent = null; // vamos preencher com a URL assim que o upload terminar
+    let uploadedContent = null;
 
     try {
-      // 2) Monta payload do backend
+      // ---------- Monta payload do backend ----------
       const payload = {
         to,
-        channel, // 'whatsapp' | 'telegram'
-        type: provisionalType,
+        channel,                    // 'whatsapp' | 'telegram'
+        type: provisionalType,      // 'text' | 'image' | 'audio' | 'video' | 'document'
         content: {},
       };
 
@@ -126,7 +135,7 @@ export function useSendMessage() {
         const { valid, errorMsg } = validateFile(file);
         if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
 
-        // ⚡ Faz upload E JÁ ATUALIZA a mensagem provisória com a URL (para tocar/imagem aparecer)
+        // Sobe o arquivo e ATUALIZA a mensagem provisória + card com a URL
         const fileUrl = await uploadFileAndGetURL(file);
         if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
@@ -137,14 +146,21 @@ export function useSendMessage() {
           ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
         };
 
-        // Atualiza a provisória com a URL para render imediato do player/imagem
+        // ChatWindow: atualiza a bolha provisória com URL (player/imagem já renderizam)
         if (typeof onMessageAdded === 'function') {
           onMessageAdded({
             ...provisionalMessage,
-            content: uploadedContent, // agora há url
+            content: uploadedContent,
             status: 'sending',
           });
         }
+
+        // Sidebar: atualiza o card com URL (snippet muda para Ícone Áudio/Imagem etc.)
+        updateConversationCard(userId, {
+          content: uploadedContent,
+          type: provisionalType,
+          timestamp: now.toISOString(),
+        });
 
         payload.content = uploadedContent;
       } else {
@@ -153,11 +169,11 @@ export function useSendMessage() {
 
       if (replyTo) payload.context = { message_id: replyTo };
 
-      // 3) Envia pro backend
+      // ---------- Envia ----------
       const response = await apiPost('/messages/send', payload);
       const saved = response?.message;
 
-      // 4) Atualiza como 'sent' mantendo o conteúdo (principalmente para mídia)
+      // ChatWindow: marca como sent (mantendo conteúdo já mostrado)
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
@@ -168,7 +184,13 @@ export function useSendMessage() {
         });
       }
 
-      // lidas antes do system (conveniência)
+      // Sidebar: garante que o card permaneça com o último conteúdo e horário
+      updateConversationCard(userId, {
+        content: uploadedContent || provisionalMessage.content,
+        type: provisionalType,
+        timestamp: now.toISOString(),
+      });
+
       marcarMensagensAntesDoTicketComoLidas(userId);
     } catch (err) {
       console.error('[❌ Erro ao enviar mensagem]', err);
@@ -185,6 +207,13 @@ export function useSendMessage() {
             'Erro desconhecido',
         });
       }
+
+      // Mesmo em erro, mantenha o card com o último conteúdo para o snippet
+      updateConversationCard(userId, {
+        content: uploadedContent || provisionalMessage.content,
+        type: provisionalType,
+        timestamp: now.toISOString(),
+      });
 
       const platformError = err?.response?.data;
       if (platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
@@ -213,7 +242,7 @@ export function useSendMessage() {
   return { isSending, sendMessage };
 }
 
-// Auxiliar: marca mensagens como lidas antes do primeiro "system"
+// Marca mensagens como lidas antes do primeiro "system"
 export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
   const store = useConversationsStore.getState();
   const conversation = store.conversations[userId] || {};
