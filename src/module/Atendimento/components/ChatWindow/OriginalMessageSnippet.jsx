@@ -17,6 +17,7 @@ function getSnippet(type, content) {
         return '🖼️ Imagem';
 
       case 'audio':
+        if (content.voice) return '🎤 Voz (Telegram)';
         return '🎵 Áudio';
 
       case 'video':
@@ -46,6 +47,7 @@ function getSnippet(type, content) {
   }
 }
 
+
 export default function OriginalMessageSnippet({ message }) {
   if (!message) return null;
 
@@ -58,3 +60,4 @@ export default function OriginalMessageSnippet({ message }) {
     </div>
   );
 }
+
