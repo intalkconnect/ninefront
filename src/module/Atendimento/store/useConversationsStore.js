@@ -34,39 +34,47 @@ function upsertMessage(list, incoming) {
 }
 
 // gera o snippet do card a partir do último conteúdo
-function contentToSnippet(c) {
-  if (c == null) return '';
-  if (typeof c === 'string') {
-    // tenta JSON “de leve”
-    const s = c.trim();
-    if (s.startsWith('{') || s.startsWith('[')) {
-      try {
-        const j = JSON.parse(s);
-        return contentToSnippet(j);
-      } catch {
-        return s.length > 40 ? s.slice(0, 37) + '...' : s;
-      }
-    }
-    return s.length > 40 ? s.slice(0, 37) + '...' : s;
-  }
-  if (typeof c === 'object') {
-    const url = String(c.url || '').toLowerCase();
-    const filename = String(c.filename || '').toLowerCase();
-    const txt = c.body || c.text || c.caption || '';
+function contentToSnippet(content, type) {
+  if (!type) return '[Mensagem]';
 
-    if (txt) return txt.length > 40 ? txt.slice(0, 37) + '...' : txt;
-    if (c.voice || c.type === 'audio' || /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) || /\.(ogg|oga|mp3|wav|m4a)$/i.test(filename)) {
+  switch (type) {
+    case 'text':
+      if (typeof content === 'string') return content.slice(0, 40);
+      if (typeof content === 'object') {
+        const text = content.body || content.text || content.caption || '';
+        return text.slice(0, 40);
+      }
+      return '[Texto]';
+
+    case 'audio':
       return '[Áudio]';
-    }
-    if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(filename)) {
+
+    case 'image':
       return '[Imagem]';
-    }
-    if (filename.endsWith('.pdf')) return '[Arquivo]';
-    if (c.url || c.filename) return '[Arquivo]';
-    return '';
+
+    case 'video':
+      return '[Vídeo]';
+
+    case 'file':
+      return '[Arquivo]';
+
+    case 'template':
+      return '[Template]';
+
+    case 'location':
+      return '[Localização]';
+
+    case 'contact':
+      return '[Contato]';
+
+    case 'sticker':
+      return '[Figurinha]';
+
+    default:
+      return '[Mensagem]';
   }
-  return String(c);
 }
+
 
 const useConversationsStore = create((set, get) => ({
   conversations: {},
