@@ -171,6 +171,14 @@ const useConversationsStore = create((set, get) => ({
       // último para o snippet do card
       const last = nextMessages[nextMessages.length - 1] || msg;
       const lastContent = last?.content;
+
+        console.log('[appendOrUpdateMessage]');
+    console.log('userId:', userId);
+    console.log('msg:', msg);
+    console.log('last:', last);
+    console.log('last.content:', lastContent);
+    console.log('last.type:', lastType);
+      
       const snippet = contentToSnippet(lastContent, last?.type);
 
       return {
