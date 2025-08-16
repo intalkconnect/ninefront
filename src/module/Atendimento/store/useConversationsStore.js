@@ -171,7 +171,7 @@ const useConversationsStore = create((set, get) => ({
       // último para o snippet do card
       const last = nextMessages[nextMessages.length - 1] || msg;
       const lastContent = last?.content;
-      const snippet = contentToSnippet(lastContent);
+      const snippet = contentToSnippet(lastContent, last?.type);
 
       return {
         conversations: {
