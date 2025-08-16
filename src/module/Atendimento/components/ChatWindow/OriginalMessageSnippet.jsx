@@ -1,48 +1,60 @@
-// src/components/ChatWindow/OriginalMessageSnippet.jsx
 import React from 'react';
-import TextMessage from './messageTypes/TextMessage';
-import ImageMessage from './messageTypes/ImageMessage';
-import AudioMessage from './messageTypes/AudioMessage';
-import DocumentMessage from './messageTypes/DocumentMessage';
 
-export default function OriginalMessageSnippet({ messageId, allMessages }) {
-  const original = allMessages.find(m => m.whatsapp_message_id === messageId);
+/**
+ * Gera uma prévia textual da última mensagem com base no tipo e conteúdo.
+ */
+function getSnippet(type, content) {
+  try {
+    if (!type || !content) return null;
 
-  if (!original) {
-    return <div className="reply-snippet"><em>Mensagem não encontrada</em></div>;
-  }
+    switch (type) {
+      case 'text':
+        if (typeof content === 'string') return content;
+        if (typeof content === 'object' && content.body) return content.body;
+        return '[Texto]';
 
-  let content = original.content;
-  if (typeof content === 'string') {
-    try {
-      content = JSON.parse(content);
-    } catch (err) {
-      content = { text: content };
+      case 'image':
+        return '🖼️ Imagem';
+
+      case 'audio':
+        return '🎵 Áudio';
+
+      case 'video':
+        return '🎥 Vídeo';
+
+      case 'file':
+        return '📎 Documento';
+
+      case 'template':
+        return '📋 Template';
+
+      case 'location':
+        return '📍 Localização';
+
+      case 'contact':
+        return '👤 Contato';
+
+      case 'sticker':
+        return '🌟 Figurinha';
+
+      default:
+        return '📄 Mensagem';
     }
+  } catch (err) {
+    console.error('Erro ao gerar snippet:', err);
+    return '[Mensagem]';
   }
+}
 
-  const type = original.type;
-  const direction = original.direction === 'incoming' ? 'Contato' : 'Você';
+export default function OriginalMessageSnippet({ message }) {
+  if (!message) return null;
+
+  const snippet = getSnippet(message.type, message.content);
+  if (!snippet) return null;
 
   return (
-    <div className="reply-snippet">
-      <strong>{direction}</strong>
-      <div className="reply-preview-content">
-        {type === 'text' && <TextMessage content={content.body || content.text} />}
-        {type === 'image' && <ImageMessage url={content.url} caption={content.caption} small />}
-        {type === 'audio' && <AudioMessage url={content.url} small />}
-        {type === 'document' && (
-          <DocumentMessage
-            filename={content.filename}
-            url={content.url}
-            caption={content.caption}
-            small
-          />
-        )}
-        {!['text', 'image', 'audio', 'document'].includes(type) && (
-          <TextMessage content="[tipo não suportado]" />
-        )}
-      </div>
+    <div className="text-sm text-gray-500 truncate">
+      {snippet}
     </div>
   );
 }
