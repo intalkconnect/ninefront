@@ -7,10 +7,21 @@ const { apiBaseUrl } = getRuntimeConfig();
 // Se seu backend usa cookie de sessão, pode adicionar { credentials: "include" }.
 
 export async function apiGet(path) {
-  const res = await fetch(`${apiBaseUrl}${path}`);
-  if (!res.ok) throw new Error(`GET ${path} failed`);
-  return res.json();
+  const url = `${apiBaseUrl}${path}`;
+  console.debug('[api] GET', url);
+  const res = await fetch(url);
+  const text = await res.text();
+  if (!res.ok) {
+    console.error('[api] HTTP', res.status, 'body:', text.slice(0, 200));
+    throw new Error(`GET ${path} ${res.status}`);
+  }
+  try { return JSON.parse(text); }
+  catch (e) {
+    console.error('[api] not JSON, body:', text.slice(0, 200));
+    throw e;
+  }
 }
+
 
 export async function apiPost(path, data) {
   const res = await fetch(`${apiBaseUrl}${path}`, {
@@ -47,3 +58,4 @@ export async function apiDelete(path) {
   if (!res.ok) throw new Error(`DELETE ${path} failed`);
   return res.json();
 }
+
