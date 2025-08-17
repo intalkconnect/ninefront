@@ -224,7 +224,7 @@ appendOrUpdateMessage: (userId, msg) =>
     // último para o snippet do card
     const last = nextMessages[nextMessages.length - 1] || msg;
     const lastContent = last?.content;
-    const lastType = last?.type || detectTypeFromContent(lastContent);
+    const lastType = (last?.type || detectTypeFromContent(lastContent) || 'text').toLowerCase();
 
     const snippet = contentToSnippet(lastContent, lastType);
     
@@ -236,7 +236,7 @@ appendOrUpdateMessage: (userId, msg) =>
           messages: nextMessages,
           content: snippet,
           type: lastType,
-          timestamp: last?.timestamp || conv.timestamp,
+          timestamp: last?.timestamp || last?.created_at || conv.timestamp,
         },
       },
     };
@@ -269,7 +269,8 @@ appendOrUpdateMessage: (userId, msg) =>
 
       // snippet normalmente não muda aqui, mas mantemos consistência:
       const last = next[next.length - 1] || null;
-      const snippet = last ? contentToSnippet(last.content) : conv.content;
+      const lastType = last?.type || detectTypeFromContent(last?.content) || conv.type;
+      const snippet = last ? contentToSnippet(last.content, lastType) : conv.content;
 
       return {
         conversations: {
@@ -278,8 +279,8 @@ appendOrUpdateMessage: (userId, msg) =>
             ...conv,
             messages: next,
             content: snippet,
-            type: last?.type || conv.type,
-            timestamp: last?.timestamp || conv.timestamp,
+            type: (lastType || 'text').toLowerCase(),
+            timestamp: last?.timestamp || last?.created_at || conv.timestamp,
           },
         },
       };
