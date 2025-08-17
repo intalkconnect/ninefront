@@ -70,6 +70,12 @@ export default function Sidebar() {
    if (!conv) return '';
     // A store já salva conv.content como string de snippet (ex.: "🎤 Áudio", "Olá...").
     if (typeof conv.content === 'string' && conv.content.trim() !== '') return conv.content;
+
+      console.warn('[sidebar] snippet fallback acionado', {
+    type: conv.type,
+    typeofContent: typeof conv.content,
+    sample: typeof conv.content === 'string' ? conv.content.slice(0,200) : conv.content
+  });
     // Fallback defensivo caso algum lugar envie objeto cru
     const type = (conv.type || '').toLowerCase() || detectMessageType(conv.content) || 'text';
     if (type === 'text') {
@@ -344,6 +350,15 @@ export default function Sidebar() {
           const isSelected = fullId === selectedUserId;
           const unreadCount = unreadCounts[fullId] || 0;
           const showUnread = !isSelected && unreadCount > 0;
+        console.debug('[sidebar] card props →', {
+    user_id: conv.user_id,
+    name: conv.name,
+   type: conv.type,
+    timestamp: conv.timestamp,
+    channel: conv.channel,
+    fila: conv.fila,
+    content_raw: conv.content,   // deve ser STRING do snippet
+  });
 
           return (
             <li
