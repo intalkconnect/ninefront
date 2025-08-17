@@ -5,7 +5,7 @@ import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
 import UsersPage from './users/Users';
-import LogoutButton from '../components/LogoutButton';
+import LogoutButton from './components/LogoutButton';
 import styles from './styles/Admin.module.css';
 import { parseJwt } from '../../utils/auth';
 import { stringToColor } from '../../utils/color';
