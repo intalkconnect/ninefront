@@ -172,6 +172,8 @@ function upsertOutgoing(list, msg) {
 /* -------------------- componente -------------------- */
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation   = useConversationsStore(state => state.mergeConversation);
+  const appendOrUpdateMessageStore = useConversationsStore(state => state.appendOrUpdateMessage);
+  const setMessagesStore    = useConversationsStore(state => state.setMessages);
   const setClienteAtivo     = useConversationsStore(state => state.setClienteAtivo);
   const userEmail           = useConversationsStore(state => state.userEmail);
   const userFilas           = useConversationsStore(state => state.userFilas);
@@ -226,6 +228,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         clone.sort((a,b)=> tsOf(a) - tsOf(b));
         messageCacheRef.current.set(msg.user_id, clone);
         updateDisplayedMessages(clone, pageRef.current);
+        appendOrUpdateMessageStore(userIdSelecionado, clone[idx]);
         return clone;
       }
 
@@ -233,15 +236,17 @@ export default function ChatWindow({ userIdSelecionado }) {
         const next = upsertOutgoing(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
         updateDisplayedMessages(next, pageRef.current);
+        appendOrUpdateMessageStore(userIdSelecionado, msg);
         return next;
       }
 
       const updated = [...prev, msg].sort((a,b)=> tsOf(a) - tsOf(b));
       messageCacheRef.current.set(msg.user_id, updated);
       updateDisplayedMessages(updated, pageRef.current);
+      appendOrUpdateMessageStore(userIdSelecionado, msg);
       return updated;
     });
-  }, [userIdSelecionado, updateDisplayedMessages]);
+  }, [userIdSelecionado, updateDisplayedMessages, appendOrUpdateMessageStore]);
 
   const handleUpdateMessage = useCallback((msg) => {
     if (!msg || msg.user_id !== userIdSelecionado) return;
@@ -254,6 +259,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         clone.sort((a,b)=> tsOf(a) - tsOf(b));
         messageCacheRef.current.set(msg.user_id, clone);
         updateDisplayedMessages(clone, pageRef.current);
+        appendOrUpdateMessageStore(userIdSelecionado, clone[idx]);
         return clone;
       }
 
@@ -261,12 +267,13 @@ export default function ChatWindow({ userIdSelecionado }) {
         const next = upsertOutgoing(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
         updateDisplayedMessages(next, pageRef.current);
+        appendOrUpdateMessageStore(userIdSelecionado, msg);
         return next;
       }
 
       return prev;
     });
-  }, [userIdSelecionado, updateDisplayedMessages]);
+  }, [userIdSelecionado, updateDisplayedMessages, appendOrUpdateMessageStore]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -331,8 +338,10 @@ export default function ChatWindow({ userIdSelecionado }) {
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
         updateDisplayedMessages(msgs, 1);
+        setMessagesStore(userIdSelecionado, msgs);
 
         const lastMsg = msgs[msgs.length - 1] || {};
+        const lastText = contentToText(lastMsg?.content);
         mergeConversation(userIdSelecionado, {
           channel: lastMsg.channel || clienteRes?.channel || 'desconhecido',
           ticket_number: clienteRes?.ticket_number || '000000',
@@ -344,9 +353,9 @@ export default function ChatWindow({ userIdSelecionado }) {
           user_id: clienteRes?.user_id || userIdSelecionado,
           assigned_to,
           status,
-          content: contentToText(lastMsg?.content),
-          timestamp: lastMsg?.timestamp,
-          type: lastMsg?.type,
+          content: lastText,                 // snippet string
+          timestamp: lastMsg?.timestamp || lastMsg?.created_at,
+          type: (lastMsg?.type || 'text').toLowerCase(),
         });
 
         marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
@@ -444,12 +453,17 @@ export default function ChatWindow({ userIdSelecionado }) {
       timestamp: tempMsg.timestamp || new Date().toISOString(),
       channel: tempMsg.channel || 'whatsapp',
       direction: 'outgoing',
-      type: tempMsg.type,
+      type: (tempMsg.type || 'text').toLowerCase(),
+    });
+    appendOrUpdateMessageStore(userIdSelecionado, {
+      ...optimistic,
+      timestamp: optimistic.timestamp || new Date().toISOString(),
     });
 
     setReplyTo(null);
     setTimeout(scrollToBottom, 0);
-  }, [mergeConversation, updateDisplayedMessages, userIdSelecionado, scrollToBottom]);
+  }, [mergeConversation, updateDisplayedMessages, userIdSelecionado, scrollToBottom, appendOrUpdateMessageStore]);
+
 
   /* ------ render ------ */
   if (!userIdSelecionado) {
