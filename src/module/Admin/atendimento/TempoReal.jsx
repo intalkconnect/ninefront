@@ -1,436 +1,352 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { apiGet } from '../../../shared/apiClient';
-import {
-  Clock,
-  User,
-  MessageCircle,
-  AlertTriangle,
-  CheckCircle,
-  Timer,
-} from 'lucide-react';
+import { Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer } from 'lucide-react';
+import styles from './style/TempoReal.module.css';
 
-// Padroniza nomes de filas para filtro (ex.: "Suporte Técnico" -> "suporte_tecnico")
+// Normaliza nomes das filas (ex.: "Suporte Técnico" -> "suporte_tecnico")
 const slugify = (str = '') =>
   String(str)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '_')
     .replace(/[^\w_]/g, '');
 
+const canais = ['whatsapp', 'telegram', 'webchat', 'instagram'];
+
 const TempoReal = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedFilter, setSelectedFilter] = useState('todos');
   const [atendimentos, setAtendimentos] = useState([]);
-  const [filas, setFilas] = useState([]); // do endpoint /filas
+  const [filas, setFilas] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
 
     const fetchAll = async () => {
       try {
-        const [realtimeRes, filasRes] = await Promise.all([
-          apiGet.get('/analytics/realtime'),
-          apiGet.get('/filas'),
+        // IMPORTANTE: apiGet é função -> use apiGet('/caminho'), NÃO apiGet.get(...)
+        const [rt, fs] = await Promise.all([
+          apiGet('/analytics/realtime'),
+          apiGet('/filas'),
         ]);
 
-        // --- Realtime ---
-        const data = Array.isArray(realtimeRes?.data) ? realtimeRes.data : [];
-        const atendimentosFormatados = data.map((item) => {
+        if (!mounted) return;
+
+        // /analytics/realtime (aceita Array direto ou {data: Array})
+        const rtArray = Array.isArray(rt) ? rt : (Array.isArray(rt?.data) ? rt.data : []);
+        const formatados = rtArray.map((item) => {
           const inicio = new Date(item.inicioConversa);
           const esperaMinCalc = Math.floor((Date.now() - inicio.getTime()) / 60000);
-          const esperaDaApiSeg = Number(item.tempoEspera ?? 0);
-          const esperaMinApi = Math.floor(esperaDaApiSeg / 60);
+          const esperaSegApi = Number(item.tempoEspera ?? 0); // vem em segundos no seu exemplo
+          const esperaMinApi = Math.floor(esperaSegApi / 60);
 
           return {
             ...item,
             inicioConversa: inicio,
-            // Se estiver aguardando, calcula pelo relógio; senão usa valor da API (convertido para minutos)
             tempoEspera: item.status === 'aguardando' ? esperaMinCalc : esperaMinApi,
           };
         });
 
-        // --- Filas ---
-        const filasData = Array.isArray(filasRes?.data) ? filasRes.data : [];
-        const filasNormalizadas = filasData
-          .map((f) =>
-            typeof f === 'string'
-              ? { nome: f, slug: slugify(f) }
-              : { nome: f?.nome || f?.name || '', slug: slugify(f?.nome || f?.name || '') }
-          )
-          .filter((f) => f.nome);
+        // /filas (aceita array de strings ou objetos { nome })
+        const filasIn = Array.isArray(fs) ? fs : (Array.isArray(fs?.data) ? fs.data : []);
+        const filasNorm = filasIn
+          .map((f) => {
+            if (typeof f === 'string') return { nome: f, slug: slugify(f) };
+            const nome = f?.nome || f?.name || f?.titulo || '';
+            return nome ? { nome, slug: slugify(nome) } : null;
+          })
+          .filter(Boolean);
 
-        if (!isMounted) return;
-        setAtendimentos(atendimentosFormatados);
-        if (filasNormalizadas.length) setFilas(filasNormalizadas);
+        setAtendimentos(formatados);
+        setFilas(filasNorm);
         setErro(null);
         setCurrentTime(new Date());
       } catch (e) {
-        if (!isMounted) return;
         console.error('Erro ao buscar dados:', e);
         setErro('Falha ao atualizar dados. Tentaremos novamente em 10s.');
+      } finally {
+        setLoading(false);
       }
     };
 
-    // Chamada imediata + intervalo de 10s
+    // primeira carga + refresh a cada 10s
     fetchAll();
     const interval = setInterval(fetchAll, 10000);
     return () => {
-      isMounted = false;
+      mounted = false;
       clearInterval(interval);
     };
   }, []);
 
-  const getChannelIcon = (canal) => {
-    switch (canal) {
-      case 'whatsapp': return '📱';
-      case 'telegram': return '✈️';
-      case 'webchat': return '💬';
-      case 'instagram': return '📷';
-      default: return '📞';
-    }
+  const formatTime = (m = 0) => {
+    const mins = Math.max(0, Math.floor(m));
+    const h = Math.floor(mins / 60);
+    const r = mins % 60;
+    return h > 0 ? `${h}h ${r}m` : `${r}m`;
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'aguardando': return 'bg-yellow-100 text-yellow-800';
-      case 'em_atendimento': return 'bg-green-100 text-green-800';
-      case 'finalizado': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const getChannelIcon = (canal) =>
+    canal === 'whatsapp' ? '📱' :
+    canal === 'telegram'  ? '✈️' :
+    canal === 'webchat'   ? '💬' :
+    canal === 'instagram' ? '📷' : '📞';
 
-  const getPriorityColor = (prioridade) => {
-    switch (prioridade) {
-      case 'alta': return 'text-red-600';
-      case 'normal': return 'text-yellow-600';
-      case 'baixa': return 'text-green-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const formatTime = (minutes = 0) => {
-    const mins = Math.max(0, Math.floor(minutes));
-    const hours = Math.floor(mins / 60);
-    const rest = mins % 60;
-    return hours > 0 ? `${hours}h ${rest}m` : `${rest}m`;
-  };
-
-  // Filtros dinâmicos
-  const canais = ['whatsapp', 'telegram', 'webchat', 'instagram'];
   const filasParaFiltro = filas.length
     ? filas
-    : Array.from(new Set(atendimentos.map((a) => a.fila)))
-        .filter(Boolean)
+    : Array.from(new Set(atendimentos.map((a) => a.fila).filter(Boolean)))
         .map((nome) => ({ nome, slug: slugify(nome) }));
 
-  const filteredAtendimentos = atendimentos.filter((a) => {
-    if (selectedFilter === 'todos') return true;
-    if (selectedFilter === 'aguardando') return a.status === 'aguardando';
-    if (selectedFilter === 'em_atendimento') return a.status === 'em_atendimento';
-    // Fila (por slug)
-    if (filasParaFiltro.some((f) => f.slug === selectedFilter)) {
-      return slugify(a.fila) === selectedFilter;
-    }
-    // Canal
-    if (canais.includes(selectedFilter)) {
-      return a.canal === selectedFilter;
-    }
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return atendimentos.filter((a) => {
+      if (selectedFilter === 'todos') return true;
+      if (selectedFilter === 'aguardando') return a.status === 'aguardando';
+      if (selectedFilter === 'em_atendimento') return a.status === 'em_atendimento';
+      if (filasParaFiltro.some((f) => f.slug === selectedFilter)) return slugify(a.fila) === selectedFilter;
+      if (canais.includes(selectedFilter)) return a.canal === selectedFilter;
+      return true;
+    });
+  }, [atendimentos, selectedFilter, filasParaFiltro]);
 
-  // Métricas (podemos trocar por endpoint depois)
-  const stats = {
+  const stats = useMemo(() => ({
     clientesAguardando: atendimentos.filter((a) => a.status === 'aguardando').length,
     emAtendimento: atendimentos.filter((a) => a.status === 'em_atendimento').length,
     atendentesOnline: new Set(atendimentos.filter((a) => a.agente).map((a) => a.agente)).size,
     tempoMedioResposta: Math.round(
       atendimentos
         .filter((a) => a.status === 'em_atendimento')
-        .reduce((sum, a) => sum + (a.tempoEspera || 0), 0) /
-        Math.max(1, atendimentos.filter((a) => a.status === 'em_atendimento').length)
+        .reduce((s, a) => s + (a.tempoEspera || 0), 0) /
+      Math.max(1, atendimentos.filter((a) => a.status === 'em_atendimento').length)
     ),
+    // Placeholder simples, até termos endpoint de métricas
     tempoMedioAtendimento: Math.round(
-      atendimentos
-        .filter((a) => a.status === 'em_atendimento')
-        .reduce((sum) => sum + 8, 0) /
-        Math.max(1, atendimentos.filter((a) => a.status === 'em_atendimento').length) || 12
+      (atendimentos.filter((a) => a.status === 'em_atendimento').length ? 8 : 12)
     ),
     tempoMedioAguardando: Math.round(
       atendimentos
         .filter((a) => a.status === 'aguardando')
-        .reduce((sum, a) => sum + (a.tempoEspera || 0), 0) /
-        Math.max(1, atendimentos.filter((a) => a.status === 'aguardando').length)
+        .reduce((s, a) => s + (a.tempoEspera || 0), 0) /
+      Math.max(1, atendimentos.filter((a) => a.status === 'aguardando').length)
     ),
-  };
+  }), [atendimentos]);
 
-  // Alertas simples (dinâmicos): aguardando há 8+ min
-  const alertas = atendimentos
-    .filter((a) => a.status === 'aguardando' && (a.tempoEspera || 0) >= 8)
-    .sort((a, b) => (b.tempoEspera || 0) - (a.tempoEspera || 0))
-    .slice(0, 3);
+  const alertas = useMemo(() => (
+    atendimentos
+      .filter((a) => a.status === 'aguardando' && (a.tempoEspera || 0) >= 8)
+      .sort((a, b) => (b.tempoEspera || 0) - (a.tempoEspera || 0))
+      .slice(0, 3)
+  ), [atendimentos]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className={styles.container}>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Monitoramento Omnichannel</h1>
-            <p className="text-gray-600">
-              Última atualização: {currentTime.toLocaleTimeString('pt-BR')}
-            </p>
-            {erro && <p className="text-sm text-red-600 mt-1">{erro}</p>}
-          </div>
-          <div className="flex space-x-4">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Exportar Relatório
-            </button>
-            <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-              Configurações
-            </button>
-          </div>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Monitoramento Omnichannel</h1>
+          <p className={styles.subtitle}>
+            Última atualização: {currentTime.toLocaleTimeString('pt-BR')}
+          </p>
+          {erro && <p className={styles.error}>{erro}</p>}
+        </div>
+        <div className={styles.actions}>
+          <button className={styles.btnPrimary}>Exportar Relatório</button>
+          <button className={styles.btnSuccess}>Configurações</button>
         </div>
       </div>
 
-      {/* MÉTRICAS */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Métricas Gerais</h2>
+      {/* Métricas */}
+      <section className={styles.cardGroup}>
+        <div className={styles.card}>
+          <Clock className={styles.cardIcon} />
+          <p className={styles.cardLabel}>Clientes Aguardando</p>
+          <p className={`${styles.cardValue} ${styles.yellow}`}>{stats.clientesAguardando}</p>
+        </div>
+        <div className={styles.card}>
+          <MessageCircle className={styles.cardIcon} />
+          <p className={styles.cardLabel}>Em Atendimento</p>
+          <p className={`${styles.cardValue} ${styles.green}`}>{stats.emAtendimento}</p>
+        </div>
+        <div className={styles.card}>
+          <User className={styles.cardIcon} />
+          <p className={styles.cardLabel}>Atendentes Online</p>
+          <p className={`${styles.cardValue} ${styles.blue}`}>{stats.atendentesOnline}</p>
+        </div>
+        <div className={styles.card}>
+          <Timer className={styles.cardIcon} />
+          <p className={styles.cardLabel}>T. Médio Resposta</p>
+          <p className={`${styles.cardValue} ${styles.purple}`}>{formatTime(stats.tempoMedioResposta)}</p>
+        </div>
+        <div className={styles.card}>
+          <CheckCircle className={styles.cardIcon} />
+          <p className={styles.cardLabel}>T. Médio Atendimento</p>
+          <p className={`${styles.cardValue} ${styles.indigo}`}>{formatTime(stats.tempoMedioAtendimento)}</p>
+        </div>
+        <div className={styles.card}>
+          <AlertTriangle className={styles.cardIcon} />
+          <p className={styles.cardLabel}>T. Médio Aguardando</p>
+          <p className={`${styles.cardValue} ${styles.orange}`}>{formatTime(stats.tempoMedioAguardando)}</p>
+        </div>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="text-center">
-              <Clock className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm font-medium">Clientes Aguardando</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.clientesAguardando}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="text-center">
-              <MessageCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm font-medium">Em Atendimento</p>
-              <p className="text-2xl font-bold text-green-600">{stats.emAtendimento}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="text-center">
-              <User className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm font-medium">Atendentes Online</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.atendentesOnline}</p>
-            </div>
+      {/* Filtros */}
+      <section className={styles.filters}>
+        <div className={styles.filterGroup}>
+          <h4 className={styles.filterTitle}>Filtros Gerais</h4>
+          <div className={styles.filterChips}>
+            {['todos', 'aguardando', 'em_atendimento'].map((f) => (
+              <button
+                key={f}
+                onClick={() => setSelectedFilter(f)}
+                className={`${styles.chip} ${selectedFilter === f ? styles.chipActive : ''}`}
+              >
+                {f.replace('_', ' ').replace(/^\w/, (c) => c.toUpperCase())}
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="text-center">
-              <Timer className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm font-medium">T. Médio Resposta</p>
-              <p className="text-2xl font-bold text-purple-600">{formatTime(stats.tempoMedioResposta)}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="text-center">
-              <CheckCircle className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm font-medium">T. Médio Atendimento</p>
-              <p className="text-2xl font-bold text-indigo-600">{formatTime(stats.tempoMedioAtendimento)}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <div className="text-center">
-              <AlertTriangle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-              <p className="text-gray-600 text-sm font-medium">T. Médio Aguardando</p>
-              <p className="text-2xl font-bold text-orange-600">{formatTime(stats.tempoMedioAguardando)}</p>
-            </div>
+        <div className={styles.filterGroup}>
+          <h4 className={styles.filterTitle}>Filtrar por Fila</h4>
+          <div className={styles.filterChips}>
+            {filasParaFiltro.map(({ nome, slug }) => (
+              <button
+                key={slug}
+                onClick={() => setSelectedFilter(slug)}
+                className={`${styles.chip} ${selectedFilter === slug ? styles.chipGreen : ''}`}
+              >
+                {nome}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* FILTROS */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border mb-6">
-        <div className="flex flex-col space-y-4">
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Filtros Gerais</h4>
-            <div className="flex flex-wrap gap-2">
-              {['todos', 'aguardando', 'em_atendimento'].map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setSelectedFilter(filter)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedFilter === filter
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {filter.charAt(0).toUpperCase() + filter.slice(1).replace('_', ' ')}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Filtrar por Fila</h4>
-            <div className="flex flex-wrap gap-2">
-              {filasParaFiltro.map(({ nome, slug }) => (
-                <button
-                  key={slug}
-                  onClick={() => setSelectedFilter(slug)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedFilter === slug
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {nome}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Filtrar por Canal</h4>
-            <div className="flex flex-wrap gap-2">
-              {canais.map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => setSelectedFilter(filter)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedFilter === filter
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span className="mr-2">{getChannelIcon(filter)}</span>
-                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                </button>
-              ))}
-            </div>
+        <div className={styles.filterGroup}>
+          <h4 className={styles.filterTitle}>Filtrar por Canal</h4>
+          <div className={styles.filterChips}>
+            {canais.map((f) => (
+              <button
+                key={f}
+                onClick={() => setSelectedFilter(f)}
+                className={`${styles.chip} ${selectedFilter === f ? styles.chipPurple : ''}`}
+              >
+                <span className={styles.chipIcon}>{getChannelIcon(f)}</span>
+                {f[0].toUpperCase() + f.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* LISTA */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Atendimentos em Tempo Real ({filteredAtendimentos.length})
-          </h2>
+      {/* Tabela */}
+      <section className={styles.tableCard}>
+        <div className={styles.tableHeader}>
+          <h2 className={styles.tableTitle}>Atendimentos em Tempo Real ({filtered.length})</h2>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+        <div className={styles.tableScroll}>
+          <table className={styles.table}>
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fila</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Canal</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridade</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                <th>Cliente</th>
+                <th>Fila</th>
+                <th>Canal</th>
+                <th>Agente</th>
+                <th>Status</th>
+                <th>Tempo</th>
+                <th>Prioridade</th>
+                <th>Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAtendimentos.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                        <User className="w-4 h-4 text-blue-600" />
-                      </div>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} className={styles.loadingCell}>Carregando…</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={8} className={styles.emptyCell}>Sem atendimentos no filtro atual.</td></tr>
+              ) : filtered.map((a) => (
+                <tr key={a.id}>
+                  <td>
+                    <div className={styles.clientCell}>
+                      <div className={styles.avatar}><User size={14} /></div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{a.cliente}</div>
-                        <div className="text-sm text-gray-500">ID: #{a.id}</div>
+                        <div className={styles.clientName}>{a.cliente}</div>
+                        <div className={styles.clientSub}>ID: #{a.id}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="text-sm font-medium text-gray-900">{a.fila}</div>
-                      {a.posicaoFila ? (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          #{a.posicaoFila}
-                        </span>
-                      ) : null}
+                  <td>
+                    <div className={styles.queueCell}>
+                      <span>{a.fila}</span>
+                      {a.posicaoFila ? <span className={styles.badge}>#{a.posicaoFila}</span> : null}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="text-lg mr-2">{getChannelIcon(a.canal)}</span>
-                      <span className="text-sm font-medium text-gray-900 capitalize">{a.canal}</span>
+                  <td>
+                    <div className={styles.channelCell}>
+                      <span className={styles.emoji}>{getChannelIcon(a.canal)}</span>
+                      <span className={styles.cap}>{a.canal}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {a.agente ? (
-                      <div className="text-sm text-gray-900">{a.agente}</div>
-                    ) : (
-                      <span className="text-sm text-gray-500 italic">Não atribuído</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(a.status)}`}>
-                      {a.status === 'aguardando' && <Clock className="w-3 h-3 mr-1" />}
-                      {a.status === 'em_atendimento' && <CheckCircle className="w-3 h-3 mr-1" />}
+                  <td>{a.agente ? a.agente : <em className={styles.muted}>Não atribuído</em>}</td>
+                  <td>
+                    <span className={`${styles.status} ${
+                      a.status === 'aguardando' ? styles.statusWait :
+                      a.status === 'em_atendimento' ? styles.statusLive :
+                      styles.statusDone
+                    }`}>
+                      {a.status === 'aguardando' && <Clock size={12} className={styles.statusIcon} />}
+                      {a.status === 'em_atendimento' && <CheckCircle size={12} className={styles.statusIcon} />}
                       {String(a.status || '').replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatTime(a.tempoEspera)}</div>
-                    <div className="text-xs text-gray-500">
-                      Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa) ? a.inicioConversa.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                  <td>
+                    <div>{formatTime(a.tempoEspera)}</div>
+                    <div className={styles.subtle}>
+                      Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa)
+                        ? a.inicioConversa.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                        : '--:--'}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {a.prioridade === 'alta' && <AlertTriangle className="w-4 h-4 mr-1" />}
-                      <span className={`text-sm font-medium ${getPriorityColor(a.prioridade)}`}>
-                        {a.prioridade ? a.prioridade.charAt(0).toUpperCase() + a.prioridade.slice(1) : '—'}
+                  <td>
+                    <div className={styles.priorityCell}>
+                      {a.prioridade === 'alta' && <AlertTriangle size={14} className={styles.priorityIcon} />}
+                      <span className={`${styles.priorityText} ${
+                        a.prioridade === 'alta' ? styles.red :
+                        a.prioridade === 'normal' ? styles.amber :
+                        a.prioridade === 'baixa' ? styles.green : styles.gray
+                      }`}>
+                        {a.prioridade ? a.prioridade[0].toUpperCase() + a.prioridade.slice(1) : '—'}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">Ver</button>
-                      <button className="text-green-600 hover:text-green-900">Assumir</button>
-                      <button className="text-red-600 hover:text-red-900">Transferir</button>
-                    </div>
+                  <td className={styles.actionsCell}>
+                    <button className={styles.linkBtn}>Ver</button>
+                    <button className={styles.linkBtnSuccess}>Assumir</button>
+                    <button className={styles.linkBtnDanger}>Transferir</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      {/* ALERTAS */}
-      <div className="mt-6 bg-white rounded-xl shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <AlertTriangle className="w-5 h-5 text-orange-500 mr-2" />
-          Alertas e Notificações
-        </h3>
-        <div className="space-y-3">
+      {/* Alertas */}
+      <section className={styles.alertCard}>
+        <h3 className={styles.alertTitle}><AlertTriangle size={18} /> Alertas e Notificações</h3>
+        <div className={styles.alertList}>
           {alertas.length === 0 ? (
-            <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-              <span className="text-sm text-green-800">Sem alertas no momento.</span>
+            <div className={`${styles.alert} ${styles.alertOk}`}>
+              <CheckCircle size={16} />
+              <span>Sem alertas no momento.</span>
             </div>
-          ) : (
-            alertas.map((a) => (
-              <div key={a.id} className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600 mr-3" />
-                <span className="text-sm text-yellow-800">
-                  {a.cliente} aguarda há {formatTime(a.tempoEspera)} no {a.canal}
-                </span>
-              </div>
-            ))
-          )}
+          ) : alertas.map((a) => (
+            <div key={a.id} className={`${styles.alert} ${styles.alertWarn}`}>
+              <Clock size={16} />
+              <span>{a.cliente} aguarda há {formatTime(a.tempoEspera)} no {a.canal}</span>
+            </div>
+          ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 };
