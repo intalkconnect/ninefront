@@ -36,6 +36,11 @@ function upsertMessage(list, incoming) {
 // gera o snippet do card a partir do último conteúdo
 // gera o snippet do card a partir do último conteúdo
 function contentToSnippet(content, type) {
+  +  console.debug('[store] contentToSnippet (in)', {
++    typeIn: type,
++    typeofContent: typeof content,
++    sample: typeof content === 'string' ? content.slice(0,200) : content
++  });
   // Tenta parsear o conteúdo se for string
   let parsedContent = content;
   if (typeof content === 'string') {
@@ -103,6 +108,10 @@ function contentToSnippet(content, type) {
 
 // Função auxiliar para detectar tipo pelo conteúdo
 function detectTypeFromContent(content) {
+    console.debug('[store] detectTypeFromContent →', {
+    typeof: typeof content,
+    sample: typeof content === 'string' ? content.slice(0,200) : content
+  });
   if (!content) return null;
   
   if (typeof content === 'object') {
@@ -217,6 +226,9 @@ const useConversationsStore = create((set, get) => ({
 // Adiciona/atualiza 1 mensagem (imutável) e atualiza snippet
 appendOrUpdateMessage: (userId, msg) =>
   set((state) => {
+        console.groupCollapsed('%c[store] appendOrUpdateMessage', 'color:#2196f3');
+    console.log('userId:', userId);
+   console.log('msg in:', msg);
     const conv = state.conversations[userId] || {};
     const prev = Array.isArray(conv.messages) ? conv.messages : [];
     const nextMessages = upsertMessage(prev, msg);
@@ -227,6 +239,9 @@ appendOrUpdateMessage: (userId, msg) =>
     const lastType = (last?.type || detectTypeFromContent(lastContent) || 'text').toLowerCase();
 
     const snippet = contentToSnippet(lastContent, lastType);
+
+        console.log('last picked for card:', { lastType, lastContent, snippet });
+    console.groupEnd();
     
     return {
       conversations: {
