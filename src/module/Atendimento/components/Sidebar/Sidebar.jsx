@@ -66,44 +66,23 @@ export default function Sidebar() {
   };
 
   // Gera o snippet para exibição
-  const getSnippet = (conv) => {
-   if (!conv) return '';
-    // A store já salva conv.content como string de snippet (ex.: "🎤 Áudio", "Olá...").
-    if (typeof conv.content === 'string' && conv.content.trim() !== '') return conv.content;
+  const getSnippet = (conv) => {const getSnippet = (conv) => {
+  if (!conv) return '';
+  if (typeof conv.content === 'string' && conv.content.trim()) return conv.content;
 
-      console.warn('[sidebar] snippet fallback acionado', {
-    type: conv.type,
-    typeofContent: typeof conv.content,
-    sample: typeof conv.content === 'string' ? conv.content.slice(0,200) : conv.content
-  });
-    // Fallback defensivo caso algum lugar envie objeto cru
-    const type = (conv.type || '').toLowerCase() || detectMessageType(conv.content) || 'text';
-    if (type === 'text') {
-      const c = conv.content;
-      if (typeof c === 'string') return c.slice(0, 40);
-      try {
-        const j = typeof c === 'string' ? JSON.parse(c) : c || {};
-        const txt = j?.body || j?.text || j?.caption || '';
-        return (txt || '[Texto]').slice(0, 40);
-      } catch { return '[Texto]'; }
-    }
-    const mapping = {
-      audio: '🎤 Áudio',
-      voice: '🎤 Áudio',
-      image: '🖼️ Imagem',
-      photo: '🖼️ Imagem',
-      video: '🎥 Vídeo',
-      file: '📄 Arquivo',
-      document: '📄 Arquivo',
-      template: '📋 Template',
-      location: '📍 Localização',
-      contact: '👤 Contato',
-      sticker: '🌟 Figurinha',
-    };
-    return mapping[type] || '[Mensagem]';
-
-    
+  const map = {
+    audio:'🎤 Áudio', voice:'🎤 Áudio',
+    image:'🖼️ Imagem', photo:'🖼️ Imagem',
+    video:'🎥 Vídeo',
+    file:'📄 Arquivo', document:'📄 Arquivo',
+    template:'📋 Template', location:'📍 Localização',
+    contact:'👤 Contato', sticker:'🌟 Figurinha',
+    text:'[Texto]',
   };
+  const t = (conv.type || '').toLowerCase();
+  return map[t] || '[Mensagem]';
+};
+
 
   // Converte conteúdo para string para busca
   const contentToString = (conv) => {
