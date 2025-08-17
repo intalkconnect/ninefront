@@ -168,32 +168,26 @@ const useConversationsStore = create((set, get) => ({
       const prev = Array.isArray(conv.messages) ? conv.messages : [];
       const nextMessages = upsertMessage(prev, msg);
 
-      // último para o snippet do card
-      const last = nextMessages[nextMessages.length - 1] || msg;
-      const lastContent = last?.content;
+    // último para o snippet do card
+    const last = nextMessages[nextMessages.length - 1] || msg;
+    const lastContent = last?.content;
+    const lastType = last?.type; // Adicionado para pegar o type da mensagem
 
-        console.log('[appendOrUpdateMessage]');
-    console.log('userId:', userId);
-    console.log('msg:', msg);
-    console.log('last:', last);
-    console.log('last.content:', lastContent);
-    console.log('last.type:', lastType);
+    const snippet = contentToSnippet(lastContent, lastType); // Passa o type para a função
       
-      const snippet = contentToSnippet(lastContent, last?.type);
-
-      return {
-        conversations: {
-          ...state.conversations,
-          [userId]: {
-            ...conv,
-            messages: nextMessages, // NOVA referência
-            content: snippet,
-            type: last?.type || conv.type,
-            timestamp: last?.timestamp || conv.timestamp,
-          },
+    return {
+      conversations: {
+        ...state.conversations,
+        [userId]: {
+          ...conv,
+          messages: nextMessages, // NOVA referência
+          content: snippet,
+          type: lastType || conv.type, // Usa o type da mensagem
+          timestamp: last?.timestamp || conv.timestamp,
         },
-      };
-    }),
+      },
+    };
+  }),
 
   // Atualiza apenas status/provedor de uma já existente (por emitUpdateMessage do back)
   updateMessageStatus: (userId, partial) =>
