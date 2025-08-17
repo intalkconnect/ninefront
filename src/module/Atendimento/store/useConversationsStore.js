@@ -34,45 +34,97 @@ function upsertMessage(list, incoming) {
 }
 
 // gera o snippet do card a partir do último conteúdo
+// gera o snippet do card a partir do último conteúdo
 function contentToSnippet(content, type) {
-  if (!type) return '[Mensagem]';
+  // Tenta parsear o conteúdo se for string
+  let parsedContent = content;
+  if (typeof content === 'string') {
+    try {
+      parsedContent = JSON.parse(content);
+    } catch {
+      parsedContent = content;
+    }
+  }
 
-  switch (type) {
+  // Determina o tipo baseado no content se o type não estiver disponível
+  const detectedType = detectTypeFromContent(parsedContent);
+  const finalType = type || detectedType;
+
+  switch (finalType?.toLowerCase()) {
     case 'text':
-      if (typeof content === 'string') return content.slice(0, 40);
-      if (typeof content === 'object') {
-        const text = content.body || content.text || content.caption || '';
+      if (typeof parsedContent === 'string') {
+        return parsedContent.slice(0, 40);
+      }
+      if (typeof parsedContent === 'object') {
+        const text = parsedContent.body || parsedContent.text || parsedContent.caption || '';
         return text.slice(0, 40);
       }
       return '[Texto]';
 
     case 'audio':
-      return '[Áudio]';
+    case 'voice':
+      return '🎤 Áudio';
 
     case 'image':
-      return '[Imagem]';
+    case 'photo':
+      return '🖼️ Imagem';
 
     case 'video':
-      return '[Vídeo]';
+      return '🎥 Vídeo';
 
     case 'file':
-      return '[Arquivo]';
+    case 'document':
+      return '📄 Arquivo';
 
     case 'template':
-      return '[Template]';
+      return '📋 Template';
 
     case 'location':
-      return '[Localização]';
+      return '📍 Localização';
 
     case 'contact':
-      return '[Contato]';
+      return '👤 Contato';
 
     case 'sticker':
-      return '[Figurinha]';
+      return '🌟 Figurinha';
 
     default:
+      // Tenta inferir pelo conteúdo se o type não for reconhecido
+      if (parsedContent?.url) {
+        const url = parsedContent.url.toLowerCase();
+        if (url.match(/\.(mp3|wav|ogg|m4a)$/)) return '🎤 Áudio';
+        if (url.match(/\.(jpg|jpeg|png|gif|webp)$/)) return '🖼️ Imagem';
+        if (url.match(/\.(mp4|mov|avi|mkv)$/)) return '🎥 Vídeo';
+        if (url.match(/\.(pdf|docx?|xlsx?|pptx?)$/)) return '📄 Arquivo';
+      }
       return '[Mensagem]';
   }
+}
+
+// Função auxiliar para detectar tipo pelo conteúdo
+function detectTypeFromContent(content) {
+  if (!content) return null;
+  
+  if (typeof content === 'object') {
+    if (content.audio || content.voice) return 'audio';
+    if (content.image || content.photo) return 'image';
+    if (content.video) return 'video';
+    if (content.document || content.file) return 'file';
+    if (content.location) return 'location';
+    if (content.contact) return 'contact';
+    if (content.sticker) return 'sticker';
+    
+    // Verifica por URLs
+    if (content.url) {
+      const url = content.url.toLowerCase();
+      if (url.match(/\.(mp3|wav|ogg|m4a)$/)) return 'audio';
+      if (url.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'image';
+      if (url.match(/\.(mp4|mov|avi|mkv)$/)) return 'video';
+      if (url.match(/\.(pdf|docx?|xlsx?|pptx?)$/)) return 'file';
+    }
+  }
+  
+  return 'text'; // Default para texto
 }
 
 
@@ -162,27 +214,28 @@ const useConversationsStore = create((set, get) => ({
     }),
 
   // Adiciona/atualiza 1 mensagem (imutável) e atualiza snippet
-  appendOrUpdateMessage: (userId, msg) =>
-    set((state) => {
-      const conv = state.conversations[userId] || {};
-      const prev = Array.isArray(conv.messages) ? conv.messages : [];
-      const nextMessages = upsertMessage(prev, msg);
+// Adiciona/atualiza 1 mensagem (imutável) e atualiza snippet
+appendOrUpdateMessage: (userId, msg) =>
+  set((state) => {
+    const conv = state.conversations[userId] || {};
+    const prev = Array.isArray(conv.messages) ? conv.messages : [];
+    const nextMessages = upsertMessage(prev, msg);
 
     // último para o snippet do card
     const last = nextMessages[nextMessages.length - 1] || msg;
     const lastContent = last?.content;
-    const lastType = last?.type; // Adicionado para pegar o type da mensagem
+    const lastType = last?.type || detectTypeFromContent(lastContent);
 
-    const snippet = contentToSnippet(lastContent, lastType); // Passa o type para a função
-      
+    const snippet = contentToSnippet(lastContent, lastType);
+    
     return {
       conversations: {
         ...state.conversations,
         [userId]: {
           ...conv,
-          messages: nextMessages, // NOVA referência
+          messages: nextMessages,
           content: snippet,
-          type: lastType || conv.type, // Usa o type da mensagem
+          type: lastType,
           timestamp: last?.timestamp || conv.timestamp,
         },
       },
