@@ -326,16 +326,47 @@ appendOrUpdateMessage: (userId, msg) =>
   setClienteAtivo: (info) => set({ clienteAtivo: info }),
 
   // Merge “cabeçalho” da conversa (não toca em messages)
-  mergeConversation: (userId, data) =>
-    set((state) => ({
-      conversations: {
-        ...state.conversations,
-        [userId]: {
-          ...(state.conversations[userId] || {}),
-          ...data,
+mergeConversation: (userId, data = {}) =>
+    set((state) => {
+      const prev = state.conversations[userId] || {};
+            if ('content' in data || 'type' in data) {
+        console.warn('[store] mergeConversation recebendo content/type → normalizando', {
+          userId,
+          from: typeof data.content,
+          sample: typeof data.content === 'string' ? data.content.slice(0,200) : data.content,
+          typeIn: data.type,
+        });
+      }
+
+      // Se vierem 'content' e/ou 'type', sempre normalize para snippet string
+      let { content, type, timestamp } = data;
+      const hasContentField = Object.prototype.hasOwnProperty.call(data, 'content');
+      const hasTypeField    = Object.prototype.hasOwnProperty.call(data, 'type');
+
+      if (hasContentField || hasTypeField) {
+        const detectedType = (type || detectTypeFromContent(content) || prev.type || 'text').toLowerCase();
+        const snippet      = contentToSnippet(content, detectedType);
+        type               = detectedType;
+        content            = snippet; // <- SEMPRE string para o card
+      } else {
+        // preserva os anteriores se não veio atualização de conteúdo/tipo
+        content = prev.content;
+        type    = prev.type;
+      }
+
+      return {
+        conversations: {
+          ...state.conversations,
+          [userId]: {
+            ...prev,
+            ...data,
+            content,                             // já como snippet
+            type,
+            timestamp: timestamp || prev.timestamp,
+          },
         },
-      },
-    })),
+      };
+    }),
 
   getContactName: (userId) => get().conversations[userId]?.name || userId,
 
