@@ -1,16 +1,20 @@
-// Gera configuração em tempo de execução com base na URL acessada.
-// Regras:
-// - API e Socket usam a mesma origem (scheme+host+port) da página.
-// - DEFAULT_TENANT é o que vem antes do primeiro '.' do hostname.
-// - Em localhost, usa ?tenant= ou localStorage.tenant como fallback.
+// Runtime config baseado na URL acessada.
+//
+// - API e Socket usam a mesma origem (scheme + host + port) da página.
+// - tenant = primeiro label do hostname (ex: hmg.dkdevs.com.br -> "hmg")
+// - Em localhost, aceita ?tenant= ou localStorage.tenant como fallback.
+// - Caminho base da API pode ser customizado por VITE_API_BASE_PATH
+//   (padrão: "/api/v1").
 
 const ENV_DEFAULT_TENANT =
   (import.meta?.env?.VITE_DEFAULT_TENANT || "").toString().trim() || "default";
 
+const API_PATH =
+  (import.meta?.env?.VITE_API_BASE_PATH || "/api/v1").toString().trim();
+
 function fromHostnameToTenant(hostname) {
   if (!hostname) return ENV_DEFAULT_TENANT;
 
-  // Em dev/local não há subdomínio; deixa escolher via query/localStorage
   const isLocal =
     /^localhost$/i.test(hostname) ||
     /^127\.0\.0\.1$/.test(hostname) ||
@@ -20,32 +24,29 @@ function fromHostnameToTenant(hostname) {
     const qs = new URLSearchParams(window.location.search);
     const qTenant = (qs.get("tenant") || qs.get("t") || "").trim();
     const lsTenant = (window.localStorage.getItem("tenant") || "").trim();
-    const chosen = qTenant || lsTenant || ENV_DEFAULT_TENANT;
-    return chosen.toLowerCase();
+    return (qTenant || lsTenant || ENV_DEFAULT_TENANT).toLowerCase();
   }
 
-  // Pega tudo antes do primeiro ponto
-  const firstLabel = hostname.split(".")[0] || ENV_DEFAULT_TENANT;
-  return firstLabel.toLowerCase();
+  // pega o que vem antes do primeiro "."
+  return (hostname.split(".")[0] || ENV_DEFAULT_TENANT).toLowerCase();
 }
 
 export function getRuntimeConfig() {
   const { protocol, hostname, port } = window.location;
   const origin = `${protocol}//${hostname}${port ? `:${port}` : ""}`;
-  const isSecure = protocol === "https:";
+
+  const path = API_PATH.startsWith("/") ? API_PATH : `/${API_PATH}`;
+  const apiBaseUrl = `${origin}${path}`; // ex: https://hmg.dkdevs.com.br/api/v1
+  const socketUrl = origin;              // mesma origem da página
   const tenant = fromHostnameToTenant(hostname);
 
-  // Quer ignorar qualquer env e FORÇAR sempre a origem da página?
-  // Basta deixar assim (sem ler ENVs):
-  const apiBaseUrl = origin;
-  const socketUrl = origin;
-
-  // Logs de diagnóstico (uma vez por load)
   if (!window.__RUNTIME_CFG_LOGGED__) {
     window.__RUNTIME_CFG_LOGGED__ = true;
-    // eslint-disable-next-line no-console
-    console.info("[runtime] origin:", origin, "| tenant:", tenant);
+    console.info("[runtime] origin:", origin, "| tenant:", tenant, "| api:", apiBaseUrl);
   }
 
-  return { origin, hostname, isSecure, apiBaseUrl, socketUrl, tenant };
+  return { origin, hostname, apiBaseUrl, socketUrl, tenant };
 }
+
+// export prático caso queira importar direto
+export const runtimeTenant = fromHostnameToTenant(window.location.hostname);
