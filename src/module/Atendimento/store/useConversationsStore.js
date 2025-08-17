@@ -138,6 +138,26 @@ function contentToSnippet(content, type) {
   }
 }
 
+/** Helpers para blindar downgrade de snippet **/
+
+// placeholders que não queremos que sobreponham um snippet melhor
+function isPlaceholder(s) {
+  if (typeof s !== "string") return false;
+  const t = s.trim();
+  return /^\[(mensagem|menssage|texto|arquivo)\]$/i.test(t);
+}
+
+// classifica “qualidade” do snippet: maior é melhor
+// 0 = vazio/indefinido, 1 = placeholder [mensagem], 2 = label de mídia (🖼️/🎤/🎥/📄/...), 3 = texto de usuário
+function snippetQuality(s) {
+  if (!s || typeof s !== "string") return 0;
+  const t = s.trim();
+  if (!t) return 0;
+  if (isPlaceholder(t)) return 1;
+  if (/^(🖼️|🎤|🎥|📄|📋|📍|👤|🌟)/.test(t)) return 2;
+  return 3;
+}
+
 const useConversationsStore = create((set, get) => ({
   conversations: {},
   lastRead: {},
@@ -188,7 +208,7 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  // Define/merge conversa (não toca em messages)
+  // Define/merge conversa (não toca em messages) — BLINDADO contra downgrade
   mergeConversation: (userId, data = {}) =>
     set((state) => {
       const prev = state.conversations[userId] || {};
@@ -206,15 +226,45 @@ const useConversationsStore = create((set, get) => ({
       const hasContentField = Object.prototype.hasOwnProperty.call(data, "content");
       const hasTypeField = Object.prototype.hasOwnProperty.call(data, "type");
 
+      // normaliza entrada -> snippet
+      let incomingType = prev.type;
+      let incomingSnippet = prev.content;
+
       if (hasContentField || hasTypeField) {
         const detectedType = (type || detectTypeFromContent(content) || prev.type || "text").toLowerCase();
-        const snippet = contentToSnippet(content, detectedType);
-        type = detectedType;
-        content = snippet; // SEMPRE string no card
-      } else {
-        content = prev.content;
-        type = prev.type;
+        const computed = contentToSnippet(content, detectedType);
+        incomingType = detectedType;
+        incomingSnippet = computed;
       }
+
+      const prevSnippet = prev.content;
+      const prevScore = snippetQuality(prevSnippet);
+      const newScore = snippetQuality(incomingSnippet);
+
+      let nextSnippet = prevSnippet;
+      let nextType = prev.type;
+
+      // regra: só troca se o novo for de qualidade >= anterior
+      if ((hasContentField || hasTypeField) && newScore >= prevScore) {
+        nextSnippet = incomingSnippet;
+        nextType = incomingType;
+      } else if (!(hasContentField || hasTypeField)) {
+        // sem atualização de content/type, mantém o anterior
+        nextSnippet = prevSnippet;
+        nextType = prev.type;
+      } else {
+        // tentativa de downgrade bloqueada
+        console.info("[store] mergeConversation: downgrade de snippet bloqueado", {
+          prev: { snippet: prevSnippet, score: prevScore, type: prev.type },
+          incoming: { snippet: incomingSnippet, score: newScore, type: incomingType },
+        });
+      }
+
+      // timestamp: mantém o mais novo se chegou um novo
+      const nextTs =
+        timestamp && (!prev.timestamp || new Date(timestamp) > new Date(prev.timestamp))
+          ? timestamp
+          : prev.timestamp;
 
       return {
         conversations: {
@@ -222,9 +272,9 @@ const useConversationsStore = create((set, get) => ({
           [userId]: {
             ...prev,
             ...data,
-            content,
-            type,
-            timestamp: timestamp || prev.timestamp,
+            content: nextSnippet,     // SEMPRE string pronta pro card
+            type: nextType,
+            timestamp: nextTs,
           },
         },
       };
