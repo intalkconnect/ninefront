@@ -6,7 +6,7 @@ import {
   ArrowDownUp, ArrowUpDown, Search
 } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
-import LogoutButton from "../../../components/LogoutButton";
+import LogoutButton from "../../components/Logout/LogoutButton";
 import { stringToColor } from "../../utils/color";
 import { getRelativeTime } from "../../utils/time";
 import ChannelIcon from "./ChannelIcon";
