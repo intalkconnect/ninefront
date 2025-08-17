@@ -120,6 +120,21 @@
   background-color: #f2f2f2;
 }
 
+.dropdown-link {
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+  display: block;
+}
+
+.dropdown-link:hover {
+  background-color: #f2f2f2;
+}
+
+
 /* Rodapé com perfil */
 .sidebar-footer {
   margin-top: auto;
@@ -196,3 +211,4 @@
   display: flex;
   flex-direction: column;
 }
+
