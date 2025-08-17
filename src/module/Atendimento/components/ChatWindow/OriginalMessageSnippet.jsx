@@ -2,7 +2,8 @@ import React from 'react';
 
 function getSnippet(type, content) {
   try {
-    if (!type || !content) return null;
+      if (!content) return null;
+    type = (type || '').toLowerCase();
 
     if (type === 'text') {
       const body = typeof content === 'string' ? content : content?.body || content?.text || content?.caption;
@@ -40,3 +41,4 @@ export default function OriginalMessageSnippet({ message }) {
     </div>
   );
 }
+
