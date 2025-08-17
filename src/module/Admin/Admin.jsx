@@ -11,7 +11,7 @@ import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../shared/apiClient';
 
 // Novos componentes (temporários como <div>)
-const TempoReal = () => <div>Tempo Real</div>;
+import TempoReal from './atendimento/TempoReal';
 const Configuracao = () => <div>Configuração</div>;
 const Filas = () => <div>Filas</div>;
 const RespostasRapidas = () => <div>Respostas Rápidas</div>;
@@ -71,7 +71,7 @@ export default function Admin() {
               </button>
               {showDropdown === 'atendimento' && (
                 <div className={styles['dropdown-menu']}>
-                  <NavLink to="atendimento/TempoReal" className={styles['dropdown-link']}>Tempo Real</NavLink>
+                  <NavLink to="atendimento/tempo-real" className={styles['dropdown-link']}>Tempo Real</NavLink>
                   <NavLink to="atendimento/configuracao" className={styles['dropdown-link']}>Configuração</NavLink>
                   <NavLink to="atendimento/filas" className={styles['dropdown-link']}>Filas</NavLink>
                   <NavLink to="atendimento/respostas-rapidas" className={styles['dropdown-link']}>Respostas Rápidas</NavLink>
@@ -106,7 +106,7 @@ export default function Admin() {
           <Route index element={<Dashboard />} />
           <Route path="chatbot" element={<Chatbot />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="atendimento/TempoReal" element={<TempoReal />} />
+          <Route path="atendimento/tempo-real" element={<TempoReal />} />
           <Route path="atendimento/configuracao" element={<Configuracao />} />
           <Route path="atendimento/filas" element={<Filas />} />
           <Route path="atendimento/respostas-rapidas" element={<RespostasRapidas />} />
