@@ -36,11 +36,11 @@ function upsertMessage(list, incoming) {
 // gera o snippet do card a partir do último conteúdo
 // gera o snippet do card a partir do último conteúdo
 function contentToSnippet(content, type) {
-  +  console.debug('[store] contentToSnippet (in)', {
-+    typeIn: type,
-+    typeofContent: typeof content,
-+    sample: typeof content === 'string' ? content.slice(0,200) : content
-+  });
+  console.debug('[store] contentToSnippet (in)', {
+    typeIn: type,
+    typeofContent: typeof content,
+    sample: typeof content === 'string' ? content.slice(0,200) : content
+  });
   // Tenta parsear o conteúdo se for string
   let parsedContent = content;
   if (typeof content === 'string') {
