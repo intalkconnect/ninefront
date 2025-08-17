@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import { getRuntimeConfig } from "./runtimeConfig";
+import { getRuntimeConfig } from "./../../../shared/runtimeConfig";
 
 // ====== SINGLETON ======
 let socket = null;
@@ -59,3 +59,4 @@ export function connectSocket(userId) {
 
   return s;
 }
+
