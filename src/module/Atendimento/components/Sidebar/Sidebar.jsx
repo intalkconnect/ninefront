@@ -31,13 +31,6 @@ export default function Sidebar() {
 
   const queueRoomsRef = useRef(new Set());
 
-  // Componente para exibir chips de tipo de mensagem
-  const TypeChip = ({ icon, label }) => (
-    <span className="chat-icon-snippet">
-      {icon} {label}
-    </span>
-  );
-
   // Função para detectar tipo de mensagem pelo conteúdo
   const detectMessageType = (content) => {
     if (!content) return 'text';
@@ -74,68 +67,43 @@ export default function Sidebar() {
 
   // Gera o snippet para exibição
   const getSnippet = (conv) => {
-    if (!conv) return "";
-    
-    const type = conv.type ? conv.type.toLowerCase() : detectMessageType(conv.content);
-    const content = conv.content;
-    
-    let parsed = content;
-    if (typeof content === 'string') {
+   if (!conv) return '';
+    // A store já salva conv.content como string de snippet (ex.: "🎤 Áudio", "Olá...").
+    if (typeof conv.content === 'string' && conv.content.trim() !== '') return conv.content;
+    // Fallback defensivo caso algum lugar envie objeto cru
+    const type = (conv.type || '').toLowerCase() || detectMessageType(conv.content) || 'text';
+    if (type === 'text') {
+      const c = conv.content;
+      if (typeof c === 'string') return c.slice(0, 40);
       try {
-        parsed = JSON.parse(content);
-      } catch {
-        parsed = content;
-      }
+        const j = typeof c === 'string' ? JSON.parse(c) : c || {};
+        const txt = j?.body || j?.text || j?.caption || '';
+        return (txt || '[Texto]').slice(0, 40);
+      } catch { return '[Texto]'; }
     }
+    const mapping = {
+      audio: '🎤 Áudio',
+      voice: '🎤 Áudio',
+      image: '🖼️ Imagem',
+      photo: '🖼️ Imagem',
+      video: '🎥 Vídeo',
+      file: '📄 Arquivo',
+      document: '📄 Arquivo',
+      template: '📋 Template',
+      location: '📍 Localização',
+      contact: '👤 Contato',
+      sticker: '🌟 Figurinha',
+    };
+    return mapping[type] || '[Mensagem]';
 
-    switch (type) {
-      case 'text':
-        if (typeof parsed === 'string') {
-          return parsed.slice(0, 40);
-        }
-        if (typeof parsed === 'object') {
-          const text = parsed.body || parsed.text || parsed.caption || '';
-          return text.slice(0, 40);
-        }
-        return '[Texto]';
-
-      case 'audio':
-      case 'voice':
-        return <TypeChip icon={<Mic size={18} />} label="Áudio" />;
-
-      case 'image':
-      case 'photo':
-        return <TypeChip icon={<File size={18} />} label="Imagem" />;
-
-      case 'video':
-        return <TypeChip icon={<File size={18} />} label="Vídeo" />;
-
-      case 'file':
-      case 'document':
-        return <TypeChip icon={<File size={18} />} label="Arquivo" />;
-
-      case 'template':
-        return <TypeChip icon={<File size={18} />} label="Template" />;
-
-      case 'location':
-        return <TypeChip icon={<File size={18} />} label="Localização" />;
-
-      case 'contact':
-        return <TypeChip icon={<File size={18} />} label="Contato" />;
-
-      case 'sticker':
-        return <TypeChip icon={<File size={18} />} label="Figurinha" />;
-
-      default:
-        return '[Mensagem]';
-    }
+    
   };
 
   // Converte conteúdo para string para busca
   const contentToString = (conv) => {
     if (!conv) return "";
     const snippet = getSnippet(conv);
-    return typeof snippet === 'string' ? snippet : '[Mídia]';
+    return (snippet && typeof snippet === 'string') ? snippet : '[Mídia]';
   };
 
   // Carrega configurações e fila
@@ -438,20 +406,9 @@ export default function Sidebar() {
             <span className="status-label">Status:</span>
             <Circle
               size={10}
-              color={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausa"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
-              fill={
-                status === "online"
-                  ? "#25D366"
-                  : status === "pausa"
-                  ? "#f0ad4e"
-                  : "#d9534f"
-              }
+              color={ status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f" }
+             fill={  status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f" }
+            
             />
             <select
               value={status}
