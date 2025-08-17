@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import { apiGet, apiPut } from "../../services/apiClient";
 import { getSocket } from "../../services/socket";
 import {
-  File, Mic, User, Circle, LogOut, Timer,
+  User, Circle, LogOut, Timer,
   ArrowDownUp, ArrowUpDown, Search
 } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
-import LogoutButton from '../../../components/LogoutButton';
-import { stringToColor } from '../../utils/color';
-import { getRelativeTime } from '../../utils/time';
-import ChannelIcon from './ChannelIcon';
+import LogoutButton from "../../../components/LogoutButton";
+import { stringToColor } from "../../utils/color";
+import { getRelativeTime } from "../../utils/time";
+import ChannelIcon from "./ChannelIcon";
 
 import "./Sidebar.css";
 
@@ -31,64 +31,41 @@ export default function Sidebar() {
 
   const queueRoomsRef = useRef(new Set());
 
-  // Função para detectar tipo de mensagem pelo conteúdo
-  const detectMessageType = (content) => {
-    if (!content) return 'text';
-    
-    let parsed = content;
-    if (typeof content === 'string') {
-      try {
-        parsed = JSON.parse(content);
-      } catch {
-        parsed = content;
-      }
-    }
+  // Gera o snippet para exibição (sempre string)
+  const getSnippet = (conv) => {
+    if (!conv) return "";
+    if (typeof conv.content === "string" && conv.content.trim()) return conv.content;
 
-    if (typeof parsed === 'object') {
-      if (parsed.audio || parsed.voice) return 'audio';
-      if (parsed.image || parsed.photo) return 'image';
-      if (parsed.video) return 'video';
-      if (parsed.document || parsed.file) return 'file';
-      if (parsed.location) return 'location';
-      if (parsed.contact) return 'contact';
-      if (parsed.sticker) return 'sticker';
-      
-      if (parsed.url) {
-        const url = parsed.url.toLowerCase();
-        if (url.match(/\.(mp3|wav|ogg|m4a)$/)) return 'audio';
-        if (url.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'image';
-        if (url.match(/\.(mp4|mov|avi|mkv)$/)) return 'video';
-        if (url.match(/\.(pdf|docx?|xlsx?|pptx?)$/)) return 'file';
-      }
-    }
-    
-    return 'text';
+    // Se chegou aqui, a store não entregou string; loga pra investigar
+    console.warn("[sidebar] snippet fallback acionado", {
+      type: conv.type,
+      typeofContent: typeof conv.content,
+      sample: typeof conv.content === "string" ? conv.content.slice(0, 200) : conv.content
+    });
+
+    const map = {
+      audio: "🎤 Áudio",
+      voice: "🎤 Áudio",
+      image: "🖼️ Imagem",
+      photo: "🖼️ Imagem",
+      video: "🎥 Vídeo",
+      file: "📄 Arquivo",
+      document: "📄 Arquivo",
+      template: "📋 Template",
+      location: "📍 Localização",
+      contact: "👤 Contato",
+      sticker: "🌟 Figurinha",
+      text: "[Texto]",
+    };
+    const t = (conv.type || "").toLowerCase();
+    return map[t] || "[Mensagem]";
   };
-
-  // Gera o snippet para exibição
-  const getSnippet = (conv) => {const getSnippet = (conv) => {
-  if (!conv) return '';
-  if (typeof conv.content === 'string' && conv.content.trim()) return conv.content;
-
-  const map = {
-    audio:'🎤 Áudio', voice:'🎤 Áudio',
-    image:'🖼️ Imagem', photo:'🖼️ Imagem',
-    video:'🎥 Vídeo',
-    file:'📄 Arquivo', document:'📄 Arquivo',
-    template:'📋 Template', location:'📍 Localização',
-    contact:'👤 Contato', sticker:'🌟 Figurinha',
-    text:'[Texto]',
-  };
-  const t = (conv.type || '').toLowerCase();
-  return map[t] || '[Mensagem]';
-};
-
 
   // Converte conteúdo para string para busca
   const contentToString = (conv) => {
     if (!conv) return "";
     const snippet = getSnippet(conv);
-    return (snippet && typeof snippet === 'string') ? snippet : '[Mídia]';
+    return (snippet && typeof snippet === "string") ? snippet : "[Mídia]";
   };
 
   // Carrega configurações e fila
@@ -329,15 +306,16 @@ export default function Sidebar() {
           const isSelected = fullId === selectedUserId;
           const unreadCount = unreadCounts[fullId] || 0;
           const showUnread = !isSelected && unreadCount > 0;
-        console.debug('[sidebar] card props →', {
-    user_id: conv.user_id,
-    name: conv.name,
-   type: conv.type,
-    timestamp: conv.timestamp,
-    channel: conv.channel,
-    fila: conv.fila,
-    content_raw: conv.content,   // deve ser STRING do snippet
-  });
+
+          console.debug("[sidebar] card props →", {
+            user_id: conv.user_id,
+            name: conv.name,
+            type: conv.type,
+            timestamp: conv.timestamp,
+            channel: conv.channel,
+            fila: conv.fila,
+            content_raw: conv.content,
+          });
 
           return (
             <li
@@ -400,9 +378,8 @@ export default function Sidebar() {
             <span className="status-label">Status:</span>
             <Circle
               size={10}
-              color={ status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f" }
-             fill={  status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f" }
-            
+              color={status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f"}
+              fill={status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f"}
             />
             <select
               value={status}
@@ -436,5 +413,4 @@ export default function Sidebar() {
       </div>
     </div>
   );
-}
 }
