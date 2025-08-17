@@ -217,6 +217,11 @@ export default function ChatWindow({ userIdSelecionado }) {
 
   /* ------ socket handlers ------ */
   const handleNewMessage = useCallback((msg) => {
+    console.groupCollapsed('%cSOCKET → new_message', 'color:#4caf50;font-weight:bold;');
+  console.log('payload (obj):', msg);
+  try { console.log('payload (json):', JSON.stringify(msg)); } catch {}
+  console.log('userId selecionado:', userIdSelecionado);
+  console.groupEnd();
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
@@ -249,6 +254,10 @@ export default function ChatWindow({ userIdSelecionado }) {
   }, [userIdSelecionado, updateDisplayedMessages, appendOrUpdateMessageStore]);
 
   const handleUpdateMessage = useCallback((msg) => {
+      console.groupCollapsed('%cSOCKET → update_message', 'color:#fb8c00;font-weight:bold;');
+  console.log('payload (obj):', msg);
+  try { console.log('payload (json):', JSON.stringify(msg)); } catch {}
+  console.groupEnd();
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages(prev => {
