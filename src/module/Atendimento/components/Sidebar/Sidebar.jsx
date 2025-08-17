@@ -14,14 +14,14 @@ import ChannelIcon from './ChannelIcon';
 import "./Sidebar.css";
 
 export default function Sidebar() {
-  const conversations     = useConversationsStore((state) => state.conversations);
-  const unreadCounts      = useConversationsStore((state) => state.unreadCounts);
-  const userEmail         = useConversationsStore((state) => state.userEmail);
-  const userFilas         = useConversationsStore((state) => state.userFilas);
-  const selectedUserId    = useConversationsStore((state) => state.selectedUserId);
+  const conversations = useConversationsStore((state) => state.conversations);
+  const unreadCounts = useConversationsStore((state) => state.unreadCounts);
+  const userEmail = useConversationsStore((state) => state.userEmail);
+  const userFilas = useConversationsStore((state) => state.userFilas);
+  const selectedUserId = useConversationsStore((state) => state.selectedUserId);
   const setSelectedUserId = useConversationsStore((state) => state.setSelectedUserId);
   const mergeConversation = useConversationsStore((state) => state.mergeConversation);
-  const setSettings       = useConversationsStore((state) => state.setSettings);
+  const setSettings = useConversationsStore((state) => state.setSettings);
 
   const [ordemAscendente, setOrdemAscendente] = useState(false);
   const [distribuicaoTickets, setDistribuicaoTickets] = useState("manual");
@@ -29,102 +29,120 @@ export default function Sidebar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState("online");
 
-  // rooms de fila já ingressados para evitar duplicar join/leave
   const queueRoomsRef = useRef(new Set());
 
-  // ---------------- helpers UI (snippet) ----------------
+  // Componente para exibir chips de tipo de mensagem
   const TypeChip = ({ icon, label }) => (
     <span className="chat-icon-snippet">
       {icon} {label}
     </span>
   );
 
-  const tryParseJson = (v) => {
-    if (typeof v !== "string") return v;
-    const s = v.trim();
-    if (!s || (s[0] !== "{" && s[0] !== "[")) return v;
-    try { return JSON.parse(s); } catch { return v; }
+  // Função para detectar tipo de mensagem pelo conteúdo
+  const detectMessageType = (content) => {
+    if (!content) return 'text';
+    
+    let parsed = content;
+    if (typeof content === 'string') {
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        parsed = content;
+      }
+    }
+
+    if (typeof parsed === 'object') {
+      if (parsed.audio || parsed.voice) return 'audio';
+      if (parsed.image || parsed.photo) return 'image';
+      if (parsed.video) return 'video';
+      if (parsed.document || parsed.file) return 'file';
+      if (parsed.location) return 'location';
+      if (parsed.contact) return 'contact';
+      if (parsed.sticker) return 'sticker';
+      
+      if (parsed.url) {
+        const url = parsed.url.toLowerCase();
+        if (url.match(/\.(mp3|wav|ogg|m4a)$/)) return 'audio';
+        if (url.match(/\.(jpg|jpeg|png|gif|webp)$/)) return 'image';
+        if (url.match(/\.(mp4|mov|avi|mkv)$/)) return 'video';
+        if (url.match(/\.(pdf|docx?|xlsx?|pptx?)$/)) return 'file';
+      }
+    }
+    
+    return 'text';
   };
 
-  const snippetFromType = (type) => {
-    const t = String(type || "").toLowerCase();
-    if (!t) return "";
-    if (t === "audio" || t === "voice")  return <TypeChip icon={<Mic size={18} />} label="Áudio" />;
-    if (t === "image" || t === "photo")  return <TypeChip icon={<File size={18} />} label="Imagem" />;
-    if (t === "video")                   return <TypeChip icon={<File size={18} />} label="Vídeo" />;
-    if (t === "document" || t === "file" || t === "pdf")
-                                        return <TypeChip icon={<File size={18} />} label="Arquivo" />;
-    if (t === "location")               return <TypeChip icon={<File size={18} />} label="Localização" />;
-    return "";
-  };
-
-  // ❗ Usa a conversa inteira, pois agora o back manda `type`
+  // Gera o snippet para exibição
   const getSnippet = (conv) => {
     if (!conv) return "";
-    const type = (conv.type || "").toLowerCase();
-    const parsed = tryParseJson(conv.content);
-
-    // Se não for texto, mostre chip imediatamente
-    if (type && type !== "text") {
-      return snippetFromType(type);
+    
+    const type = conv.type ? conv.type.toLowerCase() : detectMessageType(conv.content);
+    const content = conv.content;
+    
+    let parsed = content;
+    if (typeof content === 'string') {
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        parsed = content;
+      }
     }
 
-    // Texto (ou sem type): tente extrair do content
-    if (parsed && typeof parsed === "object") {
-      const txt = parsed.body || parsed.text || parsed.caption || "";
-      if (txt) return txt.length > 40 ? txt.slice(0, 37) + "..." : txt;
+    switch (type) {
+      case 'text':
+        if (typeof parsed === 'string') {
+          return parsed.slice(0, 40);
+        }
+        if (typeof parsed === 'object') {
+          const text = parsed.body || parsed.text || parsed.caption || '';
+          return text.slice(0, 40);
+        }
+        return '[Texto]';
 
-      // sem texto — tente deduzir por url/filename
-      const url = String(parsed.url || "").toLowerCase();
-      const fn  = String(parsed.filename || "").toLowerCase();
-
-      if (parsed.voice === true ||
-          /\.(ogg|oga|mp3|wav|m4a)$/i.test(url) || /\.(ogg|oga|mp3|wav|m4a)$/i.test(fn)) {
+      case 'audio':
+      case 'voice':
         return <TypeChip icon={<Mic size={18} />} label="Áudio" />;
-      }
-      if (/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url) ||
-          /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(fn)) {
+
+      case 'image':
+      case 'photo':
         return <TypeChip icon={<File size={18} />} label="Imagem" />;
-      }
-      if (fn.endsWith(".pdf") || parsed.url || parsed.filename) {
+
+      case 'video':
+        return <TypeChip icon={<File size={18} />} label="Vídeo" />;
+
+      case 'file':
+      case 'document':
         return <TypeChip icon={<File size={18} />} label="Arquivo" />;
-      }
-      return "";
-    }
 
-    if (typeof parsed === "string") {
-      const s = parsed.trim();
-      if (!s || s === "[mensagem]") {
-        // quando vier esse marcador, use hint do type (se algum)
-        return snippetFromType(type) || "";
-      }
-      return s.length > 40 ? s.slice(0, 37) + "..." : s;
-    }
+      case 'template':
+        return <TypeChip icon={<File size={18} />} label="Template" />;
 
-    return snippetFromType(type) || "";
+      case 'location':
+        return <TypeChip icon={<File size={18} />} label="Localização" />;
+
+      case 'contact':
+        return <TypeChip icon={<File size={18} />} label="Contato" />;
+
+      case 'sticker':
+        return <TypeChip icon={<File size={18} />} label="Figurinha" />;
+
+      default:
+        return '[Mensagem]';
+    }
   };
 
-  // Para a busca: converte conteúdo da conversa em string
+  // Converte conteúdo para string para busca
   const contentToString = (conv) => {
     if (!conv) return "";
-    const type = (conv.type || "").toLowerCase();
-    const parsed = tryParseJson(conv.content);
-
-    // Para mídias, retorna um rótulo curto — já ajuda a encontrar “audio”, “imagem”, etc.
-    if (type && type !== "text") return type;
-
-    if (typeof parsed === "string") return parsed;
-    if (parsed && typeof parsed === "object") {
-      return parsed.body || parsed.text || parsed.caption || parsed.filename || parsed.url || "";
-    }
-    return "";
+    const snippet = getSnippet(conv);
+    return typeof snippet === 'string' ? snippet : '[Mídia]';
   };
 
-  // ---------------- fetch baseline (settings + fila) ----------------
+  // Carrega configurações e fila
   const fetchSettingsAndFila = async () => {
     try {
       const settings = await apiGet("/settings");
-      const distrib  = settings.find((s) => s.key === "distribuicao_tickets");
+      const distrib = settings.find((s) => s.key === "distribuicao_tickets");
       if (distrib?.value) setDistribuicaoTickets(distrib.value);
       setSettings(settings);
 
@@ -147,13 +165,13 @@ export default function Sidebar() {
     }
   }, [userEmail, userFilas]);
 
-  // ---------------- realtime: join rooms de fila + listeners ----------------
+  // Configura listeners do socket
   useEffect(() => {
     if (!userFilas || userFilas.length === 0) return;
     const socket = getSocket();
     if (!socket) return;
 
-    // entra nos rooms `queue:<fila>` que ainda não entrou
+    // Entra nos rooms das filas
     userFilas.forEach((fila) => {
       const room = `queue:${fila}`;
       if (!queueRoomsRef.current.has(room)) {
@@ -162,7 +180,7 @@ export default function Sidebar() {
       }
     });
 
-    // sai de rooms que não pertencem mais às filas do usuário
+    // Sai de rooms antigos
     [...queueRoomsRef.current].forEach((room) => {
       const fila = room.replace(/^queue:/, "");
       if (!userFilas.includes(fila)) {
@@ -171,7 +189,7 @@ export default function Sidebar() {
       }
     });
 
-    // contadores da fila (modo manual)
+    // Handlers de eventos
     const onPush = (payload = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { fila } = payload;
@@ -192,7 +210,6 @@ export default function Sidebar() {
       if (typeof count === "number") setFilaCount(count);
     };
 
-    // Fallbacks (se o backend emitir eventos mais genéricos)
     const onTicketCreated = (t = {}) => {
       if (distribuicaoTickets !== "manual") return;
       const { assigned_to, fila } = t;
@@ -215,11 +232,9 @@ export default function Sidebar() {
     socket.on("ticket_created", onTicketCreated);
     socket.on("ticket_closed", onTicketClosed);
 
-    // sincroniza ao reconectar
     const onConnect = () => fetchSettingsAndFila();
     socket.on("connect", onConnect);
 
-    // sincroniza ao voltar o foco
     const onVis = () => {
       if (document.visibilityState === "visible") fetchSettingsAndFila();
     };
@@ -236,7 +251,7 @@ export default function Sidebar() {
     };
   }, [userFilas, distribuicaoTickets]);
 
-  // ---------------- ações ----------------
+  // Puxa próximo ticket da fila
   const puxarProximoTicket = async () => {
     try {
       const res = await apiPut("/chats/fila/proximo", {
@@ -258,7 +273,7 @@ export default function Sidebar() {
     }
   };
 
-  // ---------------- filtros/ordenação ----------------
+  // Filtra e ordena conversas
   const filteredConversations = React.useMemo(() => {
     const term = (searchTerm || "").trim().toLowerCase();
     return Object.values(conversations).filter((conv) => {
@@ -291,7 +306,6 @@ export default function Sidebar() {
     return arr;
   }, [filteredConversations, ordemAscendente]);
 
-  // ---------------- render ----------------
   return (
     <div className="sidebar-container">
       <div className="sidebar-header">
@@ -308,7 +322,7 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Fila Info */}
+      {/* Info da fila */}
       <div className="fila-info">
         <div className="fila-status-line">
           <div className="fila-pessoas">
@@ -341,6 +355,7 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Barra de pesquisa */}
       <div className="sidebar-search-with-sort">
         <input
           type="text"
@@ -354,6 +369,7 @@ export default function Sidebar() {
         </span>
       </div>
 
+      {/* Lista de conversas */}
       <ul className="chat-list">
         {sortedConversations.map((conv) => {
           const fullId = conv.user_id;
@@ -392,7 +408,6 @@ export default function Sidebar() {
                     </div>
                   </div>
 
-                  {/* ⬇️ Agora o snippet usa conv (tem type) */}
                   <div className="chat-snippet">{getSnippet(conv)}</div>
                 </div>
               </div>
@@ -416,6 +431,7 @@ export default function Sidebar() {
 
       <hr className="sidebar-footer-divider" />
 
+      {/* Rodapé do sidebar */}
       <div className="sidebar-user-footer">
         <div className="user-footer-content">
           <div className="user-status">
