@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Home, Bot, Users, Settings, ChevronDown, LogOut } from 'lucide-react';
+import { Home, Bot, Users, Settings, ChevronDown, LogOut, MessageSquare } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
@@ -10,11 +10,11 @@ import { parseJwt } from '../../utils/auth';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../shared/apiClient';
 
-// Novos componentes (temporários como <div>)
-const TempoReal = () => <div>Tempo Real</div>;
-const Configuracao = () => <div>Configuração</div>;
-const Filas = () => <div>Filas</div>;
-const RespostasRapidas = () => <div>Respostas Rápidas</div>;
+// Novos componentes de Atendimento
+import TempoReal from './atendimento/TempoReal';
+import Configuracao from './atendimento/Configuracao';
+import Filas from './atendimento/Filas';
+import RespostasRapidas from './atendimento/RespostasRapidas';
 
 document.title = 'HubHMG - Gestão';
 
@@ -22,7 +22,8 @@ export default function Admin() {
   const token = localStorage.getItem('token');
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showAtendimentoDropdown, setShowAtendimentoDropdown] = useState(false);
 
   useEffect(() => {
     const fetchAdminInfo = async () => {
@@ -49,32 +50,32 @@ export default function Admin() {
             <MenuIcon to="users" icon={<Users size={18} />} label="Usuários" />
 
             <div className={styles.dropdown}>
-              <button className={styles['dropdown-toggle']} onClick={() => setShowDropdown(showDropdown === 'config' ? null : 'config')}>
-                <Settings size={18} />
-                Configurações
+              <button className={styles['dropdown-toggle']} onClick={() => setShowAtendimentoDropdown(!showAtendimentoDropdown)}>
+                <MessageSquare size={18} />
+                Atendimento
                 <ChevronDown size={14} />
               </button>
-              {showDropdown === 'config' && (
+              {showAtendimentoDropdown && (
                 <div className={styles['dropdown-menu']}>
-                  <div>Preferências</div>
-                  <div>Segurança</div>
-                  <div>Integrações</div>
+                  <NavLink to="atendimento/tempo-real" className={styles['menu-icon']}>Tempo Real</NavLink>
+                  <NavLink to="atendimento/configuracao" className={styles['menu-icon']}>Configuração</NavLink>
+                  <NavLink to="atendimento/filas" className={styles['menu-icon']}>Filas</NavLink>
+                  <NavLink to="atendimento/respostas-rapidas" className={styles['menu-icon']}>Respostas Rápidas</NavLink>
                 </div>
               )}
             </div>
 
             <div className={styles.dropdown}>
-              <button className={styles['dropdown-toggle']} onClick={() => setShowDropdown(showDropdown === 'atendimento' ? null : 'atendimento')}>
-                <Users size={18} />
-                Atendimento
+              <button className={styles['dropdown-toggle']} onClick={() => setShowDropdown(!showDropdown)}>
+                <Settings size={18} />
+                Configurações
                 <ChevronDown size={14} />
               </button>
-              {showDropdown === 'atendimento' && (
+              {showDropdown && (
                 <div className={styles['dropdown-menu']}>
-                  <NavLink to="atendimento/tempo-real" className={styles['dropdown-link']}>Tempo Real</NavLink>
-                  <NavLink to="atendimento/configuracao" className={styles['dropdown-link']}>Configuração</NavLink>
-                  <NavLink to="atendimento/filas" className={styles['dropdown-link']}>Filas</NavLink>
-                  <NavLink to="atendimento/respostas-rapidas" className={styles['dropdown-link']}>Respostas Rápidas</NavLink>
+                  <div>Preferências</div>
+                  <div>Segurança</div>
+                  <div>Integrações</div>
                 </div>
               )}
             </div>
@@ -106,10 +107,13 @@ export default function Admin() {
           <Route index element={<Dashboard />} />
           <Route path="chatbot" element={<Chatbot />} />
           <Route path="users" element={<UsersPage />} />
+
           <Route path="atendimento/tempo-real" element={<TempoReal />} />
           <Route path="atendimento/configuracao" element={<Configuracao />} />
           <Route path="atendimento/filas" element={<Filas />} />
           <Route path="atendimento/respostas-rapidas" element={<RespostasRapidas />} />
+
+          <Route path="configuracoes" element={<div>Página de Configurações</div>} />
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
       </main>
