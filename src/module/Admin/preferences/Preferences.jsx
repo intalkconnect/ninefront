@@ -3,7 +3,7 @@ import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
   Save, Plus, RefreshCcw, Search, Edit2, X, Check, Copy, Info
 } from 'lucide-react';
-import styles from './styles/Settings.module.css';
+import styles from './styles/Preferences.module.css';
 
 /* Utils */
 const fmtDate = (v) => {
