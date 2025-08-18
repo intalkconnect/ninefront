@@ -241,25 +241,30 @@ useEffect(() => {
 
 // encerra sessão ao fechar/atualizar a aba (marca INATIVO no back)
 useEffect(() => {
-  const onBeforeUnload = async () => {
-    const s = getSocket();
-    const sid = s?.id;
-    if (!sid) return;
-
+  const onBeforeUnload = () => {
     try {
-      // usa query ?reason=reload  → back setará status='inativo'
-      const url = `${apiBaseUrl}/atendentes/status/${encodeURIComponent(sid)}?reason=reload`;
-      navigator.sendBeacon?.(url, new Blob([], { type: "application/json" }));
+      // envia OFFLINE por EMAIL usando sendBeacon (POST)
+      const token = localStorage.getItem("token");
+      const { email } = parseJwt(token) || {};
+      if (!email) return;
+
+      const url = `${apiBaseUrl}/atendentes/presence/${encodeURIComponent(email)}`;
+      const body = JSON.stringify({ status: "offline" });
+      const blob = new Blob([body], { type: "application/json" });
+
+      // Aceita POST (vamos habilitar no backend também)
+      navigator.sendBeacon?.(url, blob);
     } catch {
-      try {
-        // fallback com o MESMO padrão do apiClient
-        await apiPut(`/atendentes/status/${sid}?reason=reload`);
-      } catch {}
+      // fallback com PUT síncrono (evite logs)
+      const token = localStorage.getItem("token");
+      const { email } = parseJwt(token) || {};
+      if (!email) return;
+      apiPut(`/atendentes/presence/${email}`, { status: "offline" }).catch(() => {});
     }
   };
 
   window.addEventListener("beforeunload", onBeforeUnload);
-  return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  return () => window.removeEventListener("beforeunload", onBeforeunload);
 }, []);
 
 
@@ -372,12 +377,13 @@ useEffect(() => {
   const onConnect = async () => {
     if (!mounted) return;
     setSocketStatus?.("online");
-    try {
-      await apiPut(`/atendentes/session/${userEmail}`, { session: getSocket().id });
-      window.sessionStorage.setItem("sessionReady", "true");
-    } catch (err) {
-      console.error("Erro ao informar sessão ao servidor:", err);
-    }
+// marca o atendente como INATIVO no refresh (por EMAIL)
+try {
+  await apiPut(`/atendentes/presence/${userEmail}`, { status: "inativo" });
+} catch (err) {
+  console.error("Erro ao setar INATIVO no refresh:", err);
+}
+
     const sock = getSocket();
     sock.emit("identify", { email: userEmail, rooms: userFilas });
 
