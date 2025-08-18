@@ -3,7 +3,7 @@ import { Users, Plus, ChevronDown } from 'lucide-react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import styles from './styles/Filas.module.css';
 
-export default function Filas() {
+export default function Queues() {
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
