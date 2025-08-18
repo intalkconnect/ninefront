@@ -18,7 +18,7 @@ import Queues from './atendimento/Queues';
 const Configuracao = () => <div>Configuração</div>;
 const RespostasRapidas = () => <div>Respostas Rápidas</div>;
 
-document.title = 'HubHMG - Gestão';
+document.title = 'NineChat - Gestão';
 
 export default function Admin() {
   const token = localStorage.getItem('token');
