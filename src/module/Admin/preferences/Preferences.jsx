@@ -1,56 +1,78 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Check, X, RefreshCcw, Copy } from 'lucide-react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
-import {
-  Save, Plus, RefreshCcw, Search, Edit2, X, Check, Copy, Info
-} from 'lucide-react';
-import styles from './styles/Preferences.module.css';
+import styles from './Preferences.module.css';
 
-/* Utils */
-const fmtDate = (v) => {
-  if (!v) return '—';
-  try {
-    return new Date(v).toLocaleString('pt-BR');
-  } catch {
-    return String(v);
-  }
+/** Mapeia chaves -> rótulos amigáveis e como editar/renderizar */
+const FRIENDLY = {
+  permitir_transferencia_fila: {
+    label: 'Permitir transferência entre filas',
+    type: 'boolean',
+    onText: 'Ativado',
+    offText: 'Desativado',
+  },
+  permitir_transferencia_atendente: {
+    label: 'Permitir transferência entre atendentes',
+    type: 'boolean',
+    onText: 'Ativado',
+    offText: 'Desativado',
+  },
+  enable_signature: {
+    label: 'Assinatura em mensagens',
+    type: 'boolean',
+    onText: 'Ativado',
+    offText: 'Desativado',
+  },
+  distribuicao_tickets: {
+    label: 'Distribuição de tickets',
+    type: 'enum',
+    options: [
+      { value: 'manual', label: 'Manual' },
+      { value: 'preditiva', label: 'Automática' },
+    ],
+  },
 };
-const stringifyMaybe = (v) => {
-  try {
-    if (v !== null && typeof v === 'object') return JSON.stringify(v, null, 2);
-    return String(v ?? '');
-  } catch {
-    return String(v ?? '');
-  }
-};
-const parseIfJson = (txt) => JSON.parse(txt);
 
-/* Página */
+/** Rotula valores de forma amigável */
+const valueLabelFor = (key, value) => {
+  const spec = FRIENDLY[key];
+  if (spec?.type === 'boolean') {
+    const v = !!value;
+    return v ? (spec.onText || 'Ativado') : (spec.offText || 'Desativado');
+  }
+  if (spec?.type === 'enum') {
+    const opt = spec.options?.find(o => String(o.value) === String(value));
+    return opt?.label ?? String(value ?? '—');
+  }
+  if (typeof value === 'boolean') return value ? 'Ativado' : 'Desativado';
+  return String(value ?? '—');
+};
+
+/** Tentativa segura de normalizar "true"/"false"/números vindos como string */
+const coerceType = (v) => {
+  if (v === null || v === undefined) return v;
+  if (typeof v === 'boolean' || typeof v === 'number' || typeof v === 'object') return v;
+  const s = String(v).trim();
+  if (/^(true|false)$/i.test(s)) return /^true$/i.test(s);
+  if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
+  try { // tentar JSON válido (ex.: objetos)
+    const j = JSON.parse(s);
+    if (typeof j === 'object') return j;
+  } catch {}
+  return s;
+};
+
 const Preferences = () => {
   const [items, setItems] = useState([]);
-  const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
   const [okMsg, setOkMsg] = useState(null);
 
-  // Form
-  const [editKey, setEditKey] = useState('');
-  const [value, setValue] = useState('');
-  const [description, setDescription] = useState('');
-  const [sendAsJson, setSendAsJson] = useState(false);
-  const [jsonValido, setJsonValido] = useState(true);
+  // Edição inline para valores "livres"
+  const [editingKey, setEditingKey] = useState(null);
+  const [editValue, setEditValue] = useState('');
 
-  // Aux: valida JSON quando ativo
-  useEffect(() => {
-    if (!sendAsJson) { setJsonValido(true); return; }
-    try {
-      parseIfJson(value || 'null');
-      setJsonValido(true);
-    } catch {
-      setJsonValido(false);
-    }
-  }, [sendAsJson, value]);
-
-  const carregar = async () => {
+  const load = async () => {
     setLoading(true);
     setErro(null);
     try {
@@ -58,190 +80,128 @@ const Preferences = () => {
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      setErro('Falha ao carregar configurações.');
+      setErro('Falha ao carregar preferências.');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { load(); }, []);
 
-  const limparForm = () => {
-    setEditKey('');
-    setValue('');
-    setDescription('');
-    setSendAsJson(false);
-    setJsonValido(true);
+  const byKey = useMemo(() => {
+    const m = new Map();
+    for (const r of items) m.set(r.key ?? r['key'], r);
+    return m;
+  }, [items]);
+
+  const toastOK = (msg) => { setOkMsg(msg); setTimeout(() => setOkMsg(null), 1800); };
+
+  const saveSetting = async (key, value, description = null) => {
     setErro(null);
-    setOkMsg(null);
-  };
-
-  const onEditar = (row) => {
-    setEditKey(row['key']);
-    setValue(stringifyMaybe(row.value));
-    setDescription(row.description ?? '');
-    // liga JSON automaticamente se o value da API veio como objeto/array
-    setSendAsJson(row && row.value !== null && typeof row.value === 'object');
-    setOkMsg(null);
-    setErro(null);
-  };
-
-  const onSalvar = async (e) => {
-    e.preventDefault();
-    setErro(null);
-    setOkMsg(null);
-    if (!editKey) {
-      setErro('Informe a chave (key).');
-      return;
-    }
-    if (sendAsJson && !jsonValido) {
-      setErro('JSON inválido. Corrija o value ou desative "Enviar como JSON".');
-      return;
-    }
-
-    let payloadValue = value;
-    if (sendAsJson) {
-      try {
-        payloadValue = value === '' ? null : JSON.parse(value);
-      } catch (err) {
-        setErro('JSON inválido.');
-        return;
-      }
-    }
-
     try {
-      const saved = await apiPost('/settings', {
-        key: editKey,
-        value: payloadValue,
-        description: description || null,
-      });
-      setOkMsg(`Configuração "${saved?.key ?? editKey}" salva.`);
-      await carregar();
-      // mantém no form (edição contínua). Se quiser limpar, chame limparForm();
-    } catch (e2) {
-      console.error(e2);
-      setErro('Erro ao salvar configuração.');
+      const saved = await apiPost('/settings', { key, value, description });
+      // atualiza lista localmente
+      setItems(prev =>
+        prev.map(r => (r.key === key || r['key'] === key)
+          ? { ...r, value: saved?.value ?? value, description: saved?.description ?? r.description, updated_at: saved?.updated_at ?? r.updated_at }
+          : r
+        )
+      );
+      toastOK(`Preferência “${FRIENDLY[key]?.label || key}” salva.`);
+    } catch (e) {
+      console.error(e);
+      setErro('Erro ao salvar. Tente novamente.');
+      // em caso de erro, recarrega do servidor para não ficar divergente
+      await load();
     }
   };
 
-  const filtrados = useMemo(() => {
-    const q = (busca || '').toLowerCase().trim();
-    if (!q) return items;
-    return items.filter((r) => {
-      const k = String(r['key'] ?? '').toLowerCase();
-      const d = String(r.description ?? '').toLowerCase();
-      const v = stringifyMaybe(r.value).toLowerCase();
-      return k.includes(q) || d.includes(q) || v.includes(q);
-    });
-  }, [items, busca]);
+  const toggleBoolean = async (key) => {
+    const row = byKey.get(key);
+    const current = !!coerceType(row?.value);
+    await saveSetting(key, !current, row?.description ?? null);
+  };
+
+  const changeEnum = async (key, newValue) => {
+    const row = byKey.get(key);
+    await saveSetting(key, newValue, row?.description ?? null);
+  };
+
+  const startEdit = (key) => {
+    setEditingKey(key);
+    const row = byKey.get(key);
+    const raw = row?.value;
+    // preserva formato; se objeto, mostra JSON bonito
+    let txt;
+    if (raw !== null && typeof raw === 'object') txt = JSON.stringify(raw, null, 2);
+    else txt = String(raw ?? '');
+    setEditValue(txt);
+  };
+
+  const cancelEdit = () => {
+    setEditingKey(null);
+    setEditValue('');
+  };
+
+  const submitEdit = async () => {
+    if (!editingKey) return;
+    const row = byKey.get(editingKey);
+    // tenta manter o tipo original caso seja boolean/number/objeto
+    let val = editValue;
+    const orig = row?.value;
+    if (typeof orig === 'boolean') val = /^true$/i.test(String(editValue).trim());
+    else if (typeof orig === 'number') val = Number(editValue);
+    else if (orig !== null && typeof orig === 'object') {
+      try { val = JSON.parse(editValue); } catch { setErro('JSON inválido.'); return; }
+    } else {
+      // se o usuário digitou "true"/"false" etc, tenta coerção
+      val = coerceType(editValue);
+    }
+    await saveSetting(editingKey, val, row?.description ?? null);
+    cancelEdit();
+  };
 
   const copiar = async (txt) => {
-    try {
-      await navigator.clipboard.writeText(txt);
-      setOkMsg('Valor copiado para a área de transferência.');
-      setTimeout(() => setOkMsg(null), 1500);
-    } catch {
-      setErro('Não foi possível copiar.');
-    }
+    try { await navigator.clipboard.writeText(txt); toastOK('Valor copiado.'); }
+    catch { setErro('Não foi possível copiar.'); }
   };
+
+  // Ordenar: conhecidas primeiro, depois alfabética
+  const ordered = useMemo(() => {
+    const known = Object.keys(FRIENDLY);
+    const score = (k) => {
+      const i = known.indexOf(k);
+      return i === -1 ? 999 : i;
+    };
+    return [...items].sort((a, b) => {
+      const ka = a.key ?? a['key']; const kb = b.key ?? b['key'];
+      const sa = score(ka); const sb = score(kb);
+      if (sa !== sb) return sa - sb;
+      return String(ka).localeCompare(String(kb));
+    });
+  }, [items]);
 
   return (
     <div className={styles.container}>
-      {/* Header */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Settings</h1>
-          <p className={styles.subtitle}>Gerencie chaves de configuração do sistema</p>
+          <p className={styles.subtitle}>Altere rapidamente as preferências do sistema.</p>
           {erro ? <div className={styles.alertErr}>{erro}</div> : null}
           {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
         </div>
-
         <div className={styles.headerRight}>
-          <div className={styles.searchBox}>
-            <Search size={16} />
-            <input
-              placeholder="Buscar por key, descrição ou valor…"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
-          <button className={styles.btnGhost} onClick={carregar} title="Recarregar">
+          <button className={styles.btnGhost} onClick={load} title="Recarregar">
             <RefreshCcw size={16} /> Recarregar
           </button>
         </div>
       </div>
 
-      {/* Formulário */}
-      <form className={styles.form} onSubmit={onSalvar}>
-        <div className={styles.formRow}>
-          <label>Key <span className={styles.req}>*</span></label>
-          <input
-            className={styles.input}
-            placeholder="ex.: feature.toggle.novoFluxo"
-            value={editKey}
-            onChange={(e) => setEditKey(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.formRow}>
-          <label className={styles.inlineLabel}>
-            Value <span className={styles.req}>*</span>
-            <span className={styles.help} title="Se ativado, enviaremos o value como JSON (objeto/array/boolean/number/null). Se desativado, enviaremos como texto.">
-              <Info size={14} />
-            </span>
-          </label>
-          <textarea
-            className={`${styles.textarea} ${sendAsJson && !jsonValido ? styles.textareaErr : ''}`}
-            placeholder={sendAsJson ? '{ "ativo": true }' : 'texto ou número como string'}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            rows={sendAsJson ? 8 : 4}
-          />
-          <div className={styles.rowBetween}>
-            <label className={styles.check}>
-              <input
-                type="checkbox"
-                checked={sendAsJson}
-                onChange={(e) => setSendAsJson(e.target.checked)}
-              />
-              Enviar como JSON
-            </label>
-            {sendAsJson ? (
-              <span className={jsonValido ? styles.badgeOk : styles.badgeErr}>
-                {jsonValido ? <><Check size={12}/> JSON válido</> : <><X size={12}/> JSON inválido</>}
-              </span>
-            ) : (
-              <span className={styles.badgeMuted}>Texto</span>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.formRow}>
-          <label>Descrição</label>
-          <input
-            className={styles.input}
-            placeholder="(opcional) descreva a finalidade da chave"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.formActions}>
-          <button type="button" className={styles.btnGhost} onClick={limparForm}>
-            <X size={16} /> Limpar
-          </button>
-          <button type="submit" className={styles.btnPrimary} disabled={!editKey || (sendAsJson && !jsonValido)}>
-            <Save size={16} /> Salvar / Atualizar
-          </button>
-        </div>
-      </form>
-
-      {/* Tabela */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          <div className={styles.cardTitle}><Plus size={16}/> Configurações</div>
+          <div className={styles.cardTitle}>Configurações</div>
           <div className={styles.cardHint}>
-            {loading ? 'Carregando…' : `${filtrados.length} registro(s)`}
+            {loading ? 'Carregando…' : `${ordered.length} registro(s)`}
           </div>
         </div>
 
@@ -249,46 +209,133 @@ const Preferences = () => {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{minWidth: 220}}>Key</th>
+                <th style={{minWidth: 320}}>Configuração</th>
                 <th>Valor</th>
                 <th style={{minWidth: 220}}>Descrição</th>
-                <th style={{minWidth: 150}}>Atualizado em</th>
-                <th style={{width: 140}}></th>
+                <th style={{minWidth: 160}}>Atualizado em</th>
+                <th style={{width: 180}}></th>
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((row) => {
-                const rowKey = row['key'];
+              {ordered.map((row) => {
+                const key = row.key ?? row['key'];
+                const spec = FRIENDLY[key];
                 const raw = row.value;
-                const isObj = raw !== null && typeof raw === 'object';
-                const display = stringifyMaybe(raw);
+                const nice = valueLabelFor(key, raw);
+                const isEditing = editingKey === key;
+
                 return (
-                  <tr key={rowKey}>
+                  <tr key={key}>
                     <td className={styles.cellKey}>
-                      <div className={styles.keyText} title={rowKey}>{rowKey}</div>
+                      <div className={styles.keyTitle}>{spec?.label ?? key}</div>
+                      <div className={styles.keySub}>({key})</div>
                     </td>
+
+                    {/* Valor */}
                     <td>
-                      <pre className={`${styles.code} ${isObj ? styles.codeJson : ''}`} title={display}>
-{display}
-                      </pre>
+                      {/* boolean → toggle */}
+                      {spec?.type === 'boolean' || typeof raw === 'boolean' ? (
+                        <button
+                          className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
+                          onClick={() => toggleBoolean(key)}
+                          aria-pressed={!!coerceType(raw)}
+                          title={nice}
+                        >
+                          <span className={styles.knob} />
+                          <span className={styles.switchText}>{nice}</span>
+                        </button>
+                      )
+                      // enum conhecida → select
+                      : spec?.type === 'enum' ? (
+                        <select
+                          className={styles.select}
+                          value={String(raw ?? '')}
+                          onChange={(e) => changeEnum(key, e.target.value)}
+                        >
+                          {spec.options.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      )
+                      // default → texto com edição inline
+                      : (
+                        <>
+                          {!isEditing ? (
+                            <pre className={styles.code} title={String(raw ?? '')}>
+{String(raw ?? '')}
+                            </pre>
+                          ) : (
+                            <textarea
+                              className={styles.textarea}
+                              rows={4}
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                            />
+                          )}
+                        </>
+                      )}
                     </td>
-                    <td className={styles.cellDesc}>{row.description ?? '—'}</td>
-                    <td>{fmtDate(row.updated_at)}</td>
+
+                    {/* Descrição */}
+                    <td className={styles.cellDesc}>
+                      {row.description ?? '—'}
+                    </td>
+
+                    {/* Atualizado */}
+                    <td>
+                      {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
+                    </td>
+
+                    {/* Ações */}
                     <td className={styles.cellActions}>
-                      <button className={styles.btnTiny} onClick={() => onEditar(row)} title="Editar">
-                        <Edit2 size={14}/> Editar
-                      </button>
-                      <button className={styles.btnTiny} onClick={() => copiar(display)} title="Copiar valor">
-                        <Copy size={14}/> Copiar
-                      </button>
+                      {spec?.type || typeof raw === 'boolean' || spec?.type === 'enum' ? (
+                        <>
+                          <button
+                            className={styles.btnTiny}
+                            onClick={() => copiar(String(raw ?? ''))}
+                            title="Copiar valor"
+                          >
+                            <Copy size={14}/> Copiar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {!isEditing ? (
+                            <>
+                              <button
+                                className={styles.btnTiny}
+                                onClick={() => startEdit(key)}
+                                title="Editar"
+                              >
+                                ✎ Editar
+                              </button>
+                              <button
+                                className={styles.btnTiny}
+                                onClick={() => copiar(String(raw ?? ''))}
+                                title="Copiar valor"
+                              >
+                                <Copy size={14}/> Copiar
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button className={styles.btnPrimary} onClick={submitEdit}>
+                                <Check size={14}/> Salvar
+                              </button>
+                              <button className={styles.btnGhost} onClick={cancelEdit}>
+                                <X size={14}/> Cancelar
+                              </button>
+                            </>
+                          )}
+                        </>
+                      )}
                     </td>
                   </tr>
                 );
               })}
-              {(!loading && filtrados.length === 0) && (
-                <tr>
-                  <td colSpan={5} className={styles.empty}>Nenhuma configuração encontrada.</td>
-                </tr>
+
+              {!loading && ordered.length === 0 && (
+                <tr><td colSpan={5} className={styles.empty}>Nenhuma configuração encontrada.</td></tr>
               )}
               {loading && (
                 <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>
