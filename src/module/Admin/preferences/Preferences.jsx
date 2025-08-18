@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, X, RefreshCcw, Copy } from 'lucide-react';
+import { RefreshCcw } from 'lucide-react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import styles from './styles/Preferences.module.css';
 
@@ -27,7 +27,7 @@ const FRIENDLY = {
     label: 'Distribuição de tickets',
     type: 'enum',
     options: [
-      { value: 'manual', label: 'Manual' },
+      { value: 'manual',    label: 'Manual' },
       { value: 'preditiva', label: 'Automática' },
     ],
   },
@@ -36,10 +36,7 @@ const FRIENDLY = {
 /** Rotula valores de forma amigável */
 const valueLabelFor = (key, value) => {
   const spec = FRIENDLY[key];
-  if (spec?.type === 'boolean') {
-    const v = !!value;
-    return v ? (spec.onText || 'Ativado') : (spec.offText || 'Desativado');
-  }
+  if (spec?.type === 'boolean') return !!value ? (spec.onText || 'Ativado') : (spec.offText || 'Desativado');
   if (spec?.type === 'enum') {
     const opt = spec.options?.find(o => String(o.value) === String(value));
     return opt?.label ?? String(value ?? '—');
@@ -48,17 +45,14 @@ const valueLabelFor = (key, value) => {
   return String(value ?? '—');
 };
 
-/** Tentativa segura de normalizar "true"/"false"/números vindos como string */
+/** Normaliza strings para boolean/number/objeto quando possível */
 const coerceType = (v) => {
   if (v === null || v === undefined) return v;
   if (typeof v === 'boolean' || typeof v === 'number' || typeof v === 'object') return v;
   const s = String(v).trim();
   if (/^(true|false)$/i.test(s)) return /^true$/i.test(s);
   if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
-  try { // tentar JSON válido (ex.: objetos)
-    const j = JSON.parse(s);
-    if (typeof j === 'object') return j;
-  } catch {}
+  try { const j = JSON.parse(s); if (typeof j === 'object') return j; } catch {}
   return s;
 };
 
@@ -100,7 +94,6 @@ const Preferences = () => {
     setErro(null);
     try {
       const saved = await apiPost('/settings', { key, value, description });
-      // atualiza lista localmente
       setItems(prev =>
         prev.map(r => (r.key === key || r['key'] === key)
           ? { ...r, value: saved?.value ?? value, description: saved?.description ?? r.description, updated_at: saved?.updated_at ?? r.updated_at }
@@ -111,7 +104,6 @@ const Preferences = () => {
     } catch (e) {
       console.error(e);
       setErro('Erro ao salvar. Tente novamente.');
-      // em caso de erro, recarrega do servidor para não ficar divergente
       await load();
     }
   };
@@ -131,43 +123,28 @@ const Preferences = () => {
     setEditingKey(key);
     const row = byKey.get(key);
     const raw = row?.value;
-    // preserva formato; se objeto, mostra JSON bonito
-    let txt;
-    if (raw !== null && typeof raw === 'object') txt = JSON.stringify(raw, null, 2);
-    else txt = String(raw ?? '');
-    setEditValue(txt);
+    setEditValue(raw !== null && typeof raw === 'object' ? JSON.stringify(raw, null, 2) : String(raw ?? ''));
   };
 
-  const cancelEdit = () => {
-    setEditingKey(null);
-    setEditValue('');
-  };
+  const cancelEdit = () => { setEditingKey(null); setEditValue(''); };
 
   const submitEdit = async () => {
     if (!editingKey) return;
     const row = byKey.get(editingKey);
-    // tenta manter o tipo original caso seja boolean/number/objeto
     let val = editValue;
     const orig = row?.value;
     if (typeof orig === 'boolean') val = /^true$/i.test(String(editValue).trim());
     else if (typeof orig === 'number') val = Number(editValue);
-    else if (orig !== null && typeof orig === 'object') {
-      try { val = JSON.parse(editValue); } catch { setErro('JSON inválido.'); return; }
-    } else {
-      // se o usuário digitou "true"/"false" etc, tenta coerção
-      val = coerceType(editValue);
-    }
+    else if (orig !== null && typeof orig === 'object') { try { val = JSON.parse(editValue); } catch { setErro('JSON inválido.'); return; } }
+    else { val = coerceType(editValue); }
     await saveSetting(editingKey, val, row?.description ?? null);
     cancelEdit();
   };
 
-  // Ordenar: conhecidas primeiro, depois alfabética
+  // conhecidas primeiro
   const ordered = useMemo(() => {
     const known = Object.keys(FRIENDLY);
-    const score = (k) => {
-      const i = known.indexOf(k);
-      return i === -1 ? 999 : i;
-    };
+    const score = (k) => { const i = known.indexOf(k); return i === -1 ? 999 : i; };
     return [...items].sort((a, b) => {
       const ka = a.key ?? a['key']; const kb = b.key ?? b['key'];
       const sa = score(ka); const sb = score(kb);
@@ -180,16 +157,21 @@ const Preferences = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Settings</h1>
+          <h1 className={styles.title}>Preferências</h1>
           <p className={styles.subtitle}>Altere rapidamente as preferências do sistema.</p>
           {erro ? <div className={styles.alertErr}>{erro}</div> : null}
           {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
+        </div>
+        <div className={styles.headerRight}>
+          <button className={styles.btnGhost} onClick={load} title="Recarregar">
+            <RefreshCcw size={16} /> Recarregar
+          </button>
         </div>
       </div>
 
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Configurações</div>
+          <div className={styles.cardTitle}>Preferências do sistema</div>
           <div className={styles.cardHint}>
             {loading ? 'Carregando…' : `${ordered.length} registro(s)`}
           </div>
@@ -199,11 +181,10 @@ const Preferences = () => {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{minWidth: 320}}>Configuração</th>
+                <th style={{ minWidth: 320 }}>Opção</th>
                 <th>Valor</th>
-                <th style={{minWidth: 220}}>Descrição</th>
-                <th style={{minWidth: 160}}>Atualizado em</th>
-                <th style={{width: 180}}></th>
+                <th style={{ minWidth: 220 }}>Descrição</th>
+                <th style={{ minWidth: 160 }}>Atualizado</th>
               </tr>
             </thead>
             <tbody>
@@ -221,34 +202,30 @@ const Preferences = () => {
                       <div className={styles.keySub}>({key})</div>
                     </td>
 
-                    {/* Valor */}
                     <td>
-                      {/* boolean → toggle */}
-                      {spec?.type === 'boolean' || typeof raw === 'boolean' ? (
+                      {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
                         <button
                           className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
                           onClick={() => toggleBoolean(key)}
                           aria-pressed={!!coerceType(raw)}
+                          aria-label={`${spec?.label ?? key}: ${nice}`}
                           title={nice}
                         >
                           <span className={styles.knob} />
                           <span className={styles.switchText}>{nice}</span>
                         </button>
-                      )
-                      // enum conhecida → select
-                      : spec?.type === 'enum' ? (
+                      ) : spec?.type === 'enum' ? (
                         <select
                           className={styles.select}
                           value={String(raw ?? '')}
                           onChange={(e) => changeEnum(key, e.target.value)}
+                          aria-label={spec?.label ?? key}
                         >
                           {spec.options.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
-                      )
-                      // default → texto com edição inline
-                      : (
+                      ) : (
                         <>
                           {!isEditing ? (
                             <pre className={styles.code} title={String(raw ?? '')}>
@@ -266,25 +243,17 @@ const Preferences = () => {
                       )}
                     </td>
 
-                    {/* Descrição */}
-                    <td className={styles.cellDesc}>
-                      {row.description ?? '—'}
-                    </td>
-
-                    {/* Atualizado */}
-                    <td>
-                      {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
-                    </td>
-
+                    <td className={styles.cellDesc}>{row.description ?? '—'}</td>
+                    <td>{row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}</td>
                   </tr>
                 );
               })}
 
               {!loading && ordered.length === 0 && (
-                <tr><td colSpan={5} className={styles.empty}>Nenhuma configuração encontrada.</td></tr>
+                <tr><td colSpan={4} className={styles.empty}>Nenhuma preferência encontrada.</td></tr>
               )}
               {loading && (
-                <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>
+                <tr><td colSpan={4} className={styles.loading}>Carregando…</td></tr>
               )}
             </tbody>
           </table>
