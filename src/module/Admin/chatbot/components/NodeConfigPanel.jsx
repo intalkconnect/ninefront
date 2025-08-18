@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
-import styles from './NodeConfigPanel.module.css';
+import styles from './styles/NodeConfigPanel.module.css';
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -1000,3 +1000,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
