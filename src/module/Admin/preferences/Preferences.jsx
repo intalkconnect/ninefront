@@ -161,11 +161,6 @@ const Preferences = () => {
     cancelEdit();
   };
 
-  const copiar = async (txt) => {
-    try { await navigator.clipboard.writeText(txt); toastOK('Valor copiado.'); }
-    catch { setErro('Não foi possível copiar.'); }
-  };
-
   // Ordenar: conhecidas primeiro, depois alfabética
   const ordered = useMemo(() => {
     const known = Object.keys(FRIENDLY);
@@ -189,11 +184,6 @@ const Preferences = () => {
           <p className={styles.subtitle}>Altere rapidamente as preferências do sistema.</p>
           {erro ? <div className={styles.alertErr}>{erro}</div> : null}
           {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
-        </div>
-        <div className={styles.headerRight}>
-          <button className={styles.btnGhost} onClick={load} title="Recarregar">
-            <RefreshCcw size={16} /> Recarregar
-          </button>
         </div>
       </div>
 
@@ -286,50 +276,6 @@ const Preferences = () => {
                       {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
                     </td>
 
-                    {/* Ações */}
-                    <td className={styles.cellActions}>
-                      {spec?.type || typeof raw === 'boolean' || spec?.type === 'enum' ? (
-                        <>
-                          <button
-                            className={styles.btnTiny}
-                            onClick={() => copiar(String(raw ?? ''))}
-                            title="Copiar valor"
-                          >
-                            <Copy size={14}/> Copiar
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          {!isEditing ? (
-                            <>
-                              <button
-                                className={styles.btnTiny}
-                                onClick={() => startEdit(key)}
-                                title="Editar"
-                              >
-                                ✎ Editar
-                              </button>
-                              <button
-                                className={styles.btnTiny}
-                                onClick={() => copiar(String(raw ?? ''))}
-                                title="Copiar valor"
-                              >
-                                <Copy size={14}/> Copiar
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button className={styles.btnPrimary} onClick={submitEdit}>
-                                <Check size={14}/> Salvar
-                              </button>
-                              <button className={styles.btnGhost} onClick={cancelEdit}>
-                                <X size={14}/> Cancelar
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </td>
                   </tr>
                 );
               })}
