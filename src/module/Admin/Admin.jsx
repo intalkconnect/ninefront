@@ -11,7 +11,7 @@ import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../shared/apiClient';
 import Preferences from './preferences/Preferences'; // <<< usa a página de settings como "Preferences"
 import TempoReal from './atendimento/TempoReal';
-import Filas from './atendimento/Filas';
+import Queues from './atendimento/Queues';
 
 // Novos componentes (temporários como <div>)
 
@@ -141,7 +141,7 @@ export default function Admin() {
           {/* Atendimento */}
           <Route path="atendimento/tempo-real" element={<TempoReal />} />
           <Route path="atendimento/configuracao" element={<Configuracao />} />
-          <Route path="atendimento/filas" element={<Filas />} />
+          <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/respostas-rapidas" element={<RespostasRapidas />} />
 
           {/* Preferências (antes era settings) */}
