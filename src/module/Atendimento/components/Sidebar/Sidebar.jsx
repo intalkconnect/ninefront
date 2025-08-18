@@ -31,6 +31,8 @@ export default function Sidebar() {
 
   const queueRoomsRef = useRef(new Set());
 
+  
+
   // Gera o snippet para exibição (sempre string)
   const getSnippet = (conv) => {
     if (!conv) return "";
@@ -181,6 +183,27 @@ export default function Sidebar() {
     };
   }, [userFilas, distribuicaoTickets]);
 
+    // util: mapeia status do backend -> select ("pausado" é o label do front)
+  const mapFromBackend = (row) => {
+    const s = (row?.derived_status || row?.status || '').toLowerCase();
+    if (s === 'pausa' || s === 'pausado') return 'pausado';
+    if (s === 'offline') return 'offline';
+    return 'online';
+  };
+
+  // carrega status do atendente ao montar / trocar email
+  useEffect(() => {
+    (async () => {
+      if (!userEmail) return;
+      try {
+        const a = await apiGet(`/atendentes/${userEmail}`); // GET único atendente
+        setStatus(mapFromBackend(a));
+      } catch (e) {
+        console.error('[sidebar] erro ao buscar status do atendente', e);
+      }
+    })();
+  }, [userEmail]);
+
   // Puxa próximo ticket da fila
   const puxarProximoTicket = async () => {
     try {
@@ -235,6 +258,41 @@ export default function Sidebar() {
     });
     return arr;
   }, [filteredConversations, ordemAscendente]);
+
+
+  // handler centralizado para trocar status
+  const applyStatusChange = async (next) => {
+    if (!userEmail) return;
+    try {
+      if (next === 'pausado') {
+        await apiPut(`/atendentes/pause/${userEmail}`, {});
+      } else if (next === 'offline') {
+        // encerra sessão (se existir)
+        const sid = getSocket()?.id;
+        if (sid) {
+          try { await apiPut(`/atendentes/status/${sid}`); } catch {}
+        }
+        // fixa presença como offline
+        try { await apiPut(`/atendentes/presence/${userEmail}`, { status: 'offline' }); } catch {}
+      } else if (next === 'online') {
+        // garante presença online
+        await apiPut(`/atendentes/presence/${userEmail}`, { status: 'online' });
+        // garante que há sessão registrada
+        const sid = getSocket()?.id;
+        if (sid) {
+          await apiPut(`/atendentes/session/${userEmail}`, { session: sid });
+        }
+      }
+      setStatus(next);
+    } catch (e) {
+      console.error('[sidebar] erro ao aplicar status', e);
+      // re-sync com backend em caso de erro
+      try {
+        const a = await apiGet(`/atendentes/${userEmail}`);
+        setStatus(mapFromBackend(a));
+      } catch {}
+    }
+  };
 
   return (
     <div className="sidebar-container">
@@ -383,7 +441,7 @@ export default function Sidebar() {
             />
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => applyStatusChange(e.target.value)}
               className="status-select"
             >
               <option value="online">Online</option>
