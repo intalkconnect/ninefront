@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import {
   Info,
@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   Gauge,
 } from 'lucide-react';
-import styles from './styles/Dashboard.module.css';
+import styles from './Dashboard.module.css';
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -25,6 +25,11 @@ const fmtMin = (m) => {
   const r = mins % 60;
   return h > 0 ? `${h}h ${r}m` : `${r}m`;
 };
+const qs = (obj) =>
+  Object.entries(obj)
+    .filter(([, v]) => v !== null && v !== undefined && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&');
 
 const useDebounce = (value, delay = 300) => {
   const [deb, setDeb] = useState(value);
@@ -35,13 +40,43 @@ const useDebounce = (value, delay = 300) => {
   return deb;
 };
 
-const qs = (obj) =>
-  Object.entries(obj)
-    .filter(([, v]) => v !== null && v !== undefined && v !== '')
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-    .join('&');
+/* ========================= Tooltip que se ajusta às bordas ========================= */
+const HelpIcon = ({ text, className }) => {
+  const ref = useRef(null);
+  const [pos, setPos] = useState('top'); // 'top' | 'top-left' | 'top-right'
 
-/* ========================= Mini componentes de UI ========================= */
+  const handleEnter = () => {
+    const el = ref.current;
+    if (!el) return;
+
+    const TIP_W = 260;   // manter igual ao CSS (--tipw)
+    const PADDING = 12;
+    const rect = el.getBoundingClientRect();
+    const midX = rect.left + rect.width / 2;
+    const left = midX - TIP_W / 2;
+    const right = midX + TIP_W / 2;
+    const vw = window.innerWidth;
+
+    if (right + PADDING > vw) setPos('top-right');
+    else if (left - PADDING < 0) setPos('top-left');
+    else setPos('top');
+  };
+
+  return (
+    <span
+      ref={ref}
+      onMouseEnter={handleEnter}
+      className={`${styles.help} ${className || ''}`}
+      data-tooltip={text}
+      data-pos={pos}
+      aria-label="Ajuda"
+    >
+      <Info size={16} />
+    </span>
+  );
+};
+
+/* ========================= UI ========================= */
 const Card = ({ title, icon, help, children }) => (
   <div className={styles.card}>
     <div className={styles.cardHead}>
@@ -49,11 +84,7 @@ const Card = ({ title, icon, help, children }) => (
         {icon ? <span className={styles.cardIcon}>{icon}</span> : null}
         <span>{title}</span>
       </div>
-      {help ? (
-        <span className={styles.help} data-tooltip={help}>
-          <Info size={16} />
-        </span>
-      ) : null}
+      {help ? <HelpIcon text={help} /> : null}
     </div>
     <div className={styles.cardBody}>{children}</div>
   </div>
@@ -66,24 +97,18 @@ const Stat = ({ label, value, tone = 'default' }) => (
   </div>
 );
 
-/* ========================= Gráficos SVG leves (sem libs) ========================= */
-// Barras verticais simples
+/* ========================= Gráficos (SVG leve) ========================= */
 const BarChart = ({ data, maxValue, height = 140, formatter = (v) => v }) => {
-  const max = Math.max(
-    1,
-    maxValue ?? Math.max(...data.map((d) => +d.value || 0))
-  );
+  const max = Math.max(1, maxValue ?? Math.max(...data.map((d) => +d.value || 0)));
   return (
     <div className={styles.barWrap}>
       {data.map((d, i) => {
         const h = Math.round(((+d.value || 0) / max) * height);
         return (
-          <div className={styles.barCol} key={i} title={`${d.label}: ${formatter(d.value)}`}>
+          <div className={styles.barCol} key={`${d.label}-${i}`} title={`${d.label}: ${formatter(d.value)}`}>
             <div className={styles.bar} style={{ height: `${h}px` }} />
             <div className={styles.barValue}>{formatter(d.value)}</div>
-            <div className={styles.barLabel} title={d.label}>
-              {d.label}
-            </div>
+            <div className={styles.barLabel} title={d.label}>{d.label}</div>
           </div>
         );
       })}
@@ -91,13 +116,11 @@ const BarChart = ({ data, maxValue, height = 140, formatter = (v) => v }) => {
   );
 };
 
-// Linha (polylines) para série diária
 const LineChart = ({ data, height = 160, formatter = (v) => v }) => {
-  // data: [{ xLabel, y }]
   const max = Math.max(1, Math.max(...data.map((d) => +d.y || 0)));
-  const stepX = 48; // px por ponto
+  const stepX = 48;
   const padding = 10;
-  const width = Math.max(2 * padding + stepX * (data.length - 1), 100);
+  const width = Math.max(2 * padding + stepX * Math.max(0, data.length - 1), 100);
   const points = data.map((d, i) => {
     const x = padding + i * stepX;
     const y = padding + (1 - (+d.y || 0) / max) * (height - 2 * padding);
@@ -117,7 +140,7 @@ const LineChart = ({ data, height = 160, formatter = (v) => v }) => {
           const x = padding + i * stepX;
           const y = padding + (1 - (+d.y || 0) / max) * (height - 2 * padding);
           return (
-            <g key={i}>
+            <g key={`${d.xLabel}-${i}`}>
               <circle cx={x} cy={y} r="3" className={styles.lineDot} />
               <title>{`${d.xLabel}: ${formatter(d.y)}`}</title>
             </g>
@@ -126,7 +149,7 @@ const LineChart = ({ data, height = 160, formatter = (v) => v }) => {
       </svg>
       <div className={styles.lineXAxis}>
         {data.map((d, i) => (
-          <div key={i} className={styles.lineTick} style={{ width: stepX }}>
+          <div key={`${d.xLabel}-tick-${i}`} className={styles.lineTick} style={{ width: stepX }}>
             {d.xLabel}
           </div>
         ))}
@@ -135,7 +158,6 @@ const LineChart = ({ data, height = 160, formatter = (v) => v }) => {
   );
 };
 
-// Donut simples para % (abandono)
 const Donut = ({ percent = 0, size = 132, stroke = 14, label }) => {
   const p = Math.min(100, Math.max(0, +percent || 0));
   const r = (size - stroke) / 2;
@@ -144,14 +166,7 @@ const Donut = ({ percent = 0, size = 132, stroke = 14, label }) => {
   return (
     <div className={styles.donutWrap} title={`${label || 'Percentual'}: ${fmtPct(p)}`}>
       <svg width={size} height={size}>
-        <circle
-          className={styles.donutBg}
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          strokeWidth={stroke}
-          fill="none"
-        />
+        <circle className={styles.donutBg} cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} fill="none" />
         <circle
           className={styles.donutFg}
           cx={size / 2}
@@ -174,24 +189,17 @@ const Donut = ({ percent = 0, size = 132, stroke = 14, label }) => {
 
 /* ========================= Página ========================= */
 const Dashboard = () => {
-  // Filtros de data (últimos 7 dias por padrão)
-  const d7 = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000); // inclui hoje
-  const [from, setFrom] = useState(
-    new Date(d7.getFullYear(), d7.getMonth(), d7.getDate(), 0, 0, 0)
-      .toISOString()
-      .slice(0, 16)
-  );
-  const [to, setTo] = useState(
-    new Date().toISOString().slice(0, 16)
-  );
+  // últimos 7 dias por padrão
+  const d7 = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+  const [from, setFrom] = useState(new Date(d7.getFullYear(), d7.getMonth(), d7.getDate(), 0, 0, 0).toISOString().slice(0, 16));
+  const [to, setTo] = useState(new Date().toISOString().slice(0, 16));
 
   const debFrom = useDebounce(from, 300);
   const debTo = useDebounce(to, 300);
 
-  // Estados de dados
   const [summary, setSummary] = useState(null);
   const [queues, setQueues] = useState([]);
-  const [frtDay, setFrtDay] = useState([]); // group=day
+  const [frtDay, setFrtDay] = useState([]);
   const [artAgents, setArtAgents] = useState([]);
   const [durationByQueue, setDurationByQueue] = useState([]);
   const [abandonment, setAbandonment] = useState({ taxa_pct: 0, abandonados: 0, total: 0, threshold_min: 15 });
@@ -199,7 +207,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
 
-  // Carrega dados quando filtros mudam
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
@@ -233,48 +240,53 @@ const Dashboard = () => {
 
   // Derivados
   const totalCriados =
-    summary?.total_criados_no_periodo ??
-    summary?.total_criados ??
-    queues?.reduce((acc, r) => acc + fmtInt(r.total_criados_no_periodo ?? r.total_criados ?? 0), 0) ??
-    0;
+    (
+      summary?.total_criados_no_periodo ??
+      summary?.total_criados ??
+      queues?.reduce(
+        (acc, r) => acc + fmtInt(r.total_criados_no_periodo ?? r.total_criados ?? 0),
+        0
+      )
+    ) ?? 0;
 
   const backlogAberto = fmtInt(summary?.backlog_aberto);
   const aguardando = fmtInt(summary?.aguardando);
   const emAtendimento = fmtInt(summary?.em_atendimento);
 
   const frtSerie = useMemo(() => {
-    // ordena por dia
     const items = frtDay
-      .map((d) => ({
-        xLabel: d.group_key ? new Date(d.group_key).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '',
-        y: d.frt_media_min ?? null,
-      }))
-      .sort((a, b) => {
-        // parse dd/mm
-        const [ad, am] = a.xLabel.split('/').map(Number);
-        const [bd, bm] = b.xLabel.split('/').map(Number);
-        return am === bm ? ad - bd : am - bm;
-      });
+      .filter((d) => d.group_key)
+      .map((d) => {
+        const date = new Date(d.group_key);
+        return {
+          sort: +date,
+          xLabel: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          y: d.frt_media_min ?? null,
+        };
+      })
+      .sort((a, b) => a.sort - b.sort);
     return items;
   }, [frtDay]);
 
   const slaDia = useMemo(() => {
-    return frtDay
-      .map((d) => ({
-        xLabel: d.group_key ? new Date(d.group_key).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '',
-        y: d.sla_15min_pct ?? null,
-      }))
-      .sort((a, b) => {
-        const [ad, am] = a.xLabel.split('/').map(Number);
-        const [bd, bm] = b.xLabel.split('/').map(Number);
-        return am === bm ? ad - bd : am - bm;
-      });
+    const items = frtDay
+      .filter((d) => d.group_key)
+      .map((d) => {
+        const date = new Date(d.group_key);
+        return {
+          sort: +date,
+          xLabel: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          y: d.sla_15min_pct ?? null,
+        };
+      })
+      .sort((a, b) => a.sort - b.sort);
+    return items;
   }, [frtDay]);
 
   const artBars = useMemo(() => {
     const top = [...artAgents].sort((a, b) => (a.art_media_min ?? 0) - (b.art_media_min ?? 0)).slice(0, 8);
-    return top.map((r) => ({
-      label: r.agente || '—',
+    return top.map((r, i) => ({
+      label: r.agente || `— ${i + 1}`,
       value: r.art_media_min ?? 0,
       extra: r.interacoes ?? 0,
     }));
@@ -285,8 +297,8 @@ const Dashboard = () => {
       [...queues]
         .sort((a, b) => (b.backlog_aberto ?? 0) - (a.backlog_aberto ?? 0))
         .slice(0, 8)
-        .map((r) => ({
-          label: r.fila || '—',
+        .map((r, i) => ({
+          label: r.fila || `— ${i + 1}`,
           value: r.backlog_aberto ?? 0,
         })),
     [queues]
@@ -297,8 +309,8 @@ const Dashboard = () => {
       [...durationByQueue]
         .sort((a, b) => (b.duracao_media_min ?? 0) - (a.duracao_media_min ?? 0))
         .slice(0, 8)
-        .map((r) => ({
-          label: r.fila || '—',
+        .map((r, i) => ({
+          label: r.fila || `— ${i + 1}`,
           value: r.duracao_media_min ?? 0,
           p90: r.duracao_p90_min ?? 0,
         })),
@@ -319,19 +331,11 @@ const Dashboard = () => {
         <div className={styles.filters}>
           <div className={styles.filterItem}>
             <label>De</label>
-            <input
-              type="datetime-local"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
+            <input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
           </div>
           <div className={styles.filterItem}>
             <label>Até</label>
-            <input
-              type="datetime-local"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
+            <input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
         </div>
       </div>
@@ -361,9 +365,16 @@ const Dashboard = () => {
         <Card
           title="SLA de 1ª resposta (15m)"
           icon={<Gauge size={18} />}
-          help="Percentual de tickets respondidos em até 15 minutos (por dia), no período. Abaixo, donut consolidado do período."
+          help="Percentual de tickets respondidos em até 15 minutos (por dia), no período. Abaixo, donut mostra o inverso do abandono."
         >
-          <Donut percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? (100 - +abandonment.taxa_pct) : 0} label="Dentro do SLA" />
+          <Donut
+            percent={
+              abandonment && Number.isFinite(+abandonment.taxa_pct)
+                ? (100 - +abandonment.taxa_pct)
+                : 0
+            }
+            label="Dentro do SLA"
+          />
           <div className={styles.subtleCenter}>
             Abandono: {fmtPct(abandonment?.taxa_pct ?? 0)} • Limite {abandonment?.threshold_min ?? 15}m
           </div>
@@ -405,7 +416,7 @@ const Dashboard = () => {
         <Card
           title="Tempo de resposta por agente (ART médio)"
           icon={<Users size={18} />}
-          help="ART (Agent Response Time) médio por agente, considerando o tempo entre cada mensagem do cliente e a primeira resposta subsequente do agente."
+          help="ART (Agent Response Time) médio por agente — tempo entre uma mensagem do cliente e a primeira resposta do agente."
         >
           {loading && artBars.length === 0 ? (
             <div className={styles.loading}>Carregando…</div>
@@ -413,10 +424,7 @@ const Dashboard = () => {
             <div className={styles.empty}>Sem dados para o período.</div>
           ) : (
             <>
-              <BarChart
-                data={artBars}
-                formatter={(v) => fmtMin(v)}
-              />
+              <BarChart data={artBars} formatter={(v) => fmtMin(v)} />
               <div className={styles.tableWrap}>
                 <table className={styles.table}>
                   <thead>
@@ -460,7 +468,7 @@ const Dashboard = () => {
         <Card
           title="Duração média das conversas por fila"
           icon={<AlertTriangle size={18} />}
-          help="Tempo médio do ciclo de conversa por fila (min: diferença entre primeira e última mensagem do ticket) no período selecionado."
+          help="Tempo médio do ciclo de conversa por fila (diferença entre a primeira e a última mensagem) no período selecionado."
         >
           {loading && durationBars.length === 0 ? (
             <div className={styles.loading}>Carregando…</div>
@@ -518,7 +526,7 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {aging.map((r) => {
+                  {aging.map((r, i) => {
                     const total =
                       fmtInt(r.ate_15m) +
                       fmtInt(r.m15_a_30m) +
@@ -526,7 +534,7 @@ const Dashboard = () => {
                       fmtInt(r.h1_a_h4) +
                       fmtInt(r.acima_4h);
                     return (
-                      <tr key={r.fila || '-'}>
+                      <tr key={(r.fila || '-') + i}>
                         <td>{r.fila || '—'}</td>
                         <td>{fmtInt(r.ate_15m)}</td>
                         <td>{fmtInt(r.m15_a_30m)}</td>
@@ -548,6 +556,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
-
-
