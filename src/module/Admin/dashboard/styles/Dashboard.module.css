@@ -1,10 +1,19 @@
 .container {
-  min-height: 100vh;
+  /* Em vez de min-height, use height para o container “pegar” o viewport */
+  height: 100vh;
+
+  /* Força scroll vertical dentro do dashboard */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* inércia no iOS */
+  overscroll-behavior: contain;      /* evita “puxar” o body */
+
   background: #f7f7fb;
   padding: 24px;
   color: #111827;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
 }
+
 
 .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:18px; }
 .title { margin:0; font-size:26px; font-weight:800; }
