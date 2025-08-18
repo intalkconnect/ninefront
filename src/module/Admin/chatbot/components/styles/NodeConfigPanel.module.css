@@ -1,4 +1,4 @@
-/* NodeConfigPanel.module.css */
+/* NodeConfigPanel.module.css - Versão Otimizada */
 
 /* Container principal */
 .asidePanel {
@@ -11,29 +11,42 @@
   padding: 0;
   border-left: 2px solid #2a2a2a;
   overflow-y: auto;
+  overflow-x: hidden; /* Previne scroll horizontal */
   z-index: 1000;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+  /* Melhora performance do scroll */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Header do painel */
+/* Header do painel - Fixo no topo */
 .panelHeader {
-  padding: 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid #333333;
   background: linear-gradient(135deg, #252525 0%, #2a2a2a 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
   backdrop-filter: blur(10px);
+  /* Sombra sutil para separar do conteúdo */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .panelTitle {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #4fc3f7;
   text-shadow: 0 0 8px rgba(79, 195, 247, 0.3);
   letter-spacing: -0.02em;
+  /* Quebra texto em títulos muito longos */
+  word-break: break-word;
+  max-width: calc(100% - 60px);
+  line-height: 1.3;
 }
 
 .closeButton {
@@ -49,6 +62,7 @@
   transition: all 0.2s ease;
   width: 40px;
   height: 40px;
+  flex-shrink: 0; /* Não encolhe */
 }
 
 .closeButton:hover {
@@ -57,35 +71,41 @@
   transform: rotate(90deg);
 }
 
-/* Conteúdo das abas */
+/* Conteúdo das abas - Padding ajustado */
 .tabContent {
-  padding: 1.25rem;
+  padding: 1rem 1.25rem 2rem 1.25rem; /* Padding bottom maior para não cortar */
+  min-height: calc(100% - 80px); /* Garante altura mínima */
 }
 
-/* Botões de navegação das abas */
+/* Botões de navegação das abas - Melhor responsividade */
 .tabButtons {
   display: flex;
   gap: 0.5rem;
-  margin: 1.25rem 0;
+  margin: 1rem 0;
   background: #1a1a1a;
   padding: 0.25rem;
   border-radius: 10px;
   border: 1px solid #333;
+  position: sticky;
+  top: 70px; /* Fica fixo logo abaixo do header */
+  z-index: 50;
+  backdrop-filter: blur(5px);
 }
 
 .tabButton {
   flex: 1;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 0.875rem; /* Padding reduzido para caber melhor */
   background: transparent;
   color: #aaa;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* Fonte ligeiramente menor */
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  white-space: nowrap; /* Previne quebra de linha */
 }
 
 .tabButton::before {
@@ -113,18 +133,20 @@
   display: none;
 }
 
-/* Seções expansíveis */
+/* Seções expansíveis - Melhor controle de espaçamento */
 .sectionContainer {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   background: linear-gradient(135deg, #252525 0%, #2a2a2a 100%);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #333;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  /* Previne overflow em dispositivos pequenos */
+  min-width: 0;
 }
 
 .sectionHeader {
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1rem; /* Padding reduzido */
   background: linear-gradient(135deg, #2a2a2a 0%, #2f2f2f 100%);
   display: flex;
   justify-content: space-between;
@@ -132,6 +154,8 @@
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease;
+  /* Previne overflow */
+  min-height: 50px;
 }
 
 .sectionHeader:hover {
@@ -141,55 +165,68 @@
 
 .sectionTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.95rem; /* Fonte ligeiramente menor */
   font-weight: 600;
   color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  /* Controla overflow de títulos longos */
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sectionCount {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #4fc3f7;
   font-weight: 500;
   background: rgba(79, 195, 247, 0.1);
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.4rem;
   border-radius: 12px;
   margin-left: 0.5rem;
+  flex-shrink: 0; /* Não encolhe */
+  white-space: nowrap;
 }
 
 .sectionContent {
-  padding: 1.25rem;
+  padding: 1rem; /* Padding reduzido */
   background: #252525;
 }
 
-/* Grupos de input */
+/* Grupos de input - Melhor controle de espaçamento */
 .inputGroup {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem; /* Espaçamento reduzido */
+}
+
+.inputGroup:last-child {
+  margin-bottom: 0; /* Remove margin do último elemento */
 }
 
 .inputLabel {
   display: block;
-  margin-bottom: 0.75rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.5rem; /* Margin reduzida */
+  font-size: 0.85rem;
   color: #e0e0e0;
   font-weight: 600;
   letter-spacing: 0.02em;
+  line-height: 1.3;
 }
 
-/* Estilos de input */
+/* Estilos de input - Otimizados */
 .inputStyle {
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 0.875rem; /* Padding otimizado */
   border-radius: 8px;
   border: 2px solid #404040;
   background: linear-gradient(135deg, #2a2a2a 0%, #2f2f2f 100%);
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.3s ease;
   box-sizing: border-box;
+  /* Melhora legibilidade */
+  line-height: 1.4;
 }
 
 .inputStyle:focus {
@@ -203,21 +240,24 @@
   border-color: #555;
 }
 
-/* Textarea específico */
+/* Textarea específico - Altura controlada */
 .textareaStyle {
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 0.875rem;
   border-radius: 8px;
   border: 2px solid #404040;
   background: linear-gradient(135deg, #2a2a2a 0%, #2f2f2f 100%);
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   transition: all 0.3s ease;
   box-sizing: border-box;
   resize: vertical;
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
   line-height: 1.5;
+  /* Altura mínima e máxima controladas */
+  min-height: 80px;
+  max-height: 200px;
 }
 
 .textareaStyle:focus {
@@ -230,16 +270,25 @@
 /* Select customizado */
 .selectStyle {
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 0.875rem;
   border-radius: 8px;
   border: 2px solid #404040;
   background: linear-gradient(135deg, #2a2a2a 0%, #2f2f2f 100%);
   color: #ffffff;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   box-sizing: border-box;
+  /* Melhora aparência no Safari/iOS */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234fc3f7' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
 }
 
 .selectStyle:focus {
@@ -254,13 +303,13 @@
   padding: 0.5rem;
 }
 
-/* Caixas de ação/condição */
+/* Caixas de ação/condição - Mais compactas */
 .actionBox {
   background: linear-gradient(135deg, #2a2a2a 0%, #2f2f2f 100%);
   border: 2px solid #404040;
   border-radius: 12px;
-  padding: 1.25rem;
-  margin-bottom: 1.25rem;
+  padding: 1rem; /* Padding reduzido */
+  margin-bottom: 1rem;
   position: relative;
   overflow: hidden;
 }
@@ -280,24 +329,29 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem; /* Padding reduzido */
   border-bottom: 1px solid #404040;
 }
 
 .actionTitle {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #ffffff;
   font-weight: 700;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Linhas de condição */
+/* Linhas de condição - Mais compactas */
 .conditionRow {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-  padding-bottom: 1.25rem;
+  gap: 0.75rem; /* Gap reduzido */
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid #404040;
   position: relative;
 }
@@ -311,7 +365,7 @@
 .conditionRow::before {
   content: '';
   position: absolute;
-  left: -1.25rem;
+  left: -1rem;
   top: 0;
   bottom: 0;
   width: 3px;
@@ -319,23 +373,27 @@
   border-radius: 2px;
 }
 
-/* Grupos de botões */
+/* Grupos de botões - Melhor controle */
 .buttonGroup {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-/* Botões principais */
+.buttonGroup:last-child {
+  margin-bottom: 0; /* Remove margin bottom do último grupo */
+}
+
+/* Botões principais - Altura controlada */
 .addButton {
   background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
   color: #ffffff;
   border: none;
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 1rem; /* Padding otimizado */
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -344,6 +402,7 @@
   width: 100%;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+  min-height: 44px; /* Altura mínima para touch */
 }
 
 .addButton:hover {
@@ -356,15 +415,15 @@
   transform: translateY(0);
 }
 
-/* Botões pequenos */
+/* Botões pequenos - Melhor responsividade */
 .addButtonSmall {
   background: linear-gradient(135deg, #333333 0%, #3d3d3d 100%);
   color: #ffffff;
   border: 1px solid #4fc3f7;
-  padding: 0.625rem 1rem;
+  padding: 0.5rem 0.75rem; /* Padding otimizado */
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -372,6 +431,8 @@
   gap: 0.375rem;
   transition: all 0.3s ease;
   flex: 1;
+  min-height: 38px;
+  white-space: nowrap;
 }
 
 .addButtonSmall:hover {
@@ -384,10 +445,10 @@
   background: linear-gradient(135deg, #5c2a2a 0%, #d32f2f 100%);
   color: #ffffff;
   border: 1px solid #ff6b6b;
-  padding: 0.625rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -395,6 +456,8 @@
   gap: 0.375rem;
   transition: all 0.3s ease;
   flex: 1;
+  min-height: 38px;
+  white-space: nowrap;
 }
 
 .deleteButtonSmall:hover {
@@ -403,11 +466,11 @@
   box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
 }
 
-/* Divisores */
+/* Divisores - Mais compactos */
 .dividerContainer {
   position: relative;
   text-align: center;
-  margin: 1.5rem 0;
+  margin: 1.25rem 0;
 }
 
 .dividerLine {
@@ -425,9 +488,9 @@
   position: relative;
   z-index: 2;
   background: #252525;
-  padding: 0.5rem 1rem;
+  padding: 0.375rem 0.75rem; /* Padding reduzido */
   color: #4fc3f7;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   border-radius: 20px;
@@ -435,14 +498,19 @@
   text-shadow: 0 0 8px rgba(79, 195, 247, 0.5);
 }
 
-/* Ícones */
+/* Ícones - Melhor área de clique */
 .trashIcon {
   cursor: pointer;
   opacity: 0.7;
   transition: all 0.3s ease;
-  padding: 0.25rem;
+  padding: 0.375rem; /* Área de clique maior */
   border-radius: 4px;
   flex-shrink: 0;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .trashIcon:hover {
@@ -451,35 +519,42 @@
   transform: scale(1.1);
 }
 
-/* Itens de linha (para listas/botões) */
+/* Itens de linha - Mais responsivos */
 .rowItemStyle {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
-  margin-bottom: 1rem;
-  padding: 0.875rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
   background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
   border-radius: 8px;
   border: 1px solid #333;
+  min-width: 0; /* Permite encolhimento */
+}
+
+.rowItemStyle input {
+  flex: 1;
+  min-width: 0; /* Permite encolhimento */
 }
 
 /* Botão de código */
 .codeButton {
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 1rem;
   background: linear-gradient(135deg, #333333 0%, #424242 100%);
   color: #ffffff;
   border: 2px solid #4fc3f7;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   box-shadow: 0 2px 8px rgba(79, 195, 247, 0.2);
+  min-height: 44px;
 }
 
 .codeButton:hover {
@@ -490,13 +565,14 @@
 
 /* Info box para nó inicial */
 .startNodeInfo {
-  padding: 1rem;
+  padding: 0.875rem;
   background: linear-gradient(135deg, #2f2f2f 0%, #3d3d3d 100%);
   border-radius: 8px;
   color: #e0e0e0;
   border-left: 4px solid #4fc3f7;
-  line-height: 1.6;
+  line-height: 1.5; /* Melhor legibilidade */
   box-shadow: inset 0 0 10px rgba(79, 195, 247, 0.1);
+  font-size: 0.875rem;
 }
 
 .startNodeInfo strong {
@@ -504,7 +580,26 @@
   font-weight: 700;
 }
 
-/* Animações */
+/* Scrollbar customizada - Mais sutil */
+.asidePanel::-webkit-scrollbar {
+  width: 6px; /* Mais fina */
+}
+
+.asidePanel::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 3px;
+}
+
+.asidePanel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4fc3f7, #29b6f6);
+  border-radius: 3px;
+}
+
+.asidePanel::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #29b6f6, #03a9f4);
+}
+
+/* Animações otimizadas */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -533,28 +628,14 @@
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Scrollbar customizada */
-.asidePanel::-webkit-scrollbar {
-  width: 8px;
-}
-
-.asidePanel::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
-
-.asidePanel::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #4fc3f7, #29b6f6);
-  border-radius: 4px;
-}
-
-.asidePanel::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #29b6f6, #03a9f4);
-}
-
-/* Responsividade */
-@media (max-width: 1024px) {
+/* Responsividade melhorada */
+@media (max-width: 1200px) {
   .asidePanel {
     width: 350px;
+  }
+  
+  .panelTitle {
+    font-size: 1rem;
   }
 }
 
@@ -565,19 +646,107 @@
     left: 0;
     border-left: none;
     border-top: 2px solid #2a2a2a;
+    max-height: 100vh; /* Altura máxima da viewport */
+  }
+  
+  .tabContent {
+    padding: 0.875rem 1rem 2rem 1rem;
   }
   
   .tabButtons {
-    flex-direction: column;
-    gap: 0.25rem;
+    margin: 0.75rem 0;
+    position: static; /* Remove sticky em mobile */
+  }
+  
+  .tabButton {
+    padding: 0.625rem;
+    font-size: 0.8rem;
   }
   
   .buttonGroup {
     flex-direction: column;
+    gap: 0.5rem;
   }
   
   .rowItemStyle {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .rowItemStyle .trashIcon {
+    align-self: flex-end;
+  }
+  
+  .inputStyle,
+  .selectStyle,
+  .textareaStyle {
+    font-size: 16px; /* Previne zoom no iOS */
+  }
+}
+
+@media (max-width: 480px) {
+  .asidePanel {
+    width: 100vw;
+  }
+  
+  .panelHeader {
+    padding: 0.875rem 1rem;
+  }
+  
+  .panelTitle {
+    font-size: 0.95rem;
+  }
+  
+  .tabContent {
+    padding: 0.75rem 0.875rem 1.5rem 0.875rem;
+  }
+  
+  .sectionContainer {
+    margin-bottom: 1rem;
+  }
+  
+  .sectionContent {
+    padding: 0.875rem;
+  }
+}
+
+/* Media query para dispositivos com hover */
+@media (hover: hover) and (pointer: fine) {
+  .trashIcon:hover,
+  .addButton:hover,
+  .addButtonSmall:hover,
+  .deleteButtonSmall:hover,
+  .codeButton:hover,
+  .inputStyle:hover,
+  .selectStyle:hover,
+  .textareaStyle:hover {
+    /* Mantém efeitos hover apenas em dispositivos com mouse */
+  }
+}
+
+/* Melhorias de acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .inputStyle,
+  .selectStyle,
+  .textareaStyle {
+    border-width: 3px;
+    border-color: #ffffff;
+  }
+  
+  .addButton,
+  .addButtonSmall,
+  .deleteButtonSmall,
+  .codeButton {
+    border: 2px solid #ffffff;
   }
 }
