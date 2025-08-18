@@ -447,6 +447,7 @@ export default function Sidebar() {
               <option value="online">Online</option>
               <option value="pausado">Pausa</option>
               <option value="offline">Offline</option>
+              <option value="inativo">Inativo</option>
             </select>
           </div>
 
