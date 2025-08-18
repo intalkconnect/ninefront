@@ -162,7 +162,7 @@ const Preferences = () => {
         <div>
           <h1 className={styles.title}>Preferências</h1>
           <p className={styles.subtitle}>
-            Ajuste as opções abaixo. As mudanças são salvas automaticamente e afetam todo o workspace.
+            As mudanças são salvas automaticamente e afetam todo o workspace.
           </p>
           {erro ? <div className={styles.alertErr}>{erro}</div> : null}
           {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
@@ -197,9 +197,8 @@ const Preferences = () => {
                 return (
                   <tr key={key}>
                     <td className={styles.cellKey}>
-                      <div className={styles.keyTitle}>{spec?.label ?? key}</div>
-                      {spec?.help && <div className={styles.keyHelp}>{spec.help}</div>}
-                      <div className={styles.keySub}>({key})</div>
+                     <div className={styles.keyTitle}>{spec?.label ?? key}</div>
+                     <div className={styles.keySub}>({key})</div>
                     </td>
 
                     <td>
@@ -243,7 +242,13 @@ const Preferences = () => {
                       )}
                     </td>
 
-                    <td className={styles.cellDesc}>{row.description ?? '—'}</td>
+                                        <td className={styles.cellDesc}>
+                      {spec?.help ? <div className={styles.helpMain}>{spec.help}</div> : null}
+                      {row.description
+                        ? <div className={styles.helpNote}>{row.description}</div>
+                      : (!spec?.help ? '—' : null)
+                    }
+                   </td>
                     <td>{row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}</td>
                   </tr>
                 );
