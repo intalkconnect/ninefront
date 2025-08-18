@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, X, RefreshCcw, Copy } from 'lucide-react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
-import styles from './Preferences.module.css';
+import styles from './styles/Preferences.module.css';
 
 /** Mapeia chaves -> rótulos amigáveis e como editar/renderizar */
 const FRIENDLY = {
