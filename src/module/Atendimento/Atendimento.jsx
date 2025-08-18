@@ -234,21 +234,12 @@ useEffect(() => {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  // ===== helpers de sessão =====
-  const saveLastSid = (sid) => {
-    try { sessionStorage.setItem('lastSid', sid || ''); } catch {}
-  };
-  const getLastSid = () => {
-    try { return sessionStorage.getItem('lastSid') || ''; } catch { return ''; }
-  };
-
-  // encerra sessão ANTERIOR ao fechar/atualizar a aba (usa o mesmo padrão do apiClient)
+    // encerra sessão ao fechar/atualizar a aba
   useEffect(() => {
     const onBeforeUnload = async () => {
       const s = getSocket();
+      const sid = s?.id;
       if (!sid) return;
-            const sid = getLastSid();
-      if (!sid) return; // nada a encerrar
       try {
        // usa o MESMO resolvedor do apiClient (mesmo padrão do apiPut)
        const url = apiPath(`/atendentes/status/${encodeURIComponent(sid)}`);
@@ -372,17 +363,8 @@ useEffect(() => {
 
         socket.on("connect", async () => {
           setSocketStatus?.("online");
-                      // ❶ fecha a sessão anterior, se existir e for diferente
-            const prev = getLastSid();
-            const curr = socket.id;
-            if (prev && prev !== curr) {
-              try { await apiPut(`/atendentes/status/${prev}`); } catch {}
-            }
-
-            // ❷ registra a sessão atual no servidor
           try {
             await apiPut(`/atendentes/session/${userEmail}`, { session: socket.id });
-            saveLastSid(socket.id);
             window.sessionStorage.setItem("sessionReady", "true");
           } catch (err) {
             console.error("Erro ao informar sessão ao servidor:", err);
