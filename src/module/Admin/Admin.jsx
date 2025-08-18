@@ -10,9 +10,11 @@ import { parseJwt } from '../../utils/auth';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../shared/apiClient';
 import Preferences from './preferences/Preferences'; // <<< usa a página de settings como "Preferences"
+import TempoReal from './atendimento/TempoReal';
+import Filas from './atendimento/Filas';
 
 // Novos componentes (temporários como <div>)
-import TempoReal from './atendimento/TempoReal';
+
 const Configuracao = () => <div>Configuração</div>;
 const Filas = () => <div>Filas</div>;
 const RespostasRapidas = () => <div>Respostas Rápidas</div>;
