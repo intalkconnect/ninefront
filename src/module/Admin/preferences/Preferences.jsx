@@ -25,7 +25,7 @@ const stringifyMaybe = (v) => {
 const parseIfJson = (txt) => JSON.parse(txt);
 
 /* Página */
-const Settings = () => {
+const Preferences = () => {
   const [items, setItems] = useState([]);
   const [busca, setBusca] = useState('');
   const [loading, setLoading] = useState(false);
@@ -301,4 +301,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default Preferences;
