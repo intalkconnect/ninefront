@@ -235,7 +235,7 @@ const Dashboard = () => {
   const totalCriados =
     summary?.total_criados_no_periodo ??
     summary?.total_criados ??
-    queues?.reduce((acc, r) => acc + fmtInt(r.total_criados_no_periodo ?? r.total_criados ?? 0), 0) ||
+    queues?.reduce((acc, r) => acc + fmtInt(r.total_criados_no_periodo ?? r.total_criados ?? 0), 0) ??
     0;
 
   const backlogAberto = fmtInt(summary?.backlog_aberto);
@@ -548,5 +548,6 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
 
