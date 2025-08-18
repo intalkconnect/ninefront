@@ -3,6 +3,7 @@ import { Home, Bot, Users, Settings, ChevronDown, LogOut } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
+import Settings from './settings/Settings';
 import UsersPage from './users/Users';
 import LogoutButton from './components/LogoutButton';
 import styles from './styles/Admin.module.css';
@@ -71,10 +72,15 @@ export default function Admin() {
               </button>
               {showDropdown === 'atendimento' && (
                 <div className={styles['dropdown-menu']}>
-                  <NavLink to="atendimento/tempo-real" className={styles['dropdown-link']}>Tempo Real</NavLink>
-                  <NavLink to="atendimento/configuracao" className={styles['dropdown-link']}>Configuração</NavLink>
-                  <NavLink to="atendimento/filas" className={styles['dropdown-link']}>Filas</NavLink>
-                  <NavLink to="atendimento/respostas-rapidas" className={styles['dropdown-link']}>Respostas Rápidas</NavLink>
+     <NavLink
+       to="settings"
+       className={styles['dropdown-link']}
+      onClick={() => setShowDropdown(null)}
+     >
+       Preferências
+     </NavLink>
+     <div className={styles['dropdown-link']}>Segurança</div>
+     <div className={styles['dropdown-link']}>Integrações</div>
                 </div>
               )}
             </div>
