@@ -16,7 +16,6 @@ import Queues from './atendimento/Queues';
 // Novos componentes (temporários como <div>)
 
 const Configuracao = () => <div>Configuração</div>;
-const Filas = () => <div>Filas</div>;
 const RespostasRapidas = () => <div>Respostas Rápidas</div>;
 
 document.title = 'HubHMG - Gestão';
@@ -70,7 +69,7 @@ export default function Admin() {
                   <NavLink to="atendimento/configuracao" className={styles['dropdown-link']}>
                     Configuração
                   </NavLink>
-                  <NavLink to="atendimento/filas" className={styles['dropdown-link']}>
+                  <NavLink to="atendimento/queues" className={styles['dropdown-link']}>
                     Filas
                   </NavLink>
                   <NavLink to="atendimento/respostas-rapidas" className={styles['dropdown-link']}>
