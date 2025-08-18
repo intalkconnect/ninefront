@@ -11,7 +11,7 @@ import {
   AlertTriangle,
   Gauge,
 } from 'lucide-react';
-import styles from './Dashboard.module.css';
+import styles from './styles/Dashboard.module.css';
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -548,4 +548,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
