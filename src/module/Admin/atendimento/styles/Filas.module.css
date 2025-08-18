@@ -1,0 +1,67 @@
+/* Layout base */
+.container {
+  height: 100dvh;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+
+  background:#f7f7fb;
+  padding:24px;
+  color:#111827;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+}
+
+/* Cabeçalho */
+.header { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:18px; }
+.title { margin:0; font-size:26px; font-weight:800; }
+.subtitle { margin:6px 0 0; color:#4b5563; }
+
+/* Alertas */
+.alertErr, .alertOk { margin-top:8px; padding:8px 10px; border-radius:8px; font-size:14px; }
+.alertErr { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
+.alertOk  { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+
+/* Form de criação */
+.form { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:14px; margin-bottom:16px; }
+.formRow { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.inlineLabel { display:inline-flex; align-items:center; gap:6px; font-weight:600; }
+.req { color:#b91c1c; font-weight:700; margin-left:4px; }
+.input { padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; background:#fff; font-size:14px; }
+.formActions { display:flex; gap:8px; justify-content:flex-end; }
+
+/* Botões */
+.btnPrimary, .btnTiny {
+  display:inline-flex; align-items:center; gap:8px;
+  border-radius:10px; padding:8px 12px; font-weight:700; font-size:14px; cursor:pointer;
+}
+.btnPrimary { background:#2563eb; color:#fff; border:1px solid #1d4ed8; }
+.btnTiny { background:#fff; color:#111827; border:1px solid #e5e7eb; padding:6px 8px; font-size:13px; }
+
+/* Card & tabela */
+.card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; }
+.cardHead { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #f1f3f5; }
+.cardTitle { display:flex; align-items:center; gap:8px; font-weight:800; }
+.cardHint { color:#6b7280; font-size:12px; }
+
+.tableWrap { overflow:auto; }
+.table { width:100%; border-collapse:separate; border-spacing:0; }
+.table thead th {
+  text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; padding:10px;
+  background:#f9fafb; border-bottom:1px solid #eef2f7;
+}
+.table tbody td { padding:10px; border-bottom:1px solid #f3f4f6; font-size:14px; color:#111827; vertical-align:top; }
+.table tbody tr:hover { background:#fafafa; }
+.rowHover { transition: background .12s ease; }
+
+/* Linha expandida com atendentes online */
+.nestedCell { background:#f9fafb; }
+.nestedWrap { padding:10px 6px; }
+.nestedTitle { font-weight:700; margin-bottom:6px; }
+.inlineList { display:flex; flex-direction:column; gap:6px; margin:0; padding:0; list-style:none; }
+
+/* Estados e badges */
+.empty, .loading { text-align:center; color:#6b7280; padding:12px; }
+.badgeOk { display:inline-block; width:8px; height:8px; border-radius:999px; background:#16a34a; margin-right:6px; }
+.subtleCenter { color:#6b7280; font-size:12px; }
