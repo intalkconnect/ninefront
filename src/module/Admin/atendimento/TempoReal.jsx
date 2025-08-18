@@ -231,7 +231,6 @@ const TempoReal = () => {
                 onClick={() => setSelectedFilter(f)}
                 className={`${styles.chip} ${selectedFilter === f ? styles.chipPurple : ''}`}
               >
-                <span className={styles.chipIcon}>{getChannelIcon(f)}</span>
                 {f[0].toUpperCase() + f.slice(1)}
               </button>
             ))}
@@ -270,19 +269,17 @@ const TempoReal = () => {
                       <div className={styles.avatar}><User size={14} /></div>
                       <div>
                         <div className={styles.clientName}>{a.cliente}</div>
-                        <div className={styles.clientSub}>ID: #{a.id}</div>
+                        <div className={styles.clientSub}>Ticket: #{a.ticket_number}</div>
                       </div>
                     </div>
                   </td>
                   <td>
                     <div className={styles.queueCell}>
                       <span>{a.fila}</span>
-                      {a.posicaoFila ? <span className={styles.badge}>#{a.posicaoFila}</span> : null}
                     </div>
                   </td>
                   <td>
                     <div className={styles.channelCell}>
-                      <span className={styles.emoji}>{getChannelIcon(a.canal)}</span>
                       <span className={styles.cap}>{a.canal}</span>
                     </div>
                   </td>
