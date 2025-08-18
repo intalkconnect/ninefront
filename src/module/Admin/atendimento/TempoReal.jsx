@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import { Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer } from 'lucide-react';
-import styles from './style/TempoReal.module.css';
+import styles from './styles/TempoReal.module.css';
 
 // Normaliza nomes das filas (ex.: "Suporte Técnico" -> "suporte_tecnico")
 const slugify = (str = '') =>
