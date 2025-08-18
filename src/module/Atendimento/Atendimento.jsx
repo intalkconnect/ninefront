@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { apiGet, apiPut, apiPatch } from "../../shared/apiClient";
+import { getRuntimeConfig } from "../../shared/runtimeConfig";
+import { apiGet, apiPut } from "../../shared/apiClient";
 import { connectSocket, getSocket } from "./services/socket";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -79,6 +80,7 @@ export default function Atendimento() {
   const userEmail          = useConversationsStore((s) => s.userEmail);
   const userFilas          = useConversationsStore((s) => s.userFilas);
   const setSocketStatus    = useConversationsStore((s) => s.setSocketStatus);
+  
 
   const [isWindowActive, setIsWindowActive] = useState(true);
 
@@ -234,24 +236,27 @@ useEffect(() => {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
+  const { apiBaseUrl } = getRuntimeConfig();
+
     // encerra sessão ao fechar/atualizar a aba
-  useEffect(() => {
-    const onBeforeUnload = async () => {
-      const s = getSocket();
-      const sid = s?.id;
-      if (!sid) return;
-      try {
-       // usa o MESMO resolvedor do apiClient (mesmo padrão do apiPut)
-       const url = apiPatch(`/atendentes/status/${encodeURIComponent(sid)}`);
-       navigator.sendBeacon?.(url, new Blob([], { type: "application/json" }));
-      } catch {
-        // fallback “fire and forget”
-        try { await apiPut(`/atendentes/status/${sid}`); } catch {}
-      }
-    };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, []);
+useEffect(() => {
+  const onBeforeUnload = async () => {
+    const s = getSocket();
+    const sid = s?.id;
+    if (!sid) return;
+
+    try {
+      // URL absoluta, sem usar apiPut/apiPatch aqui
+      const url = `${apiBaseUrl}/atendentes/status/${encodeURIComponent(sid)}`;
+      navigator.sendBeacon?.(url, new Blob([], { type: "application/json" }));
+    } catch {
+      // fallback com o MESMO padrão do apiClient
+      try { await apiPut(`/atendentes/status/${sid}`); } catch {}
+    }
+  };
+  window.addEventListener("beforeunload", onBeforeUnload);
+  return () => window.removeEventListener("beforeunload", onBeforeUnload);
+}, []);
 
   // ————— handlers de realtime —————
 
