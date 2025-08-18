@@ -80,6 +80,7 @@ export default function Atendimento() {
   const userEmail          = useConversationsStore((s) => s.userEmail);
   const userFilas          = useConversationsStore((s) => s.userFilas);
   const setSocketStatus    = useConversationsStore((s) => s.setSocketStatus);
+  const heartbeatRef = useRef(null);
   
 
   const [isWindowActive, setIsWindowActive] = useState(true);
@@ -348,77 +349,101 @@ useEffect(() => {
   );
 
   // ————— bootstrap socket + listeners —————
-  useEffect(() => {
-    if (!userEmail || !(userFilas || []).length) return;
-    let mounted = true;
-    let heartbeatTimer = null;
+useEffect(() => {
+  if (!userEmail || !(userFilas || []).length) return;
+  let mounted = true;
 
-    (async () => {
+  const startHeartbeat = (socket) => {
+    try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
+    heartbeatRef.current = setInterval(async () => {
       try {
-        await Promise.all([
-          fetchConversations(),
-          loadLastReadTimes(),
-          loadUnreadCounts(),
-        ]);
-        if (!mounted) return;
-
-        connectSocket();
-        const socket = getSocket();
-        socketRef.current = socket;
-
-        socket.on("connect", async () => {
-          setSocketStatus?.("online");
-          try {
-            await apiPut(`/atendentes/session/${userEmail}`, { session: socket.id });
-            window.sessionStorage.setItem("sessionReady", "true");
-          } catch (err) {
-            console.error("Erro ao informar sessão ao servidor:", err);
-          }
-          // identificação opcional
-          socket.emit("identify", { email: userEmail, rooms: userFilas });
-
-          // reentra em todos os rooms conhecidos após reconectar
-          for (const rid of joinedRoomsRef.current) {
-            socket.emit("join_room", rid);
-          }
-                   // ❤️ heartbeat periódico
-          try { if (heartbeatTimer) clearInterval(heartbeatTimer); } catch {}
-          heartbeatTimer = setInterval(async () => {
-            try {
-              await apiPut(`/atendentes/heartbeat`, { session: socket.id });
-           } catch (e) {
-              // silencioso: se cair, próxima batida tenta de novo
-            }
-          }, 30000); // 30s
-        });
-
-        socket.on("disconnect", () => setSocketStatus?.("offline"));
-        socket.on("new_message", handleNewMessage);
-        socket.on("update_message", handleUpdateMessage);
-
-      } catch (err) {
-        console.error("Erro na inicialização:", err);
+        // console.debug('[hb] ping', new Date().toISOString(), socket.id);
+        await apiPut(`/atendentes/heartbeat`, { session: socket.id });
+      } catch {
+        // silencioso
       }
-    })();
+    }, 30000); // 30s
+  };
 
-    return () => {
-      mounted = false;
+  const onConnect = async () => {
+    if (!mounted) return;
+    setSocketStatus?.("online");
+    try {
+      await apiPut(`/atendentes/session/${userEmail}`, { session: getSocket().id });
+      window.sessionStorage.setItem("sessionReady", "true");
+    } catch (err) {
+      console.error("Erro ao informar sessão ao servidor:", err);
+    }
+    const sock = getSocket();
+    sock.emit("identify", { email: userEmail, rooms: userFilas });
+
+    // rejoin rooms conhecidos
+    for (const rid of joinedRoomsRef.current) {
+      sock.emit("join_room", rid);
+    }
+
+    startHeartbeat(sock);
+  };
+
+  const onDisconnect = () => {
+    setSocketStatus?.("offline");
+    try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
+  };
+
+  (async () => {
+    try {
+      await Promise.all([
+        fetchConversations(),
+        loadLastReadTimes(),
+        loadUnreadCounts(),
+      ]);
+      if (!mounted) return;
+
+      connectSocket();
       const socket = getSocket();
-      socket.off("connect");
-      socket.off("disconnect");
+      socketRef.current = socket;
+
+      socket.off("connect", onConnect);
+      socket.on("connect", onConnect);
+
+      socket.off("disconnect", onDisconnect);
+      socket.on("disconnect", onDisconnect);
+
+      socket.off("new_message", handleNewMessage);
+      socket.on("new_message", handleNewMessage);
+
+      socket.off("update_message", handleUpdateMessage);
+      socket.on("update_message", handleUpdateMessage);
+
+      // se já estiver conectado, roda o fluxo agora
+      if (socket.connected) {
+        await onConnect();
+      }
+    } catch (err) {
+      console.error("Erro na inicialização:", err);
+    }
+  })();
+
+  return () => {
+    mounted = false;
+    const socket = getSocket();
+    if (socket) {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
       socket.off("new_message", handleNewMessage);
       socket.off("update_message", handleUpdateMessage);
-      try { if (heartbeatTimer) clearInterval(heartbeatTimer); } catch {}
-    };
-  }, [
-    userEmail,
-    userFilas,
-    handleNewMessage,
-    handleUpdateMessage,
-    loadUnreadCounts,
-    loadLastReadTimes,
-    setSocketStatus,
-  ]);
+    }
+    try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
+  };
+}, [
+  userEmail,
+  userFilas,
+  handleNewMessage,
+  handleUpdateMessage,
+  loadUnreadCounts,
+  loadLastReadTimes,
+  setSocketStatus,
+]);
 
   // ————— carga inicial de conversas + auto-join rooms atribuídos —————
   const fetchConversations = async () => {
