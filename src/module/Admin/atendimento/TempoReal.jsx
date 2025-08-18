@@ -88,12 +88,6 @@ const TempoReal = () => {
     return h > 0 ? `${h}h ${r}m` : `${r}m`;
   };
 
-  const getChannelIcon = (canal) =>
-    canal === 'whatsapp' ? '📱' :
-    canal === 'telegram'  ? '✈️' :
-    canal === 'webchat'   ? '💬' :
-    canal === 'instagram' ? '📷' : '📞';
-
   const filasParaFiltro = filas.length
     ? filas
     : Array.from(new Set(atendimentos.map((a) => a.fila).filter(Boolean)))
@@ -144,15 +138,11 @@ const TempoReal = () => {
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Monitoramento Omnichannel</h1>
+          <h1 className={styles.title}>Tempo Reall</h1>
           <p className={styles.subtitle}>
             Última atualização: {currentTime.toLocaleTimeString('pt-BR')}
           </p>
           {erro && <p className={styles.error}>{erro}</p>}
-        </div>
-        <div className={styles.actions}>
-          <button className={styles.btnPrimary}>Exportar Relatório</button>
-          <button className={styles.btnSuccess}>Configurações</button>
         </div>
       </div>
 
