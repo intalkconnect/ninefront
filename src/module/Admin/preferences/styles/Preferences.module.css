@@ -1,7 +1,6 @@
-/* === Container & layout =================================================== */
 .container {
   height: 100dvh;
-  height: 100vh;              /* fallback */
+  height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -14,65 +13,16 @@
   min-height: 0;
 }
 
-/* === Header =============================================================== */
 .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:18px; }
 .title { margin:0; font-size:26px; font-weight:800; }
 .subtitle { margin:6px 0 0; color:#4b5563; }
 
 .headerRight { display:flex; gap:10px; align-items:center; }
-.searchBox {
-  display:flex; align-items:center; gap:8px;
-  background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px;
-}
-.searchBox input { border:none; outline:none; background:transparent; min-width:260px; }
 
-/* === Alerts ============================================================== */
 .alertErr, .alertOk { margin-top:8px; padding:8px 10px; border-radius:8px; font-size:14px; }
 .alertErr { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
 .alertOk  { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
 
-/* === Form ================================================================ */
-.form {
-  background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:14px; margin-bottom:16px;
-}
-.formRow { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
-.inlineLabel { display:inline-flex; align-items:center; gap:6px; }
-.req { color:#b91c1c; font-weight:700; margin-left:4px; }
-
-.input, .textarea {
-  padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; background:#fff; font-size:14px;
-}
-.textarea {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  white-space: pre; line-height:1.35;
-}
-.textareaErr { border-color:#ef4444; background:#fef2f2; }
-
-.rowBetween { display:flex; align-items:center; justify-content:space-between; margin-top:6px; }
-.check { display:inline-flex; align-items:center; gap:8px; font-size:14px; color:#374151; }
-
-/* Badges do validador JSON */
-.badgeOk, .badgeErr, .badgeMuted {
-  display:inline-flex; align-items:center; gap:6px;
-  border-radius:999px; padding:4px 8px; font-size:12px; font-weight:600;
-}
-.badgeOk    { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
-.badgeErr   { background:#fee2e2; color:#991b1b; border:1px solid #fecaca; }
-.badgeMuted { background:#f3f4f6; color:#4b5563; border:1px solid #e5e7eb; }
-
-/* Ações do form */
-.formActions { display:flex; gap:8px; justify-content:flex-end; }
-.btnPrimary, .btnGhost, .btnTiny {
-  display:inline-flex; align-items:center; gap:8px;
-  border-radius:10px; padding:8px 12px; font-weight:700; font-size:14px; cursor:pointer;
-  border:1px solid transparent; background:#111827; color:#fff;
-}
-.btnPrimary { background:#2563eb; border-color:#1d4ed8; }
-.btnPrimary:disabled { opacity:.6; cursor:not-allowed; }
-.btnGhost   { background:#fff; color:#111827; border-color:#e5e7eb; }
-.btnTiny    { background:#fff; color:#111827; border-color:#e5e7eb; padding:6px 8px; font-size:13px; }
-
-/* === Card + Tabela ======================================================== */
 .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; }
 .cardHead { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #f1f3f5; }
 .cardTitle { display:flex; align-items:center; gap:8px; font-weight:800; }
@@ -86,20 +36,67 @@
 }
 .table tbody td { padding:10px; border-bottom:1px solid #f3f4f6; font-size:14px; color:#111827; vertical-align:top; }
 .table tbody tr:hover { background:#fafafa; }
-.empty, .loading { text-align:center; color:#6b7280; padding:12px; }
 
-/* Colunas específicas */
-.cellKey { max-width: 320px; }
-.keyText { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cellKey { max-width: 420px; }
+.keyTitle { font-weight:700; }
+.keySub { font-size:12px; color:#6b7280; }
+
 .cellDesc { max-width: 380px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .cellActions { display:flex; gap:6px; align-items:center; }
 
-/* Valor formatado */
+.btnPrimary, .btnGhost, .btnTiny {
+  display:inline-flex; align-items:center; gap:8px;
+  border-radius:10px; padding:8px 12px; font-weight:700; font-size:14px; cursor:pointer;
+  border:1px solid transparent; background:#111827; color:#fff;
+}
+.btnPrimary { background:#2563eb; border-color:#1d4ed8; }
+.btnGhost   { background:#fff; color:#111827; border-color:#e5e7eb; }
+.btnTiny    { background:#fff; color:#111827; border-color:#e5e7eb; padding:6px 8px; font-size:13px; }
+
+/* Valor simples / edição */
 .code {
   margin:0; padding:8px; border:1px solid #e5e7eb; border-radius:8px; background:#f8fafc;
-  font-size:12px; line-height:1.35; max-height:160px; overflow:auto;
+  font-size:12px; line-height:1.35; max-height:120px; overflow:auto;
 }
-.codeJson { background:#f1f5f9; }
+.textarea {
+  padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; background:#fff; font-size:14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  white-space: pre; line-height:1.35; width: 100%;
+}
 
-/* Ícone de ajuda simples (usa title nativo) */
-.help { display:inline-flex; align-items:center; color:#6b7280; }
+/* Select simples para enum */
+.select {
+  padding:8px 10px; border:1px solid #d1d5db; border-radius:10px; background:#fff; font-size:14px;
+}
+
+/* Toggle booleano */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  min-width: 56px;
+  height: 30px;
+  padding: 2px;
+  cursor: pointer;
+}
+.switchOn { background:#34d399; border-color:#10b981; }
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 26px;
+  height: 26px;
+  background: #fff;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  transition: transform .18s ease;
+}
+.switchOn .knob { transform: translateX(26px); }
+.switchText { margin-left: 64px; font-size: 12px; color:#111827; }
+
+/* Estados e mensagens */
+.empty, .loading { text-align:center; color:#6b7280; padding:12px; }
