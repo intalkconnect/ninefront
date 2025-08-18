@@ -1,30 +1,33 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { RefreshCcw } from 'lucide-react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import styles from './styles/Preferences.module.css';
 
-/** Mapeia chaves -> rótulos amigáveis e como editar/renderizar */
+/** Mapeia chaves -> rótulos amigáveis, ajuda e modo de edição */
 const FRIENDLY = {
   permitir_transferencia_fila: {
     label: 'Permitir transferência entre filas',
+    help: 'Habilita mover um ticket para outra fila. Útil para realocar demandas entre times.',
     type: 'boolean',
     onText: 'Ativado',
     offText: 'Desativado',
   },
   permitir_transferencia_atendente: {
     label: 'Permitir transferência entre atendentes',
+    help: 'Autoriza passar o ticket para outro atendente dentro da mesma fila.',
     type: 'boolean',
     onText: 'Ativado',
     offText: 'Desativado',
   },
   enable_signature: {
     label: 'Assinatura em mensagens',
+    help: 'Inclui automaticamente a assinatura padrão em respostas enviadas pelo atendente.',
     type: 'boolean',
     onText: 'Ativado',
     offText: 'Desativado',
   },
   distribuicao_tickets: {
     label: 'Distribuição de tickets',
+    help: 'Define como novos tickets são atribuídos: manualmente ou automática preditiva.',
     type: 'enum',
     options: [
       { value: 'manual',    label: 'Manual' },
@@ -33,7 +36,7 @@ const FRIENDLY = {
   },
 };
 
-/** Rotula valores de forma amigável */
+/** Rótulo amigável para o valor atual */
 const valueLabelFor = (key, value) => {
   const spec = FRIENDLY[key];
   if (spec?.type === 'boolean') return !!value ? (spec.onText || 'Ativado') : (spec.offText || 'Desativado');
@@ -158,30 +161,26 @@ const Preferences = () => {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Preferências</h1>
-          <p className={styles.subtitle}>Altere rapidamente as preferências do sistema.</p>
+          <p className={styles.subtitle}>
+            Ajuste as opções abaixo. As mudanças são salvas automaticamente e afetam todo o workspace.
+          </p>
           {erro ? <div className={styles.alertErr}>{erro}</div> : null}
           {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
         </div>
-        <div className={styles.headerRight}>
-          <button className={styles.btnGhost} onClick={load} title="Recarregar">
-            <RefreshCcw size={16} /> Recarregar
-          </button>
-        </div>
+        {/* (recarregar removido) */}
       </div>
 
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>Preferências do sistema</div>
-          <div className={styles.cardHint}>
-            {loading ? 'Carregando…' : `${ordered.length} registro(s)`}
-          </div>
+          {/* quantificação removida */}
         </div>
 
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{ minWidth: 320 }}>Opção</th>
+                <th style={{ minWidth: 360 }}>Opção</th>
                 <th>Valor</th>
                 <th style={{ minWidth: 220 }}>Descrição</th>
                 <th style={{ minWidth: 160 }}>Atualizado</th>
@@ -199,6 +198,7 @@ const Preferences = () => {
                   <tr key={key}>
                     <td className={styles.cellKey}>
                       <div className={styles.keyTitle}>{spec?.label ?? key}</div>
+                      {spec?.help && <div className={styles.keyHelp}>{spec.help}</div>}
                       <div className={styles.keySub}>({key})</div>
                     </td>
 
