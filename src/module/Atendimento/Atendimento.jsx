@@ -239,7 +239,7 @@ useEffect(() => {
 
   const { apiBaseUrl } = getRuntimeConfig();
 
-    // encerra sessão ao fechar/atualizar a aba
+// encerra sessão ao fechar/atualizar a aba (marca INATIVO no back)
 useEffect(() => {
   const onBeforeUnload = async () => {
     const s = getSocket();
@@ -247,17 +247,21 @@ useEffect(() => {
     if (!sid) return;
 
     try {
-      // URL absoluta, sem usar apiPut/apiPatch aqui
-      const url = `${apiBaseUrl}/atendentes/status/${encodeURIComponent(sid)}`;
+      // usa query ?reason=reload  → back setará status='inativo'
+      const url = `${apiBaseUrl}/atendentes/status/${encodeURIComponent(sid)}?reason=reload`;
       navigator.sendBeacon?.(url, new Blob([], { type: "application/json" }));
     } catch {
-      // fallback com o MESMO padrão do apiClient
-      try { await apiPut(`/atendentes/status/${sid}`); } catch {}
+      try {
+        // fallback com o MESMO padrão do apiClient
+        await apiPut(`/atendentes/status/${sid}?reason=reload`);
+      } catch {}
     }
   };
+
   window.addEventListener("beforeunload", onBeforeUnload);
   return () => window.removeEventListener("beforeunload", onBeforeUnload);
 }, []);
+
 
   // ————— handlers de realtime —————
 
