@@ -936,7 +936,7 @@ export default function NodeConfigPanel({
       </div>
 
       <div className={styles.tabContent}>
-        <div className={styles.inputLabel}>
+        <div >
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Nome do Bloco</label>
             {selectedNode.data.nodeType === "start" ? (
@@ -1000,5 +1000,6 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
 
 
