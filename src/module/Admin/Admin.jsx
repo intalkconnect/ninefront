@@ -3,13 +3,13 @@ import { Home, Bot, Users, Settings, ChevronDown, LogOut } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
-import Settings from './settings/Settings';
 import UsersPage from './users/Users';
 import LogoutButton from './components/LogoutButton';
 import styles from './styles/Admin.module.css';
 import { parseJwt } from '../../utils/auth';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../shared/apiClient';
+import Preferences from './preferences/Preferences'; // <<< usa a página de settings como "Preferences"
 
 // Novos componentes (temporários como <div>)
 import TempoReal from './atendimento/TempoReal';
@@ -50,37 +50,55 @@ export default function Admin() {
             <MenuIcon to="users" icon={<Users size={18} />} label="Usuários" />
 
             <div className={styles.dropdown}>
-              <button className={styles['dropdown-toggle']} onClick={() => setShowDropdown(showDropdown === 'config' ? null : 'config')}>
-                <Settings size={18} />
-                Configurações
-                <ChevronDown size={14} />
-              </button>
-              {showDropdown === 'config' && (
-                <div className={styles['dropdown-menu']}>
-                  <div>Preferências</div>
-                  <div>Segurança</div>
-                  <div>Integrações</div>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.dropdown}>
-              <button className={styles['dropdown-toggle']} onClick={() => setShowDropdown(showDropdown === 'atendimento' ? null : 'atendimento')}>
+              <button
+                className={styles['dropdown-toggle']}
+                onClick={() =>
+                  setShowDropdown(showDropdown === 'atendimento' ? null : 'atendimento')
+                }
+              >
                 <Users size={18} />
                 Atendimento
                 <ChevronDown size={14} />
               </button>
               {showDropdown === 'atendimento' && (
                 <div className={styles['dropdown-menu']}>
-     <NavLink
-       to="settings"
-       className={styles['dropdown-link']}
-      onClick={() => setShowDropdown(null)}
-     >
-       Preferências
-     </NavLink>
-     <div className={styles['dropdown-link']}>Segurança</div>
-     <div className={styles['dropdown-link']}>Integrações</div>
+                  <NavLink to="atendimento/tempo-real" className={styles['dropdown-link']}>
+                    Tempo Real
+                  </NavLink>
+                  <NavLink to="atendimento/configuracao" className={styles['dropdown-link']}>
+                    Configuração
+                  </NavLink>
+                  <NavLink to="atendimento/filas" className={styles['dropdown-link']}>
+                    Filas
+                  </NavLink>
+                  <NavLink to="atendimento/respostas-rapidas" className={styles['dropdown-link']}>
+                    Respostas Rápidas
+                  </NavLink>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.dropdown}>
+              <button
+                className={styles['dropdown-toggle']}
+                onClick={() => setShowDropdown(showDropdown === 'config' ? null : 'config')}
+              >
+                <Settings size={18} />
+                Configurações
+                <ChevronDown size={14} />
+              </button>
+              {showDropdown === 'config' && (
+                <div className={styles['dropdown-menu']}>
+                  {/* Preferências agora navega para /preferences */}
+                  <NavLink
+                    to="preferences"
+                    className={styles['dropdown-link']}
+                    onClick={() => setShowDropdown(null)}
+                  >
+                    Preferências
+                  </NavLink>
+                  <div className={styles['dropdown-link']}>Segurança</div>
+                  <div className={styles['dropdown-link']}>Integrações</div>
                 </div>
               )}
             </div>
@@ -91,11 +109,16 @@ export default function Admin() {
           {userData && (
             <div className={styles.profileContainer}>
               <div className={styles['profile-info']}>
-                <div className={styles.avatar} style={{ backgroundColor: stringToColor(userData.email) }}>
+                <div
+                  className={styles.avatar}
+                  style={{ backgroundColor: stringToColor(userData.email) }}
+                >
                   {userData.name?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className={styles.userInfo}>
-                  <div className={styles.userName}>{userData.name?.split(' ')[0] || 'Usuário'}</div>
+                  <div className={styles.userName}>
+                    {userData.name?.split(' ')[0] || 'Usuário'}
+                  </div>
                   <div className={styles.userEmail}>{userData.email}</div>
                 </div>
               </div>
@@ -112,10 +135,16 @@ export default function Admin() {
           <Route index element={<Dashboard />} />
           <Route path="chatbot" element={<Chatbot />} />
           <Route path="users" element={<UsersPage />} />
+
+          {/* Atendimento */}
           <Route path="atendimento/tempo-real" element={<TempoReal />} />
           <Route path="atendimento/configuracao" element={<Configuracao />} />
           <Route path="atendimento/filas" element={<Filas />} />
           <Route path="atendimento/respostas-rapidas" element={<RespostasRapidas />} />
+
+          {/* Preferências (antes era settings) */}
+          <Route path="preferences" element={<Preferences />} />
+
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
       </main>
