@@ -1,0 +1,93 @@
+.container {
+  min-height: 100vh;
+  background: #f7f7fb;
+  padding: 24px;
+  color: #111827;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+.header { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:18px; }
+.title { margin:0; font-size:26px; font-weight:800; }
+.subtitle { margin:6px 0 0; color:#4b5563; }
+.error { margin-top:6px; color:#b91c1c; font-weight:600; }
+
+.filters { display:flex; gap:12px; align-items:flex-end; }
+.filterItem { display:flex; flex-direction:column; gap:6px; font-size:12px; color:#374151; }
+.filterItem input {
+  padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; background:#fff; font-size:14px;
+}
+
+.statRow { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:16px; margin:16px 0 24px; }
+@media (max-width: 1024px) { .statRow { grid-template-columns: 1fr; } }
+
+.card {
+  background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow: 0 1px 1px rgba(0,0,0,.02);
+  display:flex; flex-direction:column; min-height:120px;
+}
+.cardHead { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid #f1f3f5; }
+.cardTitle { display:flex; align-items:center; gap:8px; font-weight:700; }
+.cardIcon { display:inline-flex; align-items:center; color:#374151; }
+.cardBody { padding:12px 14px; }
+
+.help { display:inline-flex; align-items:center; color:#6b7280; position:relative; cursor:default; }
+.help:hover { color:#111827; }
+.help::after {
+  content: attr(data-tooltip);
+  position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%);
+  background:#111827; color:#fff; border-radius:8px; padding:8px 10px; font-size:12px; line-height:1.2;
+  white-space:pre-wrap; width:240px; box-shadow:0 6px 24px rgba(0,0,0,.18);
+  opacity:0; pointer-events:none; transition:opacity .15s ease;
+}
+.help:hover::after { opacity:1; }
+
+/* Stats */
+.statsGrid3 { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; }
+.stat {
+  border-radius:12px; padding:12px; text-align:center; background:#f8fafc; border:1px solid #eef2f7;
+}
+.statValue { font-size:24px; font-weight:800; }
+.statLabel { color:#6b7280; font-size:12px; }
+.tone_blue .statValue { color:#2563eb; }
+.tone_purple .statValue { color:#7c3aed; }
+.tone_amber .statValue { color:#ca8a04; }
+.tone_green .statValue { color:#16a34a; }
+
+/* Grids */
+.gridTwo { display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px; }
+@media (max-width: 1024px) { .gridTwo { grid-template-columns: 1fr; } }
+
+/* Bar Chart */
+.barWrap { display:flex; gap:12px; align-items:flex-end; overflow-x:auto; padding:6px 2px 2px; }
+.barCol { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:68px; }
+.bar { width:30px; background:linear-gradient(180deg, #60a5fa, #3b82f6); border-radius:6px 6px 0 0; }
+.barValue { font-size:12px; color:#1f2937; }
+.barLabel { font-size:12px; color:#6b7280; text-align:center; max-width:80px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
+
+/* Line Chart */
+.lineWrap { overflow-x:auto; }
+.lineSvg { color:#2563eb; }
+.lineStroke { stroke: currentColor; }
+.lineDot { fill: currentColor; }
+.lineXAxis { display:flex; gap:0; }
+.lineTick { text-align:center; font-size:12px; color:#6b7280; }
+
+/* Donut */
+.donutWrap { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+.donutBg { stroke: #e5e7eb; }
+.donutFg { stroke: #16a34a; }
+.donutText { font-size:16px; font-weight:800; fill:#111827; }
+.donutLabel { font-size:12px; color:#6b7280; }
+
+/* Tabelas */
+.tableWrap { overflow:auto; margin-top:8px; }
+.table { width:100%; border-collapse:separate; border-spacing:0; }
+.table thead th {
+  text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#6b7280; padding:10px;
+  background:#f9fafb; border-bottom:1px solid #eef2f7;
+}
+.table tbody td { padding:10px; border-bottom:1px solid #f3f4f6; font-size:14px; color:#111827; }
+.table tbody tr:hover { background:#fafafa; }
+
+/* Estados */
+.loading, .empty { padding:12px; color:#6b7280; text-align:center; }
+.subtleCenter { text-align:center; color:#6b7280; font-size:12px; margin-top:6px; }
