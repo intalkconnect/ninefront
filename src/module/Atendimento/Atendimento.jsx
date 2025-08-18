@@ -234,6 +234,25 @@ useEffect(() => {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
+    // encerra sessão ao fechar/atualizar a aba
+  useEffect(() => {
+    const onBeforeUnload = async () => {
+      const s = getSocket();
+      const sid = s?.id;
+      if (!sid) return;
+      try {
+        // usa sendBeacon pra não bloquear a navegação
+        const url = `${process.env.REACT_APP_API_BASE || ""}/atendentes/status/${sid}`;
+        navigator.sendBeacon?.(url, new Blob([], { type: "application/json" }));
+      } catch {
+        // fallback “fire and forget”
+        try { await apiPut(`/atendentes/status/${sid}`); } catch {}
+      }
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
   // ————— handlers de realtime —————
 
   // Atualiza cards, unread e notificação agregada (todos os canais)
@@ -327,6 +346,7 @@ useEffect(() => {
   useEffect(() => {
     if (!userEmail || !(userFilas || []).length) return;
     let mounted = true;
+    let heartbeatTimer = null;
 
     (async () => {
       try {
@@ -356,6 +376,15 @@ useEffect(() => {
           for (const rid of joinedRoomsRef.current) {
             socket.emit("join_room", rid);
           }
+                   // ❤️ heartbeat periódico
+          try { if (heartbeatTimer) clearInterval(heartbeatTimer); } catch {}
+          heartbeatTimer = setInterval(async () => {
+            try {
+              await apiPut(`/atendentes/heartbeat`, { session: socket.id });
+           } catch (e) {
+              // silencioso: se cair, próxima batida tenta de novo
+            }
+          }, 30000); // 30s
         });
 
         socket.on("disconnect", () => setSocketStatus?.("offline"));
@@ -374,6 +403,7 @@ useEffect(() => {
       socket.off("disconnect");
       socket.off("new_message", handleNewMessage);
       socket.off("update_message", handleUpdateMessage);
+      try { if (heartbeatTimer) clearInterval(heartbeatTimer); } catch {}
     };
   }, [
     userEmail,
