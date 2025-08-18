@@ -25,7 +25,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  padding: 1.25rem 1.5rem;
+  padding: 1.25rem 1.25rem;
   border-bottom: 2px solid #e2e8f0;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   display: flex;
@@ -73,7 +73,7 @@
 
 /* Conteúdo das abas */
 .tabContent {
-  padding: 1.25rem 1.5rem 3rem 1.5rem;
+  padding: 1.25rem 1.25rem 3rem 1.25rem;
   min-height: calc(100% - 100px);
 }
 
@@ -154,6 +154,8 @@
   border: 2px solid #e2e8f0;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .sectionHeader {
