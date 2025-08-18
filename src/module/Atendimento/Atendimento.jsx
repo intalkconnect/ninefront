@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { apiGet, apiPut, apiPath  } from "../../shared/apiClient";
+import { apiGet, apiPut, apiPatch  } from "../../shared/apiClient";
 import { connectSocket, getSocket } from "./services/socket";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
