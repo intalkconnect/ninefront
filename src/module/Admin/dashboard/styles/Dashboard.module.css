@@ -1,19 +1,22 @@
 .container {
-  /* Em vez de min-height, use height para o container “pegar” o viewport */
-  height: 100vh;
-
-  /* Força scroll vertical dentro do dashboard */
+  /* Força scroll vertical no próprio dashboard */
+  height: 100dvh;
+  height: 100vh; /* fallback */
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* inércia no iOS */
-  overscroll-behavior: contain;      /* evita “puxar” o body */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 
+  /* base */
   background: #f7f7fb;
   padding: 24px;
   color: #111827;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-}
 
+  /* se o container estiver dentro de layout flex, isso evita “estouro” */
+  min-height: 0;
+  flex: 1 1 auto;
+}
 
 .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:18px; }
 .title { margin:0; font-size:26px; font-weight:800; }
@@ -38,28 +41,38 @@
 .cardIcon { display:inline-flex; align-items:center; color:#374151; }
 .cardBody { padding:12px 14px; }
 
-.help { display:inline-flex; align-items:center; color:#6b7280; position:relative; cursor:default; }
+/* Tooltip adaptativo */
+.help {
+  --tipw: 260px; /* mantenha em sincronia com TIP_W do componente */
+  display:inline-flex; align-items:center; color:#6b7280; position:relative; cursor:default;
+}
 .help:hover { color:#111827; }
 .help::after {
   content: attr(data-tooltip);
-  position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%);
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 8px);
+  transform:translateX(-50%);
+  width: var(--tipw);
+  max-width: calc(100vw - 24px);
   background:#111827; color:#fff; border-radius:8px; padding:8px 10px; font-size:12px; line-height:1.2;
-  white-space:pre-wrap; width:240px; box-shadow:0 6px 24px rgba(0,0,0,.18);
+  white-space:pre-wrap; box-shadow:0 6px 24px rgba(0,0,0,.18);
   opacity:0; pointer-events:none; transition:opacity .15s ease;
+  z-index: 9999;
 }
 .help:hover::after { opacity:1; }
+.help[data-pos="top-left"]::after { left: 0; transform: none; }
+.help[data-pos="top-right"]::after { left: auto; right: 0; transform: none; }
 
 /* Stats */
 .statsGrid3 { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px; }
-.stat {
-  border-radius:12px; padding:12px; text-align:center; background:#f8fafc; border:1px solid #eef2f7;
-}
+.stat { border-radius:12px; padding:12px; text-align:center; background:#f8fafc; border:1px solid #eef2f7; }
 .statValue { font-size:24px; font-weight:800; }
 .statLabel { color:#6b7280; font-size:12px; }
-.tone_blue .statValue { color:#2563eb; }
+.tone_blue .statValue   { color:#2563eb; }
 .tone_purple .statValue { color:#7c3aed; }
-.tone_amber .statValue { color:#ca8a04; }
-.tone_green .statValue { color:#16a34a; }
+.tone_amber .statValue  { color:#ca8a04; }
+.tone_green .statValue  { color:#16a34a; }
 
 /* Grids */
 .gridTwo { display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px; }
