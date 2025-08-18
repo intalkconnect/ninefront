@@ -246,7 +246,6 @@ useEffect(() => {
   useEffect(() => {
     const onBeforeUnload = async () => {
       const s = getSocket();
-      const sid = s?.id;
       if (!sid) return;
             const sid = getLastSid();
       if (!sid) return; // nada a encerrar
