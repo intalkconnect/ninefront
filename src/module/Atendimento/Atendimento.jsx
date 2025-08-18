@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { apiGet, apiPut } from "../../shared/apiClient";
+import { apiGet, apiPut, apiPatch } from "../../shared/apiClient";
 import { connectSocket, getSocket } from "./services/socket";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -242,7 +242,7 @@ useEffect(() => {
       if (!sid) return;
       try {
        // usa o MESMO resolvedor do apiClient (mesmo padrão do apiPut)
-       const url = apiPut(`/atendentes/status/${encodeURIComponent(sid)}`);
+       const url = apiPatch(`/atendentes/status/${encodeURIComponent(sid)}`);
        navigator.sendBeacon?.(url, new Blob([], { type: "application/json" }));
       } catch {
         // fallback “fire and forget”
