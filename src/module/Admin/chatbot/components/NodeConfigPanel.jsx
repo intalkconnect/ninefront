@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import styles from './NodeConfigPanel.module.css';
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -18,7 +19,6 @@ export default function NodeConfigPanel({
     history: true,
   });
 
-
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -26,11 +26,9 @@ export default function NodeConfigPanel({
     }));
   };
 
- 
-
   if (!selectedNode || !selectedNode.data) return null;
 
-const { block } = selectedNode.data;
+  const { block } = selectedNode.data;
 
   const {
     type,
@@ -80,12 +78,12 @@ const { block } = selectedNode.data;
   };
 
   const renderActionsTab = () => (
-    <div style={tabContent}>
-      <div style={sectionContainer}>
-        <div style={sectionHeader} onClick={() => toggleSection("actions")}>
-          <h4 style={sectionTitle}>
+    <div className={styles.tabContent}>
+      <div className={styles.sectionContainer}>
+        <div className={styles.sectionHeader} onClick={() => toggleSection("actions")}>
+          <h4 className={styles.sectionTitle}>
             Condições de Saída
-            <span style={sectionCount}>({actions.length}/25)</span>
+            <span className={styles.sectionCount}>({actions.length}/25)</span>
           </h4>
           {expandedSections.actions ? (
             <ChevronUp size={16} />
@@ -95,25 +93,25 @@ const { block } = selectedNode.data;
         </div>
 
         {expandedSections.actions && (
-          <div style={sectionContent}>
+          <div className={styles.sectionContent}>
             {actions.map((action, actionIdx) => (
               <React.Fragment key={actionIdx}>
                 {actionIdx > 0 && (
-                  <div style={dividerContainer}>
-                    <div style={dividerLine}></div>
-                    <span style={dividerText}>OU</span>
+                  <div className={styles.dividerContainer}>
+                    <div className={styles.dividerLine}></div>
+                    <span className={styles.dividerText}>OU</span>
                   </div>
                 )}
 
-                <div style={actionBox}>
-                  <div style={actionHeader}>
-                    <strong style={actionTitle}>
+                <div className={styles.actionBox}>
+                  <div className={styles.actionHeader}>
+                    <strong className={styles.actionTitle}>
                       Condição {actionIdx + 1}
                     </strong>
                     <Trash2
                       size={16}
                       color="#ff6b6b"
-                      style={trashIconStyle}
+                      className={styles.trashIcon}
                       onClick={() => {
                         const updated = [...actions];
                         updated.splice(actionIdx, 1);
@@ -123,9 +121,9 @@ const { block } = selectedNode.data;
                   </div>
 
                   {(action.conditions || []).map((cond, condIdx) => (
-                    <div key={condIdx} style={conditionRow}>
-                      <div style={inputGroup}>
-                        <label style={inputLabel}>Variável</label>
+                    <div key={condIdx} className={styles.conditionRow}>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Variável</label>
                         <select
                           value={
                             cond.variable === "lastUserMessage"
@@ -140,7 +138,7 @@ const { block } = selectedNode.data;
                                 : "";
                             updateActions(updated);
                           }}
-                          style={inputStyle}
+                          className={styles.selectStyle}
                         >
                           <option value="lastUserMessage">
                             Resposta do usuário
@@ -150,8 +148,8 @@ const { block } = selectedNode.data;
                       </div>
 
                       {cond.variable !== "lastUserMessage" && (
-                        <div style={inputGroup}>
-                          <label style={inputLabel}>Nome da variável</label>
+                        <div className={styles.inputGroup}>
+                          <label className={styles.inputLabel}>Nome da variável</label>
                           <input
                             type="text"
                             placeholder="Nome da variável"
@@ -162,13 +160,13 @@ const { block } = selectedNode.data;
                                 e.target.value;
                               updateActions(updated);
                             }}
-                            style={inputStyle}
+                            className={styles.inputStyle}
                           />
                         </div>
                       )}
 
-                      <div style={inputGroup}>
-                        <label style={inputLabel}>Tipo de condição</label>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Tipo de condição</label>
                         <select
                           value={cond.type}
                           onChange={(e) => {
@@ -177,7 +175,7 @@ const { block } = selectedNode.data;
                               e.target.value;
                             updateActions(updated);
                           }}
-                          style={inputStyle}
+                          className={styles.selectStyle}
                         >
                           <option value="">Selecione...</option>
                           <option value="exists">Existe</option>
@@ -189,8 +187,8 @@ const { block } = selectedNode.data;
                       </div>
 
                       {cond.type !== "exists" && (
-                        <div style={inputGroup}>
-                          <label style={inputLabel}>Valor</label>
+                        <div className={styles.inputGroup}>
+                          <label className={styles.inputLabel}>Valor</label>
                           <input
                             type="text"
                             placeholder="Valor para comparação"
@@ -201,14 +199,14 @@ const { block } = selectedNode.data;
                                 e.target.value;
                               updateActions(updated);
                             }}
-                            style={inputStyle}
+                            className={styles.inputStyle}
                           />
                         </div>
                       )}
 
-                      <div style={buttonGroup}>
+                      <div className={styles.buttonGroup}>
                         <button
-                          style={deleteButtonSmall}
+                          className={styles.deleteButtonSmall}
                           onClick={() => {
                             const updated = [...actions];
                             updated[actionIdx].conditions.splice(condIdx, 1);
@@ -221,7 +219,7 @@ const { block } = selectedNode.data;
                     </div>
                   ))}
 
-                  <div style={buttonGroup}>
+                  <div className={styles.buttonGroup}>
                     <button
                       onClick={() => {
                         const newCondition = {
@@ -236,14 +234,14 @@ const { block } = selectedNode.data;
                         updated[actionIdx].conditions.push(newCondition);
                         updateActions(updated);
                       }}
-                      style={addButtonSmall}
+                      className={styles.addButtonSmall}
                     >
                       <Plus size={14} /> Adicionar Condição
                     </button>
                   </div>
 
-                  <div style={inputGroup}>
-                    <label style={inputLabel}>Próximo Bloco</label>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Próximo Bloco</label>
                     <select
                       value={action.next}
                       onChange={(e) => {
@@ -259,7 +257,7 @@ const { block } = selectedNode.data;
                           });
                         }
                       }}
-                      style={inputStyle}
+                      className={styles.selectStyle}
                     >
                       <option value="">Selecione um bloco...</option>
                       {allNodes
@@ -275,7 +273,7 @@ const { block } = selectedNode.data;
               </React.Fragment>
             ))}
 
-            <div style={buttonGroup}>
+            <div className={styles.buttonGroup}>
               <button
                 onClick={() => {
                   const newAction = {
@@ -290,7 +288,7 @@ const { block } = selectedNode.data;
                   };
                   updateActions([...actions, newAction]);
                 }}
-                style={addButton}
+                className={styles.addButton}
               >
                 <Plus size={16} /> Adicionar Ação
               </button>
@@ -299,9 +297,9 @@ const { block } = selectedNode.data;
         )}
       </div>
 
-      <div style={sectionContainer}>
-        <div style={sectionHeader} onClick={() => toggleSection("default")}>
-          <h4 style={sectionTitle}>Saída Padrão</h4>
+      <div className={styles.sectionContainer}>
+        <div className={styles.sectionHeader} onClick={() => toggleSection("default")}>
+          <h4 className={styles.sectionTitle}>Saída Padrão</h4>
           {expandedSections.default ? (
             <ChevronUp size={16} />
           ) : (
@@ -310,13 +308,13 @@ const { block } = selectedNode.data;
         </div>
 
         {expandedSections.default && (
-          <div style={sectionContent}>
-            <div style={inputGroup}>
-              <label style={inputLabel}>Próximo Bloco</label>
+          <div className={styles.sectionContent}>
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Próximo Bloco</label>
               <select
                 value={block.defaultNext || ""}
                 onChange={(e) => updateBlock({ defaultNext: e.target.value })}
-                style={inputStyle}
+                className={styles.selectStyle}
               >
                 <option value="">Selecione um bloco...</option>
                 {allNodes
@@ -337,103 +335,125 @@ const { block } = selectedNode.data;
   const renderContentTab = () => {
     if (type === "text") {
       return (
-        <>
-          <label>Mensagem</label>
-          <textarea
-            rows={5}
-            value={block.content || ""}
-            onChange={(e) => updateBlock({ content: e.target.value })}
-            style={inputStyle}
-          />
+        <div className={styles.sectionContent}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Mensagem</label>
+            <textarea
+              rows={5}
+              value={block.content || ""}
+              onChange={(e) => updateBlock({ content: e.target.value })}
+              className={styles.textareaStyle}
+            />
+          </div>
 
-          <label>Aguardar resposta?</label>
-          <select
-            value={awaitResponse}
-            onChange={(e) =>
-              updateBlock({ awaitResponse: e.target.value === "true" })
-            }
-            style={inputStyle}
-          >
-            <option value="true">Sim</option>
-            <option value="false">Não</option>
-          </select>
-          <label>Atraso de envio (segundos)</label>
-          <input
-            type="number"
-            value={sendDelayInSeconds}
-            onChange={(e) =>
-              updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-            }
-            style={inputStyle}
-          />
-        </>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Aguardar resposta?</label>
+            <select
+              value={awaitResponse}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
+              className={styles.selectStyle}
+            >
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
+            <input
+              type="number"
+              value={sendDelayInSeconds}
+              onChange={(e) =>
+                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
+              }
+              className={styles.inputStyle}
+            />
+          </div>
+        </div>
       );
     }
 
     if (type === "media") {
       return (
-        <>
-          <label>Tipo de mídia</label>
-          <select
-            value={content.mediaType || "image"}
-            onChange={(e) => updateContent("mediaType", e.target.value)}
-            style={inputStyle}
-          >
-            <option value="image">Imagem</option>
-            <option value="document">Documento</option>
-            <option value="audio">Áudio</option>
-            <option value="video">Vídeo</option>
-          </select>
+        <div className={styles.sectionContent}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Tipo de mídia</label>
+            <select
+              value={content.mediaType || "image"}
+              onChange={(e) => updateContent("mediaType", e.target.value)}
+              className={styles.selectStyle}
+            >
+              <option value="image">Imagem</option>
+              <option value="document">Documento</option>
+              <option value="audio">Áudio</option>
+              <option value="video">Vídeo</option>
+            </select>
+          </div>
 
-          <label>URL</label>
-          <input
-            type="text"
-            value={content.url || ""}
-            onChange={(e) => updateContent("url", e.target.value)}
-            style={inputStyle}
-          />
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>URL</label>
+            <input
+              type="text"
+              value={content.url || ""}
+              onChange={(e) => updateContent("url", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
 
-          <label>Legenda</label>
-          <input
-            type="text"
-            value={content.caption || ""}
-            onChange={(e) => updateContent("caption", e.target.value)}
-            style={inputStyle}
-          />
-          <label>Aguardar resposta?</label>
-          <select
-            value={awaitResponse}
-            onChange={(e) =>
-              updateBlock({ awaitResponse: e.target.value === "true" })
-            }
-            style={inputStyle}
-          >
-            <option value="true">Sim</option>
-            <option value="false">Não</option>
-          </select>
-          <label>Atraso de envio (segundos)</label>
-          <input
-            type="number"
-            value={sendDelayInSeconds}
-            onChange={(e) =>
-              updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-            }
-            style={inputStyle}
-          />
-        </>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Legenda</label>
+            <input
+              type="text"
+              value={content.caption || ""}
+              onChange={(e) => updateContent("caption", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Aguardar resposta?</label>
+            <select
+              value={awaitResponse}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
+              className={styles.selectStyle}
+            >
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
+            <input
+              type="number"
+              value={sendDelayInSeconds}
+              onChange={(e) =>
+                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
+              }
+              className={styles.inputStyle}
+            />
+          </div>
+        </div>
       );
     }
+
     if (type === "human") {
       return (
-        <>
-          <label>Nome da fila de atendimento</label>
-          <input
-            type="text"
-            value={content.queueName || ""}
-            onChange={(e) => updateContent("queueName", e.target.value)}
-            style={inputStyle}
-          />
-        </>
+        <div className={styles.sectionContent}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Nome da fila de atendimento</label>
+            <input
+              type="text"
+              value={content.queueName || ""}
+              onChange={(e) => updateContent("queueName", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
+        </div>
       );
     }
 
@@ -512,196 +532,154 @@ const { block } = selectedNode.data;
       };
 
       return (
-        <>
-          <label>Tipo de interativo</label>
-          <select
-            value={content.type || "button"}
-            onChange={(e) => {
-              const newType = e.target.value;
+        <div className={styles.sectionContent}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Tipo de interativo</label>
+            <select
+              value={content.type || "button"}
+              onChange={(e) => {
+                const newType = e.target.value;
 
-              if (newType === "list") {
-                updateBlock({
-                  content: {
-                    type: "list",
-                    body: { text: "Escolha um item da lista:" },
-                    footer: { text: "Toque para selecionar" },
-                    header: { text: "🎯 Menu de Opções", type: "text" },
-                    action: {
-                      button: "Abrir lista",
-                      sections: [
-                        {
-                          title: "Seção 1",
-                          rows: [
-                            {
-                              id: "item_1",
-                              title: "Item 1",
-                              description: "Descrição do item 1",
+                if (newType === "list") {
+                  updateBlock({
+                    content: {
+                      type: "list",
+                      body: { text: "Escolha um item da lista:" },
+                      footer: { text: "Toque para selecionar" },
+                      header: { text: "🎯 Menu de Opções", type: "text" },
+                      action: {
+                        button: "Abrir lista",
+                        sections: [
+                          {
+                            title: "Seção 1",
+                            rows: [
+                              {
+                                id: "item_1",
+                                title: "Item 1",
+                                description: "Descrição do item 1",
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    },
+                  });
+                } else {
+                  updateBlock({
+                    content: {
+                      type: "button",
+                      body: { text: "Deseja continuar?" },
+                      footer: { text: "Selecione uma opção" },
+                      action: {
+                        buttons: [
+                          {
+                            type: "reply",
+                            reply: {
+                              id: "sim",
+                              title: "👍 Sim",
                             },
-                          ],
-                        },
-                      ],
-                    },
-                  },
-                });
-              } else {
-                updateBlock({
-                  content: {
-                    type: "button",
-                    body: { text: "Deseja continuar?" },
-                    footer: { text: "Selecione uma opção" },
-                    action: {
-                      buttons: [
-                        {
-                          type: "reply",
-                          reply: {
-                            id: "sim",
-                            title: "👍 Sim",
                           },
-                        },
-                        {
-                          type: "reply",
-                          reply: {
-                            id: "nao",
-                            title: "👎 Não",
+                          {
+                            type: "reply",
+                            reply: {
+                              id: "nao",
+                              title: "👎 Não",
+                            },
                           },
-                        },
-                      ],
+                        ],
+                      },
                     },
-                  },
-                });
+                  });
+                }
+              }}
+              className={styles.selectStyle}
+            >
+              <option value="button">Quick Reply</option>
+              <option value="list">Menu List</option>
+            </select>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Corpo</label>
+            <input
+              type="text"
+              value={content.body?.text || ""}
+              onChange={(e) =>
+                updateContent("body", {
+                  ...content.body,
+                  text: e.target.value,
+                })
               }
-            }}
-            style={inputStyle}
-          >
-            <option value="button">Quick Reply</option>
-            <option value="list">Menu List</option>
-          </select>
+              className={styles.inputStyle}
+            />
+          </div>
 
-          <label>Corpo</label>
-          <input
-            type="text"
-            value={content.body?.text || ""}
-            onChange={(e) => {
-              const newType = e.target.value;
-
-              if (newType === "list") {
-                updateBlock({
-                  content: {
-                    type: "list",
-                    body: { text: "Escolha um item da lista:" },
-                    footer: { text: "Toque para selecionar" },
-                    header: { text: "🎯 Menu de Opções", type: "text" },
-                    action: {
-                      button: "Abrir lista",
-                      sections: [
-                        {
-                          title: "Seção 1",
-                          rows: [
-                            {
-                              id: "item_1",
-                              title: "Item 1",
-                              description: "Descrição do item 1",
-                            },
-                            {
-                              id: "item_2",
-                              title: "Item 2",
-                              description: "Descrição do item 2",
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  },
-                });
-              } else {
-                updateBlock({
-                  content: {
-                    type: "button",
-                    body: { text: "Deseja continuar?" },
-                    footer: { text: "Selecione uma opção" },
-                    action: {
-                      buttons: [
-                        {
-                          type: "reply",
-                          reply: {
-                            id: "sim",
-                            title: "👍 Sim",
-                          },
-                        },
-                        {
-                          type: "reply",
-                          reply: {
-                            id: "nao",
-                            title: "👎 Não",
-                          },
-                        },
-                      ],
-                    },
-                  },
-                });
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Rodapé</label>
+            <input
+              type="text"
+              value={content.footer?.text || ""}
+              onChange={(e) =>
+                updateContent("footer", {
+                  ...content.footer,
+                  text: e.target.value,
+                })
               }
-            }}
-            style={inputStyle}
-          />
+              className={styles.inputStyle}
+            />
+          </div>
 
-          <label>Rodapé</label>
-          <input
-            type="text"
-            value={content.footer?.text || ""}
-            onChange={(e) =>
-              updateContent("footer", {
-                ...content.footer,
-                text: e.target.value,
-              })
-            }
-            style={inputStyle}
-          />
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Aguardar resposta?</label>
+            <select
+              value={awaitResponse}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
+              className={styles.selectStyle}
+            >
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
 
-          <label>Aguardar resposta?</label>
-          <select
-            value={awaitResponse}
-            onChange={(e) =>
-              updateBlock({ awaitResponse: e.target.value === "true" })
-            }
-            style={inputStyle}
-          >
-            <option value="true">Sim</option>
-            <option value="false">Não</option>
-          </select>
-
-          <label>Atraso de envio (segundos)</label>
-          <input
-            type="number"
-            value={sendDelayInSeconds}
-            onChange={(e) =>
-              updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-            }
-            style={inputStyle}
-          />
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
+            <input
+              type="number"
+              value={sendDelayInSeconds}
+              onChange={(e) =>
+                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
+              }
+              className={styles.inputStyle}
+            />
+          </div>
 
           {isList && (
             <>
-              <label>Título da seção</label>
-              <input
-                type="text"
-                value={content.action?.sections?.[0]?.title || ""}
-                onChange={(e) =>
-                  updateContent("action", {
-                    ...content.action,
-                    sections: [
-                      {
-                        ...content.action?.sections?.[0],
-                        title: e.target.value,
-                        rows: content.action?.sections?.[0]?.rows || [],
-                      },
-                    ],
-                  })
-                }
-                style={inputStyle}
-              />
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Título da seção</label>
+                <input
+                  type="text"
+                  value={content.action?.sections?.[0]?.title || ""}
+                  onChange={(e) =>
+                    updateContent("action", {
+                      ...content.action,
+                      sections: [
+                        {
+                          ...content.action?.sections?.[0],
+                          title: e.target.value,
+                          rows: content.action?.sections?.[0]?.rows || [],
+                        },
+                      ],
+                    })
+                  }
+                  className={styles.inputStyle}
+                />
+              </div>
 
               {(content.action?.sections?.[0]?.rows || []).map((item, idx) => (
-                <div key={idx} style={rowItemStyle}>
+                <div key={idx} className={styles.rowItemStyle}>
                   <input
                     type="text"
                     value={item.title}
@@ -712,7 +690,7 @@ const { block } = selectedNode.data;
                       updated[idx].title = e.target.value.slice(0, 24);
                       handleUpdateRows(updated);
                     }}
-                    style={inputStyle}
+                    className={styles.inputStyle}
                   />
                   <input
                     type="text"
@@ -723,19 +701,19 @@ const { block } = selectedNode.data;
                       updated[idx].description = e.target.value;
                       handleUpdateRows(updated);
                     }}
-                    style={inputStyle}
+                    className={styles.inputStyle}
                   />
                   <Trash2
                     size={18}
                     color="#f55"
-                    style={trashIconStyle}
+                    className={styles.trashIcon}
                     onClick={() => handleRemoveListItem(idx)}
                     title="Remover item"
                   />
                 </div>
               ))}
 
-              <button onClick={handleAddListItem} style={inputStyle}>
+              <button onClick={handleAddListItem} className={styles.addButton}>
                 + Adicionar item
               </button>
             </>
@@ -744,7 +722,7 @@ const { block } = selectedNode.data;
           {isQuickReply && (
             <>
               {(content.action?.buttons || []).map((btn, idx) => (
-                <div key={idx} style={rowItemStyle}>
+                <div key={idx} className={styles.rowItemStyle}>
                   <input
                     type="text"
                     value={btn.reply?.title || ""}
@@ -766,159 +744,182 @@ const { block } = selectedNode.data;
                         buttons: updated,
                       });
                     }}
-                    style={inputStyle}
+                    className={styles.inputStyle}
                   />
                   <Trash2
                     size={18}
                     color="#f55"
-                    style={trashIconStyle}
+                    className={styles.trashIcon}
                     onClick={() => handleRemoveButton(idx)}
                     title="Remover botão"
                   />
                 </div>
               ))}
 
-              <button onClick={handleAddButton} style={inputStyle}>
+              <button onClick={handleAddButton} className={styles.addButton}>
                 + Adicionar botão
               </button>
             </>
           )}
-        </>
+        </div>
       );
     }
 
     if (type === "location") {
       return (
-        <>
-          <label>Nome</label>
-          <input
-            type="text"
-            value={content.name || ""}
-            onChange={(e) => updateContent("name", e.target.value)}
-            style={inputStyle}
-          />
-          <label>Endereço</label>
-          <input
-            type="text"
-            value={content.address || ""}
-            onChange={(e) => updateContent("address", e.target.value)}
-            style={inputStyle}
-          />
-          <label>Latitude</label>
-          <input
-            type="text"
-            value={content.latitude || ""}
-            onChange={(e) => updateContent("latitude", e.target.value)}
-            style={inputStyle}
-          />
-          <label>Longitude</label>
-          <input
-            type="text"
-            value={content.longitude || ""}
-            onChange={(e) => updateContent("longitude", e.target.value)}
-            style={inputStyle}
-          />
-          <label>Aguardar resposta?</label>
-          <select
-            value={awaitResponse}
-            onChange={(e) =>
-              updateBlock({ awaitResponse: e.target.value === "true" })
-            }
-            style={inputStyle}
-          >
-            <option value="true">Sim</option>
-            <option value="false">Não</option>
-          </select>
-          <label>Atraso de envio (segundos)</label>
-          <input
-            type="number"
-            value={sendDelayInSeconds}
-            onChange={(e) =>
-              updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-            }
-            style={inputStyle}
-          />
-        </>
+        <div className={styles.sectionContent}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Nome</label>
+            <input
+              type="text"
+              value={content.name || ""}
+              onChange={(e) => updateContent("name", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Endereço</label>
+            <input
+              type="text"
+              value={content.address || ""}
+              onChange={(e) => updateContent("address", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Latitude</label>
+            <input
+              type="text"
+              value={content.latitude || ""}
+              onChange={(e) => updateContent("latitude", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Longitude</label>
+            <input
+              type="text"
+              value={content.longitude || ""}
+              onChange={(e) => updateContent("longitude", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Aguardar resposta?</label>
+            <select
+              value={awaitResponse}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
+              className={styles.selectStyle}
+            >
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
+            <input
+              type="number"
+              value={sendDelayInSeconds}
+              onChange={(e) =>
+                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
+              }
+              className={styles.inputStyle}
+            />
+          </div>
+        </div>
       );
     }
 
     if (type === "code") {
       return (
-        <>
-<button
-  onClick={() => {
-    setScriptCode(selectedNode?.data?.block?.code || "");
-    setShowScriptEditor(true);
-  }}
-  style={{
-    padding: "8px",
-    background: "#333",
-    color: "#fff",
-    border: "1px solid #444",
-    borderRadius: "4px",
-    marginBottom: "1rem",
-  }}
->
-  Abrir editor de código
-</button>
+        <div className={styles.sectionContent}>
+          <button
+            onClick={() => {
+              setScriptCode(selectedNode?.data?.block?.code || "");
+              setShowScriptEditor(true);
+            }}
+            className={styles.codeButton}
+          >
+            Abrir editor de código
+          </button>
 
-          <label>Função</label>
-          <input
-            type="text"
-            value={block.function || ""}
-            onChange={(e) => updateBlock({ function: e.target.value })}
-            style={inputStyle}
-          />
-          <label>Variável de saída</label>
-          <input
-            type="text"
-            value={block.outputVar || ""}
-            onChange={(e) => updateBlock({ outputVar: e.target.value })}
-            style={inputStyle}
-          />
-        </>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Função</label>
+            <input
+              type="text"
+              value={block.function || ""}
+              onChange={(e) => updateBlock({ function: e.target.value })}
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Variável de saída</label>
+            <input
+              type="text"
+              value={block.outputVar || ""}
+              onChange={(e) => updateBlock({ outputVar: e.target.value })}
+              className={styles.inputStyle}
+            />
+          </div>
+        </div>
       );
     }
 
     if (type === "http") {
       return (
-        <>
-          <label>Método</label>
-          <select
-            value={content.method || "GET"}
-            onChange={(e) => updateContent("method", e.target.value)}
-            style={inputStyle}
-          >
-            <option value="GET">GET</option>
-            <option value="POST">POST</option>
-            <option value="PUT">PUT</option>
-            <option value="DELETE">DELETE</option>
-          </select>
+        <div className={styles.sectionContent}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Método</label>
+            <select
+              value={content.method || "GET"}
+              onChange={(e) => updateContent("method", e.target.value)}
+              className={styles.selectStyle}
+            >
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+            </select>
+          </div>
 
-          <label>URL</label>
-          <input
-            type="text"
-            value={content.url || ""}
-            onChange={(e) => updateContent("url", e.target.value)}
-            style={inputStyle}
-          />
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>URL</label>
+            <input
+              type="text"
+              value={content.url || ""}
+              onChange={(e) => updateContent("url", e.target.value)}
+              className={styles.inputStyle}
+            />
+          </div>
 
-          <label>Headers (JSON)</label>
-          <textarea
-            rows={3}
-            value={content.headers || ""}
-            onChange={(e) => updateContent("headers", e.target.value)}
-            style={inputStyle}
-          />
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Headers (JSON)</label>
+            <textarea
+              rows={3}
+              value={content.headers || ""}
+              onChange={(e) => updateContent("headers", e.target.value)}
+              className={styles.textareaStyle}
+            />
+          </div>
 
-          <label>Body (JSON)</label>
-          <textarea
-            rows={4}
-            value={content.body || ""}
-            onChange={(e) => updateContent("body", e.target.value)}
-            style={inputStyle}
-          />
-        </>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Body (JSON)</label>
+            <textarea
+              rows={4}
+              value={content.body || ""}
+              onChange={(e) => updateContent("body", e.target.value)}
+              className={styles.textareaStyle}
+            />
+          </div>
+        </div>
       );
     }
 
@@ -926,29 +927,22 @@ const { block } = selectedNode.data;
   };
 
   return (
-    <aside style={asideStyle}>
-      <div style={panelHeader}>
-        <h3 style={panelTitle}>{selectedNode.data.label || "Novo Bloco"}</h3>
-        <button onClick={() => onClose()} style={closeButton} title="Fechar">
+    <aside className={styles.asidePanel}>
+      <div className={styles.panelHeader}>
+        <h3 className={styles.panelTitle}>{selectedNode.data.label || "Novo Bloco"}</h3>
+        <button onClick={() => onClose()} className={styles.closeButton} title="Fechar">
           <X size={20} />
         </button>
       </div>
 
-      <div style={tabContent}>
-        <div style={sectionContainer}>
-          <div style={inputGroup}>
-            <label style={inputLabel}>Nome do Bloco</label>
+      <div className={styles.tabContent}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Nome do Bloco</label>
             {selectedNode.data.nodeType === "start" ? (
-              <div
-                style={{
-                  padding: "0.75rem",
-                  backgroundColor: "#2f2f2f",
-                  borderRadius: "6px",
-                  color: "#ccc",
-                }}
-              >
+              <div className={styles.startNodeInfo}>
                 Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo,
-                com redirecionamento automatico para o próximo bloco
+                com redirecionamento automático para o próximo bloco
                 configurado.
               </div>
             ) : (
@@ -964,7 +958,7 @@ const { block } = selectedNode.data;
                     },
                   })
                 }
-                style={inputStyle}
+                className={styles.inputStyle}
                 placeholder="Nomeie este bloco"
               />
             )}
@@ -973,21 +967,21 @@ const { block } = selectedNode.data;
 
         {/* Botões de aba: mostrar apenas "Ações" para o nó de início */}
         {selectedNode.data.nodeType === "start" ? (
-          <div style={tabButtons}>
-            <button style={tabButtonStyle(true)} disabled>
+          <div className={styles.tabButtons}>
+            <button className={`${styles.tabButton} ${styles.tabButtonActive}`} disabled>
               Ações
             </button>
           </div>
         ) : (
-          <div style={tabButtons}>
+          <div className={styles.tabButtons}>
             <button
-              style={tabButtonStyle(tab === "conteudo")}
+              className={`${styles.tabButton} ${tab === "conteudo" ? styles.tabButtonActive : ""}`}
               onClick={() => setTab("conteudo")}
             >
               Conteúdo
             </button>
             <button
-              style={tabButtonStyle(tab === "acoes")}
+              className={`${styles.tabButton} ${tab === "acoes" ? styles.tabButtonActive : ""}`}
               onClick={() => setTab("acoes")}
             >
               Ações
@@ -1006,287 +1000,3 @@ const { block } = selectedNode.data;
     </aside>
   );
 }
-
-// Updated Styles
-const asideStyle = {
-  position: "absolute",
-  right: 0,
-  width: "380px",
-  height: "100%",
-  background: "#1e1e1e",
-  color: "#fff",
-  padding: "0",
-  borderLeft: "1px solid #333",
-  overflowY: "auto",
-  zIndex: 1000,
-  fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-};
-
-const panelHeader = {
-  padding: "1rem",
-  borderBottom: "1px solid #333",
-  background: "#252525",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-};
-
-const panelTitle = {
-  margin: 0,
-  fontSize: "1.1rem",
-  fontWeight: "600",
-  color: "#4FC3F7",
-};
-
-const closeButton = {
-  background: "transparent",
-  border: "none",
-  color: "#ff6b6b",
-  cursor: "pointer",
-  padding: "0.25rem",
-  borderRadius: "4px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  transition: "all 0.2s",
-  ":hover": {
-    background: "#333",
-  },
-};
-
-const tabContent = {
-  padding: "1rem",
-};
-
-const tabButtons = {
-  display: "flex",
-  gap: "0.5rem",
-  margin: "1rem 0",
-};
-
-const tabButtonStyle = (active) => ({
-  flex: 1,
-  padding: "0.75rem",
-  background: active ? "#333" : "#252525",
-  color: active ? "#fff" : "#aaa",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontWeight: "500",
-  fontSize: "0.9rem",
-  transition: "all 0.2s",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  ":hover": {
-    background: active ? "#333" : "#2a2a2a",
-  },
-});
-
-const sectionContainer = {
-  marginBottom: "1.5rem",
-  background: "#252525",
-  borderRadius: "8px",
-  overflow: "hidden",
-};
-
-const sectionHeader = {
-  padding: "0.75rem 1rem",
-  background: "#2a2a2a",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  cursor: "pointer",
-  userSelect: "none",
-  ":hover": {
-    background: "#2f2f2f",
-  },
-};
-
-const sectionTitle = {
-  margin: 0,
-  fontSize: "0.95rem",
-  fontWeight: "500",
-  color: "#fff",
-  display: "flex",
-  alignItems: "center",
-  gap: "0.5rem",
-};
-
-const sectionCount = {
-  fontSize: "0.8rem",
-  color: "#aaa",
-  fontWeight: "normal",
-  marginLeft: "0.5rem",
-};
-
-const sectionContent = {
-  padding: "1rem",
-};
-
-const inputGroup = {
-  marginBottom: "1rem",
-};
-
-const inputLabel = {
-  display: "block",
-  marginBottom: "0.5rem",
-  fontSize: "0.85rem",
-  color: "#ccc",
-  fontWeight: "500",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "0.75rem",
-  borderRadius: "6px",
-  border: "1px solid #444",
-  background: "#2a2a2a",
-  color: "#fff",
-  fontSize: "0.9rem",
-  transition: "all 0.2s",
-  ":focus": {
-    outline: "none",
-    borderColor: "#4FC3F7",
-    boxShadow: "0 0 0 2px rgba(79, 195, 247, 0.2)",
-  },
-};
-
-const actionBox = {
-  background: "#2a2a2a",
-  border: "1px solid #444",
-  borderRadius: "8px",
-  padding: "1rem",
-  marginBottom: "1rem",
-};
-
-const actionHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "1rem",
-};
-
-const actionTitle = {
-  fontSize: "0.9rem",
-  color: "#fff",
-};
-
-const conditionRow = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "1rem",
-  marginBottom: "1rem",
-  paddingBottom: "1rem",
-  borderBottom: "1px solid #333",
-  ":last-child": {
-    borderBottom: "none",
-    marginBottom: "0",
-    paddingBottom: "0",
-  },
-};
-
-const buttonGroup = {
-  marginTop: "1rem",
-  display: "flex",
-  gap: "0.5rem",
-};
-
-const addButton = {
-  backgroundColor: "#2e7d32",
-  color: "#fff",
-  border: "none",
-  padding: "0.75rem 1rem",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "0.9rem",
-  fontWeight: "500",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "0.5rem",
-  width: "100%",
-  transition: "all 0.2s",
-  ":hover": {
-    backgroundColor: "#3d8b40",
-  },
-};
-
-const addButtonSmall = {
-  ...addButton,
-  padding: "0.5rem 0.75rem",
-  fontSize: "0.8rem",
-  backgroundColor: "#333",
-  ":hover": {
-    backgroundColor: "#3d3d3d",
-  },
-};
-
-const deleteButtonSmall = {
-  ...addButtonSmall,
-  backgroundColor: "#5c2a2a",
-  color: "#ff6b6b",
-  ":hover": {
-    backgroundColor: "#6e3434",
-  },
-};
-
-const dividerContainer = {
-  position: "relative",
-  textAlign: "center",
-  margin: "1rem 0",
-};
-
-const dividerLine = {
-  height: "1px",
-  background: "#444",
-  width: "100%",
-  position: "absolute",
-  top: "50%",
-  left: 0,
-  zIndex: 1,
-};
-
-const dividerText = {
-  position: "relative",
-  zIndex: 2,
-  background: "#252525",
-  padding: "0 0.75rem",
-  color: "#888",
-  fontSize: "0.75rem",
-  fontWeight: "bold",
-};
-
-const trashIconStyle = {
-  cursor: "pointer",
-  opacity: 0.8,
-  transition: "all 0.2s",
-  ":hover": {
-    opacity: 1,
-  },
-};
-
-
-
-const rowItemStyle = {
-  display: "flex",
-  gap: "0.5rem",
-  alignItems: "center",
-  marginBottom: "0.75rem",
-};
-
-// Add this to your global CSS
-// @keyframes spin {
-//   to { transform: rotate(360deg); }
-// }
-
-
-
-
-
-
-
-
-
-
-
