@@ -185,8 +185,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
                   <option value="">{motivos.length ? 'Selecione um motivo...' : 'Sem motivos disponíveis'}</option>
                   {motivos.map((m) => (
                     <option key={m.id} value={String(m.id)}>
-                      {m.label} {m.code ? `(${m.code})` : ''}
-                      {m.max_minutes ? ` — máx. ${m.max_minutes} min` : ''}
+                      {m.label}
                     </option>
                   ))}
                 </select>
