@@ -187,7 +187,7 @@ export default function Sidebar() {
 const mapFromBackend = (row) => {
   if (!row) return 'online';
   
-  const s = (row.derived_status || row.status || '').toLowerCase().trim();
+  const s = ( row.status || '').toLowerCase().trim();
   
   if (s === 'pausa' || s === 'pausado') return 'pausado';
   if (s === 'offline') return 'offline';
@@ -201,7 +201,7 @@ const mapFromBackend = (row) => {
     (async () => {
       if (!userEmail) return;
       try {
-        const a = await apiGet(`/atendentes/${userEmail}`); // GET único atendente
+        const a = await apiGet(`/atendentes/status/${userEmail}`); // GET único atendente
         console.log(a)
         setStatus(mapFromBackend(a));
       } catch (e) {
