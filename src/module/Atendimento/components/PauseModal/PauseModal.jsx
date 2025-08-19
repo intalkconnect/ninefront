@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { Pause, Clock, X, AlertTriangle } from 'lucide-react';
 import { apiGet, apiPut } from '../../../../shared/apiClient';
 import './PauseModal.css';
 
@@ -143,21 +144,32 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
       <div className="pause-modal" onClick={e => e.stopPropagation()}>
         <div className="pause-modal-header">
           <h3 className="pause-modal-title">
-            {!startedAt ? '⏸️ Iniciar Pausa' : '⏱️ Em Pausa'}
+            {!startedAt ? (
+              <>
+                <Pause className="title-icon" />
+                Iniciar Pausa
+              </>
+            ) : (
+              <>
+                <Clock className="title-icon" />
+                Em Pausa
+              </>
+            )}
           </h3>
           <button 
             className="pause-modal-close"
             onClick={handleClose}
             disabled={loading}
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
 
         <div className="pause-modal-content">
           {error && (
             <div className="pause-error">
-              ⚠️ {error}
+              <AlertTriangle size={16} />
+              {error}
             </div>
           )}
 
@@ -204,7 +216,12 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
               <div className={`pause-counter ${isOverTime ? 'over-time' : ''}`}>
                 <div className="counter-time">
                   {elapsed}
-                  {isOverTime && <span className="over-time-indicator">⚠️ Excedido</span>}
+                  {isOverTime && (
+                    <span className="over-time-indicator">
+                      <AlertTriangle size={14} />
+                      Excedido
+                    </span>
+                  )}
                 </div>
               </div>
 
