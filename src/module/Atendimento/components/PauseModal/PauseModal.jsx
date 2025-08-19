@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPut } from '../../../../shared/apiClient';
-import './PauseModal.module.css';
+import './PauseModal.css';
 
 export default function PauseModal({ email, open, onClose, onPaused, onResumed }) {
   const [motivos, setMotivos] = useState([]);
