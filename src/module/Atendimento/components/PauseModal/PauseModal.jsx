@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Pause, Clock, X, AlertTriangle } from 'lucide-react';
-import { apiGet, apiPut } from '../../../../shared/apiClient';
+import { apiGet, apiPost, apiPatch } from '../../../../shared/apiClient';
 import './PauseModal.css';
 
 export default function PauseModal({ email, open, onClose, onPaused, onResumed }) {
@@ -8,6 +8,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
   const [selectedId, setSelectedId] = useState('');
   const [loading, setLoading] = useState(false);
   const [startedAt, setStartedAt] = useState(null);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
   const [tick, setTick] = useState(0);
   const [error, setError] = useState('');
 
@@ -43,6 +44,8 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     if (!open) {
       setSelectedId('');
       setError('');
+      setStartedAt(null);
+      setCurrentSessionId(null);
     }
   }, [open]);
 
@@ -82,34 +85,40 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     setError('');
     
     try {
-      await apiPut(`/atendentes/pause/${email}`, { reason_id: selectedId });
+      const response = await apiPost(`/atendentes/${email}/pausas/start`, { 
+        reason_id: selectedId 
+      });
       
-      const now = new Date().toISOString();
-      setStartedAt(now);
+      setStartedAt(response.started_at);
+      setCurrentSessionId(response.id);
       onPaused?.();
       
     } catch (e) {
       console.error('[PauseModal] erro ao pausar', e);
-      setError('Erro ao aplicar pausa. Tente novamente.');
+      const errorMsg = e.response?.data?.error || 'Erro ao aplicar pausa. Tente novamente.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   const onResume = async () => {
-    if (!email || loading) return;
+    if (!email || !currentSessionId || loading) return;
     
     setLoading(true);
     setError('');
     
     try {
-      await apiPut(`/atendentes/resume/${email}`, {});
+      await apiPatch(`/atendentes/${email}/pausas/${currentSessionId}/end`);
+      
       setStartedAt(null);
+      setCurrentSessionId(null);
       onResumed?.();
       onClose?.();
     } catch (e) {
       console.error('[PauseModal] erro ao retomar', e);
-      setError('Erro ao retomar. Tente novamente.');
+      const errorMsg = e.response?.data?.error || 'Erro ao retomar. Tente novamente.';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -187,7 +196,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
                   <option value="">Selecione um motivo...</option>
                   {motivos.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.nome}
+                      {m.label}
                       {m.max_minutes ? ` (máx. ${m.max_minutes} min)` : ''}
                     </option>
                   ))}
@@ -210,7 +219,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
           ) : (
             <>
               <div className="pause-info">
-                <strong>Motivo:</strong> {selectedMotivo?.nome || 'N/A'}
+                <strong>Motivo:</strong> {selectedMotivo?.label || 'N/A'}
               </div>
 
               <div className={`pause-counter ${isOverTime ? 'over-time' : ''}`}>
