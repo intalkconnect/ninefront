@@ -33,6 +33,13 @@
   font-size: 1.1rem;
   font-weight: 600;
   color: #212529;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-icon {
+  flex-shrink: 0;
 }
 
 .pause-modal-close {
@@ -74,6 +81,9 @@
   border-radius: 6px;
   margin-bottom: 16px;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Form */
@@ -154,6 +164,9 @@
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Actions */
