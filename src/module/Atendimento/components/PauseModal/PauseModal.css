@@ -1,15 +1,403 @@
+/* Backdrop */
 .pause-modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,.4);
-  display: flex; align-items: center; justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
 }
+
+.pause-modal-backdrop.closing {
+  animation: fadeOut 0.15s ease-in forwards;
+}
+
+/* Modal */
 .pause-modal {
-  width: 420px; background: #fff; border-radius: 12px;
-  padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
+  width: min(90vw, 480px);
+  max-height: 90vh;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 10px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
 }
-.pause-select { width: 100%; padding: 8px; margin: 8px 0 16px; }
-.pause-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.btn { padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: #f8f9fa; }
-.btn.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
-.btn.success { background: #198754; color: #fff; border-color: #198754; }
-.pause-counter { padding: 16px; font-size: 1.1rem; background: #f6f7f9; border-radius: 8px; margin: 12px 0; }
+
+.pause-modal.closing {
+  animation: slideOut 0.15s ease-in forwards;
+}
+
+/* Header */
+.pause-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.pause-modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pause-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  width: 32px;
+  height: 32px;
+}
+
+.pause-modal-close:hover:not(:disabled) {
+  background: #e9ecef;
+  color: #495057;
+  transform: scale(1.05);
+}
+
+.pause-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Content */
+.pause-modal-content {
+  padding: 24px;
+}
+
+/* Error */
+.pause-error {
+  background: #fdf2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  animation: shake 0.4s ease-in-out;
+}
+
+.error-icon {
+  font-size: 1.1rem;
+}
+
+/* Form */
+.pause-form-group {
+  margin-bottom: 24px;
+}
+
+.pause-label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.required {
+  color: #dc2626;
+}
+
+.pause-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: #ffffff;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.pause-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.pause-select:disabled {
+  background: #f9fafb;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.pause-select.error {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.pause-hint {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Info em pausa */
+.pause-info {
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.pause-motivo {
+  color: #374151;
+}
+
+/* Counter */
+.pause-counter {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.pause-counter.over-time {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fca5a5;
+  animation: pulse 2s infinite;
+}
+
+.counter-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.counter-time {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.over-time-indicator {
+  font-size: 0.8rem;
+  background: #fca5a5;
+  color: #7f1d1d;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  animation: blink 1.5s infinite;
+}
+
+.counter-limit {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* Actions */
+.pause-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-secondary {
+  background: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e9ecef;
+  color: #495057;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+  animation: pulse 2s infinite;
+}
+
+.btn-warning:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+}
+
+/* Spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.7; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .pause-modal {
+    width: 95vw;
+    margin: 20px;
+  }
+  
+  .pause-modal-header {
+    padding: 16px 20px 12px;
+  }
+  
+  .pause-modal-content {
+    padding: 20px;
+  }
+  
+  .pause-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+  
+  .counter-time {
+    font-size: 2rem;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
