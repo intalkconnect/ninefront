@@ -106,7 +106,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     setError('');
 
     try {
-      await apiPatch(`/pausas/atendentes/${email}/${currentSessionId}/end`);
+      await apiPatch(`/pausas/atendentes/${email}/${currentSessionId}/end`,{});
       setStartedAt(null);
       setCurrentSessionId(null);
       onResumed?.();
