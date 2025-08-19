@@ -82,7 +82,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     setError('');
 
     try {
-      const response = await apiPost(`/atendentes/${email}/start`, {
+      const response = await apiPost(`/pausas/atendentes/${email}/start`, {
         // reason_id agora é UUID string — enviar sem Number()
         reason_id: selectedId,
       });
@@ -106,7 +106,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     setError('');
 
     try {
-      await apiPatch(`/atendentes/${email}/${currentSessionId}/end`);
+      await apiPatch(`/pausas/atendentes/${email}/${currentSessionId}/end`);
       setStartedAt(null);
       setCurrentSessionId(null);
       onResumed?.();
