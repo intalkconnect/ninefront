@@ -1,0 +1,15 @@
+.pause-modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10000;
+}
+.pause-modal {
+  width: 420px; background: #fff; border-radius: 12px;
+  padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+.pause-select { width: 100%; padding: 8px; margin: 8px 0 16px; }
+.pause-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.btn { padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: #f8f9fa; }
+.btn.primary { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+.btn.success { background: #198754; color: #fff; border-color: #198754; }
+.pause-counter { padding: 16px; font-size: 1.1rem; background: #f6f7f9; border-radius: 8px; margin: 12px 0; }
