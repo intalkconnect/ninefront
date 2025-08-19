@@ -188,6 +188,7 @@ export default function Sidebar() {
     const s = (row?.derived_status || row?.status || '').toLowerCase();
     if (s === 'pausa' || s === 'pausado') return 'pausado';
     if (s === 'offline') return 'offline';
+    if (s === 'inativo') return 'inativo';
     return 'online';
   };
 
@@ -262,37 +263,39 @@ export default function Sidebar() {
 
   // handler centralizado para trocar status
   const applyStatusChange = async (next) => {
-    if (!userEmail) return;
-    try {
-      if (next === 'pausado') {
-        await apiPut(`/atendentes/pause/${userEmail}`, {});
-      } else if (next === 'offline') {
-        // encerra sessão (se existir)
-        const sid = getSocket()?.id;
-        if (sid) {
-          try { await apiPut(`/atendentes/status/${sid}`); } catch {}
-        }
-        // fixa presença como offline
-        try { await apiPut(`/atendentes/presence/${userEmail}`, { status: 'offline' }); } catch {}
-      } else if (next === 'online') {
-        // garante presença online
-        await apiPut(`/atendentes/presence/${userEmail}`, { status: 'online' });
-        // garante que há sessão registrada
-        const sid = getSocket()?.id;
-        if (sid) {
-          await apiPut(`/atendentes/session/${userEmail}`, { session: sid });
-        }
+  if (!userEmail) return;
+  try {
+    if (next === 'pausado') {
+      await apiPut(`/atendentes/pause/${userEmail}`, {});
+    } else if (next === 'offline') {
+      // encerra sessão (se existir) e deixa presença = offline
+      const sid = getSocket()?.id;
+      if (sid) {
+        try { await apiPut(`/atendentes/status/${sid}`, { reason: 'close' }); } catch {}
       }
-      setStatus(next);
-    } catch (e) {
-      console.error('[sidebar] erro ao aplicar status', e);
-      // re-sync com backend em caso de erro
-      try {
-        const a = await apiGet(`/atendentes/${userEmail}`);
-        setStatus(mapFromBackend(a));
-      } catch {}
+      try { await apiPut(`/atendentes/presence/${userEmail}`, { status: 'offline' }); } catch {}
+    } else if (next === 'inativo') {
+      // apenas seta presença como inativo; mantém session_id (se houver)
+      await apiPut(`/atendentes/presence/${userEmail}`, { status: 'inativo' });
+    } else if (next === 'online') {
+      // garante presença online + registra sessão atual
+      await apiPut(`/atendentes/presence/${userEmail}`, { status: 'online' });
+      const sid = getSocket()?.id;
+      if (sid) {
+        await apiPut(`/atendentes/session/${userEmail}`, { session: sid });
+      }
     }
-  };
+    setStatus(next);
+  } catch (e) {
+    console.error('[sidebar] erro ao aplicar status', e);
+    // re-sincroniza com o backend em caso de erro
+    try {
+      const a = await apiGet(`/atendentes/${userEmail}`);
+      setStatus(mapFromBackend(a));
+    } catch {}
+  }
+};
+
 
   return (
     <div className="sidebar-container">
@@ -434,11 +437,22 @@ export default function Sidebar() {
         <div className="user-footer-content">
           <div className="user-status">
             <span className="status-label">Status:</span>
-            <Circle
-              size={10}
-              color={status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f"}
-              fill={status === "online" ? "#25D366" : status === "pausado" ? "#f0ad4e" : "#d9534f"}
-            />
+<Circle
+  size={10}
+  color={
+    status === "online"   ? "#25D366" :   // verde
+    status === "pausado"  ? "#f0ad4e" :   // amarelo
+    status === "inativo"  ? "#6c757d" :   // cinza (inativo)
+                             "#d9534f"    // vermelho (offline)
+  }
+  fill={
+    status === "online"   ? "#25D366" :
+    status === "pausado"  ? "#f0ad4e" :
+    status === "inativo"  ? "#6c757d" :
+                             "#d9534f"
+  }
+/>
+
             <select
               value={status}
               onChange={(e) => applyStatusChange(e.target.value)}
