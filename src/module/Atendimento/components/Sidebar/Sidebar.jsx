@@ -184,13 +184,17 @@ export default function Sidebar() {
   }, [userFilas, distribuicaoTickets]);
 
     // util: mapeia status do backend -> select ("pausado" é o label do front)
-  const mapFromBackend = (row) => {
-    const s = (row?.derived_status || row?.status || '').toLowerCase();
-    if (s === 'pausa' || s === 'pausado') return 'pausado';
-    if (s === 'offline') return 'offline';
-    if (s === 'inativo') return 'inativo';
-    return 'online';
-  };
+const mapFromBackend = (row) => {
+  if (!row) return 'online';
+  
+  const s = (row.derived_status || row.status || '').toLowerCase().trim();
+  
+  if (s === 'pausa' || s === 'pausado') return 'pausado';
+  if (s === 'offline') return 'offline';
+  if (s === 'inativo') return 'inativo';
+  
+  return 'online';
+};
 
   // carrega status do atendente ao montar / trocar email
   useEffect(() => {
