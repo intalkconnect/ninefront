@@ -10,6 +10,7 @@ import LogoutButton from "../../components/Logout/LogoutButton";
 import { stringToColor } from "../../utils/color";
 import { getRelativeTime } from "../../utils/time";
 import ChannelIcon from "./ChannelIcon";
+import PauseModal from '../PauseModal/PauseModal';
 
 import "./Sidebar.css";
 
@@ -28,6 +29,7 @@ export default function Sidebar() {
   const [filaCount, setFilaCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState("online");
+  const [pauseOpen, setPauseOpen] = useState(false);
 
   const queueRoomsRef = useRef(new Set());
 
@@ -271,7 +273,8 @@ const mapFromBackend = (row) => {
   if (!userEmail) return;
   try {
     if (next === 'pausado') {
-      await apiPut(`/atendentes/pause/${userEmail}`, {});
+      setPauseOpen(true); // abre o modal de seleção de motivo
+     return;            // não troca status aqui; o modal fará isso ao confirmar
     } else if (next === 'offline') {
       // encerra sessão (se existir) e deixa presença = offline
       const sid = getSocket()?.id;
@@ -490,5 +493,13 @@ const mapFromBackend = (row) => {
         </div>
       </div>
     </div>
+    
+   <PauseModal
+     email={userEmail}
+     open={pauseOpen}
+     onClose={() => setPauseOpen(false)}
+     onPaused={() => setStatus('pausado')}
+     onResumed={() => setStatus('online')}
+   />
   );
 }
