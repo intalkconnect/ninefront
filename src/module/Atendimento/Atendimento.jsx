@@ -367,7 +367,7 @@ useEffect(() => {
     heartbeatRef.current = setInterval(async () => {
       try {
         // console.debug('[hb] ping', new Date().toISOString(), socket.id);
-        await apiPut(`/atendentes/heartbeat`, { session: socket.id });
+        await apiPut(`/atendentes/heartbeat`, { session: socket.id, email: userEmail });
       } catch {
         // silencioso
       }
