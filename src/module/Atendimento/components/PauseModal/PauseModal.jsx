@@ -5,22 +5,22 @@ import './PauseModal.css';
 
 export default function PauseModal({ email, open, onClose, onPaused, onResumed }) {
   const [motivos, setMotivos] = useState([]);
-  const [selectedId, setSelectedId] = useState('');
+  const [selectedId, setSelectedId] = useState('');         // UUID string
   const [loading, setLoading] = useState(false);
   const [startedAt, setStartedAt] = useState(null);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [tick, setTick] = useState(0);
   const [error, setError] = useState('');
 
-  // Carrega motivos de pausa
+  // Carrega motivos de pausa (apenas ativos)
   useEffect(() => {
     if (!open) return;
-    
+
     const loadMotivos = async () => {
       try {
         setError('');
-        const list = await apiGet('/pausas');
-        setMotivos(list || []);
+        const list = await apiGet('/pausas?active=true');
+        setMotivos(Array.isArray(list) ? list : []);
       } catch (e) {
         console.error('[PauseModal] erro ao carregar motivos', e);
         setError('Erro ao carregar motivos de pausa');
@@ -34,12 +34,11 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
   // Timer para contador
   useEffect(() => {
     if (!startedAt) return;
-    
     const timer = setInterval(() => setTick(x => x + 1), 1000);
     return () => clearInterval(timer);
   }, [startedAt]);
 
-  // Reset estados ao fechar
+  // Reset ao fechar
   useEffect(() => {
     if (!open) {
       setSelectedId('');
@@ -49,28 +48,26 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     }
   }, [open]);
 
-  // Calcula tempo decorrido
+  // Tempo decorrido
   const elapsed = useMemo(() => {
     if (!startedAt) return '00:00:00';
-    
     const diff = Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
     const h = String(Math.floor(diff / 3600)).padStart(2, '0');
     const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
     const s = String(diff % 60).padStart(2, '0');
-    
     return `${h}:${m}:${s}`;
   }, [startedAt, tick]);
 
-  // Motivo selecionado
+  // Motivo selecionado (comparando como string — UUID)
   const selectedMotivo = useMemo(() => {
-    return motivos.find(m => m.id === selectedId);
+    return motivos.find(m => String(m.id) === String(selectedId));
   }, [motivos, selectedId]);
 
-  // Verifica se excedeu tempo máximo
+  // Excedeu tempo máximo?
   const isOverTime = useMemo(() => {
     if (!startedAt || !selectedMotivo?.max_minutes) return false;
     const diffMinutes = Math.floor((Date.now() - new Date(startedAt).getTime()) / 60000);
-    return diffMinutes > selectedMotivo.max_minutes;
+    return diffMinutes > Number(selectedMotivo.max_minutes);
   }, [startedAt, selectedMotivo, tick]);
 
   const handleClose = useCallback(() => {
@@ -80,22 +77,22 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
 
   const onConfirmPause = async () => {
     if (!email || !selectedId || loading) return;
-    
+
     setLoading(true);
     setError('');
-    
+
     try {
-      const response = await apiPost(`/atendentes/${email}/pausas/start`, { 
-        reason_id: selectedId 
+      const response = await apiPost(`/pausas/atendentes/${email}/start`, {
+        // reason_id agora é UUID string — enviar sem Number()
+        reason_id: selectedId,
       });
-      
-      setStartedAt(response.started_at);
-      setCurrentSessionId(response.id);
+
+      setStartedAt(response?.started_at ?? new Date().toISOString());
+      setCurrentSessionId(response?.id ?? null);
       onPaused?.();
-      
     } catch (e) {
       console.error('[PauseModal] erro ao pausar', e);
-      const errorMsg = e.response?.data?.error || 'Erro ao aplicar pausa. Tente novamente.';
+      const errorMsg = e?.response?.data?.error || 'Erro ao aplicar pausa. Tente novamente.';
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -104,20 +101,19 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
 
   const onResume = async () => {
     if (!email || !currentSessionId || loading) return;
-    
+
     setLoading(true);
     setError('');
-    
+
     try {
-      await apiPatch(`/atendentes/${email}/pausas/${currentSessionId}/end`);
-      
+      await apiPatch(`/pausas/atendentes/${email}/${currentSessionId}/end`);
       setStartedAt(null);
       setCurrentSessionId(null);
       onResumed?.();
       onClose?.();
     } catch (e) {
       console.error('[PauseModal] erro ao retomar', e);
-      const errorMsg = e.response?.data?.error || 'Erro ao retomar. Tente novamente.';
+      const errorMsg = e?.response?.data?.error || 'Erro ao retomar. Tente novamente.';
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -125,9 +121,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
   };
 
   const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      handleClose();
-    }
+    if (e.target === e.currentTarget) handleClose();
   };
 
   const handleKeyDown = useCallback((e) => {
@@ -138,7 +132,6 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     }
   }, [loading, startedAt, selectedId, handleClose]);
 
-  // Keyboard events
   useEffect(() => {
     if (open) {
       document.addEventListener('keydown', handleKeyDown);
@@ -165,11 +158,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
               </>
             )}
           </h3>
-          <button 
-            className="pause-modal-close"
-            onClick={handleClose}
-            disabled={loading}
-          >
+          <button className="pause-modal-close" onClick={handleClose} disabled={loading}>
             <X size={16} />
           </button>
         </div>
@@ -190,14 +179,14 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
                   className="pause-select"
                   value={selectedId}
                   onChange={(e) => setSelectedId(e.target.value)}
-                  disabled={loading}
+                  disabled={loading || motivos.length === 0}
                   autoFocus
                 >
-                  <option value="">Selecione um motivo...</option>
+                  <option value="">{motivos.length ? 'Selecione um motivo...' : 'Sem motivos disponíveis'}</option>
                   {motivos.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                      {m.max_minutes ? ` (máx. ${m.max_minutes} min)` : ''}
+                    <option key={m.id} value={String(m.id)}>
+                      {m.label} {m.code ? `(${m.code})` : ''}
+                      {m.max_minutes ? ` — máx. ${m.max_minutes} min` : ''}
                     </option>
                   ))}
                 </select>
@@ -207,8 +196,8 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
                 <button className="btn btn-secondary" onClick={handleClose} disabled={loading}>
                   Cancelar
                 </button>
-                <button 
-                  className="btn btn-primary" 
+                <button
+                  className="btn btn-primary"
                   onClick={onConfirmPause}
                   disabled={loading || !selectedId}
                 >
@@ -235,7 +224,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
               </div>
 
               <div className="pause-actions">
-                <button 
+                <button
                   className={`btn ${isOverTime ? 'btn-warning' : 'btn-success'}`}
                   onClick={onResume}
                   disabled={loading}
