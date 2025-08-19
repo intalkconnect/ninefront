@@ -202,6 +202,7 @@ const mapFromBackend = (row) => {
       if (!userEmail) return;
       try {
         const a = await apiGet(`/atendentes/${userEmail}`); // GET único atendente
+        console.log(a)
         setStatus(mapFromBackend(a));
       } catch (e) {
         console.error('[sidebar] erro ao buscar status do atendente', e);
