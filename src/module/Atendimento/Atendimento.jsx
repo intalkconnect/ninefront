@@ -243,28 +243,25 @@ useEffect(() => {
 useEffect(() => {
   const onBeforeUnload = () => {
     try {
-      // envia OFFLINE por EMAIL usando sendBeacon (POST)
       const token = localStorage.getItem("token");
       const { email } = parseJwt(token) || {};
       if (!email) return;
 
       const url = `${apiBaseUrl}/atendentes/presence/${encodeURIComponent(email)}`;
-      const body = JSON.stringify({ status: "offline" });
+      const body = JSON.stringify({ status: "inativo" }); // Mude para "inativo"
       const blob = new Blob([body], { type: "application/json" });
 
-      // Aceita POST (vamos habilitar no backend também)
       navigator.sendBeacon?.(url, blob);
     } catch {
-      // fallback com PUT síncrono (evite logs)
       const token = localStorage.getItem("token");
       const { email } = parseJwt(token) || {};
       if (!email) return;
-      apiPut(`/atendentes/presence/${email}`, { status: "offline" }).catch(() => {});
+      apiPut(`/atendentes/presence/${email}`, { status: "inativo" }).catch(() => {}); // Mude para "inativo"
     }
   };
 
   window.addEventListener("beforeunload", onBeforeUnload);
-  return () => window.removeEventListener("beforeunload", onBeforeunload);
+  return () => window.removeEventListener("beforeunload", onBeforeUnload);
 }, []);
 
 
@@ -378,11 +375,6 @@ useEffect(() => {
     if (!mounted) return;
     setSocketStatus?.("online");
 // marca o atendente como INATIVO no refresh (por EMAIL)
-try {
-  await apiPut(`/atendentes/presence/${userEmail}`, { status: "inativo" });
-} catch (err) {
-  console.error("Erro ao setar INATIVO no refresh:", err);
-}
 
     const sock = getSocket();
     sock.emit("identify", { email: userEmail, rooms: userFilas });
