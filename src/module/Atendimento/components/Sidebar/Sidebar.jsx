@@ -2,15 +2,20 @@ import React, { useEffect, useRef, useState } from "react";
 import { apiGet, apiPut } from "../../../../shared/apiClient";
 import { getSocket } from "../../services/socket";
 import {
-  User, Circle, LogOut, Timer,
-  ArrowDownUp, ArrowUpDown, Search
+  User,
+  Circle,
+  LogOut,
+  Timer,
+  ArrowDownUp,
+  ArrowUpDown,
+  Search,
 } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
 import LogoutButton from "../../components/Logout/LogoutButton";
 import { stringToColor } from "../../utils/color";
 import { getRelativeTime } from "../../utils/time";
 import ChannelIcon from "./ChannelIcon";
-import PauseModal from '../PauseModal/PauseModal';
+import PauseModal from "../PauseModal/PauseModal";
 
 import "./Sidebar.css";
 
@@ -20,8 +25,12 @@ export default function Sidebar() {
   const userEmail = useConversationsStore((state) => state.userEmail);
   const userFilas = useConversationsStore((state) => state.userFilas);
   const selectedUserId = useConversationsStore((state) => state.selectedUserId);
-  const setSelectedUserId = useConversationsStore((state) => state.setSelectedUserId);
-  const mergeConversation = useConversationsStore((state) => state.mergeConversation);
+  const setSelectedUserId = useConversationsStore(
+    (state) => state.setSelectedUserId
+  );
+  const mergeConversation = useConversationsStore(
+    (state) => state.mergeConversation
+  );
   const setSettings = useConversationsStore((state) => state.setSettings);
 
   const [ordemAscendente, setOrdemAscendente] = useState(false);
@@ -33,18 +42,20 @@ export default function Sidebar() {
 
   const queueRoomsRef = useRef(new Set());
 
-  
-
   // Gera o snippet para exibição (sempre string)
   const getSnippet = (conv) => {
     if (!conv) return "";
-    if (typeof conv.content === "string" && conv.content.trim()) return conv.content;
+    if (typeof conv.content === "string" && conv.content.trim())
+      return conv.content;
 
     // Se chegou aqui, a store não entregou string; loga pra investigar
     console.warn("[sidebar] snippet fallback acionado", {
       type: conv.type,
       typeofContent: typeof conv.content,
-      sample: typeof conv.content === "string" ? conv.content.slice(0, 200) : conv.content
+      sample:
+        typeof conv.content === "string"
+          ? conv.content.slice(0, 200)
+          : conv.content,
     });
 
     const map = {
@@ -69,7 +80,7 @@ export default function Sidebar() {
   const contentToString = (conv) => {
     if (!conv) return "";
     const snippet = getSnippet(conv);
-    return (snippet && typeof snippet === "string") ? snippet : "[Mídia]";
+    return snippet && typeof snippet === "string" ? snippet : "[Mídia]";
   };
 
   // Carrega configurações e fila
@@ -87,7 +98,7 @@ export default function Sidebar() {
 
       const params = new URLSearchParams({ filas: userFilas.join(",") });
       const data = await apiGet(`/chats/fila?${params.toString()}`);
-      setFilaCount(Array.isArray(data) ? data.length : (data?.length || 0));
+      setFilaCount(Array.isArray(data) ? data.length : data?.length || 0);
     } catch (err) {
       console.error("Erro ao buscar configurações/fila:", err);
     }
@@ -185,18 +196,18 @@ export default function Sidebar() {
     };
   }, [userFilas, distribuicaoTickets]);
 
-    // util: mapeia status do backend -> select ("pausado" é o label do front)
-const mapFromBackend = (row) => {
-  if (!row) return 'online';
-  
-  const s = ( row.status || '').toLowerCase().trim();
-  
-  if (s === 'pausa' || s === 'pausado') return 'pausado';
-  if (s === 'offline') return 'offline';
-  if (s === 'inativo') return 'inativo';
-  
-  return 'online';
-};
+  // util: mapeia status do backend -> select ("pausado" é o label do front)
+  const mapFromBackend = (row) => {
+    if (!row) return "online";
+
+    const s = (row.status || "").toLowerCase().trim();
+
+    if (s === "pausa" || s === "pausado") return "pausado";
+    if (s === "offline") return "offline";
+    if (s === "inativo") return "inativo";
+
+    return "online";
+  };
 
   // carrega status do atendente ao montar / trocar email
   useEffect(() => {
@@ -204,10 +215,10 @@ const mapFromBackend = (row) => {
       if (!userEmail) return;
       try {
         const a = await apiGet(`/atendentes/status/${userEmail}`); // GET único atendente
-        console.log(a)
+        console.log(a);
         setStatus(mapFromBackend(a));
       } catch (e) {
-        console.error('[sidebar] erro ao buscar status do atendente', e);
+        console.error("[sidebar] erro ao buscar status do atendente", e);
       }
     })();
   }, [userEmail]);
@@ -267,43 +278,49 @@ const mapFromBackend = (row) => {
     return arr;
   }, [filteredConversations, ordemAscendente]);
 
-
   // handler centralizado para trocar status
   const applyStatusChange = async (next) => {
-  if (!userEmail) return;
-  try {
-    if (next === 'pausado') {
-      setPauseOpen(true); // abre o modal de seleção de motivo
-     return;            // não troca status aqui; o modal fará isso ao confirmar
-    } else if (next === 'offline') {
-      // encerra sessão (se existir) e deixa presença = offline
-      const sid = getSocket()?.id;
-      if (sid) {
-        try { await apiPut(`/atendentes/status/${sid}`, { reason: 'close' }); } catch {}
-      }
-      try { await apiPut(`/atendentes/presence/${userEmail}`, { status: 'offline' }); } catch {}
-    } else if (next === 'inativo') {
-      // apenas seta presença como inativo; mantém session_id (se houver)
-      await apiPut(`/atendentes/presence/${userEmail}`, { status: 'inativo' });
-    } else if (next === 'online') {
-      // garante presença online + registra sessão atual
-      await apiPut(`/atendentes/presence/${userEmail}`, { status: 'online' });
-      const sid = getSocket()?.id;
-      if (sid) {
-        await apiPut(`/atendentes/session/${userEmail}`, { session: sid });
-      }
-    }
-    setStatus(next);
-  } catch (e) {
-    console.error('[sidebar] erro ao aplicar status', e);
-    // re-sincroniza com o backend em caso de erro
+    if (!userEmail) return;
     try {
-      const a = await apiGet(`/atendentes/${userEmail}`);
-      setStatus(mapFromBackend(a));
-    } catch {}
-  }
-};
-
+      if (next === "pausado") {
+        setPauseOpen(true); // abre o modal de seleção de motivo
+        return; // não troca status aqui; o modal fará isso ao confirmar
+      } else if (next === "offline") {
+        // encerra sessão (se existir) e deixa presença = offline
+        const sid = getSocket()?.id;
+        if (sid) {
+          try {
+            await apiPut(`/atendentes/status/${sid}`, { reason: "close" });
+          } catch {}
+        }
+        try {
+          await apiPut(`/atendentes/presence/${userEmail}`, {
+            status: "offline",
+          });
+        } catch {}
+      } else if (next === "inativo") {
+        // apenas seta presença como inativo; mantém session_id (se houver)
+        await apiPut(`/atendentes/presence/${userEmail}`, {
+          status: "inativo",
+        });
+      } else if (next === "online") {
+        // garante presença online + registra sessão atual
+        await apiPut(`/atendentes/presence/${userEmail}`, { status: "online" });
+        const sid = getSocket()?.id;
+        if (sid) {
+          await apiPut(`/atendentes/session/${userEmail}`, { session: sid });
+        }
+      }
+      setStatus(next);
+    } catch (e) {
+      console.error("[sidebar] erro ao aplicar status", e);
+      // re-sincroniza com o backend em caso de erro
+      try {
+        const a = await apiGet(`/atendentes/${userEmail}`);
+        setStatus(mapFromBackend(a));
+      } catch {}
+    }
+  };
 
   return (
     <div className="sidebar-container">
@@ -329,7 +346,9 @@ const mapFromBackend = (row) => {
               <>
                 <Timer size={40} strokeWidth={1.8} />
                 <div className="fila-textos">
-                  <strong>{filaCount} Cliente{filaCount !== 1 ? "s" : ""}</strong>
+                  <strong>
+                    {filaCount} Cliente{filaCount !== 1 ? "s" : ""}
+                  </strong>
                   <span className="subtexto">Aguardando</span>
                 </div>
               </>
@@ -398,7 +417,9 @@ const mapFromBackend = (row) => {
                 <div className="chat-avatar-initial">
                   <div
                     className="avatar-circle"
-                    style={{ backgroundColor: stringToColor(conv.name || conv.user_id) }}
+                    style={{
+                      backgroundColor: stringToColor(conv.name || conv.user_id),
+                    }}
                   >
                     {conv.name?.charAt(0).toUpperCase() || "U"}
                   </div>
@@ -409,11 +430,11 @@ const mapFromBackend = (row) => {
 
                 <div className="chat-details">
                   <div className="chat-title-row">
-                    <div className="chat-title">
-                      {conv.name || fullId}
-                    </div>
+                    <div className="chat-title">{conv.name || fullId}</div>
                     <div className="chat-time">
-                      {conv.timestamp ? getRelativeTime(conv.timestamp) : "--:--"}
+                      {conv.timestamp
+                        ? getRelativeTime(conv.timestamp)
+                        : "--:--"}
                     </div>
                   </div>
 
@@ -445,21 +466,27 @@ const mapFromBackend = (row) => {
         <div className="user-footer-content">
           <div className="user-status">
             <span className="status-label">Status:</span>
-<Circle
-  size={10}
-  color={
-    status === "online"   ? "#25D366" :   // verde
-    status === "pausado"  ? "#f0ad4e" :   // amarelo
-    status === "inativo"  ? "#6c757d" :   // cinza (inativo)
-                             "#d9534f"    // vermelho (offline)
-  }
-  fill={
-    status === "online"   ? "#25D366" :
-    status === "pausado"  ? "#f0ad4e" :
-    status === "inativo"  ? "#6c757d" :
-                             "#d9534f"
-  }
-/>
+            <Circle
+              size={10}
+              color={
+                status === "online"
+                  ? "#25D366" // verde
+                  : status === "pausado"
+                  ? "#f0ad4e" // amarelo
+                  : status === "inativo"
+                  ? "#6c757d" // cinza (inativo)
+                  : "#d9534f" // vermelho (offline)
+              }
+              fill={
+                status === "online"
+                  ? "#25D366"
+                  : status === "pausado"
+                  ? "#f0ad4e"
+                  : status === "inativo"
+                  ? "#6c757d"
+                  : "#d9534f"
+              }
+            />
 
             <select
               value={status}
@@ -490,16 +517,16 @@ const mapFromBackend = (row) => {
               </button>
             </div>
           </div>
+
+          <PauseModal
+            email={userEmail}
+            open={pauseOpen}
+            onClose={() => setPauseOpen(false)}
+            onPaused={() => setStatus("pausado")}
+            onResumed={() => setStatus("online")}
+          />
         </div>
       </div>
     </div>
-    
-   <PauseModal
-     email={userEmail}
-     open={pauseOpen}
-     onClose={() => setPauseOpen(false)}
-     onPaused={() => setStatus('pausado')}
-     onResumed={() => setStatus('online')}
-   />
   );
 }
