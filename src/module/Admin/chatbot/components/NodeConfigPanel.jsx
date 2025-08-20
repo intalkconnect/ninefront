@@ -150,51 +150,6 @@ export default function NodeConfigPanel({
   const renderActionsTab = () => (
     <div className={styles.tabContent}>
       {/* Atalhos específicos para o bloco HUMAN */}
-      {isHuman && (
-        <div className={styles.sectionContainer}>
-          <div
-            className={styles.sectionHeader}
-            onClick={() => toggleSection("offhoursShortcuts")}
-          >
-            <h4 className={styles.sectionTitle}>Atalhos: Condições de horário (HUMANO)</h4>
-            {expandedSections.offhoursShortcuts ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </div>
-
-          {expandedSections.offhoursShortcuts && (
-            <div className={styles.sectionContent}>
-              <div className={styles.buttonGroup}>
-                <button
-                  className={styles.addButtonSmall}
-                  onClick={() => addOffhoursAction('offhours_true')}
-                  title='Cria uma ação com condição offhours == true'
-                >
-                  + offhours == true
-                </button>
-                <button
-                  className={styles.addButtonSmall}
-                  onClick={() => addOffhoursAction('reason_holiday')}
-                  title='Cria uma ação com condição offhours_reason == "holiday"'
-                >
-                  + offhours_reason == "holiday"
-                </button>
-                <button
-                  className={styles.addButtonSmall}
-                  onClick={() => addOffhoursAction('reason_closed')}
-                  title='Cria uma ação com condição offhours_reason == "closed"'
-                >
-                  + offhours_reason == "closed"
-                </button>
-              </div>
-              <div className={styles.helperText}>
-                Essas variáveis são preenchidas automaticamente pelo executor quando o bloco HUMANO roda:
-                <code style={{ marginLeft: 6 }}>offhours</code>,
-                <code style={{ marginLeft: 6 }}>offhours_reason</code>.
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className={styles.sectionContainer}>
         <div className={styles.sectionHeader} onClick={() => toggleSection("actions")}>
           <h4 className={styles.sectionTitle}>
@@ -1017,3 +972,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
