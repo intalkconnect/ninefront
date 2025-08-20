@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZap } from "lucide-react";
 import styles from "./styles/Canais.module.css";
 import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
@@ -11,20 +11,33 @@ function getTenantFromHost() {
   return parts[0] || "";
 }
 
-export default function Canais() {
+export default function Channels() {
   const tenant = useMemo(() => getTenantFromHost(), []);
   const [wa, setWa] = useState({ connected: false, wabaId: "", numbers: [], okMsg: null, errMsg: null });
 
-  const handleWaConnected = (data) => {
-    setWa({
-      connected: true,
-      wabaId: data.waba_id,
-      numbers: Array.isArray(data.numbers) ? data.numbers : [],
-      okMsg: "WhatsApp conectado com sucesso.",
-      errMsg: null,
-    });
-    setTimeout(() => setWa((s) => ({ ...s, okMsg: null })), 2000);
-  };
+  // recebe o resultado do popup
+  useEffect(() => {
+    const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.dkdevs.com.br
+    function onMsg(e) {
+      if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return; // segurança
+      const { type, payload, error } = e.data || {};
+      if (type === "wa:connected") {
+        setWa({
+          connected: true,
+          wabaId: payload?.waba_id || "",
+          numbers: Array.isArray(payload?.numbers) ? payload.numbers : [],
+          okMsg: "WhatsApp conectado com sucesso.",
+          errMsg: null,
+        });
+        setTimeout(() => setWa((s) => ({ ...s, okMsg: null })), 2000);
+      }
+      if (type === "wa:error") {
+        setWa((s) => ({ ...s, errMsg: error || "Falha ao conectar." }));
+      }
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -55,9 +68,9 @@ export default function Canais() {
             {!wa.connected ? (
               <div className={styles.cardActions}>
                 <div className={styles.btnWrap}>
-                  <WhatsAppEmbeddedSignupButton tenant={tenant} onConnected={handleWaConnected}/>
+                  <WhatsAppEmbeddedSignupButton tenant={tenant} />
                 </div>
-                <div className={styles.hint}><PlugZap size={14}/> É necessário estar logado no Facebook.</div>
+                <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
               </div>
             ) : (
               <div className={styles.connectedBlock}>
@@ -74,7 +87,7 @@ export default function Canais() {
                             <span className={styles.numId}>id: {n?.id}</span>
                           </div>
                           <div className={styles.numActions}>
-                            <button className={styles.btnTiny} disabled title="Em breve">Definir como principal</button>
+                            <button className={styles.btnTiny} disabled title="Em breve">Definir principal</button>
                             <button className={styles.btnTiny} disabled title="Em breve">Enviar teste</button>
                           </div>
                         </li>
@@ -87,7 +100,7 @@ export default function Canais() {
           </div>
         </div>
 
-        {/* Demais cards… (Instagram, Messenger, Telegram) */}
+        {/* demais cards… */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
             <div className={`${styles.cardIconWrap} ${styles.ig}`}><Instagram size={18}/></div>
