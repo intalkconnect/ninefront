@@ -8,6 +8,7 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { apiGet, apiPost } from '../../../shared/apiClient';
 
 import { nodeTemplates } from "./components/NodeTemplates";
 import VersionHistoryModal from "./components/VersionControlModal";
@@ -325,10 +326,7 @@ function handler(context) {
 
     const fetchHistory = async () => {
       try {
-        const res = await fetch(
-          "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/history"
-        );
-        const data = await res.json();
+        const data = await apiGet('/flow/history');
         setFlowHistory(data);
       } catch (err) {
         console.error("Erro ao carregar histórico de versões:", err);
@@ -406,18 +404,12 @@ useEffect(() => {
   useEffect(() => {
     const loadLatestFlow = async () => {
       try {
-        const latestRes = await fetch(
-          "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/latest"
-        );
-        const latestData = await latestRes.json();
+        const latestData = await apiGet('/flow/latest');
         const latestFlowId = latestData[0]?.id;
 
         if (!latestFlowId) return;
 
-        const flowRes = await fetch(
-          `https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/data/${latestFlowId}`
-        );
-        const flowData = await flowRes.json();
+        const flowData = await apiGet(`/flow/data/${latestFlowId}`);
 
         const loadedNodes = [];
         const loadedEdges = [];
@@ -505,23 +497,9 @@ useEffect(() => {
         blocks,
       };
 
-      const res = await fetch(
-        "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/publish",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: flowData }, null, 2),
-        }
-      );
-
-      const response = await res.json();
-
-      if (res.ok) {
-        alert("Fluxo publicado com sucesso!");
-      } else {
-        console.error("Erro ao publicar:", response);
-        alert("Erro ao publicar fluxo: " + JSON.stringify(response));
-      }
+      const response = await apiPost('/api/v1/flow/publish', { data: flowData });
+       // Se a API devolver algum campo (ex.: { success, message }), você pode checar aqui.
+      alert('Fluxo publicado com sucesso!');
     } catch (err) {
       alert("Erro de conexão: " + err.message);
     } finally {
@@ -754,14 +732,7 @@ onPaneClick={(event) => {
               onClose={() => setShowHistory(false)}
               versions={flowHistory}
               onRestore={async (id) => {
-                await fetch(
-                  "https://ia-srv-meta.9j9goo.easypanel.host/api/v1/flow/activate",
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id }),
-                  }
-                );
+                await apiPost('/api/v1/flow/activate', { id });
                 window.location.reload();
               }}
             />
