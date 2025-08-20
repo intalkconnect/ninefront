@@ -28,7 +28,7 @@ if (!code) {
       if (!tenant || !origin) throw new Error("state inválido");
 
       setStatus("Conectando WABA…");
-      const finalizeUrl = `${API_BASE}/api/v1/wa/es/finalize`;
+      const finalizeUrl = `${API_BASE}/wa/es/finalize`;
       const r = await fetch(finalizeUrl, {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
@@ -71,7 +71,7 @@ if (!code) {
           const phone_number_id = sel.value;
 
           setStatus("Ativando número…");
-          const pickUrl = `${API_BASE}/api/v1/wa/es/pick-number`;
+          const pickUrl = `${API_BASE}/wa/es/pick-number`;
           const r2 = await fetch(pickUrl, {
             method:"POST",
             headers:{ "Content-Type":"application/json" },
