@@ -64,7 +64,7 @@ export default function Channels() {
               : <span className={styles.statusOff}>Não conectado</span>}
           </div>
           <div className={styles.cardBody}>
-            <p className={styles.cardDesc}>Conecte via Embedded Signup e selecione os números.</p>
+            <p className={styles.cardDesc}>Conecte via Signup Meta e selecione o número.</p>
             {!wa.connected ? (
               <div className={styles.cardActions}>
                 <div className={styles.btnWrap}>
