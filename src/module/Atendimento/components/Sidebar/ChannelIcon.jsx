@@ -1,52 +1,21 @@
 // components/ChannelIcon.jsx
 import React from "react";
-// importe apenas os que você precisa (cada um vira um módulo pequeno)
-import whatsapp from "simple-icons/icons/whatsapp.js";
-import telegram from "simple-icons/icons/telegram.js";
-// não existe "webchat" como marca; use um ícone genérico do Lucide
-import { MessageSquare } from "lucide-react";
+import { SiWhatsapp, SiTelegram } from "react-icons/si";
+import { MessageSquare } from "lucide-react"; // webchat genérico (ou escolha outro)
 
-/**
- * Renderiza o logo do canal como SVG inline (sem requests).
- * - size: px
- * - color: se não passar, usa a cor oficial do simple-icons
- */
-function BrandSvg({ icon, size = 16, color }) {
-  // simple-icons exporta { title, hex, slug, path }
-  const fill = color || `#${icon.hex}`;
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      role="img"
-      aria-label={icon.title}
-      focusable="false"
-      style={{ display: "block" }}
-    >
-      <path d={icon.path} fill={fill} />
-    </svg>
-  );
-}
+const ChannelIcon = ({ channel, size = 16 }) => {
+  const common = { width: size, height: size };
 
-const ChannelIcon = React.memo(function ChannelIcon({
-  channel,
-  size = 16,
-  color, // opcional para sobrescrever a cor de marca
-}) {
   switch ((channel || "").toLowerCase()) {
     case "whatsapp":
-      return <BrandSvg icon={whatsapp} size={size} color={color} />;
+      return <SiWhatsapp {...common} aria-label="WhatsApp" />;
     case "telegram":
-      return <BrandSvg icon={telegram} size={size} color={color} />;
+      return <SiTelegram {...common} aria-label="Telegram" />;
     case "webchat":
-    case "site":
-    case "web":
-      // ícone mono (Lucide) — usa currentColor
-      return <MessageSquare size={size} strokeWidth={2} />;
+      return <MessageSquare {...common} aria-label="Webchat" />;
     default:
-      return <span style={{ width: size, height: size, display: "inline-block" }} />;
+      return <span style={{ display: "inline-block", ...common }} />;
   }
-});
+};
 
 export default ChannelIcon;
