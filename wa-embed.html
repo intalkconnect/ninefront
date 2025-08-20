@@ -4,10 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>WhatsApp Embedded Signup</title>
+    <style>
+      body{font:14px system-ui,sans-serif;margin:0}
+      #box{padding:16px}
+      .err{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;padding:8px;border-radius:8px;margin-top:8px}
+      .ok{color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;padding:8px;border-radius:8px;margin-top:8px}
+      pre{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;overflow:auto}
+    </style>
   </head>
   <body>
-    <div id="app" style="font: 14px system-ui, sans-serif; padding: 12px;">
-      <p>Conectando ao WhatsApp…</p>
+    <div id="box">
+      <div id="status">Verificando perfil…</div>
+      <div id="msg"></div>
+      <pre id="log" hidden></pre>
     </div>
     <script type="module" src="/src/wa-embed.js"></script>
   </body>
