@@ -88,8 +88,8 @@ export default function NodeConfigPanel({
   const variableOptions = isHuman
     ? [
         { value: "lastUserMessage", label: "Resposta do usuário" },
-        { value: "offhours", label: "Fora do expediente (boolean)" },
-        { value: "offhours_reason", label: "Motivo do off-hours (holiday/closed)" },
+        { value: "offhours", label: "Fora do expediente" },
+        { value: "offhours_reason", label: "Motivo do off-hours" },
         { value: "custom", label: "Variável personalizada" },
       ]
     : [
@@ -126,8 +126,8 @@ export default function NodeConfigPanel({
             value={cond.value ?? "holiday"}
             onChange={(e) => onChangeValue(e.target.value)}
           >
-            <option value="holiday">holiday (feriado)</option>
-            <option value="closed">closed (fora do expediente)</option>
+            <option value="holiday">holiday</option>
+            <option value="closed">closed</option>
           </select>
         </div>
       );
@@ -972,4 +972,5 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
 
