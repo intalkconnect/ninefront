@@ -1,12 +1,14 @@
 // vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
 
-// ajuste: libere o(s) host(s) que vai usar em produção
-const allowed = ['.dkdevs.com.br'] // permite hmg.dkdevs.com.br, foo.dkdevs.com.br, etc.
+// permite subdomínios .dkdevs.com.br no dev/preview
+const allowed = ['.dkdevs.com.br']
 
 export default defineConfig({
-  appType: 'spa',                   // fallback de SPA
+  // 👇 multipage: não use 'spa' aqui
+  // appType: 'mpa', // (opcional) explicitamente MPA
   plugins: [react()],
   optimizeDeps: {
     include: [
@@ -18,21 +20,23 @@ export default defineConfig({
     ],
   },
   build: {
-    commonjsOptions: {
-      include: [/node_modules/],
+    // 👇 entradas HTML
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        wa:   resolve(__dirname, 'wa-embed.html'),
+      },
     },
+    commonjsOptions: { include: [/node_modules/] },
   },
-  // server dev (se usar `vite dev`)
   server: {
-    host: true,                     // escuta em 0.0.0.0
-    allowedHosts: allowed,          // libera seus subdomínios
-    // port: 5173,                  // (opcional) porta do dev server
+    host: true,
+    allowedHosts: allowed,
   },
-  // server de preview (o que você usa no container)
   preview: {
     host: true,
-    port: 8082,                     // mesma porta do docker-compose
-    strictPort: true,               // falha se 8082 estiver ocupada
+    port: 8082,
+    strictPort: true,
     allowedHosts: allowed,
   },
   css: { modules: true },
