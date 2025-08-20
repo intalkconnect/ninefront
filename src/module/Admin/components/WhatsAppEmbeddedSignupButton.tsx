@@ -1,12 +1,19 @@
+// components/WhatsAppEmbeddedSignupButton.jsx
 import { useEffect, useState, useRef, useCallback } from "react";
-import { apiPost } from '../../../shared/apiClient'; // 👉 use seus helpers aqui
+import { apiPost } from "../../../shared/apiClient"; // ajuste o path conforme seu projeto
 
-export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, label = "Conectar WhatsApp", locale = "pt_BR" }) {
+export default function WhatsAppEmbeddedSignupButton({
+  tenant,
+  onConnected,
+  label = "Conectar WhatsApp",
+  locale = "pt_BR",
+}) {
   const [loading, setLoading] = useState(false);
   const initedRef = useRef(false);
 
-  const APP_ID = process.env.META_APP_ID;
-  const CONFIG_ID = process.env.META_LOGIN_CONFIG_ID;
+  // ✅ Vite: variáveis com prefixo VITE_ via import.meta.env
+  const APP_ID = import.meta.env.VITE_META_APP_ID;
+  const CONFIG_ID = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -23,7 +30,7 @@ export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, labe
 
     window.fbAsyncInit = function () {
       if (!APP_ID) {
-        console.error("[EmbeddedSignup] META_APP_ID ausente");
+        console.error("[EmbeddedSignup] VITE_META_APP_ID ausente");
         return;
       }
       window.FB.init({
@@ -36,8 +43,8 @@ export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, labe
   }, [APP_ID, locale]);
 
   const launch = useCallback(() => {
-    if (!CONFIG_ID) { alert("META_LOGIN_CONFIG_ID não configurado"); return; }
-    if (!APP_ID)    { alert("META_APP_ID não configurado"); return; }
+    if (!CONFIG_ID) { alert("VITE_META_LOGIN_CONFIG_ID não configurado"); return; }
+    if (!APP_ID)    { alert("VITE_META_APP_ID não configurado"); return; }
     if (typeof window === "undefined" || !window.FB) { alert("Facebook SDK ainda não carregou"); return; }
 
     setLoading(true);
@@ -45,7 +52,8 @@ export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, labe
       try {
         const code = resp?.authResponse?.code;
         if (!code) { setLoading(false); return; }
-        const data = await apiPost("/wa/es/finalize", { code, tenant });
+        // 👇 ajuste o path conforme seu backend (usei /api/v1 como combinamos)
+        const data = await apiPost("/api/v1/wa/es/finalize", { code, tenant });
         onConnected && onConnected({ waba_id: data.waba_id, numbers: data.numbers });
         alert(`Conectado! WABA ${data.waba_id} — ${data.numbers?.length || 0} números.`);
       } catch (err) {
