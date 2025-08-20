@@ -8,7 +8,7 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import "./Builder.css";
+import "./styles/Builder.module.css";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 
 import { nodeTemplates } from "./components/NodeTemplates";
