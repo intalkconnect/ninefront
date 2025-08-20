@@ -11,6 +11,7 @@ import { stringToColor } from '../../utils/color';
 import { apiGet } from "../../shared/apiClient";
 
 import Preferences from './preferences/Preferences'; // <<< usa a página de settings como "Preferences"
+import Channels from './preferences/Channels';
 import TempoReal from './atendimento/TempoReal';
 import Queues from './atendimento/Queues';
 
@@ -99,7 +100,13 @@ export default function Admin() {
                   >
                     Preferências
                   </NavLink>
-                  <div className={styles['dropdown-link']}>Segurança</div>
+                   <NavLink
+                    to="channels"
+                    className={styles['dropdown-link']}
+                    onClick={() => setShowDropdown(null)}
+                  >
+                    Canais
+                  </NavLink>
                   <div className={styles['dropdown-link']}>Integrações</div>
                 </div>
               )}
@@ -146,6 +153,7 @@ export default function Admin() {
 
           {/* Preferências (antes era settings) */}
           <Route path="preferences" element={<Preferences />} />
+          <Route path="channels" element={<Channels />} />
 
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
