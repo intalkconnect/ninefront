@@ -59,7 +59,7 @@ function failAndClose(err) {
               if (!code) return failAndClose("Login cancelado/negado");
 
               setStatus("Conectando WABA…");
-              const url = `${API_BASE}/api/v1/wa/es/finalize`;
+              const url = `${API_BASE}/wa/es/finalize`;
               const r = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
