@@ -4,7 +4,6 @@ import ImageMessage from './messageTypes/ImageMessage';
 import DocumentMessage from './messageTypes/DocumentMessage';
 import ListMessage from './messageTypes/ListMessage';
 import QuickReplyMessage from './messageTypes/QuickReplyMessage';
-
 import AudioMessage from './messageTypes/AudioMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import './MessageRow.css';
@@ -67,32 +66,15 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const isOutgoing = msg.direction === 'outgoing';
   const isSystem = msg.direction === 'system' || msg.type === 'system';
 
-  const rowClass = `message-row ${isSystem ? 'system' : isOutgoing ? 'outgoing' : 'incoming'}`;
+  const side = isSystem ? 'system' : (isOutgoing ? 'outgoing' : 'incoming');
+  const rowClass = `message-row ${side}`;
+  const wrapperClass = `message-wrapper ${isOutgoing ? 'outgoing' : 'incoming'}`;
   const bubbleClass = `message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
 
-  const renderTimeAndStatus = () => (
-    <div className="message-time">
-      {new Date(msg.timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}
-      {isOutgoing && (
-        <span className="message-status">
-          {msg.status === 'read' ? (
-            <CheckCheck size={14} className="check read" />
-          ) : msg.status === 'delivered' ? (
-            <CheckCheck size={14} className="check delivered" />
-          ) : msg.status === 'sent' ? (
-            <CheckCheck size={14} className="check sent" />
-          ) : msg.status === 'error' ? (
-            <span className="check error">❌</span>
-          ) : (
-            <Check size={14} className="check pending" />
-          )}
-        </span>
-      )}
-    </div>
-  );
+  const timeText = new Date(msg.timestamp).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   const urlLower = String(content?.url || '').toLowerCase();
   const isAudio = msg.type === 'audio' || content?.voice || /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
@@ -106,7 +88,9 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   if (isSystem) {
     messageContent = (
       <div className="system-message">
-        {typeof content === 'object' ? (content.text || content.body || content.caption) : content}
+        {typeof content === 'object'
+          ? (content.text || content.body || content.caption)
+          : content}
       </div>
     );
   }
@@ -191,7 +175,6 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Cabeçalho de resposta (igual WhatsApp)
   const replyPreview =
     buildReplyPreview(msg.replyTo) ||
     buildReplyPreview(msg.reply_preview) ||
@@ -202,56 +185,74 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
       {isSystem ? (
         <div className="system-message-wrapper">{messageContent}</div>
       ) : (
-        <div className={bubbleClass}>
-          <div className="message-bubble-content">
-            <div className="menu-arrow" ref={menuRef}>
-              <button onClick={toggleMenu} className="menu-button" title="Mais opções">
-                <ChevronDown size={16} />
-              </button>
-              {menuOpen && (
-                <div className={`menu-dropdown ${isOutgoing ? 'right' : 'left'}`}>
-                  {onReply && (
-                    <button onClick={() => { onReply(msg); setMenuOpen(false); }}>
-                      <CornerDownLeft size={14} /> Responder
-                    </button>
-                  )}
-                  {(typeof content === 'string' ||
-                    (typeof content === 'object' && (content?.body || content?.text || content?.caption))) && (
-                    <button onClick={handleCopy}>
-                      <Copy size={14} /> Copiar
-                    </button>
-                  )}
-                  {((content?.url && (isImage || isPdf))) && (
-                    <button onClick={handleDownload}>
-                      <Download size={14} /> Baixar
-                    </button>
-                  )}
+        <div className={wrapperClass}>
+          {/* BOLHA */}
+          <div className={bubbleClass}>
+            <div className="message-bubble-content">
+              <div className="menu-arrow" ref={menuRef}>
+                <button onClick={toggleMenu} className="menu-button" title="Mais opções">
+                  <ChevronDown size={16} />
+                </button>
+                {menuOpen && (
+                  <div className={`menu-dropdown ${isOutgoing ? 'right' : 'left'}`}>
+                    {onReply && (
+                      <button onClick={() => { onReply(msg); setMenuOpen(false); }}>
+                        <CornerDownLeft size={14} /> Responder
+                      </button>
+                    )}
+                    {(typeof content === 'string' ||
+                      (typeof content === 'object' && (content?.body || content?.text || content?.caption))) && (
+                      <button onClick={handleCopy}>
+                        <Copy size={14} /> Copiar
+                      </button>
+                    )}
+                    {((content?.url && (isImage || isPdf))) && (
+                      <button onClick={handleDownload}>
+                        <Download size={14} /> Baixar
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {replyPreview && (
+                <div className="replied-message">
+                  <div className="replied-bar" />
+                  <div className="replied-content">
+                    <div className="replied-title">
+                      <strong>
+                        {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
+                      </strong>
+                    </div>
+                    <div className="replied-text">{replyPreview.snippet}</div>
+                  </div>
                 </div>
               )}
-            </div>
 
-            {replyPreview && (
-              <div className="replied-message">
-                <div className="replied-bar" />
-                <div className="replied-content">
-                  <div className="replied-title">
-                    <strong>
-                      {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
-                    </strong>
-                  </div>
-                  <div className="replied-text">
-                    {/* usa o snippet direto, sem "[mensagem]" */}
-                    {replyPreview.snippet}
-                  </div>
-                </div>
+              <div className="message-content">
+                {messageContent}
               </div>
-            )}
-
-            <div className="message-content">
-              {messageContent}
             </div>
+          </div>
 
-            {renderTimeAndStatus()}
+          {/* META FORA DA BOLHA */}
+          <div className={`message-meta ${isOutgoing ? 'outgoing' : 'incoming'}`}>
+            <span className="message-time">{timeText}</span>
+            {isOutgoing && (
+              <>
+                {msg.status === 'read' ? (
+                  <CheckCheck size={14} className="check read" />
+                ) : msg.status === 'delivered' ? (
+                  <CheckCheck size={14} className="check delivered" />
+                ) : msg.status === 'sent' ? (
+                  <CheckCheck size={14} className="check sent" />
+                ) : msg.status === 'error' ? (
+                  <span className="check error">❌</span>
+                ) : (
+                  <Check size={14} className="check pending" />
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
