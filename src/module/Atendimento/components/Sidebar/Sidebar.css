@@ -286,17 +286,13 @@
   right: -4px;
   width: 18px;
   height: 18px;
+  background-color: white;
   border-radius: 50%;
   box-shadow: 0 0 0 1px #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
-}
-
-.channel-badge {
-  line-height: 0;      /* evita “respiro” vertical */
-  flex-shrink: 0;      /* não deixar achatar em layouts flex */
 }
 
 .chat-details {
