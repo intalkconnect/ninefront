@@ -1,128 +1,129 @@
 const APP_ID    = import.meta.env.VITE_META_APP_ID;
 const CONFIG_ID = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
-const API_BASE  = new URLSearchParams(location.search).get("api")
-               || import.meta.env.VITE_API_BASE_URL
-               || "";
 
-const qs = (k) => new URLSearchParams(location.search).get(k);
-const tenant       = qs("tenant");
-const targetOrigin = qs("origin");
+const usp   = new URLSearchParams(location.search);
+const API_BASE  = usp.get("api") || import.meta.env.VITE_API_BASE_URL || "";
+const tenant    = usp.get("tenant");
+const parentOrigin = usp.get("origin");
+const autostart = usp.get("autostart") === "1";
 
 const $ = (id) => document.getElementById(id);
-const log = (...a) => { try { console.log("[wa-embed]", ...a); } catch{}; try { const pre=$("log"); pre.hidden=false; pre.textContent += a.map(x=> typeof x==="string"?x:JSON.stringify(x,null,2)).join(" ")+"\n"; }catch{} };
-const setStatus = (t) => { $("status").textContent = t; };
-const showErr   = (t) => { $("msg").innerHTML = `<div class="err">${t}</div>`; };
-const showOk    = (t) => { $("msg").innerHTML = `<div class="ok">${t}</div>`; };
+const log = (...a)=>{ try{console.log("[wa-embed]",...a)}catch{}; try{const p=$("log");p.hidden=false;p.textContent+=a.map(x=>typeof x==="string"?x:JSON.stringify(x,null,2)).join(" ")+"\n"}catch{} }
+const setStatus = (t)=> ($("status").textContent=t);
+const showErr = (t)=> ($("msg").innerHTML=`<div class="err">${t}</div>`);
+const showOk  = (t)=> ($("msg").innerHTML=`<div class="ok">${t}</div>`);
+const setView = (h)=> ($("view").innerHTML=h||"");
 
-function postToParent(type, payloadOrError) {
-  if (!window.opener || !targetOrigin) return;
-  if (type === "wa:error") {
-    window.opener.postMessage({ type, error: String(payloadOrError) }, targetOrigin);
-  } else {
-    window.opener.postMessage({ type, payload: payloadOrError }, targetOrigin);
-  }
-}
-function failAndClose(err) {
-  log("failAndClose:", err);
-  showErr(String(err?.message || err || "Erro desconhecido"));
-  postToParent("wa:error", err?.message || err);
-  setTimeout(() => window.close(), 1000);
+function postToParent(type, payloadOrError){
+  if (!window.opener || !parentOrigin) return;
+  if (type==="wa:error") window.opener.postMessage({type,error:String(payloadOrError)}, parentOrigin);
+  else window.opener.postMessage({type,payload:payloadOrError}, parentOrigin);
 }
 
-const btn = $("btn");
-$("warn").innerHTML = API_BASE ? "" :
-  `<small>⚠️ VITE_API_BASE_URL não definido — a chamada irá para <code>/api/v1/...</code> neste domínio.</small>`;
-
-log("ENV", { APP_ID, CONFIG_ID, API_BASE, tenant, targetOrigin });
-
-if (!tenant || !targetOrigin) failAndClose("tenant/origin ausente");
-if (!APP_ID || !CONFIG_ID)    failAndClose("APP_ID/CONFIG_ID ausente (ver VITE_META_*)");
-
-// Timeout se o SDK não vier
-const sdkTimeout = setTimeout(() => {
-  failAndClose("Facebook SDK não carregou (ver Allowed Domains e JSSDK on)");
-}, 10000);
-
-// Carrega SDK
-window.fbAsyncInit = function() {
-  clearTimeout(sdkTimeout);
+// 1) SDK
+window.fbAsyncInit = function(){
   try {
-    log("fbAsyncInit → FB.init");
     FB.init({ appId: APP_ID, autoLogAppEvents: true, xfbml: false, version: "v23.0" });
+    log("FB.init ok", {autostart, display:"page"});
+    setStatus("Abrindo login…");
 
-    // Habilita botão para gesto do usuário (evita bloqueio de popup)
-    setStatus("Pronto. Clique abaixo para continuar.");
-    btn.disabled = false;
-    btn.onclick = () => startLoginFlow();
-  } catch (e) {
-    failAndClose(e);
-  }
+    // 2) Login direto nesta janela (uma janela só)
+    if (autostart) startLogin();
+    else {
+      setView(`<button class="btn" id="go">Continuar</button>`);
+      document.getElementById("go").onclick = startLogin;
+    }
+  } catch(e){ fail(e) }
 };
 
-function startLoginFlow() {
-  btn.disabled = true;
-  setStatus("Abrindo login do Facebook…");
-
-  let gotCallback = false;
-
-  const cb = (resp) => {
-    gotCallback = true;
-    (async () => {
-      try {
+function startLogin(){
+  FB.login((resp)=>{
+    (async ()=>{
+      try{
         log("FB.login resp", resp);
         const code = resp && resp.authResponse && resp.authResponse.code;
-        if (!code) return failAndClose("Login cancelado/negado");
+        if(!code) return fail("Login cancelado/negado");
 
-        setStatus("Conectando WABA…");
-        const url = `${API_BASE || ""}/wa/es/finalize`.replace(/(^https?:\/\/[^/]+)?\/+/, (m, p) => (p || "") + "/");
-        const r = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        setStatus("Coletando números da WABA…");
+        const finalizeUrl = `${API_BASE}/api/v1/wa/es/finalize`;
+        const r = await fetch(finalizeUrl, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
           body: JSON.stringify({ code, subdomain: tenant }),
           credentials: "include",
         });
         const j = await r.json().catch(()=> ({}));
-        log("finalize status", r.status, j);
-        if (!r.ok) throw new Error(j?.error || j?.message || `finalize ${r.status}`);
+        log("finalize", r.status, j);
+        if(!r.ok) throw new Error(j?.error || j?.message || `finalize ${r.status}`);
 
-        showOk("Conta conectada com sucesso.");
-        postToParent("wa:connected", j);
-        setTimeout(() => window.close(), 600);
-      } catch (e) {
-        failAndClose(e);
-      }
+        const numbers = Array.isArray(j?.numbers) ? j.numbers : [];
+        if(numbers.length === 0){
+          setStatus("Conta conectada, mas nenhum número encontrado.");
+          postToParent("wa:connected", j);
+          setTimeout(()=>window.close(), 800);
+          return;
+        }
+
+        // 3) UI de seleção do número
+        setStatus("Selecione o número que deseja ativar");
+        const list = numbers.map(n => `
+          <label class="row">
+            <input type="radio" name="num" value="${n.id}">
+            <div>
+              <div><strong>${n.display_phone_number || n.verified_name || "—"}</strong></div>
+              <div class="muted">id: ${n.id}</div>
+            </div>
+          </label>
+        `).join("");
+
+        setView(`
+          <div>${list}</div>
+          <button class="btn" id="confirm">Ativar número selecionado</button>
+        `);
+
+        document.getElementById("confirm").onclick = async ()=>{
+          try{
+            const sel = document.querySelector('input[name="num"]:checked');
+            if(!sel) return alert("Escolha um número");
+            const phone_number_id = sel.value;
+
+            setStatus("Ativando número…");
+            const pickUrl = `${API_BASE}/api/v1/wa/es/pick-number`;
+            const r2 = await fetch(pickUrl, {
+              method:"POST",
+              headers:{ "Content-Type":"application/json" },
+              body: JSON.stringify({ subdomain: tenant, phone_number_id }),
+              credentials: "include",
+            });
+            const j2 = await r2.json().catch(()=> ({}));
+            log("pick-number", r2.status, j2);
+            if(!r2.ok) throw new Error(j2?.error || j2?.message || `pick-number ${r2.status}`);
+
+            showOk("Número ativado.");
+            postToParent("wa:connected", { ...j, picked: phone_number_id });
+            setTimeout(()=>window.close(), 700);
+          }catch(e){ fail(e) }
+        };
+
+      }catch(e){ fail(e) }
     })();
-  };
-
-  // 1ª tentativa (abre popup do FB) — exige gesto (ok)
-  FB.login(cb, {
+  }, {
     config_id: CONFIG_ID,
     response_type: "code",
     override_default_response_type: true,
-    display: "popup",
+    display: "page", // 👈 tudo nesta janela
   });
-
-  // Fallback: se nada acontecer em 1.5s, tenta no MESMO window (display: 'page')
-  setTimeout(() => {
-    if (!gotCallback) {
-      log("fallback → display: 'page'");
-      FB.login(cb, {
-        config_id: CONFIG_ID,
-        response_type: "code",
-        override_default_response_type: true,
-        display: "page",
-      });
-    }
-  }, 1500);
 }
 
-// injeta o script do SDK
-(function(d, s, id) {
-  if (d.getElementById(id)) { log("SDK já presente"); return; }
+function fail(e){
+  showErr(String(e?.message || e || "Erro"));
+  postToParent("wa:error", e?.message || e);
+}
+
+(function(d,s,id){
+  if(d.getElementById(id)) return;
   const js = d.createElement(s);
-  js.id = id; js.async = true; js.defer = true; js.crossOrigin = "anonymous";
-  js.src = "https://connect.facebook.net/pt_BR/sdk.js";
-  const fjs = d.getElementsByTagName(s)[0];
-  fjs.parentNode.insertBefore(js, fjs);
-  log("injetado SDK:", js.src);
-})(document, "script", "facebook-jssdk");
+  js.id=id; js.async=true; js.defer=true; js.crossOrigin="anonymous";
+  js.src="https://connect.facebook.net/pt_BR/sdk.js";
+  d.getElementsByTagName(s)[0].parentNode.insertBefore(js, d.getElementsByTagName(s)[0]);
+})(document,"script","facebook-jssdk");
