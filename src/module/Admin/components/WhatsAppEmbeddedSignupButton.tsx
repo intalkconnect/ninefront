@@ -23,7 +23,7 @@ export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, labe
 
     window.fbAsyncInit = function () {
       if (!APP_ID) {
-        console.error("[EmbeddedSignup] NEXT_PUBLIC_META_APP_ID ausente");
+        console.error("[EmbeddedSignup] META_APP_ID ausente");
         return;
       }
       window.FB.init({
@@ -36,8 +36,8 @@ export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, labe
   }, [APP_ID, locale]);
 
   const launch = useCallback(() => {
-    if (!CONFIG_ID) { alert("NEXT_PUBLIC_META_LOGIN_CONFIG_ID não configurado"); return; }
-    if (!APP_ID)    { alert("NEXT_PUBLIC_META_APP_ID não configurado"); return; }
+    if (!CONFIG_ID) { alert("META_LOGIN_CONFIG_ID não configurado"); return; }
+    if (!APP_ID)    { alert("META_APP_ID não configurado"); return; }
     if (typeof window === "undefined" || !window.FB) { alert("Facebook SDK ainda não carregou"); return; }
 
     setLoading(true);
@@ -45,7 +45,7 @@ export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, labe
       try {
         const code = resp?.authResponse?.code;
         if (!code) { setLoading(false); return; }
-        const data = await apiPost("/api/v1/wa/es/finalize", { code, tenant });
+        const data = await apiPost("/wa/es/finalize", { code, tenant });
         onConnected && onConnected({ waba_id: data.waba_id, numbers: data.numbers });
         alert(`Conectado! WABA ${data.waba_id} — ${data.numbers?.length || 0} números.`);
       } catch (err) {
