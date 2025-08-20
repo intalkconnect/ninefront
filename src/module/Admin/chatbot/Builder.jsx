@@ -497,7 +497,7 @@ useEffect(() => {
         blocks,
       };
 
-      const response = await apiPost('/api/v1/flow/publish', { data: flowData });
+      const response = await apiPost('/flow/publish', { data: flowData });
        // Se a API devolver algum campo (ex.: { success, message }), você pode checar aqui.
       alert('Fluxo publicado com sucesso!');
     } catch (err) {
