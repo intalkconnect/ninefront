@@ -17,6 +17,8 @@ export default function NodeConfigPanel({
     content: true,
     actions: true,
     history: true,
+    default: true,
+    offhoursShortcuts: true,
   });
 
   const toggleSection = (section) => {
@@ -29,7 +31,6 @@ export default function NodeConfigPanel({
   if (!selectedNode || !selectedNode.data) return null;
 
   const { block } = selectedNode.data;
-
   const {
     type,
     content = {},
@@ -38,6 +39,8 @@ export default function NodeConfigPanel({
     sendDelayInSeconds,
     actions = [],
   } = block;
+
+  const isHuman = type === "human";
 
   const updateBlock = (changes) => {
     const updatedNode = {
@@ -62,34 +65,143 @@ export default function NodeConfigPanel({
     });
   };
 
-  const handleUpdateRows = (rows) => {
-    const updatedSections = [
-      {
-        ...content.action?.sections?.[0],
-        title: content.action?.sections?.[0]?.title || "",
-        rows,
-      },
-    ];
-    updateContent("action", { ...content.action, sections: updatedSections });
-  };
-
   const updateActions = (newActions) => {
     updateBlock({ actions: newActions });
   };
 
+  // ---------- atalhos p/ “condições específicas” do HUMAN ----------
+  const addOffhoursAction = (kind) => {
+    // kind: 'offhours_true' | 'reason_holiday' | 'reason_closed'
+    let conds = [];
+    if (kind === 'offhours_true') {
+      conds = [{ variable: 'offhours', type: 'equals', value: 'true' }];
+    } else if (kind === 'reason_holiday') {
+      conds = [{ variable: 'offhours_reason', type: 'equals', value: 'holiday' }];
+    } else if (kind === 'reason_closed') {
+      conds = [{ variable: 'offhours_reason', type: 'equals', value: 'closed' }];
+    }
+    const newAction = { next: "", conditions: conds };
+    updateActions([...(actions || []), newAction]);
+  };
+
+  // opções de variável no seletor (inclui offhours e offhours_reason no nó HUMAN)
+  const variableOptions = isHuman
+    ? [
+        { value: "lastUserMessage", label: "Resposta do usuário" },
+        { value: "offhours", label: "Fora do expediente (boolean)" },
+        { value: "offhours_reason", label: "Motivo do off-hours (holiday/closed)" },
+        { value: "custom", label: "Variável personalizada" },
+      ]
+    : [
+        { value: "lastUserMessage", label: "Resposta do usuário" },
+        { value: "custom", label: "Variável personalizada" },
+      ];
+
+  // input “valor” especial conforme variável + tipo
+  const renderValueInput = (cond, onChangeValue) => {
+    if (cond.type === "exists") return null;
+
+    if (cond.variable === "offhours") {
+      return (
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <select
+            className={styles.selectStyle}
+            value={cond.value ?? "true"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+      );
+    }
+
+    if (cond.variable === "offhours_reason") {
+      return (
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <select
+            className={styles.selectStyle}
+            value={cond.value ?? "holiday"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
+            <option value="holiday">holiday (feriado)</option>
+            <option value="closed">closed (fora do expediente)</option>
+          </select>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.inputGroup}>
+        <label className={styles.inputLabel}>Valor</label>
+        <input
+          type="text"
+          placeholder="Valor para comparação"
+          value={cond.value ?? ""}
+          onChange={(e) => onChangeValue(e.target.value)}
+          className={styles.inputStyle}
+        />
+      </div>
+    );
+  };
+
   const renderActionsTab = () => (
     <div className={styles.tabContent}>
+      {/* Atalhos específicos para o bloco HUMAN */}
+      {isHuman && (
+        <div className={styles.sectionContainer}>
+          <div
+            className={styles.sectionHeader}
+            onClick={() => toggleSection("offhoursShortcuts")}
+          >
+            <h4 className={styles.sectionTitle}>Atalhos: Condições de horário (HUMANO)</h4>
+            {expandedSections.offhoursShortcuts ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </div>
+
+          {expandedSections.offhoursShortcuts && (
+            <div className={styles.sectionContent}>
+              <div className={styles.buttonGroup}>
+                <button
+                  className={styles.addButtonSmall}
+                  onClick={() => addOffhoursAction('offhours_true')}
+                  title='Cria uma ação com condição offhours == true'
+                >
+                  + offhours == true
+                </button>
+                <button
+                  className={styles.addButtonSmall}
+                  onClick={() => addOffhoursAction('reason_holiday')}
+                  title='Cria uma ação com condição offhours_reason == "holiday"'
+                >
+                  + offhours_reason == "holiday"
+                </button>
+                <button
+                  className={styles.addButtonSmall}
+                  onClick={() => addOffhoursAction('reason_closed')}
+                  title='Cria uma ação com condição offhours_reason == "closed"'
+                >
+                  + offhours_reason == "closed"
+                </button>
+              </div>
+              <div className={styles.helperText}>
+                Essas variáveis são preenchidas automaticamente pelo executor quando o bloco HUMANO roda:
+                <code style={{ marginLeft: 6 }}>offhours</code>,
+                <code style={{ marginLeft: 6 }}>offhours_reason</code>.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={styles.sectionContainer}>
         <div className={styles.sectionHeader} onClick={() => toggleSection("actions")}>
           <h4 className={styles.sectionTitle}>
             Condições de Saída
             <span className={styles.sectionCount}>({actions.length}/25)</span>
           </h4>
-          {expandedSections.actions ? (
-            <ChevronUp size={16} />
-          ) : (
-            <ChevronDown size={16} />
-          )}
+          {expandedSections.actions ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
 
         {expandedSections.actions && (
@@ -122,42 +234,54 @@ export default function NodeConfigPanel({
 
                   {(action.conditions || []).map((cond, condIdx) => (
                     <div key={condIdx} className={styles.conditionRow}>
+                      {/* Variável */}
                       <div className={styles.inputGroup}>
                         <label className={styles.inputLabel}>Variável</label>
                         <select
                           value={
-                            cond.variable === "lastUserMessage"
-                              ? "lastUserMessage"
-                              : "custom"
+                            variableOptions.some(v => v.value === cond.variable)
+                              ? cond.variable
+                              : (cond.variable ? "custom" : "lastUserMessage")
                           }
                           onChange={(e) => {
+                            const nextVar = e.target.value;
                             const updated = [...actions];
-                            updated[actionIdx].conditions[condIdx].variable =
-                              e.target.value === "lastUserMessage"
-                                ? "lastUserMessage"
-                                : "";
+                            if (nextVar === "custom") {
+                              updated[actionIdx].conditions[condIdx].variable = "";
+                            } else {
+                              updated[actionIdx].conditions[condIdx].variable = nextVar;
+                              // se for offhours/offhours_reason e tipo estiver vazio, assume equals
+                              if (!updated[actionIdx].conditions[condIdx].type || updated[actionIdx].conditions[condIdx].type === "") {
+                                updated[actionIdx].conditions[condIdx].type = "equals";
+                              }
+                              // valores default amigáveis
+                              if (nextVar === "offhours") {
+                                updated[actionIdx].conditions[condIdx].value = "true";
+                              } else if (nextVar === "offhours_reason") {
+                                updated[actionIdx].conditions[condIdx].value = "closed";
+                              }
+                            }
                             updateActions(updated);
                           }}
                           className={styles.selectStyle}
                         >
-                          <option value="lastUserMessage">
-                            Resposta do usuário
-                          </option>
-                          <option value="custom">Variável personalizada</option>
+                          {variableOptions.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
                         </select>
                       </div>
 
-                      {cond.variable !== "lastUserMessage" && (
+                      {/* Nome da variável custom */}
+                      {(!variableOptions.some(v => v.value === cond.variable) || cond.variable === "") && (
                         <div className={styles.inputGroup}>
                           <label className={styles.inputLabel}>Nome da variável</label>
                           <input
                             type="text"
-                            placeholder="Nome da variável"
-                            value={cond.variable}
+                            placeholder="ex.: meuCampo"
+                            value={cond.variable || ""}
                             onChange={(e) => {
                               const updated = [...actions];
-                              updated[actionIdx].conditions[condIdx].variable =
-                                e.target.value;
+                              updated[actionIdx].conditions[condIdx].variable = e.target.value;
                               updateActions(updated);
                             }}
                             className={styles.inputStyle}
@@ -165,14 +289,18 @@ export default function NodeConfigPanel({
                         </div>
                       )}
 
+                      {/* Tipo */}
                       <div className={styles.inputGroup}>
                         <label className={styles.inputLabel}>Tipo de condição</label>
                         <select
-                          value={cond.type}
+                          value={cond.type || ""}
                           onChange={(e) => {
                             const updated = [...actions];
-                            updated[actionIdx].conditions[condIdx].type =
-                              e.target.value;
+                            updated[actionIdx].conditions[condIdx].type = e.target.value;
+                            // se mudar para exists, limpa valor
+                            if (e.target.value === "exists") {
+                              updated[actionIdx].conditions[condIdx].value = "";
+                            }
                             updateActions(updated);
                           }}
                           className={styles.selectStyle}
@@ -186,23 +314,12 @@ export default function NodeConfigPanel({
                         </select>
                       </div>
 
-                      {cond.type !== "exists" && (
-                        <div className={styles.inputGroup}>
-                          <label className={styles.inputLabel}>Valor</label>
-                          <input
-                            type="text"
-                            placeholder="Valor para comparação"
-                            value={cond.value}
-                            onChange={(e) => {
-                              const updated = [...actions];
-                              updated[actionIdx].conditions[condIdx].value =
-                                e.target.value;
-                              updateActions(updated);
-                            }}
-                            className={styles.inputStyle}
-                          />
-                        </div>
-                      )}
+                      {/* Valor (especial p/ offhours/offhours_reason) */}
+                      {renderValueInput(cond, (v) => {
+                        const updated = [...actions];
+                        updated[actionIdx].conditions[condIdx].value = v;
+                        updateActions(updated);
+                      })}
 
                       <div className={styles.buttonGroup}>
                         <button
@@ -240,10 +357,11 @@ export default function NodeConfigPanel({
                     </button>
                   </div>
 
+                  {/* Próximo bloco */}
                   <div className={styles.inputGroup}>
                     <label className={styles.inputLabel}>Próximo Bloco</label>
                     <select
-                      value={action.next}
+                      value={action.next || ""}
                       onChange={(e) => {
                         const targetId = e.target.value;
                         const updated = [...actions];
@@ -279,14 +397,10 @@ export default function NodeConfigPanel({
                   const newAction = {
                     next: "",
                     conditions: [
-                      {
-                        variable: "lastUserMessage",
-                        type: "exists",
-                        value: "",
-                      },
+                      { variable: "lastUserMessage", type: "exists", value: "" },
                     ],
                   };
-                  updateActions([...actions, newAction]);
+                  updateActions([...(actions || []), newAction]);
                 }}
                 className={styles.addButton}
               >
@@ -300,11 +414,7 @@ export default function NodeConfigPanel({
       <div className={styles.sectionContainer}>
         <div className={styles.sectionHeader} onClick={() => toggleSection("default")}>
           <h4 className={styles.sectionTitle}>Saída Padrão</h4>
-          {expandedSections.default ? (
-            <ChevronUp size={16} />
-          ) : (
-            <ChevronDown size={16} />
-          )}
+          {expandedSections.default ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
 
         {expandedSections.default && (
@@ -349,10 +459,8 @@ export default function NodeConfigPanel({
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
-              value={awaitResponse}
-              onChange={(e) =>
-                updateBlock({ awaitResponse: e.target.value === "true" })
-              }
+              value={String(!!awaitResponse)}
+              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -364,10 +472,8 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
             <input
               type="number"
-              value={sendDelayInSeconds}
-              onChange={(e) =>
-                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-              }
+              value={sendDelayInSeconds ?? 0}
+              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
               className={styles.inputStyle}
             />
           </div>
@@ -415,10 +521,8 @@ export default function NodeConfigPanel({
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
-              value={awaitResponse}
-              onChange={(e) =>
-                updateBlock({ awaitResponse: e.target.value === "true" })
-              }
+              value={String(!!awaitResponse)}
+              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -430,10 +534,8 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
             <input
               type="number"
-              value={sendDelayInSeconds}
-              onChange={(e) =>
-                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-              }
+              value={sendDelayInSeconds ?? 0}
+              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
               className={styles.inputStyle}
             />
           </div>
@@ -453,6 +555,7 @@ export default function NodeConfigPanel({
               className={styles.inputStyle}
             />
           </div>
+          {/* qualquer outro campo específico do humano pode ir aqui */}
         </div>
       );
     }
@@ -466,13 +569,7 @@ export default function NodeConfigPanel({
         if (current.length >= 3) return alert("Máximo de 3 botões atingido.");
         const updated = [
           ...current,
-          {
-            type: "reply",
-            reply: {
-              id: "",
-              title: "",
-            },
-          },
+          { type: "reply", reply: { id: "", title: "" } },
         ];
         updateContent("action", { ...content.action, buttons: updated });
       };
@@ -486,11 +583,7 @@ export default function NodeConfigPanel({
       const handleAddListItem = () => {
         const rows = content.action?.sections?.[0]?.rows || [];
         if (rows.length >= 10) return alert("Máximo de 10 itens atingido.");
-        const newItem = {
-          id: `item_${rows.length + 1}`,
-          title: "",
-          description: "",
-        };
+        const newItem = { id: `item_${rows.length + 1}`, title: "", description: "" };
         const updatedSections = [
           {
             ...(content.action?.sections?.[0] || {}),
@@ -498,36 +591,22 @@ export default function NodeConfigPanel({
             rows: [...rows, newItem],
           },
         ];
-        updateContent("action", {
-          ...content.action,
-          sections: updatedSections,
-        });
+        updateContent("action", { ...content.action, sections: updatedSections });
       };
 
       const handleRemoveListItem = (index) => {
         const rows = [...(content.action?.sections?.[0]?.rows || [])];
         rows.splice(index, 1);
         const updatedSections = [
-          {
-            ...content.action.sections[0],
-            rows,
-          },
+          { ...content.action.sections[0], rows },
         ];
-        updateContent("action", {
-          ...content.action,
-          sections: updatedSections,
-        });
+        updateContent("action", { ...content.action, sections: updatedSections });
       };
 
       const handleUpdateRows = (rows) => {
         updateContent("action", {
           ...content.action,
-          sections: [
-            {
-              ...content.action.sections?.[0],
-              rows,
-            },
-          ],
+          sections: [{ ...content.action.sections?.[0], rows }],
         });
       };
 
@@ -539,7 +618,6 @@ export default function NodeConfigPanel({
               value={content.type || "button"}
               onChange={(e) => {
                 const newType = e.target.value;
-
                 if (newType === "list") {
                   updateBlock({
                     content: {
@@ -550,16 +628,7 @@ export default function NodeConfigPanel({
                       action: {
                         button: "Abrir lista",
                         sections: [
-                          {
-                            title: "Seção 1",
-                            rows: [
-                              {
-                                id: "item_1",
-                                title: "Item 1",
-                                description: "Descrição do item 1",
-                              },
-                            ],
-                          },
+                          { title: "Seção 1", rows: [{ id: "item_1", title: "Item 1", description: "Descrição do item 1" }] }
                         ],
                       },
                     },
@@ -572,20 +641,8 @@ export default function NodeConfigPanel({
                       footer: { text: "Selecione uma opção" },
                       action: {
                         buttons: [
-                          {
-                            type: "reply",
-                            reply: {
-                              id: "sim",
-                              title: "👍 Sim",
-                            },
-                          },
-                          {
-                            type: "reply",
-                            reply: {
-                              id: "nao",
-                              title: "👎 Não",
-                            },
-                          },
+                          { type: "reply", reply: { id: "sim", title: "👍 Sim" } },
+                          { type: "reply", reply: { id: "nao", title: "👎 Não" } },
                         ],
                       },
                     },
@@ -604,12 +661,7 @@ export default function NodeConfigPanel({
             <input
               type="text"
               value={content.body?.text || ""}
-              onChange={(e) =>
-                updateContent("body", {
-                  ...content.body,
-                  text: e.target.value,
-                })
-              }
+              onChange={(e) => updateContent("body", { ...content.body, text: e.target.value })}
               className={styles.inputStyle}
             />
           </div>
@@ -619,12 +671,7 @@ export default function NodeConfigPanel({
             <input
               type="text"
               value={content.footer?.text || ""}
-              onChange={(e) =>
-                updateContent("footer", {
-                  ...content.footer,
-                  text: e.target.value,
-                })
-              }
+              onChange={(e) => updateContent("footer", { ...content.footer, text: e.target.value })}
               className={styles.inputStyle}
             />
           </div>
@@ -632,10 +679,8 @@ export default function NodeConfigPanel({
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
-              value={awaitResponse}
-              onChange={(e) =>
-                updateBlock({ awaitResponse: e.target.value === "true" })
-              }
+              value={String(!!awaitResponse)}
+              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -647,10 +692,8 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
             <input
               type="number"
-              value={sendDelayInSeconds}
-              onChange={(e) =>
-                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-              }
+              value={sendDelayInSeconds ?? 0}
+              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
               className={styles.inputStyle}
             />
           </div>
@@ -665,13 +708,7 @@ export default function NodeConfigPanel({
                   onChange={(e) =>
                     updateContent("action", {
                       ...content.action,
-                      sections: [
-                        {
-                          ...content.action?.sections?.[0],
-                          title: e.target.value,
-                          rows: content.action?.sections?.[0]?.rows || [],
-                        },
-                      ],
+                      sections: [{ ...(content.action?.sections?.[0] || {}), title: e.target.value, rows: content.action?.sections?.[0]?.rows || [] }],
                     })
                   }
                   className={styles.inputStyle}
@@ -731,18 +768,8 @@ export default function NodeConfigPanel({
                     onChange={(e) => {
                       const value = e.target.value.slice(0, 20);
                       const updated = [...content.action.buttons];
-                      updated[idx] = {
-                        ...btn,
-                        reply: {
-                          ...btn.reply,
-                          title: value,
-                          id: value,
-                        },
-                      };
-                      updateContent("action", {
-                        ...content.action,
-                        buttons: updated,
-                      });
+                      updated[idx] = { ...btn, reply: { ...btn.reply, title: value, id: value } };
+                      updateContent("action", { ...content.action, buttons: updated });
                     }}
                     className={styles.inputStyle}
                   />
@@ -811,10 +838,8 @@ export default function NodeConfigPanel({
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
-              value={awaitResponse}
-              onChange={(e) =>
-                updateBlock({ awaitResponse: e.target.value === "true" })
-              }
+              value={String(!!awaitResponse)}
+              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -826,10 +851,8 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
             <input
               type="number"
-              value={sendDelayInSeconds}
-              onChange={(e) =>
-                updateBlock({ sendDelayInSeconds: parseInt(e.target.value) })
-              }
+              value={sendDelayInSeconds ?? 0}
+              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
               className={styles.inputStyle}
             />
           </div>
@@ -936,7 +959,7 @@ export default function NodeConfigPanel({
       </div>
 
       <div className={styles.tabContent}>
-        <div >
+        <div>
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Nome do Bloco</label>
             {selectedNode.data.nodeType === "start" ? (
@@ -952,10 +975,7 @@ export default function NodeConfigPanel({
                 onChange={(e) =>
                   onChange({
                     ...selectedNode,
-                    data: {
-                      ...selectedNode.data,
-                      label: e.target.value,
-                    },
+                    data: { ...selectedNode.data, label: e.target.value },
                   })
                 }
                 className={styles.inputStyle}
@@ -965,7 +985,6 @@ export default function NodeConfigPanel({
           </div>
         </div>
 
-        {/* Botões de aba: mostrar apenas "Ações" para o nó de início */}
         {selectedNode.data.nodeType === "start" ? (
           <div className={styles.tabButtons}>
             <button className={`${styles.tabButton} ${styles.tabButtonActive}`} disabled>
@@ -989,17 +1008,12 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Conteúdo das abas: só renderiza "Conteúdo" se não for o início */}
         {selectedNode.data.nodeType === "start"
           ? renderActionsTab()
           : tab === "conteudo"
           ? renderContentTab()
           : renderActionsTab()}
-
       </div>
     </aside>
   );
 }
-
-
-
