@@ -8,6 +8,8 @@ import LogoutButton from './components/LogoutButton';
 import styles from './styles/Admin.module.css';
 import { parseJwt } from '../../utils/auth';
 import { stringToColor } from '../../utils/color';
+import { apiGet } from "../../shared/apiClient";
+
 import Preferences from './preferences/Preferences'; // <<< usa a página de settings como "Preferences"
 import TempoReal from './atendimento/TempoReal';
 import Queues from './atendimento/Queues';
@@ -24,6 +26,8 @@ export default function Admin() {
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
   const [showDropdown, setShowDropdown] = useState(null);
+
+  const { apiBaseUrl } = getRuntimeConfig();
 
   useEffect(() => {
     const fetchAdminInfo = async () => {
