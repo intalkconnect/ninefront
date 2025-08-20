@@ -1,3 +1,6 @@
+/* ===========================
+   Layout geral
+   =========================== */
 .container {
   max-width: 1100px;
   margin: 24px auto;
@@ -12,16 +15,8 @@
   margin-bottom: 16px;
 }
 
-.title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 6px 0;
-}
-
-.subtitle {
-  color: #6b7280; /* slate-500 */
-  margin: 0;
-}
+.title { font-size: 24px; font-weight: 700; margin: 0 0 6px 0; }
+.subtitle { color: #6b7280; margin: 0; }
 
 .tenantBadge {
   color: #374151;
@@ -34,180 +29,45 @@
 
 .subtle { color: #9ca3af; }
 
-.alertErr {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-  padding: 8px 10px;
-  border-radius: 8px;
-  margin-top: 10px;
-  display: inline-block;
-}
-
+.alertErr,
 .alertOk {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  display: inline-block;
   padding: 8px 10px;
   border-radius: 8px;
   margin-top: 10px;
-  display: inline-block;
 }
+.alertErr { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.alertOk  { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
 
+/* ===========================
+   GRADE RESPONSIVA DE CARDS
+   =========================== */
 
-.cardIconWrap {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: grid;
-  place-items: center;
-  color: #111827;
-}
-.cardIconWrap.wa { background: #e2fbe8; }
-.cardIconWrap.ig { background: #ffe4f0; }
-.cardIconWrap.fb { background: #e8effe; }
-.cardIconWrap.tg { background: #e6f7ff; }
+/* valor mínimo do card — ajuste se quiser mais/menos colunas */
+:root { --card-min: 320px; }
 
-.cardTitle {
-  font-weight: 600;
-}
-
-.statusOk {
-  color: #065f46;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.statusOff {
-  color: #6b7280;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  padding: 4px 8px;
-  font-size: 12px;
-  border-radius: 999px;
-}
-
-.cardBody {
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.cardDesc {
-  color: #4b5563;
-  margin: 0;
-}
-
-.cardActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.btnWrap :global(button) {
-  /* estiliza o botão do componente WhatsAppEmbeddedSignupButton */
-  background: #111827;
-  color: #fff;
-  border: 1px solid #111827;
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.btnWrap :global(button[disabled]) {
-  opacity: .6;
-  cursor: not-allowed;
-}
-
-.btnSecondary {
-  background: #fff;
-  color: #111827;
-  border: 1px solid #e5e7eb;
-  padding: 8px 12px;
-  border-radius: 10px;
-  cursor: not-allowed;
-}
-
-.hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.connectedBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.kv {
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 8px;
-  font-size: 14px;
-}
-.k { color: #6b7280; }
-.v { color: #111827; word-break: break-all; }
-
-.listWrap {
-  border-top: 1px dashed #e5e7eb;
-  padding-top: 10px;
-}
-
-.listTitle {
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 6px;
-}
-
-.numMain {
-  display: flex;
-  flex-direction: column;
-}
-
-.numPhone {
-  font-weight: 600;
-  color: #111827;
-}
-.numId {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.numActions {
-  display: flex;
-  gap: 6px;
-}
-
-.btnTiny {
-  background: #fff;
-  color: #111827;
-  border: 1px solid #e5e7eb;
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 12px;
-  cursor: not-allowed;
-}
-
-/* grade dos canais */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* 🔄 responsivo */
   gap: 16px;
-  align-items: stretch; /* 🔧 força todos itens da linha a esticarem */
+  /* Grade fluida: cria N colunas que caibam, cada célula com min=--card-min */
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+  align-items: stretch;     /* todos os itens com a mesma altura na linha */
 }
 
-/* cada card ocupa a altura total da célula da grid */
+.grid > * { min-width: 0; } /* evita overflow interno */
+
+/* Fallback garantido via breakpoints (se algum estilo externo atrapalhar) */
+@media (max-width: 719px) { .grid { grid-template-columns: 1fr; } }
+@media (min-width: 720px) and (max-width: 1099px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1100px) {
+  .grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ===========================
+   Card
+   =========================== */
 .card {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -215,10 +75,9 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100%; /* ✅ mesma altura */
+  height: 100%;
 }
 
-/* (opcional) deixa a cabeça do card mais firme visualmente */
 .cardHead {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -229,17 +88,92 @@
   min-height: 56px;
 }
 
-/* lista de números em grade */
-.numList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); /* 🔄 grade */
+.cardIconWrap {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  color: #111827;
+}
+.cardIconWrap.wa { background: #e2fbe8; }
+.cardIconWrap.ig { background: #ffe4f0; }
+.cardIconWrap.fb { background: #e8effe; }
+.cardIconWrap.tg { background: #e6f7ff; }
+
+.cardTitle { font-weight: 600; }
+
+.statusOk,
+.statusOff {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+}
+.statusOk  { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; display: inline-flex; gap: 6px; align-items: center; }
+.statusOff { color: #6b7280; background: #f3f4f6; }
+
+.cardBody {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* cada número como “mini-card” */
+/* ===========================
+   Ações / botões
+   =========================== */
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btnWrap :global(button) {
+  background: #111827;
+  color: #fff;
+  border: 1px solid #111827;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btnWrap :global(button[disabled]) { opacity: .6; cursor: not-allowed; }
+
+.btnSecondary {
+  background: #fff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: not-allowed;
+}
+
+.hint { display: inline-flex; align-items: center; gap: 6px; color: #6b7280; font-size: 12px; }
+
+/* ===========================
+   Bloco conectado + lista de números em grade
+   =========================== */
+.connectedBlock { display: flex; flex-direction: column; gap: 10px; }
+
+.kv {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 8px;
+  font-size: 14px;
+}
+.k { color: #6b7280; }
+.v { color: #111827; word-break: break-all; }
+
+.listWrap { border-top: 1px dashed #e5e7eb; padding-top: 10px; }
+.listTitle { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+
+/* mini-cards dos números em GRADE */
+.numList {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
 .numRow {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -251,3 +185,14 @@
   background: #fafafa;
 }
 
+.numMain { display: flex; flex-direction: column; }
+.numPhone { font-weight: 600; color: #111827; }
+.numId { color: #6b7280; font-size: 12px; }
+
+.numActions { display: flex; gap: 6px; }
+.btnTiny {
+  background: #fff; color: #111827;
+  border: 1px solid #e5e7eb;
+  padding: 6px 8px; border-radius: 8px;
+  font-size: 12px; cursor: not-allowed;
+}
