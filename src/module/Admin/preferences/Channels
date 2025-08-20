@@ -1,0 +1,185 @@
+import React, { useMemo, useState } from "react";
+import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZap } from "lucide-react";
+import styles from "./styles/Canais.module.css";
+import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
+
+type WaState = {
+  connected: boolean;
+  wabaId?: string;
+  numbers?: any[];
+  okMsg?: string | null;
+  errMsg?: string | null;
+};
+
+function getTenantFromHost(): string {
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname; // ex.: sub.hmg.dkdevs.com.br
+  const parts = host.split(".");
+  if (parts.length >= 3) {
+    // ignora www
+    return parts[0] === "www" ? parts[1] : parts[0];
+  }
+  return parts[0] || "";
+}
+
+export default function Channels() {
+  const tenant = useMemo(() => getTenantFromHost(), []);
+  const [wa, setWa] = useState<WaState>({ connected: false });
+
+  const handleWaConnected = (data: { waba_id: string; numbers: any[] }) => {
+    setWa({
+      connected: true,
+      wabaId: data.waba_id,
+      numbers: Array.isArray(data.numbers) ? data.numbers : [],
+      okMsg: "WhatsApp conectado com sucesso.",
+      errMsg: null,
+    });
+    // limpa o OK depois de um tempinho
+    setTimeout(() => setWa((s) => ({ ...s, okMsg: null })), 2000);
+  };
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Canais</h1>
+          <p className={styles.subtitle}>
+            Conecte seus canais de atendimento. Após conectar, você verá os recursos disponíveis para cada canal.
+          </p>
+          {wa.errMsg ? <div className={styles.alertErr}>{wa.errMsg}</div> : null}
+          {wa.okMsg ? <div className={styles.alertOk}>{wa.okMsg}</div> : null}
+        </div>
+        <div className={styles.tenantBadge}>
+          {tenant ? <>tenant: <strong>{tenant}</strong></> : <span className={styles.subtle}>defina o tenant</span>}
+        </div>
+      </div>
+
+      <div className={styles.grid}>
+        {/* WhatsApp */}
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardIconWrap wa}>
+              <MessageCircle size={18} />
+            </div>
+            <div className={styles.cardTitle}>WhatsApp</div>
+            {wa.connected ? (
+              <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
+            ) : (
+              <span className={styles.statusOff}>Não conectado</span>
+            )}
+          </div>
+
+          <div className={styles.cardBody}>
+            <p className={styles.cardDesc}>
+              Conecte via <em>Embedded Signup</em> e selecione os números da sua WABA.
+            </p>
+
+            {!wa.connected ? (
+              <div className={styles.cardActions}>
+                {/* Usa o próprio botão do componente (ele faz todo o fluxo) */}
+                <div className={styles.btnWrap}>
+                  <WhatsAppEmbeddedSignupButton
+                    tenant={tenant}
+                    onConnected={handleWaConnected}
+                  />
+                </div>
+                <div className={styles.hint}><PlugZap size={14}/> É necessário estar logado no Facebook.</div>
+              </div>
+            ) : (
+              <div className={styles.connectedBlock}>
+                <div className={styles.kv}>
+                  <span className={styles.k}>WABA</span>
+                  <span className={styles.v}>{wa.wabaId}</span>
+                </div>
+                <div className={styles.kv}>
+                  <span className={styles.k}>Números</span>
+                  <span className={styles.v}>{wa.numbers?.length || 0}</span>
+                </div>
+
+                {Array.isArray(wa.numbers) && wa.numbers.length > 0 && (
+                  <div className={styles.listWrap}>
+                    <div className={styles.listTitle}>Números encontrados</div>
+                    <ul className={styles.numList}>
+                      {wa.numbers.map((n: any) => (
+                        <li key={n?.id} className={styles.numRow}>
+                          <div className={styles.numMain}>
+                            <span className={styles.numPhone}>
+                              {n?.display_phone_number || n?.verified_name || "—"}
+                            </span>
+                            <span className={styles.numId}>id: {n?.id}</span>
+                          </div>
+                          {/* Botões futuros: “Ativar”, “Testar”, etc. */}
+                          <div className={styles.numActions}>
+                            <button className={styles.btnTiny} disabled title="Em breve">Definir como principal</button>
+                            <button className={styles.btnTiny} disabled title="Em breve">Enviar teste</button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Instagram */}
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardIconWrap ig}>
+              <Instagram size={18} />
+            </div>
+            <div className={styles.cardTitle}>Instagram</div>
+            <span className={styles.statusOff}>Não conectado</span>
+          </div>
+          <div className={styles.cardBody}>
+            <p className={styles.cardDesc}>
+              Em breve: conecte seu Instagram Business para DM e mentions.
+            </p>
+            <div className={styles.cardActions}>
+              <button className={styles.btnSecondary} disabled>Conectar</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Facebook Messenger */}
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardIconWrap fb}>
+              <MessageSquareText size={18} />
+            </div>
+            <div className={styles.cardTitle}>Facebook Messenger</div>
+            <span className={styles.statusOff}>Não conectado</span>
+          </div>
+          <div className={styles.cardBody}>
+            <p className={styles.cardDesc}>
+              Em breve: conecte sua página e receba mensagens do Messenger.
+            </p>
+            <div className={styles.cardActions}>
+              <button className={styles.btnSecondary} disabled>Conectar</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Telegram */}
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardIconWrap tg}>
+              <Send size={18} />
+            </div>
+            <div className={styles.cardTitle}>Telegram</div>
+            <span className={styles.statusOff}>Não conectado</span>
+          </div>
+          <div className={styles.cardBody}>
+            <p className={styles.cardDesc}>
+              Em breve: informe o token do Bot e o <code>x-telegram-bot-api-secret-token</code>.
+            </p>
+            <div className={styles.cardActions}>
+              <button className={styles.btnSecondary} disabled>Conectar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
