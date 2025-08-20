@@ -5,8 +5,8 @@ export default function WhatsAppEmbeddedSignupButton({ tenant, onConnected, labe
   const [loading, setLoading] = useState(false);
   const initedRef = useRef(false);
 
-  const APP_ID = process.env.NEXT_PUBLIC_META_APP_ID;
-  const CONFIG_ID = process.env.NEXT_PUBLIC_META_LOGIN_CONFIG_ID;
+  const APP_ID = process.env.META_APP_ID;
+  const CONFIG_ID = process.env.META_LOGIN_CONFIG_ID;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
