@@ -8,7 +8,6 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import "./styles/Builder.module.css";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 
 import { nodeTemplates } from "./components/NodeTemplates";
@@ -67,6 +66,22 @@ const nodeTypes = {
   quadrado: NodeQuadrado,
 };
 
+/* =========================
+ * Estilos
+ * ========================= */
+const nodeStyle = {
+  border: "2px solid",
+  borderRadius: "8px",
+  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+};
+
+const selectedNodeStyle = {
+  boxShadow: "0 0 0 2px #00e676, 0 4px 6px rgba(0, 0, 0, 0.1)",
+};
+
+/* =========================
+ * Componente
+ * ========================= */
 export default function Builder() {
   const reactFlowInstance = useReactFlow();
 
@@ -97,6 +112,7 @@ export default function Builder() {
         draggable: false,
         connectable: true,
         selectable: true,
+        style: { ...nodeStyle, borderColor: "#546E7A" },
       },
       {
         id: fallbackId,
@@ -115,6 +131,7 @@ export default function Builder() {
             actions: [],
           },
         },
+        style: { ...nodeStyle, borderColor: "#FF4500" },
       },
     ];
   });
@@ -195,6 +212,7 @@ export default function Builder() {
   const onEdgesChange = useCallback(
     (changes) => {
       setEdges((eds) => {
+        // pushes para qualquer mudança estrutural de edge
         pushHistory({ nodes: nodesRef.current, edges: eds });
         return applyEdgeChanges(changes, eds);
       });
@@ -253,6 +271,7 @@ function handler(context) {
   const onConnect = useCallback(
     (params) => {
       const { source, target } = params;
+      // evita duplicar ação origem->destino
       const sourceNode = nodesRef.current.find((n) => n.id === source);
       const actions = sourceNode?.data?.block?.actions || [];
       const already = actions.some((a) => a.next === target);
@@ -275,7 +294,11 @@ function handler(context) {
                     {
                       next: target,
                       conditions: [
-                        { variable: "lastUserMessage", type: "exists", value: "" },
+                        {
+                          variable: "lastUserMessage",
+                          type: "exists",
+                          value: "",
+                        },
                       ],
                     },
                   ],
@@ -297,6 +320,7 @@ function handler(context) {
       return;
     }
 
+    // push uma vez por operação
     pushHistory(snapshot());
 
     setNodes((prevNodes) => {
@@ -313,7 +337,10 @@ function handler(context) {
 
       if (updatedBlock?.actions?.length > 0) {
         updatedBlock.actions.forEach((action) => {
-          if (action.next && !existingPairs.has(`${updated.id}-${action.next}`)) {
+          if (
+            action.next &&
+            !existingPairs.has(`${updated.id}-${action.next}`)
+          ) {
             newEdges.push({
               id: genEdgeId(),
               source: updated.id,
@@ -334,6 +361,7 @@ function handler(context) {
   };
 
   const handleConnectNodes = ({ source, target }) => {
+    // evita duplicar ação origem->destino
     const src = nodesRef.current.find((n) => n.id === source);
     const actions = src?.data?.block?.actions || [];
     const already = actions.some((a) => a.next === target);
@@ -356,7 +384,11 @@ function handler(context) {
                   {
                     next: target,
                     conditions: [
-                      { variable: "lastUserMessage", type: "exists", value: "" },
+                      {
+                        variable: "lastUserMessage",
+                        type: "exists",
+                        value: "",
+                      },
                     ],
                   },
                 ],
@@ -440,7 +472,7 @@ function handler(context) {
     };
   }, []);
 
-  // Keyboard: Undo/Redo/Delete
+  // Keyboard: Delete / Undo / Redo
   useEffect(() => {
     const handleKeyDown = (event) => {
       // Undo / Redo
@@ -559,6 +591,7 @@ function handler(context) {
             color: b.color || "#607D8B",
             block: b,
           },
+          style: { ...nodeStyle, borderColor: b.color || "#607D8B" },
         }));
 
         const loadedEdges = [];
@@ -577,6 +610,7 @@ function handler(context) {
 
         setNodes(loadedNodes);
         setEdges(loadedEdges);
+        // reseta histórico após carregar
         setHistory({ past: [], future: [] });
       } catch (err) {
         console.error("Erro ao carregar fluxo ativo", err);
@@ -592,6 +626,7 @@ function handler(context) {
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
+      // compat: caso alguém tenha salvo refs por label num fluxo legado
       const labelToId = {};
       nodes.forEach((n) => {
         if (labelToId[n.data.label])
@@ -721,6 +756,7 @@ function handler(context) {
           defaultNext: onErrorNode?.id, // ID se existir; senão undefined
         },
       },
+      style: { ...nodeStyle, borderColor: template.color },
     };
     setNodes((nds) => nds.concat(newNode));
   };
@@ -736,8 +772,9 @@ function handler(context) {
       ...node.data,
       isHighlighted: node.id === highlightedNodeId,
     },
-    // opacidade dinâmica (não dá pra ir pro CSS)
     style: {
+      ...node.style,
+      ...(selectedNode?.id === node.id ? selectedNodeStyle : {}),
       opacity: highlightedNodeId && highlightedNodeId !== node.id ? 0.6 : 1,
     },
   }));
@@ -751,18 +788,65 @@ function handler(context) {
     },
   }));
 
+  const iconButtonStyle = {
+    background: "#333",
+    color: "#fff",
+    border: "1px solid #555",
+    borderRadius: "50%",
+    padding: "6px",
+    width: "32px",
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  };
+
+  const edgeOptions = {
+    type: "smoothstep",
+    animated: false,
+    style: { stroke: "#888", strokeWidth: 2 },
+    markerEnd: { type: "arrowclosed", color: "#888", width: 12, height: 12 },
+  };
+
   /* =========================
    * JSX
    * ========================= */
   return (
-    <div className="builderRoot">
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        position: "relative",
+        backgroundColor: "#f9f9f9",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Cabeçalho */}
-      <div className="header">Construtor de Fluxos</div>
+      <div
+        style={{
+          height: "56px",
+          width: "100%",
+          backgroundColor: "#ffffff",
+          borderBottom: "1px solid #ddd",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 20px",
+          fontWeight: 500,
+          fontSize: "1rem",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)",
+          zIndex: 10,
+        }}
+      >
+        Construtor de Fluxos
+      </div>
 
       {/* Conteúdo principal */}
-      <div className="mainRow">
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* Área esquerda: ReactFlow e ScriptEditor */}
-        <div className="leftPane">
+        <div style={{ position: "relative", flex: 1 }}>
           {itor && (
             <ScriptEditor
               code={scriptCode}
@@ -775,12 +859,7 @@ function handler(context) {
             nodes={styledNodes}
             edges={styledEdges}
             nodeTypes={nodeTypes}
-            defaultEdgeOptions={{
-              type: "smoothstep",
-              animated: false,
-              style: { stroke: "#888", strokeWidth: 2 },
-              markerEnd: { type: "arrowclosed", color: "#888", width: 12, height: 12 },
-            }}
+            defaultEdgeOptions={edgeOptions}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
@@ -810,7 +889,14 @@ function handler(context) {
             proOptions={{ hideAttribution: true }}
           >
             <Background color="#555" gap={32} variant="dots" />
-            <Controls className="rfControls" />
+            <Controls
+              style={{
+                backgroundColor: "white",
+                border: "1px solid #e2e8f0",
+                borderRadius: "6px",
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
+              }}
+            />
 
             <VersionHistoryModal
               visible={showHistory}
@@ -824,19 +910,54 @@ function handler(context) {
           </ReactFlow>
 
           {/* Menu flutuante (dentro do builder) */}
-          <div ref={nodeMenuRef} className="floatingMenu">
+          <div
+            ref={nodeMenuRef}
+            style={{
+              position: "absolute",
+              top: "120px",
+              left: 10,
+              transform: "none",
+              background: "#1e1e1e",
+              border: "1px solid #444",
+              borderRadius: "8px",
+              padding: "0.5rem",
+              zIndex: 20,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "10px",
+              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
+            }}
+          >
             {/* Toggle menu de blocos */}
             <button
               onClick={() => setShowNodeMenu((prev) => !prev)}
               title="Adicionar Blocos"
-              className={`iconBtn ${showNodeMenu ? "isActive" : ""}`}
+              style={{
+                ...iconButtonStyle,
+                backgroundColor: showNodeMenu ? "#555" : "#333",
+              }}
             >
               ➕
             </button>
 
             {/* Menu lateral de templates */}
             {showNodeMenu && (
-              <div className="sideTemplateMenu">
+              <div
+                style={{
+                  position: "absolute",
+                  left: "60px",
+                  top: "0px",
+                  backgroundColor: "#2c2c2c",
+                  borderRadius: "6px",
+                  padding: "0.5rem",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  zIndex: 30,
+                }}
+              >
                 {nodeTemplates.map((template) => (
                   <button
                     key={template.type + template.label}
@@ -844,8 +965,12 @@ function handler(context) {
                       addNodeTemplate(template);
                       setShowNodeMenu(false);
                     }}
-                    className="iconBtn templateBtn"
-                    style={{ backgroundColor: template.color }}
+                    style={{
+                      ...iconButtonStyle,
+                      backgroundColor: template.color,
+                      width: "36px",
+                      height: "36px",
+                    }}
                     title={template.label}
                   >
                     {iconMap[template.iconName] || <Zap size={16} />}
@@ -855,20 +980,27 @@ function handler(context) {
             )}
 
             {/* Divider */}
-            <div className="divider" />
+            <div
+              style={{
+                width: "80%",
+                height: "1px",
+                backgroundColor: "#555",
+                margin: "4px 0",
+              }}
+            />
 
             {/* Undo / Redo */}
             <button
               onClick={undo}
               title="Desfazer (Ctrl/Cmd+Z)"
-              className="iconBtn"
+              style={iconButtonStyle}
             >
               <Undo2 size={18} />
             </button>
             <button
               onClick={redo}
               title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)"
-              className="iconBtn"
+              style={iconButtonStyle}
             >
               <Redo2 size={18} />
             </button>
@@ -877,8 +1009,11 @@ function handler(context) {
             <button
               onClick={handlePublish}
               title="Publicar"
-              className="iconBtn"
-              disabled={isPublishing}
+              style={{
+                ...iconButtonStyle,
+                opacity: isPublishing ? 0.5 : 1,
+                pointerEvents: isPublishing ? "none" : "auto",
+              }}
             >
               {isPublishing ? "⏳" : <Rocket size={18} />}
             </button>
@@ -887,7 +1022,7 @@ function handler(context) {
             <button
               onClick={downloadFlow}
               title="Baixar JSON"
-              className="iconBtn"
+              style={iconButtonStyle}
             >
               <Download size={18} />
             </button>
@@ -896,7 +1031,7 @@ function handler(context) {
             <button
               onClick={() => setShowHistory(true)}
               title="Histórico de Versões"
-              className="iconBtn"
+              style={iconButtonStyle}
             >
               🕘
             </button>
