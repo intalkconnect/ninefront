@@ -3,30 +3,19 @@ import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZa
 import styles from "./styles/Canais.module.css";
 import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
 
-type WaState = {
-  connected: boolean;
-  wabaId?: string;
-  numbers?: any[];
-  okMsg?: string | null;
-  errMsg?: string | null;
-};
-
-function getTenantFromHost(): string {
+function getTenantFromHost() {
   if (typeof window === "undefined") return "";
-  const host = window.location.hostname; // ex.: sub.hmg.dkdevs.com.br
+  const host = window.location.hostname;
   const parts = host.split(".");
-  if (parts.length >= 3) {
-    // ignora www
-    return parts[0] === "www" ? parts[1] : parts[0];
-  }
+  if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
   return parts[0] || "";
 }
 
-export default function Channels() {
+export default function Canais() {
   const tenant = useMemo(() => getTenantFromHost(), []);
-  const [wa, setWa] = useState<WaState>({ connected: false });
+  const [wa, setWa] = useState({ connected: false, wabaId: "", numbers: [], okMsg: null, errMsg: null });
 
-  const handleWaConnected = (data: { waba_id: string; numbers: any[] }) => {
+  const handleWaConnected = (data) => {
     setWa({
       connected: true,
       wabaId: data.waba_id,
@@ -34,7 +23,6 @@ export default function Channels() {
       okMsg: "WhatsApp conectado com sucesso.",
       errMsg: null,
     });
-    // limpa o OK depois de um tempinho
     setTimeout(() => setWa((s) => ({ ...s, okMsg: null })), 2000);
   };
 
@@ -43,9 +31,7 @@ export default function Channels() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Canais</h1>
-          <p className={styles.subtitle}>
-            Conecte seus canais de atendimento. Após conectar, você verá os recursos disponíveis para cada canal.
-          </p>
+          <p className={styles.subtitle}>Conecte seus canais de atendimento.</p>
           {wa.errMsg ? <div className={styles.alertErr}>{wa.errMsg}</div> : null}
           {wa.okMsg ? <div className={styles.alertOk}>{wa.okMsg}</div> : null}
         </div>
@@ -58,57 +44,35 @@ export default function Channels() {
         {/* WhatsApp */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardIconWrap wa}>
-              <MessageCircle size={18} />
-            </div>
+            <div className={`${styles.cardIconWrap} ${styles.wa}`}><MessageCircle size={18} /></div>
             <div className={styles.cardTitle}>WhatsApp</div>
-            {wa.connected ? (
-              <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
-            ) : (
-              <span className={styles.statusOff}>Não conectado</span>
-            )}
+            {wa.connected
+              ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
+              : <span className={styles.statusOff}>Não conectado</span>}
           </div>
-
           <div className={styles.cardBody}>
-            <p className={styles.cardDesc}>
-              Conecte via <em>Embedded Signup</em> e selecione os números da sua WABA.
-            </p>
-
+            <p className={styles.cardDesc}>Conecte via Embedded Signup e selecione os números.</p>
             {!wa.connected ? (
               <div className={styles.cardActions}>
-                {/* Usa o próprio botão do componente (ele faz todo o fluxo) */}
                 <div className={styles.btnWrap}>
-                  <WhatsAppEmbeddedSignupButton
-                    tenant={tenant}
-                    onConnected={handleWaConnected}
-                  />
+                  <WhatsAppEmbeddedSignupButton tenant={tenant} onConnected={handleWaConnected}/>
                 </div>
                 <div className={styles.hint}><PlugZap size={14}/> É necessário estar logado no Facebook.</div>
               </div>
             ) : (
               <div className={styles.connectedBlock}>
-                <div className={styles.kv}>
-                  <span className={styles.k}>WABA</span>
-                  <span className={styles.v}>{wa.wabaId}</span>
-                </div>
-                <div className={styles.kv}>
-                  <span className={styles.k}>Números</span>
-                  <span className={styles.v}>{wa.numbers?.length || 0}</span>
-                </div>
-
-                {Array.isArray(wa.numbers) && wa.numbers.length > 0 && (
+                <div className={styles.kv}><span className={styles.k}>WABA</span><span className={styles.v}>{wa.wabaId}</span></div>
+                <div className={styles.kv}><span className={styles.k}>Números</span><span className={styles.v}>{wa.numbers?.length || 0}</span></div>
+                {wa.numbers?.length > 0 && (
                   <div className={styles.listWrap}>
                     <div className={styles.listTitle}>Números encontrados</div>
                     <ul className={styles.numList}>
-                      {wa.numbers.map((n: any) => (
+                      {wa.numbers.map((n) => (
                         <li key={n?.id} className={styles.numRow}>
                           <div className={styles.numMain}>
-                            <span className={styles.numPhone}>
-                              {n?.display_phone_number || n?.verified_name || "—"}
-                            </span>
+                            <span className={styles.numPhone}>{n?.display_phone_number || n?.verified_name || "—"}</span>
                             <span className={styles.numId}>id: {n?.id}</span>
                           </div>
-                          {/* Botões futuros: “Ativar”, “Testar”, etc. */}
                           <div className={styles.numActions}>
                             <button className={styles.btnTiny} disabled title="Em breve">Definir como principal</button>
                             <button className={styles.btnTiny} disabled title="Em breve">Enviar teste</button>
@@ -123,60 +87,40 @@ export default function Channels() {
           </div>
         </div>
 
-        {/* Instagram */}
+        {/* Demais cards… (Instagram, Messenger, Telegram) */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardIconWrap ig}>
-              <Instagram size={18} />
-            </div>
+            <div className={`${styles.cardIconWrap} ${styles.ig}`}><Instagram size={18}/></div>
             <div className={styles.cardTitle}>Instagram</div>
             <span className={styles.statusOff}>Não conectado</span>
           </div>
           <div className={styles.cardBody}>
-            <p className={styles.cardDesc}>
-              Em breve: conecte seu Instagram Business para DM e mentions.
-            </p>
-            <div className={styles.cardActions}>
-              <button className={styles.btnSecondary} disabled>Conectar</button>
-            </div>
+            <p className={styles.cardDesc}>Em breve: conecte seu Instagram Business.</p>
+            <div className={styles.cardActions}><button className={styles.btnSecondary} disabled>Conectar</button></div>
           </div>
         </div>
 
-        {/* Facebook Messenger */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardIconWrap fb}>
-              <MessageSquareText size={18} />
-            </div>
+            <div className={`${styles.cardIconWrap} ${styles.fb}`}><MessageSquareText size={18}/></div>
             <div className={styles.cardTitle}>Facebook Messenger</div>
             <span className={styles.statusOff}>Não conectado</span>
           </div>
           <div className={styles.cardBody}>
-            <p className={styles.cardDesc}>
-              Em breve: conecte sua página e receba mensagens do Messenger.
-            </p>
-            <div className={styles.cardActions}>
-              <button className={styles.btnSecondary} disabled>Conectar</button>
-            </div>
+            <p className={styles.cardDesc}>Em breve: conecte sua página do Facebook.</p>
+            <div className={styles.cardActions}><button className={styles.btnSecondary} disabled>Conectar</button></div>
           </div>
         </div>
 
-        {/* Telegram */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardIconWrap tg}>
-              <Send size={18} />
-            </div>
+            <div className={`${styles.cardIconWrap} ${styles.tg}`}><Send size={18}/></div>
             <div className={styles.cardTitle}>Telegram</div>
             <span className={styles.statusOff}>Não conectado</span>
           </div>
           <div className={styles.cardBody}>
-            <p className={styles.cardDesc}>
-              Em breve: informe o token do Bot e o <code>x-telegram-bot-api-secret-token</code>.
-            </p>
-            <div className={styles.cardActions}>
-              <button className={styles.btnSecondary} disabled>Conectar</button>
-            </div>
+            <p className={styles.cardDesc}>Em breve: informe o token do bot e o segredo do webhook.</p>
+            <div className={styles.cardActions}><button className={styles.btnSecondary} disabled>Conectar</button></div>
           </div>
         </div>
       </div>
