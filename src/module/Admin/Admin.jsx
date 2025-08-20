@@ -27,8 +27,6 @@ export default function Admin() {
   const [userData, setUserData] = useState(null);
   const [showDropdown, setShowDropdown] = useState(null);
 
-  const { apiBaseUrl } = getRuntimeConfig();
-
   useEffect(() => {
     const fetchAdminInfo = async () => {
       if (!email) return;
