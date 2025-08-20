@@ -1,26 +1,40 @@
 // components/WhatsAppEmbeddedSignupButton.jsx
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 
 export default function WhatsAppEmbeddedSignupButton({ tenant, label = "Conectar WhatsApp" }) {
-  const [loading, setLoading] = useState(false);
-  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;          // ex.: https://auth.dkdevs.com.br
-  const API_BASE    = import.meta.env.VITE_API_BASE_URL || "";     // ex.: https://hmg.dkdevs.com.br
+  const APP_ID     = import.meta.env.VITE_META_APP_ID;
+  const CONFIG_ID  = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
+  const AUTH_ORIGIN= import.meta.env.VITE_EMBED_ORIGIN;        // ex.: https://auth.dkdevs.com.br
+  const API_BASE   = import.meta.env.VITE_API_BASE_URL || "";  // ex.: https://hmg.dkdevs.com.br
 
   const start = useCallback(() => {
-    if (!AUTH_ORIGIN) { alert("VITE_EMBED_ORIGIN não configurado"); return; }
-    if (!tenant)      { alert("Tenant não detectado"); return; }
+    if (!tenant)      return alert("Tenant não detectado");
+    if (!APP_ID)      return alert("VITE_META_APP_ID ausente");
+    if (!CONFIG_ID)   return alert("VITE_META_LOGIN_CONFIG_ID ausente");
+    if (!AUTH_ORIGIN) return alert("VITE_EMBED_ORIGIN ausente");
 
-    // abre UMA janela; dentro dela o login da Meta acontecerá em `display:'page'`
-    const origin = window.location.origin;
-    const url = `${AUTH_ORIGIN}/wa-embed.html?tenant=${encodeURIComponent(tenant)}&origin=${encodeURIComponent(origin)}&api=${encodeURIComponent(API_BASE)}&autostart=1`;
-    const w = window.open(url, "wa-embed", "width=520,height=720,menubar=0,toolbar=0");
-    if (!w) alert("Popup bloqueado. Habilite popups para este site.");
-    else setLoading(true);
-  }, [AUTH_ORIGIN, API_BASE, tenant]);
+    const redirectUri = `${AUTH_ORIGIN}/wa-callback.html`;
+    // carrego infos no state (base64) pra callback saber pra onde voltar e qual tenant/api usar
+    const state = btoa(JSON.stringify({
+      tenant,
+      origin: window.location.origin,
+      api: API_BASE
+    }));
 
-  return (
-    <button onClick={start} disabled={loading} style={{ opacity: loading ? 0.6 : 1 }}>
-      {loading ? "Abrindo..." : label}
-    </button>
-  );
+    const url =
+      `https://www.facebook.com/v23.0/dialog/oauth` +
+      `?client_id=${encodeURIComponent(APP_ID)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code` +
+      `&config_id=${encodeURIComponent(CONFIG_ID)}` +
+      `&state=${encodeURIComponent(state)}`;
+
+    window.open(
+      url,
+      "wa-embed",
+      "width=520,height=720,menubar=0,toolbar=0"
+    );
+  }, [tenant, APP_ID, CONFIG_ID, AUTH_ORIGIN, API_BASE]);
+
+  return <button onClick={start}>{label}</button>;
 }
