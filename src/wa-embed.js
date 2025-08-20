@@ -47,7 +47,7 @@ window.fbAsyncInit = function() {
           const code = resp && resp.authResponse && resp.authResponse.code;
           if (!code) return failAndClose("cancelled");
 
-          const res = await fetch(`${API_BASE}/api/v1/wa/es/finalize`, {
+          const res = await fetch(`${API_BASE}/wa/es/finalize`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             // ⚠️ backend lê subdomain pelo plugin/header/body; mandamos explicitamente
