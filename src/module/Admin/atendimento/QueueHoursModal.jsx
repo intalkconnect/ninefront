@@ -33,7 +33,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
     (async () => {
       setLoading(true); setErr(null);
       try {
-        const data = await apiGet(`/filas/horarios/${encodeURIComponent(filaNome)}`);
+        const data = await apiGet(`/queueHours/${encodeURIComponent(filaNome)}/hours`);
         setEnabled(Boolean(data?.enabled ?? true));
         setTz(data?.timezone || 'America/Sao_Paulo');
         setPreMsg(data?.pre_message || '');
@@ -86,7 +86,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
     setLoading(true); setErr(null);
     try {
       // envia o timezone atual, mas ele é read-only aqui
-      await apiPut(`/filas/horarios/${encodeURIComponent(filaNome)}`, {
+      await apiPut(`/queueHours/${encodeURIComponent(filaNome)}/hours`, {
         enabled,
         timezone: tz,
         pre_message: preMsg,
