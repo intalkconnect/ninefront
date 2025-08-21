@@ -49,7 +49,7 @@ export default function Channels() {
           {wa.okMsg ? <div className={styles.alertOk}>{wa.okMsg}</div> : null}
         </div>
         <div className={styles.tenantBadge}>
-          {tenant ? <>tenant: <strong>{tenant}</strong></> : <span className={styles.subtle}>defina o tenant</span>}
+          {tenant ? <>id: <strong>{tenant}</strong></> : <span className={styles.subtle}>defina o tenant</span>}
         </div>
       </div>
 
