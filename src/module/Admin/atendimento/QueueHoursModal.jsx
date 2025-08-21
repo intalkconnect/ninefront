@@ -17,12 +17,57 @@ function emptyWindows() {
   return { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
 }
 
+/** Converte weekly[{weekday,windows}] -> {mon..sun:[{start,end}]} (fallback p/ GET antigo) */
+function weeklyToWindows(weekly = []) {
+  const map = { 1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat', 7: 'sun' };
+  const out = emptyWindows();
+  for (const d of weekly || []) {
+    const k = map[d.weekday];
+    if (!k) continue;
+    const wins = Array.isArray(d.windows) ? d.windows : [];
+    out[k] = wins.map(w => ({ start: w.start, end: w.end }));
+  }
+  return out;
+}
+
+/** Normaliza payload vindo do backend em um shape único p/ o modal */
+function normalizeIncoming(data = {}) {
+  return {
+    enabled: Boolean(data?.enabled ?? true),
+    timezone: data?.timezone || data?.tz || 'America/Sao_Paulo',
+    pre_message: data?.pre_message ?? data?.pre_service_message ?? '',
+    off_message: data?.off_message ?? data?.offhours_message ?? '',
+    windows: data?.windows || weeklyToWindows(data?.weekly || []),
+    holidays: Array.isArray(data?.holidays) ? data.holidays : [],
+  };
+}
+
+/** Validação simples de janelas (end > start) — evita 400 no backend */
+function validateWindows(windows) {
+  const toMin = (hhmm) => {
+    const m = /^(\d{2}):(\d{2})$/.exec(hhmm || '');
+    if (!m) return NaN;
+    const hh = Number(m[1]), mm = Number(m[2]);
+    return hh * 60 + mm;
+  };
+  for (const day of Object.keys(windows)) {
+    for (const win of windows[day]) {
+      const a = toMin(win.start);
+      const b = toMin(win.end);
+      if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) {
+        return `Verifique os horários de ${day.toUpperCase()}: "${win.start} — ${win.end}"`;
+      }
+    }
+  }
+  return null;
+}
+
 export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
   const [enabled, setEnabled] = useState(true);
-  const [tz, setTz] = useState('America/Sao_Paulo'); // exibido somente (read-only)
+  const [tz, setTz] = useState('America/Sao_Paulo'); // etiqueta (read-only)
   const [preMsg, setPreMsg] = useState('');
   const [offMsg, setOffMsg] = useState('');
   const [windows, setWindows] = useState(emptyWindows());
@@ -34,12 +79,13 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
       setLoading(true); setErr(null);
       try {
         const data = await apiGet(`/queueHours/${encodeURIComponent(filaNome)}/hours`);
-        setEnabled(Boolean(data?.enabled ?? true));
-        setTz(data?.timezone || 'America/Sao_Paulo');
-        setPreMsg(data?.pre_message || '');
-        setOffMsg(data?.off_message || '');
-        setWindows({ ...emptyWindows(), ...(data?.windows || {}) });
-        setHolidays(Array.isArray(data?.holidays) ? data.holidays : []);
+        const norm = normalizeIncoming(data);
+        setEnabled(norm.enabled);
+        setTz(norm.timezone);
+        setPreMsg(norm.pre_message);
+        setOffMsg(norm.off_message);
+        setWindows({ ...emptyWindows(), ...(norm.windows || {}) });
+        setHolidays(norm.holidays);
       } catch (e) {
         console.error(e);
         setErr('Falha ao carregar horários desta fila.');
@@ -85,13 +131,18 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
   const save = async () => {
     setLoading(true); setErr(null);
     try {
-      // envia o timezone atual, mas ele é read-only aqui
+      const vErr = validateWindows(windows);
+      if (vErr) {
+        setErr(vErr);
+        setLoading(false);
+        return;
+      }
       await apiPut(`/queueHours/${encodeURIComponent(filaNome)}/hours`, {
         enabled,
-        timezone: tz,
-        pre_message: preMsg,
-        off_message: offMsg,
-        windows,
+        timezone: tz,          // backend aceita timezone ou tz
+        pre_message: preMsg,   // idem pre_service_message
+        off_message: offMsg,   // idem offhours_message
+        windows,               // backend PUT aceita windows OU weekly
         holidays,
       });
       onSaved?.();
@@ -106,7 +157,9 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
     <div className={css.backdrop}>
       <div className={css.modal}>
         <div className={css.modalHead}>
-          <div className={css.modalTitle}>Configurar horário — <strong>{filaNome}</strong></div>
+          <div className={css.modalTitle}>
+            Configurar horário — <strong>{filaNome}</strong>
+          </div>
           <button className={css.iconBtn} onClick={onClose} title="Fechar">
             <X size={18}/>
           </button>
@@ -135,7 +188,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
             </div>
           </div>
 
-          {/* mensagens */}
+          {/* Mensagens */}
           <div className={css.fieldRow}>
             <label>Mensagem antes do atendimento</label>
             <textarea
@@ -182,12 +235,20 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
                         onChange={(e)=>updateWindow(key, idx, 'end', e.target.value)}
                         className={css.time}
                       />
-                      <button className={`${css.iconBtn} ${css.danger}`} onClick={()=>removeWindow(key, idx)} title="Remover janela">
+                      <button
+                        className={`${css.iconBtn} ${css.danger}`}
+                        onClick={()=>removeWindow(key, idx)}
+                        title="Remover janela"
+                      >
                         <Trash2 size={16}/>
                       </button>
                     </div>
                   ))}
-                  <button className={`${css.iconBtn} ${css.add}`} onClick={()=>addWindow(key)} title="Adicionar janela">
+                  <button
+                    className={`${css.iconBtn} ${css.add}`}
+                    onClick={()=>addWindow(key)}
+                    title="Adicionar janela"
+                  >
                     <Plus size={16}/>
                   </button>
                 </div>
@@ -217,12 +278,20 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
                 className={css.input}
                 style={{flex:1}}
               />
-              <button className={`${css.iconBtn} ${css.danger}`} onClick={()=>removeHoliday(i)} title="Remover">
+              <button
+                className={`${css.iconBtn} ${css.danger}`}
+                onClick={()=>removeHoliday(i)}
+                title="Remover"
+              >
                 <Trash2 size={16}/>
               </button>
             </div>
           ))}
-          <button className={`${css.iconBtn} ${css.add}`} onClick={addHoliday} title="Adicionar feriado">
+          <button
+            className={`${css.iconBtn} ${css.add}`}
+            onClick={addHoliday}
+            title="Adicionar feriado"
+          >
             <Plus size={16}/>
           </button>
         </div>
