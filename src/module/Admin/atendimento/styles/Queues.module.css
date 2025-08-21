@@ -41,7 +41,7 @@
   height: 100%;             /* ocupa exatamente a viewport */
   min-height: 0;              /* importante p/ overflow funcionar dentro */
   box-sizing: border-box;     /* padding entra no 100dvh (sem “barriga”) */
-  overflow-y: hidden;           /* <— scroll só aqui */
+  overflow-y: auto;           /* <— scroll só aqui */
   overflow-x: hidden;
 
   width: 100%;
@@ -59,8 +59,8 @@
 /* tabela só rola na horizontal, se estourar */
 .tableWrap{
   width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow-x: hidden;
+  overflow-y: hidden;
   border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
 }
 
