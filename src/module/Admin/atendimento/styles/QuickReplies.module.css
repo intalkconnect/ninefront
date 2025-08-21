@@ -53,30 +53,34 @@
 /* Página ocupa o viewport e rola apenas se precisar */
 /* O CONTAINER é o ÚNICO scroller; sem sobra inferior */
 .container{
-  /* ocupa a tela toda; NÃO cria scroll próprio */
-  min-height: 100svh;
-  height: auto;
-  box-sizing: border-box;
-  overflow: visible;
+  height: 100dvh;             /* ocupa exatamente a viewport */
+  min-height: 0;              /* importante p/ overflow funcionar dentro */
+  box-sizing: border-box;     /* padding entra no 100dvh (sem “barriga”) */
+  overflow-y: auto;           /* <— scroll só aqui */
+  overflow-x: hidden;
 
   width: 100%;
   max-width: none;
   margin: 0;
   padding: 24px var(--page-inline);
 
-  background: transparent;    /* <— fundo agora é do body */
+  background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
+  scrollbar-gutter: stable both-edges; /* evita “pulo” quando a barra aparece */
 }
 
-/* evita “sobra” causada por margin do último bloco */
-.container > :last-child{ margin-bottom: 0 !important; }
+/* evita sobra por margem do último bloco */
+.container > :last-child { margin-bottom: 0 !important; }
 
-/* a tabela só rola na horizontal, se precisar */
+/* tabela só rola na horizontal, se estourar */
 .tableWrap{
   width: 100%;
   overflow-x: auto;
   overflow-y: visible;
   border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
 }
+
+/* REMOVA qualquer max-height de cards/tabelas aqui. */
+
 
 /* Header */
 .header {
