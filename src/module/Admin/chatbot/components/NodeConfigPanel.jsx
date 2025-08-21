@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
@@ -20,6 +20,8 @@ export default function NodeConfigPanel({
     default: true,
     offhoursShortcuts: true,
   });
+
+  const panelRef = useRef(null);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -154,6 +156,52 @@ export default function NodeConfigPanel({
     );
   };
 
+  /* ---------------- hotkeys: bloquear propagação no painel ---------------- */
+
+  const isEditableTarget = (el) => {
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    const tag = el.tagName?.toUpperCase?.();
+    if (tag === "TEXTAREA") return true;
+    if (tag === "INPUT") {
+      const t = (el.type || "").toLowerCase();
+      const textLike = [
+        "text",
+        "search",
+        "url",
+        "tel",
+        "email",
+        "password",
+        "number",
+        "date",
+        "datetime-local",
+        "time",
+      ];
+      if (textLike.includes(t)) return !el.readOnly && !el.disabled;
+    }
+    return false;
+  };
+
+  const handleKeyDownCapture = useCallback((e) => {
+    // Só age se o evento veio de dentro do painel
+    if (!panelRef.current || !panelRef.current.contains(e.target)) return;
+
+    const k = e.key?.toLowerCase?.() || "";
+
+    // Se estamos editando um campo de texto, bloqueia a propagação das hotkeys globais,
+    // mas NÃO chama preventDefault — assim o input mantém seu comportamento normal.
+    if (isEditableTarget(e.target)) {
+      const isDelete = e.key === "Delete" || e.key === "Backspace";
+      const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && k === "z";
+      const isRedo = (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
+
+      if (isDelete || isUndo || isRedo) {
+        e.stopPropagation(); // impede que o canvas/nó receba e delete/desfaça o grafo
+        // não usar preventDefault aqui!
+      }
+    }
+  }, []);
+
   /* ---------------- tabs ---------------- */
 
   const renderActionsTab = () => (
@@ -176,7 +224,6 @@ export default function NodeConfigPanel({
 
         {expandedSections.actions && (
           <div className={styles.sectionContent}>
-            {/* atalhos human (opcional: comente se não quiser) */}
             {isHuman && (
               <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
                 <button
@@ -538,9 +585,7 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
               value={String(!!awaitResponse)}
-              onChange={(e) =>
-                updateBlock({ awaitResponse: e.target.value === "true" })
-              }
+              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -661,11 +706,10 @@ export default function NodeConfigPanel({
                       footer: { text: "Toque para selecionar" },
                       header: { text: "🎯 Menu de Opções", type: "text" },
                       action: {
-                        // ★ campo editável abaixo
                         button: "Abrir lista",
                         sections: [
                           {
-                            title: "Seção 1", // interno; não exposto na UI (pedido: trocar pelo button)
+                            title: "Seção 1", // apenas interno; não exposto
                             rows: [{ id: "Item 1", title: "Item 1", description: "" }],
                           },
                         ],
@@ -753,10 +797,9 @@ export default function NodeConfigPanel({
             />
           </div>
 
-          {/* ====== LIST: campo substituto (button) ====== */}
+          {/* LIST: botão "abrir lista" editável */}
           {isList && (
             <>
-              {/* Substitui "Título da seção" por este campo */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
                 <input
@@ -797,8 +840,7 @@ export default function NodeConfigPanel({
                       rows[idx] = {
                         ...(rows[idx] || {}),
                         title: clamp(value, 24),
-                        // ★ ID segue o título
-                        id: makeIdFromTitle(value, 24),
+                        id: makeIdFromTitle(value, 24), // ID = Title
                       };
                       sections[0] = { ...(sections[0] || {}), rows };
                       const nextAction = {
@@ -849,7 +891,7 @@ export default function NodeConfigPanel({
             </>
           )}
 
-          {/* ====== QUICK REPLY buttons ====== */}
+          {/* QUICK REPLY buttons */}
           {isQuickReply && (
             <>
               {(content.action?.buttons || []).map((btn, idx) => (
@@ -870,7 +912,7 @@ export default function NodeConfigPanel({
                         reply: {
                           ...(buttons[idx]?.reply || {}),
                           title: value,
-                          id: value, // ★ ID = Título
+                          id: value, // ID = Title
                         },
                       };
                       const nextAction = {
@@ -1065,7 +1107,12 @@ export default function NodeConfigPanel({
   };
 
   return (
-    <aside className={styles.asidePanel}>
+    <aside
+      ref={panelRef}
+      className={styles.asidePanel}
+      data-stop-hotkeys="true"
+      onKeyDownCapture={handleKeyDownCapture}
+    >
       <div className={styles.panelHeader}>
         <h3 className={styles.panelTitle}>
           {selectedNode.data.label || "Novo Bloco"}
