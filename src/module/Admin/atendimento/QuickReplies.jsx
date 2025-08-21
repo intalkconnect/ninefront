@@ -26,7 +26,7 @@ const QuickReplies = () => {
     setLoading(true);
     setErro(null);
     try {
-      const data = await apiGet('/quickreply');
+      const data = await apiGet('/quickReplies');
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -53,7 +53,7 @@ const QuickReplies = () => {
       return;
     }
     try {
-      const created = await apiPost('/quickreply', { title: title.trim(), content: content.trim() });
+      const created = await apiPost('/quickReplies', { title: title.trim(), content: content.trim() });
       setItems((prev) => [...prev, created].sort((a,b)=>String(a.title).localeCompare(String(b.title))));
       setTitle('');
       setContent('');
@@ -68,7 +68,7 @@ const QuickReplies = () => {
     setDeletingId(id);
     setErro(null);
     try {
-      await apiDelete(`/quickreply/${id}`);
+      await apiDelete(`/quickReplies/${id}`);
       setItems((prev) => prev.filter((r) => r.id !== id));
       toastOK('Resposta removida.');
     } catch (e) {
