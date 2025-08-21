@@ -1,17 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { apiGet, apiPost } from '../../../shared/apiClient';
+import { apiGet, apiPost, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/QuickReplies.module.css';
 
 /**
- * Página base para "Respostas rápidas" seguindo os mesmos padrões da Preferences
- * Rotas esperadas no back (mount em /quick-replies):
- *  - GET    /quick-replies           → lista [{ id, title, content }]
- *  - POST   /quick-replies           → body { title, content }
- *  - DELETE /quick-replies/:id       → remove
- *
- * Se o mount for diferente, passe a prop apiBase.
+ * QuickReplies – usa apiClient com paths fixos
+ * Endpoints esperados no back:
+ *  GET    /quickreply           → lista
+ *  POST   /quickreply           → { title, content }
+ *  DELETE /quickreply/:id       → remove
  */
-const QuickReplies = ({ apiBase = '/quick-replies' }) => {
+const QuickReplies = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
@@ -28,7 +26,7 @@ const QuickReplies = ({ apiBase = '/quick-replies' }) => {
     setLoading(true);
     setErro(null);
     try {
-      const data = await apiGet(apiBase);
+      const data = await apiGet('/quickreply');
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -38,14 +36,13 @@ const QuickReplies = ({ apiBase = '/quick-replies' }) => {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [apiBase]);
+  useEffect(() => { load(); }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [...items].sort((a,b)=>String(a.title).localeCompare(String(b.title)));
-    return items
-      .filter((r) => r.title?.toLowerCase().includes(q) || r.content?.toLowerCase().includes(q))
-      .sort((a,b)=>String(a.title).localeCompare(String(b.title)));
+    const base = [...items].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+    if (!q) return base;
+    return base.filter((r) => r.title?.toLowerCase().includes(q) || r.content?.toLowerCase().includes(q));
   }, [items, query]);
 
   const handleCreate = async (e) => {
@@ -56,7 +53,7 @@ const QuickReplies = ({ apiBase = '/quick-replies' }) => {
       return;
     }
     try {
-      const created = await apiPost(apiBase, { title: title.trim(), content: content.trim() });
+      const created = await apiPost('/quickreply', { title: title.trim(), content: content.trim() });
       setItems((prev) => [...prev, created].sort((a,b)=>String(a.title).localeCompare(String(b.title))));
       setTitle('');
       setContent('');
@@ -67,18 +64,11 @@ const QuickReplies = ({ apiBase = '/quick-replies' }) => {
     }
   };
 
-  const apiDelete = async (url) => {
-    // Preferimos usar o mesmo cliente; se seu apiClient tiver apiDelete, substitua aqui.
-    const res = await fetch(url, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
-    if (!res.ok) throw new Error((await res.text()) || 'DELETE falhou');
-    try { return await res.json(); } catch { return null; }
-  };
-
   const handleDelete = async (id) => {
     setDeletingId(id);
     setErro(null);
     try {
-      await apiDelete(`${apiBase}/${id}`);
+      await apiDelete(`/quickreply/${id}`);
       setItems((prev) => prev.filter((r) => r.id !== id));
       toastOK('Resposta removida.');
     } catch (e) {
@@ -130,7 +120,7 @@ const QuickReplies = ({ apiBase = '/quick-replies' }) => {
         </form>
       </div>
 
-      {/* Filtro */}
+      {/* Filtro + lista */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>Itens</div>
