@@ -68,8 +68,8 @@ export default function Admin() {
                   <NavLink to="atendimento/tempo-real" className={styles['dropdown-link']}>
                     Tempo Real
                   </NavLink>
-                  <NavLink to="atendimento/configuracao" className={styles['dropdown-link']}>
-                    Configuração
+                  <NavLink to="atendimento/campanhas" className={styles['dropdown-link']}>
+                    Campanhas
                   </NavLink>
                   <NavLink to="atendimento/queues" className={styles['dropdown-link']}>
                     Filas
@@ -147,7 +147,7 @@ export default function Admin() {
 
           {/* Atendimento */}
           <Route path="atendimento/tempo-real" element={<TempoReal />} />
-          <Route path="atendimento/configuracao" element={<Configuracao />} />
+          <Route path="atendimento/configuracao" element={<Campanhas />} />
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/respostas-rapidas" element={<RespostasRapidas />} />
 
