@@ -41,7 +41,7 @@
 .container{
   min-height: 100dvh;     /* deixa crescer conforme o conteúdo */
   height: auto;
-  overflow: visible;       /* remove rolagem interna */
+  overflow: none;       /* remove rolagem interna */
   width: 100%;
   max-width: none;
   margin: 0;
