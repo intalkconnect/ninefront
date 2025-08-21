@@ -148,17 +148,6 @@ const QuickReplies = () => {
     }
   };
 
-  // Copiar
-  const handleCopy = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text || '');
-      showSuccess('Conteúdo copiado.');
-    } catch (e) {
-      console.error('Erro ao copiar:', e);
-      setError('Não foi possível copiar. Seu navegador pode não suportar esta funcionalidade.');
-    }
-  };
-
   const clearSearch = () => setQuery('');
 
   return (
@@ -390,15 +379,6 @@ const QuickReplies = () => {
                       </div>
                     ) : (
                       <div className={styles.actions}>
-                        <button
-                          className={`${styles.btn} ${styles.iconOnly}`}
-                          onClick={() => handleCopy(item.content)}
-                          title="Copiar conteúdo"
-                          aria-label="Copiar conteúdo"
-                          type="button"
-                        >
-                          <CopyIcon size={16} aria-hidden="true" />
-                        </button>
                         <button
                           className={`${styles.btnSecondary} ${styles.iconOnly}`}
                           onClick={() => startEdit(item)}
