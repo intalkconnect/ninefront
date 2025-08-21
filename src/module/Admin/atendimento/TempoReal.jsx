@@ -317,23 +317,6 @@ const TempoReal = () => {
         </div>
       </section>
 
-      {/* Alertas */}
-      <section className={styles.alertCard}>
-        <h3 className={styles.alertTitle}><AlertTriangle size={18} /> Alertas e Notificações</h3>
-        <div className={styles.alertList}>
-          {alertas.length === 0 ? (
-            <div className={`${styles.alert} ${styles.alertOk}`}>
-              <CheckCircle size={16} />
-              <span>Sem alertas no momento.</span>
-            </div>
-          ) : alertas.map((a) => (
-            <div key={a.id} className={`${styles.alert} ${styles.alertWarn}`}>
-              <Clock size={16} />
-              <span>{a.cliente} aguarda há {formatTime(a.tempoEspera)} no {a.canal}</span>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 };
