@@ -14,6 +14,7 @@ import Preferences from './preferences/Preferences'; // <<< usa a página de set
 import Channels from './preferences/Channels';
 import TempoReal from './atendimento/TempoReal';
 import Queues from './atendimento/Queues';
+import QuickReplies from './atendimento/QuickReplies';
 
 // Novos componentes (temporários como <div>)
 
@@ -74,7 +75,7 @@ export default function Admin() {
                   <NavLink to="atendimento/queues" className={styles['dropdown-link']}>
                     Filas
                   </NavLink>
-                  <NavLink to="atendimento/respostas-rapidas" className={styles['dropdown-link']}>
+                  <NavLink to="atendimento/quick-replies" className={styles['dropdown-link']}>
                     Respostas Rápidas
                   </NavLink>
                 </div>
@@ -149,7 +150,7 @@ export default function Admin() {
           <Route path="atendimento/tempo-real" element={<TempoReal />} />
           <Route path="atendimento/configuracao" element={<Campanhas />} />
           <Route path="atendimento/queues" element={<Queues />} />
-          <Route path="atendimento/respostas-rapidas" element={<RespostasRapidas />} />
+          <Route path="atendimento/quick-replies" element={<QuickReplies />} />
 
           {/* Preferências (antes era settings) */}
           <Route path="preferences" element={<Preferences />} />
