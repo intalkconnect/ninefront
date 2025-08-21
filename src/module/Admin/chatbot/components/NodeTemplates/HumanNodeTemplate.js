@@ -2,7 +2,7 @@ export const HumanNodeTemplate = {
   label: 'Atendimento Humano',
   type: 'human',
   color: '#8E24AA',
-  iconName: 'Headphones',
+  iconName: 'Headset',
   block: {
     type: 'human',
     content: {
@@ -17,3 +17,4 @@ export const HumanNodeTemplate = {
     escalationReason: '' // Motivo da transferência
   },
 };
+
