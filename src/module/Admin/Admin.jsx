@@ -108,7 +108,7 @@ export default function Admin() {
                   >
                     Canais
                   </NavLink>
-                  <div className={styles['dropdown-link']}>Integrações</div>
+{/*                   <div className={styles['dropdown-link']}>Integrações</div> */}
                 </div>
               )}
             </div>
@@ -148,7 +148,7 @@ export default function Admin() {
 
           {/* Atendimento */}
           <Route path="atendimento/tempo-real" element={<TempoReal />} />
-          <Route path="atendimento/configuracao" element={<Campanhas />} />
+{/*           <Route path="atendimento/configuracao" element={<Campanhas />} /> */}
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
 
