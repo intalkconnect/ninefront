@@ -47,16 +47,20 @@
   /* Transições */
   --qr-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --qr-transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --page-inline: clamp(8px, 1.2vw, 16px);
 }
 
 /* Página ocupa o viewport e rola apenas se precisar */
 .container {
-  height: 100dvh;
+  height: 100dvh;         /* já ajusta a página e ativa scroll se precisar */
   min-height: 0;
   overflow-y: auto;
-  max-width: 1600px; /* mais largo */
-  margin: 0 auto;
-  padding: 32px 24px;
+
+  width: 100%;
+  max-width: none;        /* <— remove limite que criava margens */
+  margin: 0;              /* <— remove o auto-centering */
+  padding: 32px var(--page-inline);
+
   background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
 }
 
@@ -139,7 +143,11 @@
 
 /* Busca */
 .searchGroup { position: relative; display: flex; align-items: center; }
-.searchInput { min-width: 340px; padding-right: 40px; }
+.searchInput {
+  min-width: 0;           /* <— deixa crescer só o necessário */
+  width: min(360px, 40vw);
+  padding-right: 40px;
+}
 .searchClear {
   position: absolute; right: 8px; display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; background: transparent; border: none; border-radius: 6px; cursor: pointer; color: var(--qr-text-secondary);
@@ -185,9 +193,9 @@
 /* Tabela */
 .tableWrap {
   width: 100%;
-  overflow: auto;               /* rola horizontal se precisar */
+  overflow-x: auto;
+  overflow-y: visible;
   border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
-  /* sem max-height: a página inteira rola para baixo se precisar */
 }
 .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
 .table th, .table td {
@@ -218,7 +226,11 @@
   font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   background: var(--qr-surface); padding: 3px 6px; border-radius: 6px; display: inline-block; border: 1px solid var(--qr-border-light);
 }
-.cellContent { max-width: 720px; max-height: 240px; overflow: auto; }
+.cellContent {
+  max-width: none;        /* <— remove limite que “aperta” o meio */
+  max-height: 240px;
+  overflow: auto;
+}
 .cellActions { min-width: 200px; }
 
 /* Ações */
