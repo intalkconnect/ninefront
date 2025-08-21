@@ -138,7 +138,7 @@ const TempoReal = () => {
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Tempo Reall</h1>
+          <h1 className={styles.title}>Tempo Real</h1>
           <p className={styles.subtitle}>
             Última atualização: {currentTime.toLocaleTimeString('pt-BR')}
           </p>
