@@ -1,295 +1,237 @@
-import React, { useEffect, useState } from 'react';
-import { X, Save, Plus, Trash2, TestTube2 } from 'lucide-react';
-import { apiGet, apiPost } from '../../../shared/apiClient';
-import styles from './styles/Filas.module.css';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X, Plus, Trash2, Save } from 'lucide-react';
+import { apiGet, apiPut } from '../../../shared/apiClient';
+import css from './styles/QueueHoursModal.module.css';
 
-const WEEK = [
-  { value: 1, label: 'Segunda' },
-  { value: 2, label: 'Terça' },
-  { value: 3, label: 'Quarta' },
-  { value: 4, label: 'Quinta' },
-  { value: 5, label: 'Sexta' },
-  { value: 6, label: 'Sábado' },
-  { value: 7, label: 'Domingo' },
+const WDAYS = [
+  { key: 'mon', label: 'Segunda' },
+  { key: 'tue', label: 'Terça' },
+  { key: 'wed', label: 'Quarta' },
+  { key: 'thu', label: 'Quinta' },
+  { key: 'fri', label: 'Sexta' },
+  { key: 'sat', label: 'Sábado' },
+  { key: 'sun', label: 'Domingo' },
 ];
 
-function sortWeekly(arr) {
-  return [...arr].sort((a, b) => a.weekday - b.weekday);
+function emptyWindows() {
+  return { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] };
 }
 
-export default function QueueHoursModal({ queueName, onClose, onSaved }) {
+export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState(null);
-  const [okMsg, setOkMsg]     = useState(null);
+  const [err, setErr] = useState(null);
 
-  // estado do formulário
   const [enabled, setEnabled] = useState(true);
   const [tz, setTz] = useState('America/Sao_Paulo');
   const [preMsg, setPreMsg] = useState('');
   const [offMsg, setOffMsg] = useState('');
-  const [weekly, setWeekly] = useState([]); // [{weekday, windows:[{start,end}]}]
-  const [holidays, setHolidays] = useState([]); // [{date,name}]
+  const [windows, setWindows] = useState(emptyWindows());
+  const [holidays, setHolidays] = useState([]); // [{date:'2025-12-25', name:'Natal'}]
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
+  // carrega dados
+  useEffect(() => {
+    (async () => {
+      setLoading(true); setErr(null);
+      try {
+        const data = await apiGet(`/filas/horarios/${encodeURIComponent(filaNome)}`);
+        setEnabled(Boolean(data?.enabled ?? true));
+        setTz(data?.timezone || 'America/Sao_Paulo');
+        setPreMsg(data?.pre_message || '');
+        setOffMsg(data?.off_message || '');
+        setWindows({ ...emptyWindows(), ...(data?.windows || {}) });
+        setHolidays(Array.isArray(data?.holidays) ? data.holidays : []);
+      } catch (e) {
+        console.error(e);
+        setErr('Falha ao carregar horários desta fila.');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [filaNome]);
+
+  // helpers para atualizar janelas
+  const addWindow = (dayKey) => {
+    setWindows((w) => ({
+      ...w,
+      [dayKey]: [...(w[dayKey] || []), { start: '09:00', end: '18:00' }],
+    }));
+  };
+  const updateWindow = (dayKey, idx, field, value) => {
+    setWindows((w) => {
+      const arr = [...(w[dayKey] || [])];
+      arr[idx] = { ...arr[idx], [field]: value };
+      return { ...w, [dayKey]: arr };
+    });
+  };
+  const removeWindow = (dayKey, idx) => {
+    setWindows((w) => {
+      const arr = [...(w[dayKey] || [])];
+      arr.splice(idx, 1);
+      return { ...w, [dayKey]: arr };
+    });
+  };
+
+  // feriados
+  const addHoliday = () => setHolidays((h) => [...h, { date: '', name: '' }]);
+  const updateHoliday = (i, field, value) => {
+    setHolidays((h) => {
+      const arr = [...h]; arr[i] = { ...arr[i], [field]: value }; return arr;
+    });
+  };
+  const removeHoliday = (i) => {
+    setHolidays((h) => h.filter((_, idx) => idx !== i));
+  };
+
+  const saving = useMemo(() => loading, [loading]);
+
+  const save = async () => {
+    setLoading(true); setErr(null);
     try {
-      const data = await apiGet(`/queues/${encodeURIComponent(queueName)}/hours`);
-      setEnabled(!!data.enabled);
-      setTz(data.tz || 'America/Sao_Paulo');
-      setPreMsg(data.pre_service_message || '');
-      setOffMsg(data.offhours_message || '');
-      setWeekly(sortWeekly(Array.isArray(data.weekly) ? data.weekly : []));
-      setHolidays(Array.isArray(data.holidays) ? data.holidays : []);
+      await apiPut(`/filas/horarios/${encodeURIComponent(filaNome)}`, {
+        enabled, timezone: tz, pre_message: preMsg, off_message: offMsg,
+        windows, holidays
+      });
+      onSaved?.();
     } catch (e) {
       console.error(e);
-      setError('Falha ao carregar horários desta fila.');
-    } finally {
+      setErr('Erro ao salvar configurações.');
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, [queueName]);
-
-  const addWindow = (weekday) => {
-    setWeekly((prev) => {
-      const idx = prev.findIndex(d => d.weekday === weekday);
-      if (idx === -1) return sortWeekly([...prev, { weekday, windows: [{ start: '09:00', end: '18:00' }] }]);
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], windows: [...copy[idx].windows, { start: '09:00', end: '18:00' }] };
-      return sortWeekly(copy);
-    });
-  };
-
-  const removeWindow = (weekday, winIdx) => {
-    setWeekly((prev) => {
-      const idx = prev.findIndex(d => d.weekday === weekday);
-      if (idx === -1) return prev;
-      const wins = [...prev[idx].windows];
-      wins.splice(winIdx, 1);
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], windows: wins };
-      return sortWeekly(copy);
-    });
-  };
-
-  const changeWindow = (weekday, winIdx, field, value) => {
-    setWeekly((prev) => {
-      const idx = prev.findIndex(d => d.weekday === weekday);
-      if (idx === -1) return prev;
-      const wins = [...prev[idx].windows];
-      wins[winIdx] = { ...wins[winIdx], [field]: value };
-      const copy = [...prev];
-      copy[idx] = { ...prev[idx], windows: wins };
-      return sortWeekly(copy);
-    });
-  };
-
-  const addHoliday = () => {
-    setHolidays(h => [...h, { date: '', name: '' }]);
-  };
-  const changeHoliday = (i, field, value) => {
-    setHolidays((prev) => {
-      const c = [...prev];
-      c[i] = { ...c[i], [field]: value };
-      return c;
-    });
-  };
-  const removeHoliday = (i) => {
-    setHolidays((prev) => {
-      const c = [...prev];
-      c.splice(i, 1);
-      return c;
-    });
-  };
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      await apiPost(`/queues/${encodeURIComponent(queueName)}/hours`, {
-        tz,
-        enabled,
-        pre_service_message: preMsg,
-        offhours_message: offMsg,
-        weekly,
-        holidays,
-      });
-      setOkMsg('Salvo com sucesso.');
-      setTimeout(() => setOkMsg(null), 1500);
-      onSaved?.();
-    } catch (e) {
-      console.error(e);
-      setError('Falha ao salvar horários.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const testNow = async () => {
-    setError(null);
-    try {
-      const res = await apiPost(`/queues/${encodeURIComponent(queueName)}/hours/test`, {});
-      const label =
-        res.reason === 'holiday'
-          ? 'Feriado'
-          : res.reason === 'open'
-          ? 'Aberto'
-          : 'Fechado';
-      const nextLabel = res.next_open_local ? ` • Próxima abertura: ${res.next_open_local} (${res.local_tz})` : '';
-      setOkMsg(`${label}${nextLabel}`);
-      setTimeout(() => setOkMsg(null), 2400);
-    } catch (e) {
-      console.error(e);
-      setError('Não foi possível testar agora.');
-    }
-  };
-
   return (
-    <div className={styles.modalBackdrop}>
-      <div className={styles.modalCardLarge}>
-        <div className={styles.modalHead}>
-          <h3 className={styles.modalTitle}>Configurar horário — <strong>{queueName}</strong></h3>
-          <button className={styles.iconBtn} onClick={onClose} title="Fechar">
-            <X size={18} />
+    <div className={css.backdrop}>
+      <div className={css.modal}>
+        <div className={css.modalHead}>
+          <div className={css.modalTitle}>Configurar horário — <strong>{filaNome}</strong></div>
+          <button className={css.iconBtn} onClick={onClose} title="Fechar">
+            <X size={18}/>
           </button>
         </div>
 
-        <div className={styles.modalBody}>
-          {loading ? (
-            <div className={styles.loading}>Carregando…</div>
-          ) : (
-            <>
-              {error && <div className={styles.alertErr}>{error}</div>}
-              {okMsg && <div className={styles.alertOk}>{okMsg}</div>}
+        <div className={css.modalBody}>
+          {err && <div className={css.alertErr}>{err}</div>}
 
-              <div className={styles.formRow}>
-                <label className={styles.inlineLabel}>Ativar regras</label>
-                <select
-                  className={styles.input}
-                  value={enabled ? 'true' : 'false'}
-                  onChange={(e) => setEnabled(e.target.value === 'true')}
-                >
-                  <option value="true">Ativado</option>
-                  <option value="false">Desativado</option>
-                </select>
-              </div>
+          {/* ativação */}
+          <div className={css.fieldRow}>
+            <label>Ativar regras</label>
+            <select
+              value={enabled ? 'on' : 'off'}
+              onChange={(e)=>setEnabled(e.target.value==='on')}
+              className={css.select}
+            >
+              <option value="on">Ativado</option>
+              <option value="off">Desativado</option>
+            </select>
+          </div>
 
-              <div className={styles.formRow}>
-                <label className={styles.inlineLabel}>Timezone</label>
-                <input
-                  className={styles.input}
-                  placeholder="Ex.: America/Sao_Paulo"
-                  value={tz}
-                  onChange={(e) => setTz(e.target.value)}
-                />
-              </div>
+          {/* timezone */}
+          <div className={css.fieldRow}>
+            <label>Timezone</label>
+            <input
+              className={css.input}
+              value={tz}
+              onChange={(e)=>setTz(e.target.value)}
+              placeholder="America/Sao_Paulo"
+            />
+          </div>
 
-              <div className={styles.formRow}>
-                <label className={styles.inlineLabel}>Mensagem antes do atendimento</label>
-                <textarea
-                  className={styles.textarea}
-                  rows={2}
-                  placeholder="Ex.: Um momento, vou te conectar a um atendente…"
-                  value={preMsg}
-                  onChange={(e) => setPreMsg(e.target.value)}
-                />
-              </div>
+          {/* mensagens */}
+          <div className={css.fieldRow}>
+            <label>Mensagem antes do atendimento</label>
+            <textarea
+              className={css.textarea}
+              rows={2}
+              value={preMsg}
+              onChange={(e)=>setPreMsg(e.target.value)}
+              placeholder="Ex.: Um momento, vou te conectar a um atendente…"
+            />
+          </div>
+          <div className={css.fieldRow}>
+            <label>Mensagem fora do expediente</label>
+            <textarea
+              className={css.textarea}
+              rows={2}
+              value={offMsg}
+              onChange={(e)=>setOffMsg(e.target.value)}
+              placeholder="Ex.: Estamos fora do horário de atendimento. Voltamos às 09:00."
+            />
+          </div>
 
-              <div className={styles.formRow}>
-                <label className={styles.inlineLabel}>Mensagem fora do expediente</label>
-                <textarea
-                  className={styles.textarea}
-                  rows={2}
-                  placeholder="Ex.: Estamos fora do horário de atendimento. Voltamos às 09:00."
-                  value={offMsg}
-                  onChange={(e) => setOffMsg(e.target.value)}
-                />
-              </div>
-
-              <hr className={styles.sep} />
-
-              <h4 className={styles.sectionTitle}>Janelas por dia</h4>
-              <div className={styles.weekGrid}>
-                {WEEK.map(d => {
-                  const day = weekly.find(w => w.weekday === d.value) || { weekday: d.value, windows: [] };
-                  return (
-                    <div key={d.value} className={styles.dayCard}>
-                      <div className={styles.dayHead}>
-                        <strong>{d.label}</strong>
-                        <button className={styles.btnTiny} onClick={() => addWindow(d.value)}>
-                          <Plus size={14}/> Adicionar janela
-                        </button>
-                      </div>
-                      {day.windows.length === 0 ? (
-                        <div className={styles.emptySmall}>Sem janelas.</div>
-                      ) : (
-                        day.windows.map((w, i) => (
-                          <div key={i} className={styles.windowRow}>
-                            <input
-                              type="time"
-                              value={w.start}
-                              className={styles.inputTime}
-                              onChange={(e) => changeWindow(d.value, i, 'start', e.target.value)}
-                            />
-                            <span className={styles.to}>até</span>
-                            <input
-                              type="time"
-                              value={w.end}
-                              className={styles.inputTime}
-                              onChange={(e) => changeWindow(d.value, i, 'end', e.target.value)}
-                            />
-                            <button className={styles.iconBtn} onClick={() => removeWindow(d.value, i)} title="Remover">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))
-                      )}
+          {/* janelas por dia */}
+          <div className={css.sectionTitle}>Janelas por dia</div>
+          <div className={css.dayTable}>
+            {WDAYS.map(({key,label}) => (
+              <div key={key} className={css.dayRow}>
+                <div className={css.dayLabel}>{label}</div>
+                <div className={css.dayWindows}>
+                  {(windows[key] || []).length === 0 && (
+                    <div className={css.emptyRow}>Sem janelas.</div>
+                  )}
+                  {(windows[key] || []).map((w, idx) => (
+                    <div key={idx} className={css.win}>
+                      <input
+                        type="time"
+                        value={w.start || ''}
+                        onChange={(e)=>updateWindow(key, idx, 'start', e.target.value)}
+                        className={css.time}
+                      />
+                      <span className={css.dash}>—</span>
+                      <input
+                        type="time"
+                        value={w.end || ''}
+                        onChange={(e)=>updateWindow(key, idx, 'end', e.target.value)}
+                        className={css.time}
+                      />
+                      <button className={`${css.iconBtn} ${css.danger}`} onClick={()=>removeWindow(key, idx)} title="Remover janela">
+                        <Trash2 size={16}/>
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-
-              <hr className={styles.sep} />
-
-              <h4 className={styles.sectionTitle}>Feriados</h4>
-              {holidays.length === 0 && <div className={styles.emptySmall}>Nenhum feriado.</div>}
-              {holidays.map((h, i) => (
-                <div key={i} className={styles.holidayRow}>
-                  <input
-                    type="date"
-                    className={styles.input}
-                    value={h.date || ''}
-                    onChange={(e) => changeHoliday(i, 'date', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    className={styles.input}
-                    placeholder="Nome (opcional)"
-                    value={h.name || ''}
-                    onChange={(e) => changeHoliday(i, 'name', e.target.value)}
-                  />
-                  <button className={styles.iconBtn} onClick={() => removeHoliday(i)} title="Remover feriado">
-                    <Trash2 size={16} />
+                  ))}
+                  <button className={`${css.iconBtn} ${css.add}`} onClick={()=>addWindow(key)} title="Adicionar janela">
+                    <Plus size={16}/>
                   </button>
                 </div>
-              ))}
-              <button className={styles.btnTiny} onClick={addHoliday}>
-                <Plus size={14}/> Adicionar feriado
-              </button>
-            </>
+              </div>
+            ))}
+          </div>
+
+          {/* feriados */}
+          <div className={css.sectionTitle}>Feriados</div>
+          {holidays.length === 0 && (
+            <div className={css.emptyRow}>Nenhum feriado.</div>
           )}
+          {holidays.map((h, i) => (
+            <div key={i} className={css.holidayRow}>
+              <input
+                type="date"
+                value={h.date || ''}
+                onChange={(e)=>updateHoliday(i, 'date', e.target.value)}
+                className={css.input}
+                style={{maxWidth: 180}}
+              />
+              <input
+                type="text"
+                value={h.name || ''}
+                onChange={(e)=>updateHoliday(i, 'name', e.target.value)}
+                placeholder="Descrição (opcional)"
+                className={css.input}
+                style={{flex:1}}
+              />
+              <button className={`${css.iconBtn} ${css.danger}`} onClick={()=>removeHoliday(i)} title="Remover">
+                <Trash2 size={16}/>
+              </button>
+            </div>
+          ))}
+          <button className={`${css.iconBtn} ${css.add}`} onClick={addHoliday} title="Adicionar feriado">
+            <Plus size={16}/>
+          </button>
         </div>
 
-        <div className={styles.modalFoot}>
-          <button className={styles.btnGhost} onClick={testNow} title="Testar status agora">
-            <TestTube2 size={16}/> Testar agora
-          </button>
-          <div style={{flex:1}} />
-          <button className={styles.btnGhost} onClick={onClose}>Cancelar</button>
-          <button className={styles.btnPrimary} onClick={save} disabled={saving}>
-            <Save size={16}/> {saving ? 'Salvando…' : 'Salvar'}
+        <div className={css.modalFoot}>
+          <button className={css.btnGhost} onClick={onClose}>Cancelar</button>
+          <button className={css.btnPrimary} onClick={save} disabled={saving}>
+            <Save size={16}/> Salvar
           </button>
         </div>
       </div>
