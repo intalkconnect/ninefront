@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Users, Plus, ChevronDown } from 'lucide-react';
+import { Users, Plus, Clock } from 'lucide-react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import styles from './styles/Filas.module.css';
+import QueueHoursModal from './QueueHoursModal';
 
 export default function Queues() {
   const [filas, setFilas] = useState([]);
@@ -11,9 +12,9 @@ export default function Queues() {
 
   // criação
   const [nome, setNome] = useState('');
-  // expansão / cache de atendentes online
-  const [open, setOpen] = useState(null);
-  const [onlineByFila, setOnlineByFila] = useState({}); // { [nomeFila]: { list: [], loaded: true } }
+
+  // modal de horários
+  const [hoursForQueue, setHoursForQueue] = useState(null);
 
   const toastOK = (msg) => { setOkMsg(msg); setTimeout(() => setOkMsg(null), 1600); };
 
@@ -21,7 +22,7 @@ export default function Queues() {
     setLoading(true);
     setErro(null);
     try {
-      const data = await apiGet('/filas');
+      const data = await apiGet('/filas'); // mantém sua rota de listagem de filas
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -32,21 +33,6 @@ export default function Queues() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const toggleOpen = async (filaNome) => {
-    setOpen((prev) => (prev === filaNome ? null : filaNome));
-    // carrega online se ainda não carregado
-    if (!onlineByFila[filaNome]) {
-      try {
-        const res = await apiGet(`/filas/atendentes/${encodeURIComponent(filaNome)}`);
-        const list = Array.isArray(res?.atendentes) ? res.atendentes : [];
-        setOnlineByFila((m) => ({ ...m, [filaNome]: { list, loaded: true } }));
-      } catch (e) {
-        console.error(e);
-        setOnlineByFila((m) => ({ ...m, [filaNome]: { list: [], loaded: true } }));
-      }
-    }
-  };
 
   const criar = async (e) => {
     e.preventDefault();
@@ -71,7 +57,7 @@ export default function Queues() {
         <div>
           <h1 className={styles.title}>Filas</h1>
           <p className={styles.subtitle}>
-            Gerencie as filas de atendimento e visualize quem está online em cada uma.
+            Gerencie as filas de atendimento e configure horários/feriados por fila.
           </p>
           {erro ? <div className={styles.alertErr}>{erro}</div> : null}
           {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
@@ -107,75 +93,51 @@ export default function Queues() {
             <thead>
               <tr>
                 <th style={{minWidth: 280}}>Fila</th>
-                <th style={{width: 160}}>Online agora</th>
-                <th style={{width: 160}}></th>
+                <th style={{width: 220}}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((f) => {
                 const nomeFila = f.nome ?? f.name ?? '';
-                const opened = open === nomeFila;
-                const online = onlineByFila[nomeFila]?.list ?? [];
                 return (
-                  <React.Fragment key={nomeFila}>
-                    <tr className={styles.rowHover}>
-                      <td>{nomeFila}</td>
-                      <td>
-                        {onlineByFila[nomeFila]
-                          ? <strong>{online.length}</strong>
-                          : <span className={styles.subtleCenter}>—</span>
-                        }
-                      </td>
-                      <td>
-                        <button className={styles.btnTiny} onClick={() => toggleOpen(nomeFila)}>
-                          <ChevronDown size={14} style={{transform: opened ? 'rotate(180deg)' : 'none', transition:'transform .15s'}}/>
-                          {opened ? 'Ocultar' : 'Ver atendentes'}
-                        </button>
-                      </td>
-                    </tr>
-
-                    {opened && (
-                      <tr>
-                        <td colSpan={3} className={styles.nestedCell}>
-                          <div className={styles.nestedWrap}>
-                            <div className={styles.nestedTitle}>
-                              Atendentes online em “{nomeFila}”
-                            </div>
-                            {!onlineByFila[nomeFila]
-                              ? <div className={styles.loading}>Carregando…</div>
-                              : (
-                                online.length === 0
-                                  ? <div className={styles.empty}>Nenhum atendente online nesta fila.</div>
-                                  : (
-                                    <ul className={styles.inlineList}>
-                                      {online.map(a => (
-                                        <li key={a.email}>
-                                          <span className={styles.badgeOk}/>
-                                          {a.name} {a.lastname} — {a.email}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  )
-                              )
-                            }
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <tr key={nomeFila} className={styles.rowHover}>
+                    <td>{nomeFila}</td>
+                    <td>
+                      <button
+                        className={styles.btnTiny}
+                        onClick={() => setHoursForQueue(nomeFila)}
+                        title="Configurar horários / feriados / mensagens"
+                      >
+                        <Clock size={14} />
+                        Configurar horário
+                      </button>
+                    </td>
+                  </tr>
                 );
               })}
 
               {!loading && rows.length === 0 && (
-                <tr><td colSpan={3} className={styles.empty}>Nenhuma fila cadastrada.</td></tr>
+                <tr><td colSpan={2} className={styles.empty}>Nenhuma fila cadastrada.</td></tr>
               )}
               {loading && (
-                <tr><td colSpan={3} className={styles.loading}>Carregando…</td></tr>
+                <tr><td colSpan={2} className={styles.loading}>Carregando…</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Modal de horas por fila */}
+      {hoursForQueue && (
+        <QueueHoursModal
+          queueName={hoursForQueue}
+          onClose={() => setHoursForQueue(null)}
+          onSaved={() => {
+            setHoursForQueue(null);
+            toastOK('Horários salvos.');
+          }}
+        />
+      )}
     </div>
   );
 }
