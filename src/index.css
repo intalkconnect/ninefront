@@ -1,20 +1,13 @@
-:root{
-  /* use as mesmas variáveis do módulo se quiser */
-  --qr-surface: #f7f8fa;
-}
-
-html, body{
+/* global.css */
+html, body {
   height: 100%;
   margin: 0;
-  overflow-y: auto;   /* só o body rola */
-  overflow-x: hidden;
-  background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
+  overflow: hidden;           /* <— body não terá scroll */
 }
 
 /* se houver wrappers do layout */
-#root, .app, .layout, .content, main{
-  min-height: 100%;
-  height: auto;
-  overflow: visible;    /* evita scroll interno */
-  padding-bottom: 0;    /* mata padding extra que cria “barriga” */
+#root, .app, .layout, .content, main {
+  height: 100%;               /* ocupam todo o body */
+  min-height: 0;              /* permite que o filho com overflow funcione */
+  overflow: visible;          /* evita um 2º scroll acidental */
 }
