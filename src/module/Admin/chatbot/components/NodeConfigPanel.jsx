@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
-import styles from './styles/NodeConfigPanel.module.css';
+import styles from "./styles/NodeConfigPanel.module.css";
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -35,26 +35,22 @@ export default function NodeConfigPanel({
     type,
     content = {},
     awaitResponse,
-    awaitTimeInSeconds,
     sendDelayInSeconds,
     actions = [],
   } = block;
 
   const isHuman = type === "human";
 
-  /** ---------------- helpers de imutabilidade e normalização ---------------- */
+  /* ---------------- helpers ---------------- */
 
   const deepClone = (obj) => {
-    // use structuredClone quando disponível
     if (typeof structuredClone === "function") return structuredClone(obj);
     return JSON.parse(JSON.stringify(obj ?? {}));
   };
 
-  // Mantém o WhatsApp feliz: limita comprimento, remove quebras, normaliza espaços
   const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
-
-  // Para IDs “iguais ao título”, mas seguros (sem quebras/trim)
-  const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
+  const makeIdFromTitle = (title, max = 24) =>
+    clamp((title || "").toString().trim(), max);
 
   const updateNode = (updatedNode) => onChange(updatedNode);
 
@@ -73,7 +69,6 @@ export default function NodeConfigPanel({
   };
 
   const updateContent = (field, value) => {
-    // sempre clonar antes de escrever
     const cloned = deepClone(content);
     cloned[field] = value;
     updateBlock({ content: cloned });
@@ -83,21 +78,21 @@ export default function NodeConfigPanel({
     updateBlock({ actions: deepClone(newActions) });
   };
 
-  // ---------- atalhos p/ “condições específicas” do HUMAN ----------
+  /* -------- atalhos HUMAN -------- */
+
   const addOffhoursAction = (kind) => {
     let conds = [];
-    if (kind === 'offhours_true') {
-      conds = [{ variable: 'offhours', type: 'equals', value: 'true' }];
-    } else if (kind === 'reason_holiday') {
-      conds = [{ variable: 'offhours_reason', type: 'equals', value: 'holiday' }];
-    } else if (kind === 'reason_closed') {
-      conds = [{ variable: 'offhours_reason', type: 'equals', value: 'closed' }];
+    if (kind === "offhours_true") {
+      conds = [{ variable: "offhours", type: "equals", value: "true" }];
+    } else if (kind === "reason_holiday") {
+      conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
+    } else if (kind === "reason_closed") {
+      conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
     }
     const newAction = { next: "", conditions: conds };
     updateActions([...(actions || []), newAction]);
   };
 
-  // opções de variável no seletor (inclui offhours e offhours_reason no nó HUMAN)
   const variableOptions = isHuman
     ? [
         { value: "lastUserMessage", label: "Resposta do usuário" },
@@ -110,7 +105,6 @@ export default function NodeConfigPanel({
         { value: "custom", label: "Variável personalizada" },
       ];
 
-  // input “valor” especial conforme variável + tipo
   const renderValueInput = (cond, onChangeValue) => {
     if (cond.type === "exists") return null;
 
@@ -160,20 +154,52 @@ export default function NodeConfigPanel({
     );
   };
 
+  /* ---------------- tabs ---------------- */
+
   const renderActionsTab = () => (
     <div className={styles.tabContent}>
-      {/* Atalhos específicos para o bloco HUMAN */}
       <div className={styles.sectionContainer}>
-        <div className={styles.sectionHeader} onClick={() => toggleSection("actions")}>
+        <div
+          className={styles.sectionHeader}
+          onClick={() => toggleSection("actions")}
+        >
           <h4 className={styles.sectionTitle}>
             Condições de Saída
             <span className={styles.sectionCount}>({actions.length}/25)</span>
           </h4>
-          {expandedSections.actions ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {expandedSections.actions ? (
+            <ChevronUp size={16} />
+          ) : (
+            <ChevronDown size={16} />
+          )}
         </div>
 
         {expandedSections.actions && (
           <div className={styles.sectionContent}>
+            {/* atalhos human (opcional: comente se não quiser) */}
+            {isHuman && (
+              <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
+                <button
+                  className={styles.addButtonSmall}
+                  onClick={() => addOffhoursAction("offhours_true")}
+                >
+                  + Se offhours = true
+                </button>
+                <button
+                  className={styles.addButtonSmall}
+                  onClick={() => addOffhoursAction("reason_holiday")}
+                >
+                  + Se offhours_reason = holiday
+                </button>
+                <button
+                  className={styles.addButtonSmall}
+                  onClick={() => addOffhoursAction("reason_closed")}
+                >
+                  + Se offhours_reason = closed
+                </button>
+              </div>
+            )}
+
             {actions.map((action, actionIdx) => (
               <React.Fragment key={actionIdx}>
                 {actionIdx > 0 && (
@@ -207,9 +233,11 @@ export default function NodeConfigPanel({
                         <label className={styles.inputLabel}>Variável</label>
                         <select
                           value={
-                            variableOptions.some(v => v.value === cond.variable)
+                            variableOptions.some((v) => v.value === cond.variable)
                               ? cond.variable
-                              : (cond.variable ? "custom" : "lastUserMessage")
+                              : cond.variable
+                              ? "custom"
+                              : "lastUserMessage"
                           }
                           onChange={(e) => {
                             const nextVar = e.target.value;
@@ -218,7 +246,10 @@ export default function NodeConfigPanel({
                               updated[actionIdx].conditions[condIdx].variable = "";
                             } else {
                               updated[actionIdx].conditions[condIdx].variable = nextVar;
-                              if (!updated[actionIdx].conditions[condIdx].type || updated[actionIdx].conditions[condIdx].type === "") {
+                              if (
+                                !updated[actionIdx].conditions[condIdx].type ||
+                                updated[actionIdx].conditions[condIdx].type === ""
+                              ) {
                                 updated[actionIdx].conditions[condIdx].type = "equals";
                               }
                               if (nextVar === "offhours") {
@@ -231,14 +262,17 @@ export default function NodeConfigPanel({
                           }}
                           className={styles.selectStyle}
                         >
-                          {variableOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          {variableOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </select>
                       </div>
 
                       {/* Nome da variável custom */}
-                      {(!variableOptions.some(v => v.value === cond.variable) || cond.variable === "") && (
+                      {(!variableOptions.some((v) => v.value === cond.variable) ||
+                        cond.variable === "") && (
                         <div className={styles.inputGroup}>
                           <label className={styles.inputLabel}>Nome da variável</label>
                           <input
@@ -247,7 +281,8 @@ export default function NodeConfigPanel({
                             value={cond.variable || ""}
                             onChange={(e) => {
                               const updated = deepClone(actions);
-                              updated[actionIdx].conditions[condIdx].variable = e.target.value;
+                              updated[actionIdx].conditions[condIdx].variable =
+                                e.target.value;
                               updateActions(updated);
                             }}
                             className={styles.inputStyle}
@@ -262,7 +297,8 @@ export default function NodeConfigPanel({
                           value={cond.type || ""}
                           onChange={(e) => {
                             const updated = deepClone(actions);
-                            updated[actionIdx].conditions[condIdx].type = e.target.value;
+                            updated[actionIdx].conditions[condIdx].type =
+                              e.target.value;
                             if (e.target.value === "exists") {
                               updated[actionIdx].conditions[condIdx].value = "";
                             }
@@ -281,7 +317,7 @@ export default function NodeConfigPanel({
                         </select>
                       </div>
 
-                      {/* Valor (especial p/ offhours/offhours_reason) */}
+                      {/* Valor */}
                       {renderValueInput(cond, (v) => {
                         const updated = deepClone(actions);
                         updated[actionIdx].conditions[condIdx].value = v;
@@ -379,9 +415,16 @@ export default function NodeConfigPanel({
       </div>
 
       <div className={styles.sectionContainer}>
-        <div className={styles.sectionHeader} onClick={() => toggleSection("default")}>
+        <div
+          className={styles.sectionHeader}
+          onClick={() => toggleSection("default")}
+        >
           <h4 className={styles.sectionTitle}>Saída Padrão</h4>
-          {expandedSections.default ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          {expandedSections.default ? (
+            <ChevronUp size={16} />
+          ) : (
+            <ChevronDown size={16} />
+          )}
         </div>
 
         {expandedSections.default && (
@@ -427,7 +470,9 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
               value={String(!!awaitResponse)}
-              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -440,7 +485,11 @@ export default function NodeConfigPanel({
             <input
               type="number"
               value={sendDelayInSeconds ?? 0}
-              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
+              onChange={(e) =>
+                updateBlock({
+                  sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                })
+              }
               className={styles.inputStyle}
             />
           </div>
@@ -489,7 +538,9 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
               value={String(!!awaitResponse)}
-              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -502,7 +553,11 @@ export default function NodeConfigPanel({
             <input
               type="number"
               value={sendDelayInSeconds ?? 0}
-              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
+              onChange={(e) =>
+                updateBlock({
+                  sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                })
+              }
               className={styles.inputStyle}
             />
           </div>
@@ -530,12 +585,20 @@ export default function NodeConfigPanel({
       const isList = content.type === "list";
       const isQuickReply = content.type === "button";
 
+      /* ------ handlers quick reply ------ */
+
       const handleAddButton = () => {
         const current = deepClone(content.action?.buttons || []);
         if (current.length >= 3) return alert("Máximo de 3 botões atingido.");
-        const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
+        const newBtn = {
+          type: "reply",
+          reply: { id: "Novo botão", title: "Novo botão" },
+        };
         const nextButtons = [...current, newBtn];
-        const nextAction = { ...(deepClone(content.action) || {}), buttons: nextButtons };
+        const nextAction = {
+          ...(deepClone(content.action) || {}),
+          buttons: nextButtons,
+        };
         const nextContent = { ...deepClone(content), action: nextAction };
         updateBlock({ content: nextContent });
       };
@@ -547,6 +610,8 @@ export default function NodeConfigPanel({
         const nextContent = { ...deepClone(content), action: nextAction };
         updateBlock({ content: nextContent });
       };
+
+      /* ------ handlers list ------ */
 
       const handleAddListItem = () => {
         const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
@@ -589,7 +654,6 @@ export default function NodeConfigPanel({
               onChange={(e) => {
                 const newType = e.target.value;
                 if (newType === "list") {
-                  // cria NOVO objeto (evita referência compartilhada)
                   updateBlock({
                     content: deepClone({
                       type: "list",
@@ -597,9 +661,13 @@ export default function NodeConfigPanel({
                       footer: { text: "Toque para selecionar" },
                       header: { text: "🎯 Menu de Opções", type: "text" },
                       action: {
+                        // ★ campo editável abaixo
                         button: "Abrir lista",
                         sections: [
-                          { title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }] }
+                          {
+                            title: "Seção 1", // interno; não exposto na UI (pedido: trocar pelo button)
+                            rows: [{ id: "Item 1", title: "Item 1", description: "" }],
+                          },
                         ],
                       },
                     }),
@@ -632,7 +700,12 @@ export default function NodeConfigPanel({
             <input
               type="text"
               value={content.body?.text || ""}
-              onChange={(e) => updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })}
+              onChange={(e) =>
+                updateContent("body", {
+                  ...(deepClone(content.body) || {}),
+                  text: e.target.value,
+                })
+              }
               className={styles.inputStyle}
             />
           </div>
@@ -642,7 +715,12 @@ export default function NodeConfigPanel({
             <input
               type="text"
               value={content.footer?.text || ""}
-              onChange={(e) => updateContent("footer", { ...(deepClone(content.footer) || {}), text: e.target.value })}
+              onChange={(e) =>
+                updateContent("footer", {
+                  ...(deepClone(content.footer) || {}),
+                  text: e.target.value,
+                })
+              }
               className={styles.inputStyle}
             />
           </div>
@@ -651,7 +729,9 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
               value={String(!!awaitResponse)}
-              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -664,27 +744,41 @@ export default function NodeConfigPanel({
             <input
               type="number"
               value={sendDelayInSeconds ?? 0}
-              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
+              onChange={(e) =>
+                updateBlock({
+                  sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                })
+              }
               className={styles.inputStyle}
             />
           </div>
 
+          {/* ====== LIST: campo substituto (button) ====== */}
           {isList && (
             <>
+              {/* Substitui "Título da seção" por este campo */}
               <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Título da seção</label>
+                <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
                 <input
                   type="text"
-                  value={content.action?.sections?.[0]?.title || ""}
+                  maxLength={20}
+                  value={content.action?.button || ""}
                   onChange={(e) => {
-                    const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
-                    sections[0] = { ...(sections[0] || {}), title: e.target.value };
-                    const nextAction = { ...(deepClone(content.action) || {}), sections };
+                    const nextVal = (e.target.value || "").slice(0, 20);
+                    const nextAction = {
+                      ...(deepClone(content.action) || {}),
+                      button: nextVal,
+                      sections: deepClone(
+                        content.action?.sections || [{ title: "Seção 1", rows: [] }]
+                      ),
+                    };
                     const nextContent = { ...deepClone(content), action: nextAction };
                     updateBlock({ content: nextContent });
                   }}
                   className={styles.inputStyle}
+                  placeholder="Ex.: Abrir opções"
                 />
+                <small className={styles.helpText}>máx. 20 caracteres</small>
               </div>
 
               {(content.action?.sections?.[0]?.rows || []).map((item, idx) => (
@@ -696,16 +790,21 @@ export default function NodeConfigPanel({
                     placeholder="Título"
                     onChange={(e) => {
                       const value = e.target.value;
-                      const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+                      const sections = deepClone(
+                        content.action?.sections || [{ title: "Seção 1", rows: [] }]
+                      );
                       const rows = [...(sections[0]?.rows || [])];
                       rows[idx] = {
                         ...(rows[idx] || {}),
                         title: clamp(value, 24),
-                        // ★ ID segue o título:
+                        // ★ ID segue o título
                         id: makeIdFromTitle(value, 24),
                       };
                       sections[0] = { ...(sections[0] || {}), rows };
-                      const nextAction = { ...(deepClone(content.action) || {}), sections };
+                      const nextAction = {
+                        ...(deepClone(content.action) || {}),
+                        sections,
+                      };
                       const nextContent = { ...deepClone(content), action: nextAction };
                       updateBlock({ content: nextContent });
                     }}
@@ -716,14 +815,19 @@ export default function NodeConfigPanel({
                     value={item.description}
                     placeholder="Descrição"
                     onChange={(e) => {
-                      const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+                      const sections = deepClone(
+                        content.action?.sections || [{ title: "Seção 1", rows: [] }]
+                      );
                       const rows = [...(sections[0]?.rows || [])];
                       rows[idx] = {
                         ...(rows[idx] || {}),
                         description: e.target.value,
                       };
                       sections[0] = { ...(sections[0] || {}), rows };
-                      const nextAction = { ...(deepClone(content.action) || {}), sections };
+                      const nextAction = {
+                        ...(deepClone(content.action) || {}),
+                        sections,
+                      };
                       const nextContent = { ...deepClone(content), action: nextAction };
                       updateBlock({ content: nextContent });
                     }}
@@ -745,6 +849,7 @@ export default function NodeConfigPanel({
             </>
           )}
 
+          {/* ====== QUICK REPLY buttons ====== */}
           {isQuickReply && (
             <>
               {(content.action?.buttons || []).map((btn, idx) => (
@@ -758,14 +863,20 @@ export default function NodeConfigPanel({
                       const value = clamp(e.target.value, 20);
                       const buttons = deepClone(content.action?.buttons || []);
                       buttons[idx] = {
-                        ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
+                        ...(buttons[idx] || {
+                          type: "reply",
+                          reply: { id: "", title: "" },
+                        }),
                         reply: {
                           ...(buttons[idx]?.reply || {}),
                           title: value,
                           id: value, // ★ ID = Título
                         },
                       };
-                      const nextAction = { ...(deepClone(content.action) || {}), buttons };
+                      const nextAction = {
+                        ...(deepClone(content.action) || {}),
+                        buttons,
+                      };
                       const nextContent = { ...deepClone(content), action: nextAction };
                       updateBlock({ content: nextContent });
                     }}
@@ -837,7 +948,9 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Aguardar resposta?</label>
             <select
               value={String(!!awaitResponse)}
-              onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
+              onChange={(e) =>
+                updateBlock({ awaitResponse: e.target.value === "true" })
+              }
               className={styles.selectStyle}
             >
               <option value="true">Sim</option>
@@ -850,7 +963,11 @@ export default function NodeConfigPanel({
             <input
               type="number"
               value={sendDelayInSeconds ?? 0}
-              onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || '0', 10) })}
+              onChange={(e) =>
+                updateBlock({
+                  sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                })
+              }
               className={styles.inputStyle}
             />
           </div>
@@ -950,8 +1067,14 @@ export default function NodeConfigPanel({
   return (
     <aside className={styles.asidePanel}>
       <div className={styles.panelHeader}>
-        <h3 className={styles.panelTitle}>{selectedNode.data.label || "Novo Bloco"}</h3>
-        <button onClick={() => onClose()} className={styles.closeButton} title="Fechar">
+        <h3 className={styles.panelTitle}>
+          {selectedNode.data.label || "Novo Bloco"}
+        </h3>
+        <button
+          onClick={() => onClose()}
+          className={styles.closeButton}
+          title="Fechar"
+        >
           <X size={20} />
         </button>
       </div>
@@ -992,13 +1115,17 @@ export default function NodeConfigPanel({
         ) : (
           <div className={styles.tabButtons}>
             <button
-              className={`${styles.tabButton} ${tab === "conteudo" ? styles.tabButtonActive : ""}`}
+              className={`${styles.tabButton} ${
+                tab === "conteudo" ? styles.tabButtonActive : ""
+              }`}
               onClick={() => setTab("conteudo")}
             >
               Conteúdo
             </button>
             <button
-              className={`${styles.tabButton} ${tab === "acoes" ? styles.tabButtonActive : ""}`}
+              className={`${styles.tabButton} ${
+                tab === "acoes" ? styles.tabButtonActive : ""
+              }`}
               onClick={() => setTab("acoes")}
             >
               Ações
