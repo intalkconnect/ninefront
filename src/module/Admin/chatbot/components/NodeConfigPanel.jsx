@@ -42,6 +42,22 @@ export default function NodeConfigPanel({
 
   const isHuman = type === "human";
 
+  /** ---------------- helpers de imutabilidade e normalização ---------------- */
+
+  const deepClone = (obj) => {
+    // use structuredClone quando disponível
+    if (typeof structuredClone === "function") return structuredClone(obj);
+    return JSON.parse(JSON.stringify(obj ?? {}));
+  };
+
+  // Mantém o WhatsApp feliz: limita comprimento, remove quebras, normaliza espaços
+  const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
+
+  // Para IDs “iguais ao título”, mas seguros (sem quebras/trim)
+  const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
+
+  const updateNode = (updatedNode) => onChange(updatedNode);
+
   const updateBlock = (changes) => {
     const updatedNode = {
       ...selectedNode,
@@ -53,25 +69,22 @@ export default function NodeConfigPanel({
         },
       },
     };
-    onChange(updatedNode);
+    updateNode(updatedNode);
   };
 
   const updateContent = (field, value) => {
-    updateBlock({
-      content: {
-        ...content,
-        [field]: value,
-      },
-    });
+    // sempre clonar antes de escrever
+    const cloned = deepClone(content);
+    cloned[field] = value;
+    updateBlock({ content: cloned });
   };
 
   const updateActions = (newActions) => {
-    updateBlock({ actions: newActions });
+    updateBlock({ actions: deepClone(newActions) });
   };
 
   // ---------- atalhos p/ “condições específicas” do HUMAN ----------
   const addOffhoursAction = (kind) => {
-    // kind: 'offhours_true' | 'reason_holiday' | 'reason_closed'
     let conds = [];
     if (kind === 'offhours_true') {
       conds = [{ variable: 'offhours', type: 'equals', value: 'true' }];
@@ -180,7 +193,7 @@ export default function NodeConfigPanel({
                       color="#ff6b6b"
                       className={styles.trashIcon}
                       onClick={() => {
-                        const updated = [...actions];
+                        const updated = deepClone(actions);
                         updated.splice(actionIdx, 1);
                         updateActions(updated);
                       }}
@@ -200,16 +213,14 @@ export default function NodeConfigPanel({
                           }
                           onChange={(e) => {
                             const nextVar = e.target.value;
-                            const updated = [...actions];
+                            const updated = deepClone(actions);
                             if (nextVar === "custom") {
                               updated[actionIdx].conditions[condIdx].variable = "";
                             } else {
                               updated[actionIdx].conditions[condIdx].variable = nextVar;
-                              // se for offhours/offhours_reason e tipo estiver vazio, assume equals
                               if (!updated[actionIdx].conditions[condIdx].type || updated[actionIdx].conditions[condIdx].type === "") {
                                 updated[actionIdx].conditions[condIdx].type = "equals";
                               }
-                              // valores default amigáveis
                               if (nextVar === "offhours") {
                                 updated[actionIdx].conditions[condIdx].value = "true";
                               } else if (nextVar === "offhours_reason") {
@@ -235,7 +246,7 @@ export default function NodeConfigPanel({
                             placeholder="ex.: meuCampo"
                             value={cond.variable || ""}
                             onChange={(e) => {
-                              const updated = [...actions];
+                              const updated = deepClone(actions);
                               updated[actionIdx].conditions[condIdx].variable = e.target.value;
                               updateActions(updated);
                             }}
@@ -250,9 +261,8 @@ export default function NodeConfigPanel({
                         <select
                           value={cond.type || ""}
                           onChange={(e) => {
-                            const updated = [...actions];
+                            const updated = deepClone(actions);
                             updated[actionIdx].conditions[condIdx].type = e.target.value;
-                            // se mudar para exists, limpa valor
                             if (e.target.value === "exists") {
                               updated[actionIdx].conditions[condIdx].value = "";
                             }
@@ -266,12 +276,14 @@ export default function NodeConfigPanel({
                           <option value="not_equals">Diferente de</option>
                           <option value="contains">Contém</option>
                           <option value="not_contains">Não contém</option>
+                          <option value="starts_with">Começa com</option>
+                          <option value="ends_with">Termina com</option>
                         </select>
                       </div>
 
                       {/* Valor (especial p/ offhours/offhours_reason) */}
                       {renderValueInput(cond, (v) => {
-                        const updated = [...actions];
+                        const updated = deepClone(actions);
                         updated[actionIdx].conditions[condIdx].value = v;
                         updateActions(updated);
                       })}
@@ -280,7 +292,7 @@ export default function NodeConfigPanel({
                         <button
                           className={styles.deleteButtonSmall}
                           onClick={() => {
-                            const updated = [...actions];
+                            const updated = deepClone(actions);
                             updated[actionIdx].conditions.splice(condIdx, 1);
                             updateActions(updated);
                           }}
@@ -299,7 +311,7 @@ export default function NodeConfigPanel({
                           type: "exists",
                           value: "",
                         };
-                        const updated = [...actions];
+                        const updated = deepClone(actions);
                         if (!updated[actionIdx].conditions) {
                           updated[actionIdx].conditions = [];
                         }
@@ -319,7 +331,7 @@ export default function NodeConfigPanel({
                       value={action.next || ""}
                       onChange={(e) => {
                         const targetId = e.target.value;
-                        const updated = [...actions];
+                        const updated = deepClone(actions);
                         updated[actionIdx].next = targetId;
                         updateActions(updated);
 
@@ -510,7 +522,6 @@ export default function NodeConfigPanel({
               className={styles.inputStyle}
             />
           </div>
-          {/* qualquer outro campo específico do humano pode ir aqui */}
         </div>
       );
     }
@@ -520,49 +531,53 @@ export default function NodeConfigPanel({
       const isQuickReply = content.type === "button";
 
       const handleAddButton = () => {
-        const current = content.action?.buttons || [];
+        const current = deepClone(content.action?.buttons || []);
         if (current.length >= 3) return alert("Máximo de 3 botões atingido.");
-        const updated = [
-          ...current,
-          { type: "reply", reply: { id: "", title: "" } },
-        ];
-        updateContent("action", { ...content.action, buttons: updated });
+        const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
+        const nextButtons = [...current, newBtn];
+        const nextAction = { ...(deepClone(content.action) || {}), buttons: nextButtons };
+        const nextContent = { ...deepClone(content), action: nextAction };
+        updateBlock({ content: nextContent });
       };
 
       const handleRemoveButton = (index) => {
-        const updated = [...content.action.buttons];
-        updated.splice(index, 1);
-        updateContent("action", { ...content.action, buttons: updated });
+        const current = deepClone(content.action?.buttons || []);
+        current.splice(index, 1);
+        const nextAction = { ...(deepClone(content.action) || {}), buttons: current };
+        const nextContent = { ...deepClone(content), action: nextAction };
+        updateBlock({ content: nextContent });
       };
 
       const handleAddListItem = () => {
-        const rows = content.action?.sections?.[0]?.rows || [];
+        const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+        const rows = sections[0]?.rows || [];
         if (rows.length >= 10) return alert("Máximo de 10 itens atingido.");
-        const newItem = { id: `item_${rows.length + 1}`, title: "", description: "" };
-        const updatedSections = [
-          {
-            ...(content.action?.sections?.[0] || {}),
-            title: content.action?.sections?.[0]?.title || "",
-            rows: [...rows, newItem],
-          },
-        ];
-        updateContent("action", { ...content.action, sections: updatedSections });
+        const n = rows.length + 1;
+        const title = `Item ${n}`;
+        const newItem = { id: makeIdFromTitle(title, 24), title, description: "" };
+        const nextRows = [...rows, newItem];
+        const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
+        const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
+        const nextContent = { ...deepClone(content), action: nextAction };
+        updateBlock({ content: nextContent });
       };
 
       const handleRemoveListItem = (index) => {
-        const rows = [...(content.action?.sections?.[0]?.rows || [])];
+        const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+        const rows = [...(sections[0]?.rows || [])];
         rows.splice(index, 1);
-        const updatedSections = [
-          { ...content.action.sections[0], rows },
-        ];
-        updateContent("action", { ...content.action, sections: updatedSections });
+        const nextSections = [{ ...(sections[0] || {}), rows }];
+        const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
+        const nextContent = { ...deepClone(content), action: nextAction };
+        updateBlock({ content: nextContent });
       };
 
       const handleUpdateRows = (rows) => {
-        updateContent("action", {
-          ...content.action,
-          sections: [{ ...content.action.sections?.[0], rows }],
-        });
+        const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+        const nextSections = [{ ...(sections[0] || {}), rows }];
+        const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
+        const nextContent = { ...deepClone(content), action: nextAction };
+        updateBlock({ content: nextContent });
       };
 
       return (
@@ -574,8 +589,9 @@ export default function NodeConfigPanel({
               onChange={(e) => {
                 const newType = e.target.value;
                 if (newType === "list") {
+                  // cria NOVO objeto (evita referência compartilhada)
                   updateBlock({
-                    content: {
+                    content: deepClone({
                       type: "list",
                       body: { text: "Escolha um item da lista:" },
                       footer: { text: "Toque para selecionar" },
@@ -583,24 +599,24 @@ export default function NodeConfigPanel({
                       action: {
                         button: "Abrir lista",
                         sections: [
-                          { title: "Seção 1", rows: [{ id: "item_1", title: "Item 1", description: "Descrição do item 1" }] }
+                          { title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }] }
                         ],
                       },
-                    },
+                    }),
                   });
                 } else {
                   updateBlock({
-                    content: {
+                    content: deepClone({
                       type: "button",
                       body: { text: "Deseja continuar?" },
                       footer: { text: "Selecione uma opção" },
                       action: {
                         buttons: [
-                          { type: "reply", reply: { id: "sim", title: "👍 Sim" } },
-                          { type: "reply", reply: { id: "nao", title: "👎 Não" } },
+                          { type: "reply", reply: { id: "👍 Sim", title: "👍 Sim" } },
+                          { type: "reply", reply: { id: "👎 Não", title: "👎 Não" } },
                         ],
                       },
-                    },
+                    }),
                   });
                 }
               }}
@@ -616,7 +632,7 @@ export default function NodeConfigPanel({
             <input
               type="text"
               value={content.body?.text || ""}
-              onChange={(e) => updateContent("body", { ...content.body, text: e.target.value })}
+              onChange={(e) => updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })}
               className={styles.inputStyle}
             />
           </div>
@@ -626,7 +642,7 @@ export default function NodeConfigPanel({
             <input
               type="text"
               value={content.footer?.text || ""}
-              onChange={(e) => updateContent("footer", { ...content.footer, text: e.target.value })}
+              onChange={(e) => updateContent("footer", { ...(deepClone(content.footer) || {}), text: e.target.value })}
               className={styles.inputStyle}
             />
           </div>
@@ -660,12 +676,13 @@ export default function NodeConfigPanel({
                 <input
                   type="text"
                   value={content.action?.sections?.[0]?.title || ""}
-                  onChange={(e) =>
-                    updateContent("action", {
-                      ...content.action,
-                      sections: [{ ...(content.action?.sections?.[0] || {}), title: e.target.value, rows: content.action?.sections?.[0]?.rows || [] }],
-                    })
-                  }
+                  onChange={(e) => {
+                    const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+                    sections[0] = { ...(sections[0] || {}), title: e.target.value };
+                    const nextAction = { ...(deepClone(content.action) || {}), sections };
+                    const nextContent = { ...deepClone(content), action: nextAction };
+                    updateBlock({ content: nextContent });
+                  }}
                   className={styles.inputStyle}
                 />
               </div>
@@ -678,9 +695,19 @@ export default function NodeConfigPanel({
                     maxLength={24}
                     placeholder="Título"
                     onChange={(e) => {
-                      const updated = [...content.action.sections[0].rows];
-                      updated[idx].title = e.target.value.slice(0, 24);
-                      handleUpdateRows(updated);
+                      const value = e.target.value;
+                      const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+                      const rows = [...(sections[0]?.rows || [])];
+                      rows[idx] = {
+                        ...(rows[idx] || {}),
+                        title: clamp(value, 24),
+                        // ★ ID segue o título:
+                        id: makeIdFromTitle(value, 24),
+                      };
+                      sections[0] = { ...(sections[0] || {}), rows };
+                      const nextAction = { ...(deepClone(content.action) || {}), sections };
+                      const nextContent = { ...deepClone(content), action: nextAction };
+                      updateBlock({ content: nextContent });
                     }}
                     className={styles.inputStyle}
                   />
@@ -689,9 +716,16 @@ export default function NodeConfigPanel({
                     value={item.description}
                     placeholder="Descrição"
                     onChange={(e) => {
-                      const updated = [...content.action.sections[0].rows];
-                      updated[idx].description = e.target.value;
-                      handleUpdateRows(updated);
+                      const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+                      const rows = [...(sections[0]?.rows || [])];
+                      rows[idx] = {
+                        ...(rows[idx] || {}),
+                        description: e.target.value,
+                      };
+                      sections[0] = { ...(sections[0] || {}), rows };
+                      const nextAction = { ...(deepClone(content.action) || {}), sections };
+                      const nextContent = { ...deepClone(content), action: nextAction };
+                      updateBlock({ content: nextContent });
                     }}
                     className={styles.inputStyle}
                   />
@@ -721,10 +755,19 @@ export default function NodeConfigPanel({
                     maxLength={20}
                     placeholder="Texto do botão"
                     onChange={(e) => {
-                      const value = e.target.value.slice(0, 20);
-                      const updated = [...content.action.buttons];
-                      updated[idx] = { ...btn, reply: { ...btn.reply, title: value, id: value } };
-                      updateContent("action", { ...content.action, buttons: updated });
+                      const value = clamp(e.target.value, 20);
+                      const buttons = deepClone(content.action?.buttons || []);
+                      buttons[idx] = {
+                        ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
+                        reply: {
+                          ...(buttons[idx]?.reply || {}),
+                          title: value,
+                          id: value, // ★ ID = Título
+                        },
+                      };
+                      const nextAction = { ...(deepClone(content.action) || {}), buttons };
+                      const nextContent = { ...deepClone(content), action: nextAction };
+                      updateBlock({ content: nextContent });
                     }}
                     className={styles.inputStyle}
                   />
@@ -972,5 +1015,3 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
-
-
