@@ -39,21 +39,22 @@
 
 /* Página ocupa o viewport e rola para baixo se precisar */
 .container{
-  height: 100dvh;           /* ocupa exatos 100% da viewport */
-  box-sizing: border-box;   /* padding entra dentro dos 100dvh (sem criar sobra) */
-  overflow-y: auto;         /* <— scroll vertical só aqui */
-  overflow-x: hidden;
+  /* nada de overflow aqui */
+  height: auto;
+  min-height: 100svh;     /* ocupa a tela toda sem criar sobra */
+  box-sizing: border-box; /* padding dentro da altura, evita “barriga” */
+  overflow: visible;      /* <— sem segundo scroll */
 
   width: 100%;
   max-width: none;
   margin: 0;
   padding: 24px var(--page-inline);
-
   background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
-  scrollbar-gutter: stable both-edges; /* evita “pulo” quando a barra aparece */
 }
 
+/* evita sobra por margem do último bloco */
 .container > :last-child { margin-bottom: 0 !important; }
+
 
 /* Header */
 .header{
@@ -146,10 +147,11 @@
 /* Tabela */
 .tableWrap{
   width: 100%;
-  overflow-x: auto;   /* só horizontal aqui */
+  overflow-x: auto;   /* só horizontal */
   overflow-y: visible;
-  border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
+  /* remova qualquer max-height aqui */
 }
+
 
 /* se existir algo assim, remova:
 .tableWrap { max-height: 70vh; }   ou   80vh
