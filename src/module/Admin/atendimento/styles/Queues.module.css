@@ -37,36 +37,38 @@
   --page-inline: clamp(8px, 1.2vw, 16px);
 }
 
-.container{
-  height: 100%;             /* ocupa exatamente a viewport */
-  min-height: 0;              /* importante p/ overflow funcionar dentro */
-  box-sizing: border-box;     /* padding entra no 100dvh (sem “barriga”) */
-  overflow-y: auto;           /* <— scroll só aqui */
+/* WRAPPER QUE SEGURA O SCROLL DA PÁGINA */
+.page{
+  height: 100dvh;          /* ocupa exatamente a viewport */
+  min-height: 0;
+  overflow-y: auto;        /* <— scroll fica AQUI */
   overflow-x: hidden;
-
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 24px var(--page-inline);
-
-  background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
-  scrollbar-gutter: stable both-edges; /* evita “pulo” quando a barra aparece */
+  scrollbar-gutter: stable both-edges; /* evita “pulo” */
+  box-sizing: border-box;  /* padding do filho não cria barriga */
 }
 
-/* evita sobra por margem do último bloco */
+/* O ANTIGO CONTAINER: NÃO rola mais, só layout/estética */
+.container{
+  height: auto;            /* não força altura */
+  min-height: 100%;        /* garante preencher a página */
+  overflow: visible;       /* sem 2º scroll */
+  padding: 24px var(--page-inline);
+  background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
+}
+
+/* mata sobra por margem do último bloco */
+.page > :last-child,
 .container > :last-child { margin-bottom: 0 !important; }
 
-/* tabela só rola na horizontal, se estourar */
+/* TABELA: só rola na horizontal, nunca vertical */
 .tableWrap{
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
 }
 
-/* REMOVA qualquer max-height de cards/tabelas aqui. */
-
-
+/* MUITO IMPORTANTE: não deixe max-height criando scroll interno */
 
 /* Header */
 .header{
