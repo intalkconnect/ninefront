@@ -41,7 +41,7 @@
   height: 100%;             /* ocupa exatamente a viewport */
   min-height: 0;              /* importante p/ overflow funcionar dentro */
   box-sizing: border-box;     /* padding entra no 100dvh (sem “barriga”) */
-  overflow-y: auto;           /* <— scroll só aqui */
+  overflow-y: hidden;           /* <— scroll só aqui */
   overflow-x: hidden;
 
   width: 100%;
