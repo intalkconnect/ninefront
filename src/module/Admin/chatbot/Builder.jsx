@@ -26,7 +26,7 @@ import {
   Rocket,
   Download,
   MapPin,
-  Headphones as HeadphonesIcon,
+  Headset,
   ArrowDownCircle as ArrowDownCircleIcon,
   Undo2,
   Redo2,
@@ -58,7 +58,7 @@ const iconMap = {
   Globe: <Globe size={16} />,
   Image: <Image size={16} />,
   MapPin: <MapPin size={16} />,
-  Headset: <HeadphonesIcon size={16} />,
+  Headset: <Headset size={16} />,
   ListEnd: <ArrowDownCircleIcon size={16} />,
 };
 
@@ -903,7 +903,7 @@ function handler(context) {
               onClose={() => setShowHistory(false)}
               versions={flowHistory}
               onRestore={async (id) => {
-                await apiPost("/api/v1/flow/activate", { id });
+                await apiPost("/flow/activate", { id });
                 window.location.reload();
               }}
             />
