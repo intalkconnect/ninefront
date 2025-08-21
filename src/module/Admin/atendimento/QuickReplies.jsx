@@ -1,14 +1,20 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { apiGet, apiPost, apiDelete, apiPut } from '../../../shared/apiClient';
 import styles from './styles/QuickReplies.module.css';
+import {
+  MessageSquare,
+  Save as SaveIcon,
+  Copy as CopyIcon,
+  Edit3 as EditIcon,
+  Trash2 as TrashIcon,
+  X as XIcon,
+  Search as SearchIcon,
+  AlertCircle,
+  CheckCircle2
+} from 'lucide-react';
 
 /**
- * QuickReplies – Componente com edição inline, ícones e melhorias de UX
- * Endpoints no back:
- *  GET    /quickReplies         → lista
- *  POST   /quickReplies         → { title, content }
- *  PUT    /quickReplies/:id     → { title, content }
- *  DELETE /quickReplies/:id     → remove
+ * QuickReplies – UX sóbria + Lucide + scroll de página
  */
 const QuickReplies = () => {
   const [items, setItems] = useState([]);
@@ -31,7 +37,7 @@ const QuickReplies = () => {
   // Toast
   const showSuccess = useCallback((msg) => {
     setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 3000);
+    setTimeout(() => setSuccessMsg(null), 2600);
   }, []);
 
   // Load inicial
@@ -53,7 +59,9 @@ const QuickReplies = () => {
   // Filtro/ordenação
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = [...items].sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' }));
+    const base = [...items].sort((a, b) =>
+      String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' })
+    );
     if (!q) return base;
     return base.filter((r) => {
       const t = String(r.title || '').toLowerCase();
@@ -79,9 +87,8 @@ const QuickReplies = () => {
     try {
       const created = await apiPost('/quickReplies', { title: trimmedTitle, content: trimmedContent });
       setItems(prev => [...prev, created]);
-      setTitle('');
-      setContent('');
-      showSuccess('✅ Resposta rápida criada com sucesso!');
+      setTitle(''); setContent('');
+      showSuccess('Resposta criada com sucesso.');
     } catch (e) {
       console.error('Erro ao criar:', e);
       setError('Erro ao criar resposta. Tente novamente.');
@@ -107,12 +114,15 @@ const QuickReplies = () => {
     setSavingId(id);
     setError(null);
     try {
-      const updated = await apiPut(`/quickReplies/${id}`, { title: editTitle.trim(), content: editContent.trim() });
+      const updated = await apiPut(`/quickReplies/${id}`, {
+        title: editTitle.trim(),
+        content: editContent.trim()
+      });
       setItems(prev => prev.map(item => item.id === id ? { ...item, ...updated } : item));
       setEditingId(null);
       setEditTitle('');
       setEditContent('');
-      showSuccess('✅ Resposta atualizada com sucesso!');
+      showSuccess('Resposta atualizada.');
     } catch (e) {
       console.error('Erro ao salvar:', e);
       setError('Erro ao salvar alterações. Tente novamente.');
@@ -129,7 +139,7 @@ const QuickReplies = () => {
     try {
       await apiDelete(`/quickReplies/${id}`);
       setItems(prev => prev.filter(r => r.id !== id));
-      showSuccess('🗑️ Resposta removida com sucesso!');
+      showSuccess('Resposta removida.');
     } catch (e) {
       console.error('Erro ao excluir:', e);
       setError('Erro ao excluir resposta. Tente novamente.');
@@ -142,7 +152,7 @@ const QuickReplies = () => {
   const handleCopy = async (text) => {
     try {
       await navigator.clipboard.writeText(text || '');
-      showSuccess('📋 Conteúdo copiado para a área de transferência!');
+      showSuccess('Conteúdo copiado.');
     } catch (e) {
       console.error('Erro ao copiar:', e);
       setError('Não foi possível copiar. Seu navegador pode não suportar esta funcionalidade.');
@@ -156,7 +166,9 @@ const QuickReplies = () => {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
-            <span className={styles.titleIcon}>💬</span>
+            <span className={styles.titleIcon} aria-hidden="true">
+              <MessageSquare size={24} />
+            </span>
             Respostas Rápidas
           </h1>
           <p className={styles.subtitle}>
@@ -165,8 +177,8 @@ const QuickReplies = () => {
 
           {/* Alertas */}
           {error && (
-            <div className={styles.alertErr} role="alert">
-              <span className={styles.alertIcon}>⚠️</span>
+            <div className={styles.alertErr} role="alert" aria-live="assertive">
+              <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={18} /></span>
               <span>{error}</span>
               <button
                 className={styles.alertClose}
@@ -174,12 +186,13 @@ const QuickReplies = () => {
                 aria-label="Fechar alerta"
                 title="Fechar alerta"
               >
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
           )}
           {successMsg && (
-            <div className={styles.alertOk} role="alert">
+            <div className={styles.alertOk} role="status" aria-live="polite">
+              <span className={styles.alertIcon} aria-hidden="true"><CheckCircle2 size={18} /></span>
               <span>{successMsg}</span>
               <button
                 className={styles.alertClose}
@@ -187,18 +200,18 @@ const QuickReplies = () => {
                 aria-label="Fechar mensagem"
                 title="Fechar mensagem"
               >
-                ✕
+                <XIcon size={16} />
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Formulário de criação */}
+      {/* Formulário de criação (botão Salvar) */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>
-            <span className={styles.cardIcon}>✨</span>
+            <span className={styles.cardIcon} aria-hidden="true"><SaveIcon size={18} /></span>
             Nova Resposta
           </div>
         </div>
@@ -233,13 +246,14 @@ const QuickReplies = () => {
 
           <div className={styles.formActions}>
             <button
-              className={`${styles.btnPrimary} ${styles.iconOnly}`}
+              className={styles.btnPrimary}
               type="submit"
               disabled={!title.trim() || !content.trim()}
-              aria-label="Adicionar resposta"
-              title="Adicionar resposta"
+              aria-label="Salvar nova resposta"
+              title="Salvar nova resposta"
             >
-              ➕
+              <SaveIcon size={16} aria-hidden="true" />
+              <span className={styles.btnText}>Salvar</span>
             </button>
           </div>
         </form>
@@ -249,7 +263,7 @@ const QuickReplies = () => {
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>
-            <span className={styles.cardIcon}>📋</span>
+            <span className={styles.cardIcon} aria-hidden="true"><MessageSquare size={18} /></span>
             Respostas Cadastradas
           </div>
 
@@ -257,7 +271,7 @@ const QuickReplies = () => {
             <div className={styles.searchGroup}>
               <input
                 className={styles.searchInput}
-                placeholder="🔍 Buscar por título ou conteúdo..."
+                placeholder="Buscar por título ou conteúdo..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="Buscar respostas"
@@ -270,11 +284,11 @@ const QuickReplies = () => {
                   aria-label="Limpar busca"
                   type="button"
                 >
-                  ✕
+                  <XIcon size={16} />
                 </button>
               )}
             </div>
-            <div className={styles.counter}>
+            <div className={styles.counter} aria-label="Total de itens filtrados">
               <span className={styles.counterNumber}>{filtered.length}</span>
               <span className={styles.counterLabel}>
                 {filtered.length === 1 ? 'item' : 'itens'}
@@ -296,7 +310,7 @@ const QuickReplies = () => {
               {loading && (
                 <tr>
                   <td colSpan={3} className={styles.loading}>
-                    <div className={styles.spinner}></div>
+                    <div className={styles.spinner} aria-hidden="true"></div>
                     <span>Carregando respostas...</span>
                   </td>
                 </tr>
@@ -305,24 +319,11 @@ const QuickReplies = () => {
               {!loading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={3} className={styles.empty}>
-                    {query ? (
-                      <>
-                        <span className={styles.emptyIcon}>🔍</span>
-                        <div>
-                          Nenhuma resposta encontrada para "<strong>{query}</strong>"
-                        </div>
-                        <button className={styles.btnLink} onClick={clearSearch} type="button">
-                          Limpar filtro
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className={styles.emptyIcon}>📝</span>
-                        <div>Nenhuma resposta rápida cadastrada ainda.</div>
-                        <div className={styles.emptyHelper}>
-                          Use o formulário acima para criar sua primeira resposta!
-                        </div>
-                      </>
+                    <div>Nenhuma resposta encontrada.</div>
+                    {query && (
+                      <button className={styles.btnLink} onClick={clearSearch} type="button">
+                        Limpar filtro
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -359,9 +360,7 @@ const QuickReplies = () => {
                         placeholder="Conteúdo"
                       />
                     ) : (
-                      <pre className={styles.code} title={item.content}>
-                        {item.content}
-                      </pre>
+                      <pre className={styles.code} title={item.content}>{item.content}</pre>
                     )}
                   </td>
 
@@ -376,7 +375,7 @@ const QuickReplies = () => {
                           title={savingId === item.id ? 'Salvando...' : 'Salvar'}
                           type="button"
                         >
-                          {savingId === item.id ? '💾' : '✅'}
+                          <SaveIcon size={16} aria-hidden="true" />
                         </button>
                         <button
                           className={`${styles.btn} ${styles.iconOnly}`}
@@ -386,7 +385,7 @@ const QuickReplies = () => {
                           title="Cancelar"
                           type="button"
                         >
-                          ❌
+                          <XIcon size={16} aria-hidden="true" />
                         </button>
                       </div>
                     ) : (
@@ -398,7 +397,7 @@ const QuickReplies = () => {
                           aria-label="Copiar conteúdo"
                           type="button"
                         >
-                          📋
+                          <CopyIcon size={16} aria-hidden="true" />
                         </button>
                         <button
                           className={`${styles.btnSecondary} ${styles.iconOnly}`}
@@ -407,7 +406,7 @@ const QuickReplies = () => {
                           aria-label="Editar resposta"
                           type="button"
                         >
-                          ✏️
+                          <EditIcon size={16} aria-hidden="true" />
                         </button>
                         <button
                           className={`${styles.btnDanger} ${styles.iconOnly}`}
@@ -417,7 +416,7 @@ const QuickReplies = () => {
                           aria-label={deletingId === item.id ? 'Removendo' : 'Remover resposta'}
                           type="button"
                         >
-                          🗑️
+                          <TrashIcon size={16} aria-hidden="true" />
                         </button>
                       </div>
                     )}
@@ -429,11 +428,11 @@ const QuickReplies = () => {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer discreto */}
       <div className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.tip}>
-            💡 <strong>Dica:</strong> Use títulos descritivos para encontrar rapidamente suas respostas!
+            <strong>Dica:</strong> Prefira títulos descritivos para encontrar rapidamente suas respostas.
           </div>
         </div>
       </div>
