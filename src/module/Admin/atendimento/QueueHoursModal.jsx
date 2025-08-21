@@ -22,13 +22,13 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
   const [err, setErr] = useState(null);
 
   const [enabled, setEnabled] = useState(true);
-  const [tz, setTz] = useState('America/Sao_Paulo');
+  const [tz, setTz] = useState('America/Sao_Paulo'); // exibido somente (read-only)
   const [preMsg, setPreMsg] = useState('');
   const [offMsg, setOffMsg] = useState('');
   const [windows, setWindows] = useState(emptyWindows());
   const [holidays, setHolidays] = useState([]); // [{date:'2025-12-25', name:'Natal'}]
 
-  // carrega dados
+  // carregar dados
   useEffect(() => {
     (async () => {
       setLoading(true); setErr(null);
@@ -49,7 +49,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
     })();
   }, [filaNome]);
 
-  // helpers para atualizar janelas
+  // janelas
   const addWindow = (dayKey) => {
     setWindows((w) => ({
       ...w,
@@ -78,18 +78,21 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
       const arr = [...h]; arr[i] = { ...arr[i], [field]: value }; return arr;
     });
   };
-  const removeHoliday = (i) => {
-    setHolidays((h) => h.filter((_, idx) => idx !== i));
-  };
+  const removeHoliday = (i) => setHolidays((h) => h.filter((_, idx) => idx !== i));
 
   const saving = useMemo(() => loading, [loading]);
 
   const save = async () => {
     setLoading(true); setErr(null);
     try {
+      // envia o timezone atual, mas ele é read-only aqui
       await apiPut(`/filas/horarios/${encodeURIComponent(filaNome)}`, {
-        enabled, timezone: tz, pre_message: preMsg, off_message: offMsg,
-        windows, holidays
+        enabled,
+        timezone: tz,
+        pre_message: preMsg,
+        off_message: offMsg,
+        windows,
+        holidays,
       });
       onSaved?.();
     } catch (e) {
@@ -112,28 +115,24 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
         <div className={css.modalBody}>
           {err && <div className={css.alertErr}>{err}</div>}
 
-          {/* ativação */}
-          <div className={css.fieldRow}>
-            <label>Ativar regras</label>
-            <select
-              value={enabled ? 'on' : 'off'}
-              onChange={(e)=>setEnabled(e.target.value==='on')}
-              className={css.select}
-            >
-              <option value="on">Ativado</option>
-              <option value="off">Desativado</option>
-            </select>
-          </div>
+          {/* Ativar + Timezone (lado a lado) */}
+          <div className={css.inlineRow}>
+            <div className={css.inlineItem}>
+              <span className={css.inlineLabel}>Ativar regras</span>
+              <label className={css.switch} title={enabled ? 'Ativado' : 'Desativado'}>
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={(e)=>setEnabled(e.target.checked)}
+                />
+                <span className={css.slider}/>
+              </label>
+            </div>
 
-          {/* timezone */}
-          <div className={css.fieldRow}>
-            <label>Timezone</label>
-            <input
-              className={css.input}
-              value={tz}
-              onChange={(e)=>setTz(e.target.value)}
-              placeholder="America/Sao_Paulo"
-            />
+            <div className={css.inlineItem}>
+              <span className={css.inlineLabel}>Timezone</span>
+              <span className={css.tzTag} title="Definido no servidor">{tz}</span>
+            </div>
           </div>
 
           {/* mensagens */}
@@ -158,7 +157,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
             />
           </div>
 
-          {/* janelas por dia */}
+          {/* Janelas por dia */}
           <div className={css.sectionTitle}>Janelas por dia</div>
           <div className={css.dayTable}>
             {WDAYS.map(({key,label}) => (
@@ -196,7 +195,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
             ))}
           </div>
 
-          {/* feriados */}
+          {/* Feriados */}
           <div className={css.sectionTitle}>Feriados</div>
           {holidays.length === 0 && (
             <div className={css.emptyRow}>Nenhum feriado.</div>
