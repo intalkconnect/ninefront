@@ -39,16 +39,20 @@
 
 /* WRAPPER DA PÁGINA - SEM SCROLL */
 .page{
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;        /* Remove o scroll da página */
+  height: 100vh;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;        /* Remove completamente o scroll da página */
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 /* CONTAINER - COM SCROLL INTERNO */
 .container{
-  height: 100%;
-  overflow-y: auto;        /* Scroll fica aqui no container */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;        /* Scroll fica apenas aqui no container */
   overflow-x: hidden;
   padding: 24px var(--page-inline);
   background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
@@ -56,8 +60,17 @@
 }
 
 /* mata sobra por margem do último bloco */
-.page > :last-child,
-.container > :last-child { margin-bottom: 0 !important; }
+.container > :last-child { 
+  margin-bottom: 0 !important; 
+}
+
+/* Remove qualquer padding/margin extra do body se necessário */
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
 
 /* TABELA: apenas scroll horizontal se necessário */
 .tableWrap{
