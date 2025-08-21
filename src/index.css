@@ -1,12 +1,20 @@
-html, body {
-  height: 100%;
-  margin: 0;
-  overflow-y: auto;   /* <— só o body rola */
-  overflow-x: hidden;
+:root{
+  /* use as mesmas variáveis do módulo se quiser */
+  --qr-surface: #f7f8fa;
 }
 
-#root, .app, .layout, .content {
+html, body{
+  height: 100%;
+  margin: 0;
+  overflow-y: auto;   /* só o body rola */
+  overflow-x: hidden;
+  background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
+}
+
+/* se houver wrappers do layout */
+#root, .app, .layout, .content, main{
   min-height: 100%;
   height: auto;
-  overflow: visible;  /* <— evita scroll do wrapper */
+  overflow: visible;    /* evita scroll interno */
+  padding-bottom: 0;    /* mata padding extra que cria “barriga” */
 }
