@@ -1,231 +1,649 @@
-/* src/module/Filas/styles/Filas.module.css */
-
-/* ---------- layout base ---------- */
+/* ===== LAYOUT PRINCIPAL ===== */
 .container {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 16px 20px 28px;
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
-.header { margin-bottom: 12px; }
+/* ===== HEADER ===== */
+.header {
+  margin-bottom: 32px;
+}
+
 .title {
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 700;
-  margin: 0 0 6px;
-}
-.subtitle {
-  color: #6b7280;
-  margin: 0 0 10px;
-  font-size: 14px;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
+.subtitle {
+  color: #64748b;
+  font-size: 16px;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+/* ===== ALERTAS ===== */
 .alertErr,
 .alertOk {
-  padding: 10px 12px;
-  border-radius: 10px;
-  margin-top: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
   font-size: 14px;
-}
-.alertErr {
-  background: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
-}
-.alertOk {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  font-weight: 500;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* ---------- formulário criar fila ---------- */
-.form {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 14px;
-  margin: 10px 0 16px;
-  box-shadow: 0 1px 2px rgba(16,24,40,.05);
+.alertErr {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fca5a5;
+  color: #dc2626;
 }
+
+.alertErr::before {
+  content: "⚠️";
+}
+
+.alertOk {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+  color: #16a34a;
+}
+
+.alertOk::before {
+  content: "✅";
+}
+
+/* ===== FORMULÁRIO ===== */
+.form {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+
 .formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.formRow:last-child {
+  margin-bottom: 0;
+}
+
+.inlineLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.req {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.input,
+.textarea {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background: white;
+  color: #1e293b;
+  font-family: inherit;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transform: translateY(-1px);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: #94a3b8;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.inputTime {
+  padding: 8px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.inputTime:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 20px;
+}
+
+/* ===== BOTÕES ===== */
+.btnPrimary {
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnGhost {
+  background: transparent;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnGhost:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.btnTiny {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.btnTiny:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.iconBtn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconBtn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* ===== CARD ===== */
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.cardHead {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 20px 24px;
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== TABELA ===== */
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  background: #f8fafc;
+  padding: 16px 24px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.rowHover:hover {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.empty,
+.loading {
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+  padding: 32px 24px;
+}
+
+.loading {
+  position: relative;
+}
+
+.loading::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===== MODAL ===== */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalCardLarge {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  max-width: 900px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modalHead {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1px solid #e2e8f0;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.modalBody {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modalFoot {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 20px 24px;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 10px;
+  flex-shrink: 0;
 }
-.inlineLabel {
-  min-width: 170px;
+
+/* ===== SEÇÕES DO MODAL ===== */
+.sep {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
+  margin: 32px 0;
+}
+
+.sectionTitle {
+  font-size: 18px;
   font-weight: 600;
-  font-size: 14px;
-}
-.req { color: #ef4444; margin-left: 2px; }
-.input,
-.textarea,
-.inputTime {
-  width: 100%;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 14px;
-  outline: none;
-}
-.input:focus,
-.textarea:focus,
-.inputTime:focus {
-  border-color: #c7d2fe;
-  box-shadow: 0 0 0 3px rgba(99,102,241,.15);
-}
-.textarea { resize: vertical; }
-.inputTime { width: 120px; text-align: center; }
-
-.formActions { display: flex; gap: 10px; }
-
-/* ---------- botões ---------- */
-.btnPrimary,
-.btnGhost,
-.btnTiny,
-.iconBtn {
-  display: inline-flex;
-  gap: 8px;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+  display: flex;
   align-items: center;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 14px;
-}
-.btnPrimary {
-  padding: 8px 14px;
-  background: #4f46e5;
-  color: #fff;
-  border-color: #4f46e5;
-}
-.btnPrimary:hover { background: #4338ca; border-color: #4338ca; }
-.btnGhost {
-  padding: 8px 12px;
-  background: #fff;
-  color: #374151;
-  border-color: #e5e7eb;
-}
-.btnGhost:hover { background: #f9fafb; }
-.btnTiny {
-  padding: 6px 10px;
-  background: #fff;
-  color: #374151;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-}
-.btnTiny:hover { background: #f3f4f6; }
-.iconBtn {
-  padding: 6px;
-  background: transparent;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-}
-.iconBtn:hover { background: #f9fafb; color: #374151; }
-
-/* ---------- card/tabela ---------- */
-.card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(16,24,40,.05);
-}
-.cardHead {
-  padding: 12px 14px;
-  border-bottom: 1px solid #eef2f7;
-}
-.cardTitle {
-  display: flex; align-items: center; gap: 8px;
-  font-weight: 600;
+  gap: 8px;
 }
 
-.tableWrap { width: 100%; overflow: auto; }
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid #f0f2f6;
-  text-align: left;
-  font-size: 14px;
-}
-.rowHover:hover td { background: #fafafa; }
-
-.empty, .loading, .subtleCenter { color: #9ca3af; text-align: center; padding: 14px; }
-
-/* ---------- (legado que ainda pode ser usado em outros lugares) ---------- */
-.nestedCell { padding: 0 14px 14px; background: #fcfcfd; }
-.nestedWrap { border: 1px dashed #e5e7eb; border-radius: 12px; padding: 12px; }
-.nestedTitle { font-weight: 600; margin-bottom: 8px; }
-.inlineList { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-.badgeOk { display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 999px; margin-right: 8px; }
-
-/* ---------- modal ---------- */
-.modalBackdrop {
-  position: fixed; inset: 0;
-  background: rgba(15, 23, 42, .35);
-  display: flex; align-items: flex-start; justify-content: center;
-  padding: 40px 18px;
-  z-index: 50;
-  overflow: auto;
-}
-.modalCardLarge {
-  width: 100%;
-  max-width: 980px;
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 20px 60px rgba(2,6,23,.15);
-  display: flex; flex-direction: column;
-}
-.modalHead {
-  padding: 12px 14px;
-  border-bottom: 1px solid #eef2f7;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.modalTitle { margin: 0; font-size: 16px; font-weight: 700; }
-.modalBody {
-  padding: 14px;
-  display: flex; flex-direction: column; gap: 12px;
-}
-.modalFoot {
-  padding: 12px 14px;
-  border-top: 1px solid #eef2f7;
-  display: flex; gap: 10px; align-items: center; justify-content: flex-end;
+.sectionTitle::before {
+  content: "";
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 2px;
 }
 
-/* ---------- seções do modal ---------- */
-.sectionTitle { font-size: 14px; font-weight: 700; margin: 4px 0; }
-.sep { border: 0; border-top: 1px solid #eef2f7; margin: 6px 0 8px; }
-
-/* janelas semanais */
+/* ===== GRADE DE DIAS ===== */
 .weekGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
 }
-@media (min-width: 900px) {
-  .weekGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-.dayCard {
-  border: 1px solid #eef2f7;
-  border-radius: 12px;
-  padding: 10px;
-  background: #fcfcff;
-}
-.dayHead {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 8px;
-}
-.windowRow {
-  display: flex; align-items: center; gap: 8px;
-  margin-bottom: 8px;
-}
-.to { color: #6b7280; font-size: 13px; }
 
-/* feriados */
-.holidayRow {
-  display: grid;
-  grid-template-columns: 180px 1fr auto;
+.dayCard {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.dayCard:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dayHead strong {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.windowRow {
+  display: flex;
+  align-items: center;
   gap: 8px;
   margin-bottom: 8px;
+  padding: 8px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
-.emptySmall { color: #9ca3af; font-size: 13px; padding: 6px 0; }
+
+.windowRow:last-child {
+  margin-bottom: 0;
+}
+
+.to {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.emptySmall {
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+  padding: 16px 8px;
+}
+
+/* ===== FERIADOS ===== */
+.holidayRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.holidayRow:last-child {
+  margin-bottom: 16px;
+}
+
+.holidayRow .input {
+  margin-bottom: 0;
+}
+
+.holidayRow .input:first-child {
+  min-width: 160px;
+}
+
+/* ===== RESPONSIVO ===== */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .form,
+  .card {
+    border-radius: 12px;
+  }
+  
+  .modalCardLarge {
+    margin: 10px;
+    max-height: calc(100vh - 20px);
+    border-radius: 16px;
+  }
+  
+  .modalHead,
+  .modalBody,
+  .modalFoot {
+    padding: 16px;
+  }
+  
+  .weekGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .holidayRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .holidayRow .iconBtn {
+    align-self: flex-end;
+  }
+  
+  .windowRow {
+    flex-wrap: wrap;
+  }
+  
+  .table th,
+  .table td {
+    padding: 12px 16px;
+  }
+  
+  .formActions {
+    justify-content: stretch;
+  }
+  
+  .formActions .btnPrimary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalFoot {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .modalFoot > div[style*="flex:1"] {
+    display: none;
+  }
+  
+  .modalFoot button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ===== ACESSIBILIDADE ===== */
+@media (prefers-reduced-motion: reduce) {
+  .modalBackdrop,
+  .modalCardLarge {
+    animation: none;
+  }
+  
+  .btnPrimary:hover,
+  .btnTiny:hover,
+  .input:focus,
+  .textarea:focus {
+    transform: none;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .card,
+  .form,
+  .modalCardLarge {
+    border: 2px solid #000;
+  }
+  
+  .btnPrimary {
+    background: #000;
+    color: #fff;
+  }
+  
+  .btnGhost {
+    border-color: #000;
+    color: #000;
+  }
+}
+
+/* ===== ESTADOS DE FOCO ===== */
+.btnPrimary:focus-visible,
+.btnGhost:focus-visible,
+.btnTiny:focus-visible,
+.iconBtn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.input:focus-visible,
+.textarea:focus-visible,
+.inputTime:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
