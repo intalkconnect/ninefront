@@ -69,9 +69,9 @@ export default function Admin() {
                   <NavLink to="atendimento/tempo-real" className={styles['dropdown-link']}>
                     Tempo Real
                   </NavLink>
-                  <NavLink to="atendimento/campanhas" className={styles['dropdown-link']}>
+{/*                   <NavLink to="atendimento/campanhas" className={styles['dropdown-link']}>
                     Campanhas
-                  </NavLink>
+                  </NavLink> */}
                   <NavLink to="atendimento/queues" className={styles['dropdown-link']}>
                     Filas
                   </NavLink>
