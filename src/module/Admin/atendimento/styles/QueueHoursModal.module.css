@@ -14,9 +14,7 @@
   padding:14px 16px; border-bottom:1px solid #e5e7eb; background:#f9fafb;
 }
 .modalTitle{ font-weight:700; }
-.modalBody{
-  padding:16px; overflow:auto;
-}
+.modalBody{ padding:16px; overflow:auto; }
 .modalFoot{
   display:flex; justify-content:flex-end; gap:10px;
   padding:12px 16px; border-top:1px solid #e5e7eb; background:#fafafa;
@@ -55,12 +53,40 @@
   padding-left:8px; margin-bottom:8px;
 }
 
-/* layout dias em coluna */
+/* --- NOVO: linha com toggle + timezone --- */
+.inlineRow{
+  display:flex; gap:16px; flex-wrap:wrap; align-items:center;
+  margin-bottom:12px;
+}
+.inlineItem{ display:flex; gap:10px; align-items:center; }
+.inlineLabel{ font-weight:600; color:#374151; }
+
+/* Toggle switch */
+.switch{ position:relative; display:inline-block; width:48px; height:28px; }
+.switch input{ display:none; }
+.slider{
+  position:absolute; cursor:pointer; inset:0;
+  background:#e5e7eb; border-radius:9999px; transition:background .18s;
+}
+.slider:before{
+  content:""; position:absolute; height:22px; width:22px; left:3px; top:3px;
+  background:white; border-radius:9999px; box-shadow:0 1px 2px rgba(0,0,0,.15);
+  transition:transform .18s;
+}
+.switch input:checked + .slider{ background:#22c55e; }
+.switch input:checked + .slider:before{ transform:translateX(20px); }
+
+/* Timezone pill (read-only) */
+.tzTag{
+  display:inline-flex; align-items:center; padding:6px 10px;
+  border-radius:9999px; background:#eef2ff; color:#3730a3; border:1px solid #e0e7ff;
+  font-weight:600; font-size:12px;
+}
+
+/* Dias/janelas */
 .dayTable{ display:flex; flex-direction:column; gap:6px; }
 .dayRow{ display:flex; gap:12px; align-items:flex-start; }
-.dayLabel{
-  width:120px; flex:0 0 120px; padding:10px 0; font-weight:600; color:#374151;
-}
+.dayLabel{ width:120px; flex:0 0 120px; padding:10px 0; font-weight:600; color:#374151; }
 .dayWindows{ flex:1; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .emptyRow{ color:#9ca3af; font-style:italic; padding:6px 0; }
 
@@ -68,8 +94,6 @@
   display:flex; align-items:center; gap:8px; background:#f9fafb; border:1px solid #e5e7eb;
   padding:8px; border-radius:10px;
 }
-.time{
-  width:116px; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px;
-}
+.time{ width:116px; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px; }
 .dash{ color:#6b7280; }
 .holidayRow{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
