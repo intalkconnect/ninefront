@@ -1,0 +1,75 @@
+.backdrop{
+  position:fixed; inset:0; background:rgba(17,24,39,.45);
+  display:flex; align-items:center; justify-content:center; z-index:1000;
+}
+.modal{
+  width:min(980px, calc(100vw - 40px));
+  max-height:calc(100vh - 40px);
+  background:#fff; border-radius:16px; border:1px solid #e5e7eb;
+  display:flex; flex-direction:column; overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.modalHead{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; border-bottom:1px solid #e5e7eb; background:#f9fafb;
+}
+.modalTitle{ font-weight:700; }
+.modalBody{
+  padding:16px; overflow:auto;
+}
+.modalFoot{
+  display:flex; justify-content:flex-end; gap:10px;
+  padding:12px 16px; border-top:1px solid #e5e7eb; background:#fafafa;
+}
+
+.iconBtn{
+  background:#f3f4f6; border:1px solid #e5e7eb; color:#111827;
+  width:34px; height:34px; border-radius:10px;
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.iconBtn:hover{ background:#eef2ff; border-color:#e0e7ff; }
+.iconBtn.add{ background:#e8f5e9; border-color:#c7eed8; }
+.iconBtn.add:hover{ background:#dcfce7; }
+.iconBtn.danger{ background:#fee2e2; border-color:#fecaca; color:#991b1b; }
+.iconBtn.danger:hover{ background:#fecaca; }
+
+.btnPrimary{
+  background:#2563eb; color:#fff; border:none; padding:10px 16px; border-radius:12px;
+  display:inline-flex; gap:8px; align-items:center; font-weight:700; cursor:pointer;
+}
+.btnPrimary:disabled{ opacity:.6; cursor:not-allowed; }
+.btnGhost{
+  background:#f3f4f6; border:1px solid #e5e7eb; color:#111827; padding:10px 14px; border-radius:12px; cursor:pointer;
+}
+
+.alertErr{ background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:12px; padding:10px 12px; margin-bottom:10px; }
+
+.fieldRow{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+.input, .select, .textarea{
+  border:1px solid #e5e7eb; border-radius:12px; padding:10px 12px; outline:none;
+}
+.textarea{ resize:vertical; }
+
+.sectionTitle{
+  margin-top:12px; font-weight:700; border-left:4px solid #6366f1;
+  padding-left:8px; margin-bottom:8px;
+}
+
+/* layout dias em coluna */
+.dayTable{ display:flex; flex-direction:column; gap:6px; }
+.dayRow{ display:flex; gap:12px; align-items:flex-start; }
+.dayLabel{
+  width:120px; flex:0 0 120px; padding:10px 0; font-weight:600; color:#374151;
+}
+.dayWindows{ flex:1; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.emptyRow{ color:#9ca3af; font-style:italic; padding:6px 0; }
+
+.win{
+  display:flex; align-items:center; gap:8px; background:#f9fafb; border:1px solid #e5e7eb;
+  padding:8px; border-radius:10px;
+}
+.time{
+  width:116px; border:1px solid #e5e7eb; border-radius:10px; padding:8px 10px;
+}
+.dash{ color:#6b7280; }
+.holidayRow{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
