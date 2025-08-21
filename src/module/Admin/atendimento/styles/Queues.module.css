@@ -37,23 +37,31 @@
   --page-inline: clamp(8px, 1.2vw, 16px);
 }
 
-/* Página ocupa o viewport e rola para baixo se precisar */
 .container{
-  /* nada de overflow aqui */
+  /* ocupa a tela toda; NÃO cria scroll próprio */
+  min-height: 100svh;
   height: auto;
-  min-height: 100svh;     /* ocupa a tela toda sem criar sobra */
-  box-sizing: border-box; /* padding dentro da altura, evita “barriga” */
-  overflow: visible;      /* <— sem segundo scroll */
+  box-sizing: border-box;
+  overflow: visible;
 
   width: 100%;
   max-width: none;
   margin: 0;
   padding: 24px var(--page-inline);
-  background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
+
+  background: transparent;    /* <— fundo agora é do body */
 }
 
-/* evita sobra por margem do último bloco */
-.container > :last-child { margin-bottom: 0 !important; }
+/* evita “sobra” causada por margin do último bloco */
+.container > :last-child{ margin-bottom: 0 !important; }
+
+/* a tabela só rola na horizontal, se precisar */
+.tableWrap{
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
+}
 
 
 /* Header */
@@ -145,17 +153,7 @@
 .visuallyHidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
 /* Tabela */
-.tableWrap{
-  width: 100%;
-  overflow-x: auto;   /* só horizontal */
-  overflow-y: visible;
-  /* remova qualquer max-height aqui */
-}
 
-
-/* se existir algo assim, remova:
-.tableWrap { max-height: 70vh; }   ou   80vh
-*/
 
 .table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
 .table thead th{
