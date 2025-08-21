@@ -51,16 +51,14 @@
 }
 
 /* Página ocupa o viewport e rola apenas se precisar */
-.container {
-  height: 100dvh;         /* já ajusta a página e ativa scroll se precisar */
-  min-height: 0;
-  overflow-y: auto;
-
+.container{
+  min-height: 100dvh;     /* deixa crescer conforme o conteúdo */
+  height: auto;
+  overflow: visible;       /* remove rolagem interna */
   width: 100%;
-  max-width: none;        /* <— remove limite que criava margens */
-  margin: 0;              /* <— remove o auto-centering */
+  max-width: none;
+  margin: 0;
   padding: 32px var(--page-inline);
-
   background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
 }
 
@@ -191,11 +189,10 @@
 .btnLink:hover:not(:disabled) { color: var(--qr-primary-600); background: var(--qr-primary-50); }
 
 /* Tabela */
-.tableWrap {
+.tableWrap{
   width: 100%;
   overflow-x: auto;
   overflow-y: visible;
-  border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
 }
 .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
 .table th, .table td {
