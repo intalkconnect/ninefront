@@ -3,8 +3,8 @@ import { apiGet, apiPost, apiDelete, apiPut } from '../../../shared/apiClient';
 import styles from './styles/QuickReplies.module.css';
 
 /**
- * QuickReplies – Componente melhorado com edição inline e melhor UX
- * Endpoints esperados no back:
+ * QuickReplies – Componente com edição inline, ícones e melhorias de UX
+ * Endpoints no back:
  *  GET    /quickReplies         → lista
  *  POST   /quickReplies         → { title, content }
  *  PUT    /quickReplies/:id     → { title, content }
@@ -16,25 +16,25 @@ const QuickReplies = () => {
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Estados do formulário
+  // Form
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [query, setQuery] = useState('');
-  
-  // Estados de ação
+
+  // Ações
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [savingId, setSavingId] = useState(null);
 
-  // Toast de sucesso
+  // Toast
   const showSuccess = useCallback((msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 3000);
   }, []);
 
-  // Carregamento inicial
+  // Load inicial
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -48,53 +48,36 @@ const QuickReplies = () => {
       setLoading(false);
     }
   };
+  useEffect(() => { load(); }, []);
 
-  useEffect(() => { 
-    load(); 
-  }, []);
-
-  // Filtros e ordenação
+  // Filtro/ordenação
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = [...items].sort((a, b) => {
-      const titleA = String(a.title || '').toLowerCase();
-      const titleB = String(b.title || '').toLowerCase();
-      return titleA.localeCompare(titleB);
-    });
-    
+    const base = [...items].sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' }));
     if (!q) return base;
-    
     return base.filter((r) => {
-      const title = String(r.title || '').toLowerCase();
-      const content = String(r.content || '').toLowerCase();
-      return title.includes(q) || content.includes(q);
+      const t = String(r.title || '').toLowerCase();
+      const c = String(r.content || '').toLowerCase();
+      return t.includes(q) || c.includes(q);
     });
   }, [items, query]);
 
-  // Criar nova resposta
+  // Criar
   const handleCreate = async (e) => {
     e.preventDefault();
     setError(null);
-    
     const trimmedTitle = title.trim();
     const trimmedContent = content.trim();
-    
     if (!trimmedTitle || !trimmedContent) {
       setError('Por favor, preencha o título e o conteúdo.');
       return;
     }
-
     if (trimmedTitle.length > 100) {
       setError('O título deve ter no máximo 100 caracteres.');
       return;
     }
-
     try {
-      const created = await apiPost('/quickReplies', { 
-        title: trimmedTitle, 
-        content: trimmedContent 
-      });
-      
+      const created = await apiPost('/quickReplies', { title: trimmedTitle, content: trimmedContent });
       setItems(prev => [...prev, created]);
       setTitle('');
       setContent('');
@@ -105,40 +88,27 @@ const QuickReplies = () => {
     }
   };
 
-  // Iniciar edição
+  // Edição
   const startEdit = (item) => {
     setEditingId(item.id);
     setEditTitle(item.title || '');
     setEditContent(item.content || '');
   };
-
-  // Cancelar edição
   const cancelEdit = () => {
     setEditingId(null);
     setEditTitle('');
     setEditContent('');
   };
-
-  // Salvar edição
   const saveEdit = async (id) => {
     if (!editTitle.trim() || !editContent.trim()) {
       setError('Título e conteúdo são obrigatórios.');
       return;
     }
-
     setSavingId(id);
     setError(null);
-    
     try {
-      const updated = await apiPut(`/quickReplies/${id}`, {
-        title: editTitle.trim(),
-        content: editContent.trim()
-      });
-      
-      setItems(prev => prev.map(item => 
-        item.id === id ? { ...item, ...updated } : item
-      ));
-      
+      const updated = await apiPut(`/quickReplies/${id}`, { title: editTitle.trim(), content: editContent.trim() });
+      setItems(prev => prev.map(item => item.id === id ? { ...item, ...updated } : item));
       setEditingId(null);
       setEditTitle('');
       setEditContent('');
@@ -151,15 +121,11 @@ const QuickReplies = () => {
     }
   };
 
-  // Remover resposta
+  // Remover
   const handleDelete = async (id) => {
-    if (!window.confirm('Tem certeza que deseja remover esta resposta?')) {
-      return;
-    }
-
+    if (!window.confirm('Tem certeza que deseja remover esta resposta?')) return;
     setDeletingId(id);
     setError(null);
-    
     try {
       await apiDelete(`/quickReplies/${id}`);
       setItems(prev => prev.filter(r => r.id !== id));
@@ -172,7 +138,7 @@ const QuickReplies = () => {
     }
   };
 
-  // Copiar conteúdo
+  // Copiar
   const handleCopy = async (text) => {
     try {
       await navigator.clipboard.writeText(text || '');
@@ -183,7 +149,6 @@ const QuickReplies = () => {
     }
   };
 
-  // Limpar busca
   const clearSearch = () => setQuery('');
 
   return (
@@ -197,29 +162,30 @@ const QuickReplies = () => {
           <p className={styles.subtitle}>
             Gerencie atalhos de mensagens para agilizar o atendimento ao cliente.
           </p>
-          
-          {/* Sistema de alertas melhorado */}
+
+          {/* Alertas */}
           {error && (
             <div className={styles.alertErr} role="alert">
               <span className={styles.alertIcon}>⚠️</span>
               <span>{error}</span>
-              <button 
+              <button
                 className={styles.alertClose}
                 onClick={() => setError(null)}
                 aria-label="Fechar alerta"
+                title="Fechar alerta"
               >
                 ✕
               </button>
             </div>
           )}
-          
           {successMsg && (
             <div className={styles.alertOk} role="alert">
               <span>{successMsg}</span>
-              <button 
+              <button
                 className={styles.alertClose}
                 onClick={() => setSuccessMsg(null)}
-                aria-label="Fechar alerta"
+                aria-label="Fechar mensagem"
+                title="Fechar mensagem"
               >
                 ✕
               </button>
@@ -228,7 +194,7 @@ const QuickReplies = () => {
         </div>
       </div>
 
-      {/* Formulário de criação aprimorado */}
+      {/* Formulário de criação */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>
@@ -238,9 +204,7 @@ const QuickReplies = () => {
         </div>
         <form onSubmit={handleCreate} className={styles.formGrid}>
           <div className={styles.inputGroup}>
-            <label htmlFor="title" className={styles.label}>
-              Título *
-            </label>
+            <label htmlFor="title" className={styles.label}>Título *</label>
             <input
               id="title"
               className={styles.input}
@@ -250,15 +214,11 @@ const QuickReplies = () => {
               maxLength={100}
               required
             />
-            <div className={styles.inputHelper}>
-              {title.length}/100 caracteres
-            </div>
+            <div className={styles.inputHelper}>{title.length}/100 caracteres</div>
           </div>
-          
+
           <div className={styles.inputGroup}>
-            <label htmlFor="content" className={styles.label}>
-              Conteúdo *
-            </label>
+            <label htmlFor="content" className={styles.label}>Conteúdo *</label>
             <textarea
               id="content"
               className={styles.textarea}
@@ -268,32 +228,31 @@ const QuickReplies = () => {
               onChange={(e) => setContent(e.target.value)}
               required
             />
-            <div className={styles.inputHelper}>
-              {content.length} caracteres
-            </div>
+            <div className={styles.inputHelper}>{content.length} caracteres</div>
           </div>
-          
+
           <div className={styles.formActions}>
-            <button 
-              className={styles.btnPrimary} 
+            <button
+              className={`${styles.btnPrimary} ${styles.iconOnly}`}
               type="submit"
               disabled={!title.trim() || !content.trim()}
+              aria-label="Adicionar resposta"
+              title="Adicionar resposta"
             >
-              <span className={styles.btnIcon}>➕</span>
-              Adicionar Resposta
+              ➕
             </button>
           </div>
         </form>
       </div>
 
-      {/* Lista de respostas melhorada */}
+      {/* Lista */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>
             <span className={styles.cardIcon}>📋</span>
             Respostas Cadastradas
           </div>
-          
+
           <div className={styles.cardActions}>
             <div className={styles.searchGroup}>
               <input
@@ -301,12 +260,15 @@ const QuickReplies = () => {
                 placeholder="🔍 Buscar por título ou conteúdo..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                aria-label="Buscar respostas"
               />
               {query && (
-                <button 
+                <button
                   className={styles.searchClear}
                   onClick={clearSearch}
                   title="Limpar busca"
+                  aria-label="Limpar busca"
+                  type="button"
                 >
                   ✕
                 </button>
@@ -327,7 +289,7 @@ const QuickReplies = () => {
               <tr>
                 <th style={{ minWidth: 280 }}>Título</th>
                 <th>Conteúdo</th>
-                <th style={{ width: 200 }}>Ações</th>
+                <th style={{ width: 220 }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -346,8 +308,10 @@ const QuickReplies = () => {
                     {query ? (
                       <>
                         <span className={styles.emptyIcon}>🔍</span>
-                        <div>Nenhuma resposta encontrada para "<strong>{query}</strong>"</div>
-                        <button className={styles.btnLink} onClick={clearSearch}>
+                        <div>
+                          Nenhuma resposta encontrada para "<strong>{query}</strong>"
+                        </div>
+                        <button className={styles.btnLink} onClick={clearSearch} type="button">
                           Limpar filtro
                         </button>
                       </>
@@ -366,7 +330,7 @@ const QuickReplies = () => {
 
               {!loading && filtered.map((item) => (
                 <tr key={item.id} className={styles.tableRow}>
-                  <td className={styles.cellKey}>
+                  <td className={styles.cellKey} data-label="Título">
                     {editingId === item.id ? (
                       <div className={styles.editForm}>
                         <input
@@ -384,8 +348,8 @@ const QuickReplies = () => {
                       </>
                     )}
                   </td>
-                  
-                  <td className={styles.cellContent}>
+
+                  <td className={styles.cellContent} data-label="Conteúdo">
                     {editingId === item.id ? (
                       <textarea
                         className={styles.editTextarea}
@@ -400,48 +364,60 @@ const QuickReplies = () => {
                       </pre>
                     )}
                   </td>
-                  
-                  <td className={styles.cellActions}>
+
+                  <td className={styles.cellActions} data-label="Ações">
                     {editingId === item.id ? (
                       <div className={styles.editActions}>
                         <button
-                          className={styles.btnSuccess}
+                          className={`${styles.btnSuccess} ${styles.iconOnly}`}
                           onClick={() => saveEdit(item.id)}
                           disabled={savingId === item.id}
+                          aria-label={savingId === item.id ? 'Salvando' : 'Salvar'}
+                          title={savingId === item.id ? 'Salvando...' : 'Salvar'}
+                          type="button"
                         >
-                          {savingId === item.id ? '💾 Salvando...' : '✅ Salvar'}
+                          {savingId === item.id ? '💾' : '✅'}
                         </button>
                         <button
-                          className={styles.btn}
+                          className={`${styles.btn} ${styles.iconOnly}`}
                           onClick={cancelEdit}
                           disabled={savingId === item.id}
+                          aria-label="Cancelar"
+                          title="Cancelar"
+                          type="button"
                         >
-                          ❌ Cancelar
+                          ❌
                         </button>
                       </div>
                     ) : (
                       <div className={styles.actions}>
-                        <button 
-                          className={styles.btn} 
+                        <button
+                          className={`${styles.btn} ${styles.iconOnly}`}
                           onClick={() => handleCopy(item.content)}
                           title="Copiar conteúdo"
+                          aria-label="Copiar conteúdo"
+                          type="button"
                         >
-                          📋 Copiar
-                        </button>
-                        <button 
-                          className={styles.btnSecondary} 
-                          onClick={() => startEdit(item)}
-                          title="Editar resposta"
-                        >
-                          ✏️ Editar
+                          📋
                         </button>
                         <button
-                          className={styles.btnDanger}
+                          className={`${styles.btnSecondary} ${styles.iconOnly}`}
+                          onClick={() => startEdit(item)}
+                          title="Editar resposta"
+                          aria-label="Editar resposta"
+                          type="button"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className={`${styles.btnDanger} ${styles.iconOnly}`}
                           onClick={() => handleDelete(item.id)}
                           disabled={deletingId === item.id}
-                          title="Remover resposta"
+                          title={deletingId === item.id ? 'Removendo...' : 'Remover resposta'}
+                          aria-label={deletingId === item.id ? 'Removendo' : 'Remover resposta'}
+                          type="button"
                         >
-                          {deletingId === item.id ? '🗑️ Removendo...' : '🗑️ Remover'}
+                          🗑️
                         </button>
                       </div>
                     )}
@@ -453,7 +429,7 @@ const QuickReplies = () => {
         </div>
       </div>
 
-      {/* Footer com informações úteis */}
+      {/* Footer */}
       <div className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.tip}>
