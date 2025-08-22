@@ -14,7 +14,7 @@ const slugify = (str = '') =>
 
 const canais = ['whatsapp', 'telegram', 'webchat', 'instagram'];
 
-const TempoReal = () => {
+const ClientsMonitor = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedFilter, setSelectedFilter] = useState('todos');
   const [atendimentos, setAtendimentos] = useState([]);
@@ -321,4 +321,4 @@ const TempoReal = () => {
   );
 };
 
-export default TempoReal;
+export default ClientsMonitor;
