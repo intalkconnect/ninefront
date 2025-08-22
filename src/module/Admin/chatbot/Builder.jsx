@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 
 /* =========================
- * Utils: ids e deep clone
+ * Utils
  * ========================= */
 const genId = () =>
   typeof crypto !== "undefined" && crypto.randomUUID
@@ -62,9 +62,7 @@ const iconMap = {
   ListEnd: <ArrowDownCircleIcon size={16} />,
 };
 
-const nodeTypes = {
-  quadrado: NodeQuadrado,
-};
+const nodeTypes = { quadrado: NodeQuadrado };
 
 /* =========================
  * Estilos
@@ -85,7 +83,7 @@ const selectedNodeStyle = {
 export default function Builder() {
   const reactFlowInstance = useReactFlow();
 
-  // inicializa ids únicos já no estado inicial
+  /* ---------- estado base ---------- */
   const [nodes, setNodes] = useState(() => {
     const startId = genId();
     const fallbackId = genId();
@@ -106,7 +104,7 @@ export default function Builder() {
             awaitTimeInSeconds: 0,
             sendDelayInSeconds: 1,
             actions: [],
-            defaultNext: "", // mantém sem edge visual
+            defaultNext: "",
           },
         },
         draggable: false,
@@ -119,7 +117,7 @@ export default function Builder() {
         type: "quadrado",
         position: { x: 300, y: 100 },
         data: {
-          label: "",
+          label: "onError",
           type: "text",
           color: "#FF4500",
           block: {
@@ -138,39 +136,30 @@ export default function Builder() {
 
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState(null);
+  const [highlightedNodeId, setHighlightedNodeId] = useState(null);
+
   const [itor, setitor] = useState(false);
   const [scriptCode, setScriptCode] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [flowHistory, setFlowHistory] = useState([]);
   const [showNodeMenu, setShowNodeMenu] = useState(false);
   const nodeMenuRef = useRef(null);
-
-  const [highlightedNodeId, setHighlightedNodeId] = useState(null);
-  const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  /* =========================
-   * Undo / Redo
-   * ========================= */
+  /* ---------- Undo / Redo ---------- */
   const [history, setHistory] = useState({ past: [], future: [] });
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
-  useEffect(() => {
-    nodesRef.current = nodes;
-  }, [nodes]);
-  useEffect(() => {
-    edgesRef.current = edges;
-  }, [edges]);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   const snapshot = useCallback(
     () => ({ nodes: deepClone(nodesRef.current), edges: deepClone(edgesRef.current) }),
     []
   );
   const pushHistory = useCallback((prev) => {
-    setHistory((h) => ({
-      past: [...h.past, deepClone(prev)],
-      future: [],
-    }));
+    setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
   }, []);
   const undo = useCallback(() => {
     setHistory((h) => {
@@ -179,6 +168,8 @@ export default function Builder() {
       const current = snapshot();
       setNodes(prev.nodes);
       setEdges(prev.edges);
+      setSelectedEdgeId(null);
+      setSelectedNode(null);
       return { past: h.past.slice(0, -1), future: [...h.future, current] };
     });
   }, [snapshot]);
@@ -189,18 +180,16 @@ export default function Builder() {
       const current = snapshot();
       setNodes(next.nodes);
       setEdges(next.edges);
+      setSelectedEdgeId(null);
+      setSelectedNode(null);
       return { past: [...h.past, current], future: h.future.slice(0, -1) };
     });
   }, [snapshot]);
 
-  /* =========================
-   * Handlers básicos
-   * ========================= */
+  /* ---------- handlers básicos ---------- */
   const onNodesChange = useCallback(
     (changes) => {
-      const shouldPush = !changes.some(
-        (ch) => ch.type === "position" && ch.dragging
-      );
+      const shouldPush = !changes.some((ch) => ch.type === "position" && ch.dragging);
       setNodes((nds) => {
         if (shouldPush) pushHistory({ nodes: nds, edges: edgesRef.current });
         return applyNodeChanges(changes, nds);
@@ -209,13 +198,34 @@ export default function Builder() {
     [pushHistory]
   );
 
+  // sincroniza ações quando edges são removidos pelo ReactFlow + limpa seleção
   const onEdgesChange = useCallback(
     (changes) => {
-      setEdges((eds) => {
-        // pushes para qualquer mudança estrutural de edge
-        pushHistory({ nodes: nodesRef.current, edges: eds });
-        return applyEdgeChanges(changes, eds);
-      });
+      const removedIds = new Set(changes.filter((c) => c.type === "remove").map((c) => c.id));
+      const removedEdges = edgesRef.current.filter((e) => removedIds.has(e.id));
+
+      pushHistory({ nodes: nodesRef.current, edges: edgesRef.current });
+
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+
+      if (removedEdges.length) {
+        setNodes((nds) =>
+          nds.map((node) => {
+            const block = node.data.block || {};
+            const before = block.actions || [];
+            const after = before.filter(
+              (a) => !removedEdges.some((re) => re.source === node.id && re.target === a.next)
+            );
+            if (after.length === before.length) return node;
+            return { ...node, data: { ...node.data, block: { ...block, actions: after } } };
+          })
+        );
+      }
+
+      // garante deseleção se a edge removida estava ativa
+      if (removedIds.size) {
+        setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
+      }
     },
     [pushHistory]
   );
@@ -234,7 +244,7 @@ function handler(context) {
     setitor(true);
   };
 
-  const handleUpdateCode = React.useCallback(
+  const handleUpdateCode = useCallback(
     (newCode) => {
       setScriptCode(newCode);
       if (selectedNode && selectedNode.data?.block?.type === "code") {
@@ -242,26 +252,12 @@ function handler(context) {
         setNodes((nds) =>
           nds.map((n) =>
             n.id === selectedNode.id
-              ? {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    block: { ...n.data.block, code: newCode },
-                  },
-                }
+              ? { ...n, data: { ...n.data, block: { ...n.data.block, code: newCode } } }
               : n
           )
         );
         setSelectedNode((prev) =>
-          prev
-            ? {
-                ...prev,
-                data: {
-                  ...prev.data,
-                  block: { ...prev.data.block, code: newCode },
-                },
-              }
-            : null
+          prev ? { ...prev, data: { ...prev.data, block: { ...prev.data.block, code: newCode } } } : null
         );
       }
     },
@@ -271,41 +267,32 @@ function handler(context) {
   const onConnect = useCallback(
     (params) => {
       const { source, target } = params;
-      // evita duplicar ação origem->destino
       const sourceNode = nodesRef.current.find((n) => n.id === source);
       const actions = sourceNode?.data?.block?.actions || [];
       const already = actions.some((a) => a.next === target);
-      pushHistory(snapshot());
 
+      pushHistory(snapshot());
       setEdges((eds) => addEdge({ ...params, id: genEdgeId() }, eds));
 
       if (!already) {
         setNodes((nds) =>
-          nds.map((node) => {
-            if (node.id !== source) return node;
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                block: {
-                  ...node.data.block,
-                  actions: [
-                    ...actions,
-                    {
-                      next: target,
-                      conditions: [
-                        {
-                          variable: "lastUserMessage",
-                          type: "exists",
-                          value: "",
-                        },
+          nds.map((node) =>
+            node.id !== source
+              ? node
+              : {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    block: {
+                      ...node.data.block,
+                      actions: [
+                        ...actions,
+                        { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
                       ],
                     },
-                  ],
-                },
-              },
-            };
-          })
+                  },
+                }
+          )
         );
       }
     },
@@ -314,54 +301,50 @@ function handler(context) {
 
   const onNodeDoubleClick = (_, node) => setSelectedNode(node);
 
+  // atualização do nó vinda do painel: reconcilia edges com ações + limpa seleção de edge removida
   const updateSelectedNode = (updated) => {
     if (!updated) {
       setSelectedNode(null);
       return;
     }
 
-    // push uma vez por operação
-    pushHistory(snapshot());
+    const prev = snapshot();
+    pushHistory(prev);
 
-    setNodes((prevNodes) => {
-      const updatedNodes = prevNodes.map((n) =>
-        n.id === updated.id ? updated : n
-      );
+    // 1) atualiza nó
+    setNodes((prevNodes) => prevNodes.map((n) => (n.id === updated.id ? updated : n)));
 
-      // Cria edges somente para actions explícitas (nunca defaultNext)
-      const existingPairs = new Set(
-        edgesRef.current.map((e) => `${e.source}-${e.target}`)
-      );
-      const newEdges = [];
-      const updatedBlock = updated.data?.block;
+    // 2) reconcilia edges
+    const desiredTargets = new Set((updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean));
+    const prevEdges = edgesRef.current;
 
-      if (updatedBlock?.actions?.length > 0) {
-        updatedBlock.actions.forEach((action) => {
-          if (
-            action.next &&
-            !existingPairs.has(`${updated.id}-${action.next}`)
-          ) {
-            newEdges.push({
-              id: genEdgeId(),
-              source: updated.id,
-              target: action.next,
-            });
-          }
-        });
-      }
+    // edges removidas por falta de action correspondente
+    const removedEdges = prevEdges.filter((e) => e.source === updated.id && !desiredTargets.has(e.target));
+    const removedEdgeIds = new Set(removedEdges.map((e) => e.id));
 
-      if (newEdges.length > 0) {
-        setEdges((prevEdges) => [...prevEdges, ...newEdges]);
-      }
+    // mantém as demais
+    const keptEdges = prevEdges.filter((e) => !(e.source === updated.id && removedEdgeIds.has(e.id)));
 
-      return updatedNodes;
+    // cria as que faltam
+    const keptPairs = new Set(keptEdges.map((e) => `${e.source}-${e.target}`));
+    const additions = [];
+    desiredTargets.forEach((t) => {
+      const key = `${updated.id}-${t}`;
+      if (!keptPairs.has(key)) additions.push({ id: genEdgeId(), source: updated.id, target: t });
     });
+
+    const nextEdges = keptEdges.concat(additions);
+    setEdges(nextEdges);
+
+    // limpa seleção caso a edge selecionada tenha sido removida nesta atualização
+    if (removedEdgeIds.size) {
+      setSelectedEdgeId((cur) => (cur && removedEdgeIds.has(cur) ? null : cur));
+    }
 
     setSelectedNode(updated);
   };
 
   const handleConnectNodes = ({ source, target }) => {
-    // evita duplicar ação origem->destino
     const src = nodesRef.current.find((n) => n.id === source);
     const actions = src?.data?.block?.actions || [];
     const already = actions.some((a) => a.next === target);
@@ -371,93 +354,71 @@ function handler(context) {
 
     if (!already) {
       setNodes((nds) =>
-        nds.map((node) => {
-          if (node.id !== source) return node;
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              block: {
-                ...node.data.block,
-                actions: [
-                  ...actions,
-                  {
-                    next: target,
-                    conditions: [
-                      {
-                        variable: "lastUserMessage",
-                        type: "exists",
-                        value: "",
-                      },
+        nds.map((node) =>
+          node.id !== source
+            ? node
+            : {
+                ...node,
+                data: {
+                  ...node.data,
+                  block: {
+                    ...node.data.block,
+                    actions: [
+                      ...actions,
+                      { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
                     ],
                   },
-                ],
-              },
-            },
-          };
-        })
+                },
+              }
+        )
       );
     }
   };
 
   const deleteNodeAndCleanup = (deletedId) => {
-    pushHistory(snapshot());
+    const prev = snapshot();
+    pushHistory(prev);
 
-    // remove o nó e limpa refs silenciosas (actions/defaultNext)
+    // ids das edges que sairão
+    const toRemove = edgesRef.current.filter((e) => e.source === deletedId || e.target === deletedId);
+    const removedIds = new Set(toRemove.map((e) => e.id));
+
     setNodes((nds) =>
       nds
         .filter((n) => n.id !== deletedId)
         .map((n) => {
           const block = n.data.block || {};
-          const cleanedActions = (block.actions || []).filter(
-            (a) => a.next !== deletedId
-          );
-          const cleanedDefaultNext =
-            block.defaultNext === deletedId ? undefined : block.defaultNext;
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              block: {
-                ...block,
-                actions: cleanedActions,
-                defaultNext: cleanedDefaultNext,
-              },
-            },
-          };
+          const cleanedActions = (block.actions || []).filter((a) => a.next !== deletedId);
+          const cleanedDefaultNext = block.defaultNext === deletedId ? undefined : block.defaultNext;
+          return { ...n, data: { ...n.data, block: { ...block, actions: cleanedActions, defaultNext: cleanedDefaultNext } } };
         })
     );
 
-    setEdges((eds) =>
-      eds.filter((e) => e.source !== deletedId && e.target !== deletedId)
-    );
+    setEdges((eds) => eds.filter((e) => !removedIds.has(e.id)));
+
+    // limpa seleção se a edge removida estava ativa
+    if (removedIds.size) {
+      setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
+    }
   };
 
   const handleDelete = useCallback(() => {
-    if (
-      !selectedNode ||
-      selectedNode.data.nodeType === "start" ||
-      selectedNode.data.label?.toLowerCase()?.includes("onerror")
-    )
-      return;
+    if (!selectedNode || selectedNode.data.nodeType === "start" || selectedNode.data.label?.toLowerCase()?.includes("onerror")) return;
     deleteNodeAndCleanup(selectedNode.id);
     setSelectedNode(null);
   }, [selectedNode]);
 
-  /* =========================
-   * Efeitos auxiliares
-   * ========================= */
+  /* ---------- efeitos auxiliares ---------- */
   useEffect(() => {
     if (!showHistory) return;
-    const fetchHistory = async () => {
+    (async () => {
       try {
         const data = await apiGet("/flow/history");
         setFlowHistory(data);
       } catch (err) {
         console.error("Erro ao carregar histórico de versões:", err);
       }
-    };
-    fetchHistory();
+    })();
   }, [showHistory]);
 
   useEffect(() => {
@@ -467,14 +428,17 @@ function handler(context) {
       }
     };
     document.addEventListener("mousedown", handleClickOutside, true);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside, true);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
-  // Keyboard: Delete / Undo / Redo
+  // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // se veio do painel, ignora (o painel já cuida de hotkeys locais)
+      if ((event.target instanceof HTMLElement) && event.target.closest?.("[data-stop-hotkeys='true']")) {
+        return;
+      }
+
       // Undo / Redo
       const isZ = event.key.toLowerCase() === "z";
       const isY = event.key.toLowerCase() === "y";
@@ -490,39 +454,23 @@ function handler(context) {
         return;
       }
 
-      // Delete selecionado
+      // Delete
       if (event.key === "Delete") {
         if (selectedEdgeId) {
-          const edgeToRemove = edgesRef.current.find(
-            (e) => e.id === selectedEdgeId
-          );
+          const edgeToRemove = edgesRef.current.find((e) => e.id === selectedEdgeId);
           pushHistory(snapshot());
-
           setEdges((eds) => eds.filter((e) => e.id !== selectedEdgeId));
-
           if (edgeToRemove) {
             setNodes((nds) =>
               nds.map((node) => {
                 if (node.id !== edgeToRemove.source) return node;
-                const updatedActions = (node.data.block.actions || []).filter(
-                  (a) => a.next !== edgeToRemove.target
-                );
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    block: { ...node.data.block, actions: updatedActions },
-                  },
-                };
+                const updatedActions = (node.data.block.actions || []).filter((a) => a.next !== edgeToRemove.target);
+                return { ...node, data: { ...node.data, block: { ...node.data.block, actions: updatedActions } } };
               })
             );
           }
           setSelectedEdgeId(null);
-        } else if (
-          selectedNode &&
-          selectedNode.data.nodeType !== "start" &&
-          !selectedNode.data.label?.toLowerCase()?.includes("onerror")
-        ) {
+        } else if (selectedNode && selectedNode.data.nodeType !== "start" && !selectedNode.data.label?.toLowerCase()?.includes("onerror")) {
           deleteNodeAndCleanup(selectedNode.id);
           setSelectedNode(null);
         }
@@ -533,9 +481,7 @@ function handler(context) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedEdgeId, selectedNode, undo, redo, pushHistory, snapshot]);
 
-  /* =========================
-   * Carregar fluxo ativo
-   * ========================= */
+  /* ---------- carregar fluxo ativo ---------- */
   useEffect(() => {
     const loadLatestFlow = async () => {
       try {
@@ -544,12 +490,9 @@ function handler(context) {
         if (!latestFlowId) return;
 
         const flowData = await apiGet(`/flow/data/${latestFlowId}`);
-        // Esperado: { start: <id>, blocks: { [id]: { id, label, type, position, color, actions, defaultNext } } }
-
         const blocksObj = flowData.blocks || {};
         const entries = Object.entries(blocksObj);
 
-        // migração: se chave era nome e não tinha id
         const isOldFormat = entries.some(([_, b]) => !b?.id);
         const keyToId = {};
         const normalized = {};
@@ -561,13 +504,9 @@ function handler(context) {
             normalized[id] = { ...b, id, label: b?.label || k };
           });
           Object.values(normalized).forEach((b) => {
-            if (b.defaultNext && keyToId[b.defaultNext])
-              b.defaultNext = keyToId[b.defaultNext];
+            if (b.defaultNext && keyToId[b.defaultNext]) b.defaultNext = keyToId[b.defaultNext];
             if (Array.isArray(b.actions)) {
-              b.actions = b.actions.map((a) => ({
-                ...a,
-                next: keyToId[a.next] || a.next,
-              }));
+              b.actions = b.actions.map((a) => ({ ...a, next: keyToId[a.next] || a.next }));
             }
           });
         }
@@ -583,11 +522,7 @@ function handler(context) {
           data: {
             label: b.label || "Sem Nome",
             type: b.type,
-            nodeType:
-              b.type === "start" ||
-              (b.label || "").toLowerCase() === "início"
-                ? "start"
-                : undefined,
+            nodeType: b.type === "start" || (b.label || "").toLowerCase() === "início" ? "start" : undefined,
             color: b.color || "#607D8B",
             block: b,
           },
@@ -596,22 +531,18 @@ function handler(context) {
 
         const loadedEdges = [];
         Object.values(blocks).forEach((b) => {
-          // edges só de actions explícitas (NÃO de defaultNext)
           (b.actions || []).forEach((a) => {
             if (a.next && blocks[a.next]) {
-              loadedEdges.push({
-                id: genEdgeId(),
-                source: b.id,
-                target: a.next,
-              });
+              loadedEdges.push({ id: genEdgeId(), source: b.id, target: a.next });
             }
           });
         });
 
         setNodes(loadedNodes);
         setEdges(loadedEdges);
-        // reseta histórico após carregar
         setHistory({ past: [], future: [] });
+        setSelectedEdgeId(null);
+        setSelectedNode(null);
       } catch (err) {
         console.error("Erro ao carregar fluxo ativo", err);
       }
@@ -620,38 +551,21 @@ function handler(context) {
     loadLatestFlow();
   }, []);
 
-  /* =========================
-   * Publicar / Baixar
-   * ========================= */
+  /* ---------- Publicar / Baixar ---------- */
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
-      // compat: caso alguém tenha salvo refs por label num fluxo legado
       const labelToId = {};
-      nodes.forEach((n) => {
-        if (labelToId[n.data.label])
-          console.warn("Label duplicado na compat:", n.data.label);
-        labelToId[n.data.label] = n.id;
-      });
+      nodes.forEach((n) => { if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label); labelToId[n.data.label] = n.id; });
       const nodeIds = new Set(nodes.map((n) => n.id));
 
       const blocks = {};
       nodes.forEach((node) => {
         const block = { ...node.data.block };
-
-        if (block.defaultNext) {
-          block.defaultNext = nodeIds.has(block.defaultNext)
-            ? block.defaultNext
-            : labelToId[block.defaultNext] || undefined;
-        }
-
+        if (block.defaultNext) block.defaultNext = nodeIds.has(block.defaultNext) ? block.defaultNext : labelToId[block.defaultNext] || undefined;
         if (Array.isArray(block.actions)) {
-          block.actions = block.actions.map((a) => ({
-            ...a,
-            next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
-          }));
+          block.actions = block.actions.map((a) => ({ ...a, next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next }));
         }
-
         blocks[node.id] = {
           ...block,
           id: node.id,
@@ -663,11 +577,7 @@ function handler(context) {
       });
 
       const startNode = nodes.find((n) => n.data.nodeType === "start");
-      const flowData = {
-        start: startNode?.id ?? nodes[0]?.id,
-        blocks, // indexado por id
-      };
-
+      const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
       await apiPost("/flow/publish", { data: flowData });
       alert("Fluxo publicado com sucesso!");
     } catch (err) {
@@ -679,31 +589,17 @@ function handler(context) {
 
   const downloadFlow = () => {
     const labelToId = {};
-    nodes.forEach((n) => {
-      if (labelToId[n.data.label])
-        console.warn("Label duplicado na compat:", n.data.label);
-      labelToId[n.data.label] = n.id;
-    });
+    nodes.forEach((n) => { if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label); labelToId[n.data.label] = n.id; });
     const nodeIds = new Set(nodes.map((n) => n.id));
 
     const blocks = {};
     nodes.forEach((node) => {
       const originalBlock = node.data.block || {};
       const clonedBlock = { ...originalBlock };
-
-      if (clonedBlock.defaultNext) {
-        clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext)
-          ? clonedBlock.defaultNext
-          : labelToId[clonedBlock.defaultNext] || undefined;
-      }
-
+      if (clonedBlock.defaultNext) clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext) ? clonedBlock.defaultNext : labelToId[clonedBlock.defaultNext] || undefined;
       if (Array.isArray(clonedBlock.actions)) {
-        clonedBlock.actions = clonedBlock.actions.map((a) => ({
-          ...a,
-          next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
-        }));
+        clonedBlock.actions = clonedBlock.actions.map((a) => ({ ...a, next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next }));
       }
-
       blocks[node.id] = {
         ...clonedBlock,
         id: node.id,
@@ -714,14 +610,8 @@ function handler(context) {
       };
     });
 
-    const flowData = {
-      start: nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id,
-      blocks,
-    };
-
-    const blob = new Blob([JSON.stringify(flowData, null, 2)], {
-      type: "application/json",
-    });
+    const flowData = { start: nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id, blocks };
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -730,48 +620,30 @@ function handler(context) {
     URL.revokeObjectURL(url);
   };
 
-  /* =========================
-   * Add node (resolve onError por id)
-   * ========================= */
+  /* ---------- add node ---------- */
   const addNodeTemplate = (template) => {
-    const onErrorNode = nodesRef.current.find(
-      (n) => n.data.label?.toLowerCase() === "onerror"
-    );
-
+    const onErrorNode = nodesRef.current.find((n) => n.data.label?.toLowerCase() === "onerror");
     pushHistory(snapshot());
-
     const newNode = {
       id: genId(),
       type: "quadrado",
-      position: {
-        x: Math.random() * 250 + 100,
-        y: Math.random() * 250 + 100,
-      },
+      position: { x: Math.random() * 250 + 100, y: Math.random() * 250 + 100 },
       data: {
         label: template.label,
         type: template.type,
         color: template.color,
-        block: {
-          ...template.block,
-          defaultNext: onErrorNode?.id, // ID se existir; senão undefined
-        },
+        block: { ...template.block, defaultNext: onErrorNode?.id },
       },
       style: { ...nodeStyle, borderColor: template.color },
     };
     setNodes((nds) => nds.concat(newNode));
   };
 
-  /* =========================
-   * Render data (estilos dinâmicos)
-   * ========================= */
+  /* ---------- render ---------- */
   const styledNodes = nodes.map((node) => ({
     ...node,
-    id: node.id,
     selected: selectedNode?.id === node.id,
-    data: {
-      ...node.data,
-      isHighlighted: node.id === highlightedNodeId,
-    },
+    data: { ...node.data, isHighlighted: node.id === highlightedNodeId },
     style: {
       ...node.style,
       ...(selectedNode?.id === node.id ? selectedNodeStyle : {}),
@@ -782,10 +654,7 @@ function handler(context) {
   const styledEdges = edges.map((edge) => ({
     ...edge,
     markerEnd: { type: "arrowclosed", color: "#888", width: 16, height: 16 },
-    style: {
-      stroke: "#888",
-      strokeWidth: edge.id === selectedEdgeId ? 2.5 : 1.5,
-    },
+    style: { stroke: "#888", strokeWidth: edge.id === selectedEdgeId ? 2.5 : 1.5 },
   }));
 
   const iconButtonStyle = {
@@ -810,50 +679,17 @@ function handler(context) {
     markerEnd: { type: "arrowclosed", color: "#888", width: 12, height: 12 },
   };
 
-  /* =========================
-   * JSX
-   * ========================= */
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100vh",
-        position: "relative",
-        backgroundColor: "#f9f9f9",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div style={{ width: "100%", height: "100vh", position: "relative", backgroundColor: "#f9f9f9", display: "flex", flexDirection: "column" }}>
       {/* Cabeçalho */}
-      <div
-        style={{
-          height: "56px",
-          width: "100%",
-          backgroundColor: "#ffffff",
-          borderBottom: "1px solid #ddd",
-          display: "flex",
-          alignItems: "center",
-          padding: "0 20px",
-          fontWeight: 500,
-          fontSize: "1rem",
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)",
-          zIndex: 10,
-        }}
-      >
+      <div style={{ height: "56px", width: "100%", backgroundColor: "#ffffff", borderBottom: "1px solid #ddd", display: "flex", alignItems: "center", padding: "0 20px", fontWeight: 500, fontSize: "1rem", boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)", zIndex: 10 }}>
         Construtor de Fluxos
       </div>
 
       {/* Conteúdo principal */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Área esquerda: ReactFlow e ScriptEditor */}
         <div style={{ position: "relative", flex: 1 }}>
-          {itor && (
-            <ScriptEditor
-              code={scriptCode}
-              onChange={handleUpdateCode}
-              onClose={() => setitor(false)}
-            />
-          )}
+          {itor && <ScriptEditor code={scriptCode} onChange={handleUpdateCode} onClose={() => setitor(false)} />}
 
           <ReactFlow
             nodes={styledNodes}
@@ -876,10 +712,7 @@ function handler(context) {
               setSelectedNode(null);
             }}
             onPaneClick={(event) => {
-              if (
-                !event.target.closest(".react-flow__node") &&
-                !event.target.closest(".react-flow__edge")
-              ) {
+              if (!event.target.closest(".react-flow__node") && !event.target.closest(".react-flow__edge")) {
                 setSelectedNode(null);
                 setSelectedEdgeId(null);
                 setHighlightedNodeId(null);
@@ -889,14 +722,7 @@ function handler(context) {
             proOptions={{ hideAttribution: true }}
           >
             <Background color="#555" gap={32} variant="dots" />
-            <Controls
-              style={{
-                backgroundColor: "white",
-                border: "1px solid #e2e8f0",
-                borderRadius: "6px",
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
-              }}
-            />
+            <Controls style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "6px", boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)" }} />
 
             <VersionHistoryModal
               visible={showHistory}
@@ -909,14 +735,13 @@ function handler(context) {
             />
           </ReactFlow>
 
-          {/* Menu flutuante (dentro do builder) */}
+          {/* Menu flutuante */}
           <div
             ref={nodeMenuRef}
             style={{
               position: "absolute",
               top: "120px",
               left: 10,
-              transform: "none",
               background: "#1e1e1e",
               border: "1px solid #444",
               borderRadius: "8px",
@@ -929,19 +754,10 @@ function handler(context) {
               boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
             }}
           >
-            {/* Toggle menu de blocos */}
-            <button
-              onClick={() => setShowNodeMenu((prev) => !prev)}
-              title="Adicionar Blocos"
-              style={{
-                ...iconButtonStyle,
-                backgroundColor: showNodeMenu ? "#555" : "#333",
-              }}
-            >
+            <button onClick={() => setShowNodeMenu((p) => !p)} title="Adicionar Blocos" style={{ ...iconButtonStyle, backgroundColor: showNodeMenu ? "#555" : "#333" }}>
               ➕
             </button>
 
-            {/* Menu lateral de templates */}
             {showNodeMenu && (
               <div
                 style={{
@@ -965,12 +781,7 @@ function handler(context) {
                       addNodeTemplate(template);
                       setShowNodeMenu(false);
                     }}
-                    style={{
-                      ...iconButtonStyle,
-                      backgroundColor: template.color,
-                      width: "36px",
-                      height: "36px",
-                    }}
+                    style={{ ...iconButtonStyle, backgroundColor: template.color, width: "36px", height: "36px" }}
                     title={template.label}
                   >
                     {iconMap[template.iconName] || <Zap size={16} />}
@@ -979,60 +790,24 @@ function handler(context) {
               </div>
             )}
 
-            {/* Divider */}
-            <div
-              style={{
-                width: "80%",
-                height: "1px",
-                backgroundColor: "#555",
-                margin: "4px 0",
-              }}
-            />
+            <div style={{ width: "80%", height: "1px", backgroundColor: "#555", margin: "4px 0" }} />
 
             {/* Undo / Redo */}
-            <button
-              onClick={undo}
-              title="Desfazer (Ctrl/Cmd+Z)"
-              style={iconButtonStyle}
-            >
+            <button onClick={undo} title="Desfazer (Ctrl/Cmd+Z)" style={iconButtonStyle}>
               <Undo2 size={18} />
             </button>
-            <button
-              onClick={redo}
-              title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)"
-              style={iconButtonStyle}
-            >
+            <button onClick={redo} title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)" style={iconButtonStyle}>
               <Redo2 size={18} />
             </button>
 
-            {/* Botão: Publicar */}
-            <button
-              onClick={handlePublish}
-              title="Publicar"
-              style={{
-                ...iconButtonStyle,
-                opacity: isPublishing ? 0.5 : 1,
-                pointerEvents: isPublishing ? "none" : "auto",
-              }}
-            >
+            {/* Publicar / Baixar / Histórico */}
+            <button onClick={handlePublish} title="Publicar" style={{ ...iconButtonStyle, opacity: isPublishing ? 0.5 : 1, pointerEvents: isPublishing ? "none" : "auto" }}>
               {isPublishing ? "⏳" : <Rocket size={18} />}
             </button>
-
-            {/* Botão: Baixar */}
-            <button
-              onClick={downloadFlow}
-              title="Baixar JSON"
-              style={iconButtonStyle}
-            >
+            <button onClick={downloadFlow} title="Baixar JSON" style={iconButtonStyle}>
               <Download size={18} />
             </button>
-
-            {/* Botão: Histórico */}
-            <button
-              onClick={() => setShowHistory(true)}
-              title="Histórico de Versões"
-              style={iconButtonStyle}
-            >
+            <button onClick={() => setShowHistory(true)} title="Histórico de Versões" style={iconButtonStyle}>
               🕘
             </button>
           </div>
@@ -1045,7 +820,35 @@ function handler(context) {
             onChange={updateSelectedNode}
             onClose={() => setSelectedNode(null)}
             allNodes={nodes}
-            onConnectNodes={handleConnectNodes}
+            onConnectNodes={({ source, target }) => {
+              // conecta via painel (mesma lógica do handleConnectNodes)
+              const src = nodesRef.current.find((n) => n.id === source);
+              const actions = src?.data?.block?.actions || [];
+              const already = actions.some((a) => a.next === target);
+              pushHistory(snapshot());
+              setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
+              if (!already) {
+                setNodes((nds) =>
+                  nds.map((node) =>
+                    node.id !== source
+                      ? node
+                      : {
+                          ...node,
+                          data: {
+                            ...node.data,
+                            block: {
+                              ...node.data.block,
+                              actions: [
+                                ...actions,
+                                { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
+                              ],
+                            },
+                          },
+                        }
+                  )
+                );
+              }
+            }}
             setShowScriptEditor={setitor}
             setScriptCode={setScriptCode}
           />
