@@ -144,13 +144,16 @@ export default function Admin() {
     <div className={styles['layout-wrapper']}>
       <aside className={styles['sidebar']}>
         <div>
-          <div className={styles.logo}>
-            <MessageCircle className={styles['logo-icon']} />
-            <div>
-              <div className={styles['logo-title']}>NineChat</div>
-              <div className={styles['logo-subtitle']}>Painel Administrativo</div>
-            </div>
-          </div>
+<div className={styles.logo}>
+  <img 
+    src="/logo.png" 
+    alt="NineChat Logo" 
+    className={styles['logo-image']} 
+  />
+  <div>
+    <div className={styles['logo-subtitle']}>Painel Administrativo</div>
+  </div>
+</div>
 
           <nav className={styles['sidebar-nav']}>
             {/* Análise */}
