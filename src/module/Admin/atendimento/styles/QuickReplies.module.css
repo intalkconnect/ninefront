@@ -1,36 +1,39 @@
-/* 1) Libera o scroll global e altura do documento */
+/* === 1) Use o MESMO BG do Preferences para toda a app === */
+:root{
+  /* troque aqui para o exato valor do Preferences, se já existir um token global, use-o */
+  --app-bg: #f6f7fb; /* <- fundo padrão do Preferences */
+}
+
+/* === 2) Scroll global + fundo unificado === */
 html, body {
-  height: auto;            /* não “trava” a altura */
-  min-height: 100%;        /* garante pelo menos viewport cheia */
-  overflow-y: auto;        /* scroll global */
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  background: var(--app-bg) !important;     /* <- igual Preferences */
 }
 
-/* 2) container sem 100vh quando o scroll deve ser global */
-.container {
-  height: auto !important;      /* antes 100vh */
-  min-height: 0 !important;     /* evita “estouro” em flex */
-  overflow: visible !important; /* sem scroll interno */
-  padding: 24px;
-  background: #fff;
-  color: #0f172a;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-}
-
-/* 3) Libera wrappers comuns que costumam travar */
+/* wrappers também herdam o mesmo BG */
 #root, #app, .layout, .main, .content, .page {
+  background: var(--app-bg) !important;     /* <- evita “faixas” diferentes */
   height: auto !important;
-  min-height: auto !important;  /* ou 100% se preferir preencher a tela */
+  min-height: auto !important;
   overflow: visible !important;
 }
 
-/* 4) Em layouts flex, permita crescer além do viewport */
-#root, #app, .layout, .main, .content, .page, .container {
-  min-height: 0 !important;     /* evita “estouro” em flex items */
-  flex: 1 1 auto;
+/* === 3) Container NÃO pinta outro fundo === */
+.container {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 24px;
+  background: transparent !important;       /* <- herda o --app-bg do parent */
 }
+
+/* (resto do seu CSS permanece igual) */
+
 
 /* ====== Tokens (iguais aos usados no queue) ====== */
 :root {
