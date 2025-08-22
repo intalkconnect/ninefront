@@ -1,58 +1,48 @@
 /* =========================
-   Layout base — mesmo padrão do Queue
+   QUEUE — fundo padrão do app + scroll global
    ========================= */
 
-/* Fundo único para a página inteira */
+/* Use o mesmo BG global que o resto do app (troque se precisar) */
 :root{
-  --page-bg: #f7f7fb; /* mesmo tom usado no Queue */
+  --page-bg: #f7f7fb; /* <— mesmo tom usado nas outras telas */
 }
 
-/* 1) Libera o scroll global e altura do documento */
+/* 1) Libera o scroll global e aplica o fundo padrão */
 html, body {
-  height: auto;                 /* não “trava” a altura */
-  min-height: 100%;             /* garante pelo menos viewport cheia */
-  overflow-y: auto;             /* scroll global */
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
   overflow-x: hidden;
   margin: 0;
   padding: 0;
-  background: var(--page-bg);   /* fundo padrão */
+  background: var(--page-bg);
 }
 
-/* 2) O container NÃO usa 100vh quando o scroll é global */
+/* 2) O container não usa 100vh; herda o fundo da página */
 .container {
-  height: auto !important;          /* antes tinha 100vh */
-  min-height: 0 !important;         /* evita “estouro” em layouts flex */
-  overflow: visible !important;     /* sem scroll interno */
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
   padding: 24px;
-  background: inherit !important;   /* herda o fundo da página */
-  color: #0f172a;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  background: inherit !important; /* <— garante a mesma cor do resto */
 }
 
-/* 3) Libera wrappers comuns que costumam travar o layout */
+/* 3) Libera wrappers comuns e mantém o mesmo fundo */
 #root, #app, .layout, .main, .content, .page {
   height: auto !important;
-  min-height: auto !important;   /* ou 100% se quiser sempre “encostar” no rodapé */
+  min-height: auto !important;   /* ou 100% se preferir “encostar” no rodapé */
   overflow: visible !important;
-  background: inherit !important; /* mantém o mesmo fundo */
+  background: inherit !important; /* <— evita faixas de cor diferente */
 }
 
 /* 4) Em layouts flex, permita crescer além do viewport */
 #root, #app, .layout, .main, .content, .page, .container {
-  min-height: 0 !important;  /* evita “estouro” de filhos com overflow */
+  min-height: 0 !important;
   flex: 1 1 auto;
 }
 
-/* =========================
-   Componentes
-   ========================= */
-
-/* Tabela: apenas scroll horizontal quando estourar */
-.tableWrap {
-  overflow: auto;
-  margin-top: 8px;
-  -webkit-overflow-scrolling: touch;
-}
+/* TABELA: apenas scroll horizontal se necessário */
+.tableWrap { overflow: auto; margin-top: 8px; }
 
 /* Header */
 .header{
@@ -63,12 +53,8 @@ html, body {
   content:''; position:absolute; left:0; right:0; bottom:-16px; height:2px;
   background: linear-gradient(90deg, var(--qr-primary) 0%, var(--qr-primary-100) 60%, transparent 100%);
 }
-.title{
-  display:flex; align-items:center; gap:10px;
-  font-size:36px; font-weight:800; line-height:1.2; color:var(--qr-text); margin:0;
-}
+.title{ display:flex; align-items:center; gap:10px; font-size:36px; font-weight:800; line-height:1.2; color:var(--qr-text); margin:0; }
 .subtitle{ font-size:18px; color:var(--qr-text-secondary); margin-top:8px; }
-.titleIcon{ display:inline-flex; align-items:center; }
 
 /* Alertas */
 .alertErr,.alertOk{
@@ -79,9 +65,8 @@ html, body {
 .alertErr{ color:var(--qr-danger-700); border-color: var(--qr-danger-100); }
 .alertOk{  color:var(--qr-success-700); border-color: var(--qr-success-100); }
 .alertIcon{ display:inline-flex; }
-.alertClose{ margin-left:auto; background:transparent; border:0; cursor:pointer; color:var(--qr-text-secondary); }
 
-/* Card base */
+/* Card base (conteúdo branco sobre page-bg) */
 .card{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:var(--qr-radius-xl);
   box-shadow:var(--qr-shadow); overflow:hidden; margin-top:24px; transition:var(--qr-transition);
@@ -89,29 +74,25 @@ html, body {
 .card:hover{ box-shadow:var(--qr-shadow-lg); border-color:var(--qr-border); }
 .cardHead{
   display:flex; align-items:center; justify-content:space-between;
-  padding:18px 22px;
-  background:linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%);
+  padding:18px 22px; background:linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%);
   border-bottom:1px solid var(--qr-border-light);
 }
 .cardTitle{ display:flex; align-items:center; gap:10px; font-weight:700; color:var(--qr-text); }
-.cardActions{ display:flex; align-items:center; gap:12px; }
 
-/* Form em card / edições inline */
+/* Form em card */
 .form{ background:#fff; border:1px solid var(--qr-border-light); border-radius:var(--qr-radius-xl); box-shadow:var(--qr-shadow); margin-bottom:16px; }
 .formInner{ display:grid; gap:var(--qr-gap); padding:22px; }
 .inputGroup{ display:flex; flex-direction:column; gap:6px; }
 .label{ font-size:14px; font-weight:600; color:var(--qr-text-secondary); }
 .req{ color:var(--qr-danger-700); font-weight:700; }
 
-.input, .textarea, .searchInput, .editInput, .editTextarea{
+.input, .textarea{
   width:100%; min-width:0; padding:12px 14px;
   border:1px solid var(--qr-border); border-radius:var(--qr-radius);
   outline:none; transition:var(--qr-transition); background:#fff; font-size:15px;
 }
-.textarea, .editTextarea{ min-height:110px; font-family:inherit; resize:vertical; }
-.input:focus, .textarea:focus, .searchInput:focus, .editInput:focus, .editTextarea:focus{
-  border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100);
-}
+.textarea{ min-height:110px; font-family:inherit; resize:vertical; }
+.input:focus, .textarea:focus{ border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
 
 .formActions{ display:flex; justify-content:flex-end; gap:10px; padding:0 22px 22px; }
 
@@ -127,12 +108,10 @@ html, body {
   width:16px; height:16px; border-radius:999px; border:1px solid var(--qr-border);
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.75);
 }
-.hex{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
+.hex{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 
 /* Botões */
-.btn, .btnPrimary, .btnSecondary, .btnDanger, .btnSuccess, .btnLink{
+.btn, .btnPrimary, .btnSecondary, .btnDanger {
   appearance:none; border:1px solid; border-radius:10px;
   padding:10px 14px; font-size:14px; font-weight:600;
   display:inline-flex; align-items:center; gap:8px; cursor:pointer;
@@ -140,15 +119,16 @@ html, body {
 }
 .btn{ border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover{ background:var(--qr-surface-hover); color:var(--qr-text); }
+
 .btnPrimary{ background:var(--qr-primary); border-color:var(--qr-primary); color:#fff; }
 .btnPrimary:hover{ background:var(--qr-primary-600); border-color:var(--qr-primary-600); }
+
 .btnSecondary{ background:#eef1f5; border-color:#eef1f5; color:#374151; }
 .btnSecondary:hover{ background:#e5e7eb; border-color:#e5e7eb; }
+
 .btnDanger{ background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
 .btnDanger:hover{ background:#b91c1c; border-color:#b91c1c; }
-.btnSuccess{ background:var(--qr-success); border-color:var(--qr-success); color:#fff; }
-.btnSuccess:hover{ background:#15803d; border-color:#15803d; }
-.btnLink{ background:none; border:none; color:var(--qr-primary); text-decoration:underline; padding:6px 8px; }
+
 .iconOnly{ width:36px; height:36px; padding:0 !important; border-radius:9px; justify-content:center; }
 .visuallyHidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
@@ -170,9 +150,7 @@ html, body {
 
 .empty,.loading{ text-align:center; color:var(--qr-muted); padding:24px; }
 
-/* =========================
-   Modal base (mesmo padrão do Queue)
-   ========================= */
+/* Modal base */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -183,25 +161,39 @@ html, body {
   padding: 20px;
   z-index: 9999;
 }
+
 .modal {
   width: 100%;
   max-width: 640px;
   background: #fff;
-  border: 1px solid var(--qr-border-light);
-  border-radius: var(--qr-radius-xl);
-  box-shadow: var(--qr-shadow-lg);
+  border: 1px solid var(--qr-border-light, #eef2f7);
+  border-radius: var(--qr-radius-xl, 14px);
+  box-shadow: var(--qr-shadow-lg, 0 20px 50px rgba(0,0,0,.15));
   overflow: hidden;
 }
+
 .modalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 18px 22px;
-  border-bottom: 1px solid var(--qr-border-light);
-  background: linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%);
+  border-bottom: 1px solid var(--qr-border-light, #eef2f7);
+  background: linear-gradient(180deg, var(--qr-surface, #f9fafb) 0%, #fff 100%);
 }
-.modalTitle { margin: 0; font-size: 18px; font-weight: 800; color: var(--qr-text); }
-.modalActions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 22px 22px; }
+
+.modalTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--qr-text, #111827);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 22px 22px;
+}
 
 /* Responsivo */
 @media (max-width: 640px){
