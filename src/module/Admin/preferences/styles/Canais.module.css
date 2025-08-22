@@ -1,12 +1,46 @@
 /* ===========================
-   Layout geral
+   Base igual ao Preferences (fundo + scroll global)
    =========================== */
+
+/* use o mesmo token/valor do Preferences */
+:root {
+  --app-bg: #f6f7fb;
+}
+
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background: var(--app-bg);
+}
+
+/* wrappers herdam o mesmo fundo para não aparecer “faixa” diferente */
+#root, #app, .layout, .main, .content, .page {
+  background: var(--app-bg) !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+/* o container não pinta outro fundo e não usa 100vh */
 .container {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  background: transparent !important; /* herda var(--app-bg) */
+
+  /* layout original do Channels (mantido) */
   max-width: 1100px;
   margin: 24px auto;
   padding: 0 16px;
 }
 
+/* ===========================
+   Header (mantido; ajuste leve opcional)
+   =========================== */
 .header {
   display: flex;
   align-items: flex-end;
@@ -40,23 +74,18 @@
 .alertOk  { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
 
 /* ===========================
-   GRADE RESPONSIVA DE CARDS
+   Grade responsiva (mantida)
    =========================== */
-
-/* valor mínimo do card — ajuste se quiser mais/menos colunas */
 :root { --card-min: 320px; }
 
 .grid {
   display: grid;
   gap: 16px;
-  /* Grade fluida: cria N colunas que caibam, cada célula com min=--card-min */
   grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
-  align-items: stretch;     /* todos os itens com a mesma altura na linha */
+  align-items: stretch;
 }
+.grid > * { min-width: 0; }
 
-.grid > * { min-width: 0; } /* evita overflow interno */
-
-/* Fallback garantido via breakpoints (se algum estilo externo atrapalhar) */
 @media (max-width: 719px) { .grid { grid-template-columns: 1fr; } }
 @media (min-width: 720px) and (max-width: 1099px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
@@ -66,7 +95,7 @@
 }
 
 /* ===========================
-   Card
+   Cards/canais (mantidos)
    =========================== */
 .card {
   background: #fff;
@@ -118,9 +147,7 @@
   gap: 12px;
 }
 
-/* ===========================
-   Ações / botões
-   =========================== */
+/* Ações / botões */
 .cardActions {
   display: flex;
   align-items: center;
@@ -150,9 +177,7 @@
 
 .hint { display: inline-flex; align-items: center; gap: 6px; color: #6b7280; font-size: 12px; }
 
-/* ===========================
-   Bloco conectado + lista de números em grade
-   =========================== */
+/* Bloco conectado + lista (mantidos) */
 .connectedBlock { display: flex; flex-direction: column; gap: 10px; }
 
 .kv {
@@ -167,7 +192,6 @@
 .listWrap { border-top: 1px dashed #e5e7eb; padding-top: 10px; }
 .listTitle { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
 
-/* mini-cards dos números em GRADE */
 .numList {
   list-style: none; margin: 0; padding: 0;
   display: grid; gap: 10px;
