@@ -1,4 +1,4 @@
-export const ApiCallNodeTemplate = {
+export const HttpNodeTemplate = {
   type: 'api_call',
   label: 'Requisição HTTP',
   iconName: 'Globe',
@@ -18,3 +18,4 @@ export const ApiCallNodeTemplate = {
     statusVar: 'apiStatus',
   },
 };
+
