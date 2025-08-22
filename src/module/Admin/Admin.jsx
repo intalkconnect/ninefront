@@ -150,8 +150,8 @@ export default function Admin() {
     alt="NineChat Logo" 
     className={styles['logo-image']} 
   />
-  <div>
-    <div className={styles['logo-subtitle']}>Painel Administrativo</div>
+  <div className={styles['logo-subtitle']}>
+    Painel Administrativo
   </div>
 </div>
 
