@@ -10,12 +10,12 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const escClose = useCallback((e) => { if (e.key === 'Escape') onClose?.(); }, [onClose]);
+  const onEsc = useCallback((e) => { if (e.key === 'Escape') onClose?.(); }, [onClose]);
   useEffect(() => {
     if (!isOpen) return;
-    document.addEventListener('keydown', escClose);
-    return () => document.removeEventListener('keydown', escClose);
-  }, [isOpen, escClose]);
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  }, [isOpen, onEsc]);
 
   useEffect(() => {
     if (isOpen) { setTitle(''); setContent(''); setError(null); setSaving(false); }
@@ -23,7 +23,7 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    const t = title.trim(); const c = content.trim();
+    const t = title.trim(), c = content.trim();
     if (!t || !c) { setError('Por favor, preencha o título e o conteúdo.'); return; }
     if (t.length > 100) { setError('O título deve ter no máximo 100 caracteres.'); return; }
 
@@ -42,8 +42,13 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
 
   return (
     <div className={styles.modalOverlay} onMouseDown={onClose}>
-      <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="qr-create-title"
-           onMouseDown={(e) => e.stopPropagation()}>
+      <div
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="qr-create-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className={styles.modalHeader}>
           <h2 id="qr-create-title" className={styles.modalTitle}>Nova resposta rápida</h2>
           <button type="button" className={`${styles.btn} ${styles.iconOnly}`} onClick={onClose} aria-label="Fechar">
@@ -52,16 +57,23 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
         </div>
 
         {error && (
-          <div className={styles.alertErr} role="alert" aria-live="assertive" style={{ margin: '0 22px' }}>
+          <div className={styles.alertErr} role="alert" aria-live="assertive" style={{ margin: '0 18px' }}>
             <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={16} /></span>
             <span>{error}</span>
+            <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar alerta">
+              <XIcon size={14} />
+            </button>
           </div>
         )}
 
         <form onSubmit={submit}>
-          <div className={styles.formInner} style={{ paddingTop: 22 }}>
+          <div className={styles.formInner}>
+            {/* Título */}
             <div className={styles.inputGroup}>
-              <label htmlFor="qr-title" className={styles.label}>Título *</label>
+              <div className={styles.labelRow}>
+                <label htmlFor="qr-title" className={styles.label}>Título *</label>
+                <div className={styles.charCount}>{title.length}/100</div>
+              </div>
               <input
                 id="qr-title"
                 className={styles.input}
@@ -71,20 +83,22 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
                 maxLength={100}
                 autoFocus
               />
-              <div className={styles.inputHelper}>{title.length}/100 caracteres</div>
             </div>
 
+            {/* Conteúdo */}
             <div className={styles.inputGroup}>
-              <label htmlFor="qr-content" className={styles.label}>Conteúdo *</label>
+              <div className={styles.labelRow}>
+                <label htmlFor="qr-content" className={styles.label}>Conteúdo *</label>
+                <div className={styles.charCount}>{content.length} caracteres</div>
+              </div>
               <textarea
                 id="qr-content"
                 className={styles.textarea}
-                rows={5}
+                rows={4}
                 placeholder="Digite o conteúdo da resposta rápida…"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
               />
-              <div className={styles.inputHelper}>{content.length} caracteres</div>
             </div>
           </div>
 
