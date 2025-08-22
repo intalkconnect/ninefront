@@ -1,31 +1,31 @@
-
-/* CONTAINER - COM SCROLL INTERNO */
-.container {
-  /* remove height fixa */
-  min-height: 100vh;
-
-  background: #f7f7fb;
-  padding: 24px;
-  color: #111827;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-
-  flex: 1 1 auto;
-}
-
-/* mata sobra por margem do último bloco */
-.container > :last-child { 
-  margin-bottom: 0 !important; 
-}
-
-/* Remove qualquer padding/margin extra do body se necessário */
-body {
+/* 1) Libera o scroll global e altura do documento */
+html, body {
+  height: auto;           /* não “trava” a altura */
+  min-height: 100%;       /* garante pelo menos viewport cheia */
+  overflow-y: auto;       /* scroll global */
+  overflow-x: hidden;
   margin: 0;
   padding: 0;
-  /* deixa a altura natural do conteúdo */
-  min-height: 100vh;
-  /* permite scroll global */
-  overflow-x: hidden;
-  overflow-y: auto;
+}
+
+/* 2) Não use 100vh no container quando o scroll deve ser global */
+.container {
+  height: auto !important;     /* antes tinha 100vh */
+  min-height: 0 !important;    /* não força altura mínima */
+  overflow: visible !important;/* sem scroll interno */
+}
+
+/* 3) MUITO IMPORTANTE: libere wrappers comuns que costumam travar */
+#root, #app, .layout, .main, .content, .page {
+  height: auto !important;
+  min-height: auto !important; /* ou 100% se preferir preencher a tela */
+  overflow: visible !important; 
+}
+
+/* 4) Se algum desses for flex item, permita crescer além do viewport */
+#root, #app, .layout, .main, .content, .page, .container {
+  min-height: 0 !important; /* evita “estouro” em layouts flex */
+  flex: 1 1 auto;
 }
 
 
