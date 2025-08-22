@@ -34,7 +34,6 @@ import QuickReplies from './atendimento/QuickReplies';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
-const ClientsMonitor = () => <div>Monitor de Clientes</div>;
 const Templates = () => <div>Templates de Campanhas</div>;
 const Broadcast = () => <div>Disparo de Mensagens</div>;
 const General = () => <div>Configurações Gerais</div>;
