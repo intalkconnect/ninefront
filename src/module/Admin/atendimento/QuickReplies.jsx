@@ -1,17 +1,18 @@
+// src/pages/QuickReplies/QuickReplies.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { apiGet, apiPost, apiDelete, apiPut } from '../../../shared/apiClient';
+import { apiGet, apiDelete, apiPut } from '../../../shared/apiClient';
 import styles from './styles/QuickReplies.module.css';
 import {
   MessageSquare,
   Save as SaveIcon,
-  Copy as CopyIcon,
   Edit3 as EditIcon,
   Trash2 as TrashIcon,
   X as XIcon,
-  Search as SearchIcon,
   AlertCircle,
   CheckCircle2
 } from 'lucide-react';
+
+import QuickReplyModal from './QuickReplyModal';
 
 /**
  * QuickReplies – UX sóbria + Lucide + scroll de página
@@ -22,12 +23,13 @@ const QuickReplies = () => {
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Form
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  // Busca
   const [query, setQuery] = useState('');
 
-  // Ações
+  // Modal de criação
+  const [createOpen, setCreateOpen] = useState(false);
+
+  // Edição
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -69,31 +71,6 @@ const QuickReplies = () => {
       return t.includes(q) || c.includes(q);
     });
   }, [items, query]);
-
-  // Criar
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    setError(null);
-    const trimmedTitle = title.trim();
-    const trimmedContent = content.trim();
-    if (!trimmedTitle || !trimmedContent) {
-      setError('Por favor, preencha o título e o conteúdo.');
-      return;
-    }
-    if (trimmedTitle.length > 100) {
-      setError('O título deve ter no máximo 100 caracteres.');
-      return;
-    }
-    try {
-      const created = await apiPost('/quickReplies', { title: trimmedTitle, content: trimmedContent });
-      setItems(prev => [...prev, created]);
-      setTitle(''); setContent('');
-      showSuccess('Resposta criada com sucesso.');
-    } catch (e) {
-      console.error('Erro ao criar:', e);
-      setError('Erro ao criar resposta. Tente novamente.');
-    }
-  };
 
   // Edição
   const startEdit = (item) => {
@@ -194,58 +171,17 @@ const QuickReplies = () => {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Formulário de criação (botão Salvar) */}
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>
-            <span className={styles.cardIcon} aria-hidden="true"><SaveIcon size={18} /></span>
-            Nova Resposta
-          </div>
+        {/* Botão abre modal de criação */}
+        <div>
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={() => setCreateOpen(true)}
+          >
+            + Criar resposta
+          </button>
         </div>
-        <form onSubmit={handleCreate} className={styles.formGrid}>
-          <div className={styles.inputGroup}>
-            <label htmlFor="title" className={styles.label}>Título *</label>
-            <input
-              id="title"
-              className={styles.input}
-              placeholder="Ex: Saudação inicial, Informações de horário..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={100}
-              required
-            />
-            <div className={styles.inputHelper}>{title.length}/100 caracteres</div>
-          </div>
-
-          <div className={styles.inputGroup}>
-            <label htmlFor="content" className={styles.label}>Conteúdo *</label>
-            <textarea
-              id="content"
-              className={styles.textarea}
-              rows={4}
-              placeholder="Digite o conteúdo da resposta rápida aqui..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              required
-            />
-            <div className={styles.inputHelper}>{content.length} caracteres</div>
-          </div>
-
-          <div className={styles.formActions}>
-            <button
-              className={styles.btnPrimary}
-              type="submit"
-              disabled={!title.trim() || !content.trim()}
-              aria-label="Salvar nova resposta"
-              title="Salvar nova resposta"
-            >
-              <SaveIcon size={16} aria-hidden="true" />
-              <span className={styles.btnText}>Salvar</span>
-            </button>
-          </div>
-        </form>
       </div>
 
       {/* Lista */}
@@ -416,6 +352,13 @@ const QuickReplies = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de criação */}
+      <QuickReplyModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => { setCreateOpen(false); load(); showSuccess('Resposta criada com sucesso.'); }}
+      />
     </div>
   );
 };
