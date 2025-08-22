@@ -1,5 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Home, Bot, Users, Settings, ChevronDown, LogOut } from 'lucide-react';
+import { 
+  Home, 
+  Bot, 
+  Users, 
+  MessageCircle, 
+  Settings, 
+  Activity,
+  UserCheck,
+  Folder,
+  Zap,
+  Megaphone,
+  FileText,
+  Send,
+  ChevronDown, 
+  ChevronRight,
+  LogOut 
+} from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Chatbot from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
@@ -10,16 +26,20 @@ import { parseJwt } from '../../utils/auth';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from "../../shared/apiClient";
 
-import Preferences from './preferences/Preferences'; // <<< usa a página de settings como "Preferences"
+import Preferences from './preferences/Preferences';
 import Channels from './preferences/Channels';
 import TempoReal from './atendimento/TempoReal';
 import Queues from './atendimento/Queues';
 import QuickReplies from './atendimento/QuickReplies';
 
-// Novos componentes (temporários como <div>)
-
-const Configuracao = () => <div>Configuração</div>;
-const RespostasRapidas = () => <div>Respostas Rápidas</div>;
+// Componentes temporários para novas rotas
+const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
+const ClientsMonitor = () => <div>Monitor de Clientes</div>;
+const Templates = () => <div>Templates de Campanhas</div>;
+const Broadcast = () => <div>Disparo de Mensagens</div>;
+const General = () => <div>Configurações Gerais</div>;
+const Integrations = () => <div>Integrações</div>;
+const Security = () => <div>Segurança</div>;
 
 document.title = 'NineChat - Gestão';
 
@@ -27,7 +47,12 @@ export default function Admin() {
   const token = localStorage.getItem('token');
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(null);
+  const [expandedMenus, setExpandedMenus] = useState({
+    monitoring: false,
+    attendance: false,
+    campaigns: false,
+    config: false
+  });
 
   useEffect(() => {
     const fetchAdminInfo = async () => {
@@ -43,75 +68,204 @@ export default function Admin() {
     fetchAdminInfo();
   }, [email]);
 
+  const toggleMenu = (menuKey) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuKey]: !prev[menuKey]
+    }));
+  };
+
+  const MenuSection = ({ title, children }) => (
+    <div className={styles['menu-section']}>
+      <h3 className={styles['section-title']}>{title}</h3>
+      <div className={styles['section-items']}>
+        {children}
+      </div>
+    </div>
+  );
+
+  const MenuIcon = ({ to, icon, label, end = false, badge = null, isDevelopment = false }) => (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) => `${styles['menu-icon']} ${isActive ? styles.active : ''} ${isDevelopment ? styles.development : ''}`}
+    >
+      {icon}
+      <span className={styles['menu-label']}>
+        {label}
+        {isDevelopment && (
+          <span className={styles['dev-badge']}>Em desenvolvimento</span>
+        )}
+      </span>
+      {badge && <span className={styles['notification-badge']}>{badge}</span>}
+    </NavLink>
+  );
+
+  const DropdownMenu = ({ 
+    menuKey, 
+    icon, 
+    label, 
+    children, 
+    badge = null 
+  }) => {
+    const isExpanded = expandedMenus[menuKey];
+    
+    return (
+      <div className={styles.dropdown}>
+        <button
+          className={styles['dropdown-toggle']}
+          onClick={() => toggleMenu(menuKey)}
+        >
+          {icon}
+          <span className={styles['menu-label']}>{label}</span>
+          {badge && <span className={styles['notification-badge']}>{badge}</span>}
+          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+        {isExpanded && (
+          <div className={styles['dropdown-menu']}>
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const DropdownLink = ({ to, icon, label }) => (
+    <NavLink 
+      to={to} 
+      className={styles['dropdown-link']}
+      onClick={() => setExpandedMenus(prev => ({ ...prev }))}
+    >
+      {icon && <span className={styles['dropdown-icon']}>{icon}</span>}
+      {label}
+    </NavLink>
+  );
+
   return (
     <div className={styles['layout-wrapper']}>
       <aside className={styles['sidebar']}>
         <div>
-          <div className={styles.logo}>NineChat - Admin</div>
+          <div className={styles.logo}>
+            <MessageCircle className={styles['logo-icon']} />
+            <div>
+              <div className={styles['logo-title']}>NineChat</div>
+              <div className={styles['logo-subtitle']}>Painel Administrativo</div>
+            </div>
+          </div>
+
           <nav className={styles['sidebar-nav']}>
-            <MenuIcon to="" icon={<Home size={18} />} label="Dashboard" />
-            <MenuIcon to="chatbot" icon={<Bot size={18} />} label="Chatbot" />
-            <MenuIcon to="users" icon={<Users size={18} />} label="Usuários" />
-
-            <div className={styles.dropdown}>
-              <button
-                className={styles['dropdown-toggle']}
-                onClick={() =>
-                  setShowDropdown(showDropdown === 'atendimento' ? null : 'atendimento')
-                }
+            {/* Análise */}
+            <MenuSection title="Análise">
+              <MenuIcon 
+                to="" 
+                icon={<Home size={18} />} 
+                label="Dashboard" 
+                end={true}
+              />
+              
+              <DropdownMenu
+                menuKey="monitoring"
+                icon={<Activity size={18} />}
+                label="Acompanhamento"
               >
-                <Users size={18} />
-                Atendimento
-                <ChevronDown size={14} />
-              </button>
-              {showDropdown === 'atendimento' && (
-                <div className={styles['dropdown-menu']}>
-                  <NavLink to="atendimento/tempo-real" className={styles['dropdown-link']}>
-                    Tempo Real
-                  </NavLink>
-{/*                   <NavLink to="atendimento/campanhas" className={styles['dropdown-link']}>
-                    Campanhas
-                  </NavLink> */}
-                  <NavLink to="atendimento/queues" className={styles['dropdown-link']}>
-                    Filas
-                  </NavLink>
-                  <NavLink to="atendimento/quick-replies" className={styles['dropdown-link']}>
-                    Respostas Rápidas
-                  </NavLink>
-                </div>
-              )}
-            </div>
+                <DropdownLink 
+                  to="monitoring/agents" 
+                  icon={<UserCheck size={16} />}
+                  label="Monitor de Atendentes" 
+                />
+                <DropdownLink 
+                  to="monitoring/clients" 
+                  icon={<Users size={16} />}
+                  label="Monitor de Clientes" 
+                />
+              </DropdownMenu>
+            </MenuSection>
 
-            <div className={styles.dropdown}>
-              <button
-                className={styles['dropdown-toggle']}
-                onClick={() => setShowDropdown(showDropdown === 'config' ? null : 'config')}
+            <div className={styles.divider} />
+
+            {/* Gestão */}
+            <MenuSection title="Gestão">
+              <MenuIcon 
+                to="users" 
+                icon={<Users size={18} />} 
+                label="Usuários" 
+              />
+
+              <DropdownMenu
+                menuKey="attendance"
+                icon={<MessageCircle size={18} />}
+                label="Atendimento"
+                badge={3}
               >
-                <Settings size={18} />
-                Configurações
-                <ChevronDown size={14} />
-              </button>
-              {showDropdown === 'config' && (
-                <div className={styles['dropdown-menu']}>
-                  {/* Preferências agora navega para /preferences */}
-                  <NavLink
-                    to="preferences"
-                    className={styles['dropdown-link']}
-                    onClick={() => setShowDropdown(null)}
-                  >
-                    Preferências
-                  </NavLink>
-                   <NavLink
-                    to="channels"
-                    className={styles['dropdown-link']}
-                    onClick={() => setShowDropdown(null)}
-                  >
-                    Canais
-                  </NavLink>
-{/*                   <div className={styles['dropdown-link']}>Integrações</div> */}
-                </div>
-              )}
-            </div>
+                <DropdownLink 
+                  to="atendimento/queues" 
+                  icon={<Folder size={16} />}
+                  label="Filas" 
+                />
+                <DropdownLink 
+                  to="atendimento/quick-replies" 
+                  icon={<Zap size={16} />}
+                  label="Respostas Rápidas" 
+                />
+              </DropdownMenu>
+
+              <DropdownMenu
+                menuKey="campaigns"
+                icon={<Megaphone size={18} />}
+                label="Campanhas"
+              >
+                <DropdownLink 
+                  to="campaigns/templates" 
+                  icon={<FileText size={16} />}
+                  label="Templates" 
+                />
+                <DropdownLink 
+                  to="campaigns/broadcast" 
+                  icon={<Send size={16} />}
+                  label="Disparo de Mensagens" 
+                />
+              </DropdownMenu>
+            </MenuSection>
+
+            <div className={styles.divider} />
+
+            {/* Desenvolvimento */}
+            <MenuSection title="Desenvolvimento">
+              <MenuIcon 
+                to="chatbot" 
+                icon={<Bot size={18} />} 
+                label="Chatbot"
+                isDevelopment={true}
+              />
+            </MenuSection>
+
+            <div className={styles.divider} />
+
+            {/* Sistema */}
+            <MenuSection title="Sistema">
+              <DropdownMenu
+                menuKey="config"
+                icon={<Settings size={18} />}
+                label="Configurações"
+              >
+                <DropdownLink 
+                  to="preferences" 
+                  label="Preferências" 
+                />
+                <DropdownLink 
+                  to="channels" 
+                  label="Canais" 
+                />
+                <DropdownLink 
+                  to="config/integrations" 
+                  label="Integrações" 
+                />
+                <DropdownLink 
+                  to="config/security" 
+                  label="Segurança" 
+                />
+              </DropdownMenu>
+            </MenuSection>
           </nav>
         </div>
 
@@ -143,18 +297,29 @@ export default function Admin() {
       <main className={styles['main-content']}>
         <Routes>
           <Route index element={<Dashboard />} />
-          <Route path="chatbot" element={<Chatbot />} />
+          
+          {/* Análise */}
+          <Route path="monitoring/agents" element={<AgentsMonitor />} />
+          <Route path="monitoring/clients" element={<ClientsMonitor />} />
+          
+          {/* Gestão */}
           <Route path="users" element={<UsersPage />} />
-
-          {/* Atendimento */}
-          <Route path="atendimento/tempo-real" element={<TempoReal />} />
-{/*           <Route path="atendimento/configuracao" element={<Campanhas />} /> */}
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
-
-          {/* Preferências (antes era settings) */}
+          <Route path="campaigns/templates" element={<Templates />} />
+          <Route path="campaigns/broadcast" element={<Broadcast />} />
+          
+          {/* Desenvolvimento */}
+          <Route path="chatbot" element={<Chatbot />} />
+          
+          {/* Sistema */}
           <Route path="preferences" element={<Preferences />} />
           <Route path="channels" element={<Channels />} />
+          <Route path="config/integrations" element={<Integrations />} />
+          <Route path="config/security" element={<Security />} />
+
+          {/* Compatibilidade com rota antiga */}
+          <Route path="atendimento/tempo-real" element={<TempoReal />} />
 
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
@@ -162,14 +327,3 @@ export default function Admin() {
     </div>
   );
 }
-
-const MenuIcon = ({ to, icon, label }) => (
-  <NavLink
-    to={to}
-    end={to === ''}
-    className={({ isActive }) => `${styles['menu-icon']} ${isActive ? styles.active : ''}`}
-  >
-    {icon}
-    {label}
-  </NavLink>
-);
