@@ -20,9 +20,13 @@ const QuickReplies = () => {
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
+  // busca
   const [query, setQuery] = useState('');
+
+  // modal
   const [createOpen, setCreateOpen] = useState(false);
 
+  // edição
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -62,6 +66,7 @@ const QuickReplies = () => {
     });
   }, [items, query]);
 
+  // edição
   const startEdit = (item) => {
     setEditingId(item.id);
     setEditTitle(item.title || '');
@@ -93,6 +98,7 @@ const QuickReplies = () => {
     }
   };
 
+  // remover
   const handleDelete = async (id) => {
     if (!window.confirm('Tem certeza que deseja remover esta resposta?')) return;
     setDeletingId(id);
@@ -119,8 +125,11 @@ const QuickReplies = () => {
             <span className={styles.titleIcon} aria-hidden="true"><MessageSquare size={24} /></span>
             Respostas Rápidas
           </h1>
-          <p className={styles.subtitle}>Gerencie atalhos de mensagens para agilizar o atendimento ao cliente.</p>
+          <p className={styles.subtitle}>
+            Gerencie atalhos de mensagens para agilizar o atendimento ao cliente.
+          </p>
 
+          {/* Alertas */}
           {error && (
             <div className={styles.alertErr} role="alert" aria-live="assertive">
               <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={18} /></span>
@@ -141,6 +150,7 @@ const QuickReplies = () => {
           )}
         </div>
 
+        {/* Botão “Criar” abre modal */}
         <div>
           <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
             + Criar resposta
@@ -148,6 +158,7 @@ const QuickReplies = () => {
         </div>
       </div>
 
+      {/* Lista */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>
@@ -165,14 +176,20 @@ const QuickReplies = () => {
                 aria-label="Buscar respostas"
               />
               {query && (
-                <button className={styles.searchClear} onClick={clearSearch} title="Limpar busca" aria-label="Limpar busca" type="button">
+                <button
+                  className={styles.searchClear}
+                  onClick={clearSearch}
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                  type="button"
+                >
                   <XIcon size={16} />
                 </button>
               )}
             </div>
             <div className={styles.counter} aria-label="Total de itens filtrados">
               <span className={styles.counterNumber}>{filtered.length}</span>
-              <span className={styles.counterLabel}>{filtered.length === 1 ? 'item' : 'itens'}</span>
+              <span>{filtered.length === 1 ? 'item' : 'itens'}</span>
             </div>
           </div>
         </div>
@@ -189,10 +206,7 @@ const QuickReplies = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={3} className={styles.loading}>
-                    <div className={styles.spinner} aria-hidden="true"></div>
-                    <span>Carregando respostas...</span>
-                  </td>
+                  <td colSpan={3} className={styles.empty}>Carregando respostas…</td>
                 </tr>
               )}
 
@@ -210,7 +224,13 @@ const QuickReplies = () => {
                   <td className={styles.cellKey} data-label="Título">
                     {editingId === item.id ? (
                       <div className={styles.editForm}>
-                        <input className={styles.editInput} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Título" autoFocus />
+                        <input
+                          className={styles.editInput}
+                          value={editTitle}
+                          onChange={(e) => setEditTitle(e.target.value)}
+                          placeholder="Título"
+                          autoFocus
+                        />
                       </div>
                     ) : (
                       <>
@@ -222,7 +242,13 @@ const QuickReplies = () => {
 
                   <td className={styles.cellContent} data-label="Conteúdo">
                     {editingId === item.id ? (
-                      <textarea className={styles.editTextarea} value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={3} placeholder="Conteúdo" />
+                      <textarea
+                        className={styles.editTextarea}
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={3}
+                        placeholder="Conteúdo"
+                      />
                     ) : (
                       <pre className={styles.code} title={item.content}>{item.content}</pre>
                     )}
@@ -230,20 +256,47 @@ const QuickReplies = () => {
 
                   <td className={styles.cellActions} data-label="Ações">
                     {editingId === item.id ? (
-                      <div className={styles.editActions}>
-                        <button className={`${styles.btnSuccess} ${styles.iconOnly}`} onClick={() => saveEdit(item.id)} disabled={savingId === item.id} aria-label={savingId === item.id ? 'Salvando' : 'Salvar'} title={savingId === item.id ? 'Salvando...' : 'Salvar'} type="button">
+                      <div className={styles.actions}>
+                        <button
+                          className={`${styles.btnSuccess} ${styles.iconOnly}`}
+                          onClick={() => saveEdit(item.id)}
+                          disabled={savingId === item.id}
+                          aria-label={savingId === item.id ? 'Salvando' : 'Salvar'}
+                          title={savingId === item.id ? 'Salvando...' : 'Salvar'}
+                          type="button"
+                        >
                           <SaveIcon size={16} aria-hidden="true" />
                         </button>
-                        <button className={`${styles.btn} ${styles.iconOnly}`} onClick={cancelEdit} disabled={savingId === item.id} aria-label="Cancelar" title="Cancelar" type="button">
+                        <button
+                          className={`${styles.btn} ${styles.iconOnly}`}
+                          onClick={cancelEdit}
+                          disabled={savingId === item.id}
+                          aria-label="Cancelar"
+                          title="Cancelar"
+                          type="button"
+                        >
                           <XIcon size={16} aria-hidden="true" />
                         </button>
                       </div>
                     ) : (
                       <div className={styles.actions}>
-                        <button className={`${styles.btnSecondary} ${styles.iconOnly}`} onClick={() => startEdit(item)} title="Editar resposta" aria-label="Editar resposta" type="button">
+                        <button
+                          className={`${styles.btnSecondary} ${styles.iconOnly}`}
+                          onClick={() => startEdit(item)}
+                          title="Editar resposta"
+                          aria-label="Editar resposta"
+                          type="button"
+                        >
                           <EditIcon size={16} aria-hidden="true" />
                         </button>
-                        <button className={`${styles.btnDanger} ${styles.iconOnly}`} onClick={() => handleDelete(item.id)} disabled={deletingId === item.id} title={deletingId === item.id ? 'Removendo...' : 'Remover resposta'} aria-label={deletingId === item.id ? 'Removendo' : 'Remover resposta'} type="button">
+                        <button
+                          className={`${styles.btnDanger} ${styles.iconOnly}`}
+                          onClick={() => handleDelete(item.id)}
+                          disabled={deletingId === item.id}
+                          title={deletingId === item.id ? 'Removendo...' : 'Remover resposta'}
+                          aria-label={deletingId === item.id ? 'Removendo' : 'Remover resposta'}
+                          type="button"
+                        >
                           <TrashIcon size={16} aria-hidden="true" />
                         </button>
                       </div>
@@ -256,12 +309,16 @@ const QuickReplies = () => {
         </div>
       </div>
 
+      {/* Footer discreto */}
       <div className={styles.footer}>
         <div className={styles.footerContent}>
-          <div className={styles.tip}><strong>Dica:</strong> Prefira títulos descritivos para encontrar rapidamente suas respostas.</div>
+          <div className={styles.tip}>
+            <strong>Dica:</strong> Prefira títulos descritivos para encontrar rapidamente suas respostas.
+          </div>
         </div>
       </div>
 
+      {/* Modal de criação */}
       <QuickReplyModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
