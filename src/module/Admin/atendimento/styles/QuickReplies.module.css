@@ -11,29 +11,29 @@
 
   /* Paleta sóbria */
   --qr-bg: #ffffff;
-  --qr-surface: #f7f8fa;          /* cinza muito claro */
+  --qr-surface: #f7f8fa;
   --qr-surface-hover: #eef1f5;
   --qr-border: #e5e7eb;
   --qr-border-light: #edf0f3;
-  --qr-text: #0f172a;             /* slate-900 */
-  --qr-text-secondary: #475569;   /* slate-600 */
-  --qr-muted: #64748b;            /* slate-500 */
+  --qr-text: #0f172a;
+  --qr-text-secondary: #475569;
+  --qr-muted: #64748b;
 
-  /* Acento neutro (menos saturado) */
-  --qr-primary: #4b5563;          /* slate-600 */
+  /* Acento neutro */
+  --qr-primary: #4b5563;
   --qr-primary-50: #f8fafc;
   --qr-primary-100: #e5e7eb;
-  --qr-primary-600: #374151;      /* slate-700 */
-  --qr-primary-700: #1f2937;      /* slate-800 */
+  --qr-primary-600: #374151;
+  --qr-primary-700: #1f2937;
 
-  /* Estados (mantidos, mas usados com parcimônia) */
-  --qr-success: #16a34a;          /* verde moderado */
+  /* Estados */
+  --qr-success: #16a34a;
   --qr-success-50: #ecfdf5;
   --qr-success-100: #d1fae5;
   --qr-success-600: #15803d;
   --qr-success-700: #166534;
 
-  --qr-danger: #dc2626;           /* vermelho moderado */
+  --qr-danger: #dc2626;
   --qr-danger-50: #fef2f2;
   --qr-danger-100: #fee2e2;
   --qr-danger-600: #b91c1c;
@@ -50,37 +50,22 @@
   --page-inline: clamp(8px, 1.2vw, 16px);
 }
 
-/* Página ocupa o viewport e rola apenas se precisar */
-/* O CONTAINER é o ÚNICO scroller; sem sobra inferior */
+/* CONTAINER: único scroller */
 .container{
-  height: 100dvh;             /* ocupa exatamente a viewport */
-  min-height: 0;              /* importante p/ overflow funcionar dentro */
-  box-sizing: border-box;     /* padding entra no 100dvh (sem “barriga”) */
-  overflow-y: auto;           /* <— scroll só aqui */
+  height: 100dvh;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
   overflow-x: hidden;
 
   width: 100%;
-  max-width: none;
   margin: 0;
   padding: 24px var(--page-inline);
 
   background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
-  scrollbar-gutter: stable both-edges; /* evita “pulo” quando a barra aparece */
+  scrollbar-gutter: stable both-edges;
 }
-
-/* evita sobra por margem do último bloco */
 .container > :last-child { margin-bottom: 0 !important; }
-
-/* tabela só rola na horizontal, se estourar */
-.tableWrap{
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
-}
-
-/* REMOVA qualquer max-height de cards/tabelas aqui. */
-
 
 /* Header */
 .header {
@@ -103,8 +88,6 @@
   margin: 0; display: flex; align-items: center; gap: 12px;
 }
 .titleIcon { display: inline-flex; align-items: center; }
-
-/* Subtítulo */
 .subtitle { font-size: 18px; color: var(--qr-text-secondary); margin-top: 12px; line-height: 1.6; }
 
 /* Alertas */
@@ -139,10 +122,10 @@
 .cardActions { display: flex; align-items: center; gap: 12px; }
 
 /* Inputs */
+.formGrid { display: grid; gap: var(--qr-gap); padding: 22px; }
 .inputGroup { display: flex; flex-direction: column; gap: 8px; }
 .label { font-size: 14px; font-weight: 600; color: var(--qr-text-secondary); }
 .inputHelper { font-size: 12px; color: var(--qr-muted); text-align: right; }
-.formGrid { display: grid; gap: var(--qr-gap); padding: 22px; }
 
 .input, .textarea, .searchInput, .editInput, .editTextarea {
   width: 100%; border: 1px solid var(--qr-border); border-radius: var(--qr-radius); background: var(--qr-bg);
@@ -151,21 +134,13 @@
 .input:focus, .textarea:focus, .searchInput:focus, .editInput:focus, .editTextarea:focus {
   border-color: var(--qr-primary); box-shadow: 0 0 0 3px var(--qr-primary-100); background: #fff;
 }
-.input:hover, .textarea:hover, .searchInput:hover { border-color: var(--qr-border); }
-.textarea, .editTextarea {
-  resize: vertical; min-height: 120px;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-}
+.textarea, .editTextarea { resize: vertical; min-height: 120px; font-family: ui-sans-serif, system-ui; }
 .editInput, .editTextarea { font-size: 14px; padding: 12px; }
 .editForm { margin-bottom: 8px; }
 
 /* Busca */
 .searchGroup { position: relative; display: flex; align-items: center; }
-.searchInput {
-  min-width: 0;           /* <— deixa crescer só o necessário */
-  width: min(360px, 40vw);
-  padding-right: 40px;
-}
+.searchInput { min-width: 0; width: min(360px, 40vw); padding-right: 40px; }
 .searchClear {
   position: absolute; right: 8px; display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; background: transparent; border: none; border-radius: 6px; cursor: pointer; color: var(--qr-text-secondary);
@@ -180,19 +155,15 @@
 .counterNumber { font-weight: 800; }
 .formActions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 10px; }
 
-/* Botões base */
+/* Botões */
 .btn, .btnPrimary, .btnDanger, .btnSuccess, .btnSecondary, .btnLink {
   appearance: none; border: 1px solid; border-radius: 10px;
   padding: 10px 14px; font-size: 14px; font-weight: 600; cursor: pointer; transition: var(--qr-transition);
   line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; white-space: nowrap;
 }
 .btn:disabled, .btnPrimary:disabled, .btnDanger:disabled, .btnSuccess:disabled, .btnSecondary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-/* Ícone-apenas (para ações de linha) */
 .iconOnly { width: 36px; height: 36px; padding: 0 !important; border-radius: 9px; }
 .btnText { display: inline; }
-
-/* Cores dos botões (neutras) */
 .btn { background: var(--qr-bg); border-color: var(--qr-border); color: var(--qr-text-secondary); }
 .btn:hover:not(:disabled) { background: var(--qr-surface-hover); color: var(--qr-text); transform: translateY(-1px); }
 .btnPrimary { background: var(--qr-primary); border-color: var(--qr-primary); color: #fff; }
@@ -203,11 +174,10 @@
 .btnDanger:hover:not(:disabled) { background: var(--qr-danger-600); border-color: var(--qr-danger-600); }
 .btnSecondary { background: #eef1f5; border-color: #eef1f5; color: #374151; }
 .btnSecondary:hover:not(:disabled) { background: #e5e7eb; border-color: #e5e7eb; }
-
-/* Link discreto */
 .btnLink { background: none; border: none; color: var(--qr-primary); text-decoration: underline; padding: 6px 8px; }
 .btnLink:hover:not(:disabled) { color: var(--qr-primary-600); background: var(--qr-primary-50); }
 
+/* ===== Modal ===== */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -215,33 +185,38 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
   z-index: 9999;
+  backdrop-filter: blur(2px);
 }
 .modal {
   width: 100%;
-  max-width: 640px;
+  max-width: 700px;
   background: #fff;
-  border: 1px solid var(--qr-border-light, #eef2f7);
-  border-radius: var(--qr-radius-xl, 14px);
-  box-shadow: var(--qr-shadow-lg, 0 20px 50px rgba(0,0,0,.15));
+  border: 1px solid var(--qr-border-light);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.18);
   overflow: hidden;
 }
 .modalHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--qr-border-light, #eef2f7);
-  background: linear-gradient(180deg, var(--qr-surface, #f9fafb) 0%, var(--qr-bg, #fff) 100%);
+  gap: 12px;
+  padding: 14px 18px;
+  background: #fff;
+  border-bottom: 1px solid var(--qr-border-light);
 }
-.modalTitle { margin: 0; font-size: 18px; font-weight: 800; color: var(--qr-text, #111827); }
-.modalActions { display:flex; justify-content:flex-end; gap:10px; padding:0 22px 22px; }
+.modalTitle { margin: 0; font-size: 18px; font-weight: 800; color: #111827; }
+.modalActions { display:flex; justify-content:flex-end; gap:10px; padding: 0 18px 18px; }
 
+/* miolo do modal mais compacto */
+.formInner { display: grid; gap: 14px; padding: 18px; }
+.labelRow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.charCount { font-size: 12px; color: #9ca3af; }
 
-/* Tabela */
-
-
+/* ===== Tabela ===== */
+.tableWrap{ width: 100%; overflow-x: auto; overflow-y: visible; border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl); }
 .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
 .table th, .table td {
   border-bottom: 1px solid var(--qr-border-light);
@@ -263,26 +238,22 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 .empty { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 
-/* Células / conteúdo com scroll local */
+/* Células */
 .cellKey { min-width: 280px; }
 .keyTitle { font-weight: 700; color: var(--qr-text); margin-bottom: 6px; line-height: 1.4; font-size: 15px; }
 .keySub {
   font-size: 11px; color: var(--qr-muted);
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   background: var(--qr-surface); padding: 3px 6px; border-radius: 6px; display: inline-block; border: 1px solid var(--qr-border-light);
 }
-.cellContent {
-  max-width: none;        /* <— remove limite que “aperta” o meio */
-  max-height: 240px;
-  overflow: auto;
-}
+.cellContent { max-height: 240px; overflow: auto; }
 .cellActions { min-width: 200px; }
 
 /* Ações */
 .actions, .editActions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .editActions { flex-direction: row; gap: 8px; }
 
-/* Preview de código – sem “cor infantil”: sem bg e cor herdada, com borda sutil */
+/* Código */
 .code {
   background: transparent !important;
   color: inherit;
@@ -293,7 +264,7 @@
   word-break: break-word;
   max-height: 200px;
   overflow: auto;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 13px; line-height: 1.6;
   box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
 }
