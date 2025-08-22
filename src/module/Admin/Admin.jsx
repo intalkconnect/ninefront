@@ -174,7 +174,7 @@ export default function Admin() {
                   isDevelopment={true}
                 />
                 <DropdownLink 
-                  to="TempoReal" 
+                  to="ClientsMonitor" 
                   icon={<Users size={16} />}
                   label="Monitor de Clientes" 
                 />
@@ -318,9 +318,6 @@ export default function Admin() {
           <Route path="channels" element={<Channels />} />
           <Route path="config/integrations" element={<Integrations />} />
           <Route path="config/security" element={<Security />} />
-
-          {/* Compatibilidade com rota antiga */}
-          <Route path="atendimento/tempo-real" element={<TempoReal />} />
 
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
