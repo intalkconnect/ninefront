@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZap } from "lucide-react";
-import styles from "./styles/Canais.module.css";
+import styles from "./styles/Channels.module.css";
 import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
 
 function getTenantFromHost() {
