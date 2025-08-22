@@ -1,4 +1,4 @@
-export const ScriptNodeTemplate = {
+export const CodeNodeTemplate = {
   type: 'script',
   label: 'Executar Script',
   iconName: 'Code',
@@ -20,3 +20,4 @@ export const ScriptNodeTemplate = {
     timeout: 5000
   },
 };
+
