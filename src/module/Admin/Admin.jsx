@@ -17,7 +17,7 @@ import {
   LogOut 
 } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
-import Chatbot from './chatbot/Builder';
+import Builder from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
 import UsersPage from './users/Users';
 import LogoutButton from './components/LogoutButton';
@@ -28,7 +28,7 @@ import { apiGet } from "../../shared/apiClient";
 
 import Preferences from './preferences/Preferences';
 import Channels from './preferences/Channels';
-import TempoReal from './atendimento/TempoReal';
+import ClientsMonitor from './atendimento/ClientsMonitor';
 import Queues from './atendimento/Queues';
 import QuickReplies from './atendimento/QuickReplies';
 
@@ -172,9 +172,10 @@ export default function Admin() {
                   to="monitoring/agents" 
                   icon={<UserCheck size={16} />}
                   label="Monitor de Atendentes" 
+                  isDevelopment={true}
                 />
                 <DropdownLink 
-                  to="monitoring/clients" 
+                  to="TempoReal" 
                   icon={<Users size={16} />}
                   label="Monitor de Clientes" 
                 />
@@ -189,6 +190,7 @@ export default function Admin() {
                 to="users" 
                 icon={<Users size={18} />} 
                 label="Usuários" 
+                isDevelopment={true}
               />
 
               <DropdownMenu
@@ -213,6 +215,7 @@ export default function Admin() {
                 menuKey="campaigns"
                 icon={<Megaphone size={18} />}
                 label="Campanhas"
+                isDevelopment={true}
               >
                 <DropdownLink 
                   to="campaigns/templates" 
@@ -232,10 +235,9 @@ export default function Admin() {
             {/* Desenvolvimento */}
             <MenuSection title="Desenvolvimento">
               <MenuIcon 
-                to="chatbot" 
+                to="builder" 
                 icon={<Bot size={18} />} 
-                label="Chatbot"
-                isDevelopment={true}
+                label="Builder"
               />
             </MenuSection>
 
@@ -310,7 +312,7 @@ export default function Admin() {
           <Route path="campaigns/broadcast" element={<Broadcast />} />
           
           {/* Desenvolvimento */}
-          <Route path="chatbot" element={<Chatbot />} />
+          <Route path="builder" element={<Builder />} />
           
           {/* Sistema */}
           <Route path="preferences" element={<Preferences />} />
