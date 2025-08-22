@@ -28,19 +28,29 @@
   padding: 1.5rem 1rem 0;
 }
 
-/* Para logo completa */
-.logo-image {
-  height: 32px;
-  width: auto;
-  object-fit: contain;
+/* Logo melhorada */
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 1.5rem 0;
   margin-bottom: 1rem;
   border-bottom: 1px solid #f0f0f0;
 }
 
+.logo-image {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 0.75rem;
+}
+
 .logo-subtitle {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #007bff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-align: center;
+  letter-spacing: 0.025em;
 }
 
 /* Navegação */
@@ -363,4 +373,3 @@
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }
-
