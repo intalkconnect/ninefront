@@ -134,7 +134,7 @@ export default function Queues() {
       </div>
 
       {/* Modais */}
-      <CreateQueueModal
+      <QueueModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={() => { setCreateOpen(false); load(); }}
