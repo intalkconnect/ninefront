@@ -39,6 +39,14 @@ export default function NodeConfigPanel({
     awaitResponse,
     sendDelayInSeconds,
     actions = [],
+    // ↓ campos de api_call (quando o bloco for esse tipo)
+    method,
+    url,
+    headers,
+    body,
+    timeout,
+    outputVar,
+    statusVar,
   } = block;
 
   const isHuman = type === "human";
@@ -53,6 +61,23 @@ export default function NodeConfigPanel({
   const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
   const makeIdFromTitle = (title, max = 24) =>
     clamp((title || "").toString().trim(), max);
+
+  const safeParseJson = (txt, fallback) => {
+    try {
+      if (typeof txt === "string" && txt.trim() !== "") return JSON.parse(txt);
+      return typeof txt === "object" && txt !== null ? txt : fallback;
+    } catch {
+      return fallback;
+    }
+  };
+
+  const pretty = (obj) => {
+    try {
+      return JSON.stringify(obj ?? {}, null, 2);
+    } catch {
+      return "{}";
+    }
+  };
 
   const updateNode = (updatedNode) => onChange(updatedNode);
 
@@ -196,8 +221,7 @@ export default function NodeConfigPanel({
       const isRedo = (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
 
       if (isDelete || isUndo || isRedo) {
-        e.stopPropagation(); // impede que o canvas/nó receba e delete/desfaça o grafo
-        // não usar preventDefault aqui!
+        e.stopPropagation();
       }
     }
   }, []);
@@ -385,27 +409,6 @@ export default function NodeConfigPanel({
                       </div>
                     </div>
                   ))}
-
-                  <div className={styles.buttonGroup}>
-                    <button
-                      onClick={() => {
-                        const newCondition = {
-                          variable: "lastUserMessage",
-                          type: "exists",
-                          value: "",
-                        };
-                        const updated = deepClone(actions);
-                        if (!updated[actionIdx].conditions) {
-                          updated[actionIdx].conditions = [];
-                        }
-                        updated[actionIdx].conditions.push(newCondition);
-                        updateActions(updated);
-                      }}
-                      className={styles.addButtonSmall}
-                    >
-                      <Plus size={14} /> Adicionar Condição
-                    </button>
-                  </div>
 
                   {/* Próximo bloco */}
                   <div className={styles.inputGroup}>
@@ -709,7 +712,7 @@ export default function NodeConfigPanel({
                         button: "Abrir lista",
                         sections: [
                           {
-                            title: "Seção 1", // apenas interno; não exposto
+                            title: "Seção 1",
                             rows: [{ id: "Item 1", title: "Item 1", description: "" }],
                           },
                         ],
@@ -840,7 +843,7 @@ export default function NodeConfigPanel({
                       rows[idx] = {
                         ...(rows[idx] || {}),
                         title: clamp(value, 24),
-                        id: makeIdFromTitle(value, 24), // ID = Title
+                        id: makeIdFromTitle(value, 24),
                       };
                       sections[0] = { ...(sections[0] || {}), rows };
                       const nextAction = {
@@ -912,7 +915,7 @@ export default function NodeConfigPanel({
                         reply: {
                           ...(buttons[idx]?.reply || {}),
                           title: value,
-                          id: value, // ID = Title
+                          id: value,
                         },
                       };
                       const nextAction = {
@@ -1053,20 +1056,22 @@ export default function NodeConfigPanel({
       );
     }
 
-    if (type === "http") {
+    /* ===== NOVO: Editor para blocos de API ===== */
+    if (type === "api_call") {
       return (
         <div className={styles.sectionContent}>
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Método</label>
             <select
-              value={content.method || "GET"}
-              onChange={(e) => updateContent("method", e.target.value)}
+              value={method || "GET"}
+              onChange={(e) => updateBlock({ method: e.target.value })}
               className={styles.selectStyle}
             >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
               <option value="PUT">PUT</option>
               <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
             </select>
           </div>
 
@@ -1074,8 +1079,8 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>URL</label>
             <input
               type="text"
-              value={content.url || ""}
-              onChange={(e) => updateContent("url", e.target.value)}
+              value={url || ""}
+              onChange={(e) => updateBlock({ url: e.target.value })}
               className={styles.inputStyle}
             />
           </div>
@@ -1084,8 +1089,8 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Headers (JSON)</label>
             <textarea
               rows={3}
-              value={content.headers || ""}
-              onChange={(e) => updateContent("headers", e.target.value)}
+              defaultValue={pretty(headers)}
+              onBlur={(e) => updateBlock({ headers: safeParseJson(e.target.value, headers || {}) })}
               className={styles.textareaStyle}
             />
           </div>
@@ -1094,11 +1099,74 @@ export default function NodeConfigPanel({
             <label className={styles.inputLabel}>Body (JSON)</label>
             <textarea
               rows={4}
-              value={content.body || ""}
-              onChange={(e) => updateContent("body", e.target.value)}
+              defaultValue={pretty(body)}
+              onBlur={(e) => updateBlock({ body: safeParseJson(e.target.value, body || {}) })}
               className={styles.textareaStyle}
             />
           </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Timeout (ms)</label>
+            <input
+              type="number"
+              value={timeout ?? 10000}
+              onChange={(e) =>
+                updateBlock({ timeout: parseInt(e.target.value || "0", 10) })
+              }
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Variável de saída</label>
+            <input
+              type="text"
+              value={outputVar || "apiResponse"}
+              onChange={(e) => updateBlock({ outputVar: e.target.value })}
+              className={styles.inputStyle}
+            />
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Variável de status</label>
+            <input
+              type="text"
+              value={statusVar || "apiStatus"}
+              onChange={(e) => updateBlock({ statusVar: e.target.value })}
+              className={styles.inputStyle}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    /* ===== Compatibilidade: nós antigos "http" (legado) ===== */
+    if (type === "http") {
+      return (
+        <div className={styles.sectionContent}>
+          <p style={{ marginBottom: 12 }}>
+            Este bloco está no formato antigo <code>http</code>. Clique abaixo
+            para migrar para <code>api_call</code> (formato suportado pelo executor).
+          </p>
+          <button
+            className={styles.addButton}
+            onClick={() => {
+              const c = deepClone(content || {});
+              updateBlock({
+                type: "api_call",
+                method: c.method || "GET",
+                url: c.url || "",
+                headers: safeParseJson(c.headers, {}),
+                body: safeParseJson(c.body, {}),
+                timeout: c.timeout ?? 10000,
+                outputVar: c.outputVar || "apiResponse",
+                statusVar: c.statusVar || "apiStatus",
+                content: undefined,
+              });
+            }}
+          >
+            Migrar para api_call
+          </button>
         </div>
       );
     }
