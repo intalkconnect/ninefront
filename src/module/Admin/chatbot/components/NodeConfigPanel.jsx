@@ -1020,7 +1020,7 @@ export default function NodeConfigPanel({
       );
     }
 
-    if (type === "code") {
+    if (type === "script") {
       return (
         <div className={styles.sectionContent}>
           <button
@@ -1257,3 +1257,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
