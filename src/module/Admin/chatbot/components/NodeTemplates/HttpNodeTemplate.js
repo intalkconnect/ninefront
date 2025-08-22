@@ -1,23 +1,20 @@
-export const HttpNodeTemplate = {
-  type: 'http',
+export const ApiCallNodeTemplate = {
+  type: 'api_call',
   label: 'Requisição HTTP',
   iconName: 'Globe',
   color: '#7B1FA2',
   block: {
-    type: 'http',
+    type: 'api_call',
     awaitResponse: false,
     sendDelayInSeconds: 1,
     actions: [],
-    content: {
-      method: 'GET',
-      url: 'https://api.exemplo.com/endpoint',
-      headers: JSON.stringify({
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer token'
-      }, null, 2),
-      body: JSON.stringify({ key: 'value' }, null, 2),
-      timeout: 10000, // Tempo máximo em ms
-      outputVar: 'apiResponse' // Onde armazenar a resposta
-    }
+    // ↓ campos na RAIZ do bloco (o executor lê aqui)
+    method: 'GET',
+    url: 'https://api.exemplo.com/endpoint',
+    headers: { 'Content-Type': 'application/json' },
+    body: {},               // objeto (não string)
+    timeout: 10000,
+    outputVar: 'apiResponse',
+    statusVar: 'apiStatus',
   },
 };
