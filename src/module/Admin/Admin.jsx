@@ -28,7 +28,7 @@ import { apiGet } from "../../shared/apiClient";
 
 import Preferences from './preferences/Preferences';
 import Channels from './preferences/Channels';
-import ClientsMonitor from './atendimento/ClientsMonitor';
+import ClientsMonitor from './monitoring/ClientsMonitor';
 import Queues from './atendimento/Queues';
 import QuickReplies from './atendimento/QuickReplies';
 
@@ -174,7 +174,7 @@ export default function Admin() {
                   isDevelopment={true}
                 />
                 <DropdownLink 
-                  to="ClientsMonitor" 
+                  to="monitoring/clients" 
                   icon={<Users size={16} />}
                   label="Monitor de Clientes" 
                 />
