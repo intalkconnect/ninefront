@@ -1,62 +1,23 @@
-:root{
-  --qr-radius: 12px;
-  --qr-radius-lg: 16px;
-  --qr-radius-xl: 20px;
-  --qr-gap: 16px;
-
-  --qr-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / .05);
-  --qr-shadow:    0 1px 3px 0 rgb(0 0 0 / .08), 0 1px 2px -1px rgb(0 0 0 / .06);
-  --qr-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .06);
-
-  --qr-bg: #fff;
-  --qr-surface: #f7f8fa;
-  --qr-surface-hover: #eef1f5;
-  --qr-border: #e5e7eb;
-  --qr-border-light: #edf0f3;
-
-  --qr-text: #0f172a;
-  --qr-text-secondary: #475569;
-  --qr-muted: #64748b;
-
-  --qr-primary: #4b5563;   /* acento neutro */
-  --qr-primary-50: #f8fafc;
-  --qr-primary-100: #e5e7eb;
-  --qr-primary-600: #374151;
-
-  --qr-success: #16a34a;
-  --qr-success-100: #d1fae5;
-  --qr-success-700: #166534;
-
-  --qr-danger: #dc2626;
-  --qr-danger-100: #fee2e2;
-  --qr-danger-700: #991b1b;
-
-  --qr-transition: all .2s cubic-bezier(.4,0,.2,1);
-  --qr-transition-fast: all .15s cubic-bezier(.4,0,.2,1);
-
-  --page-inline: clamp(8px, 1.2vw, 16px);
-}
-
-/* WRAPPER DA PÁGINA - SEM SCROLL */
-.page{
-  height: 100vh;
-  min-height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;        /* Remove completamente o scroll da página */
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
 
 /* CONTAINER - COM SCROLL INTERNO */
-.container{
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;        /* Scroll fica apenas aqui no container */
+.container {
+  /* Força scroll vertical no próprio dashboard */
+  height: 100dvh;
+  height: 100vh; /* fallback */
+  overflow-y: auto;
   overflow-x: hidden;
-  padding: 24px var(--page-inline);
-  background: linear-gradient(135deg, var(--qr-surface) 0%, #fff 100%);
-  scrollbar-gutter: stable both-edges;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+
+  /* base */
+  background: #f7f7fb;
+  padding: 24px;
+  color: #111827;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+
+  /* se o container estiver dentro de layout flex, isso evita “estouro” */
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 /* mata sobra por margem do último bloco */
@@ -73,12 +34,7 @@ body {
 }
 
 /* TABELA: apenas scroll horizontal se necessário */
-.tableWrap{
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
-  border-radius: 0 0 var(--qr-radius-xl) var(--qr-radius-xl);
-}
+.tableWrap { overflow:auto; margin-top:8px; }
 
 /* Header */
 .header{
