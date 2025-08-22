@@ -1,22 +1,14 @@
 
 /* CONTAINER - COM SCROLL INTERNO */
 .container {
-  /* Força scroll vertical no próprio dashboard */
-  height: 100dvh;
-  height: 100vh; /* fallback */
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  /* remove height fixa */
+  min-height: 100vh;
 
-  /* base */
   background: #f7f7fb;
   padding: 24px;
   color: #111827;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
 
-  /* se o container estiver dentro de layout flex, isso evita “estouro” */
-  min-height: 0;
   flex: 1 1 auto;
 }
 
@@ -29,9 +21,13 @@
 body {
   margin: 0;
   padding: 0;
-  height: 100vh;
-  overflow: hidden;
+  /* deixa a altura natural do conteúdo */
+  min-height: 100vh;
+  /* permite scroll global */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
+
 
 /* TABELA: apenas scroll horizontal se necessário */
 .tableWrap { overflow:auto; margin-top:8px; }
