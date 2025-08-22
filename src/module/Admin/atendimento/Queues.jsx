@@ -100,7 +100,6 @@ export default function Queues() {
 
   return (
     <>
-      <div className={styles.page}>
       <div className={styles.container}>
         <div className={styles.header}>
           <div>
@@ -295,7 +294,6 @@ export default function Queues() {
           onSaved={() => { setHoursOpenFor(null); toastOK('Horários atualizados.'); }}
         />
       )}
-      </div>
     </>
   );
 }
