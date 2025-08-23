@@ -101,10 +101,12 @@
 }
 .card:hover{ box-shadow:var(--qr-shadow-lg); border-color:var(--qr-border); }
 
-/* Barra superior do card (busca + contador) */
+/* Header do card (busca à direita + contador) */
 .cardHead{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:12px 16px; /* menor para "subir" a tabela */
+  display:flex;
+  align-items:center;
+  justify-content:space-between; /* mantém o bloco de ações à direita */
+  padding:12px 16px; /* menor para “subir” a tabela */
   border-bottom:1px solid var(--qr-border-light);
   background:
     linear-gradient(180deg, #fff 0%, #fff 100%),
@@ -112,6 +114,7 @@
 }
 .cardActions{
   display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  justify-content:flex-end; /* garante alinhamento à direita */
 }
 
 /* BUSCA */
@@ -173,7 +176,7 @@
 .iconOnly{
   width:36px; height:36px; padding:0 !important;
   border-radius:9px; display:inline-flex; align-items:center; justify-content:center;
-  cursor:pointer; /* <— garante “mãozinha” */
+  cursor:pointer; /* mãozinha */
 }
 
 /* =========================================
@@ -236,6 +239,13 @@
   padding:18px 22px;
 }
 
+/* grid interna do modal (restaurada) */
+.formInner{
+  display:grid;
+  gap:var(--qr-gap);
+  padding:0 22px 0;
+}
+
 /* Rodapé */
 .modalActions{
   display:flex; justify-content:flex-end; gap:10px;
@@ -252,20 +262,17 @@
 /* =========================================
    FORM DENTRO DO MODAL
 ========================================= */
-.modalBody .formGrid{
-  display:grid; gap:14px;
-}
-.modalBody .inputGroup{
+.inputGroup{
   display:flex; flex-direction:column; gap:6px;
 }
-.modalBody .label{
+.label{
   font-size:14px; font-weight:700; color:var(--qr-text-secondary);
 }
-.modalBody .req{ color:var(--qr-danger); margin-left:4px; }
+.req{ color:var(--qr-danger); margin-left:4px; }
 
-.modalBody .input,
-.modalBody .textarea,
-.modalBody .select{
+.input,
+.textarea,
+.select{
   width:100%; min-width:0;
   padding:12px 14px;
   border:1px solid var(--qr-border);
@@ -274,57 +281,41 @@
   font-size:14px; color:var(--qr-text);
   transition:var(--qr-transition);
 }
-.modalBody .textarea{
+.textarea{
   min-height:110px; resize:vertical; font-family:inherit;
 }
-.modalBody .input::placeholder,
-.modalBody .textarea::placeholder{
+.input::placeholder,
+.textarea::placeholder{
   color:#94a3b8; font-weight:400;
 }
-.modalBody .input:focus,
-.modalBody .textarea:focus,
-.modalBody .select:focus{
+.input:focus,
+.textarea:focus,
+.select:focus{
   border-color:var(--qr-primary);
   box-shadow:0 0 0 3px var(--qr-primary-100);
 }
-.modalBody .inputHelper{ font-size:12px; color:var(--qr-muted); }
+.inputHelper{ font-size:12px; color:var(--qr-muted); }
 
 /* ===== Linha da COR (HEX + chip + botões) ===== */
-.modalBody .colorRow{
+.colorRow{
   display:flex; align-items:center; gap:12px; flex-wrap:wrap;
 }
-.modalBody .colorField{ width:220px; }
-.modalBody .colorChip{
+.colorField{ width:220px; }
+.colorChip{
   display:inline-flex; align-items:center; gap:8px;
   border:1px solid var(--qr-border); background:#fff;
   padding:8px 12px; border-radius:999px;
   box-shadow:var(--qr-shadow-sm);
   font-size:13px; color:var(--qr-text-secondary);
 }
-.modalBody .colorSwatch{
+.colorSwatch{
   width:16px; height:16px; border-radius:999px;
   border:1px solid var(--qr-border);
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.75);
 }
-.modalBody .hex{
+.hex{
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
   font-size:12.5px; color:var(--qr-text-secondary);
-}
-
-/* Botão pequeno "Sortear cor" */
-.modalBody .btnSmall{
-  display:inline-flex; align-items:center; gap:8px;
-  padding:10px 14px;
-  border-radius:12px;
-  border:1px solid var(--qr-primary);
-  background:var(--qr-primary);
-  color:#fff; font-weight:700; cursor:pointer;
-  transition:var(--qr-transition);
-  box-shadow:0 6px 14px rgba(139,92,246,.20);
-}
-.modalBody .btnSmall:hover{
-  background:var(--qr-primary-600);
-  border-color:var(--qr-primary-600);
 }
 
 /* =========================================
