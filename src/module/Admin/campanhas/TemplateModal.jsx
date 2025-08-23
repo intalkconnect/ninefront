@@ -86,7 +86,7 @@ export default function TemplateModal({
   const [headerExample, setHeaderExample] = useState('');
 
   // Corpo e rodapé
-  const [bodyText, setBodyText] = useState('Olá {{1}}, seu pedido foi confirmado!');
+  const [bodyText, setBodyText] = useState(`Olá {{1}}, seu pedido foi confirmado!`);
   const [footerText, setFooterText] = useState('');
 
   // Botões
@@ -322,7 +322,7 @@ export default function TemplateModal({
       setHeaderType('NONE');
       setHeaderText('');
       setHeaderExample('');
-      setBodyText('Olá {{1}}, seu pedido foi confirmado!');
+      setBodyText(`Olá {{1}}, seu pedido foi confirmado!`);
       setFooterText('');
       setButtonType('NONE');
       setCallToActionButtons([]);
@@ -504,7 +504,7 @@ export default function TemplateModal({
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                       errors.headerText ? 'border-red-300' : 'border-gray-300'
                     }`}
-                    placeholder="Título da mensagem {{1}}"
+                    placeholder="Título da mensagem {`{{1}}`}"
                     value={headerText}
                     onChange={(e) => setHeaderText(e.target.value)}
                   />
@@ -540,7 +540,7 @@ export default function TemplateModal({
                   errors.bodyText ? 'border-red-300' : 'border-gray-300'
                 }`}
                 rows={4}
-                placeholder="Olá {{1}}, seu pedido {{2}} foi confirmado! Esperamos você em {{3}}."
+                placeholder="Olá {`{{1}}`}, seu pedido {`{{2}}`} foi confirmado! Esperamos você em {`{{3}}`}."
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}
               />
@@ -555,7 +555,7 @@ export default function TemplateModal({
                     <div>{extractVariables(bodyText).length ? 
                       extractVariables(bodyText).map(v => `{{${v}}}`).join(', ') : 
                       'Nenhuma variável encontrada'}</div>
-                    <div className="mt-1">Use {{1}}, {{2}}, {{3}}... para dados dinâmicos</div>
+                    <div className="mt-1">Use {`{{1}}, {{2}}, {{3}}`}... para dados dinâmicos</div>
                     <div className="mt-1 font-medium">Exemplo de uso na API:</div>
                     <div className="bg-white/50 rounded p-2 mt-1 font-mono text-xs">
                       parameters: [{extractVariables(bodyText).map((v, i) => `"valor_${i + 1}"`).join(', ')}]
