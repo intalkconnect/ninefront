@@ -199,7 +199,6 @@ export default function Admin() {
                 menuKey="attendance"
                 icon={<MessageCircle size={18} />}
                 label="Atendimento"
-                badge={3}
               >
                 <DropdownLink 
                   to="atendimento/queues" 
