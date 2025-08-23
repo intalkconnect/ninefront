@@ -1,28 +1,36 @@
 :root{
   --app-bg:#f6f7fb;
+
   --qr-primary:#8B5CF6;
   --qr-primary-600:#7C3AED;
   --qr-primary-100:rgba(139,92,246,.20);
+
   --qr-surface:#f4f6fb;
   --qr-surface-hover:#eef2f7;
+
   --qr-text:#0f172a;
   --qr-text-secondary:#475569;
   --qr-muted:#6b7280;
+
   --qr-border:#dbe1ea;
   --qr-border-light:#eef2f7;
+
   --qr-danger:#ef4444;
   --qr-success:#16a34a;
+
   --qr-radius:10px;
   --qr-radius-xl:14px;
+
   --qr-shadow-sm:0 1px 2px rgba(0,0,0,.06);
   --qr-shadow:0 6px 18px rgba(2,6,23,.06);
   --qr-shadow-lg:0 18px 40px rgba(2,6,23,.12);
+
   --qr-transition:.18s ease;
 }
 
 .container{ padding:24px; background:transparent !important; }
 
-/* Header */
+/* ===== Header da página ===== */
 .header{
   display:flex; align-items:flex-start; justify-content:space-between;
   gap:24px; margin-bottom:32px; position:relative;
@@ -33,6 +41,7 @@
 }
 .title{ display:flex; gap:10px; align-items:center; margin:0; font-size:34px; font-weight:900; color:var(--qr-text); }
 .subtitle{ margin:6px 0 0; color:var(--qr-text-secondary); font-size:15px; }
+.titleIcon{ display:inline-flex; }
 
 /* Alerts */
 .alertErr,.alertOk{
@@ -44,7 +53,7 @@
 .alertIcon{ display:inline-flex; }
 .alertClose{ background:transparent; border:0; cursor:pointer; color:inherit; }
 
-/* Card */
+/* ===== Card ===== */
 .card{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:var(--qr-radius-xl);
   box-shadow:var(--qr-shadow); overflow:hidden; transition:var(--qr-transition);
@@ -79,7 +88,7 @@
 }
 .counterNumber{ font-weight:800; }
 
-/* Table */
+/* ===== Tabela ===== */
 .tableWrap{ overflow:auto; }
 .table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
 .table thead th{
@@ -92,40 +101,51 @@
 .table tbody td{ padding:16px 18px; border-bottom:1px solid var(--qr-border-light); vertical-align:middle; }
 .tableRow:hover{ background:linear-gradient(180deg, #fff 0%, var(--qr-surface) 100%); }
 
-/* edição */
+.keyTitle{ font-weight:700; color:var(--qr-text); }
+.contentText{
+  font-size:14px; color:var(--qr-text-secondary);
+  white-space:pre-wrap; word-break:break-word; line-height:1.5;
+}
+
 .editInput,.editTextarea{
   width:100%; border:1px solid var(--qr-border); border-radius:8px; padding:8px 10px; font-size:14px;
 }
 .editTextarea{ resize:vertical; min-height:60px; }
 
-/* ações */
-.actions{ display:flex; gap:8px; }
-.qrIconBtn{
+/* ===== Ações ===== */
+.actions{ display:flex; gap:8px; justify-content:flex-end; }
+.actionsCell{ text-align:right; }
+
+.iconBtn{
   width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;
   border:1px solid var(--qr-border); border-radius:9px; cursor:pointer;
   background:#f1f0ff; color:#4338ca; transition:var(--qr-transition);
 }
-.qrIconBtn:hover{ background:#ebe9ff; }
-.qrIconBtn.success{ background:var(--qr-success); border-color:var(--qr-success); color:#fff; }
-.qrIconBtn.danger{ background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
+.iconBtn:hover{ background:#ebe9ff; }
+.iconSuccess{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
+.iconDanger{ background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
 
-/* Botão primário */
+/* ===== Botão primário (igual Filas) ===== */
 .btnPrimary{
   background:linear-gradient(180deg,#8B5CF6 0%,#7C3AED 100%);
-  border:1px solid #8B5CF6; color:#fff; height:40px; padding:0 16px; border-radius:14px; font-weight:700;
+  border:1px solid #8B5CF6; color:#fff; height:40px;
+  padding:0 16px; border-radius:14px; font-weight:700;
   box-shadow:0 10px 22px rgba(139,92,246,.28);
 }
 .btnPrimary:hover{ filter:brightness(.98); transform:translateY(-1px); }
 
-/* footer */
+/* Footer */
 .footer{ margin-top:16px; }
-.tip{ font-size:13px; color:var(--qr-muted); }
+.footerContent{ color:var(--qr-text-secondary); font-size:13px; }
+.tip{ background:var(--qr-surface); border:1px solid var(--qr-border-light); padding:10px 12px; border-radius:10px; }
 
-/* states */
+/* States */
 .empty,.loading{ padding:24px; color:var(--qr-muted); text-align:center; }
 
 /* Responsivo */
 @media (max-width:640px){
   .table thead{ display:none; }
   .table, .table tbody, .table tr, .table td{ display:block; width:100%; }
-  .table tbody td{ padding:12
+  .table tbody td{ padding:12px 14px; }
+  .actionsCell{ text-align:left; }
+}
