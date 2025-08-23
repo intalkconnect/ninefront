@@ -13,22 +13,21 @@ import {
 } from 'lucide-react';
 
 import TemplateModal from './TemplateModal';
-import TemplatePreviewModal from './TemplatePreviewModal';
 
 const STATUS_TABS = [
-  { key: '', label: 'Todos' },
-  { key: 'approved', label: 'Aprovados' },
-  { key: 'rejected', label: 'Rejeitados' },
+  { key: '',          label: 'Todos' },
+  { key: 'approved',  label: 'Aprovados' },
+  { key: 'rejected',  label: 'Rejeitados' },
   { key: 'submitted', label: 'Em análise' },
-  { key: 'draft', label: 'Rascunhos' },
+  { key: 'draft',     label: 'Rascunhos' },
 ];
 
 function StatusChip({ status }) {
   const map = {
-    approved: { txt: 'Aprovado', cls: styles.stApproved },
-    rejected: { txt: 'Rejeitado', cls: styles.stRejected },
+    approved:  { txt: 'Aprovado',   cls: styles.stApproved },
+    rejected:  { txt: 'Rejeitado',  cls: styles.stRejected },
     submitted: { txt: 'Em análise', cls: styles.stSubmitted },
-    draft: { txt: 'Rascunho', cls: styles.stDraft },
+    draft:     { txt: 'Rascunho',   cls: styles.stDraft },
   };
   const it = map[status] || { txt: status || '—', cls: styles.stDefault };
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
@@ -53,7 +52,6 @@ export default function Templates() {
   const [statusFilter, setStatusFilter] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [preview, setPreview] = useState(null);
 
   // auto polling (sincroniza "submitted")
   const pollRef = useRef(null);
@@ -151,7 +149,7 @@ export default function Templates() {
 
   return (
     <div className={styles.container}>
-      {/* Header padronizado com Filas */}
+      {/* Header da página (padrão Filas) */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
@@ -191,43 +189,39 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Filtros fora do header: busca à esquerda, tabs à direita */}
-      <div className={styles.filters}>
-        <div className={styles.searchGroup}>
-          <input
-            className={styles.searchInput}
-            placeholder="Buscar por nome ou conteúdo…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Buscar templates"
-          />
-          {query && (
-            <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca" type="button">
-              <XIcon size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className={styles.tabs} role="tablist" aria-label="Filtrar por status">
-          {STATUS_TABS.map(tab => (
-            <button
-              key={tab.key || 'all'}
-              className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
-              onClick={() => setStatusFilter(tab.key)}
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === tab.key}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Lista */}
+      {/* Card da lista — filtros DENTRO do header do card:
+          tabs (esquerda) + busca (direita) */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Templates cadastrados</div>
+          <div className={styles.tabs} role="tablist" aria-label="Filtrar por status">
+            {STATUS_TABS.map(tab => (
+              <button
+                key={tab.key || 'all'}
+                className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
+                onClick={() => setStatusFilter(tab.key)}
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === tab.key}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.searchGroup}>
+            <input
+              className={styles.searchInput}
+              placeholder="Buscar por nome ou conteúdo…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Buscar templates"
+            />
+            {query && (
+              <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca" type="button">
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className={styles.tableWrap}>
@@ -240,33 +234,24 @@ export default function Templates() {
                 <th>Idioma</th>
                 <th>Status</th>
                 <th>Score</th>
-                <th style={{ minWidth: 320 }}>Prévia</th>
                 <th style={{ width: 220, textAlign:'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td className={styles.loading} colSpan={8}>Carregando…</td>
+                  <td className={styles.loading} colSpan={7}>Carregando…</td>
                 </tr>
               )}
 
               {!loading && filtered.length === 0 && (
                 <tr>
-                  <td className={styles.empty} colSpan={8}>Nenhum template encontrado.</td>
+                  <td className={styles.empty} colSpan={7}>Nenhum template encontrado.</td>
                 </tr>
               )}
 
               {!loading && filtered.map(t => (
-                <tr
-                  key={t.id}
-                  className={styles.rowHover}
-                  onClick={(e) => {
-                    const tag = (e.target.tagName || '').toLowerCase();
-                    if (['button','svg','path'].includes(tag)) return;
-                    setPreview(t);
-                  }}
-                >
+                <tr key={t.id} className={styles.rowHover}>
                   <td data-label="Nome">
                     <div className={styles.keyTitle}>{t.name}</div>
                     {t.provider_id && <div className={styles.keySub}>provider_id: {t.provider_id}</div>}
@@ -276,17 +261,6 @@ export default function Templates() {
                   <td data-label="Idioma">{t.language_code || '—'}</td>
                   <td data-label="Status"><StatusChip status={t.status} /></td>
                   <td data-label="Score"><ScoreChip score={t.score} /></td>
-                  <td data-label="Prévia">
-                    <div className={styles.preview}>
-                      {t.header_type && t.header_type !== 'NONE' && t.header_text ? (
-                        <div className={styles.previewHeader}>[HEADER] {t.header_text}</div>
-                      ) : null}
-                      <pre className={styles.code}>{t.body_text || '—'}</pre>
-                      {t.footer_text ? (
-                        <div className={styles.previewFooter}>[FOOTER] {t.footer_text}</div>
-                      ) : null}
-                    </div>
-                  </td>
                   <td data-label="Ações" className={styles.actionsCell}>
                     <div className={styles.actions}>
                       <button
@@ -326,17 +300,11 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Modais */}
+      {/* Modal de criação */}
       <TemplateModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={() => { setCreateOpen(false); load(); toastOK('Template criado.'); }}
-      />
-
-      <TemplatePreviewModal
-        isOpen={!!preview}
-        template={preview}
-        onClose={() => setPreview(null)}
       />
     </div>
   );
