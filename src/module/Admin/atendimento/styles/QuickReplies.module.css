@@ -22,10 +22,10 @@
   --qr-text-secondary: #475569;
   --qr-muted: #64748b;
 
-  /* ===== PRIMÁRIO ROXO (menu/logo) ===== */
-  --qr-primary: #8B5CF6;                         /* 500 */
-  --qr-primary-100: rgba(139,92,246,.18);        /* foco/realce */
-  --qr-primary-600: #7C3AED;                     /* hover */
+  /* PRIMÁRIO ROXO */
+  --qr-primary: #8B5CF6;
+  --qr-primary-100: rgba(139,92,246,.18);
+  --qr-primary-600: #7C3AED;
 
   --qr-success: #16a34a;
   --qr-success-100: #d1fae5;
@@ -181,7 +181,7 @@ html, body {
 .btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-/* PRIMÁRIO ROXO — blindado contra overrides */
+/* PRIMÁRIO ROXO — blindado contra overrides (página) */
 .btnPrimary,
 button.btnPrimary {
   background: var(--qr-primary) !important;
@@ -237,7 +237,15 @@ button.btnPrimary:hover {
 .empty,.loading { text-align:center; color:var(--qr-muted); padding:24px; }
 
 /* =========================================
-   MODAL (compacto, responsivo)
+   FOOTER
+========================================= */
+.footer { margin-top: 18px; }
+.footerContent { color: var(--qr-text-secondary); font-size: 13px; }
+.tip { background: var(--qr-surface); border: 1px solid var(--qr-border-light); padding: 10px 12px; border-radius: var(--qr-radius); }
+
+/* =========================================
+   MODAL DA PÁGINA (se usar)
+   Obs: O QuickReplyModal tem CSS próprio; para forçar via global, veja bloco :global abaixo.
 ========================================= */
 .modalOverlay {
   position: fixed; inset: 0;
@@ -263,8 +271,22 @@ button.btnPrimary:hover {
 }
 .modalTitle { margin: 0; font-size: 18px; font-weight: 800; color: var(--qr-text); }
 .modalActions { display:flex; justify-content:flex-end; gap:10px; padding:0 20px 20px; }
-
 .formInner { display:grid; gap:var(--qr-gap); padding:20px; }
+
+/* =========================================
+   FORÇAR ESTILO NO MODAL EXTERNO (global)
+   — só use se não puder editar o CSS do QuickReplyModal
+========================================= */
+:global(.QuickReplyModal .btnPrimary) {
+  background: var(--qr-primary) !important;
+  border-color: var(--qr-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(139,92,246,.25) !important;
+}
+:global(.QuickReplyModal .btnPrimary:hover) {
+  background: var(--qr-primary-600) !important;
+  border-color: var(--qr-primary-600) !important;
+}
 
 /* =========================================
    RESPONSIVO
