@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Save as SaveIcon, X as XIcon, AlertCircle } from 'lucide-react';
 import { apiPost } from '../../../shared/apiClient';
-import styles from './styles/QuickReplies.module.css';
+import styles from './styles/QuickReplyModal.module.css';
 
 export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
   const [title, setTitle] = useState('');
