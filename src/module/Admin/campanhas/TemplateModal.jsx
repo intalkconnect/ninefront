@@ -10,14 +10,14 @@ const CATEGORIES = [
 ];
 
 const LANGS = [
-  { value: 'pt_BR', label: 'Português (BR) (pt_BR)' },
-  { value: 'en_US', label: 'Inglês (US) (en_US)' },
-  { value: 'es_ES', label: 'Espanhol (ES) (es_ES)' },
-  { value: 'pt_PT', label: 'Português (PT) (pt_PT)' },
-  { value: 'es_MX', label: 'Espanhol (MX) (es_MX)' },
-  { value: 'fr_FR', label: 'Francês (FR) (fr_FR)' },
-  { value: 'it_IT', label: 'Italiano (IT) (it_IT)' },
-  { value: 'de_DE', label: 'Alemão (DE) (de_DE)' },
+  { value: 'pt_BR', label: 'Português (BR)' },
+  { value: 'en_US', label: 'Inglês (US)' },
+  { value: 'es_ES', label: 'Espanhol (ES)' },
+  { value: 'pt_PT', label: 'Português (PT)' },
+  { value: 'es_MX', label: 'Espanhol (MX)' },
+  { value: 'fr_FR', label: 'Francês (FR)' },
+  { value: 'it_IT', label: 'Italiano (IT)' },
+  { value: 'de_DE', label: 'Alemão (DE)' },
 ];
 
 const HEADER_TYPES = [
