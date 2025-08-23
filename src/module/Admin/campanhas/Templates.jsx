@@ -189,8 +189,7 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Card da lista — filtros DENTRO do header do card:
-          tabs (esquerda) + busca (direita) */}
+      {/* Card da lista — tabs (esquerda) + busca (direita) dentro do header do card */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.tabs} role="tablist" aria-label="Filtrar por status">
@@ -224,7 +223,7 @@ export default function Templates() {
           </div>
         </div>
 
-        <div className={styles.tableWrap}>
+        <div className={styles.tableWrap}}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -300,7 +299,7 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Modal de criação */}
+      {/* Modal de criação (estilos restaurados neste CSS) */}
       <TemplateModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
