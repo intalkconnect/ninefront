@@ -275,96 +275,101 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
                   </button>
                 </div>
 
-                {buttonMode === 'cta' && (
-                  <>
-                    <div className={styles.btnList} role="list">
-                      {ctas.map(b => (
-                        <div key={b.id} className={styles.btnItem} role="listitem">
-                          <div className={styles.btnItemHeader}>
-                            <select
-                              className={styles.select}
-                              value={b.type}
-                              onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
-                            >
-                              <option value="URL">Abrir URL</option>
-                              <option value="PHONE_NUMBER">Chamar</option>
-                            </select>
-                            <button type="button" className={styles.btnRemove}
-                              onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}>
-                              Remover
-                            </button>
-                          </div>
+               {buttonMode === 'cta' && (
+  <>
+    <div className={styles.btnList} role="list">
+      {ctas.map(b => (
+        <div key={b.id} className={styles.btnItem} role="listitem">
+          <div className={styles.btnItemHeader}>
+            <select
+              className={styles.select}
+              value={b.type}
+              onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
+            >
+              <option value="URL">Abrir URL</option>
+              <option value="PHONE_NUMBER">Chamar</option>
+            </select>
+            <button type="button" className={styles.btnRemove}
+              onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}>
+              Remover
+            </button>
+          </div>
 
-                          <div className={styles.grid3}>
-                            <input
-                              className={styles.input}
-                              placeholder="Rótulo do botão"
-                              value={b.text}
-                              onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
-                            />
-                            {b.type === 'URL' ? (
-                              <input
-                                className={styles.input}
-                                placeholder="https://exemplo.com/{{1}}"
-                                value={b.url}
-                                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
-                              />
-                            ) : (
-                              <input
-                                className={styles.input}
-                                placeholder="+55XXXXXXXXXXX"
-                                value={b.phone_number ?? ''}
-                                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+          <div className={styles.grid3}>
+            <input
+              className={styles.input}
+              placeholder="Rótulo do botão"
+              value={b.text}
+              onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
+            />
+            {b.type === 'URL' ? (
+              <input
+                className={styles.input}
+                placeholder="https://exemplo.com/{{1}}"
+                value={b.url}
+                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
+              />
+            ) : (
+              <input
+                className={styles.input}
+                placeholder="+55XXXXXXXXXXX"
+                value={b.phone_number ?? ''}
+                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
+              />
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
 
-                    <button
-                      type="button"
-                      className={styles.btnSmall}
-                      onClick={addCta}
-                      disabled={ctas.length >= MAX_BTNS}
-                    >
-                      + Adicionar botão ({ctas.length}/{MAX_BTNS})
-                    </button>
-                  </>
-                )}
+    {/* só mostra se ainda não atingiu o limite */}
+    {ctas.length < MAX_BTNS && (
+      <button
+        type="button"
+        className={styles.btnSmall}
+        onClick={addCta}
+      >
+        + Adicionar botão ({ctas.length}/{MAX_BTNS})
+      </button>
+    )}
+  </>
+)}
 
-                {buttonMode === 'quick' && (
-                  <>
-                    <div className={styles.btnList} role="list">
-                      {quicks.map(q => (
-                        <div key={q.id} className={styles.btnItem} role="listitem">
-                          <div className={styles.btnItemHeader}>
-                            <span className={styles.label}>Resposta rápida</span>
-                            <button type="button" className={styles.btnRemove}
-                              onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}>
-                              Remover
-                            </button>
-                          </div>
-                          <input
-                            className={styles.input}
-                            placeholder="Texto da resposta (curto)"
-                            value={q.text}
-                            onChange={e => setQuicks(prev => prev.map(x => x.id === q.id ? { ...x, text:e.target.value } : x))}
-                          />
-                        </div>
-                      ))}
-                    </div>
+{buttonMode === 'quick' && (
+  <>
+    <div className={styles.btnList} role="list">
+      {quicks.map(q => (
+        <div key={q.id} className={styles.btnItem} role="listitem">
+          <div className={styles.btnItemHeader}>
+            <span className={styles.label}>Resposta rápida</span>
+            <button type="button" className={styles.btnRemove}
+              onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}>
+              Remover
+            </button>
+          </div>
+          <input
+            className={styles.input}
+            placeholder="Texto da resposta (curto)"
+            value={q.text}
+            onChange={e => setQuicks(prev => prev.map(x => x.id === q.id ? { ...x, text:e.target.value } : x))}
+          />
+        </div>
+      ))}
+    </div>
 
-                    <button
-                      type="button"
-                      className={styles.btnSmall}
-                      onClick={addQuick}
-                      disabled={quicks.length >= MAX_BTNS}
-                    >
-                      + Adicionar resposta ({quicks.length}/{MAX_BTNS})
-                    </button>
-                  </>
-                )}
+    {/* idem aqui */}
+    {quicks.length < MAX_BTNS && (
+      <button
+        type="button"
+        className={styles.btnSmall}
+        onClick={addQuick}
+      >
+        + Adicionar resposta ({quicks.length}/{MAX_BTNS})
+      </button>
+    )}
+  </>
+)}
+
               </div>
             </div>
 
