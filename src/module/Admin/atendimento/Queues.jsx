@@ -46,8 +46,9 @@ export default function Queues() {
   };
   useEffect(() => { load(); }, []);
 
-  // ordene e filtre
   const rows = useMemo(() => filas, [filas]);
+
+  // filtro
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
@@ -63,10 +64,16 @@ export default function Queues() {
   return (
     <>
       <div className={styles.container}>
+        {/* HEADER DA PÁGINA (com linha e subtítulo) */}
         <div className={styles.header}>
           <div>
-            <h1 className={styles.title}><Users size={24} aria-hidden="true" /> Filas</h1>
-            {/* removido o texto explicativo do header */}
+            <h1 className={styles.title}>
+              <Users size={24} aria-hidden="true" /> Filas
+            </h1>
+            <p className={styles.subtitle}>
+              Gerencie as filas de atendimento e configure horários/feriados por fila.
+            </p>
+
             {erro && (
               <div className={styles.alertErr} role="alert" aria-live="assertive">
                 <span>{erro}</span>
@@ -87,9 +94,9 @@ export default function Queues() {
           </div>
         </div>
 
-        {/* Card da lista */}
+        {/* LISTA / CARD */}
         <div className={styles.card}>
-          {/* barra de busca no topo do card (sem título) */}
+          {/* Barra de busca no topo do card (fora do header da página) */}
           <div className={styles.cardHead}>
             <div className={styles.cardActions}>
               <div className={styles.searchGroup}>
