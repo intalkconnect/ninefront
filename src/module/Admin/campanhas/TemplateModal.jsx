@@ -52,10 +52,11 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
     if (!name.trim()) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
-    // Botões: validar campos essenciais
-    if (buttonMode === 'cta' && ctas.some(b => !b.text.trim() || (b.type === 'URL' && !b.url.trim()) || (b.type === 'PHONE_NUMBER' && !b.phone_number.trim()))) {
-      return false;
-    }
+    if (buttonMode === 'cta' && ctas.some(b =>
+      !b.text.trim() ||
+      (b.type === 'URL' && !b.url.trim()) ||
+      (b.type === 'PHONE_NUMBER' && !b.phone_number.trim())
+    )) return false;
     if (buttonMode === 'quick' && quicks.some(q => !q.text.trim())) return false;
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
@@ -98,7 +99,6 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
         body_text: bodyText.trim(),
         footer_text: footerText.trim() || null,
         buttons,
-        // example: não obrigatório; pode ser montado no futuro
         example: null,
       };
 
@@ -115,8 +115,8 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Criar template">
-      <div className={styles.modal}>
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Criar template" onMouseDown={onClose}>
+      <div className={styles.modal} onMouseDown={e => e.stopPropagation()}>
         {/* Cabeçalho */}
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>Novo modelo de mensagem</h3>
@@ -129,7 +129,6 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
         <div className={styles.modalBody}>
           <form onSubmit={handleSave}>
             <div className={styles.formGrid}>
-
               {err && <div className={styles.alertErr}>{err}</div>}
 
               {/* Nome */}
