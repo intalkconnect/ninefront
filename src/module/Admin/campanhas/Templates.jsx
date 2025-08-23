@@ -13,7 +13,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-import TemplateCreateModal from './TemplateCreateModal';
+import TemplateCreateModal from './TemplateModal';
 
 const STATUS_TABS = [
   { key: '', label: 'Todos' },
