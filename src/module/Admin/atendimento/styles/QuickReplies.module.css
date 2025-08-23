@@ -171,7 +171,7 @@ html, body {
 .counterNumber { font-weight:800; }
 
 /* =========================================
-   BOTÕES BASE (normais) — mantêm tamanho atual
+   BOTÕES BASE (normais)
 ========================================= */
 .btn, .btnPrimary, .btnSecondary, .btnDanger, .btnSuccess, .btnLink {
   appearance:none; border:1px solid;
@@ -184,17 +184,8 @@ html, body {
 .btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-/* o tema primário real é aplicado via .qrPrimary para não conflitar com outras páginas */
+/* primário real só nesta página */
 .btnPrimary { background:#111; border-color:#111; color:#fff; }
-.btnSecondary { background:#eef1f5; border-color:#eef1f5; color:#374151; }
-.btnSecondary:hover { background:#e5e7eb; border-color:#e5e7eb; }
-.btnDanger { background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
-.btnDanger:hover { background:#b91c1c; border-color:#b91c1c; }
-.btnSuccess { background:var(--qr-success); border-color:var(--qr-success); color:#fff; }
-.btnSuccess:hover { background:#15803d; border-color:#15803d; }
-.btnLink { background:none; border:none; color:var(--qr-primary); text-decoration:underline; padding:6px 8px; }
-
-/* ===== Botão primário ROXO só nesta página ===== */
 .qrPrimary {
   border-radius:14px !important;
   padding:12px 18px !important;
@@ -204,30 +195,38 @@ html, body {
   box-shadow: 0 10px 22px rgba(139,92,246,.28) !important;
 }
 
+.btnSecondary { background:#eef1f5; border-color:#eef1f5; color:#374151; }
+.btnSecondary:hover { background:#e5e7eb; border-color:#e5e7eb; }
+.btnDanger { background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
+.btnDanger:hover { background:#b91c1c; border-color:#b91c1c; }
+.btnSuccess { background:var(--qr-success); border-color:var(--qr-success); color:#fff; }
+.btnSuccess:hover { background:#15803d; border-color:#15803d; }
+.btnLink { background:none; border:none; color:var(--qr-primary); text-decoration:underline; padding:6px 8px; }
+
 /* =========================================
-   AÇÕES (ícones) — menores, no padrão lilás suave
+   AÇÕES (ícones) — mesmo tamanho do print/filas
 ========================================= */
 .actions {
   display: flex;
   align-items: center;
-  gap: 14px;   /* bom respiro entre os botões */
+  gap: 14px;
 }
 
-/* Botão de ação compacto */
+/* Botão compacto tipo "icon-only" — 36x36, raio 10 */
 .qrIconBtn {
-  width: 40px;                 /* <<< menor que os botões normais */
-  height: 40px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  background: #f5f3ff;         /* lilás bem suave */
-  color: #5b21b6;              /* roxo escuro */
+  background: #f5f3ff;        /* lilás suave */
+  color: #5b21b6;             /* roxo escuro */
   box-shadow: 0 2px 6px rgba(139,92,246,0.15);
-  font-size: 14px;             /* pedido: fonte 14 */
+  font-size: 14px;
 }
 
 .qrIconBtn:hover {
@@ -240,7 +239,7 @@ html, body {
   transform: scale(0.96);
 }
 
-/* variações de cor para ações */
+/* variações */
 .danger {
   background: #fef2f2 !important;
   color: #b91c1c !important;
@@ -283,7 +282,7 @@ html, body {
 .cellKey { min-width:280px; }
 .cellActions { min-width:200px; }
 
-/* Conteúdo como texto (não textarea quando só exibindo) */
+/* conteúdo como texto (exibição) */
 .contentText {
   font-size: 14px;
   color: var(--qr-text-secondary);
@@ -292,7 +291,7 @@ html, body {
   word-break: break-word;
 }
 
-/* Exibição “código” quando não está editando (mantido p/ compat.) */
+/* (mantido p/ compatibilidade quando necessário) */
 .code {
   background:transparent !important; color:inherit;
   border:1px solid #334155; border-radius:var(--qr-radius);
