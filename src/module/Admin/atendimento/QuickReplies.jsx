@@ -1,4 +1,3 @@
-// src/pages/QuickReplies/QuickReplies.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { apiGet, apiDelete, apiPut } from '../../../shared/apiClient';
 import styles from './styles/QuickReplies.module.css';
@@ -237,10 +236,7 @@ const QuickReplies = () => {
                         />
                       </div>
                     ) : (
-                      <>
-                        <div className={styles.keyTitle}>{item.title}</div>
-                        <div className={styles.keySub}>ID: {item.id}</div>
-                      </>
+                      <div className={styles.keyTitle}>{item.title}</div>
                     )}
                   </td>
 
@@ -254,7 +250,7 @@ const QuickReplies = () => {
                         placeholder="Conteúdo"
                       />
                     ) : (
-                      <pre className={styles.code} title={item.content}>{item.content}</pre>
+                      <div className={styles.contentText}>{item.content}</div>
                     )}
                   </td>
 
