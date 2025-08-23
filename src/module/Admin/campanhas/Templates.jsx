@@ -223,7 +223,7 @@ export default function Templates() {
           </div>
         </div>
 
-        <div className={styles.tableWrap}}>
+        <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
