@@ -55,7 +55,7 @@ export default function Templates() {
   const [createOpen, setCreateOpen] = useState(false);
   const [preview, setPreview] = useState(null);
 
-  // auto polling (sincroniza "submitted" de tempos em tempos)
+  // auto polling (sincroniza "submitted")
   const pollRef = useRef(null);
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
 
@@ -84,28 +84,26 @@ export default function Templates() {
 
   useEffect(() => { load(); }, [load]);
 
-  // configura polling automático sempre que houver items "submitted"
   useEffect(() => {
     const idsToPoll = items.filter(t => t.status === 'submitted').map(t => t.id);
     if (idsToPoll.length === 0) { stopPolling(); return; }
-    if (pollRef.current) return; // já rodando
+    if (pollRef.current) return;
 
     pollRef.current = setInterval(async () => {
       try {
         await Promise.all(idsToPoll.map(id => apiPost(`/templates/${id}/sync`, {})));
-        // re-carrega silencioso
         load();
       } catch (e) {
         console.warn('Polling falhou:', e?.message || e);
       }
-    }, 15000); // 15s
+    }, 15000);
     return stopPolling;
   }, [items, load]);
 
   const filtered = useMemo(() => {
-    return [...items].sort((a, b) =>
-      String(a.updated_at || '').localeCompare(String(b.updated_at || ''))
-    ).reverse();
+    return [...items]
+      .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')))
+      .reverse();
   }, [items]);
 
   async function handleSubmit(id) {
@@ -153,10 +151,12 @@ export default function Templates() {
 
   return (
     <div className={styles.container}>
+      {/* Header (com linha e ações à direita) */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}><FileText size={22} aria-hidden="true" /> Templates</h1>
-          <p className={styles.subtitle}>Crie, envie para aprovação e acompanhe o status dos templates do WhatsApp.</p>
+          <h1 className={styles.title}>
+            <FileText size={22} aria-hidden="true" /> Templates
+          </h1>
 
           {error && (
             <div className={styles.alertErr} role="alert">
@@ -188,7 +188,7 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros (fora do header, padrão do módulo) */}
       <div className={styles.filters}>
         <div className={styles.searchGroup}>
           <input
@@ -320,14 +320,13 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Modal de criação */}
+      {/* Modais */}
       <TemplateModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={() => { setCreateOpen(false); load(); toastOK('Template criado.'); }}
       />
 
-      {/* Prévia */}
       <TemplatePreviewModal
         isOpen={!!preview}
         template={preview}
