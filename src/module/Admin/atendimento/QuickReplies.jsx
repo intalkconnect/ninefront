@@ -155,7 +155,7 @@ const QuickReplies = () => {
             className={styles.btnPrimary}
             onClick={() => setCreateOpen(true)}
           >
-            + Novo
+            + Nova Resposta
           </button>
         </div>
       </div>
