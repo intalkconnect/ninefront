@@ -1,330 +1,270 @@
-// src/pages/QuickReplies/QuickReplies.jsx
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { apiGet, apiDelete, apiPut } from '../../../shared/apiClient';
-import styles from './styles/QuickReplies.module.css';
-import {
-  MessageSquare,
-  Save as SaveIcon,
-  Edit3 as EditIcon,
-  Trash2 as TrashIcon,
-  X as XIcon,
-  AlertCircle,
-  CheckCircle2
-} from 'lucide-react';
+/* =========================================
+   BASE E BACKGROUND
+========================================= */
+:root {
+  --app-bg: #f6f7fb;
 
-import QuickReplyModal from './QuickReplyModal';
+  --qr-radius: 12px;
+  --qr-radius-xl: 20px;
+  --qr-gap: 16px;
 
-const QuickReplies = () => {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
+  --qr-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --qr-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --qr-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.06);
 
-  // busca
-  const [query, setQuery] = useState('');
+  --qr-bg: #ffffff;
+  --qr-surface: #f7f8fa;
+  --qr-surface-hover: #eef1f5;
+  --qr-border: #e5e7eb;
+  --qr-border-light: #edf0f3;
 
-  // modal
-  const [createOpen, setCreateOpen] = useState(false);
+  --qr-text: #0f172a;
+  --qr-text-secondary: #475569;
+  --qr-muted: #64748b;
 
-  // edição
-  const [deletingId, setDeletingId] = useState(null);
-  const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = useState('');
-  const [savingId, setSavingId] = useState(null);
+  /* PRIMÁRIO ROXO (menu/logo) */
+  --qr-primary: #8B5CF6;
+  --qr-primary-100: rgba(139,92,246,.18);
+  --qr-primary-600: #7C3AED;
 
-  const showSuccess = useCallback((msg) => {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 2600);
-  }, []);
+  --qr-success: #16a34a;
+  --qr-success-100: #d1fae5;
+  --qr-success-700: #166534;
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiGet('/quickReplies');
-      setItems(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error('Erro ao carregar:', e);
-      setError('Falha ao carregar respostas rápidas. Verifique sua conexão.');
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => { load(); }, []);
+  --qr-danger: #dc2626;
+  --qr-danger-100: #fee2e2;
+  --qr-danger-700: #991b1b;
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const base = [...items].sort((a, b) =>
-      String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' })
-    );
-    if (!q) return base;
-    return base.filter((r) => {
-      const t = String(r.title || '').toLowerCase();
-      const c = String(r.content || '').toLowerCase();
-      return t.includes(q) || c.includes(q);
-    });
-  }, [items, query]);
+  --qr-transition: all .2s cubic-bezier(.4,0,.2,1);
+}
 
-  // edição
-  const startEdit = (item) => {
-    setEditingId(item.id);
-    setEditTitle(item.title || '');
-    setEditContent(item.content || '');
-  };
-  const cancelEdit = () => { setEditingId(null); setEditTitle(''); setEditContent(''); };
-  const saveEdit = async (id) => {
-    if (!editTitle.trim() || !editContent.trim()) {
-      setError('Título e conteúdo são obrigatórios.');
-      return;
-    }
-    setSavingId(id);
-    setError(null);
-    try {
-      const updated = await apiPut(`/quickReplies/${id}`, {
-        title: editTitle.trim(),
-        content: editContent.trim()
-      });
-      setItems(prev => prev.map(item => item.id === id ? { ...item, ...updated } : item));
-      setEditingId(null);
-      setEditTitle('');
-      setEditContent('');
-      showSuccess('Resposta atualizada.');
-    } catch (e) {
-      console.error('Erro ao salvar:', e);
-      setError('Erro ao salvar alterações. Tente novamente.');
-    } finally {
-      setSavingId(null);
-    }
-  };
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background: var(--app-bg) !important;
+}
 
-  // remover
-  const handleDelete = async (id) => {
-    if (!window.confirm('Tem certeza que deseja remover esta resposta?')) return;
-    setDeletingId(id);
-    setError(null);
-    try {
-      await apiDelete(`/quickReplies/${id}`);
-      setItems(prev => prev.filter(r => r.id !== id));
-      showSuccess('Resposta removida.');
-    } catch (e) {
-      console.error('Erro ao excluir:', e);
-      setError('Erro ao excluir resposta. Tente novamente.');
-    } finally {
-      setDeletingId(null);
-    }
-  };
+#root, #app, .layout, .main, .content, .page {
+  background: var(--app-bg) !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
 
-  const clearSearch = () => setQuery('');
+.container {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 24px;
+  background: transparent !important;
+}
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>
-            <span className={styles.titleIcon} aria-hidden="true"><MessageSquare size={24} /></span>
-            Respostas Rápidas
-          </h1>
-          <p className={styles.subtitle}>
-            Gerencie atalhos de mensagens para agilizar o atendimento ao cliente.
-          </p>
+/* =========================================
+   HEADER
+========================================= */
+.header {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:32px; position:relative;
+}
+.header::after {
+  content:''; position:absolute; left:0; right:0; bottom:-16px; height:3px;
+  background: linear-gradient(90deg, var(--qr-primary) 0%, var(--qr-primary-100) 70%, transparent 100%);
+}
+.title {
+  display:flex; align-items:center; gap:10px;
+  font-size:32px; font-weight:800; line-height:1.2;
+  color:var(--qr-text); margin:0;
+}
+.subtitle { font-size:16px; color:var(--qr-text-secondary); margin-top:8px; }
+.titleIcon { display:inline-flex; align-items:center; }
 
-          {/* Alertas */}
-          {error && (
-            <div className={styles.alertErr} role="alert" aria-live="assertive">
-              <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={18} /></span>
-              <span>{error}</span>
-              <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar alerta" title="Fechar alerta">
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
-          {successMsg && (
-            <div className={styles.alertOk} role="status" aria-live="polite">
-              <span className={styles.alertIcon} aria-hidden="true"><CheckCircle2 size={18} /></span>
-              <span>{successMsg}</span>
-              <button className={styles.alertClose} onClick={() => setSuccessMsg(null)} aria-label="Fechar mensagem" title="Fechar mensagem">
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
-        </div>
+/* =========================================
+   ALERTAS
+========================================= */
+.alertErr,.alertOk {
+  margin-top:12px; padding:12px 14px; border-radius:var(--qr-radius);
+  display:flex; align-items:center; gap:10px;
+  border:1px solid #eee; background:#fff;
+  box-shadow: var(--qr-shadow-sm);
+}
+.alertErr { color:var(--qr-danger-700); border-color: var(--qr-danger-100); }
+.alertOk {  color:var(--qr-success-700); border-color: var(--qr-success-100); }
+.alertIcon { display:inline-flex; }
+.alertClose {
+  margin-left:auto; background:transparent; border:0;
+  cursor:pointer; color:var(--qr-text-secondary);
+}
 
-        {/* Botão “Criar” abre modal */}
-        <div>
-          <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
-            + Criar resposta
-          </button>
-        </div>
-      </div>
+/* =========================================
+   CARD
+========================================= */
+.card {
+  background:var(--qr-bg);
+  border:1px solid var(--qr-border-light);
+  border-radius:var(--qr-radius-xl);
+  box-shadow:var(--qr-shadow);
+  overflow:hidden;
+  margin-top:24px;
+  transition:var(--qr-transition);
+}
+.card:hover { box-shadow:var(--qr-shadow-lg); border-color:var(--qr-border); }
+.cardHead {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 22px;
+  background:
+    linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%),
+    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
+  border-bottom:1px solid var(--qr-border-light);
+}
+.cardTitle { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--qr-text); }
+.cardActions { display:flex; align-items:center; gap:12px; }
 
-      {/* Lista */}
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>
-            <span className={styles.cardIcon} aria-hidden="true"><MessageSquare size={18} /></span>
-            Respostas Cadastradas
-          </div>
+/* =========================================
+   FORM / INPUTS
+========================================= */
+.formGrid { display:grid; gap:var(--qr-gap); padding:22px; }
+.inputGroup { display:flex; flex-direction:column; gap:6px; }
+.label { font-size:14px; font-weight:600; color:var(--qr-text-secondary); }
+.inputHelper { font-size:12px; color:var(--qr-muted); text-align:right; }
 
-          <div className={styles.cardActions}>
-            <div className={styles.searchGroup}>
-              <input
-                className={styles.searchInput}
-                placeholder="Buscar por título ou conteúdo..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Buscar respostas"
-              />
-              {query && (
-                <button
-                  className={styles.searchClear}
-                  onClick={clearSearch}
-                  title="Limpar busca"
-                  aria-label="Limpar busca"
-                  type="button"
-                >
-                  <XIcon size={16} />
-                </button>
-              )}
-            </div>
-            <div className={styles.counter} aria-label="Total de itens filtrados">
-              <span className={styles.counterNumber}>{filtered.length}</span>
-              <span>{filtered.length === 1 ? 'item' : 'itens'}</span>
-            </div>
-          </div>
-        </div>
+.input, .textarea, .searchInput, .editInput, .editTextarea {
+  width:100%; min-width:0; padding:12px 14px;
+  border:1px solid var(--qr-border); border-radius:var(--qr-radius);
+  outline:none; transition:var(--qr-transition);
+  background:#fff; font-size:15px;
+}
+.textarea, .editTextarea { min-height:110px; font-family:inherit; resize:vertical; }
+.input:focus, .textarea:focus,
+.searchInput:focus, .editInput:focus, .editTextarea:focus {
+  border-color:var(--qr-primary);
+  box-shadow:0 0 0 3px var(--qr-primary-100);
+}
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table} role="table">
-            <thead>
-              <tr>
-                <th style={{ minWidth: 280 }}>Título</th>
-                <th>Conteúdo</th>
-                <th style={{ width: 220 }}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan={3} className={styles.empty}>Carregando respostas…</td>
-                </tr>
-              )}
+/* =========================================
+   BUSCA
+========================================= */
+.searchGroup { position:relative; display:flex; align-items:center; }
+.searchInput { padding-right:40px; width:min(360px, 40vw); }
+.searchClear {
+  position:absolute; right:8px; width:28px; height:28px; border:0;
+  background:transparent; border-radius:6px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:var(--qr-text-secondary);
+}
+.searchClear:hover { background:var(--qr-surface-hover); }
 
-              {!loading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={3} className={styles.empty}>
-                    <div>Nenhuma resposta encontrada.</div>
-                    {query && <button className={styles.btnLink} onClick={clearSearch} type="button">Limpar filtro</button>}
-                  </td>
-                </tr>
-              )}
+.counter {
+  display:flex; align-items:center; gap:6px;
+  background:var(--qr-primary-100);
+  color:#4b5563;
+  padding:6px 10px;
+  border-radius:var(--qr-radius);
+  font-size:13px; font-weight:600;
+}
+.counterNumber { font-weight:800; }
 
-              {!loading && filtered.map((item) => (
-                <tr key={item.id} className={styles.tableRow}>
-                  <td className={styles.cellKey} data-label="Título">
-                    {editingId === item.id ? (
-                      <div className={styles.editForm}>
-                        <input
-                          className={styles.editInput}
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          placeholder="Título"
-                          autoFocus
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <div className={styles.keyTitle}>{item.title}</div>
-                      </>
-                    )}
-                  </td>
+/* =========================================
+   BOTÕES (página)
+========================================= */
+.btn, .btnPrimary, .btnSecondary, .btnDanger, .btnSuccess, .btnLink {
+  appearance:none; border:1px solid;
+  border-radius:10px; padding:10px 14px;
+  font-size:14px; font-weight:600;
+  display:inline-flex; align-items:center; gap:8px;
+  cursor:pointer; transition:var(--qr-transition);
+  background:#fff;
+}
+.btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
+.btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-                  <td className={styles.cellContent} data-label="Conteúdo">
-                    {editingId === item.id ? (
-                      <textarea
-                        className={styles.editTextarea}
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        rows={3}
-                        placeholder="Conteúdo"
-                      />
-                    ) : (
-                      <pre className={styles.code} title={item.content}>{item.content}</pre>
-                    )}
-                  </td>
+.btnPrimary,
+button.btnPrimary {
+  background: var(--qr-primary) !important;
+  border-color: var(--qr-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(139,92,246,.25) !important;
+}
+.btnPrimary:hover,
+button.btnPrimary:hover {
+  background: var(--qr-primary-600) !important;
+  border-color: var(--qr-primary-600) !important;
+}
 
-                  <td className={styles.cellActions} data-label="Ações">
-                    {editingId === item.id ? (
-                      <div className={styles.actions}>
-                        <button
-                          className={`${styles.btnSuccess} ${styles.iconOnly}`}
-                          onClick={() => saveEdit(item.id)}
-                          disabled={savingId === item.id}
-                          aria-label={savingId === item.id ? 'Salvando' : 'Salvar'}
-                          title={savingId === item.id ? 'Salvando...' : 'Salvar'}
-                          type="button"
-                        >
-                          <SaveIcon size={16} aria-hidden="true" />
-                        </button>
-                        <button
-                          className={`${styles.btn} ${styles.iconOnly}`}
-                          onClick={cancelEdit}
-                          disabled={savingId === item.id}
-                          aria-label="Cancelar"
-                          title="Cancelar"
-                          type="button"
-                        >
-                          <XIcon size={16} aria-hidden="true" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className={styles.actions}>
-                        <button
-                          className={`${styles.btnSecondary} ${styles.iconOnly}`}
-                          onClick={() => startEdit(item)}
-                          title="Editar resposta"
-                          aria-label="Editar resposta"
-                          type="button"
-                        >
-                          <EditIcon size={16} aria-hidden="true" />
-                        </button>
-                        <button
-                          className={`${styles.btnDanger} ${styles.iconOnly}`}
-                          onClick={() => handleDelete(item.id)}
-                          disabled={deletingId === item.id}
-                          title={deletingId === item.id ? 'Removendo...' : 'Remover resposta'}
-                          aria-label={deletingId === item.id ? 'Removendo' : 'Remover resposta'}
-                          type="button"
-                        >
-                          <TrashIcon size={16} aria-hidden="true" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+.btnSecondary { background:#eef1f5; border-color:#eef1f5; color:#374151; }
+.btnSecondary:hover { background:#e5e7eb; border-color:#e5e7eb; }
+.btnDanger { background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
+.btnDanger:hover { background:#b91c1c; border-color:#b91c1c; }
+.btnSuccess { background:var(--qr-success); border-color:var(--qr-success); color:#fff; }
+.btnSuccess:hover { background:#15803d; border-color:#15803d; }
+.btnLink { background:none; border:none; color:var(--qr-primary); text-decoration:underline; padding:6px 8px; }
 
-      {/* Footer discreto */}
-      <div className={styles.footer}>
-        <div className={styles.footerContent}>
-          <div className={styles.tip}>
-            <strong>Dica:</strong> Prefira títulos descritivos para encontrar rapidamente suas respostas.
-          </div>
-        </div>
-      </div>
+.iconOnly { width:36px; height:36px; padding:0 !important; border-radius:9px; justify-content:center; }
 
-      {/* Modal de criação */}
-      <QuickReplyModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={() => { setCreateOpen(false); load(); showSuccess('Resposta criada com sucesso.'); }}
-      />
-    </div>
-  );
-};
+/* =========================================
+   TABELA
+========================================= */
+.tableWrap { overflow: auto; margin-top: 8px; }
+.table { width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
+.table thead th {
+  background:
+    linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%),
+    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
+  text-align:left; font-weight:700; font-size:12px; color:var(--qr-muted);
+  padding:14px 18px; border-bottom:1px solid var(--qr-border);
+  position:sticky; top:0; z-index:1;
+  text-transform:uppercase; letter-spacing:.08em;
+}
+.table tbody td { padding:16px 18px; border-bottom:1px solid var(--qr-border-light); vertical-align:middle; }
+.tableRow:hover { background:linear-gradient(180deg, var(--qr-bg) 0%, var(--qr-surface) 100%); }
 
-export default QuickReplies;
+.cellKey { min-width:280px; }
+.cellActions { min-width:200px; }
+.code {
+  background:transparent !important; color:inherit;
+  border:1px solid #334155; border-radius:var(--qr-radius);
+  padding:14px 16px; white-space:pre-wrap; word-break: break-word;
+  max-height:200px; overflow:auto;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:13px; line-height:1.6;
+}
+
+/* Empty/Loading */
+.empty,.loading { text-align:center; color:var(--qr-muted); padding:24px; }
+
+/* =========================================
+   FOOTER
+========================================= */
+.footer { margin-top: 18px; }
+.footerContent { color: var(--qr-text-secondary); font-size: 13px; }
+.tip { background: var(--qr-surface); border: 1px solid var(--qr-border-light); padding: 10px 12px; border-radius: var(--qr-radius); }
+
+/* =========================================
+   HARD OVERRIDE — botão do header desta página
+   (vence seletores globais do app)
+========================================= */
+.header > div > button,
+.header > div > button[class] {
+  background: var(--qr-primary) !important;
+  border-color: var(--qr-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(139,92,246,.25) !important;
+}
+.header > div > button:hover,
+.header > div > button[class]:hover {
+  background: var(--qr-primary-600) !important;
+  border-color: var(--qr-primary-600) !important;
+}
+
+/* =========================================
+   RESPONSIVO
+========================================= */
+@media (max-width: 640px){
+  .table thead{ display:none; }
+  .table, .table tbody, .table tr, .table td { display:block; width:100%; }
+  .table tbody td{ padding:12px 14px; }
+  .cellActions{ text-align:left; }
+}
