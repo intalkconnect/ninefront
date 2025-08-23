@@ -262,46 +262,46 @@ const QuickReplies = () => {
                     {editingId === item.id ? (
                       <div className={styles.actions}>
                         <button
-                          className={`${styles.btnSuccess} ${styles.iconOnly}`}
+                          className={`${styles.qrIconBtn} ${styles.success}`}
                           onClick={() => saveEdit(item.id)}
                           disabled={savingId === item.id}
                           aria-label={savingId === item.id ? 'Salvando' : 'Salvar'}
                           title={savingId === item.id ? 'Salvando...' : 'Salvar'}
                           type="button"
                         >
-                          <SaveIcon size={16} aria-hidden="true" />
+                          <SaveIcon size={20} aria-hidden="true" />
                         </button>
                         <button
-                          className={`${styles.btn} ${styles.iconOnly}`}
+                          className={styles.qrIconBtn}
                           onClick={cancelEdit}
                           disabled={savingId === item.id}
                           aria-label="Cancelar"
                           title="Cancelar"
                           type="button"
                         >
-                          <XIcon size={16} aria-hidden="true" />
+                          <XIcon size={20} aria-hidden="true" />
                         </button>
                       </div>
                     ) : (
                       <div className={styles.actions}>
                         <button
-                          className={`${styles.btnSecondary} ${styles.iconOnly}`}
+                          className={styles.qrIconBtn}
                           onClick={() => startEdit(item)}
                           title="Editar resposta"
                           aria-label="Editar resposta"
                           type="button"
                         >
-                          <EditIcon size={16} aria-hidden="true" />
+                          <EditIcon size={20} aria-hidden="true" />
                         </button>
                         <button
-                          className={`${styles.btnDanger} ${styles.iconOnly}`}
+                          className={`${styles.qrIconBtn} ${styles.danger}`}
                           onClick={() => handleDelete(item.id)}
                           disabled={deletingId === item.id}
                           title={deletingId === item.id ? 'Removendo...' : 'Remover resposta'}
                           aria-label={deletingId === item.id ? 'Removendo' : 'Remover resposta'}
                           type="button"
                         >
-                          <TrashIcon size={16} aria-hidden="true" />
+                          <TrashIcon size={20} aria-hidden="true" />
                         </button>
                       </div>
                     )}
