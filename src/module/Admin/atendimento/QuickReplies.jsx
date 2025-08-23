@@ -151,7 +151,7 @@ const QuickReplies = () => {
         <div>
           <button
             type="button"
-            className={`${styles.btnPrimary} ${styles.qrPrimary}`}
+            className={`${styles.btnPrimary}`}
             onClick={() => setCreateOpen(true)}
           >
             + Novo
@@ -160,12 +160,8 @@ const QuickReplies = () => {
       </div>
 
       <div className={styles.card}>
-        <div className={`${styles.cardHead} ${styles.qrCardHead}`}>
-          <div className={styles.cardTitle}>
-            <span className={styles.cardIcon} aria-hidden="true"><MessageSquare size={18} /></span>
-            Respostas Cadastradas
-          </div>
-
+        {/* Barra de busca no topo do card */}
+        <div className={styles.cardHead}>
           <div className={styles.cardActions}>
             <div className={styles.searchGroup}>
               <input
@@ -196,7 +192,7 @@ const QuickReplies = () => {
 
         <div className={styles.tableWrap}>
           <table className={styles.table} role="table">
-            <thead className={styles.qrTableHead}>
+            <thead>
               <tr>
                 <th style={{ minWidth: 280 }}>Título</th>
                 <th>Conteúdo</th>
@@ -221,23 +217,21 @@ const QuickReplies = () => {
 
               {!loading && filtered.map((item) => (
                 <tr key={item.id} className={styles.tableRow}>
-                  <td className={styles.cellKey} data-label="Título">
+                  <td data-label="Título">
                     {editingId === item.id ? (
-                      <div className={styles.editForm}>
-                        <input
-                          className={styles.editInput}
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          placeholder="Título"
-                          autoFocus
-                        />
-                      </div>
+                      <input
+                        className={styles.editInput}
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Título"
+                        autoFocus
+                      />
                     ) : (
                       <div className={styles.keyTitle}>{item.title}</div>
                     )}
                   </td>
 
-                  <td className={styles.cellContent} data-label="Conteúdo">
+                  <td data-label="Conteúdo">
                     {editingId === item.id ? (
                       <textarea
                         className={styles.editTextarea}
@@ -251,28 +245,24 @@ const QuickReplies = () => {
                     )}
                   </td>
 
-                  <td className={styles.cellActions} data-label="Ações">
+                  <td className={styles.actionsCell} data-label="Ações">
                     {editingId === item.id ? (
                       <div className={styles.actions}>
                         <button
                           className={`${styles.qrIconBtn} ${styles.success}`}
                           onClick={() => saveEdit(item.id)}
                           disabled={savingId === item.id}
-                          aria-label={savingId === item.id ? 'Salvando' : 'Salvar'}
-                          title={savingId === item.id ? 'Salvando...' : 'Salvar'}
                           type="button"
                         >
-                          <SaveIcon size={20} aria-hidden="true" />
+                          <SaveIcon size={18} />
                         </button>
                         <button
                           className={styles.qrIconBtn}
                           onClick={cancelEdit}
                           disabled={savingId === item.id}
-                          aria-label="Cancelar"
-                          title="Cancelar"
                           type="button"
                         >
-                          <XIcon size={20} aria-hidden="true" />
+                          <XIcon size={18} />
                         </button>
                       </div>
                     ) : (
@@ -280,21 +270,17 @@ const QuickReplies = () => {
                         <button
                           className={styles.qrIconBtn}
                           onClick={() => startEdit(item)}
-                          title="Editar resposta"
-                          aria-label="Editar resposta"
                           type="button"
                         >
-                          <EditIcon size={20} aria-hidden="true" />
+                          <EditIcon size={18} />
                         </button>
                         <button
                           className={`${styles.qrIconBtn} ${styles.danger}`}
                           onClick={() => handleDelete(item.id)}
                           disabled={deletingId === item.id}
-                          title={deletingId === item.id ? 'Removendo...' : 'Remover resposta'}
-                          aria-label={deletingId === item.id ? 'Removendo' : 'Remover resposta'}
                           type="button"
                         >
-                          <TrashIcon size={20} aria-hidden="true" />
+                          <TrashIcon size={18} />
                         </button>
                       </div>
                     )}
