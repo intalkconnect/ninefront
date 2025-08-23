@@ -22,7 +22,7 @@
   --qr-text-secondary: #475569;
   --qr-muted: #64748b;
 
-  /* PRIMÁRIO ROXO */
+  /* PRIMÁRIO ROXO (menu/logo) */
   --qr-primary: #8B5CF6;
   --qr-primary-100: rgba(139,92,246,.18);
   --qr-primary-600: #7C3AED;
@@ -168,7 +168,7 @@ html, body {
 .counterNumber { font-weight:800; }
 
 /* =========================================
-   BOTÕES
+   BOTÕES (página)
 ========================================= */
 .btn, .btnPrimary, .btnSecondary, .btnDanger, .btnSuccess, .btnLink {
   appearance:none; border:1px solid;
@@ -181,7 +181,7 @@ html, body {
 .btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-/* PRIMÁRIO ROXO — blindado contra overrides (página) */
+/* PRIMÁRIO ROXO — blindado (página) */
 .btnPrimary,
 button.btnPrimary {
   background: var(--qr-primary) !important;
@@ -244,48 +244,36 @@ button.btnPrimary:hover {
 .tip { background: var(--qr-surface); border: 1px solid var(--qr-border-light); padding: 10px 12px; border-radius: var(--qr-radius); }
 
 /* =========================================
-   MODAL DA PÁGINA (se usar)
-   Obs: O QuickReplyModal tem CSS próprio; para forçar via global, veja bloco :global abaixo.
+   OVERRIDES GLOBAIS PARA O MODAL / PAINEL DE CRIAÇÃO
+   (pegam mesmo se o modal tiver CSS Module próprio)
+   -> adicione className="QuickReplyModal" no wrapper do modal
 ========================================= */
-.modalOverlay {
-  position: fixed; inset: 0;
-  background: rgba(17, 24, 39, 0.45);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px; z-index: 9999;
-}
-.modal {
-  width: 100%; max-width: 640px;
-  background: #fff;
-  border: 1px solid var(--qr-border-light);
-  border-radius: var(--qr-radius-xl);
-  box-shadow: var(--qr-shadow-lg);
-  overflow: hidden;
-}
-.modalHeader {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--qr-border-light);
-  background:
-    linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 40%);
-}
-.modalTitle { margin: 0; font-size: 18px; font-weight: 800; color: var(--qr-text); }
-.modalActions { display:flex; justify-content:flex-end; gap:10px; padding:0 20px 20px; }
-.formInner { display:grid; gap:var(--qr-gap); padding:20px; }
-
-/* =========================================
-   FORÇAR ESTILO NO MODAL EXTERNO (global)
-   — só use se não puder editar o CSS do QuickReplyModal
-========================================= */
-:global(.QuickReplyModal .btnPrimary) {
+:global(.QuickReplyModal .btnPrimary),
+:global(.QuickReplyModal button.btnPrimary),
+:global(.QuickReplyModal button[type="submit"]),
+:global(.QuickReplyModal .primary),
+:global(.QuickReplyModal [data-variant="primary"]) {
   background: var(--qr-primary) !important;
   border-color: var(--qr-primary) !important;
   color: #fff !important;
   box-shadow: 0 4px 10px rgba(139,92,246,.25) !important;
 }
-:global(.QuickReplyModal .btnPrimary:hover) {
+:global(.QuickReplyModal .btnPrimary:hover),
+:global(.QuickReplyModal button.btnPrimary:hover),
+:global(.QuickReplyModal button[type="submit"]:hover),
+:global(.QuickReplyModal .primary:hover),
+:global(.QuickReplyModal [data-variant="primary"]:hover) {
   background: var(--qr-primary-600) !important;
   border-color: var(--qr-primary-600) !important;
+}
+
+/* Caso o painel de criação não use a classe QuickReplyModal,
+   ainda assim tentamos capturar botões primários comuns: */
+:global(.modal .btnPrimary),
+:global(.modal button[type="submit"]) {
+  background: var(--qr-primary) !important;
+  border-color: var(--qr-primary) !important;
+  color: #fff !important;
 }
 
 /* =========================================
