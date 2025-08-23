@@ -218,6 +218,71 @@
 .scoreMed{ background:#fef9c3; color:#854d0e; border-color:#fde68a; }
 .scoreLow{ background:#fef2f2; color:#991b1b; border-color:#fecaca; }
 
+/* =========================
+   MODAL (restaurado – padrão Filas)
+   ========================= */
+.modalOverlay{
+  position:fixed; inset:0; background:rgba(17,24,39,.45);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px; z-index:9999;
+}
+.modal{
+  width:100%;
+  max-width:560px;
+  max-height:88vh;
+  display:flex; flex-direction:column;
+  background:#fff;
+  border:1px solid var(--qr-border-light);
+  border-radius:16px;
+  box-shadow:var(--qr-shadow-lg);
+  overflow:hidden;
+}
+.modalHeader{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px;
+  border-bottom:1px solid var(--qr-border-light);
+  background:
+    linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%),
+    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 40%);
+}
+.modalTitle{
+  margin:0; font-size:18px; font-weight:800; color:var(--qr-text);
+}
+.modalBody{
+  flex:1 1 auto; overflow:auto; padding:14px 18px;
+}
+.modalActions{
+  display:flex; justify-content:flex-end; gap:10px; padding:12px 18px;
+  border-top:1px solid var(--qr-border-light);
+  background:linear-gradient(180deg, #fff 0%, var(--qr-surface) 100%);
+}
+.modalActions .btn,
+.modalActions .btnPrimary{
+  height:42px; padding:0 16px; border-radius:12px;
+}
+
+/* Campos comuns do modal */
+.formGrid{ display:grid; gap:16px; padding:0; }
+.inputGroup{ display:flex; flex-direction:column; gap:6px; }
+.label{ font-weight:700; color:var(--qr-text-2); font-size:14px; }
+.input,.textarea,.select{
+  width:100%; padding:12px 14px; border:1px solid var(--qr-border); border-radius:10px; background:#fff; outline:none;
+  font-size:14px;
+}
+.input:focus,.textarea:focus,.select:focus{ border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
+.textarea{ min-height:110px; resize:vertical; font-family:inherit; }
+.inputHelper{ color:var(--qr-muted); font-size:12px; }
+
+/* Pills/aba internas quando existir */
+.pillTabs{ display:flex; gap:8px; flex-wrap:wrap; }
+.pill{
+  border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border-radius:999px; padding:8px 12px; font-weight:700; cursor:pointer; transition:var(--t-fast);
+  font-size:14px;
+}
+.pill:hover{ background:var(--qr-surface-2); }
+.pillActive{ background:var(--qr-primary); color:#fff; border-color:var(--qr-primary); }
+
 /* Responsivo */
 @media (max-width: 700px){
   .cardHead{ flex-direction:column; align-items:stretch; gap:10px; }
