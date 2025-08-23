@@ -150,12 +150,15 @@ export default function Templates() {
 
   return (
     <div className={styles.container}>
-      {/* HEADER da página (título + ações) */}
+      {/* HEADER da página (título + descrição + ações) */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
             <FileText size={22} aria-hidden="true" /> Templates
           </h1>
+          <p className={styles.subtitle}>
+            Crie, envie para aprovação e acompanhe o status dos templates do WhatsApp.
+          </p>
 
           {error && (
             <div className={styles.alertErr} role="alert">
@@ -187,11 +190,25 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* CARD: busca (esq) + abas (dir) */}
+      {/* CARD: ABAS (esquerda) + BUSCA (direita) */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          {/* busca */}
-          <div className={styles.searchGroup}>
+          {/* abas à esquerda */}
+          <div className={styles.tabs}>
+            {STATUS_TABS.map(tab => (
+              <button
+                key={tab.key || 'all'}
+                className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
+                onClick={() => setStatusFilter(tab.key)}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* busca à direita */}
+          <div className={`${styles.searchGroup} ${styles.searchRight}`}>
             <input
               className={styles.searchInput}
               placeholder="Buscar por nome ou conteúdo…"
@@ -208,20 +225,6 @@ export default function Templates() {
                 <XIcon size={14} />
               </button>
             )}
-          </div>
-
-          {/* abas */}
-          <div className={styles.tabs}>
-            {STATUS_TABS.map(tab => (
-              <button
-                key={tab.key || 'all'}
-                className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
-                onClick={() => setStatusFilter(tab.key)}
-                type="button"
-              >
-                {tab.label}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -258,7 +261,6 @@ export default function Templates() {
                   key={t.id}
                   className={styles.rowHover}
                   onClick={(e) => {
-                    // Evita abrir a prévia quando clicar em botões de ação
                     const tag = (e.target.tagName || '').toLowerCase();
                     if (['button','svg','path'].includes(tag)) return;
                     setPreview(t);
