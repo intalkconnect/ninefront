@@ -13,7 +13,7 @@ const CATEGORIES = [
 const HEADER_TYPES = [
   { value: 'NONE', label: 'Sem header' },
   { value: 'TEXT', label: 'Texto' },
-  // Outras opções suportadas pela Graph: IMAGE, VIDEO, DOCUMENT (se desejar implementar depois)
+  // IMAGE, VIDEO, DOCUMENT podem ser adicionados depois
 ];
 
 export default function TemplateModal({ isOpen, onClose, onCreated }) {
@@ -170,7 +170,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
                 required
               />
               <div className={styles.inputHelper}>
-                Use placeholders {{`{{1}}`}}, {{`{{2}}`}}… conforme necessário.
+                Use placeholders <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code>… conforme necessário.
               </div>
             </div>
 
