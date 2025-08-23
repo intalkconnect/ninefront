@@ -25,10 +25,10 @@ const STATUS_TABS = [
 
 function StatusChip({ status }) {
   const map = {
-    approved:  { txt: 'Aprovado',  cls: styles.stApproved },
-    rejected:  { txt: 'Rejeitado', cls: styles.stRejected },
-    submitted: { txt: 'Em análise', cls: styles.stSubmitted },
-    draft:     { txt: 'Rascunho',  cls: styles.stDraft },
+    approved:  { txt: 'Aprovado',  cls: styles.stApproved  },
+    rejected:  { txt: 'Rejeitado', cls: styles.stRejected  },
+    submitted: { txt: 'Em análise',cls: styles.stSubmitted },
+    draft:     { txt: 'Rascunho',  cls: styles.stDraft     },
   };
   const it = map[status] || { txt: status || '—', cls: styles.stDefault };
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
@@ -45,6 +45,7 @@ function ScoreChip({ score }) {
 export default function Templates() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState(null);
   const [okMsg, setOkMsg] = useState(null);
 
@@ -54,11 +55,14 @@ export default function Templates() {
   const [createOpen, setCreateOpen] = useState(false);
   const [preview, setPreview] = useState(null);
 
-  // polling para 'submitted'
+  // auto polling (sincroniza "submitted")
   const pollRef = useRef(null);
-  const stopPolling = () => { if (pollRef.current){ clearInterval(pollRef.current); pollRef.current = null; } };
+  const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
 
-  const toastOK = useCallback((msg) => { setOkMsg(msg); setTimeout(() => setOkMsg(null), 2200); }, []);
+  const toastOK = useCallback((msg) => {
+    setOkMsg(msg);
+    setTimeout(() => setOkMsg(null), 2200);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +71,7 @@ export default function Templates() {
       const qs = new URLSearchParams();
       if (statusFilter) qs.set('status', statusFilter);
       if (query.trim()) qs.set('q', query.trim());
+
       const data = await apiGet(`/templates${qs.toString() ? `?${qs}` : ''}`);
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -79,14 +84,15 @@ export default function Templates() {
 
   useEffect(() => { load(); }, [load]);
 
+  // polling enquanto houver items submitted
   useEffect(() => {
-    const ids = items.filter(t => t.status === 'submitted').map(t => t.id);
-    if (ids.length === 0) { stopPolling(); return; }
+    const idsToPoll = items.filter(t => t.status === 'submitted').map(t => t.id);
+    if (idsToPoll.length === 0) { stopPolling(); return; }
     if (pollRef.current) return;
 
     pollRef.current = setInterval(async () => {
       try {
-        await Promise.all(ids.map(id => apiPost(`/templates/${id}/sync`, {})));
+        await Promise.all(idsToPoll.map(id => apiPost(`/templates/${id}/sync`, {})));
         load();
       } catch (e) {
         console.warn('Polling falhou:', e?.message || e);
@@ -95,34 +101,61 @@ export default function Templates() {
     return stopPolling;
   }, [items, load]);
 
-  const filtered = useMemo(() =>
-    [...items].sort((a, b) =>
-      String(a.updated_at || '').localeCompare(String(b.updated_at || '')
-    )).reverse(), [items]);
+  const filtered = useMemo(() => {
+    return [...items]
+      .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')))
+      .reverse();
+  }, [items]);
 
   async function handleSubmit(id) {
-    try { setError(null); await apiPost(`/templates/${id}/submit`, {}); toastOK('Template submetido para aprovação.'); load(); }
-    catch (e) { console.error(e); setError('Falha ao submeter template para a Meta.'); }
-  }
-  async function handleSync(id) {
-    try { setError(null); await apiPost(`/templates/${id}/sync`, {}); toastOK('Status sincronizado com a Meta.'); load(); }
-    catch (e) { console.error(e); setError('Falha ao sincronizar status.'); }
-  }
-  async function handleDelete(id, status) {
-    if (!['draft','rejected'].includes(status)) { setError('Apenas rascunhos ou rejeitados podem ser removidos localmente.'); return; }
-    if (!window.confirm('Tem certeza que deseja remover este template?')) return;
-    try { setError(null); await apiDelete(`/templates/${id}`); toastOK('Template removido.'); load(); }
-    catch (e) { console.error(e); setError('Falha ao excluir template.'); }
+    try {
+      setError(null);
+      await apiPost(`/templates/${id}/submit`, {});
+      toastOK('Template submetido para aprovação.');
+      load();
+    } catch (e) {
+      console.error('Erro ao submeter:', e);
+      setError('Falha ao submeter template para a Meta.');
+    }
   }
 
-  const clearSearch = () => setQuery('');
+  async function handleSync(id) {
+    try {
+      setError(null);
+      await apiPost(`/templates/${id}/sync`, {});
+      toastOK('Status sincronizado com a Meta.');
+      load();
+    } catch (e) {
+      console.error('Erro ao sincronizar:', e);
+      setError('Falha ao sincronizar status.');
+    }
+  }
+
+  async function handleDelete(id, status) {
+    if (!['draft', 'rejected'].includes(status)) {
+      setError('Apenas rascunhos ou rejeitados podem ser removidos localmente.');
+      return;
+    }
+    if (!window.confirm('Tem certeza que deseja remover este template?')) return;
+    try {
+      setError(null);
+      await apiDelete(`/templates/${id}`);
+      toastOK('Template removido.');
+      load();
+    } catch (e) {
+      console.error('Erro ao excluir:', e);
+      setError('Falha ao excluir template.');
+    }
+  }
 
   return (
     <div className={styles.container}>
-      {/* HEADER — padrão Filas */}
+      {/* HEADER da página (título + ações) */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}><FileText size={22} aria-hidden="true" /> Templates</h1>
+          <h1 className={styles.title}>
+            <FileText size={22} aria-hidden="true" /> Templates
+          </h1>
 
           {error && (
             <div className={styles.alertErr} role="alert">
@@ -154,42 +187,45 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* FILTROS (fora do header) */}
-      <div className={styles.filters}>
-        <div className={styles.searchGroup}>
-          <input
-            className={styles.searchInput}
-            placeholder="Buscar por nome ou conteúdo…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca">
-              <XIcon size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className={styles.tabs}>
-          {STATUS_TABS.map(tab => (
-            <button
-              key={tab.key || 'all'}
-              className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
-              onClick={() => setStatusFilter(tab.key)}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* LISTA */}
+      {/* CARD: busca (esq) + abas (dir) */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Templates cadastrados</div>
+          {/* busca */}
+          <div className={styles.searchGroup}>
+            <input
+              className={styles.searchInput}
+              placeholder="Buscar por nome ou conteúdo…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button
+                className={styles.searchClear}
+                onClick={() => setQuery('')}
+                aria-label="Limpar busca"
+                type="button"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* abas */}
+          <div className={styles.tabs}>
+            {STATUS_TABS.map(tab => (
+              <button
+                key={tab.key || 'all'}
+                className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
+                onClick={() => setStatusFilter(tab.key)}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {/* tabela */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -206,11 +242,15 @@ export default function Templates() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td className={styles.loading} colSpan={8}>Carregando…</td></tr>
+                <tr>
+                  <td className={styles.loading} colSpan={8}>Carregando…</td>
+                </tr>
               )}
 
               {!loading && filtered.length === 0 && (
-                <tr><td className={styles.empty} colSpan={8}>Nenhum template encontrado.</td></tr>
+                <tr>
+                  <td className={styles.empty} colSpan={8}>Nenhum template encontrado.</td>
+                </tr>
               )}
 
               {!loading && filtered.map(t => (
@@ -218,6 +258,7 @@ export default function Templates() {
                   key={t.id}
                   className={styles.rowHover}
                   onClick={(e) => {
+                    // Evita abrir a prévia quando clicar em botões de ação
                     const tag = (e.target.tagName || '').toLowerCase();
                     if (['button','svg','path'].includes(tag)) return;
                     setPreview(t);
@@ -234,11 +275,13 @@ export default function Templates() {
                   <td data-label="Score"><ScoreChip score={t.score} /></td>
                   <td data-label="Prévia">
                     <div className={styles.preview}>
-                      {(t.header_type && t.header_type !== 'NONE' && t.header_text) ? (
+                      {t.header_type && t.header_type !== 'NONE' && t.header_text ? (
                         <div className={styles.previewHeader}>[HEADER] {t.header_text}</div>
                       ) : null}
                       <pre className={styles.code}>{t.body_text || '—'}</pre>
-                      {t.footer_text ? <div className={styles.previewFooter}>[FOOTER] {t.footer_text}</div> : null}
+                      {t.footer_text ? (
+                        <div className={styles.previewFooter}>[FOOTER] {t.footer_text}</div>
+                      ) : null}
                     </div>
                   </td>
                   <td data-label="Ações" className={styles.actionsCell}>
@@ -251,20 +294,22 @@ export default function Templates() {
                       >
                         <RefreshCw size={16} />
                       </button>
+
                       <button
                         className={`${styles.qrIconBtn} ${styles.success}`}
                         title="Submeter à Meta"
                         onClick={() => handleSubmit(t.id)}
-                        disabled={!['draft','rejected'].includes(t.status)}
+                        disabled={!['draft', 'rejected'].includes(t.status)}
                         type="button"
                       >
                         <UploadCloud size={16} />
                       </button>
+
                       <button
                         className={`${styles.qrIconBtn} ${styles.danger}`}
                         title="Excluir"
                         onClick={() => handleDelete(t.id, t.status)}
-                        disabled={!['draft','rejected'].includes(t.status)}
+                        disabled={!['draft', 'rejected'].includes(t.status)}
                         type="button"
                       >
                         <Trash2 size={16} />
@@ -284,6 +329,7 @@ export default function Templates() {
         onClose={() => setCreateOpen(false)}
         onCreated={() => { setCreateOpen(false); load(); toastOK('Template criado.'); }}
       />
+
       <TemplatePreviewModal
         isOpen={!!preview}
         template={preview}
