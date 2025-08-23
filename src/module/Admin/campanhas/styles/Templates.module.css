@@ -347,7 +347,10 @@
   font-size:14px;
 }
 .pill:hover{ background:var(--qr-surface-2); }
-.pillActive{ background:var(--qr-primary); color:#fff; border-color:var(--qr-primary); }
+.pillActive{   background:#f8f9ff;                 /* clarinho */
+  color:var(--qr-primary);             /* texto roxo */
+  border-color:var(--qr-primary);      /* borda roxa */
+  box-shadow:0 0 0 3px var(--qr-primary-100) inset; /* leve realce */}
 
 /* Responsivo */
 @media (max-width: 700px){
