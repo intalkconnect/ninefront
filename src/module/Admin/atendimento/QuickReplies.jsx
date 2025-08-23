@@ -235,7 +235,6 @@ const QuickReplies = () => {
                     ) : (
                       <>
                         <div className={styles.keyTitle}>{item.title}</div>
-                        <div className={styles.keySub}>ID: {item.id}</div>
                       </>
                     )}
                   </td>
