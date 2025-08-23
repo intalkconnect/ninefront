@@ -154,7 +154,7 @@ const QuickReplies = () => {
             className={`${styles.btnPrimary} ${styles.qrPrimary}`}
             onClick={() => setCreateOpen(true)}
           >
-            + Criar resposta
+            + Novo
           </button>
         </div>
       </div>
