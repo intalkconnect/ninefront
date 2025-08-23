@@ -1,5 +1,4 @@
-// src/pages/Templates/Templates.jsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, apiPost, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/Templates.module.css';
 import {
@@ -34,6 +33,51 @@ function StatusChip({ status }) {
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
 }
 
+function ScoreChip({ score }) {
+  const norm = String(score || '').toUpperCase();
+  if (!norm) return <span className={styles.scoreChip}>—</span>;
+  if (norm === 'GREEN') return <span className={`${styles.scoreChip} ${styles.scGreen}`}>Alta qualidade</span>;
+  if (norm === 'YELLOW') return <span className={`${styles.scoreChip} ${styles.scYellow}`}>Qualidade média</span>;
+  if (norm === 'RED') return <span className={`${styles.scoreChip} ${styles.scRed}`}>Baixa qualidade</span>;
+  return <span className={styles.scoreChip}>{score}</span>;
+}
+
+function langLabel(code) {
+  if (!code) return '—';
+  const map = {
+    'pt_BR':'Português (BR)','pt_PT':'Português (PT)',
+    'en_US':'Inglês (US)','es_ES':'Espanhol (ES)'
+  };
+  return map[code] || code;
+}
+
+function PreviewModal({ open, tpl, onClose }) {
+  if (!open || !tpl) return null;
+  return (
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label={`Prévia ${tpl.name}`}>
+      <div className={styles.modal}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Prévia — {tpl.name}</h3>
+          <button className={styles.btn} onClick={onClose} aria-label="Fechar">
+            <XIcon size={16} />
+          </button>
+        </div>
+
+        <div className={styles.formGrid}>
+          {tpl.header_type && tpl.header_type !== 'NONE' && tpl.header_text &&
+            <div className={styles.previewHeader}>[HEADER] {tpl.header_text}</div>}
+          <pre className={styles.code}>{tpl.body_text || '—'}</pre>
+          {tpl.footer_text && <div className={styles.previewFooter}>[FOOTER] {tpl.footer_text}</div>}
+        </div>
+
+        <div className={styles.modalActions}>
+          <button className={styles.btn} onClick={onClose}>Fechar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Templates() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,6 +89,11 @@ export default function Templates() {
   const [statusFilter, setStatusFilter] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [previewOf, setPreviewOf] = useState(null);
+
+  // controle do auto-poll
+  const pollTimer = useRef(null);
+  const attempts = useRef({}); // id -> contagem
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
@@ -71,11 +120,11 @@ export default function Templates() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => {
-    // servidor já filtra por q/status; isso mantém o sort local
+  // ordenação local
+  const rows = useMemo(() => {
     return [...items].sort((a, b) =>
-      String(a.updated_at || '').localeCompare(String(b.updated_at || ''))
-    ).reverse();
+      String(a.updated_at || '').localeCompare(String(b.updated_at || '')
+    )).reverse();
   }, [items]);
 
   async function handleSubmit(id) {
@@ -83,6 +132,8 @@ export default function Templates() {
       setError(null);
       await apiPost(`/templates/${id}/submit`, {});
       toastOK('Template submetido para aprovação.');
+      // começa a acompanhar
+      startPolling([id]);
       load();
     } catch (e) {
       console.error('Erro ao submeter:', e);
@@ -121,6 +172,47 @@ export default function Templates() {
 
   const clearSearch = () => setQuery('');
 
+  // ---------- Auto-poll ----------
+  function startPolling(idsFromAction) {
+    // junta com os que já estão "submitted"
+    const base = rows.filter(r => r.status === 'submitted').map(r => r.id);
+    const ids = Array.from(new Set([...(idsFromAction || []), ...base]));
+    if (!ids.length) return;
+
+    // zera contadores para os que vieram agora
+    ids.forEach(id => { if (!attempts.current[id]) attempts.current[id] = 0; });
+
+    // limpa anterior
+    if (pollTimer.current) clearInterval(pollTimer.current);
+
+    // faz sync a cada 10s, por até 18 vezes (~3min)
+    pollTimer.current = setInterval(async () => {
+      try {
+        await Promise.all(ids.map(async (id) => {
+          attempts.current[id] = (attempts.current[id] || 0) + 1;
+          await apiPost(`/templates/${id}/sync`, {});
+        }));
+        await load();
+        // se todos saíram de "submitted" ou estourou tentativas, encerra
+        const still = rows.filter(r => r.status === 'submitted').map(r => r.id);
+        const over = ids.every(id => (attempts.current[id] || 0) >= 18);
+        if (!still.length || over) {
+          clearInterval(pollTimer.current);
+          pollTimer.current = null;
+        }
+      } catch {
+        /* silencia tentativa falha; próxima iteração tenta de novo */
+      }
+    }, 10000);
+  }
+
+  // sempre que a lista mudar, se existir "submitted", garante polling ativo
+  useEffect(() => {
+    const hasSubmitted = rows.some(r => r.status === 'submitted');
+    if (hasSubmitted && !pollTimer.current) startPolling();
+  }, [rows]);
+
+  // ---------- Render ----------
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -202,53 +294,54 @@ export default function Templates() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{ minWidth: 260 }}>Nome</th>
-                <th>Linguagem</th>
+                <th style={{ minWidth: 260 }}>Nome do modelo</th>
                 <th>Categoria</th>
+                <th>Recategorizado</th>
+                <th>Idioma</th>
                 <th>Status</th>
-                <th style={{ minWidth: 320 }}>Prévia</th>
-                <th style={{ width: 220 }}>Ações</th>
+                <th>Score</th>
+                <th style={{ width: 220, textAlign:'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr>
-                  <td className={styles.loading} colSpan={6}>Carregando…</td>
+                  <td className={styles.loading} colSpan={7}>Carregando…</td>
                 </tr>
               )}
 
-              {!loading && filtered.length === 0 && (
+              {!loading && rows.length === 0 && (
                 <tr>
-                  <td className={styles.empty} colSpan={6}>
+                  <td className={styles.empty} colSpan={7}>
                     Nenhum template encontrado.
                   </td>
                 </tr>
               )}
 
-              {!loading && filtered.map(t => (
-                <tr key={t.id} className={styles.rowHover}>
+              {!loading && rows.map(t => (
+                <tr
+                  key={t.id}
+                  className={styles.rowHover}
+                  onClick={(e) => {
+                    // se clicou em botão/ícone, não abrir prévia
+                    const tag = String(e.target.tagName).toLowerCase();
+                    if (tag === 'button' || tag === 'svg' || tag === 'path') return;
+                    setPreviewOf(t);
+                  }}
+                >
                   <td data-label="Nome">
                     <div className={styles.keyTitle}>{t.name}</div>
                     {t.provider_id && (
                       <div className={styles.keySub}>provider_id: {t.provider_id}</div>
                     )}
                   </td>
-                  <td data-label="Linguagem">{t.language_code || '—'}</td>
                   <td data-label="Categoria">{t.category || '—'}</td>
+                  <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
+                  <td data-label="Idioma">{langLabel(t.language_code)}</td>
                   <td data-label="Status"><StatusChip status={t.status} /></td>
-                  <td data-label="Prévia">
-                    <div className={styles.preview}>
-                      {t.header_type && t.header_type !== 'NONE' && t.header_text ? (
-                        <div className={styles.previewHeader}>[HEADER] {t.header_text}</div>
-                      ) : null}
-                      <pre className={styles.code}>{t.body_text || '—'}</pre>
-                      {t.footer_text ? (
-                        <div className={styles.previewFooter}>[FOOTER] {t.footer_text}</div>
-                      ) : null}
-                    </div>
-                  </td>
+                  <td data-label="Score"><ScoreChip score={t.quality_score} /></td>
                   <td data-label="Ações" className={styles.actionsCell}>
-                    <div className={styles.actions}>
+                    <div className={styles.actions} onClick={(e)=>e.stopPropagation()}>
                       <button
                         className={`${styles.btn} ${styles.iconOnly}`}
                         title="Sincronizar status"
@@ -290,8 +383,23 @@ export default function Templates() {
       <TemplateModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => { setCreateOpen(false); load(); toastOK('Template criado.'); }}
+        onCreated={async (created) => {
+          setCreateOpen(false);
+          toastOK('Template criado.');
+          await load();
+          // auto-submit + auto-poll do recém-criado (se desejar já enviar à Meta)
+          if (created?.id) {
+            try {
+              await apiPost(`/templates/${created.id}/submit`, {});
+              startPolling([created.id]);
+              toastOK('Submetido para aprovação.');
+            } catch { /* ignora, botão manual ainda existe */ }
+          }
+        }}
       />
+
+      {/* Prévia */}
+      <PreviewModal open={!!previewOf} tpl={previewOf} onClose={()=>setPreviewOf(null)} />
     </div>
   );
 }
