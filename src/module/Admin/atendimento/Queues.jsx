@@ -71,7 +71,7 @@ export default function Queues() {
           {/* Botão "Criar" abre modal */}
           <div>
             <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
-              + Criar fila
+              + Novo
             </button>
           </div>
         </div>
