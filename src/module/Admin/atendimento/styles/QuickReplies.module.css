@@ -119,7 +119,6 @@ html, body {
   border-bottom:1px solid var(--qr-border-light);
 }
 .qrCardHead {
-  /* leve pista do tema */
   background:
     linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%),
     linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%) !important;
@@ -172,7 +171,7 @@ html, body {
 .counterNumber { font-weight:800; }
 
 /* =========================================
-   BOTÕES — estilo base do módulo
+   BOTÕES BASE (página) — não mexem na cor primária
 ========================================= */
 .btn, .btnPrimary, .btnSecondary, .btnDanger, .btnSuccess, .btnLink {
   appearance:none; border:1px solid;
@@ -185,7 +184,7 @@ html, body {
 .btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-.btnPrimary { background:#111; border-color:#111; color:#fff; } /* será sobrescrito pelo escopo abaixo */
+.btnPrimary { background:#111; border-color:#111; color:#fff; } /* sobrescrito por .qrPrimary */
 .btnSecondary { background:#eef1f5; border-color:#eef1f5; color:#374151; }
 .btnSecondary:hover { background:#e5e7eb; border-color:#e5e7eb; }
 .btnDanger { background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
@@ -200,17 +199,66 @@ html, body {
 .qrPrimary {
   border-radius:14px !important;
   padding:12px 18px !important;
-}
-
-/* escopo fechado ao wrapper desta página */
-.container[data-page="quickreplies"] .header > div > button,
-.container[data-page="quickreplies"] .header > div > button[class],
-.container[data-page="quickreplies"] .header > div > .btnPrimary,
-.container[data-page="quickreplies"] .header > div > .qrPrimary {
   background: linear-gradient(180deg, #8B5CF6 0%, #7C3AED 100%) !important;
   border-color: #8B5CF6 !important;
   color: #fff !important;
   box-shadow: 0 10px 22px rgba(139,92,246,.28) !important;
+}
+
+/* =========================================
+   BOTÕES DE AÇÃO — estilo “icon-only soft” (como no print)
+========================================= */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;               /* <<< mais espaço entre os botões */
+}
+
+.qrIconBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-size: 16px;
+  background: #f5f3ff; /* lilás bem suave */
+  color: #5b21b6;      /* roxo escuro */
+  box-shadow: 0 2px 6px rgba(139,92,246,0.15);
+}
+
+.qrIconBtn:hover {
+  background: #ede9fe;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(139,92,246,0.25);
+}
+
+.qrIconBtn:active {
+  transform: scale(0.96);
+}
+
+/* variações */
+.danger {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  box-shadow: 0 2px 6px rgba(220,38,38,.15) !important;
+}
+.danger:hover {
+  background: #fee2e2 !important;
+  box-shadow: 0 4px 10px rgba(220,38,38,.25) !important;
+}
+
+.success {
+  background: #ecfdf5 !important;
+  color: #15803d !important;
+  box-shadow: 0 2px 6px rgba(16,185,129,.15) !important;
+}
+.success:hover {
+  background: #d1fae5 !important;
+  box-shadow: 0 4px 10px rgba(16,185,129,.25) !important;
 }
 
 /* =========================================
