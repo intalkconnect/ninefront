@@ -89,7 +89,7 @@ export default function Queues() {
 
           <div>
             <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
-              + Novo
+              Nova Fila
             </button>
           </div>
         </div>
