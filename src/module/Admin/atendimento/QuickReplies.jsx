@@ -118,6 +118,7 @@ const QuickReplies = () => {
 
   return (
     <div className={styles.container} data-page="quickreplies">
+      {/* Header com linha e subtítulo (mantidos) */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
@@ -132,7 +133,7 @@ const QuickReplies = () => {
             <div className={styles.alertErr} role="alert" aria-live="assertive">
               <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={18} /></span>
               <span>{error}</span>
-              <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar alerta" title="Fechar alerta">
+              <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar alerta">
                 <XIcon size={16} />
               </button>
             </div>
@@ -141,7 +142,7 @@ const QuickReplies = () => {
             <div className={styles.alertOk} role="status" aria-live="polite">
               <span className={styles.alertIcon} aria-hidden="true"><CheckCircle2 size={18} /></span>
               <span>{successMsg}</span>
-              <button className={styles.alertClose} onClick={() => setSuccessMsg(null)} aria-label="Fechar mensagem" title="Fechar mensagem">
+              <button className={styles.alertClose} onClick={() => setSuccessMsg(null)} aria-label="Fechar mensagem">
                 <XIcon size={16} />
               </button>
             </div>
@@ -151,7 +152,7 @@ const QuickReplies = () => {
         <div>
           <button
             type="button"
-            className={`${styles.btnPrimary}`}
+            className={styles.btnPrimary}
             onClick={() => setCreateOpen(true)}
           >
             + Novo
@@ -159,8 +160,8 @@ const QuickReplies = () => {
         </div>
       </div>
 
+      {/* Card da lista com a busca no topo (fora do header) */}
       <div className={styles.card}>
-        {/* Barra de busca no topo do card */}
         <div className={styles.cardHead}>
           <div className={styles.cardActions}>
             <div className={styles.searchGroup}>
@@ -175,14 +176,14 @@ const QuickReplies = () => {
                 <button
                   className={styles.searchClear}
                   onClick={clearSearch}
-                  title="Limpar busca"
                   aria-label="Limpar busca"
                   type="button"
                 >
-                  <XIcon size={16} />
+                  <XIcon size={14} />
                 </button>
               )}
             </div>
+
             <div className={styles.counter} aria-label="Total de itens filtrados">
               <span className={styles.counterNumber}>{filtered.length}</span>
               <span>{filtered.length === 1 ? 'item' : 'itens'}</span>
@@ -196,7 +197,7 @@ const QuickReplies = () => {
               <tr>
                 <th style={{ minWidth: 280 }}>Título</th>
                 <th>Conteúdo</th>
-                <th style={{ width: 220 }}>Ações</th>
+                <th style={{ width: 220, textAlign: 'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -249,18 +250,22 @@ const QuickReplies = () => {
                     {editingId === item.id ? (
                       <div className={styles.actions}>
                         <button
-                          className={`${styles.qrIconBtn} ${styles.success}`}
+                          className={`${styles.iconBtn} ${styles.iconSuccess}`}
                           onClick={() => saveEdit(item.id)}
                           disabled={savingId === item.id}
                           type="button"
+                          title="Salvar"
+                          aria-label="Salvar"
                         >
                           <SaveIcon size={18} />
                         </button>
                         <button
-                          className={styles.qrIconBtn}
+                          className={styles.iconBtn}
                           onClick={cancelEdit}
                           disabled={savingId === item.id}
                           type="button"
+                          title="Cancelar"
+                          aria-label="Cancelar"
                         >
                           <XIcon size={18} />
                         </button>
@@ -268,17 +273,21 @@ const QuickReplies = () => {
                     ) : (
                       <div className={styles.actions}>
                         <button
-                          className={styles.qrIconBtn}
+                          className={styles.iconBtn}
                           onClick={() => startEdit(item)}
                           type="button"
+                          title="Editar"
+                          aria-label="Editar"
                         >
                           <EditIcon size={18} />
                         </button>
                         <button
-                          className={`${styles.qrIconBtn} ${styles.danger}`}
+                          className={`${styles.iconBtn} ${styles.iconDanger}`}
                           onClick={() => handleDelete(item.id)}
                           disabled={deletingId === item.id}
                           type="button"
+                          title="Excluir"
+                          aria-label="Excluir"
                         >
                           <TrashIcon size={18} />
                         </button>
