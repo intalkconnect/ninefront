@@ -273,6 +273,53 @@
 .textarea{ min-height:110px; resize:vertical; font-family:inherit; }
 .inputHelper{ color:var(--qr-muted); font-size:12px; }
 
+/* ===== Cabeçalho do tipo de cabeçalho (TEXT/IMAGE/DOCUMENT/VIDEO) ===== */
+.headerTabs{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.headerTab{
+  border:1px solid var(--qr-border); background:#fff; border-radius:12px; padding:10px;
+  display:grid; place-items:center; font-weight:700; cursor:pointer; transition:var(--t-fast);
+}
+.headerTab:hover{ background:var(--qr-surface-2); }
+.headerTabActive{ background:var(--qr-primary); color:#fff; border-color:var(--qr-primary); }
+
+/* ===== Pills (modo de botões) ===== */
+.pillTabs{ display:flex; gap:8px; flex-wrap:wrap; }
+.pill{
+  border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border-radius:999px; padding:8px 12px; font-weight:700; cursor:pointer; transition:var(--t-fast);
+  font-size:14px;
+}
+.pill:hover{ background:var(--qr-surface-2); }
+.pillActive{ background:var(--qr-primary); color:#fff; border-color:var(--qr-primary); }
+
+/* ===== Editor de botões (CTA e Quick Reply) ===== */
+.btnList{ display:flex; flex-direction:column; gap:10px; }
+.btnItem{
+  border:1px solid var(--qr-border); background:#fafafa; border-radius:12px;
+  padding:12px; display:flex; flex-direction:column; gap:10px;
+}
+.btnItemHeader{ display:flex; gap:8px; align-items:center; justify-content:space-between; }
+.btnRemove{
+  background:#fff; border:1px solid var(--qr-border); border-radius:8px; padding:6px 8px; cursor:pointer;
+}
+
+/* Botão pequeno “Adicionar …” */
+.btnSmall{
+  background:var(--qr-primary); color:#fff; border:1px solid var(--qr-primary);
+  border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer; transition:var(--t-fast);
+}
+.btnSmall:hover{ background:var(--qr-primary-600); border-color:var(--qr-primary-600); }
+
+/* Grids auxiliares */
+.grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+
+/* (Responsivo opcional) */
+@media (max-width: 640px){
+  .headerTabs{ grid-template-columns:repeat(2,1fr); }
+  .grid3{ grid-template-columns:1fr; }
+}
+
+
 /* Pills/aba internas quando existir */
 .pillTabs{ display:flex; gap:8px; flex-wrap:wrap; }
 .pill{
