@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { apiPost } from '../../../shared/apiClient';
 import styles from './styles/Templates.module.css';
-import { X as XIcon, Save as SaveIcon } from 'lucide-react';
+import { X as XIcon, Save as SaveIcon, Type, Image as ImgIcon, FileText, Film } from 'lucide-react';
 
 const CATEGORIES = [
   { value: 'UTILITY', label: 'Utility' },
@@ -10,9 +10,10 @@ const CATEGORIES = [
 ];
 
 const HEADER_TYPES = [
-  { value: 'NONE', label: 'Sem header' },
-  { value: 'TEXT', label: 'Texto' },
-  // IMAGE, VIDEO, DOCUMENT podem ser adicionados depois
+  { value: 'TEXT', label: 'Texto', icon: Type },
+  { value: 'IMAGE', label: 'Imagem', icon: ImgIcon },
+  { value: 'DOCUMENT', label: 'Documento', icon: FileText },
+  { value: 'VIDEO', label: 'Vídeo', icon: Film },
 ];
 
 export default function TemplateModal({ isOpen, onClose, onCreated }) {
@@ -20,8 +21,8 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
   const [language, setLanguage] = useState('pt_BR');
   const [category, setCategory] = useState('UTILITY');
 
-  const [headerType, setHeaderType] = useState('NONE');
-  const [headerText, setHeaderText] = useState('');
+  const [headerType, setHeaderType] = useState('TEXT');
+  const [headerText, setHeaderText] = useState('');     // usado para header TEXT
 
   const [bodyText, setBodyText] = useState('');
   const [footerText, setFooterText] = useState('');
@@ -62,7 +63,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
         name: name.trim(),
         language_code: language.trim() || 'pt_BR',
         category,
-        header_type: headerType,
+        header_type: headerType,                         // TEXT/IMAGE/DOCUMENT/VIDEO
         header_text: headerType === 'TEXT' ? headerText.trim() : null,
         body_text: bodyText.trim(),
         footer_text: footerText.trim() || null,
@@ -70,8 +71,8 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
         example,
       };
 
-      const created = await apiPost('/templates', payload);
-      onCreated?.(created);
+      await apiPost('/templates', payload);
+      onCreated?.();
     } catch (e) {
       console.error('Erro ao criar template:', e);
       setErr(e?.message || 'Falha ao criar template.');
@@ -86,7 +87,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
     <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Criar template">
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>Novo Template</h3>
+          <h3 className={styles.modalTitle}>Novo modelo de mensagem</h3>
           <button className={styles.btn} onClick={onClose} aria-label="Fechar">
             <XIcon size={16} />
           </button>
@@ -98,16 +99,29 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
             {err && <div className={styles.alertErr}>{err}</div>}
 
             <div className={styles.inputGroup}>
-              <label className={styles.label} htmlFor="tpl-name">Nome *</label>
+              <label className={styles.label} htmlFor="tpl-name">Nome do modelo *</label>
               <input
                 id="tpl-name"
                 className={styles.input}
-                placeholder="ex.: aviso_pagamento"
+                placeholder="use letras minúsculas, números ou underscore"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
                 required
               />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.label} htmlFor="tpl-category">Categoria *</label>
+              <select
+                id="tpl-category"
+                className={`${styles.input} ${styles.select}`}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+              >
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
             </div>
 
             <div className={styles.inputGroup}>
@@ -120,36 +134,32 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
                 onChange={(e) => setLanguage(e.target.value)}
                 required
               />
-              <div className={styles.inputHelper}>Formato Meta: pt_BR, en_US, es_ES…</div>
+              <div className={styles.inputHelper}>Formato: pt_BR, en_US, es_ES…</div>
             </div>
 
+            {/* Tipo de header (tabs) */}
             <div className={styles.inputGroup}>
-              <label className={styles.label} htmlFor="tpl-category">Categoria *</label>
-              <select
-                id="tpl-category"
-                className={styles.input}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                required
-              >
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.label} htmlFor="tpl-header">Header</label>
-              <select
-                id="tpl-header"
-                className={styles.input}
-                value={headerType}
-                onChange={(e) => setHeaderType(e.target.value)}
-              >
-                {HEADER_TYPES.map(h => <option key={h.value} value={h.value}>{h.label}</option>)}
-              </select>
+              <label className={styles.label}>Cabeçalho</label>
+              <div className={styles.headerTabs}>
+                {HEADER_TYPES.map(h => {
+                  const Icon = h.icon;
+                  const active = headerType === h.value;
+                  return (
+                    <button
+                      key={h.value}
+                      type="button"
+                      className={`${styles.headerTab} ${active ? styles.headerTabActive : ''}`}
+                      onClick={() => setHeaderType(h.value)}
+                    >
+                      <Icon size={18} /> {h.label}
+                    </button>
+                  );
+                })}
+              </div>
               {headerType === 'TEXT' && (
                 <input
                   className={styles.input}
-                  placeholder="Texto do header"
+                  placeholder="Texto do cabeçalho (opcional, mas recomendado)"
                   value={headerText}
                   onChange={(e) => setHeaderText(e.target.value)}
                 />
@@ -157,7 +167,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
             </div>
 
             <div className={styles.inputGroup}>
-              <label className={styles.label} htmlFor="tpl-body">Body *</label>
+              <label className={styles.label} htmlFor="tpl-body">Corpo *</label>
               <textarea
                 id="tpl-body"
                 className={styles.textarea}
@@ -173,7 +183,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
             </div>
 
             <div className={styles.inputGroup}>
-              <label className={styles.label} htmlFor="tpl-footer">Footer (opcional)</label>
+              <label className={styles.label} htmlFor="tpl-footer">Rodapé (opcional)</label>
               <input
                 id="tpl-footer"
                 className={styles.input}
@@ -183,8 +193,9 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
               />
             </div>
 
+            {/* Avançado */}
             <div className={styles.inputGroup}>
-              <label className={styles.label}>Buttons (JSON opcional)</label>
+              <label className={styles.label}>Botões (JSON opcional)</label>
               <textarea
                 className={styles.textarea}
                 rows={4}
@@ -209,7 +220,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
           <div className={styles.modalActions}>
             <button type="button" className={styles.btn} onClick={onClose}>Cancelar</button>
             <button type="submit" className={styles.btnPrimary} disabled={!canSave || saving}>
-              <SaveIcon size={16} /> {saving ? 'Salvando…' : 'Salvar'}
+              <SaveIcon size={16} /> {saving ? 'Salvando…' : 'Enviar para avaliação'}
             </button>
           </div>
         </form>
