@@ -184,7 +184,7 @@ export default function Templates() {
             <RefreshCw size={16} /> Atualizar
           </button>
           <button className={styles.btnPrimary} type="button" onClick={() => setCreateOpen(true)}>
-            <Plus size={16} /> Criar template
+            <Plus size={16} /> Criar Template
           </button>
         </div>
       </div>
