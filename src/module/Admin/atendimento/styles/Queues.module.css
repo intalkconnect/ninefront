@@ -134,7 +134,7 @@
 }
 .iconOnly{
   width:36px; height:36px; padding:0 !important; border-radius:9px;
-  display:inline-flex; align-items:center; justify-content:center;
+  display:inline-flex; align-items:center; justify-content:center;cursor: pointer; 
 }
 
 /* Estados */
