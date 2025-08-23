@@ -1,4 +1,3 @@
-// src/pages/Templates/TemplateCreateModal.jsx
 import React, { useMemo, useState } from 'react';
 import { apiPost } from '../../../shared/apiClient';
 import styles from './styles/Templates.module.css';
@@ -48,7 +47,6 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
     setErr(null);
 
     try {
-      // campos opcionais em JSON
       let buttons = null;
       let example = null;
       if (buttonsJson.trim()) {
@@ -72,8 +70,8 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
         example,
       };
 
-      await apiPost('/templates', payload);
-      onCreated?.();
+      const created = await apiPost('/templates', payload);
+      onCreated?.(created);
     } catch (e) {
       console.error('Erro ao criar template:', e);
       setErr(e?.message || 'Falha ao criar template.');
