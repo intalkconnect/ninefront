@@ -118,7 +118,7 @@ const QuickReplies = () => {
   const clearSearch = () => setQuery('');
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} data-page="quickreplies">
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
@@ -152,7 +152,11 @@ const QuickReplies = () => {
 
         {/* Botão “Criar” abre modal */}
         <div>
-          <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
+          <button
+            type="button"
+            className={`${styles.btnPrimary} ${styles.qrPrimary}`}
+            onClick={() => setCreateOpen(true)}
+          >
             + Criar resposta
           </button>
         </div>
@@ -160,7 +164,7 @@ const QuickReplies = () => {
 
       {/* Lista */}
       <div className={styles.card}>
-        <div className={styles.cardHead}>
+        <div className={`${styles.cardHead} ${styles.qrCardHead}`}>
           <div className={styles.cardTitle}>
             <span className={styles.cardIcon} aria-hidden="true"><MessageSquare size={18} /></span>
             Respostas Cadastradas
@@ -196,7 +200,7 @@ const QuickReplies = () => {
 
         <div className={styles.tableWrap}>
           <table className={styles.table} role="table">
-            <thead>
+            <thead className={styles.qrTableHead}>
               <tr>
                 <th style={{ minWidth: 280 }}>Título</th>
                 <th>Conteúdo</th>
@@ -235,6 +239,7 @@ const QuickReplies = () => {
                     ) : (
                       <>
                         <div className={styles.keyTitle}>{item.title}</div>
+                        <div className={styles.keySub}>ID: {item.id}</div>
                       </>
                     )}
                   </td>
