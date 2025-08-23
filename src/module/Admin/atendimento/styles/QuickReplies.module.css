@@ -125,14 +125,31 @@
 .iconSuccess{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
 .iconDanger{ background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
 
-/* ===== Botão primário (igual Filas) ===== */
-.btnPrimary{
+.btn,.btnPrimary,.btnSecondary{
   appearance:none; border:1px solid; border-radius:10px;
   padding:10px 14px; font-size:14px; font-weight:700;
   display:inline-flex; align-items:center; gap:8px;
   cursor:pointer; transition:var(--qr-transition); background:#fff; color:var(--qr-text-secondary);
 }
-.btnPrimary:hover{ filter:brightness(.98); transform:translateY(-1px); }
+.btn{ border-color:var(--qr-border); }
+.btn:hover{ background:var(--qr-surface-hover); color:var(--qr-text); }
+
+.btnPrimary{
+  background:#8B5CF6 !important;
+  border-color:#8B5CF6 !important;
+  color:#fff !important;
+  box-shadow:0 6px 14px rgba(139,92,246,.25) !important;
+}
+.btnPrimary:hover{
+  background:#7C3AED !important;
+  border-color:#7C3AED !important;
+}
+
+.btnSecondary{
+  background:#f1f0ff !important;
+  border-color:#e6e4ff !important;
+  color:#4338ca !important;
+}
 
 /* Footer */
 .footer{ margin-top:16px; }
