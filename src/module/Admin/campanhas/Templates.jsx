@@ -16,19 +16,19 @@ import TemplateModal from './TemplateModal';
 import TemplatePreviewModal from './TemplatePreviewModal';
 
 const STATUS_TABS = [
-  { key: '',          label: 'Todos' },
-  { key: 'approved',  label: 'Aprovados' },
-  { key: 'rejected',  label: 'Rejeitados' },
+  { key: '', label: 'Todos' },
+  { key: 'approved', label: 'Aprovados' },
+  { key: 'rejected', label: 'Rejeitados' },
   { key: 'submitted', label: 'Em análise' },
-  { key: 'draft',     label: 'Rascunhos' },
+  { key: 'draft', label: 'Rascunhos' },
 ];
 
 function StatusChip({ status }) {
   const map = {
-    approved:  { txt: 'Aprovado',  cls: styles.stApproved  },
-    rejected:  { txt: 'Rejeitado', cls: styles.stRejected  },
-    submitted: { txt: 'Em análise',cls: styles.stSubmitted },
-    draft:     { txt: 'Rascunho',  cls: styles.stDraft     },
+    approved: { txt: 'Aprovado', cls: styles.stApproved },
+    rejected: { txt: 'Rejeitado', cls: styles.stRejected },
+    submitted: { txt: 'Em análise', cls: styles.stSubmitted },
+    draft: { txt: 'Rascunho', cls: styles.stDraft },
   };
   const it = map[status] || { txt: status || '—', cls: styles.stDefault };
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
@@ -84,7 +84,6 @@ export default function Templates() {
 
   useEffect(() => { load(); }, [load]);
 
-  // polling enquanto houver items submitted
   useEffect(() => {
     const idsToPoll = items.filter(t => t.status === 'submitted').map(t => t.id);
     if (idsToPoll.length === 0) { stopPolling(); return; }
@@ -148,9 +147,11 @@ export default function Templates() {
     }
   }
 
+  const clearSearch = () => setQuery('');
+
   return (
     <div className={styles.container}>
-      {/* HEADER da página (título + descrição + ações) */}
+      {/* Header padronizado com Filas */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
@@ -190,45 +191,45 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* CARD: ABAS (esquerda) + BUSCA (direita) */}
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          {/* abas à esquerda */}
-          <div className={styles.tabs}>
-            {STATUS_TABS.map(tab => (
-              <button
-                key={tab.key || 'all'}
-                className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
-                onClick={() => setStatusFilter(tab.key)}
-                type="button"
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* busca à direita */}
-          <div className={`${styles.searchGroup} ${styles.searchRight}`}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por nome ou conteúdo…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button
-                className={styles.searchClear}
-                onClick={() => setQuery('')}
-                aria-label="Limpar busca"
-                type="button"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
-          </div>
+      {/* Filtros fora do header: busca à esquerda, tabs à direita */}
+      <div className={styles.filters}>
+        <div className={styles.searchGroup}>
+          <input
+            className={styles.searchInput}
+            placeholder="Buscar por nome ou conteúdo…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Buscar templates"
+          />
+          {query && (
+            <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca" type="button">
+              <XIcon size={14} />
+            </button>
+          )}
         </div>
 
-        {/* tabela */}
+        <div className={styles.tabs} role="tablist" aria-label="Filtrar por status">
+          {STATUS_TABS.map(tab => (
+            <button
+              key={tab.key || 'all'}
+              className={`${styles.tab} ${statusFilter === tab.key ? styles.tabActive : ''}`}
+              onClick={() => setStatusFilter(tab.key)}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === tab.key}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Lista */}
+      <div className={styles.card}>
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>Templates cadastrados</div>
+        </div>
+
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
