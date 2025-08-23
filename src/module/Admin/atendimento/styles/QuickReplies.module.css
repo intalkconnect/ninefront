@@ -181,7 +181,6 @@ html, body {
 .btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-/* PRIMÁRIO ROXO — blindado (página) */
 .btnPrimary,
 button.btnPrimary {
   background: var(--qr-primary) !important;
@@ -244,36 +243,20 @@ button.btnPrimary:hover {
 .tip { background: var(--qr-surface); border: 1px solid var(--qr-border-light); padding: 10px 12px; border-radius: var(--qr-radius); }
 
 /* =========================================
-   OVERRIDES GLOBAIS PARA O MODAL / PAINEL DE CRIAÇÃO
-   (pegam mesmo se o modal tiver CSS Module próprio)
-   -> adicione className="QuickReplyModal" no wrapper do modal
+   HARD OVERRIDE — botão do header desta página
+   (vence seletores globais do app)
 ========================================= */
-:global(.QuickReplyModal .btnPrimary),
-:global(.QuickReplyModal button.btnPrimary),
-:global(.QuickReplyModal button[type="submit"]),
-:global(.QuickReplyModal .primary),
-:global(.QuickReplyModal [data-variant="primary"]) {
+.header > div > button,
+.header > div > button[class] {
   background: var(--qr-primary) !important;
   border-color: var(--qr-primary) !important;
   color: #fff !important;
-  box-shadow: 0 4px 10px rgba(139,92,246,.25) !important;
+  box-shadow: 0 6px 14px rgba(139,92,246,.25) !important;
 }
-:global(.QuickReplyModal .btnPrimary:hover),
-:global(.QuickReplyModal button.btnPrimary:hover),
-:global(.QuickReplyModal button[type="submit"]:hover),
-:global(.QuickReplyModal .primary:hover),
-:global(.QuickReplyModal [data-variant="primary"]:hover) {
+.header > div > button:hover,
+.header > div > button[class]:hover {
   background: var(--qr-primary-600) !important;
   border-color: var(--qr-primary-600) !important;
-}
-
-/* Caso o painel de criação não use a classe QuickReplyModal,
-   ainda assim tentamos capturar botões primários comuns: */
-:global(.modal .btnPrimary),
-:global(.modal button[type="submit"]) {
-  background: var(--qr-primary) !important;
-  border-color: var(--qr-primary) !important;
-  color: #fff !important;
 }
 
 /* =========================================
