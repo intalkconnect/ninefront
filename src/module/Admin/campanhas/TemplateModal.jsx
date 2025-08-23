@@ -16,7 +16,7 @@ const HEADER_TYPES = [
   // Outras opções suportadas pela Graph: IMAGE, VIDEO, DOCUMENT (se desejar implementar depois)
 ];
 
-export default function TemplateCreateModal({ isOpen, onClose, onCreated }) {
+export default function TemplateModal({ isOpen, onClose, onCreated }) {
   const [name, setName] = useState('');
   const [language, setLanguage] = useState('pt_BR');
   const [category, setCategory] = useState('UTILITY');
