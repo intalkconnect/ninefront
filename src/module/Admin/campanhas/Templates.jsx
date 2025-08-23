@@ -287,7 +287,7 @@ export default function Templates() {
       </div>
 
       {/* Modal de criação */}
-      <TemplateCreateModal
+      <TemplateModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={() => { setCreateOpen(false); load(); toastOK('Template criado.'); }}
