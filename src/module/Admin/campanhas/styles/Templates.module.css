@@ -157,50 +157,88 @@
 .scoreMed{ background:#fef9c3; color:#854d0e; border-color:#fde68a; }
 .scoreLow{ background:#fef2f2; color:#991b1b; border-color:#fecaca; }
 
-/* modal / drawer */
+/* ========= MODAL COMPACTO ========= */
 .modalOverlay{
   position:fixed; inset:0; background:rgba(17,24,39,.45);
-  display:flex; align-items:center; justify-content:center; padding:20px; z-index:9999;
+  display:flex; align-items:center; justify-content:center; padding:12px; z-index:9999;
 }
-.modal{
-  width:100%; max-width:760px; background:#fff; border:1px solid var(--qr-border-light);
-  border-radius:16px; box-shadow:var(--qr-shadow-lg); overflow:hidden;
-}
-.modalHeader{ display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--qr-border-light); }
-.modalTitle{ margin:0; font-size:18px; font-weight:800; }
-.modalActions{ display:flex; justify-content:flex-end; gap:10px; padding:0 20px 18px; }
 
-.formGrid{ display:grid; gap:16px; padding:18px 20px; }
+.modal{
+  width:100%;
+  max-width:520px;                 /* mais estreito */
+  max-height:calc(100dvh - 48px);  /* cabe na tela */
+  background:#fff;
+  border:1px solid var(--qr-border-light);
+  border-radius:14px;
+  box-shadow:var(--qr-shadow-lg);
+  overflow:hidden;
+
+  display:flex;                    /* estrutura flex para rolagem interna */
+  flex-direction:column;
+}
+
+.modalHeader{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid var(--qr-border-light);
+}
+.modalTitle{ margin:0; font-size:18px; font-weight:800; }
+
+/* o form vira flex para permitir que o conteúdo role */
+.modal form{
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+.modalActions{
+  position:sticky; bottom:0;
+  display:flex; justify-content:flex-end; gap:8px;
+  padding:10px 16px;
+  background:var(--qr-bg);
+  border-top:1px solid var(--qr-border-light);
+}
+
+/* conteúdo com rolagem própria */
+.formGrid{
+  flex:1 1 auto;
+  overflow:auto;
+  padding:12px 16px;
+  gap:12px;
+}
+
 .inputGroup{ display:flex; flex-direction:column; gap:6px; }
 .label{ font-weight:700; color:var(--qr-text-2); font-size:14px; }
 .input,.textarea,.select{
-  width:100%; padding:12px 14px; border:1px solid var(--qr-border); border-radius:10px; background:#fff; outline:none;
+  width:100%; padding:10px 12px; border:1px solid var(--qr-border);
+  border-radius:8px; background:#fff; outline:none; font-size:14px;
 }
 .input:focus,.textarea:focus,.select:focus{ border-color:#111827; box-shadow:0 0 0 3px var(--qr-primary-100); }
-.textarea{ min-height:110px; resize:vertical; font-family:inherit; }
+.textarea{ min-height:96px; resize:vertical; font-family:inherit; }
 .inputHelper{ color:var(--qr-muted); font-size:12px; }
 
-/* header-type tabs (no modal) */
-.headerTabs{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+/* abas do tipo de cabeçalho */
+.headerTabs{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
 .headerTab{
-  border:1px solid var(--qr-border); background:#fff; border-radius:12px; padding:10px; display:grid; place-items:center;
-  font-weight:700; cursor:pointer;
+  border:1px solid var(--qr-border); background:#fff; border-radius:10px;
+  padding:8px; display:grid; place-items:center; font-weight:700; cursor:pointer;
 }
 .headerTabActive{ background:#111827; color:#fff; border-color:#111827; }
-/* --- Pills (seletores de modo) --- */
+
+/* pills menores */
 .pillTabs{ display:flex; gap:8px; flex-wrap:wrap; }
 .pill{
   border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
-  border-radius:999px; padding:8px 12px; font-weight:700; cursor:pointer; transition:var(--t-fast);
+  border-radius:999px; padding:6px 10px; font-weight:700; cursor:pointer; transition:var(--t-fast);
 }
 .pill:hover{ background:var(--qr-surface-2); }
 .pillActive{ background:#111827; color:#fff; border-color:#111827; }
 
-/* --- Editor de botões --- */
+/* editor de botões, compacto */
 .btnList{ display:flex; flex-direction:column; gap:10px; }
 .btnItem{
-  border:1px solid var(--qr-border); background:#fafafa; border-radius:12px;
-  padding:12px; display:flex; flex-direction:column; gap:10px;
+  border:1px solid var(--qr-border); background:#fafafa; border-radius:10px;
+  padding:10px; display:flex; flex-direction:column; gap:10px;
 }
 .btnItemHeader{ display:flex; gap:8px; align-items:center; justify-content:space-between; }
 .btnRemove{
@@ -215,8 +253,15 @@
 
 /* grelhas auxiliares */
 .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-.grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+.grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; }
 
+/* responsividade do modal */
+@media (min-width:1024px){
+  .modal{ max-width:480px; }      /* ainda mais estreito em telas largas */
+}
+@media (max-width:520px){
+  .modal{ max-width:100%; }
+}
 
 /* responsive table */
 @media (max-width: 700px){
