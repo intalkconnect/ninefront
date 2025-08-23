@@ -31,10 +31,10 @@ import Channels from './preferences/Channels';
 import ClientsMonitor from './monitoring/ClientsMonitor';
 import Queues from './atendimento/Queues';
 import QuickReplies from './atendimento/QuickReplies';
+import Templates from './campanhas/Templates';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
-const Templates = () => <div>Templates de Campanhas</div>;
 const Broadcast = () => <div>Disparo de Mensagens</div>;
 const General = () => <div>Configurações Gerais</div>;
 const Integrations = () => <div>Integrações</div>;
