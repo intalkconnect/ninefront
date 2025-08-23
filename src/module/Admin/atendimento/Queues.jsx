@@ -1,9 +1,8 @@
-// src/pages/Queues/index.jsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { Users, Clock3, CheckCircle2 } from 'lucide-react';
+import { Users, Clock3, CheckCircle2, X as XIcon } from 'lucide-react';
 import { apiGet } from '../../../shared/apiClient';
 import QueueHoursModal from './QueueHoursModal';
-import QueueModal from './QueueModal';   // <— novo
+import QueueModal from './QueueModal';
 import styles from './styles/Queues.module.css';
 
 export default function Queues() {
@@ -12,10 +11,12 @@ export default function Queues() {
   const [erro, setErro] = useState(null);
   const [okMsg, setOkMsg] = useState(null);
 
-  // modal horários
+  // modais
   const [hoursOpenFor, setHoursOpenFor] = useState(null);
-  // modal criar
   const [createOpen, setCreateOpen] = useState(false);
+
+  // busca
+  const [query, setQuery] = useState('');
 
   const toastOK = (msg) => { setOkMsg(msg); setTimeout(() => setOkMsg(null), 1800); };
 
@@ -45,7 +46,19 @@ export default function Queues() {
   };
   useEffect(() => { load(); }, []);
 
+  // ordene e filtre
   const rows = useMemo(() => filas, [filas]);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((f) => {
+      const nome = String(f.nome ?? f.name ?? '').toLowerCase();
+      const desc = String(f.descricao ?? '').toLowerCase();
+      return nome.includes(q) || desc.includes(q);
+    });
+  }, [rows, query]);
+
+  const clearSearch = () => setQuery('');
 
   return (
     <>
@@ -53,8 +66,7 @@ export default function Queues() {
         <div className={styles.header}>
           <div>
             <h1 className={styles.title}><Users size={24} aria-hidden="true" /> Filas</h1>
-            <p className={styles.subtitle}>Gerencie as filas de atendimento e configure horários/feriados por fila.</p>
-
+            {/* removido o texto explicativo do header */}
             {erro && (
               <div className={styles.alertErr} role="alert" aria-live="assertive">
                 <span>{erro}</span>
@@ -68,7 +80,6 @@ export default function Queues() {
             )}
           </div>
 
-          {/* Botão "Criar" abre modal */}
           <div>
             <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
               + Novo
@@ -76,11 +87,36 @@ export default function Queues() {
           </div>
         </div>
 
-        {/* Lista de filas */}
+        {/* Card da lista */}
         <div className={styles.card}>
+          {/* barra de busca no topo do card (sem título) */}
           <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>
-              <Users size={16} aria-hidden="true" /> Filas cadastradas
+            <div className={styles.cardActions}>
+              <div className={styles.searchGroup}>
+                <input
+                  className={styles.searchInput}
+                  placeholder="Buscar por nome ou descrição…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Buscar filas"
+                />
+                {query && (
+                  <button
+                    className={styles.searchClear}
+                    onClick={clearSearch}
+                    title="Limpar busca"
+                    aria-label="Limpar busca"
+                    type="button"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div className={styles.counter} aria-label="Total de itens filtrados">
+                <span className={styles.counterNumber}>{filtered.length}</span>
+                <span>{filtered.length === 1 ? 'item' : 'itens'}</span>
+              </div>
             </div>
           </div>
 
@@ -94,7 +130,7 @@ export default function Queues() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((f) => {
+                {filtered.map((f) => {
                   const nomeFila = f.nome ?? f.name ?? '';
                   const hex = f.color || '';
                   const showHex = normalizeHexColor(hex);
@@ -121,8 +157,8 @@ export default function Queues() {
                     </tr>
                   );
                 })}
-                {!loading && rows.length === 0 && (
-                  <tr><td colSpan={3} className={styles.empty}>Nenhuma fila cadastrada.</td></tr>
+                {!loading && filtered.length === 0 && (
+                  <tr><td colSpan={3} className={styles.empty}>Nenhuma fila encontrada.</td></tr>
                 )}
                 {loading && (
                   <tr><td colSpan={3} className={styles.loading}>Carregando…</td></tr>
