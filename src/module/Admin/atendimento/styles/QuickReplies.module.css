@@ -1,6 +1,4 @@
-/* =========================================
-   BASE E BACKGROUND
-========================================= */
+/* ========== Tokens / Tema local (padrão Filas) ========== */
 :root {
   --app-bg: #f6f7fb;
 
@@ -22,50 +20,30 @@
   --qr-text-secondary: #475569;
   --qr-muted: #64748b;
 
-  /* PRIMÁRIO ROXO */
+  /* Primário roxo (igual Filas) */
   --qr-primary: #8B5CF6;
   --qr-primary-600: #7C3AED;
   --qr-primary-100: rgba(139,92,246,.18);
 
   --qr-success: #16a34a;
   --qr-success-100: #d1fae5;
-  --qr-success-700: #166534;
 
   --qr-danger: #dc2626;
   --qr-danger-100: #fee2e2;
-  --qr-danger-700: #991b1b;
 
   --qr-transition: all .2s cubic-bezier(.4,0,.2,1);
 }
 
 html, body {
-  height: auto;
-  min-height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
   background: var(--app-bg) !important;
-}
-
-#root, #app, .layout, .main, .content, .page {
-  background: var(--app-bg) !important;
-  height: auto !important;
-  min-height: auto !important;
-  overflow: visible !important;
 }
 
 .container {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
   padding: 24px;
   background: transparent !important;
 }
 
-/* =========================================
-   HEADER
-========================================= */
+/* ========== Header ========== */
 .header {
   display:flex; align-items:flex-start; justify-content:space-between;
   gap:24px; margin-bottom:32px; position:relative;
@@ -82,26 +60,20 @@ html, body {
 .subtitle { font-size:16px; color:var(--qr-text-secondary); margin-top:8px; }
 .titleIcon { display:inline-flex; align-items:center; }
 
-/* =========================================
-   ALERTAS
-========================================= */
+/* ========== Alertas ========== */
 .alertErr,.alertOk {
   margin-top:12px; padding:12px 14px; border-radius:var(--qr-radius);
   display:flex; align-items:center; gap:10px;
   border:1px solid #eee; background:#fff;
   box-shadow: var(--qr-shadow-sm);
+  font-size:14px;
 }
-.alertErr { color:var(--qr-danger-700); border-color: var(--qr-danger-100); }
-.alertOk {  color:var(--qr-success-700); border-color: var(--qr-success-100); }
+.alertErr { color:#991b1b; border-color: var(--qr-danger-100); }
+.alertOk {  color:#166534; border-color: var(--qr-success-100); }
 .alertIcon { display:inline-flex; }
-.alertClose {
-  margin-left:auto; background:transparent; border:0;
-  cursor:pointer; color:var(--qr-text-secondary);
-}
+.alertClose { margin-left:auto; background:transparent; border:0; cursor:pointer; color:var(--qr-text-secondary); }
 
-/* =========================================
-   CARD
-========================================= */
+/* ========== Card ========== */
 .card {
   background:var(--qr-bg);
   border:1px solid var(--qr-border-light);
@@ -126,37 +98,20 @@ html, body {
 .cardTitle { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--qr-text); }
 .cardActions { display:flex; align-items:center; gap:12px; }
 
-/* =========================================
-   FORM / INPUTS
-========================================= */
-.formGrid { display:grid; gap:var(--qr-gap); padding:22px; }
-.inputGroup { display:flex; flex-direction:column; gap:6px; }
-.label { font-size:14px; font-weight:600; color:var(--qr-text-secondary); }
-.inputHelper { font-size:12px; color:var(--qr-muted); text-align:right; }
-
-.input, .textarea, .searchInput, .editInput, .editTextarea {
-  width:100%; min-width:0; padding:12px 14px;
-  border:1px solid var(--qr-border); border-radius:var(--qr-radius);
-  outline:none; transition:var(--qr-transition);
-  background:#fff; font-size:15px;
-}
-.textarea, .editTextarea { min-height:110px; font-family:inherit; resize:vertical; }
-.input:focus, .textarea:focus,
-.searchInput:focus, .editInput:focus, .editTextarea:focus {
-  border-color:var(--qr-primary);
-  box-shadow:0 0 0 3px var(--qr-primary-100);
-}
-
-/* =========================================
-   BUSCA
-========================================= */
+/* ========== Inputs / Busca ========== */
 .searchGroup { position:relative; display:flex; align-items:center; }
-.searchInput { padding-right:40px; width:min(360px, 40vw); }
+.searchInput {
+  padding:10px 40px 10px 12px;
+  height:40px;                           /* mesma altura do botão */
+  border:1px solid var(--qr-border); border-radius:10px;
+  outline:none; background:#fff; font-size:14px;
+  min-width: 280px;
+}
+.searchInput:focus { border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
 .searchClear {
-  position:absolute; right:8px; width:28px; height:28px; border:0;
+  position:absolute; right:6px; width:28px; height:28px; border:0;
   background:transparent; border-radius:6px; cursor:pointer;
-  display:inline-flex; align-items:center; justify-content:center;
-  color:var(--qr-text-secondary);
+  display:inline-flex; align-items:center; justify-content:center; color:var(--qr-text-secondary);
 }
 .searchClear:hover { background:var(--qr-surface-hover); }
 
@@ -164,19 +119,17 @@ html, body {
   display:flex; align-items:center; gap:6px;
   background:var(--qr-primary-100);
   color:#4b5563;
-  padding:6px 10px;
+  padding:6px 10px; height: 32px;
   border-radius:var(--qr-radius);
   font-size:13px; font-weight:600;
 }
 .counterNumber { font-weight:800; }
 
-/* =========================================
-   BOTÕES BASE (normais)
-========================================= */
+/* ========== Botões (padrão Filas) ========== */
 .btn, .btnPrimary, .btnSecondary, .btnDanger, .btnSuccess, .btnLink {
-  appearance:none; border:1px solid;
-  border-radius:10px; padding:10px 14px;
-  font-size:14px; font-weight:600;
+  appearance:none; border:1px solid; border-radius:14px;
+  height:40px; padding:0 16px;           /* altura fixa e padding consistente */
+  font-size:14px; font-weight:700;
   display:inline-flex; align-items:center; gap:8px;
   cursor:pointer; transition:var(--qr-transition);
   background:#fff;
@@ -184,92 +137,43 @@ html, body {
 .btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-/* primário real só nesta página */
-.btnPrimary { background:#111; border-color:#111; color:#fff; }
-.qrPrimary {
-  border-radius:14px !important;
-  padding:12px 18px !important;
-  background: linear-gradient(180deg, #8B5CF6 0%, #7C3AED 100%) !important;
-  border-color: #8B5CF6 !important;
-  color: #fff !important;
-  box-shadow: 0 10px 22px rgba(139,92,246,.28) !important;
+/* botão roxo igual ao "Criar fila" */
+.btnPrimary {
+  background: linear-gradient(180deg, #8B5CF6 0%, #7C3AED 100%);
+  border-color: #8B5CF6;
+  color:#fff;
+  box-shadow: 0 10px 22px rgba(139,92,246,.28);
 }
-
-.btnSecondary { background:#eef1f5; border-color:#eef1f5; color:#374151; }
-.btnSecondary:hover { background:#e5e7eb; border-color:#e5e7eb; }
-.btnDanger { background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
-.btnDanger:hover { background:#b91c1c; border-color:#b91c1c; }
-.btnSuccess { background:var(--qr-success); border-color:var(--qr-success); color:#fff; }
-.btnSuccess:hover { background:#15803d; border-color:#15803d; }
-.btnLink { background:none; border:none; color:var(--qr-primary); text-decoration:underline; padding:6px 8px; }
-
-/* =========================================
-   AÇÕES (ícones) — mesmo tamanho do print/filas
-========================================= */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-/* Botão compacto tipo "icon-only" — 36x36, raio 10 */
-.qrIconBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  background: #f5f3ff;        /* lilás suave */
-  color: #5b21b6;             /* roxo escuro */
-  box-shadow: 0 2px 6px rgba(139,92,246,0.15);
-  font-size: 14px;
-}
-
-.qrIconBtn:hover {
-  background: #ede9fe;
+.btnPrimary:hover {
+  filter: brightness(0.98);
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(139,92,246,0.25);
 }
 
-.qrIconBtn:active {
-  transform: scale(0.96);
+/* Ícones de ação – “pill” 36x36 */
+.actions { display:flex; align-items:center; gap:14px; }
+.qrIconBtn {
+  width:36px; height:36px; border-radius:10px; border:none;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:#f5f3ff; color:#5b21b6; cursor:pointer;
+  transition: all .2s ease-in-out;
+  box-shadow: 0 2px 6px rgba(139,92,246,.15);
 }
+.qrIconBtn:hover { background:#ede9fe; transform: translateY(-1px); box-shadow:0 4px 10px rgba(139,92,246,.25); }
+.qrIconBtn:active { transform: scale(.96); }
 
-/* variações */
-.danger {
-  background: #fef2f2 !important;
-  color: #b91c1c !important;
-  box-shadow: 0 2px 6px rgba(220,38,38,.15) !important;
-}
-.danger:hover {
-  background: #fee2e2 !important;
-  box-shadow: 0 4px 10px rgba(220,38,38,.25) !important;
-}
+.danger { background:#fef2f2 !important; color:#b91c1c !important; box-shadow:0 2px 6px rgba(220,38,38,.15) !important; }
+.danger:hover { background:#fee2e2 !important; box-shadow:0 4px 10px rgba(220,38,38,.25) !important; }
 
-.success {
-  background: #ecfdf5 !important;
-  color: #15803d !important;
-  box-shadow: 0 2px 6px rgba(16,185,129,.15) !important;
-}
-.success:hover {
-  background: #d1fae5 !important;
-  box-shadow: 0 4px 10px rgba(16,185,129,.25) !important;
-}
+.success { background:#ecfdf5 !important; color:#15803d !important; box-shadow:0 2px 6px rgba(16,185,129,.15) !important; }
+.success:hover { background:#d1fae5 !important; box-shadow:0 4px 10px rgba(16,185,129,.25) !important; }
 
-/* =========================================
-   TABELA
-========================================= */
-.tableWrap { overflow: auto; margin-top: 8px; }
+/* ========== Tabela ========== */
+.tableWrap { overflow:auto; margin-top:8px; }
 .table { width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
 .table thead th {
   text-align:left; font-weight:700; font-size:12px; color:var(--qr-muted);
   padding:14px 18px; border-bottom:1px solid var(--qr-border);
-  position:sticky; top:0; z-index:1;
-  text-transform:uppercase; letter-spacing:.08em;
+  position:sticky; top:0; z-index:1; text-transform:uppercase; letter-spacing:.08em;
 }
 .qrTableHead {
   background:
@@ -280,36 +184,29 @@ html, body {
 .tableRow:hover { background:linear-gradient(180deg, var(--qr-bg) 0%, var(--qr-surface) 100%); }
 
 .cellKey { min-width:280px; }
-.cellActions { min-width:200px; }
+.cellActions { min-width:200px; text-align:right; }
 
-/* conteúdo como texto (exibição) */
+/* Conteúdo como texto (somente leitura) */
 .contentText {
-  font-size: 14px;
-  color: var(--qr-text-secondary);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
+  font-size:14px; color:var(--qr-text-secondary);
+  line-height:1.5; white-space:pre-wrap; word-break:break-word;
 }
 
-/* (mantido p/ compatibilidade quando necessário) */
-.code {
-  background:transparent !important; color:inherit;
-  border:1px solid #334155; border-radius:var(--qr-radius);
-  padding:14px 16px; white-space:pre-wrap; word-break: break-word;
-  max-height:200px; overflow:auto;
-  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size:13px; line-height:1.6;
-}
-
-/* Empty/Loading */
+/* Empty/Loading & Footer */
 .empty,.loading { text-align:center; color:var(--qr-muted); padding:24px; }
-
-/* FOOTER */
-.footer { margin-top: 18px; }
+.footer { margin-top:18px; }
 .footerContent { color: var(--qr-text-secondary); font-size: 13px; }
 .tip { background: var(--qr-surface); border: 1px solid var(--qr-border-light); padding: 10px 12px; border-radius: var(--qr-radius); }
 
-/* RESPONSIVO */
+/* ========== Edição inline ========== */
+.editInput,.editTextarea{
+  width:100%; padding:12px 14px; border:1px solid var(--qr-border); border-radius:var(--qr-radius);
+  outline:none; background:#fff; font-size:14px;
+}
+.editTextarea{ min-height:110px; resize:vertical; }
+.editInput:focus,.editTextarea:focus{ border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
+
+/* ========== Responsivo ========== */
 @media (max-width: 640px){
   .table thead{ display:none; }
   .table, .table tbody, .table tr, .table td { display:block; width:100%; }
