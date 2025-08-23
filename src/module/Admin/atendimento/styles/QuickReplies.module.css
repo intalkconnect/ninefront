@@ -22,10 +22,10 @@
   --qr-text-secondary: #475569;
   --qr-muted: #64748b;
 
-  /* PRIMÁRIO ROXO (menu/logo) */
+  /* PRIMÁRIO ROXO */
   --qr-primary: #8B5CF6;
-  --qr-primary-100: rgba(139,92,246,.18);
   --qr-primary-600: #7C3AED;
+  --qr-primary-100: rgba(139,92,246,.18);
 
   --qr-success: #16a34a;
   --qr-success-100: #d1fae5;
@@ -115,10 +115,14 @@ html, body {
 .cardHead {
   display:flex; align-items:center; justify-content:space-between;
   padding:18px 22px;
+  background:linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%);
+  border-bottom:1px solid var(--qr-border-light);
+}
+.qrCardHead {
+  /* leve pista do tema */
   background:
     linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
-  border-bottom:1px solid var(--qr-border-light);
+    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%) !important;
 }
 .cardTitle { display:flex; align-items:center; gap:10px; font-weight:700; color:var(--qr-text); }
 .cardActions { display:flex; align-items:center; gap:12px; }
@@ -168,7 +172,7 @@ html, body {
 .counterNumber { font-weight:800; }
 
 /* =========================================
-   BOTÕES (página)
+   BOTÕES — estilo base do módulo
 ========================================= */
 .btn, .btnPrimary, .btnSecondary, .btnDanger, .btnSuccess, .btnLink {
   appearance:none; border:1px solid;
@@ -181,19 +185,7 @@ html, body {
 .btn { border-color:var(--qr-border); color:var(--qr-text-secondary); }
 .btn:hover { background:var(--qr-surface-hover); color:var(--qr-text); }
 
-.btnPrimary,
-button.btnPrimary {
-  background: var(--qr-primary) !important;
-  border-color: var(--qr-primary) !important;
-  color: #fff !important;
-  box-shadow: 0 4px 10px rgba(139,92,246,.25) !important;
-}
-.btnPrimary:hover,
-button.btnPrimary:hover {
-  background: var(--qr-primary-600) !important;
-  border-color: var(--qr-primary-600) !important;
-}
-
+.btnPrimary { background:#111; border-color:#111; color:#fff; } /* será sobrescrito pelo escopo abaixo */
 .btnSecondary { background:#eef1f5; border-color:#eef1f5; color:#374151; }
 .btnSecondary:hover { background:#e5e7eb; border-color:#e5e7eb; }
 .btnDanger { background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
@@ -204,19 +196,38 @@ button.btnPrimary:hover {
 
 .iconOnly { width:36px; height:36px; padding:0 !important; border-radius:9px; justify-content:center; }
 
+/* ===== Botão primário ROXO só nesta página ===== */
+.qrPrimary {
+  border-radius:14px !important;
+  padding:12px 18px !important;
+}
+
+/* escopo fechado ao wrapper desta página */
+.container[data-page="quickreplies"] .header > div > button,
+.container[data-page="quickreplies"] .header > div > button[class],
+.container[data-page="quickreplies"] .header > div > .btnPrimary,
+.container[data-page="quickreplies"] .header > div > .qrPrimary {
+  background: linear-gradient(180deg, #8B5CF6 0%, #7C3AED 100%) !important;
+  border-color: #8B5CF6 !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px rgba(139,92,246,.28) !important;
+}
+
 /* =========================================
    TABELA
 ========================================= */
 .tableWrap { overflow: auto; margin-top: 8px; }
 .table { width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
 .table thead th {
-  background:
-    linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
   text-align:left; font-weight:700; font-size:12px; color:var(--qr-muted);
   padding:14px 18px; border-bottom:1px solid var(--qr-border);
   position:sticky; top:0; z-index:1;
   text-transform:uppercase; letter-spacing:.08em;
+}
+.qrTableHead {
+  background:
+    linear-gradient(180deg, var(--qr-surface) 0%, var(--qr-bg) 100%),
+    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%) !important;
 }
 .table tbody td { padding:16px 18px; border-bottom:1px solid var(--qr-border-light); vertical-align:middle; }
 .tableRow:hover { background:linear-gradient(180deg, var(--qr-bg) 0%, var(--qr-surface) 100%); }
@@ -235,32 +246,12 @@ button.btnPrimary:hover {
 /* Empty/Loading */
 .empty,.loading { text-align:center; color:var(--qr-muted); padding:24px; }
 
-/* =========================================
-   FOOTER
-========================================= */
+/* FOOTER */
 .footer { margin-top: 18px; }
 .footerContent { color: var(--qr-text-secondary); font-size: 13px; }
 .tip { background: var(--qr-surface); border: 1px solid var(--qr-border-light); padding: 10px 12px; border-radius: var(--qr-radius); }
 
-/* =========================================
-   HARD OVERRIDE — botão do header desta página
-========================================= */
-.header > div > button,
-.header > div > button[class] {
-  background: var(--qr-primary) !important;
-  border-color: var(--qr-primary) !important;
-  color: #fff !important;
-  box-shadow: 0 6px 14px rgba(139,92,246,.25) !important;
-}
-.header > div > button:hover,
-.header > div > button[class]:hover {
-  background: var(--qr-primary-600) !important;
-  border-color: var(--qr-primary-600) !important;
-}
-
-/* =========================================
-   RESPONSIVO
-========================================= */
+/* RESPONSIVO */
 @media (max-width: 640px){
   .table thead{ display:none; }
   .table, .table tbody, .table tr, .table td { display:block; width:100%; }
