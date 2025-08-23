@@ -105,7 +105,7 @@
 .cardHead{
   display:flex;
   align-items:center;
-  justify-content:space-between; /* mantém o bloco de ações à direita */
+  justify-content:flex-end; /* mantém o bloco de ações à direita */
   padding:12px 16px; /* menor para “subir” a tabela */
   border-bottom:1px solid var(--qr-border-light);
   background:
@@ -115,6 +115,7 @@
 .cardActions{
   display:flex; align-items:center; gap:12px; flex-wrap:wrap;
   justify-content:flex-end; /* garante alinhamento à direita */
+  width:100%;  
 }
 
 /* BUSCA */
