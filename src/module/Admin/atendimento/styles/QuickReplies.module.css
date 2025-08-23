@@ -244,7 +244,6 @@ button.btnPrimary:hover {
 
 /* =========================================
    HARD OVERRIDE — botão do header desta página
-   (vence seletores globais do app)
 ========================================= */
 .header > div > button,
 .header > div > button[class] {
