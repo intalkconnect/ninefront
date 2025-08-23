@@ -1,16 +1,16 @@
 /* =========================================
-   TEMA / TOKENS (ajuste se necessário)
+   THEME / TOKENS (alinhar com menu/logo)
 ========================================= */
 :root{
   /* BG do app (igual Preferences) */
   --app-bg: #f6f7fb;
 
   /* === Paleta principal (menu/logo) === */
-  --brand-primary: #8B5CF6;          /* 500 – pedido do cliente */
-  --brand-primary-600: #7C3AED;      /* hover/ativo */
-  --brand-primary-100: rgba(139,92,246,.18); /* foco/realce suave */
+  --brand-primary: #8B5CF6;                    /* roxo principal */
+  --brand-primary-600: #7C3AED;                /* hover/ativo */
+  --brand-primary-100: rgba(139,92,246,.20);   /* foco/realce suave */
 
-  --brand-surface: #f4f6fb;          /* superfícies suaves */
+  --brand-surface: #f4f6fb;                    /* superfícies suaves */
   --brand-surface-hover: #eef2f7;
 
   --brand-text: #0f172a;
@@ -87,9 +87,11 @@ html, body {
   background: transparent !important;
 }
 
+/* tabela: só horizontal quando necessário */
+.tableWrap { overflow: auto; margin-top: 8px; }
+
 /* =========================================
    HEADER DA PÁGINA
-   – acento na primária e tipografia mais forte
 ========================================= */
 .header{
   display:flex; align-items:flex-start; justify-content:space-between;
@@ -110,21 +112,12 @@ html, body {
   color:var(--qr-text-secondary); margin-top:8px;
 }
 
-/* mini “chip” opcional para ícones do header (fica coerente com o menu) */
-.title .chip{
-  display:inline-flex; align-items:center; justify-content:center;
-  width:28px; height:28px; border-radius:8px;
-  background: linear-gradient(180deg, #fff 0%, var(--qr-primary-100) 100%);
-  border:1px solid var(--qr-border-light);
-}
-
 /* =========================================
    ALERTAS
 ========================================= */
 .alertErr,.alertOk{
   margin-top:12px; padding:12px 14px; border-radius:var(--qr-radius);
-  display:flex; align-items:center; gap:10px; background:#fff;
-  border:1px solid var(--qr-border-light);
+  display:flex; align-items:center; gap:10px; border:1px solid var(--qr-border-light); background:#fff;
   box-shadow: var(--qr-shadow-sm);
 }
 .alertErr{ color:var(--qr-danger); border-color: var(--qr-danger-100); }
@@ -132,7 +125,7 @@ html, body {
 .alertIcon{ display:inline-flex; }
 
 /* =========================================
-   CARD
+   CARD (conteúdo branco sobre app-bg)
 ========================================= */
 .card{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:var(--qr-radius-xl);
@@ -144,13 +137,10 @@ html, body {
   padding:18px 22px;
   background:
     linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,.96) 40%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 40%);
+    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
   border-bottom:1px solid var(--qr-border-light);
 }
-.cardTitle{
-  display:flex; align-items:center; gap:10px;
-  font-weight:800; letter-spacing:.01em; color:var(--qr-text);
-}
+.cardTitle{ display:flex; align-items:center; gap:10px; font-weight:800; color:var(--qr-text); }
 
 /* =========================================
    FORM EM CARD
@@ -188,37 +178,64 @@ html, body {
 .hex{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
 
 /* =========================================
-   BOTÕES (violeta #8B5CF6)
+   BOTÕES (primário roxo #8B5CF6 FORÇADO)
 ========================================= */
 .btn, .btnPrimary, .btnSecondary, .btnDanger {
   appearance:none; border:1px solid; border-radius:10px;
   padding:10px 14px; font-size:14px; font-weight:700;
   display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-  transition:var(--qr-transition); background:#fff;
+  transition:var(--qr-transition); background:#fff; color:var(--qr-text-secondary);
 }
-.btn{ border-color:var(--qr-border); color:var(--qr-text-secondary); }
+
+/* padrão */
+.btn{ border-color:var(--qr-border); }
 .btn:hover{ background:var(--qr-surface-hover); color:var(--qr-text); }
 
+/* primário — blindado contra overrides */
 .btnPrimary{
-  background:var(--qr-primary); border-color:var(--qr-primary); color:#fff;
-  box-shadow: 0 6px 14px rgba(139,92,246,.25);
+  background:#8B5CF6 !important;
+  border-color:#8B5CF6 !important;
+  color:#fff !important;
+  box-shadow:0 6px 14px rgba(139,92,246,.25) !important;
 }
-.btnPrimary:hover{ background:var(--qr-primary-600); border-color:var(--qr-primary-600); }
-.btnPrimary:focus{ outline:none; box-shadow:0 0 0 3px var(--qr-primary-100), 0 6px 14px rgba(124,58,237,.28); }
+.btnPrimary:hover{
+  background:#7C3AED !important;
+  border-color:#7C3AED !important;
+}
+.btnPrimary:focus{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(139,92,246,.25), 0 6px 14px rgba(124,58,237,.28) !important;
+}
 
-.btnSecondary{ background:#f1f0ff; border-color:#e6e4ff; color:#4338ca; }
-.btnSecondary:hover{ background:#ebe9ff; border-color:#e1deff; }
+/* secundário com nuance roxa */
+.btnSecondary{
+  background:#f1f0ff !important;
+  border-color:#e6e4ff !important;
+  color:#4338ca !important;
+}
+.btnSecondary:hover{
+  background:#ebe9ff !important;
+  border-color:#e1deff !important;
+}
 
-.btnDanger{ background:var(--qr-danger); border-color:var(--qr-danger); color:#fff; }
-.btnDanger:hover{ background:#b91c1c; border-color:#b91c1c; }
+/* perigo */
+.btnDanger{
+  background:var(--qr-danger) !important;
+  border-color:var(--qr-danger) !important;
+  color:#fff !important;
+}
+.btnDanger:hover{
+  background:#b91c1c !important;
+  border-color:#b91c1c !important;
+}
 
+/* utilitários de botão */
 .iconOnly{ width:36px; height:36px; padding:0 !important; border-radius:9px; justify-content:center; }
 .visuallyHidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
 /* =========================================
    TABELA
 ========================================= */
-.tableWrap { overflow: auto; margin-top: 8px; }
 .table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
 .table thead th{
   background:
@@ -276,12 +293,7 @@ html, body {
   font-weight: 800;
   color: var(--qr-text, #111827);
 }
-.modalActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 0 22px 22px;
-}
+.modalActions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 22px 22px; }
 
 /* =========================================
    RESPONSIVO
