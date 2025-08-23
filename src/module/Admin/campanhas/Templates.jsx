@@ -96,7 +96,6 @@ export default function Templates() {
         // re-carrega silencioso
         load();
       } catch (e) {
-        // só loga; não trava a UI
         console.warn('Polling falhou:', e?.message || e);
       }
     }, 15000); // 15s
@@ -257,7 +256,6 @@ export default function Templates() {
                   key={t.id}
                   className={styles.rowHover}
                   onClick={(e) => {
-                    // Evita abrir a prévia quando clicar em botões de ação
                     const tag = (e.target.tagName || '').toLowerCase();
                     if (['button','svg','path'].includes(tag)) return;
                     setPreview(t);
@@ -286,7 +284,7 @@ export default function Templates() {
                   <td data-label="Ações" className={styles.actionsCell}>
                     <div className={styles.actions}>
                       <button
-                        className={`${styles.btn} ${styles.iconOnly}`}
+                        className={styles.qrIconBtn}
                         title="Sincronizar status"
                         onClick={() => handleSync(t.id)}
                         type="button"
@@ -295,7 +293,7 @@ export default function Templates() {
                       </button>
 
                       <button
-                        className={`${styles.btnSecondary} ${styles.iconOnly}`}
+                        className={`${styles.qrIconBtn} ${styles.success}`}
                         title="Submeter à Meta"
                         onClick={() => handleSubmit(t.id)}
                         disabled={!['draft', 'rejected'].includes(t.status)}
@@ -305,7 +303,7 @@ export default function Templates() {
                       </button>
 
                       <button
-                        className={`${styles.btnDanger} ${styles.iconOnly}`}
+                        className={`${styles.qrIconBtn} ${styles.danger}`}
                         title="Excluir"
                         onClick={() => handleDelete(t.id, t.status)}
                         disabled={!['draft', 'rejected'].includes(t.status)}
