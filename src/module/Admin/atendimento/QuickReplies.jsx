@@ -128,7 +128,6 @@ const QuickReplies = () => {
             Gerencie atalhos de mensagens para agilizar o atendimento ao cliente.
           </p>
 
-          {/* Alertas */}
           {error && (
             <div className={styles.alertErr} role="alert" aria-live="assertive">
               <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={18} /></span>
@@ -149,7 +148,6 @@ const QuickReplies = () => {
           )}
         </div>
 
-        {/* Botão “Criar” abre modal */}
         <div>
           <button
             type="button"
@@ -161,7 +159,6 @@ const QuickReplies = () => {
         </div>
       </div>
 
-      {/* Lista */}
       <div className={styles.card}>
         <div className={`${styles.cardHead} ${styles.qrCardHead}`}>
           <div className={styles.cardTitle}>
@@ -309,7 +306,6 @@ const QuickReplies = () => {
         </div>
       </div>
 
-      {/* Footer discreto */}
       <div className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.tip}>
@@ -318,7 +314,6 @@ const QuickReplies = () => {
         </div>
       </div>
 
-      {/* Modal de criação */}
       <QuickReplyModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
