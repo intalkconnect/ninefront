@@ -96,7 +96,7 @@ export default function Queues() {
 
         {/* LISTA / CARD */}
         <div className={styles.card}>
-          {/* Barra de busca no topo do card (fora do header da página) */}
+          {/* Header do card: busca (à direita) + contador */}
           <div className={styles.cardHead}>
             <div className={styles.cardActions}>
               <div className={styles.searchGroup}>
