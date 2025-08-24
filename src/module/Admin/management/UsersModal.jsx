@@ -1,15 +1,15 @@
+// src/pages/Users/UsersModal.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { X as XIcon, Save as SaveIcon } from 'lucide-react';
 import { apiPost, apiPut } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 
 const PERFIS = [
-  { value: 'admin', label: 'Admin' },
+  { value: 'admin',      label: 'Admin' },
   { value: 'supervisor', label: 'Supervisor' },
-  { value: 'atendente', label: 'Atendente' },
+  { value: 'atendente',  label: 'Atendente' },
 ];
 
-// helpers de normalização
 const sid   = (v) => String(v ?? '').trim();
 const sname = (v) => String(v ?? '').toLowerCase().trim();
 
@@ -22,7 +22,7 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
-  // ⚠️ AJUSTE: excluir do dropdown por ID **e** por nome já selecionados
+  // opções do dropdown = todas as filas - já selecionadas (por id ou nome)
   const options = useMemo(() => {
     const usedIds   = new Set(filasSel.map(f => sid(f.id)));
     const usedNames = new Set(filasSel.map(f => sname(f.nome)));
@@ -42,7 +42,6 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
       const arr = Array.isArray(editing.filas) ? editing.filas : [];
       const mapped = arr.map(v => {
-        // v pode ser id OU nome; tentamos resolver pelos dois
         const byId   = (queues || []).find(x => sid(x.id) === sid(v));
         const byName = (queues || []).find(x => sname(x.nome ?? x.name) === sname(v));
         const q = byId || byName;
@@ -64,7 +63,6 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
     if (!q) return;
     setFilasSel(prev => [...prev, { id: q.id, nome: q.nome ?? q.name ?? String(q.id) }]);
   };
-
   const removeFila = (id) => setFilasSel(prev => prev.filter(f => sid(f.id) !== sid(id)));
 
   async function submit(e) {
@@ -78,7 +76,8 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
         lastname: lastname.trim(),
         email: email.trim(),
         perfil,
-        filas: perfil === 'admin' ? [] : filasSel.map(f => f.id),
+        // ⬇️ RESTRIÇÃO: só atendente envia filas; admin/supervisor sempre []
+        filas: perfil === 'atendente' ? filasSel.map(f => f.id) : [],
       };
       if (editing) {
         await apiPut(`/users/${editing.id}`, payload);
@@ -95,6 +94,8 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
   }
 
   if (!isOpen) return null;
+
+  const showFilas = perfil === 'atendente'; // 👈 apenas atendente vê filas
 
   return (
     <div className={styles.modalOverlay} onMouseDown={onClose}>
@@ -131,7 +132,7 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
                 </select>
               </div>
 
-              {perfil !== 'admin' && (
+              {showFilas && (
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Filas</label>
 
@@ -142,14 +143,8 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
                         <button type="button" className={styles.chipX} onClick={()=>removeFila(f.id)} aria-label={`Remover ${f.nome}`}>×</button>
                       </span>
                     ))}
-
-                    {/* só mostra o dropdown se ainda houver opções */}
                     {options.length > 0 && (
-                      <select
-                        className={styles.selectInline}
-                        value=""
-                        onChange={(e)=>addFila(e.target.value)}
-                      >
+                      <select className={styles.selectInline} value="" onChange={(e)=>addFila(e.target.value)}>
                         <option value="" disabled>Adicionar fila…</option>
                         {options.map(o => <option key={sid(o.id)} value={sid(o.id)}>{o.nome}</option>)}
                       </select>
