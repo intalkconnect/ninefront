@@ -21,7 +21,7 @@ const PERFIS_TABS = [
   { key: 'atendente',   label: 'Atendente' },
 ];
 
-export default function UsersPage() {
+export default function Users() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -64,25 +64,29 @@ export default function UsersPage() {
     if (perfilFilter) {
       base = base.filter(u => String(u.perfil || '').toLowerCase() === perfilFilter);
     }
-    if (!q) return base.sort((a,b) =>
-      String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
-    );
+    if (!q) {
+      return base.sort((a,b) =>
+        String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
+      );
+    }
 
-    return base.filter(u => {
-      const nome = `${String(u.name || '')} ${String(u.lastname || '')}`.trim().toLowerCase();
-      const email = String(u.email || '').toLowerCase();
-      return nome.includes(q) || email.includes(q);
-    }).sort((a,b) =>
-      String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
-    );
+    return base
+      .filter(u => {
+        const nome = `${String(u.name || '')} ${String(u.lastname || '')}`.trim().toLowerCase();
+        const email = String(u.email || '').toLowerCase();
+        return nome.includes(q) || email.includes(q);
+      })
+      .sort((a,b) =>
+        String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
+      );
   }, [items, perfilFilter, query]);
 
   const clearSearch = () => setQuery('');
 
   // excluir — bloqueia se houver filas vinculadas
   const handleDelete = async (user) => {
-    const filasCount = Array.isArray(user.filas) ? user.filas.length : 0;
-    if (filasCount > 0) {
+    const filasArr = Array.isArray(user.filas) ? user.filas.filter(Boolean) : [];
+    if (filasArr.length > 0) {
       setError('Não é possível excluir: o usuário possui filas vinculadas. Desvincule as filas antes de excluir.');
       return;
     }
@@ -134,7 +138,11 @@ export default function UsersPage() {
           <button className={styles.btn} type="button" onClick={load} title="Atualizar lista">
             <RefreshCw size={16} /> Atualizar
           </button>
-          <button className={styles.btnPrimary} type="button" onClick={() => { setEditing(null); setCreateOpen(true); }}>
+          <button
+            className={styles.btnPrimary}
+            type="button"
+            onClick={() => { setEditing(null); setCreateOpen(true); }}
+          >
             <Plus size={16} /> Novo usuário
           </button>
         </div>
@@ -181,7 +189,7 @@ export default function UsersPage() {
                 <th style={{ minWidth: 240 }}>Nome</th>
                 <th>Email</th>
                 <th>Perfil</th>
-                <th style={{ minWidth: 180 }}>Filas</th>
+                <th style={{ minWidth: 240 }}>Filas</th>
                 <th style={{ width: 200, textAlign:'right' }}>Ações</th>
               </tr>
             </thead>
@@ -200,23 +208,25 @@ export default function UsersPage() {
 
               {!loading && filtered.map(u => {
                 const nome = `${u.name || ''} ${u.lastname || ''}`.trim();
-                const perfil = String(u.perfil || '').toLowerCase();
-                const filasArr = Array.isArray(u.filas) ? u.filas : [];
-                const mostraFilas = perfil !== 'admin' && filasArr.length > 0;
-                const filasResumo = mostraFilas ? `${filasArr.length} ${filasArr.length === 1 ? 'fila' : 'filas'}` : '—';
-                const filasTitle = mostraFilas ? filasArr.join(', ') : '';
+                const perfil = String(u.perfil || '');
+                const isAdmin = perfil.toLowerCase() === 'admin';
+                const filasArr = Array.isArray(u.filas) ? u.filas.filter(Boolean) : [];
 
                 return (
                   <tr key={u.id} className={styles.rowHover}>
                     <td data-label="Nome"><div className={styles.keyTitle}>{nome || '—'}</div></td>
                     <td data-label="Email">{u.email || '—'}</td>
-                    <td data-label="Perfil" className={styles.perfilCell}>
-                      <span className={`${styles.pillPerfil} ${styles[`p_${perfil || 'default'}`]}`}>
-                        {u.perfil || '—'}
-                      </span>
-                    </td>
-                    <td data-label="Filas" title={filasTitle}>
-                      {filasResumo}
+                    <td data-label="Perfil">{perfil || '—'}</td>
+                    <td data-label="Filas">
+                      {isAdmin || filasArr.length === 0 ? (
+                        '—'
+                      ) : (
+                        <div className={styles.tags}>
+                          {filasArr.map((f) => (
+                            <span key={f} className={styles.tag}>{f}</span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td data-label="Ações" className={styles.actionsCell}>
                       <div className={styles.actions}>
@@ -250,9 +260,14 @@ export default function UsersPage() {
       {/* Modal criar/editar */}
       <UserModal
         isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => { setCreateOpen(false); setEditing(null); }}
         editing={editing}
-        onSaved={() => { setCreateOpen(false); setEditing(null); load(); toastOK(editing ? 'Usuário atualizado.' : 'Usuário criado.'); }}
+        onSaved={() => {
+          setCreateOpen(false);
+          setEditing(null);
+          load();
+          toastOK(editing ? 'Usuário atualizado.' : 'Usuário criado.');
+        }}
       />
     </div>
   );
