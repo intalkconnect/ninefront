@@ -1,12 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { apiGet, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import {
   Users as UsersIcon,
   Plus,
   RefreshCw,
-  Pencil,
-  Trash2,
+  Edit3 as EditIcon,
+  Trash2 as TrashIcon,
   X as XIcon,
   AlertCircle,
   CheckCircle2
@@ -14,21 +14,12 @@ import {
 
 import UserModal from './UserModal';
 
-const PERFIL_TABS = [
-  { key: '', label: 'Todos' },
-  { key: 'admin', label: 'Admin' },
-  { key: 'atendente', label: 'Atendente' },
+const PERFIS_TABS = [
+  { key: '',            label: 'Todos' },
+  { key: 'admin',       label: 'Admin' },
+  { key: 'supervisor',  label: 'Supervisor' },
+  { key: 'atendente',   label: 'Atendente' },
 ];
-
-function StatusBadge({ status }) {
-  if (!status) return <span className={styles.stDefault}>—</span>;
-  const map = {
-    active: { cls: styles.stActive, txt: 'Ativo' },
-    inactive: { cls: styles.stInactive, txt: 'Inativo' },
-  };
-  const it = map[status] || { cls: styles.stDefault, txt: String(status) };
-  return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
-}
 
 export default function UsersPage() {
   const [items, setItems] = useState([]);
@@ -37,15 +28,17 @@ export default function UsersPage() {
   const [error, setError] = useState(null);
   const [okMsg, setOkMsg] = useState(null);
 
+  // filtros
   const [query, setQuery] = useState('');
   const [perfilFilter, setPerfilFilter] = useState('');
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editUser, setEditUser] = useState(null);
+  // modal
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
-    setTimeout(() => setOkMsg(null), 2000);
+    setTimeout(() => setOkMsg(null), 2200);
   }, []);
 
   const load = useCallback(async () => {
@@ -55,7 +48,7 @@ export default function UsersPage() {
       const data = await apiGet('/users');
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error(e);
+      console.error('Erro ao carregar usuários:', e);
       setError('Falha ao carregar usuários.');
     } finally {
       setLoading(false);
@@ -66,31 +59,44 @@ export default function UsersPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return [...items]
-      .filter(u => (perfilFilter ? String(u.perfil) === perfilFilter : true))
-      .filter(u => {
-        if (!q) return true;
-        const name = `${u.name || ''} ${u.lastname || ''}`.toLowerCase();
-        const email = String(u.email || '').toLowerCase();
-        return name.includes(q) || email.includes(q);
-      })
-      .sort((a, b) => (a.name || '').localeCompare(b.name || '') || (a.lastname || '').localeCompare(b.lastname || ''));
-  }, [items, query, perfilFilter]);
+    let base = [...items];
+
+    if (perfilFilter) {
+      base = base.filter(u => String(u.perfil || '').toLowerCase() === perfilFilter);
+    }
+    if (!q) return base.sort((a,b) =>
+      String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
+    );
+
+    return base.filter(u => {
+      const nome = `${String(u.name || '')} ${String(u.lastname || '')}`.trim().toLowerCase();
+      const email = String(u.email || '').toLowerCase();
+      return nome.includes(q) || email.includes(q);
+    }).sort((a,b) =>
+      String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' })
+    );
+  }, [items, perfilFilter, query]);
 
   const clearSearch = () => setQuery('');
 
-  async function handleDelete(u) {
-    if (!window.confirm(`Excluir o usuário ${u.name} ${u.lastname}?`)) return;
+  // excluir — bloqueia se houver filas vinculadas
+  const handleDelete = async (user) => {
+    const filasCount = Array.isArray(user.filas) ? user.filas.length : 0;
+    if (filasCount > 0) {
+      setError('Não é possível excluir: o usuário possui filas vinculadas. Desvincule as filas antes de excluir.');
+      return;
+    }
+    if (!window.confirm('Tem certeza que deseja remover este usuário?')) return;
+
     try {
-      setError(null);
-      await apiDelete(`/users/${u.id}`);
-      toastOK('Usuário excluído.');
+      await apiDelete(`/users/${user.id}`);
+      toastOK('Usuário removido.');
       load();
     } catch (e) {
-      console.error(e);
+      console.error('Erro ao excluir usuário:', e);
       setError('Falha ao excluir usuário.');
     }
-  }
+  };
 
   return (
     <div className={styles.container}>
@@ -98,10 +104,10 @@ export default function UsersPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
-            <UsersIcon size={24} aria-hidden="true" /> Usuários
+            <UsersIcon size={22} aria-hidden="true" /> Usuários
           </h1>
           <p className={styles.subtitle}>
-            Cadastre, edite e organize os usuários do sistema.
+            Cadastre, edite e gerencie o acesso dos usuários ao sistema.
           </p>
 
           {error && (
@@ -128,18 +134,17 @@ export default function UsersPage() {
           <button className={styles.btn} type="button" onClick={load} title="Atualizar lista">
             <RefreshCw size={16} /> Atualizar
           </button>
-          <button className={styles.btnPrimary} type="button" onClick={() => { setEditUser(null); setModalOpen(true); }}>
+          <button className={styles.btnPrimary} type="button" onClick={() => { setEditing(null); setCreateOpen(true); }}>
             <Plus size={16} /> Novo usuário
           </button>
         </div>
       </div>
 
-      {/* Card/lista */}
+      {/* Card da lista: tabs (esq) + busca (dir) */}
       <div className={styles.card}>
-        {/* filtros DENTRO do header do card: tabs (esq) + busca (dir) */}
         <div className={styles.cardHead}>
           <div className={styles.tabs} role="tablist" aria-label="Filtrar por perfil">
-            {PERFIL_TABS.map(tab => (
+            {PERFIS_TABS.map(tab => (
               <button
                 key={tab.key || 'all'}
                 className={`${styles.tab} ${perfilFilter === tab.key ? styles.tabActive : ''}`}
@@ -173,57 +178,70 @@ export default function UsersPage() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{ minWidth: 260 }}>Nome</th>
+                <th style={{ minWidth: 240 }}>Nome</th>
                 <th>Email</th>
                 <th>Perfil</th>
-                <th>Filas</th>
-                <th>Status</th>
-                <th style={{ width: 160, textAlign: 'right' }}>Ações</th>
+                <th style={{ minWidth: 180 }}>Filas</th>
+                <th style={{ width: 200, textAlign:'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td className={styles.loading} colSpan={6}>Carregando…</td></tr>
+                <tr>
+                  <td className={styles.loading} colSpan={5}>Carregando…</td>
+                </tr>
               )}
 
               {!loading && filtered.length === 0 && (
-                <tr><td className={styles.empty} colSpan={6}>Nenhum usuário encontrado.</td></tr>
+                <tr>
+                  <td className={styles.empty} colSpan={5}>Nenhum usuário encontrado.</td>
+                </tr>
               )}
 
-              {!loading && filtered.map(u => (
-                <tr key={u.id} className={styles.rowHover}>
-                  <td data-label="Nome">
-                    <div className={styles.keyTitle}>{`${u.name || ''} ${u.lastname || ''}`.trim()}</div>
-                    <div className={styles.keySub}>{u.id ? `#${u.id}` : ''}</div>
-                  </td>
-                  <td data-label="Email">{u.email || '—'}</td>
-                  <td data-label="Perfil" className={styles.cap}>{u.perfil || '—'}</td>
-                  <td data-label="Filas">
-                    {Array.isArray(u.filas) && u.filas.length ? u.filas.join(', ') : '—'}
-                  </td>
-                  <td data-label="Status"><StatusBadge status={u.status} /></td>
-                  <td data-label="Ações" className={styles.actionsCell}>
-                    <div className={styles.actions}>
-                      <button
-                        className={styles.qrIconBtn}
-                        title="Editar"
-                        type="button"
-                        onClick={() => { setEditUser(u); setModalOpen(true); }}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        className={`${styles.qrIconBtn} ${styles.danger}`}
-                        title="Excluir"
-                        type="button"
-                        onClick={() => handleDelete(u)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {!loading && filtered.map(u => {
+                const nome = `${u.name || ''} ${u.lastname || ''}`.trim();
+                const perfil = String(u.perfil || '').toLowerCase();
+                const filasArr = Array.isArray(u.filas) ? u.filas : [];
+                const mostraFilas = perfil !== 'admin' && filasArr.length > 0;
+                const filasResumo = mostraFilas ? `${filasArr.length} ${filasArr.length === 1 ? 'fila' : 'filas'}` : '—';
+                const filasTitle = mostraFilas ? filasArr.join(', ') : '';
+
+                return (
+                  <tr key={u.id} className={styles.rowHover}>
+                    <td data-label="Nome"><div className={styles.keyTitle}>{nome || '—'}</div></td>
+                    <td data-label="Email">{u.email || '—'}</td>
+                    <td data-label="Perfil" className={styles.perfilCell}>
+                      <span className={`${styles.pillPerfil} ${styles[`p_${perfil || 'default'}`]}`}>
+                        {u.perfil || '—'}
+                      </span>
+                    </td>
+                    <td data-label="Filas" title={filasTitle}>
+                      {filasResumo}
+                    </td>
+                    <td data-label="Ações" className={styles.actionsCell}>
+                      <div className={styles.actions}>
+                        <button
+                          className={styles.qrIconBtn}
+                          title="Editar"
+                          onClick={() => { setEditing(u); setCreateOpen(true); }}
+                          type="button"
+                        >
+                          <EditIcon size={16} />
+                        </button>
+
+                        <button
+                          className={`${styles.qrIconBtn} ${styles.danger}`}
+                          title="Excluir"
+                          onClick={() => handleDelete(u)}
+                          type="button"
+                        >
+                          <TrashIcon size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -231,10 +249,10 @@ export default function UsersPage() {
 
       {/* Modal criar/editar */}
       <UserModal
-        isOpen={modalOpen}
-        user={editUser}
-        onClose={() => { setModalOpen(false); setEditUser(null); }}
-        onSaved={() => { setModalOpen(false); setEditUser(null); load(); toastOK(editUser ? 'Usuário atualizado.' : 'Usuário criado.'); }}
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        editing={editing}
+        onSaved={() => { setCreateOpen(false); setEditing(null); load(); toastOK(editing ? 'Usuário atualizado.' : 'Usuário criado.'); }}
       />
     </div>
   );
