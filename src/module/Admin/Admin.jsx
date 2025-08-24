@@ -19,7 +19,6 @@ import {
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Builder from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
-import UsersPage from './users/Users';
 import LogoutButton from './components/LogoutButton';
 import styles from './styles/Admin.module.css';
 import { parseJwt } from '../../utils/auth';
@@ -32,6 +31,7 @@ import ClientsMonitor from './monitoring/ClientsMonitor';
 import Queues from './atendimento/Queues';
 import QuickReplies from './atendimento/QuickReplies';
 import Templates from './campanhas/Templates';
+import Users from './management/Users';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
@@ -306,7 +306,7 @@ export default function Admin() {
           <Route path="monitoring/clients" element={<ClientsMonitor />} />
           
           {/* Gestão */}
-          <Route path="users" element={<UsersPage />} />
+          <Route path="management/users" element={<Users />} />
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
           <Route path="campaigns/templates" element={<Templates />} />
