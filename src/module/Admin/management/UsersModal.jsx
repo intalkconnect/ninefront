@@ -170,7 +170,7 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
         lastname: lastname.trim(),
         email: email.trim(),
         perfil,
-        filas: showFilas ? filasSel.map(f => f.id) : [],
+        filas: showFilas ? filasSel.map(f => f.nome) : [],
       };
       if (editing) {
         await apiPut(`/users/${editing.id}`, payload);
