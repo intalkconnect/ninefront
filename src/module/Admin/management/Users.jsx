@@ -17,7 +17,6 @@ import UserModal from './UserModal';
 const PERFIL_TABS = [
   { key: '', label: 'Todos' },
   { key: 'admin', label: 'Admin' },
-  { key: 'supervisor', label: 'Supervisor' },
   { key: 'atendente', label: 'Atendente' },
 ];
 
