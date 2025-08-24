@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { apiGet, apiPost, apiDelete, apiPut } from '../../shared/apiClient';
+import { apiGet, apiPost, apiDelete, apiPut } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
 
