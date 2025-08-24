@@ -9,6 +9,10 @@ const PERFIS = [
   { value: 'atendente', label: 'Atendente' },
 ];
 
+// helpers de normalização
+const sid   = (v) => String(v ?? '').trim();
+const sname = (v) => String(v ?? '').toLowerCase().trim();
+
 export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }) {
   const [name, setName] = useState('');
   const [lastname, setLastname] = useState('');
@@ -18,25 +22,31 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
-  // opções do dropdown = filas ainda não selecionadas
+  // ⚠️ AJUSTE: excluir do dropdown por ID **e** por nome já selecionados
   const options = useMemo(() => {
-    const used = new Set(filasSel.map(f => String(f.id)));
+    const usedIds   = new Set(filasSel.map(f => sid(f.id)));
+    const usedNames = new Set(filasSel.map(f => sname(f.nome)));
     return (queues || [])
-      .filter(f => !used.has(String(f.id)))
-      .map(f => ({ id: f.id, nome: f.nome ?? f.name ?? String(f.id) }));
+      .map(q => ({ id: q.id, nome: q.nome ?? q.name ?? String(q.id) }))
+      .filter(q => !usedIds.has(sid(q.id)) && !usedNames.has(sname(q.nome)));
   }, [queues, filasSel]);
 
   useEffect(() => {
     if (!isOpen) return;
+
     if (editing) {
       setName(editing.name || '');
       setLastname(editing.lastname || '');
       setEmail(editing.email || '');
       setPerfil(editing.perfil || 'atendente');
+
       const arr = Array.isArray(editing.filas) ? editing.filas : [];
-      const mapped = arr.map(id => {
-        const q = (queues || []).find(x => String(x.id) === String(id));
-        return { id, nome: q?.nome ?? q?.name ?? String(id) };
+      const mapped = arr.map(v => {
+        // v pode ser id OU nome; tentamos resolver pelos dois
+        const byId   = (queues || []).find(x => sid(x.id) === sid(v));
+        const byName = (queues || []).find(x => sname(x.nome ?? x.name) === sname(v));
+        const q = byId || byName;
+        return { id: q?.id ?? v, nome: q?.nome ?? q?.name ?? String(v) };
       });
       setFilasSel(mapped);
     } else {
@@ -47,13 +57,15 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
   const canSave = name.trim() && lastname.trim() && email.trim() && perfil;
 
-  const addFila = (idStr) => {
-    if (!idStr) return;
-    const q = (queues || []).find(f => String(f.id) === String(idStr));
+  const addFila = (val) => {
+    if (!val) return;
+    const q = (queues || []).find(x => sid(x.id) === sid(val)) ||
+              (queues || []).find(x => sname(x.nome ?? x.name) === sname(val));
     if (!q) return;
     setFilasSel(prev => [...prev, { id: q.id, nome: q.nome ?? q.name ?? String(q.id) }]);
   };
-  const removeFila = (id) => setFilasSel(prev => prev.filter(f => String(f.id) !== String(id)));
+
+  const removeFila = (id) => setFilasSel(prev => prev.filter(f => sid(f.id) !== sid(id)));
 
   async function submit(e) {
     e.preventDefault();
@@ -125,20 +137,23 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
                   <div className={styles.chipsWrap}>
                     {filasSel.map(f => (
-                      <span key={f.id} className={styles.chip}>
+                      <span key={sid(f.id)} className={styles.chip}>
                         {f.nome}
                         <button type="button" className={styles.chipX} onClick={()=>removeFila(f.id)} aria-label={`Remover ${f.nome}`}>×</button>
                       </span>
                     ))}
 
-                    <select
-                      className={styles.selectInline}
-                      value=""
-                      onChange={(e)=>addFila(e.target.value)}
-                    >
-                      <option value="" disabled>Adicionar fila…</option>
-                      {options.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}
-                    </select>
+                    {/* só mostra o dropdown se ainda houver opções */}
+                    {options.length > 0 && (
+                      <select
+                        className={styles.selectInline}
+                        value=""
+                        onChange={(e)=>addFila(e.target.value)}
+                      >
+                        <option value="" disabled>Adicionar fila…</option>
+                        {options.map(o => <option key={sid(o.id)} value={sid(o.id)}>{o.nome}</option>)}
+                      </select>
+                    )}
                   </div>
 
                   <div className={styles.inputHelper}>
