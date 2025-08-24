@@ -31,7 +31,7 @@ import ClientsMonitor from './monitoring/ClientsMonitor';
 import Queues from './atendimento/Queues';
 import QuickReplies from './atendimento/QuickReplies';
 import Templates from './campanhas/Templates';
-import Users from './management/Users';
+import UsersPage from './management/Users';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
@@ -189,7 +189,7 @@ export default function Admin() {
             {/* Gestão */}
             <MenuSection title="Gestão">
               <MenuIcon 
-                to="users" 
+                to="management/users" 
                 icon={<Users size={18} />} 
                 label="Usuários" 
                 isDevelopment={true}
@@ -306,7 +306,7 @@ export default function Admin() {
           <Route path="monitoring/clients" element={<ClientsMonitor />} />
           
           {/* Gestão */}
-          <Route path="management/users" element={<Users />} />
+          <Route path="management/users" element={<UsersPage />} />
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
           <Route path="campaigns/templates" element={<Templates />} />
