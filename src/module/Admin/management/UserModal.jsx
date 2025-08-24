@@ -1,184 +1,186 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost, apiPut } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import { X as XIcon, Save as SaveIcon } from 'lucide-react';
 
-const PERFIS = [
-  { value: 'admin', label: 'Administrador' },
-  { value: 'supervisor', label: 'Supervisor' },
-  { value: 'atendente', label: 'Atendente' },
-];
+export default function UserModal({ isOpen, onClose, onSaved, editing }) {
+  const isEdit = !!editing;
 
-const UserModal = ({ isOpen, onClose, onSaved, editing }) => {
   const [name, setName] = useState('');
   const [lastname, setLastname] = useState('');
   const [email, setEmail] = useState('');
   const [perfil, setPerfil] = useState('atendente');
-  const [filas, setFilas] = useState([]);
-  const [allFilas, setAllFilas] = useState([]);
+
+  // filas
+  const [allFilas, setAllFilas] = useState([]);        // lista completa de nomes
+  const [selectedFilas, setSelectedFilas] = useState([]); // nomes escolhidos
+
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    if (isOpen) {
-      loadFilas();
-      if (editing) {
-        setName(editing.name || '');
-        setLastname(editing.lastname || '');
-        setEmail(editing.email || '');
-        setPerfil(editing.perfil || 'atendente');
-        setFilas(editing.filas || []);
-      } else {
-        setName('');
-        setLastname('');
-        setEmail('');
-        setPerfil('atendente');
-        setFilas([]);
-      }
+    if (!isOpen) return;
+    setErr(null);
+
+    // carrega filas do backend
+    apiGet('/filas')
+      .then((data) => {
+        const nomes = Array.isArray(data) ? data.map(f => f.nome ?? f.name).filter(Boolean) : [];
+        setAllFilas(nomes);
+      })
+      .catch(() => setAllFilas([]));
+
+    if (isEdit) {
+      setName(editing?.name || '');
+      setLastname(editing?.lastname || '');
+      setEmail(editing?.email || '');
+      setPerfil(editing?.perfil || 'atendente');
+      setSelectedFilas(Array.isArray(editing?.filas) ? editing.filas.filter(Boolean) : []);
+    } else {
+      setName(''); setLastname(''); setEmail(''); setPerfil('atendente'); setSelectedFilas([]);
     }
-  }, [isOpen, editing]);
+  }, [isOpen, isEdit, editing]);
 
-  async function loadFilas() {
-    try {
-      const data = await apiGet('/filas');
-      if (Array.isArray(data)) {
-        setAllFilas(data.map(f => f.nome));
-      }
-    } catch (e) {
-      console.error('Erro ao carregar filas:', e);
-    }
-  }
+  const canSave = useMemo(() => {
+    if (!name.trim() || !lastname.trim() || !email.trim()) return false;
+    // quando não for admin, não precisa ter filas obrigatoriamente, mas mantém validação leve
+    return true;
+  }, [name, lastname, email]);
 
-  function toggleFila(nome) {
-    setFilas(prev =>
-      prev.includes(nome) ? prev.filter(f => f !== nome) : [...prev, nome]
-    );
-  }
+  // opções restantes do dropdown (exclui as já escolhidas)
+  const remainingOptions = useMemo(() => {
+    const set = new Set(selectedFilas);
+    return allFilas.filter(n => !set.has(n));
+  }, [allFilas, selectedFilas]);
 
-  async function handleSave(e) {
+  const addFila = (valor) => {
+    if (!valor) return;
+    setSelectedFilas((prev) => prev.includes(valor) ? prev : [...prev, valor]);
+  };
+
+  const removeFila = (valor) => {
+    setSelectedFilas((prev) => prev.filter(n => n !== valor));
+  };
+
+  const submit = async (e) => {
     e.preventDefault();
+    if (!canSave || saving) return;
+
     setSaving(true);
     setErr(null);
 
     try {
-      const payload = { name, lastname, email, perfil, filas };
-      if (editing) {
+      const payload = {
+        name: name.trim(),
+        lastname: lastname.trim(),
+        email: email.trim(),
+        perfil,
+        filas: perfil === 'admin' ? [] : selectedFilas,
+      };
+
+      if (isEdit) {
         await apiPut(`/users/${editing.id}`, payload);
       } else {
         await apiPost('/users', payload);
       }
       onSaved?.();
-    } catch (e2) {
-      console.error('Erro ao salvar usuário:', e2);
-      setErr(e2?.message || 'Falha ao salvar usuário.');
+    } catch (error) {
+      console.error(error);
+      setErr('Falha ao salvar usuário.');
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay}>
+    <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Usuário">
       <div className={styles.modal}>
-        {/* Cabeçalho */}
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>
-            {editing ? 'Editar usuário' : 'Novo usuário'}
-          </h3>
-          <button type="button" className={styles.btn} onClick={onClose}>
+          <h3 className={styles.modalTitle}>{isEdit ? 'Editar usuário' : 'Novo usuário'}</h3>
+          <button type="button" className={styles.btn} onClick={onClose} aria-label="Fechar">
             <XIcon size={16} />
           </button>
         </div>
 
-        {/* Corpo */}
         <div className={styles.modalBody}>
-          <form onSubmit={handleSave}>
+          <form onSubmit={submit}>
             <div className={styles.formGrid}>
+
               {err && <div className={styles.alertErr}>{err}</div>}
 
               <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-name">Nome *</label>
-                <input
-                  id="u-name"
-                  className={styles.input}
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                />
+                <label className={styles.label} htmlFor="us-nome">Nome *</label>
+                <input id="us-nome" className={styles.input} value={name}
+                  onChange={(e)=>setName(e.target.value)} autoFocus />
               </div>
 
               <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-lastname">Sobrenome *</label>
-                <input
-                  id="u-lastname"
-                  className={styles.input}
-                  value={lastname}
-                  onChange={e => setLastname(e.target.value)}
-                  required
-                />
+                <label className={styles.label} htmlFor="us-last">Sobrenome *</label>
+                <input id="us-last" className={styles.input} value={lastname}
+                  onChange={(e)=>setLastname(e.target.value)} />
               </div>
 
               <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-email">Email *</label>
-                <input
-                  id="u-email"
-                  type="email"
-                  className={styles.input}
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
+                <label className={styles.label} htmlFor="us-email">Email *</label>
+                <input id="us-email" className={styles.input} type="email" value={email}
+                  onChange={(e)=>setEmail(e.target.value)} />
               </div>
 
-              {/* Perfil */}
               <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-perfil">Perfil *</label>
-                <select
-                  id="u-perfil"
-                  className={styles.select}
-                  value={perfil}
-                  onChange={e => setPerfil(e.target.value)}
-                >
-                  {PERFIS.map(p => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
+                <label className={styles.label} htmlFor="us-perfil">Perfil *</label>
+                <select id="us-perfil" className={styles.select} value={perfil}
+                  onChange={(e)=>setPerfil(e.target.value)}>
+                  <option value="admin">Admin</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="atendente">Atendente</option>
                 </select>
               </div>
 
-              {/* Filas — só aparece se perfil !== admin */}
+              {/* FILAS: oculto quando admin */}
               {perfil !== 'admin' && (
                 <div className={styles.inputGroup}>
-                  <label className={styles.label}>Filas (opcional)</label>
-                  <div className={styles.filasList}>
-                    {allFilas.length === 0 && (
-                      <div className={styles.inputHelper}>Nenhuma fila encontrada.</div>
-                    )}
-                    {allFilas.map(nome => (
-                      <label key={nome} className={styles.checkItem}>
-                        <input
-                          type="checkbox"
-                          checked={filas.includes(nome)}
-                          onChange={() => toggleFila(nome)}
-                        />
-                        <span>{nome}</span>
-                      </label>
+                  <label className={styles.label}>Filas</label>
+
+                  <div className={styles.chipInputWrap}>
+                    {/* chips selecionados */}
+                    {selectedFilas.map((n) => (
+                      <span key={n} className={styles.chip}>
+                        {n}
+                        <button type="button" className={styles.chipRemove} onClick={()=>removeFila(n)} aria-label={`Remover ${n}`}>
+                          <XIcon size={12} />
+                        </button>
+                      </span>
                     ))}
+
+                    {/* dropdown com o restante */}
+                    {remainingOptions.length > 0 && (
+                      <select
+                        className={styles.chipSelect}
+                        value=""
+                        onChange={(e)=>{ addFila(e.target.value); }}
+                      >
+                        <option value="" disabled>Adicionar fila…</option>
+                        {remainingOptions.map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div className={styles.inputHelper}>
+                    Selecione uma fila no menu; ela vira uma etiqueta. Clique no “x” para remover.
                   </div>
                 </div>
               )}
+
             </div>
 
-            {/* Ações */}
             <div className={styles.modalActions}>
-              <button type="button" className={styles.btn} onClick={onClose}>
-                Cancelar
-              </button>
-              <button type="submit" className={styles.btnPrimary} disabled={saving}>
-                <SaveIcon size={16} />
-                {saving ? 'Salvando…' : 'Salvar'}
+              <button type="button" className={styles.btn} onClick={onClose}>Cancelar</button>
+              <button type="submit" className={styles.btnPrimary} disabled={!canSave || saving}>
+                <SaveIcon size={16} /> {saving ? 'Salvando…' : 'Salvar'}
               </button>
             </div>
           </form>
@@ -186,6 +188,4 @@ const UserModal = ({ isOpen, onClose, onSaved, editing }) => {
       </div>
     </div>
   );
-};
-
-export default UserModal;
+}
