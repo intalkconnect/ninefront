@@ -30,7 +30,7 @@ function StatusBadge({ status }) {
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
 }
 
-export default function Users() {
+export default function UsersPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
