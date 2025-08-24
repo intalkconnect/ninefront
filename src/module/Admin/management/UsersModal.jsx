@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X as XIcon, Save as SaveIcon } from 'lucide-react';
-import { apiPost, apiPut } from '../../shared/apiClient';
+import { apiPost, apiPut } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 
 const PERFIS = [
