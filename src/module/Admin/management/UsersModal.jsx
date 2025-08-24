@@ -1,7 +1,6 @@
-// src/pages/Users/UsersModal.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { X as XIcon, Save as SaveIcon } from 'lucide-react';
-import { apiPost, apiPut } from '../../../shared/apiClient';
+import { apiPost, apiPut } from '../../shared/apiClient';
 import styles from './styles/Users.module.css';
 
 const PERFIS = [
@@ -13,6 +12,117 @@ const PERFIS = [
 const sid   = (v) => String(v ?? '').trim();
 const sname = (v) => String(v ?? '').toLowerCase().trim();
 
+/** ---- MultiSelectChips -------------------------------------------------- **/
+function MultiSelectChips({ allItems, value, onChange, placeholder = 'Adicionar fila…' }) {
+  const wrapRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  // itens restantes = todos - já selecionados (por id/nome)
+  const options = useMemo(() => {
+    const usedIds   = new Set(value.map(f => sid(f.id)));
+    const usedNames = new Set(value.map(f => sname(f.nome)));
+    const base = (allItems || [])
+      .map(q => ({ id: q.id, nome: q.nome ?? q.name ?? String(q.id) }))
+      .filter(q => !usedIds.has(sid(q.id)) && !usedNames.has(sname(q.nome)));
+    const q = sname(query);
+    return q ? base.filter(o => sname(o.nome).includes(q)) : base;
+  }, [allItems, value, query]);
+
+  // clique fora fecha
+  useEffect(() => {
+    function onDoc(e) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  const add = (opt) => {
+    onChange([...value, opt]);
+    setQuery('');
+    setOpen(true); // mantém aberto para multi seleção rápida
+  };
+  const remove = (id) => onChange(value.filter(f => sid(f.id) !== sid(id)));
+
+  const onKeyDown = (e) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        setOpen(true);
+        e.preventDefault();
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      setActiveIdx((p) => Math.min(p + 1, Math.max(options.length - 1, 0)));
+      e.preventDefault();
+    } else if (e.key === 'ArrowUp') {
+      setActiveIdx((p) => Math.max(p - 1, 0));
+      e.preventDefault();
+    } else if (e.key === 'Enter') {
+      if (options[activeIdx]) add(options[activeIdx]);
+      e.preventDefault();
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+      e.preventDefault();
+    } else if (e.key === 'Backspace' && !query && value.length) {
+      // backspace remove último chip
+      remove(value[value.length - 1].id);
+      e.preventDefault();
+    }
+  };
+
+  return (
+    <div className={styles.chipsControl} ref={wrapRef} onClick={() => setOpen(true)}>
+      {/* chips */}
+      {value.map((f) => (
+        <span key={sid(f.id)} className={styles.chip}>
+          {f.nome}
+          <button
+            type="button"
+            className={styles.chipX}
+            onClick={(e) => { e.stopPropagation(); remove(f.id); }}
+            aria-label={`Remover ${f.nome}`}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+
+      {/* “input” de chips */}
+      <input
+        className={styles.chipInput}
+        value={query}
+        onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
+        onKeyDown={onKeyDown}
+        placeholder={value.length ? '' : placeholder}
+        onFocus={() => setOpen(true)}
+      />
+
+      {/* dropdown flutuante */}
+      {open && options.length > 0 && (
+        <div className={styles.options} role="listbox">
+          {options.map((opt, i) => (
+            <button
+              key={sid(opt.id)}
+              type="button"
+              className={`${styles.option} ${i === activeIdx ? styles.optionActive : ''}`}
+              onMouseEnter={() => setActiveIdx(i)}
+              onClick={() => add(opt)}
+              role="option"
+            >
+              {opt.nome}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** ---- UsersModal -------------------------------------------------------- **/
 export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }) {
   const [name, setName] = useState('');
   const [lastname, setLastname] = useState('');
@@ -21,15 +131,6 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
   const [filasSel, setFilasSel] = useState([]); // [{id,nome}]
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
-
-  // opções do dropdown = todas as filas - já selecionadas (por id ou nome)
-  const options = useMemo(() => {
-    const usedIds   = new Set(filasSel.map(f => sid(f.id)));
-    const usedNames = new Set(filasSel.map(f => sname(f.nome)));
-    return (queues || [])
-      .map(q => ({ id: q.id, nome: q.nome ?? q.name ?? String(q.id) }))
-      .filter(q => !usedIds.has(sid(q.id)) && !usedNames.has(sname(q.nome)));
-  }, [queues, filasSel]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,19 +156,12 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
   }, [isOpen, editing, queues]);
 
   const canSave = name.trim() && lastname.trim() && email.trim() && perfil;
-
-  const addFila = (val) => {
-    if (!val) return;
-    const q = (queues || []).find(x => sid(x.id) === sid(val)) ||
-              (queues || []).find(x => sname(x.nome ?? x.name) === sname(val));
-    if (!q) return;
-    setFilasSel(prev => [...prev, { id: q.id, nome: q.nome ?? q.name ?? String(q.id) }]);
-  };
-  const removeFila = (id) => setFilasSel(prev => prev.filter(f => sid(f.id) !== sid(id)));
+  const showFilas = perfil === 'atendente';
 
   async function submit(e) {
     e.preventDefault();
     if (!canSave || saving) return;
+
     setSaving(true);
     setErr(null);
     try {
@@ -76,8 +170,7 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
         lastname: lastname.trim(),
         email: email.trim(),
         perfil,
-        // ⬇️ RESTRIÇÃO: só atendente envia filas; admin/supervisor sempre []
-        filas: perfil === 'atendente' ? filasSel.map(f => f.id) : [],
+        filas: showFilas ? filasSel.map(f => f.id) : [],
       };
       if (editing) {
         await apiPut(`/users/${editing.id}`, payload);
@@ -95,14 +188,19 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
   if (!isOpen) return null;
 
-  const showFilas = perfil === 'atendente'; // 👈 apenas atendente vê filas
-
   return (
     <div className={styles.modalOverlay} onMouseDown={onClose}>
-      <div className={styles.modal} role="dialog" aria-modal="true" onMouseDown={(e)=>e.stopPropagation()}>
+      <div
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>{editing ? 'Editar usuário' : 'Novo usuário'}</h3>
-          <button className={`${styles.btn} ${styles.iconOnly}`} onClick={onClose} aria-label="Fechar"><XIcon size={16}/></button>
+          <button className={`${styles.btn} ${styles.iconOnly}`} onClick={onClose} aria-label="Fechar">
+            <XIcon size={16}/>
+          </button>
         </div>
 
         <form onSubmit={submit}>
@@ -112,17 +210,17 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
               <div className={styles.inputGroup}>
                 <label className={styles.label} htmlFor="u-nome">Nome *</label>
-                <input id="u-nome" className={styles.input} value={name} onChange={e=>setName(e.target.value)} autoFocus />
+                <input id="u-nome" className={styles.input} value={name} onChange={e=>setName(e.target.value)} autoFocus/>
               </div>
 
               <div className={styles.inputGroup}>
                 <label className={styles.label} htmlFor="u-last">Sobrenome *</label>
-                <input id="u-last" className={styles.input} value={lastname} onChange={e=>setLastname(e.target.value)} />
+                <input id="u-last" className={styles.input} value={lastname} onChange={e=>setLastname(e.target.value)}/>
               </div>
 
               <div className={styles.inputGroup}>
                 <label className={styles.label} htmlFor="u-email">Email *</label>
-                <input id="u-email" className={styles.input} value={email} onChange={e=>setEmail(e.target.value)} />
+                <input id="u-email" className={styles.input} value={email} onChange={e=>setEmail(e.target.value)}/>
               </div>
 
               <div className={styles.inputGroup}>
@@ -135,24 +233,14 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
               {showFilas && (
                 <div className={styles.inputGroup}>
                   <label className={styles.label}>Filas</label>
-
-                  <div className={styles.chipsWrap}>
-                    {filasSel.map(f => (
-                      <span key={sid(f.id)} className={styles.chip}>
-                        {f.nome}
-                        <button type="button" className={styles.chipX} onClick={()=>removeFila(f.id)} aria-label={`Remover ${f.nome}`}>×</button>
-                      </span>
-                    ))}
-                    {options.length > 0 && (
-                      <select className={styles.selectInline} value="" onChange={(e)=>addFila(e.target.value)}>
-                        <option value="" disabled>Adicionar fila…</option>
-                        {options.map(o => <option key={sid(o.id)} value={sid(o.id)}>{o.nome}</option>)}
-                      </select>
-                    )}
-                  </div>
-
+                  <MultiSelectChips
+                    allItems={queues}
+                    value={filasSel}
+                    onChange={setFilasSel}
+                    placeholder="Adicionar fila…"
+                  />
                   <div className={styles.inputHelper}>
-                    Selecione no menu; cada seleção vira uma etiqueta. Clique no “×” para remover.
+                    Digite para filtrar; Enter/Click adiciona. Cada seleção vira uma etiqueta. “×” remove.
                   </div>
                 </div>
               )}
