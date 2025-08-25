@@ -52,9 +52,9 @@ const QuickReplies = () => {
       setLoading(false);
     }
   };
-  Effect(() => { load(); }, []);
+  useEffect(() => { load(); }, []);
 
-  const filtered = Memo(() => {
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = [...items].sort((a, b) =>
       String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' })
