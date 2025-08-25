@@ -1,38 +1,42 @@
-/* =========================================================
-   1) Neutraliza o BALÃO do chat quando a mensagem é um menu-list
-   (remove fundo azul/borda/sombra/padding do balão externo)
-   ========================================================= */
-.bubble:has(.list-container),
-.message:has(.list-container),
-.chat-message:has(.list-container),
-.msg:has(.list-container) {
+/* =======================
+   0) RESET DO BALÃO (wrapper)
+   Remove fundo/borda/sombra/padding do(s) contêiner(es) da mensagem
+   que CONTÊM um .list-container, sem afetar .messages-list inteira.
+   ======================= */
+.messages-list > *:has(.list-container),
+.messages-list > * > *:has(.list-container),
+.messages-list > * > * > *:has(.list-container) {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
   padding: 0 !important;
 }
-.bubble:has(.list-container)::after,
-.message:has(.list-container)::after,
-.chat-message:has(.list-container)::after,
-.msg:has(.list-container)::after {
+
+/* Oculta "rabinho" se o wrapper usa pseudo-elemento */
+.messages-list > *:has(.list-container)::before,
+.messages-list > *:has(.list-container)::after,
+.messages-list > * > *:has(.list-container)::before,
+.messages-list > * > *:has(.list-container)::after,
+.messages-list > * > * > *:has(.list-container)::before,
+.messages-list > * > * > *:has(.list-container)::after {
   display: none !important;
 }
 
-/* Fallback se o navegador não suportar :has():
-   adicione a classe "bubble--list" no wrapper dessa mensagem. */
+/* Fallback caso seu build não suporte :has():
+   adicione a classe bubble--list no wrapper dessa mensagem */
 .bubble--list {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
   padding: 0 !important;
 }
+.bubble--list::before,
 .bubble--list::after { display: none !important; }
 
-/* =========================================================
-   2) MENU LIST com visual de QUICK REPLY
-   (usa os mesmos tokens do quick reply: branco, borda leve,
-    botões empilhados, título central e sem descrição)
-   ========================================================= */
+/* =======================
+   1) MENU LIST — visual "quick reply" no card branco
+   (mesma aparência dos botões brancos empilhados)
+   ======================= */
 .list-container {
   background-color: #ffffff;
   padding: 12px;
@@ -46,11 +50,12 @@
   box-sizing: border-box;
 }
 
-/* texto acima dos botões */
+/* título/texto do topo */
 .list-body-text {
   font-size: 14px;
   color: #111b21;
   font-weight: 400;
+  margin: 0;
 }
 
 /* pilha de itens como “botões” */
@@ -58,60 +63,56 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin: 0;           /* remove espaçamentos do estilo antigo */
+  margin: 0;
   padding: 0;
-  border: 0;
+  border: 0; /* sem divisória */
 }
 
-/* esconde o título de seção para ficar 1:1 com quick reply */
+/* esconda o título de seção para ficar igual ao quick reply */
 .list-section-title { display: none; }
 
-/* cada item vira um "botão" branco */
+/* cada item = botão branco */
 .list-row {
   background-color: #ffffff;
-  color: #0d47a1;
   border: 1px solid #d1d7db;
-  padding: 10px 16px;
   border-radius: 12px;
+  padding: 10px 16px;
+  text-align: center;
   font-size: 14px;
   font-weight: 500;
-  text-align: center;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  color: #0d47a1;
   cursor: pointer;
+  transition: background-color .2s ease, border-color .2s ease;
 }
 .list-row:hover {
   background-color: #f0f2f5;
   border-color: #c4cbd0;
 }
 
-/* título dentro do botão */
+/* só o título visível (igual quick reply) */
 .list-row-title {
+  margin: 0;
   font-weight: 500;
   font-size: 14px;
   color: #0d47a1;
-  margin: 0;
 }
-
-/* para igualar ao quick reply, escondemos descrição/preview */
 .list-row-description,
-.list-preview {
-  display: none;
-}
+.list-preview { display: none; }
 
-/* rodapé igual ao quick reply */
+/* rodapé discreto */
 .list-footer {
   margin-top: 6px;
   font-size: 12px;
   color: #667781;
 }
 
-/* acessibilidade / foco por teclado */
+/* acessibilidade */
 .list-row:focus-visible {
   outline: 2px solid #87b1ff;
   outline-offset: 2px;
 }
 
-/* responsivo: mantém o layout compacto em telas estreitas */
+/* responsivo */
 @media (max-width: 360px) {
   .list-container { max-width: 100%; }
 }
