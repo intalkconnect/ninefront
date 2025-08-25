@@ -29,12 +29,12 @@ const QuickReplies = () => {
   // edição
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = useState('');
-  const [savingId, setSavingId] = useState(null);
-  const confirm = useConfirm();
+  const [editTitle, setEditTitle] = State('');
+  const [editContent, setEditContent] = State('');
+  const [savingId, setSavingId] = State(null);
+  const confirm = Confirm();
 
-  const showSuccess = useCallback((msg) => {
+  const showSuccess = Callback((msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 2600);
   }, []);
@@ -52,9 +52,9 @@ const QuickReplies = () => {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); }, []);
+  Effect(() => { load(); }, []);
 
-  const filtered = useMemo(() => {
+  const filtered = Memo(() => {
     const q = query.trim().toLowerCase();
     const base = [...items].sort((a, b) =>
       String(a.title || '').localeCompare(String(b.title || ''), undefined, { sensitivity: 'base' })
@@ -106,7 +106,7 @@ const QuickReplies = () => {
     try {
       const ok = await confirm({
       title: 'Excluir usuário?',
-      description: `Tem certeza que deseja excluir ${user.email}? Esta ação não pode ser desfeita.`,
+      description: `Tem certeza que deseja excluir essa resposta rápida? Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       cancelText: 'Cancelar',
       tone: 'danger', // pinta vermelhinho
