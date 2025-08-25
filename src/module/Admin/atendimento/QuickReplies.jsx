@@ -34,7 +34,7 @@ const QuickReplies = () => {
   const [savingId, setSavingId] = useState(null);
   const confirm = useConfirm();
 
-  const showSuccess = Callback((msg) => {
+  const showSuccess = useCallback((msg) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(null), 2600);
   }, []);
