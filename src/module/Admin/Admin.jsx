@@ -57,7 +57,7 @@ export default function Admin() {
     const fetchAdminInfo = async () => {
       if (!email) return;
       try {
-        const res = await apiGet(`/atendentes/${email}`);
+        const res = await apiGet(`/users/${email}`);
         setUserData(res);
       } catch (err) {
         console.error('Erro ao buscar dados do admin:', err);
