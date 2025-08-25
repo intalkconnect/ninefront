@@ -1,7 +1,7 @@
 // src/utils/fileUtils.js
-import { getRuntimeConfig } from "./runtimeConfig";
+import { getRuntimeConfig } from "../../../runtimeConfig";
 
-const API_BASE = getRuntimneConfig();
+const { apiBaseUrl } = getRuntimeConfig();
 
 // 1) Tipos permitidos e tamanho máximo
 export const ALLOWED_MIME_TYPES = [
@@ -51,7 +51,7 @@ export async function uploadFileAndGetURL(file) {
 
     // 1. Solicita uma URL assinada ao backend
     const res = await fetch(
-      `${API_BASE}/api/v1/bucket/presigned-url?${query}`
+      `${apiBaseUrl}/api/v1/bucket/presigned-url?${query}`
     );
     const { uploadUrl, publicUrl } = await res.json();
 
@@ -103,4 +103,5 @@ export function validateFile(file) {
   }
   return { valid: true };
 }
+
 
