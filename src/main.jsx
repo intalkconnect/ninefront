@@ -31,9 +31,9 @@ function ensureAuthOrRedirect() {
 if (ensureAuthOrRedirect()) {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-
+      <ConfirmProvider>
         <App />
-
+      </ConfirmProvider>
     </React.StrictMode>
   );
 }
