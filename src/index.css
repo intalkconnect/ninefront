@@ -1,6 +1,12 @@
-body {
-  font-family: Arial, sans-serif;
+html, body {
+  height: 100%;
   margin: 0;
-  padding: 0;
-  background: #f5f5f5;
+  overflow-y: auto;   /* <— só o body rola */
+  overflow-x: hidden;
+}
+
+#root, .app, .layout, .content {
+  min-height: 100%;
+  height: auto;
+  overflow: visible;  /* <— evita scroll do wrapper */
 }
