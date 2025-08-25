@@ -29,7 +29,7 @@ const QuickReplies = () => {
   // edição
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = State('');
+  const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = State('');
   const [savingId, setSavingId] = State(null);
   const confirm = Confirm();
