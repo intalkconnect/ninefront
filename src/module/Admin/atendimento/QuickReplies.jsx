@@ -31,6 +31,7 @@ const QuickReplies = () => {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [savingId, setSavingId] = useState(null);
+  const confirm = useConfirm();
 
   const showSuccess = useCallback((msg) => {
     setSuccessMsg(msg);
@@ -99,10 +100,17 @@ const QuickReplies = () => {
 
   // remover
   const handleDelete = async (id) => {
-    if (!window.confirm('Tem certeza que deseja remover esta resposta?')) return;
     setDeletingId(id);
     setError(null);
     try {
+      const ok = await confirm({
+      title: 'Excluir usuário?',
+      description: `Tem certeza que deseja excluir ${user.email}? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger', // pinta vermelhinho
+      });
+      if (!ok) return;
       await apiDelete(`/quickReplies/${id}`);
       setItems(prev => prev.filter(r => r.id !== id));
       showSuccess('Resposta removida.');
