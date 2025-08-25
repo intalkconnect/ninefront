@@ -32,7 +32,7 @@ const QuickReplies = () => {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [savingId, setSavingId] = useState(null);
-  const confirm = Confirm();
+  const confirm = useConfirm();
 
   const showSuccess = Callback((msg) => {
     setSuccessMsg(msg);
