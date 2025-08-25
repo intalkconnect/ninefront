@@ -226,7 +226,7 @@ export default function SendMessageForm({
 
           <AutoResizingTextarea
             ref={textareaRef}
-            className="send-message-textarea"
+            className={`send-message-textarea ${isRecording ? "is-recording" : ""}`}
             placeholder={
               file
                 ? file.type.startsWith("audio/")
@@ -314,3 +314,4 @@ export default function SendMessageForm({
     </>
   );
 }
+
