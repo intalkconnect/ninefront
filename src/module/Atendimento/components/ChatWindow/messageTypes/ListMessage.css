@@ -1,91 +1,117 @@
-/* === MENU LIST – branco, com título/descrição === */
+/* =========================================================
+   1) Neutraliza o BALÃO do chat quando a mensagem é um menu-list
+   (remove fundo azul/borda/sombra/padding do balão externo)
+   ========================================================= */
+.bubble:has(.list-container),
+.message:has(.list-container),
+.chat-message:has(.list-container),
+.msg:has(.list-container) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.bubble:has(.list-container)::after,
+.message:has(.list-container)::after,
+.chat-message:has(.list-container)::after,
+.msg:has(.list-container)::after {
+  display: none !important;
+}
 
+/* Fallback se o navegador não suportar :has():
+   adicione a classe "bubble--list" no wrapper dessa mensagem. */
+.bubble--list {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.bubble--list::after { display: none !important; }
+
+/* =========================================================
+   2) MENU LIST com visual de QUICK REPLY
+   (usa os mesmos tokens do quick reply: branco, borda leve,
+    botões empilhados, título central e sem descrição)
+   ========================================================= */
 .list-container {
-  background-color: #fff;
-  border: 1px solid #e6e6e6;
-  border-radius: 10px;
+  background-color: #ffffff;
   padding: 12px;
-  max-width: 320px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  max-width: 320px;
+  border: 1px solid #e6e6e6;
+  box-sizing: border-box;
 }
 
+/* texto acima dos botões */
 .list-body-text {
   font-size: 14px;
   color: #111b21;
-  font-weight: 500;
+  font-weight: 400;
 }
 
-/* mantém a divisão por seção */
+/* pilha de itens como “botões” */
 .list-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #e6e6e6;
+  margin: 0;           /* remove espaçamentos do estilo antigo */
+  padding: 0;
+  border: 0;
 }
 
-.list-section-title {
-  font-size: 13px;
-  color: #3b4a54;
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
+/* esconde o título de seção para ficar 1:1 com quick reply */
+.list-section-title { display: none; }
 
-/* cada item segue padrão "lista", não botão */
+/* cada item vira um "botão" branco */
 .list-row {
-  position: relative;
-  background-color: #fff;
+  background-color: #ffffff;
+  color: #0d47a1;
   border: 1px solid #d1d7db;
-  border-radius: 10px;
-  padding: 10px 38px 10px 12px; /* espaço pra “seta” à direita */
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
-  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
 }
 .list-row:hover {
-  background-color: #f7f9fa;
-  border-color: #c7d0d6;
-}
-.list-row:active { background-color: #eef2f5; }
-
-/* “seta” discreta à direita (opcional) */
-.list-row::after {
-  content: "›";
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 18px;
-  color: #94a3b8;
+  background-color: #f0f2f5;
+  border-color: #c4cbd0;
 }
 
+/* título dentro do botão */
 .list-row-title {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 14px;
   color: #0d47a1;
-  line-height: 1.2;
+  margin: 0;
 }
 
-.list-row-description {
-  font-size: 13px;
-  color: #3b4a54;
-  margin-top: 2px;
-  line-height: 1.35;
-}
-
+/* para igualar ao quick reply, escondemos descrição/preview */
+.list-row-description,
 .list-preview {
-  font-size: 12px;
-  color: #667781;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
+/* rodapé igual ao quick reply */
 .list-footer {
-  margin-top: 8px;
+  margin-top: 6px;
   font-size: 12px;
   color: #667781;
+}
+
+/* acessibilidade / foco por teclado */
+.list-row:focus-visible {
+  outline: 2px solid #87b1ff;
+  outline-offset: 2px;
+}
+
+/* responsivo: mantém o layout compacto em telas estreitas */
+@media (max-width: 360px) {
+  .list-container { max-width: 100%; }
 }
