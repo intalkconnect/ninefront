@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 // permite subdomínios .dkdevs.com.br no dev/preview
-const allowed = ['.dkdevs.com.br']
+const allowed = ['.dkdevs.com.br','.nincechat.com.br']
 
 export default defineConfig({
   // 👇 multipage: não use 'spa' aqui
