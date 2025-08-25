@@ -76,7 +76,6 @@ export default function Users() {
       setError('Não é possível excluir: o usuário possui filas vinculadas. Remova as filas antes de excluir.');
       return;
     }
-    if (!window.confirm(`Excluir o usuário "${u.name} ${u.lastname}"?`)) return;
 
     try {
       const ok = await confirm({
