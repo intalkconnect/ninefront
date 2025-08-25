@@ -51,7 +51,7 @@ export async function uploadFileAndGetURL(file) {
 
     // 1. Solicita uma URL assinada ao backend
     const res = await fetch(
-      `${apiBaseUrl}/api/v1/bucket/presigned-url?${query}`
+      `${apiBaseUrl}/bucket/presigned-url?${query}`
     );
     const { uploadUrl, publicUrl } = await res.json();
 
@@ -103,6 +103,7 @@ export function validateFile(file) {
   }
   return { valid: true };
 }
+
 
 
 
