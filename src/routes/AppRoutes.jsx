@@ -6,7 +6,7 @@ import Admin from '../module/Admin/Admin';
 import { parseJwt } from '../utils/auth';
 
 // pega a url do portal do .env (Vite expõe em import.meta.env)
-const PORTAL_URL = import.meta.env.VITE_PORTAL_URL;
+const PORTAL_URL = import.meta.env.VITE_APP_LOGIN_URL;
 
 const AppRoutes = () => {
   const [role, setRole] = useState(null);
