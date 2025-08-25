@@ -3,6 +3,7 @@ import { Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw, AlertC
 import { apiGet, apiPost, apiDelete, apiPut } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
+import { useConfirm } from '../../../components/ConfirmProvider.jsx';
 
 const PERFIS = [
   { key: '', label: 'Todos' },
@@ -77,6 +78,14 @@ export default function Users() {
     if (!window.confirm(`Excluir o usuário "${u.name} ${u.lastname}"?`)) return;
 
     try {
+      const ok = await confirm({
+      title: 'Excluir usuário?',
+      description: `Tem certeza que deseja excluir esse usuário? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger', // pinta vermelhinho
+    });
+    if (!ok) return;
       await apiDelete(`/users/${u.id}`);
       toastOK('Usuário excluído.');
       load();
