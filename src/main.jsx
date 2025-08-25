@@ -1,4 +1,4 @@
-// main.jsx
+// src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ConfirmProvider } from './components/ConfirmProvider.jsx';
@@ -15,10 +15,7 @@ function ensureAuthOrRedirect() {
     window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
   }
 
-  const token =
-    qsToken ||
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('token');
+  const token = qsToken || localStorage.getItem('token') || sessionStorage.getItem('token');
 
   if (!token) {
     if (!LOGIN_URL) {
@@ -26,9 +23,8 @@ function ensureAuthOrRedirect() {
     } else {
       window.location.replace(LOGIN_URL);
     }
-    return false;
+    return false; // bloqueia o boot
   }
-
   return true;
 }
 
