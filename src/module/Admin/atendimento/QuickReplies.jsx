@@ -30,8 +30,8 @@ const QuickReplies = () => {
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = State('');
-  const [savingId, setSavingId] = State(null);
+  const [editContent, setEditContent] = useState('');
+  const [savingId, setSavingId] = useState(null);
   const confirm = Confirm();
 
   const showSuccess = Callback((msg) => {
