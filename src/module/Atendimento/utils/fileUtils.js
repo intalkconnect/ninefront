@@ -1,5 +1,5 @@
 // src/utils/fileUtils.js
-import { getRuntimeConfig } from "../../../runtimeConfig";
+import { getRuntimeConfig } from "../../../shared/runtimeConfig";
 
 const { apiBaseUrl } = getRuntimeConfig();
 
@@ -103,5 +103,6 @@ export function validateFile(file) {
   }
   return { valid: true };
 }
+
 
 
