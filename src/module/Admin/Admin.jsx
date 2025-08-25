@@ -192,7 +192,7 @@ export default function Admin() {
                 to="management/users" 
                 icon={<Users size={18} />} 
                 label="Usuários" 
-{/*                 isDevelopment={true} */}
+              /*  isDevelopment={true}*/
               />
 
               <DropdownMenu
