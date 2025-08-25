@@ -25,6 +25,7 @@ export default function Users() {
 
   const [openModal, setOpenModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const confirm = useConfirm();
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
