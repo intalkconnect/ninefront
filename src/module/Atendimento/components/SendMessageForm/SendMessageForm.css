@@ -314,3 +314,25 @@
   color: #666;
   padding-left: 8px;
 }
+
+/* placeholder padrão */
+.send-message-textarea::placeholder {
+  color: #667781;
+  opacity: 1; /* Safari */
+}
+
+/* quando gravando, deixa o placeholder vermelho */
+.send-message-textarea.is-recording::placeholder {
+  color: #d32f2f;
+  font-weight: 600; /* opcional */
+}
+
+/* importante: alguns navegadores mudam a cor no disabled */
+.send-message-textarea.is-recording:disabled::placeholder {
+  color: #d32f2f;
+}
+
+/* prefixes para compatibilidade ampla */
+.send-message-textarea.is-recording::-webkit-input-placeholder { color: #d32f2f; }
+.send-message-textarea.is-recording:-ms-input-placeholder { color: #d32f2f; }
+
