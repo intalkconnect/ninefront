@@ -240,7 +240,7 @@
   color: var(--color-text-muted);
 }
 
-/* 4.3 Lists */
+/*  4.3 Lists 
 .list-container {
   padding: 12px;
   background-color: var(--color-surface-variant);
@@ -301,7 +301,7 @@
   font-size: 0.8rem;
   color: var(--color-text-muted);
   margin-top: 8px;
-}
+} */
 
 /* ===================================================================
    5. MODALS
