@@ -1,4 +1,7 @@
 // src/utils/fileUtils.js
+import { getRuntimeConfig } from "./runtimeConfig";
+
+const API_BASE = getRuntimneConfig();
 
 // 1) Tipos permitidos e tamanho máximo
 export const ALLOWED_MIME_TYPES = [
@@ -48,7 +51,7 @@ export async function uploadFileAndGetURL(file) {
 
     // 1. Solicita uma URL assinada ao backend
     const res = await fetch(
-      `https://ia-srv-meta.9j9goo.easypanel.host/api/v1/bucket/presigned-url?${query}`
+      `${API_BASE}/api/v1/bucket/presigned-url?${query}`
     );
     const { uploadUrl, publicUrl } = await res.json();
 
@@ -100,3 +103,4 @@ export function validateFile(file) {
   }
   return { valid: true };
 }
+
