@@ -1,58 +1,97 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ReactFlowProvider } from 'reactflow';
 import Atendimento from '../module/Atendimento/Atendimento';
 import Admin from '../module/Admin/Admin';
 import { parseJwt } from '../utils/auth';
 
-// pega a url do portal do .env (Vite expõe em import.meta.env)
-const PORTAL_URL = import.meta.env.VITE_APP_LOGIN_URL;
+const LOGIN_URL = (import.meta.env.VITE_APP_LOGIN_URL || '').trim();
 
-const AppRoutes = () => {
-  const [role, setRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+function redirectToLogin() {
+  if (!LOGIN_URL) {
+    // evita loop silencioso quando env não está setado
+    console.error('VITE_APP_LOGIN_URL não configurada');
+    return;
+  }
+  window.location.replace(LOGIN_URL);
+}
+
+// Guard global: envolve TODA a aplicação
+function AuthGate({ children }) {
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let token = new URLSearchParams(window.location.search).get('token');
-    if (token) {
-      localStorage.setItem('token', token);
-      window.history.replaceState({}, document.title, '/');
-    } else {
-      token = localStorage.getItem('token');
+    // 1) token via querystring?
+    const qs = new URLSearchParams(window.location.search);
+    const qsToken = qs.get('token');
+
+    let token = qsToken
+      || localStorage.getItem('token')
+      || sessionStorage.getItem('token');
+
+    // se veio na URL, persiste e limpa a query
+    if (qsToken) {
+      localStorage.setItem('token', qsToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      token = qsToken;
     }
 
+    // 2) sem qualquer token -> portal
     if (!token) {
-      window.location.href = PORTAL_URL; // sem token -> portal
+      redirectToLogin();
       return;
     }
 
-    const decoded = parseJwt(token);
-    if (decoded?.profile) {
-      setRole(decoded.profile);
-    } else {
-      window.location.href = PORTAL_URL; // token inválido -> portal
+    // 3) valida minimamente o JWT (exp) se existir
+    try {
+      const decoded = parseJwt(token);
+      const now = Math.floor(Date.now() / 1000);
+      if (!decoded || (decoded.exp && decoded.exp < now)) {
+        // expirado/ inválido
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        redirectToLogin();
+        return;
+      }
+      setReady(true);
+    } catch (e) {
+      redirectToLogin();
     }
-    setLoading(false);
   }, []);
 
-  if (loading) return <div>Verificando perfil...</div>;
+  // opcional: manter UX simples
+  if (!ready) return <div>Verificando sessão...</div>;
+  return children;
+}
+
+const AppRoutes = () => {
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) return; // AuthGate já redireciona
+
+    try {
+      const decoded = parseJwt(token);
+      if (decoded?.profile) setRole(decoded.profile);
+    } catch {}
+  }, []);
 
   return (
     <BrowserRouter>
-      <Routes>
-        {role === 'admin' && (
-          <Route
-            path="/*"
-            element={<ReactFlowProvider><Admin /></ReactFlowProvider>}
-          />
-        )}
-        {role === 'atendente' && (
+      <AuthGate>
+        <Routes>
+          {role === 'admin' && (
+            <Route path="/*" element={<ReactFlowProvider><Admin /></ReactFlowProvider>} />
+          )}
+          {role === 'atendente' && (
+            <Route path="/*" element={<Atendimento />} />
+          )}
+          {/* Se a role não bate com nenhuma rota, o AuthGate já garante que há sessão.
+              Aqui você pode escolher um default, ex.: Atendimento */}
           <Route path="/*" element={<Atendimento />} />
-        )}
-
-        {/* fallback: qualquer rota inválida -> portal */}
-        <Route path="*" element={<Navigate to={PORTAL_URL} replace />} />
-      </Routes>
+        </Routes>
+      </AuthGate>
     </BrowserRouter>
   );
 };
