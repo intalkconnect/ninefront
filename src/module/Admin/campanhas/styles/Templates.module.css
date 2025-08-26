@@ -352,6 +352,23 @@
   border-color:var(--qr-primary);      /* borda roxa */
   box-shadow:0 0 0 3px var(--qr-primary-100) inset; /* leve realce */}
 
+/* centraliza horizontal e verticalmente a bolinha na célula */
+.qualityCell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* estilo base da bolinha; a cor vem inline via style={{ backgroundColor }} */
+.qualityDot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+  vertical-align: middle;
+}
+
+
 /* Responsivo */
 @media (max-width: 700px){
   .cardHead{ flex-direction:column; align-items:stretch; gap:10px; }
