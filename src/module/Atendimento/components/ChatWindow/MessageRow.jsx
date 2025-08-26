@@ -4,7 +4,7 @@ import ImageMessage from './messageTypes/ImageMessage';
 import DocumentMessage from './messageTypes/DocumentMessage';
 import ListMessage from './messageTypes/ListMessage';
 import QuickReplyMessage from './messageTypes/QuickReplyMessage';
-
+import VideoMessage from './messageTypes/VideoMessage';
 import AudioMessage from './messageTypes/AudioMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import './MessageRow.css';
@@ -97,6 +97,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const urlLower = String(content?.url || '').toLowerCase();
   const isAudio = msg.type === 'audio' || content?.voice || /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
   const isImage = msg.type === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(content?.url || '') || urlLower.startsWith('blob:');
+  const isVideo = msg.type === 'video' || /(^blob:)|\.(mp4|mov|webm)$/i.test(urlLower);
   const isPdf = (msg.type === 'document' || content?.filename) && content?.filename?.toLowerCase().endsWith('.pdf');
   const isList = (content?.type === 'list' || content?.body?.type === 'list') && (content?.action || content?.body?.action);
   const isQuickReply = content?.type === 'button' && Array.isArray(content?.action?.buttons);
@@ -126,6 +127,21 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
           onClick={() => onImageClick?.(content?.url)}
         />
       );
+     } else if (isVideo) {
+   // heurística “sticker de vídeo”: mp4, sem filename (WA costuma mandar só id/sha)
+   const isLikelySticker = (content?.mime_type === 'video/mp4') && !content?.filename;
+   messageContent = (
+     <VideoMessage
+       url={content?.url || msg.url || ''}
+       caption={content?.caption}
+       small={isLikelySticker}
+       autoPlay={isLikelySticker}
+       loop={isLikelySticker}
+       muted={true}
+       // se não for sticker, exibe controls padrão
+       controls={!isLikelySticker}
+     />
+   )
     } else if (isPdf) {
       messageContent = (
         <DocumentMessage
