@@ -14,18 +14,24 @@ import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from '
 function pickSnippet(c) {
   if (!c) return '';
   if (typeof c === 'string') return c;
+
   if (typeof c === 'object') {
     if (typeof c.body === 'string' && c.body.trim()) return c.body;
     if (typeof c.text === 'string' && c.text.trim()) return c.text;
     if (typeof c.caption === 'string' && c.caption.trim()) return c.caption;
 
+    const mt = c.mime_type || '';
+    const typ = c.type || '';
     const url = String(c.url || '').toLowerCase();
-    if (!url) return '';
 
-    if (/\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
-    if (/\.(ogg|mp3|wav|m4a|opus)$/.test(url) || c.voice) return 'Áudio';
-    if (/\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
+    // tenta pelo mime/type primeiro (cobre casos sem extensão na URL)
+    if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
+    if (mt.startsWith('audio/') || typ === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(url)) return 'Áudio';
+    if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
+
     if (c.filename) return c.filename;
+    if (mt === 'application/pdf' || (c.filename && c.filename.toLowerCase().endsWith('.pdf'))) return 'PDF';
+
     return 'Documento';
   }
   return '';
@@ -59,7 +65,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
     if (!/^\d+$/.test(content)) {
       const s = content.trim();
       if (s.startsWith('{') || s.startsWith('[')) {
-        try { content = JSON.parse(s); } catch {}
+        try { content = JSON.parse(s); } catch { /* noop */ }
       }
     }
   }
@@ -95,11 +101,32 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   );
 
   const urlLower = String(content?.url || '').toLowerCase();
-  const isAudio = msg.type === 'audio' || content?.voice || /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
-  const isImage = msg.type === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(content?.url || '') || urlLower.startsWith('blob:');
-  const isVideo = msg.type === 'video' || /(^blob:)|\.(mp4|mov|webm)$/i.test(urlLower);
-  const isPdf = (msg.type === 'document' || content?.filename) && content?.filename?.toLowerCase().endsWith('.pdf');
-  const isList = (content?.type === 'list' || content?.body?.type === 'list') && (content?.action || content?.body?.action);
+
+  const isAudio =
+    msg.type === 'audio' ||
+    content?.voice ||
+    content?.mime_type?.startsWith?.('audio/') ||
+    /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
+
+  const isImage =
+    msg.type === 'image' ||
+    content?.mime_type?.startsWith?.('image/') ||
+    /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(urlLower) ||
+    urlLower.startsWith('blob:');
+
+  const isVideo =
+    msg.type === 'video' ||
+    content?.mime_type?.startsWith?.('video/') ||
+    /(^blob:)|\.(mp4|mov|webm)$/i.test(urlLower);
+
+  const isPdf =
+    (msg.type === 'document' || content?.filename || content?.mime_type === 'application/pdf') &&
+    (content?.filename?.toLowerCase?.().endsWith('.pdf') || content?.mime_type === 'application/pdf');
+
+  const isList =
+    (content?.type === 'list' || content?.body?.type === 'list') &&
+    (content?.action || content?.body?.action);
+
   const isQuickReply = content?.type === 'button' && Array.isArray(content?.action?.buttons);
 
   let messageContent = null;
@@ -127,21 +154,24 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
           onClick={() => onImageClick?.(content?.url)}
         />
       );
-     } else if (isVideo) {
-   // heurística “sticker de vídeo”: mp4, sem filename (WA costuma mandar só id/sha)
-   const isLikelySticker = (content?.mime_type === 'video/mp4') && !content?.filename;
-   messageContent = (
-     <VideoMessage
-       url={content?.url || msg.url || ''}
-       caption={content?.caption}
-       small={isLikelySticker}
-       autoPlay={isLikelySticker}
-       loop={isLikelySticker}
-       muted={true}
-       // se não for sticker, exibe controls padrão
-       controls={!isLikelySticker}
-     />
-   )
+    } else if (isVideo) {
+      // heurística “sticker de vídeo”: mp4/webm sem filename (WA costuma mandar só id/sha) OU backend já sinaliza
+      const isLikelySticker =
+        !!content?.is_sticker ||
+        (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
+
+      messageContent = (
+        <VideoMessage
+          url={content?.url || msg.url || ''}
+          caption={content?.caption}
+          small={isLikelySticker}
+          autoPlay={isLikelySticker}
+          loop={isLikelySticker}
+          muted={true}
+          // se não for sticker, exibe controls padrão
+          controls={!isLikelySticker}
+        />
+      );
     } else if (isPdf) {
       messageContent = (
         <DocumentMessage
@@ -237,7 +267,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
                       <Copy size={14} /> Copiar
                     </button>
                   )}
-                  {((content?.url && (isImage || isPdf))) && (
+                  {((content?.url && (isImage || isPdf || isVideo))) && (
                     <button onClick={handleDownload}>
                       <Download size={14} /> Baixar
                     </button>
