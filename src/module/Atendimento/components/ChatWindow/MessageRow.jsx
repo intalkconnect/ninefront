@@ -324,4 +324,3 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
       )}
     </div>
   );
-}
