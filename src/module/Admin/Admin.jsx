@@ -237,7 +237,6 @@ export default function Admin() {
                   label="Disparo de Mensagens" 
                 />
               </DropdownMenu>
-                          <MenuSection title="Clientes">
               <MenuIcon 
                 to="atendimento/clientes" 
                 icon={<FolderClock size={18} />} 
@@ -245,7 +244,6 @@ export default function Admin() {
                 isDevelopment={true}
               />
             </MenuSection>
-
             <div className={styles.divider} />
 
             {/* Desenvolvimento */}
