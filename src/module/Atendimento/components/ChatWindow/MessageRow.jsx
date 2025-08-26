@@ -6,6 +6,7 @@ import ListMessage from './messageTypes/ListMessage';
 import QuickReplyMessage from './messageTypes/QuickReplyMessage';
 import VideoMessage from './messageTypes/VideoMessage';
 import AudioMessage from './messageTypes/AudioMessage';
+import ContactsMessage from './messageTypes/ContactsMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import './MessageRow.css';
 import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from 'lucide-react';
@@ -13,9 +14,18 @@ import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from '
 // -------- helpers para o cabeçalho de resposta --------
 function pickSnippet(c) {
   if (!c) return '';
-  if (typeof c === 'string') return c;
+  if (typeof c === 'string') {
+  if (/BEGIN:VCARD/i.test(c)) return 'Contato';
+    return c;
+  }
 
   if (typeof c === 'object') {
+  if (c.type === 'contacts' || Array.isArray(c.contacts) || Array.isArray(c.vcards)) {
+  const n = Array.isArray(c.contacts) ? c.contacts.length
+  : Array.isArray(c.vcards)   ? c.vcards.length
+  : 1;
+  return n > 1 ? `${n} contatos` : 'Contato';
+    }
     if (typeof c.body === 'string' && c.body.trim()) return c.body;
     if (typeof c.text === 'string' && c.text.trim()) return c.text;
     if (typeof c.caption === 'string' && c.caption.trim()) return c.caption;
@@ -102,6 +112,13 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
 
   const urlLower = String(content?.url || '').toLowerCase();
 
+  const isContacts =
+    msg.type === 'contacts' ||
+    content?.type === 'contacts' ||
+    Array.isArray(content?.contacts) ||
+    Array.isArray(content?.vcards) ||
+    (typeof content === 'string' && /BEGIN:VCARD/i.test(content));
+
   const isAudio =
     msg.type === 'audio' ||
     content?.voice ||
@@ -154,6 +171,10 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
           onClick={() => onImageClick?.(content?.url)}
         />
       );
+      } else if (isContacts) {
+    // Mesmo que o conteúdo seja uma string placeholder, o componente mostra fallback amigável
+    messageContent = <ContactsMessage data={content} />;
+   }
     } else if (isVideo) {
       // heurística “sticker de vídeo”: mp4/webm sem filename (WA costuma mandar só id/sha) OU backend já sinaliza
       const isLikelySticker =
