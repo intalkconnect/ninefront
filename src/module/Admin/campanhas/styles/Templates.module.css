@@ -357,6 +357,133 @@
 /* Grids auxiliares */
 .grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
 
+/* =========================
+   PREVIEW ESTILO WHATSAPP
+   ========================= */
+
+/* “aparato” do telefone/cartão */
+.waCard{
+  margin: 0 auto;
+  max-width: 360px;
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--qr-border-light);
+  border-radius: 16px;
+  box-shadow: var(--qr-shadow);
+  overflow: hidden;
+}
+
+/* barra superior com o título “Seu modelo” */
+.waTopBar{
+  padding: 12px 14px;
+  background: linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%);
+  border-bottom: 1px solid var(--qr-border-light);
+  font-weight: 800;
+  color: var(--qr-text-2);
+  text-align: left;
+}
+
+/* área “de chat” com padrão */
+.waScreen{
+  padding: 16px;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(0,0,0,.03) 2px, transparent 2px) 0 0/14px 14px,
+    radial-gradient(circle at 60% 30%, rgba(0,0,0,.02) 2px, transparent 2px) 0 0/18px 18px,
+    #e6fff2; /* tom esverdeado leve, lembra o app */
+  min-height: 220px;
+  display: grid;
+  gap: 10px;
+}
+
+/* placeholder para mídias (header IMAGE/VIDEO/DOCUMENT) */
+.waAttachment{
+  width: 100%;
+  height: 160px;
+  border-radius: 14px;
+  background: #eef2ff;
+  color: #1e3a8a;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04);
+}
+
+/* bolha de mensagem “recebida” (lado esquerdo) */
+.waBubble{
+  position: relative;
+  max-width: 92%;
+  background: #fff;
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
+  padding: 10px 12px 20px; /* espaço extra para o horário */
+  color: #111827;
+  line-height: 1.35;
+}
+.waBubble::after{
+  content: '';
+  position: absolute;
+  left: -6px;
+  bottom: 14px;
+  width: 10px; height: 10px;
+  background: #fff;
+  border-bottom-left-radius: 2px;
+  transform: rotate(45deg);
+  box-shadow: -1px 1px 0 rgba(0,0,0,.04);
+}
+
+/* header dentro da bolha */
+.waHeader{
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+/* corpo do texto (preserva quebras) */
+.waBody{ white-space: pre-wrap; }
+
+/* footer/legenda com aspecto de link cinza */
+.waFooter{
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* horário no canto inferior direito da bolha */
+.waTime{
+  position: absolute;
+  right: 10px;
+  bottom: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* botões abaixo da bolha */
+.waButtons{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-left: 6px; /* alinha com a bolha */
+}
+.waBtnReply{
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #111827;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 700;
+  cursor: default;
+}
+.waBtnCta{
+  border: none;
+  background: #22c55e;
+  color: #fff;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-weight: 800;
+  cursor: default;
+  box-shadow: 0 1px 0 rgba(0,0,0,.08);
+}
+
+
 /* Responsivo */
 @media (max-width: 700px){
   .cardHead{ flex-direction:column; align-items:stretch; gap:10px; }
