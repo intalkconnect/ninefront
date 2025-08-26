@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 import TemplateModal from './TemplateModal';
+import TemplatePreviewModal from './TemplatePreviewModal';
 
 const STATUS_TABS = [
   { key: '',          label: 'Todos' },
@@ -441,8 +442,12 @@ export default function Templates() {
         onCreated={() => { setCreateOpen(false); load(); toastOK('Template criado.'); }}
       />
 
-      {/* Modal de preview */}
-      <TemplatePreview isOpen={previewOpen} item={previewItem} onClose={closePreview} />
+ {/* Modal de preview (estilo WhatsApp) */}
+ <TemplatePreviewModal
+   isOpen={previewOpen}
+   template={previewItem}
+   onClose={closePreview}
+ />
     </div>
   );
 }
