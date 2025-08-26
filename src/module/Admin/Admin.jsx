@@ -14,7 +14,9 @@ import {
   Send,
   ChevronDown, 
   ChevronRight,
-  LogOut 
+  LogOut ,
+  FolderClock,
+  Headset
 } from 'lucide-react';
 import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
 import Builder from './chatbot/Builder';
@@ -35,7 +37,7 @@ import UsersPage from './management/Users';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
-const Broadcast = () => <div>Disparo de Mensagens</div>;
+const Historico = () => <div>Histórico de Mensagem</div>;
 const General = () => <div>Configurações Gerais</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
@@ -172,7 +174,7 @@ export default function Admin() {
               >
                 <DropdownLink 
                   to="monitoring/agents" 
-                  icon={<UserCheck size={16} />}
+                  icon={<Headset size={16} />}
                   label="Monitor de Atendentes" 
                   isDevelopment={true}
                 />
@@ -211,6 +213,12 @@ export default function Admin() {
                   label="Respostas Rápidas" 
                 />
               </DropdownMenu>
+                            <MenuIcon 
+                to="atendimento/historico" 
+                icon={<FolderClock size={18} />} 
+                label="Histórico de Tickets" 
+                isDevelopment={true}*
+              />
 
               <DropdownMenu
                 menuKey="campaigns"
@@ -309,6 +317,7 @@ export default function Admin() {
           <Route path="management/users" element={<UsersPage />} />
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
+          <Route path="atendimento/historico" element={<Historico />} />
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/broadcast" element={<Broadcast />} />
           
