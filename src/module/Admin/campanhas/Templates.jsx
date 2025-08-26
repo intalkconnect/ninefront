@@ -302,7 +302,7 @@ export default function Templates() {
                   <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
                   <td data-label="Idioma">{t.language_code || '—'}</td>
                   <td data-label="Status"><StatusChip status={t.status} /></td>
-                  <td data-label="Score"><ScoreChip score={t.score} /></td>
+                  <td data-label="Score"><ScoreChip score={t.quality_score} /></td>
                   <td data-label="Ações" className={styles.actionsCell}>
                     <div className={styles.actions}>
                       <button
