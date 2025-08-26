@@ -69,7 +69,7 @@ export default function Sidebar() {
       template: "📋 Template",
       location: "📍 Localização",
       contact: "👤 Contato",
-      sticker: "🌟 Figurinha",
+      sticker: "🌟 Sticker",
       text: "[Texto]",
     };
     const t = (conv.type || "").toLowerCase();
