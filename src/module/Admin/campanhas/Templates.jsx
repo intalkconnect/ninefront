@@ -33,56 +33,61 @@ function StatusChip({ status }) {
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
 }
 
-function ScoreChip({ score }) {
-  // normaliza: aceita objeto, string simples ou string JSON
+/** Semáforo de qualidade
+ * Aceita: "GREEN" | "YELLOW" | "RED" | "UNKNOWN" | objeto/JSON {"score":"...","date": epoch}
+ * Renderiza apenas uma bolinha colorida; tooltip mostra o texto (traduz "UNKNOWN").
+ */
+function ScoreSemaforo({ value }) {
+  // normaliza: recebe objeto, string simples ou string JSON
   function parseQuality(raw) {
     if (!raw) return { score: null, date: null };
     if (typeof raw === 'object') {
-      return { score: raw.score ?? raw.quality ?? null, date: raw.date ?? raw.timestamp ?? null };
+      return { score: raw.score ?? raw.quality ?? raw.value ?? null, date: raw.date ?? raw.timestamp ?? null };
     }
     const s = String(raw).trim();
-    try {
-      const j = JSON.parse(s);
-      return parseQuality(j);
-    } catch {
-      return { score: s, date: null }; // ex.: "GREEN"
-    }
+    try { return parseQuality(JSON.parse(s)); } catch { return { score: s, date: null }; }
   }
 
-  const q = parseQuality(score);
+  const q = parseQuality(value);
   if (!q.score) return null;
+  const code = String(q.score).trim().toUpperCase();
 
-  const s = String(q.score).trim().toUpperCase();
+  // cores do semáforo
+  const color =
+    code === 'GREEN'   ? '#10B981' : // verde
+    code === 'YELLOW'  ? '#F59E0B' : // amarelo
+    code === 'RED'     ? '#EF4444' : // vermelho
+                         '#9CA3AF';  // cinza para UNKNOWN/outros
 
-  // label: só traduz UNKNOWN, mantém GREEN/YELLOW/RED como vieram
-  const label = s === 'UNKNOWN' ? 'Qualidade desconhecida' : String(q.score);
-
-  // classes (ajuste se seu CSS usar outros nomes)
-  const cls =
-    s === 'RED'    ? styles.scoreLow :
-    s === 'YELLOW' ? styles.scoreMed :
-                     styles.scoreChip;
-
-  // formata data (se vier), aceita epoch em segundos ou ms
-  let title = undefined;
+  // tooltip acessível
+  const label = code === 'UNKNOWN' ? 'Qualidade desconhecida' : `Qualidade ${code}`;
+  let dateInfo = '';
   if (q.date != null && q.date !== '') {
     let ms = Number(q.date);
     if (!Number.isNaN(ms)) {
-      if (ms < 1e12) ms *= 1000; // assume segundos
+      if (ms < 1e12) ms *= 1000; // epoch em segundos -> ms
       const d = new Date(ms);
-      if (!Number.isNaN(d.getTime())) {
-        title = `Atualizado em ${d.toLocaleString('pt-BR')}`;
-      }
+      if (!Number.isNaN(d.getTime())) dateInfo = ` • Atualizado em ${d.toLocaleString('pt-BR')}`;
     }
   }
 
   return (
-    <span className={`${styles.statusChip} ${cls}`} title={title}>
-      {label}
-    </span>
+    <span
+      role="img"
+      aria-label={label}
+      title={`${label}${dateInfo}`}
+      style={{
+        display: 'inline-flex',
+        width: 12,
+        height: 12,
+        borderRadius: '50%',
+        backgroundColor: color,
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
+        verticalAlign: 'middle'
+      }}
+    />
   );
 }
-
 
 export default function Templates() {
   const [items, setItems] = useState([]);
@@ -192,7 +197,7 @@ export default function Templates() {
 
   return (
     <div className={styles.container}>
-      {/* Header da página (padrão Filas) */}
+      {/* Header da página */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>
@@ -232,7 +237,7 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Card da lista — tabs (esquerda) + busca (direita) dentro do header do card */}
+      {/* Card da lista — tabs + busca */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.tabs} role="tablist" aria-label="Filtrar por status">
@@ -275,7 +280,7 @@ export default function Templates() {
                 <th>Recategorizado</th>
                 <th>Idioma</th>
                 <th>Status</th>
-                <th>Score</th>
+                <th>Qualidade</th>
                 <th style={{ width: 220, textAlign:'right' }}>Ações</th>
               </tr>
             </thead>
@@ -302,7 +307,9 @@ export default function Templates() {
                   <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
                   <td data-label="Idioma">{t.language_code || '—'}</td>
                   <td data-label="Status"><StatusChip status={t.status} /></td>
-                  <td data-label="Score"><ScoreChip score={t.quality_score} /></td>
+                  <td data-label="Qualidade">
+                    <ScoreSemaforo value={t.quality_score} />
+                  </td>
                   <td data-label="Ações" className={styles.actionsCell}>
                     <div className={styles.actions}>
                       <button
@@ -342,7 +349,7 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* Modal de criação (estilos restaurados neste CSS) */}
+      {/* Modal de criação */}
       <TemplateModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
