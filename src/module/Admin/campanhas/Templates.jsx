@@ -34,12 +34,55 @@ function StatusChip({ status }) {
 }
 
 function ScoreChip({ score }) {
-  if (!score) return null;
-  const low = /low|baixa/i.test(String(score));
-  const med = /med|m[eé]dia/i.test(String(score));
-  const cls = low ? styles.scoreLow : med ? styles.scoreMed : styles.scoreChip;
-  return <span className={`${styles.statusChip} ${cls}`}>{String(score)}</span>;
+  // normaliza: aceita objeto, string simples ou string JSON
+  function parseQuality(raw) {
+    if (!raw) return { score: null, date: null };
+    if (typeof raw === 'object') {
+      return { score: raw.score ?? raw.quality ?? null, date: raw.date ?? raw.timestamp ?? null };
+    }
+    const s = String(raw).trim();
+    try {
+      const j = JSON.parse(s);
+      return parseQuality(j);
+    } catch {
+      return { score: s, date: null }; // ex.: "GREEN"
+    }
+  }
+
+  const q = parseQuality(score);
+  if (!q.score) return null;
+
+  const s = String(q.score).trim().toUpperCase();
+
+  // label: só traduz UNKNOWN, mantém GREEN/YELLOW/RED como vieram
+  const label = s === 'UNKNOWN' ? 'Qualidade desconhecida' : String(q.score);
+
+  // classes (ajuste se seu CSS usar outros nomes)
+  const cls =
+    s === 'RED'    ? styles.scoreLow :
+    s === 'YELLOW' ? styles.scoreMed :
+                     styles.scoreChip;
+
+  // formata data (se vier), aceita epoch em segundos ou ms
+  let title = undefined;
+  if (q.date != null && q.date !== '') {
+    let ms = Number(q.date);
+    if (!Number.isNaN(ms)) {
+      if (ms < 1e12) ms *= 1000; // assume segundos
+      const d = new Date(ms);
+      if (!Number.isNaN(d.getTime())) {
+        title = `Atualizado em ${d.toLocaleString('pt-BR')}`;
+      }
+    }
+  }
+
+  return (
+    <span className={`${styles.statusChip} ${cls}`} title={title}>
+      {label}
+    </span>
+  );
 }
+
 
 export default function Templates() {
   const [items, setItems] = useState([]);
