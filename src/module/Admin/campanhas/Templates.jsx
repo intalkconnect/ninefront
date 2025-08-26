@@ -73,18 +73,11 @@ function ScoreSemaforo({ value }) {
 
   return (
     <span
+      className={styles.qualityDot}
       role="img"
       aria-label={label}
       title={`${label}${dateInfo}`}
-      style={{
-        display: 'inline-flex',
-        width: 12,
-        height: 12,
-        borderRadius: '50%',
-        backgroundColor: color,
-        boxShadow: '0 0 0 1px rgba(0,0,0,0.15)',
-        verticalAlign: 'middle'
-      }}
+style={{ backgroundColor: color }}
     />
   );
 }
@@ -307,7 +300,7 @@ export default function Templates() {
                   <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
                   <td data-label="Idioma">{t.language_code || '—'}</td>
                   <td data-label="Status"><StatusChip status={t.status} /></td>
-                  <td data-label="Qualidade">
+                  <td data-label="Qualidade" className={styles.qualityCell}>
                     <ScoreSemaforo value={t.quality_score} />
                   </td>
                   <td data-label="Ações" className={styles.actionsCell}>
