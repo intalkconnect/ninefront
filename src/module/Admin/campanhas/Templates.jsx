@@ -274,7 +274,7 @@ export default function Templates() {
                 <th>Idioma</th>
                 <th>Status</th>
                 <th>Qualidade</th>
-                <th style={{ width: 220, textAlign:'right' }}>Ações</th>
+                <th style={{ width: 220 }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -300,7 +300,7 @@ export default function Templates() {
                   <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
                   <td data-label="Idioma">{t.language_code || '—'}</td>
                   <td data-label="Status"><StatusChip status={t.status} /></td>
-                  <td data-label="Qualidade" className={styles.qualityCell}>
+                 <td data-label="Qualidade">
                     <ScoreSemaforo value={t.quality_score} />
                   </td>
                   <td data-label="Ações" className={styles.actionsCell}>
