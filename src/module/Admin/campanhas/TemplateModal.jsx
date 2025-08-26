@@ -21,13 +21,16 @@ const LANGS = [
 ];
 
 const HEADER_TYPES = [
-  { value: 'TEXT', label: 'Texto' },
-  { value: 'IMAGE', label: 'Imagem' },
+  { value: 'TEXT',     label: 'Texto' },
+  { value: 'IMAGE',    label: 'Imagem' },
   { value: 'DOCUMENT', label: 'Documento' },
-  { value: 'VIDEO', label: 'Vídeo' },
+  { value: 'VIDEO',    label: 'Vídeo' },
 ];
 
 const MAX_BTNS = 3;
+
+const fmtTime = (d = new Date()) =>
+  d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 const TemplateModal = ({ isOpen, onClose, onCreated }) => {
   const [name, setName] = useState('');
@@ -71,6 +74,20 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
   const addQuick = () =>
     setQuicks(prev => (prev.length >= MAX_BTNS ? prev
       : [...prev, { id:newId(), text:'' }]));
+
+  // === Dados para o preview “WhatsApp-like” ===
+  const previewButtons = useMemo(() => {
+    if (buttonMode === 'cta') {
+      return ctas.map(b => ({ type: b.type, text: b.text || (b.type === 'URL' ? b.url : b.phone_number) }));
+    }
+    if (buttonMode === 'quick') {
+      return quicks.map(q => ({ type: 'QUICK_REPLY', text: q.text }));
+    }
+    return [];
+  }, [buttonMode, ctas, quicks]);
+
+  const isMediaHeader =
+    headerType && headerType !== 'NONE' && headerType !== 'TEXT';
 
   async function handleSave(e) {
     e.preventDefault();
@@ -127,260 +144,304 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
 
         {/* Corpo com scroll */}
         <div className={styles.modalBody}>
-          <form onSubmit={handleSave}>
-            <div className={styles.formGrid}>
-              {err && <div className={styles.alertErr}>{err}</div>}
+          {/* GRID: formulário (esq) + preview (dir) */}
+          <div style={{ display:'grid', gridTemplateColumns:'1.2fr .8fr', gap:16 }}>
+            {/* ======== FORM ======== */}
+            <form onSubmit={handleSave}>
+              <div className={styles.formGrid}>
+                {err && <div className={styles.alertErr}>{err}</div>}
 
-              {/* Nome */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="tpl-name">Nome do modelo *</label>
-                <input
-                  id="tpl-name"
-                  className={styles.input}
-                  placeholder="use letras minúsculas, números ou underscore"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoFocus
-                  required
-                />
-              </div>
-
-              {/* Categoria */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="tpl-category">Categoria *</label>
-                <select
-                  id="tpl-category"
-                  className={styles.select}
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  required
-                >
-                  {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </div>
-
-              {/* Idioma */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="tpl-language">Idioma *</label>
-                <select
-                  id="tpl-language"
-                  className={styles.select}
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  required
-                >
-                  {LANGS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-                </select>
-                <div className={styles.inputHelper}>Formato Meta: pt_BR, en_US, es_ES…</div>
-              </div>
-
-              {/* Cabeçalho */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Cabeçalho</label>
-                <div className={styles.headerTabs} role="tablist" aria-label="Tipo de cabeçalho">
-                  {HEADER_TYPES.map(h => (
-                    <button
-                      key={h.value}
-                      type="button"
-                      role="tab"
-                      aria-selected={headerType === h.value}
-                      className={`${styles.headerTab} ${headerType === h.value ? styles.headerTabActive : ''}`}
-                      onClick={() => setHeaderType(h.value)}
-                    >
-                      {h.label}
-                    </button>
-                  ))}
+                {/* Nome */}
+                <div className={styles.inputGroup}>
+                  <label className={styles.label} htmlFor="tpl-name">Nome do modelo *</label>
+                  <input
+                    id="tpl-name"
+                    className={styles.input}
+                    placeholder="use letras minúsculas, números ou underscore"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoFocus
+                    required
+                  />
                 </div>
 
-                {headerType === 'TEXT' ? (
-                  <input
-                    className={styles.input}
-                    placeholder="Texto do cabeçalho (opcional, mas recomendado)"
-                    value={headerText}
-                    onChange={(e) => setHeaderText(e.target.value)}
-                  />
-                ) : (
-                  <>
+                {/* Categoria */}
+                <div className={styles.inputGroup}>
+                  <label className={styles.label} htmlFor="tpl-category">Categoria *</label>
+                  <select
+                    id="tpl-category"
+                    className={styles.select}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    required
+                  >
+                    {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+
+                {/* Idioma */}
+                <div className={styles.inputGroup}>
+                  <label className={styles.label} htmlFor="tpl-language">Idioma *</label>
+                  <select
+                    id="tpl-language"
+                    className={styles.select}
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    required
+                  >
+                    {LANGS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                  </select>
+                  <div className={styles.inputHelper}>Formato Meta: pt_BR, en_US, es_ES…</div>
+                </div>
+
+                {/* Cabeçalho */}
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>Cabeçalho</label>
+                  <div className={styles.headerTabs} role="tablist" aria-label="Tipo de cabeçalho">
+                    {HEADER_TYPES.map(h => (
+                      <button
+                        key={h.value}
+                        type="button"
+                        role="tab"
+                        aria-selected={headerType === h.value}
+                        className={`${styles.headerTab} ${headerType === h.value ? styles.headerTabActive : ''}`}
+                        onClick={() => setHeaderType(h.value)}
+                      >
+                        {h.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {headerType === 'TEXT' ? (
                     <input
                       className={styles.input}
-                      placeholder={
-                        headerType === 'IMAGE' ? 'Link da imagem'
-                        : headerType === 'DOCUMENT' ? 'Link do documento'
-                        : 'Link do vídeo'
-                      }
-                      value={headerMediaUrl}
-                      onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                      placeholder="Texto do cabeçalho (opcional, mas recomendado)"
+                      value={headerText}
+                      onChange={(e) => setHeaderText(e.target.value)}
                     />
-                    <div className={styles.inputHelper}>
-                      Compatível com formatos padrão. O link é apenas para prévia local — a aprovação da Meta usa o formato/estrutura.
+                  ) : (
+                    <>
+                      <input
+                        className={styles.input}
+                        placeholder={
+                          headerType === 'IMAGE' ? 'Link da imagem'
+                          : headerType === 'DOCUMENT' ? 'Link do documento'
+                          : 'Link do vídeo'
+                        }
+                        value={headerMediaUrl}
+                        onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                      />
+                      <div className={styles.inputHelper}>
+                        O link é só para prévia local. A aprovação da Meta usa apenas estrutura e exemplos.
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Corpo */}
+                <div className={styles.inputGroup}>
+                  <label className={styles.label} htmlFor="tpl-body">Corpo *</label>
+                  <textarea
+                    id="tpl-body"
+                    className={styles.textarea}
+                    placeholder="Olá {{1}}, seu pedido {{2}} foi enviado…"
+                    rows={6}
+                    value={bodyText}
+                    onChange={(e) => setBodyText(e.target.value)}
+                    required
+                  />
+                  <div className={styles.inputHelper}>
+                    Use placeholders <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code>… conforme necessário.
+                  </div>
+                </div>
+
+                {/* Rodapé */}
+                <div className={styles.inputGroup}>
+                  <label className={styles.label} htmlFor="tpl-footer">Rodapé (opcional)</label>
+                  <input
+                    id="tpl-footer"
+                    className={styles.input}
+                    placeholder="Mensagem do rodapé"
+                    value={footerText}
+                    onChange={(e) => setFooterText(e.target.value)}
+                  />
+                </div>
+
+                {/* Botões */}
+                <div className={styles.inputGroup}>
+                  <label className={styles.label}>Botões</label>
+
+                  <div className={styles.pillTabs}>
+                    <button
+                      type="button"
+                      className={`${styles.pill} ${buttonMode==='none' ? styles.pillActive : ''}`}
+                      onClick={() => { setButtonMode('none'); setCtas([]); setQuicks([]); }}
+                    >
+                      Nenhum
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.pill} ${buttonMode==='cta' ? styles.pillActive : ''}`}
+                      onClick={() => { setButtonMode('cta'); setQuicks([]); }}
+                    >
+                      Botões de ação
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.pill} ${buttonMode==='quick' ? styles.pillActive : ''}`}
+                      onClick={() => { setButtonMode('quick'); setCtas([]); }}
+                    >
+                      Respostas rápidas
+                    </button>
+                  </div>
+
+                  {buttonMode === 'cta' && (
+                    <>
+                      <div className={styles.btnList} role="list">
+                        {ctas.map(b => (
+                          <div key={b.id} className={styles.btnItem} role="listitem">
+                            <div className={styles.btnItemHeader}>
+                              <select
+                                className={styles.select}
+                                value={b.type}
+                                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
+                              >
+                                <option value="URL">Abrir URL</option>
+                                <option value="PHONE_NUMBER">Chamar</option>
+                              </select>
+                              <button type="button" className={styles.btnRemove}
+                                onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}>
+                                Remover
+                              </button>
+                            </div>
+
+                            <div className={styles.grid3}>
+                              <input
+                                className={styles.input}
+                                placeholder="Rótulo do botão"
+                                value={b.text}
+                                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
+                              />
+                              {b.type === 'URL' ? (
+                                <input
+                                  className={styles.input}
+                                  placeholder="https://exemplo.com/{{1}}"
+                                  value={b.url}
+                                  onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
+                                />
+                              ) : (
+                                <input
+                                  className={styles.input}
+                                  placeholder="+55XXXXXXXXXXX"
+                                  value={b.phone_number ?? ''}
+                                  onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {ctas.length < MAX_BTNS && (
+                        <button type="button" className={styles.btnSmall} onClick={addCta}>
+                          + Adicionar botão ({ctas.length}/{MAX_BTNS})
+                        </button>
+                      )}
+                    </>
+                  )}
+
+                  {buttonMode === 'quick' && (
+                    <>
+                      <div className={styles.btnList} role="list">
+                        {quicks.map(q => (
+                          <div key={q.id} className={styles.btnItem} role="listitem">
+                            <div className={styles.btnItemHeader}>
+                              <span className={styles.label}>Resposta rápida</span>
+                              <button type="button" className={styles.btnRemove}
+                                onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}>
+                                Remover
+                              </button>
+                            </div>
+                            <input
+                              className={styles.input}
+                              placeholder="Texto da resposta (curto)"
+                              value={q.text}
+                              onChange={e => setQuicks(prev => prev.map(x => x.id === q.id ? { ...x, text:e.target.value } : x))}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {quicks.length < MAX_BTNS && (
+                        <button type="button" className={styles.btnSmall} onClick={addQuick}>
+                          + Adicionar resposta ({quicks.length}/{MAX_BTNS})
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer do modal (lado do form) */}
+              <div className={styles.modalActions}>
+                <button type="button" className={styles.btn} onClick={onClose}>Cancelar</button>
+                <button type="submit" className={styles.btnPrimary} disabled={!canSave || saving}>
+                  <SaveIcon size={16} /> {saving ? 'Salvando…' : 'Salvar'}
+                </button>
+              </div>
+            </form>
+
+            {/* ======== PREVIEW “WHATSAPP-LIKE” ======== */}
+            <div style={{ alignSelf:'start' }}>
+              <div className={styles.waCard}>
+                <div className={styles.waTopBar}>Seu modelo</div>
+                <div className={styles.waScreen}>
+                  {isMediaHeader && (
+                    <div className={styles.waAttachment}>
+                      {headerType === 'IMAGE'    && (headerMediaUrl ? '📷 Imagem (prévia)' : '📷 Imagem')}
+                      {headerType === 'VIDEO'    && (headerMediaUrl ? '🎬 Vídeo (prévia)'  : '🎬 Vídeo')}
+                      {headerType === 'DOCUMENT' && (headerMediaUrl ? '📄 Documento (prévia)' : '📄 Documento')}
                     </div>
-                  </>
-                )}
-              </div>
+                  )}
 
-              {/* Corpo */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="tpl-body">Corpo *</label>
-                <textarea
-                  id="tpl-body"
-                  className={styles.textarea}
-                  placeholder="Olá {{1}}, seu pedido {{2}} foi enviado…"
-                  rows={6}
-                  value={bodyText}
-                  onChange={(e) => setBodyText(e.target.value)}
-                  required
-                />
-                <div className={styles.inputHelper}>
-                  Use placeholders <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code>… conforme necessário.
+                  <div className={styles.waBubble}>
+                    {headerType === 'TEXT' && headerText && (
+                      <div className={styles.waHeader}>{headerText}</div>
+                    )}
+
+                    <div className={styles.waBody}>
+                      {(bodyText || '—').split('\n').map((line, i) => (
+                        <div key={i}>{line || <>&nbsp;</>}</div>
+                      ))}
+                    </div>
+
+                    {footerText && (
+                      <div className={styles.waFooter}>{footerText}</div>
+                    )}
+
+                    <div className={styles.waTime}>{fmtTime()}</div>
+                  </div>
+
+                  {previewButtons.length > 0 && (
+                    <div className={styles.waButtons}>
+                      {previewButtons.map((b, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className={(b.type || '').toUpperCase() === 'QUICK_REPLY' ? styles.waBtnReply : styles.waBtnCta}
+                          onClick={(e)=>e.preventDefault()}
+                          title={b.type || 'BUTTON'}
+                        >
+                          {b.text || 'Botão'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Rodapé */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="tpl-footer">Rodapé (opcional)</label>
-                <input
-                  id="tpl-footer"
-                  className={styles.input}
-                  placeholder="Mensagem do rodapé"
-                  value={footerText}
-                  onChange={(e) => setFooterText(e.target.value)}
-                />
-              </div>
-
-              {/* Botões */}
-              <div className={styles.inputGroup}>
-                <label className={styles.label}>Botões</label>
-
-                <div className={styles.pillTabs}>
-                  <button
-                    type="button"
-                    className={`${styles.pill} ${buttonMode==='none' ? styles.pillActive : ''}`}
-                    onClick={() => { setButtonMode('none'); setCtas([]); setQuicks([]); }}
-                  >
-                    Nenhum
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.pill} ${buttonMode==='cta' ? styles.pillActive : ''}`}
-                    onClick={() => { setButtonMode('cta'); setQuicks([]); }}
-                  >
-                    Botões de ação
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.pill} ${buttonMode==='quick' ? styles.pillActive : ''}`}
-                    onClick={() => { setButtonMode('quick'); setCtas([]); }}
-                  >
-                    Respostas rápidas
-                  </button>
-                </div>
-
-               {buttonMode === 'cta' && (
-  <>
-    <div className={styles.btnList} role="list">
-      {ctas.map(b => (
-        <div key={b.id} className={styles.btnItem} role="listitem">
-          <div className={styles.btnItemHeader}>
-            <select
-              className={styles.select}
-              value={b.type}
-              onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
-            >
-              <option value="URL">Abrir URL</option>
-              <option value="PHONE_NUMBER">Chamar</option>
-            </select>
-            <button type="button" className={styles.btnRemove}
-              onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}>
-              Remover
-            </button>
-          </div>
-
-          <div className={styles.grid3}>
-            <input
-              className={styles.input}
-              placeholder="Rótulo do botão"
-              value={b.text}
-              onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
-            />
-            {b.type === 'URL' ? (
-              <input
-                className={styles.input}
-                placeholder="https://exemplo.com/{{1}}"
-                value={b.url}
-                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
-              />
-            ) : (
-              <input
-                className={styles.input}
-                placeholder="+55XXXXXXXXXXX"
-                value={b.phone_number ?? ''}
-                onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
-              />
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-
-    {/* só mostra se ainda não atingiu o limite */}
-    {ctas.length < MAX_BTNS && (
-      <button
-        type="button"
-        className={styles.btnSmall}
-        onClick={addCta}
-      >
-        + Adicionar botão ({ctas.length}/{MAX_BTNS})
-      </button>
-    )}
-  </>
-)}
-
-{buttonMode === 'quick' && (
-  <>
-    <div className={styles.btnList} role="list">
-      {quicks.map(q => (
-        <div key={q.id} className={styles.btnItem} role="listitem">
-          <div className={styles.btnItemHeader}>
-            <span className={styles.label}>Resposta rápida</span>
-            <button type="button" className={styles.btnRemove}
-              onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}>
-              Remover
-            </button>
-          </div>
-          <input
-            className={styles.input}
-            placeholder="Texto da resposta (curto)"
-            value={q.text}
-            onChange={e => setQuicks(prev => prev.map(x => x.id === q.id ? { ...x, text:e.target.value } : x))}
-          />
-        </div>
-      ))}
-    </div>
-
-    {/* idem aqui */}
-    {quicks.length < MAX_BTNS && (
-      <button
-        type="button"
-        className={styles.btnSmall}
-        onClick={addQuick}
-      >
-        + Adicionar resposta ({quicks.length}/{MAX_BTNS})
-      </button>
-    )}
-  </>
-)}
-
-              </div>
             </div>
-
-            {/* Footer do modal */}
-            <div className={styles.modalActions}>
-              <button type="button" className={styles.btn} onClick={onClose}>Cancelar</button>
-              <button type="submit" className={styles.btnPrimary} disabled={!canSave || saving}>
-                <SaveIcon size={16} /> {saving ? 'Salvando…' : 'Salvar'}
-              </button>
-            </div>
-          </form>
+            {/* ======== /PREVIEW ======== */}
+          </div>
         </div>
       </div>
     </div>
