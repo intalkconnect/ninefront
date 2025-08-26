@@ -4,3 +4,5 @@
   white-space: pre-wrap;
   font-size: 0.95rem;
 }
+
+.text-signature { font-weight: 700; } /* negrito só no front */
