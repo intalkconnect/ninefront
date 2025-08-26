@@ -217,12 +217,6 @@ export default function Admin() {
                   icon={<FolderClock size={16} />}
                   label="Histórico de Ticket" 
                 />
-                   <DropdownLink 
-                  to="atendimento/clientes" 
-                  icon={<FolderClock size={16} />}
-                  label="Clientes" 
-                   isDevelopment={true}
-                />
               </DropdownMenu>
 
 
@@ -243,6 +237,14 @@ export default function Admin() {
                   label="Disparo de Mensagens" 
                 />
               </DropdownMenu>
+                          <MenuSection title="Clientes">
+              <MenuIcon 
+                to="atendimento/clientes" 
+                icon={<FolderClock size={18} />} 
+                label="Clientes"
+                isDevelopment={true}
+              />
+            </MenuSection>
 
             <div className={styles.divider} />
 
