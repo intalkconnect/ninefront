@@ -38,7 +38,7 @@ import UsersPage from './management/Users';
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
 const Historico = () => <div>Histórico de Mensagem</div>;
-const General = () => <div>Configurações Gerais</div>;
+const Clientes = () => <div>Clientes</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
 
@@ -212,13 +212,19 @@ export default function Admin() {
                   icon={<Zap size={16} />}
                   label="Respostas Rápidas" 
                 />
+                                <DropdownLink 
+                  to="atendimento/historico" 
+                  icon={<FolderClock size={16} />}
+                  label="Histórico de Ticket" 
+                />
+                   <DropdownLink 
+                  to="atendimento/clientes" 
+                  icon={<FolderClock size={16} />}
+                  label="Clientes" 
+                   isDevelopment={true}
+                />
               </DropdownMenu>
-                            <MenuIcon 
-                to="atendimento/historico" 
-                icon={<FolderClock size={18} />} 
-                label="Histórico de Tickets" 
-                isDevelopment={true}
-              />
+
 
               <DropdownMenu
                 menuKey="campaigns"
@@ -237,7 +243,6 @@ export default function Admin() {
                   label="Disparo de Mensagens" 
                 />
               </DropdownMenu>
-            </MenuSection>
 
             <div className={styles.divider} />
 
@@ -318,6 +323,7 @@ export default function Admin() {
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
           <Route path="atendimento/historico" element={<Historico />} />
+           <Route path="atendimento/clientes" element={<Clientes />} />
           <Route path="campaigns/templates" element={<Templates />} />
           
           {/* Desenvolvimento */}
