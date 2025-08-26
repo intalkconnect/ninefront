@@ -157,64 +157,64 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   }
 
   if (!messageContent) {
-    if (typeof content === 'string' && /^\d+$/.test(content)) {
-      messageContent = <TextMessage content={content} />;
-    } else if (typeof content === 'number' || typeof content === 'boolean') {
-      messageContent = <TextMessage content={String(content)} />;
-    } else if (isAudio) {
-      messageContent = <AudioMessage url={content?.url || msg.url || ''} />;
-    } else if (isImage) {
-      messageContent = (
-        <ImageMessage
-          url={content?.url}
-          caption={content?.caption}
-          onClick={() => onImageClick?.(content?.url)}
-        />
-      );
-      } else if (isContacts) {
-    // Mesmo que o conteúdo seja uma string placeholder, o componente mostra fallback amigável
+  if (typeof content === 'string' && /^\d+$/.test(content)) {
+    messageContent = <TextMessage content={content} />;
+  } else if (typeof content === 'number' || typeof content === 'boolean') {
+    messageContent = <TextMessage content={String(content)} />;
+  } else if (isAudio) {
+    messageContent = <AudioMessage url={content?.url || msg.url || ''} />;
+  } else if (isImage) {
+    messageContent = (
+      <ImageMessage
+        url={content?.url}
+        caption={content?.caption}
+        onClick={() => onImageClick?.(content?.url)}
+      />
+    );
+  } else if (isContacts) {
+    // Mesmo que chegue string placeholder, o componente mostra fallback amigável
     messageContent = <ContactsMessage data={content} />;
-   }
-    } else if (isVideo) {
-      // heurística “sticker de vídeo”: mp4/webm sem filename (WA costuma mandar só id/sha) OU backend já sinaliza
-      const isLikelySticker =
-        !!content?.is_sticker ||
-        (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
+  } else if (isVideo) {
+    // heurística “sticker de vídeo”: mp4/webm sem filename OU backend sinaliza
+    const isLikelySticker =
+      !!content?.is_sticker ||
+      (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
 
-      messageContent = (
-        <VideoMessage
-          url={content?.url || msg.url || ''}
-          caption={content?.caption}
-          small={isLikelySticker}
-          autoPlay={isLikelySticker}
-          loop={isLikelySticker}
-          muted={true}
-          // se não for sticker, exibe controls padrão
-          controls={!isLikelySticker}
-        />
-      );
-    } else if (isPdf) {
-      messageContent = (
-        <DocumentMessage
-          filename={content?.filename}
-          url={content?.url}
-          caption={content?.caption}
-          onClick={() => onPdfClick?.(content?.url)}
-        />
-      );
-    } else if (isList) {
-      const listData = content?.type === 'list' ? content : content.body;
-      messageContent = <ListMessage listData={listData} />;
-    } else if (isQuickReply) {
-      messageContent = <QuickReplyMessage data={content} />;
-    } else if (typeof content === 'string') {
-      messageContent = <TextMessage content={content} />;
-    } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
-      messageContent = <TextMessage content={content.body || content.text || content.caption} />;
-    } else {
-      messageContent = <UnknownMessage />;
-    }
+    messageContent = (
+      <VideoMessage
+        url={content?.url || msg.url || ''}
+        caption={content?.caption}
+        small={isLikelySticker}
+        autoPlay={isLikelySticker}
+        loop={isLikelySticker}
+        muted={true}
+        controls={!isLikelySticker}
+        // opcional: ajuda Safari/Chrome a escolher o demuxer certo
+        mimeType={content?.mime_type || (urlLower.endsWith('.webm') ? 'video/webm' : 'video/mp4')}
+      />
+    );
+  } else if (isPdf) {
+    messageContent = (
+      <DocumentMessage
+        filename={content?.filename}
+        url={content?.url}
+        caption={content?.caption}
+        onClick={() => onPdfClick?.(content?.url)}
+      />
+    );
+  } else if (isList) {
+    const listData = content?.type === 'list' ? content : content.body;
+    messageContent = <ListMessage listData={listData} />;
+  } else if (isQuickReply) {
+    messageContent = <QuickReplyMessage data={content} />;
+  } else if (typeof content === 'string') {
+    messageContent = <TextMessage content={content} />;
+  } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
+    messageContent = <TextMessage content={content.body || content.text || content.caption} />;
+  } else {
+    messageContent = <UnknownMessage />;
   }
+}
 
   const handleCopy = () => {
     if (typeof content === 'string') {
