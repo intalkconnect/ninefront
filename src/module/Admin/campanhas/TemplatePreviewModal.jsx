@@ -95,7 +95,7 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
         </div>
 
         <div className={styles.modalActions}>
-          <button className={styles.btn} onClick={onClose}><XIcon size={14}/> Fechar</button>
+          <button className={styles.pill} onClick={onClose}><XIcon size={14}/> Fechar</button>
         </div>
       </div>
     </div>
