@@ -5,7 +5,6 @@ import {
   FileText,
   Plus,
   RefreshCw,
-  UploadCloud,
   Trash2,
   X as XIcon,
   AlertCircle,
@@ -33,12 +32,8 @@ function StatusChip({ status }) {
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
 }
 
-/** Semáforo de qualidade
- * Aceita: "GREEN" | "YELLOW" | "RED" | "UNKNOWN" | objeto/JSON {"score":"...","date": epoch}
- * Renderiza apenas uma bolinha colorida; tooltip mostra o texto (traduz "UNKNOWN").
- */
+/** Semáforo de qualidade (GREEN/YELLOW/RED/UNKNOWN) */
 function ScoreSemaforo({ value }) {
-  // normaliza: recebe objeto, string simples ou string JSON
   function parseQuality(raw) {
     if (!raw) return { score: null, date: null };
     if (typeof raw === 'object') {
@@ -52,20 +47,18 @@ function ScoreSemaforo({ value }) {
   if (!q.score) return null;
   const code = String(q.score).trim().toUpperCase();
 
-  // cores do semáforo
   const color =
-    code === 'GREEN'   ? '#10B981' : // verde
-    code === 'YELLOW'  ? '#F59E0B' : // amarelo
-    code === 'RED'     ? '#EF4444' : // vermelho
-                         '#9CA3AF';  // cinza para UNKNOWN/outros
+    code === 'GREEN'   ? '#10B981' :
+    code === 'YELLOW'  ? '#F59E0B' :
+    code === 'RED'     ? '#EF4444' :
+                         '#9CA3AF';
 
-  // tooltip acessível
   const label = code === 'UNKNOWN' ? 'Qualidade desconhecida' : `Qualidade ${code}`;
   let dateInfo = '';
   if (q.date != null && q.date !== '') {
     let ms = Number(q.date);
     if (!Number.isNaN(ms)) {
-      if (ms < 1e12) ms *= 1000; // epoch em segundos -> ms
+      if (ms < 1e12) ms *= 1000;
       const d = new Date(ms);
       if (!Number.isNaN(d.getTime())) dateInfo = ` • Atualizado em ${d.toLocaleString('pt-BR')}`;
     }
@@ -77,8 +70,107 @@ function ScoreSemaforo({ value }) {
       role="img"
       aria-label={label}
       title={`${label}${dateInfo}`}
-style={{ backgroundColor: color }}
+      style={{ backgroundColor: color }}
     />
+  );
+}
+
+/** Modal simples de pré-visualização do template */
+function TemplatePreview({ isOpen, item, onClose }) {
+  if (!isOpen || !item) return null;
+
+  // normaliza buttons (string JSON / array / objeto)
+  let buttons = [];
+  try {
+    if (Array.isArray(item.buttons)) buttons = item.buttons;
+    else if (item.buttons && typeof item.buttons === 'string') buttons = JSON.parse(item.buttons);
+    else if (item.buttons && typeof item.buttons === 'object') buttons = item.buttons.buttons || [];
+  } catch (_) { /* ignora parse */ }
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>Prévia: {item.name}</h2>
+          <button className={styles.alertClose} onClick={onClose} aria-label="Fechar">
+            <XIcon size={16} />
+          </button>
+        </div>
+
+        <div className={styles.modalBody}>
+          <div style={{ display:'grid', gap:12 }}>
+            <div style={{ display:'flex', gap:10, alignItems:'center', justifyContent:'center' }}>
+              <StatusChip status={item.status} />
+              <ScoreSemaforo value={item.quality_score} />
+            </div>
+
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <div>
+                <div className={styles.label}>Categoria</div>
+                <div>{item.category || '—'}</div>
+              </div>
+              <div>
+                <div className={styles.label}>Idioma</div>
+                <div>{item.language_code || '—'}</div>
+              </div>
+            </div>
+
+            {item.header_type && item.header_type !== 'NONE' && (
+              <div>
+                <div className={styles.label}>Cabeçalho</div>
+                <div className={styles.inputHelper} style={{ marginBottom:6 }}>
+                  Tipo: {item.header_type}{item.header_text ? ' • Texto' : ''}
+                </div>
+                {item.header_text && (
+                  <div style={{ whiteSpace:'pre-wrap', border:'1px solid var(--qr-border)', borderRadius:10, padding:'10px 12px' }}>
+                    {item.header_text}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <div className={styles.label}>Corpo</div>
+              <div style={{ whiteSpace:'pre-wrap', border:'1px solid var(--qr-border)', borderRadius:10, padding:'10px 12px' }}>
+                {item.body_text || '—'}
+              </div>
+            </div>
+
+            {item.footer_text && (
+              <div>
+                <div className={styles.label}>Rodapé</div>
+                <div style={{ whiteSpace:'pre-wrap', border:'1px solid var(--qr-border)', borderRadius:10, padding:'10px 12px' }}>
+                  {item.footer_text}
+                </div>
+              </div>
+            )}
+
+            {buttons?.length > 0 && (
+              <div>
+                <div className={styles.label}>Botões</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                  {buttons.map((b, i) => (
+                    <span key={i} className={styles.pill} style={{ cursor:'default' }}>
+                      {b?.type || 'BUTTON'}{b?.text ? `: ${b.text}` : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {item.provider_id && (
+              <div className={styles.inputHelper} style={{ textAlign:'center' }}>
+                provider_id: {item.provider_id}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.modalActions}>
+          <button className={styles.btn} onClick={onClose}><XIcon size={14}/> Fechar</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -93,6 +185,12 @@ export default function Templates() {
   const [statusFilter, setStatusFilter] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
+
+  // preview
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewItem, setPreviewItem] = useState(null);
+  const openPreview = (item) => { setPreviewItem(item); setPreviewOpen(true); };
+  const closePreview = () => { setPreviewItem(null); setPreviewOpen(false); };
 
   // auto polling (sincroniza "submitted")
   const pollRef = useRef(null);
@@ -145,17 +243,7 @@ export default function Templates() {
       .reverse();
   }, [items]);
 
-  async function handleSubmit(id) {
-    try {
-      setError(null);
-      await apiPost(`/templates/${id}/submit`, {});
-      toastOK('Template submetido para aprovação.');
-      load();
-    } catch (e) {
-      console.error('Erro ao submeter:', e);
-      setError('Falha ao submeter template para a Meta.');
-    }
-  }
+  // REMOVIDO: handleSubmit (o adicionar já submete)
 
   async function handleSync(id) {
     try {
@@ -291,7 +379,21 @@ export default function Templates() {
               )}
 
               {!loading && filtered.map(t => (
-                <tr key={t.id} className={styles.rowHover}>
+                <tr
+                  key={t.id}
+                  className={styles.rowHover}
+                  style={{ cursor:'pointer' }}
+                  onClick={() => openPreview(t)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      openPreview(t);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Abrir prévia de ${t.name}`}
+                >
                   <td data-label="Nome">
                     <div className={styles.keyTitle}>{t.name}</div>
                   </td>
@@ -299,34 +401,25 @@ export default function Templates() {
                   <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
                   <td data-label="Idioma">{t.language_code || '—'}</td>
                   <td data-label="Status"><StatusChip status={t.status} /></td>
-                 <td data-label="Qualidade">
+                  <td data-label="Qualidade">
                     <ScoreSemaforo value={t.quality_score} />
                   </td>
-                  <td data-label="Ações" className={styles.actionsCell}>
+                  <td data-label="Ações" className={styles.actionsCell}
+                      onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                     <div className={styles.actions}>
                       <button
                         className={styles.qrIconBtn}
                         title="Sincronizar status"
-                        onClick={() => handleSync(t.id)}
+                        onClick={(e) => { e.stopPropagation(); handleSync(t.id); }}
                         type="button"
                       >
                         <RefreshCw size={16} />
                       </button>
 
                       <button
-                        className={`${styles.qrIconBtn} ${styles.success}`}
-                        title="Submeter à Meta"
-                        onClick={() => handleSubmit(t.id)}
-                        disabled={!['draft', 'rejected'].includes(t.status)}
-                        type="button"
-                      >
-                        <UploadCloud size={16} />
-                      </button>
-
-                      <button
                         className={`${styles.qrIconBtn} ${styles.danger}`}
                         title="Excluir"
-                        onClick={() => handleDelete(t.id, t.status)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(t.id, t.status); }}
                         disabled={!['draft', 'rejected'].includes(t.status)}
                         type="button"
                       >
@@ -347,6 +440,9 @@ export default function Templates() {
         onClose={() => setCreateOpen(false)}
         onCreated={() => { setCreateOpen(false); load(); toastOK('Template criado.'); }}
       />
+
+      {/* Modal de preview */}
+      <TemplatePreview isOpen={previewOpen} item={previewItem} onClose={closePreview} />
     </div>
   );
 }
