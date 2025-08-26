@@ -319,7 +319,6 @@ export default function Admin() {
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
           <Route path="atendimento/historico" element={<Historico />} />
           <Route path="campaigns/templates" element={<Templates />} />
-          <Route path="campaigns/broadcast" element={<Broadcast />} />
           
           {/* Desenvolvimento */}
           <Route path="builder" element={<Builder />} />
