@@ -217,7 +217,7 @@ export default function Admin() {
                 to="atendimento/historico" 
                 icon={<FolderClock size={18} />} 
                 label="Histórico de Tickets" 
-                isDevelopment={true}*
+                isDevelopment={true}
               />
 
               <DropdownMenu
