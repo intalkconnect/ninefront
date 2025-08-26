@@ -294,7 +294,6 @@ export default function Templates() {
                 <tr key={t.id} className={styles.rowHover}>
                   <td data-label="Nome">
                     <div className={styles.keyTitle}>{t.name}</div>
-                    {t.provider_id && <div className={styles.keySub}>provider_id: {t.provider_id}</div>}
                   </td>
                   <td data-label="Categoria">{t.category || '—'}</td>
                   <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
