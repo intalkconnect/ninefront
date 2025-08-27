@@ -1,4 +1,4 @@
-// TemplateModal.jsx — criação de template (drawer à direita)
+// TemplateModal.jsx — criação de template (drawer à direita, botão fixo)
 import React, { useMemo, useState } from 'react';
 import { apiPost } from '../../../shared/apiClient';
 import styles from './styles/TemplateCreate.module.css';
@@ -37,13 +37,12 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
 
   const [headerType, setHeaderType] = useState('TEXT');
   const [headerText, setHeaderText] = useState('');
-  const [headerMediaUrl, setHeaderMediaUrl] = useState(''); // apenas prévia local, não vai no payload
+  const [headerMediaUrl, setHeaderMediaUrl] = useState(''); // apenas prévia
 
   const [bodyText, setBodyText] = useState('');
   const [footerText, setFooterText] = useState('');
 
-  // 'none' | 'cta' | 'quick'
-  const [buttonMode, setButtonMode] = useState('none');
+  const [buttonMode, setButtonMode] = useState('none'); // 'none' | 'cta' | 'quick'
   const [ctas, setCtas] = useState([]);     // [{id, type:'URL'|'PHONE_NUMBER', text, url, phone_number}]
   const [quicks, setQuicks] = useState([]); // [{id, text}]
 
@@ -57,15 +56,12 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
     if (!name.trim()) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
-
     if (buttonMode === 'cta' && ctas.some(b =>
       !b.text.trim() ||
       (b.type === 'URL' && !b.url.trim()) ||
       (b.type === 'PHONE_NUMBER' && !b.phone_number.trim())
     )) return false;
-
     if (buttonMode === 'quick' && quicks.some(q => !q.text.trim())) return false;
-
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
 
@@ -99,7 +95,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
       const payload = {
         name: name.trim(),
         language_code: language,
-        category,                                // já no formato esperado pela API
+        category,
         header_type: headerType || 'NONE',
         header_text: headerType === 'TEXT' ? headerText.trim() : null,
         body_text: bodyText.trim(),
@@ -121,17 +117,8 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
   if (!isOpen) return null;
 
   return (
-    <div
-      className={styles.tcOverlay}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Criar template"
-      onMouseDown={onClose}
-    >
-      <aside
-        className={styles.tcDrawer}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
+    <div className={styles.tcOverlay} role="dialog" aria-modal="true" onMouseDown={onClose}>
+      <aside className={styles.tcDrawer} onMouseDown={(e)=>e.stopPropagation()}>
         {/* Cabeçalho */}
         <div className={styles.tcHeader}>
           <h3 className={styles.tcTitle}>Novo modelo de mensagem</h3>
@@ -140,33 +127,17 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
           </button>
         </div>
 
-        {/* Introdução */}
+        {/* Intro */}
         <div className={styles.tcIntro}>
           Preencha os campos abaixo para fazer a submissão de um modelo de mensagem.
           <br />
-          Lembre-se de seguir as{' '}
-          <a href="#" onClick={(e)=>e.preventDefault()}>regras e boas práticas</a> propostas pelo Facebook.
+          Lembre-se de seguir as <a href="#" onClick={(e)=>e.preventDefault()}>regras e boas práticas</a> propostas pelo Facebook.
         </div>
 
-        {/* Corpo rolável + footer sticky dentro do mesmo container */}
-        <form className={styles.tcBody} onSubmit={handleSave}>
-          <div className={styles.tcForm}>
-
+        {/* Área rolável */}
+        <main className={styles.tcScroll}>
+          <form id="tpl-create-form" className={styles.tcForm} onSubmit={handleSave} noValidate>
             {err && <div className={styles.alertErr}>{err}</div>}
-
-            {/* Nome */}
-            <div className={styles.tcGroup}>
-              <label className={styles.tcLabel} htmlFor="tpl-name">Nome do modelo *</label>
-              <input
-                id="tpl-name"
-                className={styles.tcInput}
-                placeholder="Use letras minúsculas, números ou underline"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                required
-              />
-            </div>
 
             {/* Categoria */}
             <div className={styles.tcGroup}>
@@ -179,9 +150,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
                 required
               >
                 <option value="" disabled>Selecione</option>
-                {CATEGORIES.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
 
@@ -195,15 +164,26 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
                 onChange={(e) => setLanguage(e.target.value)}
                 required
               >
-                {LANGS.map(l => (
-                  <option key={l.value} value={l.value}>{l.label}</option>
-                ))}
+                {LANGS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
               </select>
+            </div>
+
+            {/* Nome */}
+            <div className={styles.tcGroup}>
+              <label className={styles.tcLabel} htmlFor="tpl-name">Nome do modelo *</label>
+              <input
+                id="tpl-name"
+                className={styles.tcInput}
+                placeholder="Use letras minúsculas, números ou underline"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
 
             <hr className={styles.tcHr} />
 
-            {/* Tipo de cabeçalho (segmented) */}
+            {/* Tipo de cabeçalho */}
             <div className={styles.tcSegmented} role="tablist" aria-label="Tipo de cabeçalho">
               {HEADER_TYPES.map(h => (
                 <button
@@ -211,7 +191,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
                   type="button"
                   role="tab"
                   aria-pressed={headerType === h.value}
-                  className={styles.tcSegItem}
+                  className={`${styles.tcSegItem} ${headerType === h.value ? styles.tcSegActive : ''}`}
                   onClick={() => setHeaderType(h.value)}
                 >
                   {h.label}
@@ -219,7 +199,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
               ))}
             </div>
 
-            {/* Bloco mensagem */}
+            {/* Cabeçalho/Mídia */}
             {headerType === 'TEXT' ? (
               <div className={styles.tcGroup}>
                 <label className={styles.tcLabel}>Cabeçalho</label>
@@ -233,9 +213,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
             ) : (
               <div className={styles.tcGroup}>
                 <label className={styles.tcLabel}>
-                  {headerType === 'IMAGE' ? 'Imagem'
-                    : headerType === 'DOCUMENT' ? 'Documento'
-                    : 'Vídeo'}
+                  {headerType === 'IMAGE' ? 'Imagem' : headerType === 'DOCUMENT' ? 'Documento' : 'Vídeo'}
                 </label>
                 <input
                   className={styles.tcInput}
@@ -247,10 +225,11 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
                   value={headerMediaUrl}
                   onChange={(e) => setHeaderMediaUrl(e.target.value)}
                 />
-                <div className={styles.tcHelp}>Compatível com formatos padrão. O link é apenas para prévia local.</div>
+                <div className={styles.tcHelp}>O link é apenas para prévia local.</div>
               </div>
             )}
 
+            {/* Corpo */}
             <div className={styles.tcGroup}>
               <label className={styles.tcLabel}>Corpo *</label>
               <textarea
@@ -261,11 +240,10 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
                 onChange={(e) => setBodyText(e.target.value)}
                 required
               />
-              <div className={styles.tcHelp}>
-                Use variáveis <code>{'{{1}}'}</code>, <code>{'{{2}}'}</code>…
-              </div>
+              <div className={styles.tcHelp}>Use variáveis <code>{'{{1}}'}</code>, <code>{'{{2}}'}</code>…</div>
             </div>
 
+            {/* Rodapé */}
             <div className={styles.tcGroup}>
               <label className={styles.tcLabel}>Rodapé (opcional)</label>
               <input
@@ -276,7 +254,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
               />
             </div>
 
-            {/* Botões */}
+            {/* Botões: modo */}
             <div className={styles.tcPills} role="tablist" aria-label="Tipo de botões">
               <button
                 type="button"
@@ -304,6 +282,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
               </button>
             </div>
 
+            {/* CTA */}
             {buttonMode === 'cta' && (
               <>
                 <div className={styles.tcBtnList} role="list">
@@ -362,6 +341,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
               </>
             )}
 
+            {/* QUICK */}
             {buttonMode === 'quick' && (
               <>
                 <div className={styles.tcBtnList} role="list">
@@ -395,26 +375,25 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
               </>
             )}
 
-            {/* “Adicionar tradução” (placeholder visual) */}
-            <button
-              type="button"
-              className={styles.tcPill}
-              onClick={(e)=>e.preventDefault()}
-              aria-disabled="true"
-              style={{ width:'fit-content' }}
-            >
+            {/* placeholder de tradução */}
+            <button type="button" className={styles.tcPill} onClick={(e)=>e.preventDefault()}>
               + Adicionar tradução
             </button>
-          </div>
+          </form>
+        </main>
 
-          {/* Rodapé sticky (sempre visível) */}
-          <div className={styles.tcFooter}>
-            <button type="submit" className={styles.tcSubmit} disabled={!canSave || saving}>
-              <SaveIcon size={16} />
-              {saving ? 'Enviando…' : 'Enviar para avaliação'}
-            </button>
-          </div>
-        </form>
+        {/* Footer fixo (fora do scroll). Button envia o form pelo atributo `form`. */}
+        <footer className={styles.tcFooter}>
+          <button
+            type="submit"
+            form="tpl-create-form"
+            className={styles.tcSubmit}
+            disabled={!canSave || saving}
+          >
+            <SaveIcon size={16} />
+            {saving ? 'Enviando…' : 'Enviar para avaliação'}
+          </button>
+        </footer>
       </aside>
     </div>
   );
