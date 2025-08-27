@@ -1,120 +1,136 @@
-// src/pages/Tickets/TicketsHistory.jsx
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Clock4 as HistoryIcon, RefreshCw, Search, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { apiGet } from '../../../../shared/apiClient';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { History as HistoryIcon, RefreshCw, X as XIcon } from 'lucide-react';
 import styles from './styles/TicketsHistory.module.css';
+import { apiGet } from '../../../../shared/apiClient';
 
 const PAGE_SIZES = [10, 20, 30, 40];
 
-function fmtDt(v) {
-  if (!v) return '—';
+function fmtDateTime(iso) {
+  if (!iso) return '—';
   try {
-    return new Date(v).toLocaleString('pt-BR', {
-      year: '2-digit', month: '2-digit', day: '2-digit',
+    const d = new Date(iso);
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: '2-digit',
       hour: '2-digit', minute: '2-digit'
     });
-  } catch { return v; }
+  } catch {
+    return '—';
+  }
 }
 
 export default function TicketsHistory() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [items, setItems]           = useState([]);
+  const [page, setPage]             = useState(1);
+  const [pageSize, setPageSize]     = useState(10);
+  const [total, setTotal]           = useState(0);
+  const totalPages                  = Math.max(1, Math.ceil(total / pageSize));
 
-  const [q, setQ]               = useState('');
-  const [from, setFrom]         = useState('');
-  const [to, setTo]             = useState('');
-  const [page, setPage]         = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [q, setQ]                   = useState('');
+  const [qDeb, setQDeb]             = useState('');
+  const [fromDate, setFromDate]     = useState('');
+  const [toDate, setToDate]         = useState('');
 
-  const [total, setTotal]       = useState(0);
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState(null);
+
+  // debounce da busca
+  useEffect(() => {
+    const t = setTimeout(() => setQDeb(q.trim()), 350);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const queryString = useMemo(() => {
+    const p = new URLSearchParams();
+    p.set('page', String(page));
+    p.set('page_size', String(pageSize));
+    if (qDeb)     p.set('q', qDeb);
+    if (fromDate) p.set('from', fromDate);
+    if (toDate)   p.set('to', toDate);
+    return p.toString();
+  }, [page, pageSize, qDeb, fromDate, toDate]);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const qs = new URLSearchParams({
-        page: String(page),
-        page_size: String(pageSize),
-        q: q || '',
-        from: from || '',
-        to: to || ''
-      }).toString();
-
-      const resp = await apiGet(`/tickets/history?${qs}`);
-      setItems(Array.isArray(resp?.data) ? resp.data : []);
-      setTotal(Number(resp?.total || 0));
+      // Ajuste a rota se necessário no seu backend.
+      const url = `/tickets/closed?${queryString}`;
+      const resp = await apiGet(url);
+      const { data = [], total = 0, page = 1 } = resp || {};
+      setItems(Array.isArray(data) ? data : []);
+      setTotal(Number(total) || 0);
+      setPage(Number(page) || 1);
     } catch (e) {
-      console.error('Falha ao carregar histórico:', e);
-      setItems([]); setTotal(0);
+      console.error(e);
+      setError('Falha ao carregar histórico de tickets.');
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, q, from, to]);
+  }, [queryString]);
 
   useEffect(() => { load(); }, [load]);
 
-  // ao mudar page size, volta pra página 1
-  function onPageSizeChange(e) {
-    setPageSize(Number(e.target.value) || 10);
-    setPage(1);
-  }
-
-  function clearDates() {
-    setFrom(''); setTo(''); setPage(1);
-  }
+  // helpers de paginação
+  const startIdx = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endIdx   = Math.min(total, page * pageSize);
 
   return (
     <div className={styles.container}>
-      {/* Header */}
+      {/* Header da página */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}><HistoryIcon size={22}/> Histórico de tickets</h1>
-          <p className={styles.subtitle}>Listagem de tickets com status fechado.</p>
+          <p className={styles.subtitle}>
+            Listagem de tickets com status fechado.
+          </p>
         </div>
 
         <div className={styles.headerActions}>
-          <div className={styles.searchGroupTop}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por número, user_id, fila ou atendente…"
-              value={q}
-              onChange={(e)=>{ setQ(e.target.value); setPage(1); }}
-            />
-            {q && (
-              <button className={styles.searchClear} onClick={()=>{ setQ(''); setPage(1); }} aria-label="Limpar busca">
-                <Search size={14}/>
-              </button>
-            )}
-          </div>
-
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
         </div>
       </div>
 
-      {/* Card com filtros + tabela */}
+      {/* Card */}
       <div className={styles.card}>
+        {/* Filtros (busca movida para baixo) */}
         <div className={styles.cardHead}>
-          {/* Filtro por data */}
-          <div className={styles.dateRow}>
-            <div className={styles.dateField}>
-              <label className={styles.label}><Calendar size={14}/> De</label>
-              <input type="date" className={styles.input} value={from} onChange={(e)=>{ setFrom(e.target.value); setPage(1); }} />
+          <div className={styles.filtersLeft}>
+            <div className={styles.inputGroupSm}>
+              <label className={styles.labelSm}>De</label>
+              <input
+                type="date"
+                className={styles.inputSm}
+                value={fromDate}
+                onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+              />
             </div>
-            <div className={styles.dateField}>
-              <label className={styles.label}><Calendar size={14}/> Até</label>
-              <input type="date" className={styles.input} value={to} onChange={(e)=>{ setTo(e.target.value); setPage(1); }} />
+            <div className={styles.inputGroupSm}>
+              <label className={styles.labelSm}>Até</label>
+              <input
+                type="date"
+                className={styles.inputSm}
+                value={toDate}
+                onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+              />
             </div>
-
-            {(from || to) && (
-              <button className={styles.btn} onClick={clearDates}>Limpar datas</button>
-            )}
           </div>
 
-          {/* busca interna (opcional — já temos no topo) */}
-          {/* mantive slot vazio para alinhamento */}
-          <div style={{minWidth:12}} />
+          <div className={styles.searchGroup}>
+            <input
+              className={styles.searchInput}
+              placeholder="Buscar por número, user_id, fila ou atendente…"
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+            />
+            {q && (
+              <button className={styles.searchClear} onClick={() => setQ('')} aria-label="Limpar busca">
+                <XIcon size={14}/>
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* Tabela */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -122,54 +138,56 @@ export default function TicketsHistory() {
                 <th className={styles.colNum}>Número</th>
                 <th className={styles.colUser}>User ID</th>
                 <th className={styles.colFila}>Fila</th>
-                <th className={styles.colAt}>Atendente</th>
-                <th className={styles.colDt}>Fechado em</th>
+                <th className={styles.colAgent}>Atendente</th>
+                <th className={styles.colWhen}>Fechado em</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>
               )}
-              {!loading && items.length === 0 && (
+
+              {!loading && error && (
+                <tr><td colSpan={5} className={styles.empty}>{error}</td></tr>
+              )}
+
+              {!loading && !error && items.length === 0 && (
                 <tr><td colSpan={5} className={styles.empty}>Nenhum ticket encontrado.</td></tr>
               )}
-              {!loading && items.map(t => (
-                <tr key={t.id} className={styles.rowHover}>
-                  <td data-label="Número">{t.ticket_number ?? '—'}</td>
-                  <td data-label="User ID" className={styles.mono}>{t.user_id ?? '—'}</td>
-                  <td data-label="Fila" className={styles.center}>{t.fila ?? '—'}</td>
-                  <td data-label="Atendente" className={styles.center}>{t.assigned_to ?? '—'}</td>
-                  <td data-label="Fechado em" className={styles.center}>{fmtDt(t.updated_at || t.created_at)}</td>
+
+              {!loading && !error && items.map((t) => (
+                <tr key={t.id || t.ticket_number} className={styles.rowHover}>
+                  <td>{t.ticket_number?.toString().padStart(6, '0') || '—'}</td>
+                  <td>{t.user_id || '—'}</td>
+                  <td>{t.fila || '—'}</td>
+                  <td>{t.assigned_to || '—'}</td>
+                  <td>{fmtDateTime(t.closed_at || t.updated_at)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        {/* Footer / Paginação */}
+        {/* Footer / paginação */}
         <div className={styles.tableFooter}>
           <div className={styles.leftInfo}>
-            {total > 0
-              ? <>Mostrando {(page-1)*pageSize + 1}–{Math.min(page*pageSize, total)} de {total}</>
-              : <>Mostrando 0–0 de 0</>}
+            {`Mostrando ${startIdx}–${endIdx} de ${total}`}
           </div>
 
           <div className={styles.pager}>
-            <select className={styles.pageSize} value={pageSize} onChange={onPageSizeChange}>
-              {PAGE_SIZES.map(s => <option key={s} value={s}>{s} por página</option>)}
+            <select
+              className={styles.pageSize}
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            >
+              {PAGE_SIZES.map(n => <option key={n} value={n}>{n} por página</option>)}
             </select>
 
-            <button className={styles.pBtn} onClick={()=>setPage(1)} disabled={page<=1}>« Primeiro</button>
-            <button className={styles.pBtn} onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page<=1}>
-              <ChevronLeft size={16}/> Anterior
-            </button>
-
+            <button className={styles.pBtn} onClick={() => setPage(1)} disabled={page <= 1}>« Primeiro</button>
+            <button className={styles.pBtn} onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Anterior</button>
             <span className={styles.pInfo}>Página {page} de {totalPages}</span>
-
-            <button className={styles.pBtn} onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page>=totalPages}>
-              Próxima <ChevronRight size={16}/>
-            </button>
-            <button className={styles.pBtn} onClick={()=>setPage(totalPages)} disabled={page>=totalPages}>Última »</button>
+            <button className={styles.pBtn} onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Próxima</button>
+            <button className={styles.pBtn} onClick={() => setPage(totalPages)} disabled={page >= totalPages}>Última »</button>
           </div>
         </div>
       </div>
