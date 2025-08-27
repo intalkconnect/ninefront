@@ -56,10 +56,15 @@ export default function Admin() {
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null); // chave do menu aberto (mobile) / hover (desktop)
+  const [openDropdown, setOpenDropdown] = useState(null); // chave do menu aberto
   const location = useLocation();
+
+  // Perfil
   const [isProfileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
+
+  // Nav (para clique fora)
+  const navRef = useRef(null);
 
   useEffect(() => {
     const fetchAdminInfo = async () => {
@@ -74,27 +79,34 @@ export default function Admin() {
     fetchAdminInfo();
   }, [email]);
 
-  // fecha o mega menu ao trocar de rota
+  // fecha mega menu e drawer ao trocar de rota
   useEffect(() => {
     setMobileMenuOpen(false);
     setOpenDropdown(null);
+    setProfileOpen(false);
   }, [location.pathname]);
 
+  // Fecha menus no clique fora
   useEffect(() => {
-    const h = (e) => {
-      if (e.key === "Escape") setProfileOpen(false);
+    const onDocDown = (e) => {
+      const target = e.target;
+      if (navRef.current && !navRef.current.contains(target)) setOpenDropdown(null);
+      if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
     };
-    document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
+    document.addEventListener("mousedown", onDocDown);
+    return () => document.removeEventListener("mousedown", onDocDown);
   }, []);
 
+  // Fecha menus com ESC
   useEffect(() => {
-    const onClick = (e) => {
-      if (!profileRef.current) return;
-      if (!profileRef.current.contains(e.target)) setProfileOpen(false);
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setOpenDropdown(null);
+        setProfileOpen(false);
+      }
     };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   // descobre o caminho base (ex: /admin)
@@ -196,16 +208,15 @@ export default function Admin() {
         ],
       },
     ],
-    []
+    [basePath]
   );
 
   const isDropdown = (m) => !!m.children?.length;
-  const handleTopClick = (key) =>
-    setOpenDropdown((cur) => (cur === key ? null : key));
+  const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
 
   return (
     <div className={styles.wrapper}>
-      {/* Top Navbar (estilo Pixinvent) */}
+      {/* Top Navbar */}
       <header className={styles.topbar}>
         <div className={styles.brandArea}>
           <button
@@ -223,15 +234,13 @@ export default function Admin() {
           </NavLink>
         </div>
 
-        <nav className={styles.hnav} aria-label="Menu principal">
+        <nav ref={navRef} className={styles.hnav} aria-label="Menu principal">
           {menus.map((m) => (
             <div
               key={m.key}
               className={
                 isDropdown(m)
-                  ? `${styles.hitem} ${styles.hasChildren} ${
-                      openDropdown === m.key ? styles.open : ""
-                    }`
+                  ? `${styles.hitem} ${styles.hasChildren} ${openDropdown === m.key ? styles.open : ""}`
                   : styles.hitem
               }
             >
@@ -239,23 +248,14 @@ export default function Admin() {
                 <NavLink
                   end={m.exact}
                   to={m.to}
-                  className={({ isActive }) =>
-                    `${styles.hlink} ${isActive ? styles.active : ""}`
-                  }
-                  onClick={() =>
-                    isDropdown(m) ? handleTopClick(m.key) : undefined
-                  }
+                  className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
+                  onClick={() => (isDropdown(m) ? handleTopClick(m.key) : undefined)}
                 >
                   {m.icon}
                   <span>{m.label}</span>
                 </NavLink>
               ) : (
-                <button
-                  className={styles.hlink}
-                  onClick={() =>
-                    isDropdown(m) ? handleTopClick(m.key) : undefined
-                  }
-                >
+                <button className={styles.hlink} onClick={() => (isDropdown(m) ? handleTopClick(m.key) : undefined)}>
                   {m.icon}
                   <span>{m.label}</span>
                   {isDropdown(m) && <ChevronDown size={16} />}
@@ -269,16 +269,11 @@ export default function Admin() {
                       <li key={c.to} className={styles.megaitem} role="none">
                         <NavLink
                           to={c.to}
-                          className={({ isActive }) =>
-                            `${styles.megalink} ${
-                              isActive ? styles.active : ""
-                            }`
-                          }
+                          className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
+                          onClick={() => setOpenDropdown(null)}
                           role="menuitem"
                         >
-                          {c.icon && (
-                            <span className={styles.megaicon}>{c.icon}</span>
-                          )}
+                          {c.icon && <span className={styles.megaicon}>{c.icon}</span>}
                           <span>{c.label}</span>
                         </NavLink>
                       </li>
@@ -307,9 +302,7 @@ export default function Admin() {
                   {userData.name?.charAt(0).toUpperCase() || "U"}
                   <span className={styles.statusDot} aria-hidden />
                 </div>
-                <span className={styles.userNameTop}>
-                  {userData.name?.split(" ")[0] || "Usuário"}
-                </span>
+                <span className={styles.userNameTop}>{userData.name?.split(" ")[0] || "Usuário"}</span>
               </button>
 
               {isProfileOpen && (
@@ -317,31 +310,20 @@ export default function Admin() {
                   <div className={styles.pdHeader}>
                     <div
                       className={styles.avatar}
-                      style={{
-                        backgroundColor: stringToColor(userData.email),
-                        width: 36,
-                        height: 36,
-                      }}
+                      style={{ backgroundColor: stringToColor(userData.email), width: 36, height: 36 }}
                     >
                       {userData.name?.charAt(0).toUpperCase() || "U"}
                     </div>
                     <div>
-                      <div className={styles.pdName}>
-                        {userData.name || "Usuário"}
-                      </div>
+                      <div className={styles.pdName}>{userData.name || "Usuário"}</div>
                       <div className={styles.pdEmail}>{userData.email}</div>
                     </div>
                   </div>
 
                   <ul className={styles.pdList}>
                     <li className={styles.pdItem}>
-                      <NavLink
-                        to="preferences"
-                        onClick={() => setProfileOpen(false)}
-                      >
-                        <span className={styles.pdIcon}>
-                          <User size={16} />
-                        </span>
+                      <NavLink to="preferences" onClick={() => setProfileOpen(false)}>
+                        <span className={styles.pdIcon}><User size={16} /></span>
                         Editar perfil
                       </NavLink>
                     </li>
@@ -349,10 +331,7 @@ export default function Admin() {
                     <li className={styles.pdSeparator} role="separator" />
 
                     <li className={styles.pdItem}>
-                      <LogoutButton
-                        className={styles.pdAction}
-                        onClick={() => setProfileOpen(false)}
-                      >
+                      <LogoutButton className={styles.pdAction} onClick={() => setProfileOpen(false)}>
                         <LogOut size={16} />
                         Logout
                       </LogoutButton>
@@ -366,33 +345,16 @@ export default function Admin() {
       </header>
 
       {/* Mobile Drawer */}
-      <aside
-        className={`${styles.mobileDrawer} ${
-          isMobileMenuOpen ? styles.open : ""
-        }`}
-      >
+      <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ""}`}>
         <div className={styles.drawerHeader}>
           <span className={styles.drawerTitle}>Menu</span>
-          <button
-            className={styles.drawerClose}
-            onClick={() => setMobileMenuOpen(false)}
-            aria-label="Fechar menu"
-          >
-            ×
-          </button>
+          <button className={styles.drawerClose} onClick={() => setMobileMenuOpen(false)} aria-label="Fechar menu">×</button>
         </div>
         <ul className={styles.drawerList}>
           {menus.map((m) => (
             <li key={`m-${m.key}`} className={styles.drawerItem}>
               {isDropdown(m) ? (
-                <details
-                  open={openDropdown === m.key}
-                  onToggle={(e) =>
-                    e.currentTarget.open
-                      ? setOpenDropdown(m.key)
-                      : setOpenDropdown(null)
-                  }
-                >
+                <details open={openDropdown === m.key} onToggle={(e) => (e.currentTarget.open ? setOpenDropdown(m.key) : setOpenDropdown(null))}>
                   <summary>
                     {m.icon}
                     <span>{m.label}</span>
@@ -401,12 +363,7 @@ export default function Admin() {
                   <ul>
                     {m.children.map((c) => (
                       <li key={`c-${c.to}`}>
-                        <NavLink
-                          to={c.to}
-                          className={({ isActive }) =>
-                            isActive ? styles.active : undefined
-                          }
-                        >
+                        <NavLink to={c.to} className={({ isActive }) => (isActive ? styles.active : undefined)}>
                           {c.icon}
                           <span>{c.label}</span>
                         </NavLink>
@@ -415,13 +372,7 @@ export default function Admin() {
                   </ul>
                 </details>
               ) : (
-                <NavLink
-                  end={m.exact}
-                  to={m.to}
-                  className={({ isActive }) =>
-                    isActive ? styles.active : undefined
-                  }
-                >
+                <NavLink end={m.exact} to={m.to} className={({ isActive }) => (isActive ? styles.active : undefined)}>
                   {m.icon}
                   <span>{m.label}</span>
                 </NavLink>
