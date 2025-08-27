@@ -157,8 +157,6 @@ export default function Clients() {
             <thead>
               <tr>
                 <th>Nome</th>
-                <th>User ID</th>
-                <th>Telefone</th>
                 <th>Canal</th>
               </tr>
             </thead>
