@@ -1,31 +1,31 @@
-import { useEffect, useState } from 'react';
-import { 
-  Home, 
-  Bot, 
-  Users, 
-  MessageCircle, 
-  Settings, 
+// File: Admin.jsx
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Home,
+  Bot,
+  Users,
+  MessageCircle,
+  Settings,
   Activity,
-  UserCheck,
   Folder,
   Zap,
   Megaphone,
   FileText,
   Send,
-  ChevronDown, 
+  ChevronDown,
   ChevronRight,
-  LogOut ,
+  LogOut,
   FolderClock,
   Headset
 } from 'lucide-react';
-import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
+import { NavLink, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Builder from './chatbot/Builder';
 import Dashboard from './dashboard/Dashboard';
 import LogoutButton from './components/LogoutButton';
 import styles from './styles/Admin.module.css';
 import { parseJwt } from '../../utils/auth';
 import { stringToColor } from '../../utils/color';
-import { apiGet } from "../../shared/apiClient";
+import { apiGet } from '../../shared/apiClient';
 
 import Preferences from './preferences/Preferences';
 import Channels from './preferences/Channels';
@@ -37,7 +37,7 @@ import UsersPage from './management/Users';
 import Clientes from './management/clientes/Clientes';
 import History from './atendimento/history/TicketsHistory';
 
-// Componentes temporários para novas rotas
+// Temporários (mantidos)
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
@@ -48,12 +48,9 @@ export default function Admin() {
   const token = localStorage.getItem('token');
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
-  const [expandedMenus, setExpandedMenus] = useState({
-    monitoring: false,
-    attendance: false,
-    campaigns: false,
-    config: false
-  });
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null); // chave do menu aberto (mobile) / hover (desktop)
+  const location = useLocation();
 
   useEffect(() => {
     const fetchAdminInfo = async () => {
@@ -65,276 +62,224 @@ export default function Admin() {
         console.error('Erro ao buscar dados do admin:', err);
       }
     };
-
     fetchAdminInfo();
   }, [email]);
 
-  const toggleMenu = (menuKey) => {
-    setExpandedMenus(prev => ({
-      ...prev,
-      [menuKey]: !prev[menuKey]
-    }));
-  };
+  // fecha o mega menu ao trocar de rota
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setOpenDropdown(null);
+  }, [location.pathname]);
 
-  const MenuSection = ({ title, children }) => (
-    <div className={styles['menu-section']}>
-      <h3 className={styles['section-title']}>{title}</h3>
-      <div className={styles['section-items']}>
-        {children}
-      </div>
-    </div>
+  const menus = useMemo(
+    () => [
+      {
+        key: 'dashboard',
+        label: 'Dashboard',
+        to: '',
+        icon: <Home size={18} />,
+        exact: true
+      },
+      {
+        key: 'monitoring',
+        label: 'Acompanhamento',
+        icon: <Activity size={18} />,
+        children: [
+          { to: 'monitoring/agents', icon: <Headset size={16} />, label: 'Monitor de Atendentes' },
+          { to: 'monitoring/clients', icon: <Users size={16} />, label: 'Monitor de Clientes' }
+        ]
+      },
+      {
+        key: 'management',
+        label: 'Gestão',
+        icon: <Users size={18} />,
+        children: [
+          { to: 'management/users', icon: <Users size={16} />, label: 'Usuários' },
+          { to: 'atendimento/queues', icon: <Folder size={16} />, label: 'Filas' },
+          { to: 'atendimento/quick-replies', icon: <Zap size={16} />, label: 'Respostas Rápidas' },
+          { to: 'atendimento/history', icon: <FolderClock size={16} />, label: 'Histórico de Ticket' },
+          { to: 'atendimento/clientes', icon: <FolderClock size={16} />, label: 'Clientes' }
+        ]
+      },
+      {
+        key: 'campaigns',
+        label: 'Campanhas',
+        icon: <Megaphone size={18} />,
+        children: [
+          { to: 'campaigns/templates', icon: <FileText size={16} />, label: 'Templates' },
+          { to: 'campaigns/broadcast', icon: <Send size={16} />, label: 'Disparo de Mensagens' }
+        ]
+      },
+      {
+        key: 'builder',
+        label: 'Builder',
+        to: 'builder',
+        icon: <Bot size={18} />
+      },
+      {
+        key: 'settings',
+        label: 'Configurações',
+        icon: <Settings size={18} />,
+        children: [
+          { to: 'preferences', label: 'Preferências' },
+          { to: 'channels', label: 'Canais' },
+          { to: 'config/integrations', label: 'Integrações' },
+          { to: 'config/security', label: 'Segurança' }
+        ]
+      }
+    ],
+    []
   );
 
-  const MenuIcon = ({ to, icon, label, end = false, badge = null, isDevelopment = false }) => (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) => `${styles['menu-icon']} ${isActive ? styles.active : ''} ${isDevelopment ? styles.development : ''}`}
-    >
-      {icon}
-      <span className={styles['menu-label']}>
-        {label}
-        {isDevelopment && (
-          <span className={styles['dev-badge']}>Em desenvolvimento</span>
-        )}
-      </span>
-      {badge && <span className={styles['notification-badge']}>{badge}</span>}
-    </NavLink>
-  );
-
-  const DropdownMenu = ({ 
-    menuKey, 
-    icon, 
-    label, 
-    children, 
-    badge = null 
-  }) => {
-    const isExpanded = expandedMenus[menuKey];
-    
-    return (
-      <div className={styles.dropdown}>
-        <button
-          className={styles['dropdown-toggle']}
-          onClick={() => toggleMenu(menuKey)}
-        >
-          {icon}
-          <span className={styles['menu-label']}>{label}</span>
-          {badge && <span className={styles['notification-badge']}>{badge}</span>}
-          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-        {isExpanded && (
-          <div className={styles['dropdown-menu']}>
-            {children}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const DropdownLink = ({ to, icon, label }) => (
-    <NavLink 
-      to={to} 
-      className={styles['dropdown-link']}
-      onClick={() => setExpandedMenus(prev => ({ ...prev }))}
-    >
-      {icon && <span className={styles['dropdown-icon']}>{icon}</span>}
-      {label}
-    </NavLink>
-  );
+  const isDropdown = (m) => !!m.children?.length;
+  const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
 
   return (
-    <div className={styles['layout-wrapper']}>
-      <aside className={styles['sidebar']}>
-        <div>
-<div className={styles.logo}>
-  <img 
-    src="/logo.png" 
-    alt="NineChat Logo" 
-    className={styles['logo-image']} 
-  />
-  <div className={styles['logo-subtitle']}>
-    Painel Administrativo
-  </div>
-</div>
-
-          <nav className={styles['sidebar-nav']}>
-            {/* Análise */}
-            <MenuSection title="Análise">
-              <MenuIcon 
-                to="" 
-                icon={<Home size={18} />} 
-                label="Dashboard" 
-                end={true}
-              />
-              
-              <DropdownMenu
-                menuKey="monitoring"
-                icon={<Activity size={18} />}
-                label="Acompanhamento"
-              >
-                <DropdownLink 
-                  to="monitoring/agents" 
-                  icon={<Headset size={16} />}
-                  label="Monitor de Atendentes" 
-                  isDevelopment={true}
-                />
-                <DropdownLink 
-                  to="monitoring/clients" 
-                  icon={<Users size={16} />}
-                  label="Monitor de Clientes" 
-                />
-              </DropdownMenu>
-            </MenuSection>
-
-            <div className={styles.divider} />
-
-            {/* Gestão */}
-            <MenuSection title="Gestão">
-              <MenuIcon 
-                to="management/users" 
-                icon={<Users size={18} />} 
-                label="Usuários" 
-              /*  isDevelopment={true}*/
-              />
-
-              <DropdownMenu
-                menuKey="attendance"
-                icon={<MessageCircle size={18} />}
-                label="Atendimento"
-              >
-                <DropdownLink 
-                  to="atendimento/queues" 
-                  icon={<Folder size={16} />}
-                  label="Filas" 
-                />
-                <DropdownLink 
-                  to="atendimento/quick-replies" 
-                  icon={<Zap size={16} />}
-                  label="Respostas Rápidas" 
-                />
-                                <DropdownLink 
-                  to="atendimento/history" 
-                  icon={<FolderClock size={16} />}
-                  label="Histórico de Ticket" 
-                />
-              </DropdownMenu>
-
-
-              <DropdownMenu
-                menuKey="campaigns"
-                icon={<Megaphone size={18} />}
-                label="Campanhas"
-
-              >
-                <DropdownLink 
-                  to="campaigns/templates" 
-                  icon={<FileText size={16} />}
-                  label="Templates" 
-                />
-                <DropdownLink 
-                  to="campaigns/broadcast" 
-                  icon={<Send size={16} />}
-                  label="Disparo de Mensagens" 
-                />
-              </DropdownMenu>
-              <MenuIcon 
-                to="atendimento/clientes" 
-                icon={<FolderClock size={18} />} 
-                label="Clientes"
-/*                 isDevelopment={true} */
-              />
-            </MenuSection>
-            <div className={styles.divider} />
-
-            {/* Desenvolvimento */}
-            <MenuSection title="Desenvolvimento">
-              <MenuIcon 
-                to="builder" 
-                icon={<Bot size={18} />} 
-                label="Builder"
-              />
-            </MenuSection>
-
-            <div className={styles.divider} />
-
-            {/* Sistema */}
-            <MenuSection title="Sistema">
-              <DropdownMenu
-                menuKey="config"
-                icon={<Settings size={18} />}
-                label="Configurações"
-              >
-                <DropdownLink 
-                  to="preferences" 
-                  label="Preferências" 
-                />
-                <DropdownLink 
-                  to="channels" 
-                  label="Canais" 
-                />
-                <DropdownLink 
-                  to="config/integrations" 
-                  label="Integrações" 
-                />
-                <DropdownLink 
-                  to="config/security" 
-                  label="Segurança" 
-                />
-              </DropdownMenu>
-            </MenuSection>
-          </nav>
+    <div className={styles.wrapper}>
+      {/* Top Navbar (estilo Pixinvent) */}
+      <header className={styles.topbar}>
+        <div className={styles.brandArea}>
+          <button
+            className={styles.burger}
+            aria-label="Abrir menu"
+            onClick={() => setMobileMenuOpen((v) => !v)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <NavLink to="" className={styles.brand}>
+            <img src="/logo.png" alt="NineChat" />
+            <span>Admin</span>
+          </NavLink>
         </div>
 
-        <div className={styles['sidebar-footer']}>
-          {userData && (
-            <div className={styles.profileContainer}>
-              <div className={styles['profile-info']}>
-                <div
-                  className={styles.avatar}
-                  style={{ backgroundColor: stringToColor(userData.email) }}
+        <nav className={styles.hnav} aria-label="Menu principal">
+          {menus.map((m) => (
+            <div
+              key={m.key}
+              className={
+                isDropdown(m)
+                  ? `${styles.hitem} ${styles.hasChildren} ${openDropdown === m.key ? styles.open : ''}`
+                  : styles.hitem
+              }
+              onMouseEnter={() => window.innerWidth > 1024 && isDropdown(m) && setOpenDropdown(m.key)}
+              onMouseLeave={() => window.innerWidth > 1024 && isDropdown(m) && setOpenDropdown(null)}
+            >
+              {m.to ? (
+                <NavLink
+                  end={m.exact}
+                  to={m.to}
+                  className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ''}`}
+                  onClick={() => (isDropdown(m) ? handleTopClick(m.key) : undefined)}
                 >
-                  {userData.name?.charAt(0).toUpperCase() || 'U'}
+                  {m.icon}
+                  <span>{m.label}</span>
+                </NavLink>
+              ) : (
+                <button className={styles.hlink} onClick={() => (isDropdown(m) ? handleTopClick(m.key) : undefined)}>
+                  {m.icon}
+                  <span>{m.label}</span>
+                  {isDropdown(m) && <ChevronDown size={16} />}
+                </button>
+              )}
+
+              {isDropdown(m) && (
+                <div className={styles.megamenu} role="menu">
+                  <ul className={styles.megagrid}>
+                    {m.children.map((c) => (
+                      <li key={c.to} className={styles.megaitem} role="none">
+                        <NavLink to={c.to} className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ''}`} role="menuitem">
+                          {c.icon && <span className={styles.megaicon}>{c.icon}</span>}
+                          <span>{c.label}</span>
+                          <ChevronRight size={14} className={styles.chev} />
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className={styles.userInfo}>
-                  <div className={styles.userName}>
-                    {userData.name?.split(' ')[0] || 'Usuário'}
-                  </div>
-                  <div className={styles.userEmail}>{userData.email}</div>
-                </div>
+              )}
+            </div>
+          ))}
+        </nav>
+
+        <div className={styles.profileArea}>
+          {userData && (
+            <div className={styles.user}>
+              <div
+                className={styles.avatar}
+                style={{ backgroundColor: stringToColor(userData.email) }}
+                title={userData.email}
+              >
+                {userData.name?.charAt(0).toUpperCase() || 'U'}
               </div>
-              <LogoutButton className={styles['logout-button']}>
+              <div className={styles.userMeta}>
+                <span className={styles.userName}>{userData.name?.split(' ')[0] || 'Usuário'}</span>
+                <span className={styles.userEmail}>{userData.email}</span>
+              </div>
+              <LogoutButton className={styles.logout} title="Sair">
                 <LogOut size={16} />
               </LogoutButton>
             </div>
           )}
         </div>
+      </header>
+
+      {/* Mobile Drawer */}
+      <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ''}`}>
+        <div className={styles.drawerHeader}>
+          <span className={styles.drawerTitle}>Menu</span>
+          <button className={styles.drawerClose} onClick={() => setMobileMenuOpen(false)} aria-label="Fechar menu">×</button>
+        </div>
+        <ul className={styles.drawerList}>
+          {menus.map((m) => (
+            <li key={`m-${m.key}`} className={styles.drawerItem}>
+              {isDropdown(m) ? (
+                <details open={openDropdown === m.key} onToggle={(e) => e.currentTarget.open ? setOpenDropdown(m.key) : setOpenDropdown(null)}>
+                  <summary>
+                    {m.icon}
+                    <span>{m.label}</span>
+                    <ChevronDown size={16} />
+                  </summary>
+                  <ul>
+                    {m.children.map((c) => (
+                      <li key={`c-${c.to}`}>
+                        <NavLink to={c.to} className={({ isActive }) => (isActive ? styles.active : undefined)}>
+                          {c.icon}
+                          <span>{c.label}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : (
+                <NavLink end={m.exact} to={m.to} className={({ isActive }) => (isActive ? styles.active : undefined)}>
+                  {m.icon}
+                  <span>{m.label}</span>
+                </NavLink>
+              )}
+            </li>
+          ))}
+        </ul>
       </aside>
 
-      <main className={styles['main-content']}>
+      {/* Conteúdo */}
+      <main className={styles.content}>
         <Routes>
           <Route index element={<Dashboard />} />
-          
-          {/* Análise */}
           <Route path="monitoring/agents" element={<AgentsMonitor />} />
           <Route path="monitoring/clients" element={<ClientsMonitor />} />
-          
-          {/* Gestão */}
           <Route path="management/users" element={<UsersPage />} />
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
           <Route path="atendimento/history" element={<History />} />
-           <Route path="atendimento/clientes" element={<Clientes />} />
+          <Route path="atendimento/clientes" element={<Clientes />} />
           <Route path="campaigns/templates" element={<Templates />} />
-          
-          {/* Desenvolvimento */}
           <Route path="builder" element={<Builder />} />
-          
-          {/* Sistema */}
           <Route path="preferences" element={<Preferences />} />
           <Route path="channels" element={<Channels />} />
           <Route path="config/integrations" element={<Integrations />} />
           <Route path="config/security" element={<Security />} />
-
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
       </main>
