@@ -1,11 +1,12 @@
+// TemplateModal.jsx — criação de template (drawer à direita)
 import React, { useMemo, useState } from 'react';
 import { apiPost } from '../../../shared/apiClient';
 import styles from './styles/TemplateCreate.module.css';
 import { X as XIcon, Save as SaveIcon } from 'lucide-react';
 
 const CATEGORIES = [
-  { value: 'UTILITY', label: 'Utility' },
-  { value: 'MARKETING', label: 'Marketing' },
+  { value: 'UTILITY',        label: 'Utility' },
+  { value: 'MARKETING',      label: 'Marketing' },
   { value: 'AUTHENTICATION', label: 'Authentication' },
 ];
 
@@ -29,40 +30,53 @@ const HEADER_TYPES = [
 
 const MAX_BTNS = 3;
 
-const TemplateModal = ({ isOpen, onClose, onCreated }) => {
+export default function TemplateModal({ isOpen, onClose, onCreated }) {
   const [name, setName] = useState('');
   const [language, setLanguage] = useState('pt_BR');
   const [category, setCategory] = useState('MARKETING');
 
   const [headerType, setHeaderType] = useState('TEXT');
   const [headerText, setHeaderText] = useState('');
-  const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+  const [headerMediaUrl, setHeaderMediaUrl] = useState(''); // apenas prévia local, não vai no payload
 
   const [bodyText, setBodyText] = useState('');
   const [footerText, setFooterText] = useState('');
 
-  const [buttonMode, setButtonMode] = useState('none'); // 'none' | 'cta' | 'quick'
-  const [ctas, setCtas] = useState([]);
-  const [quicks, setQuicks] = useState([]);
+  // 'none' | 'cta' | 'quick'
+  const [buttonMode, setButtonMode] = useState('none');
+  const [ctas, setCtas] = useState([]);     // [{id, type:'URL'|'PHONE_NUMBER', text, url, phone_number}]
+  const [quicks, setQuicks] = useState([]); // [{id, text}]
 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
+
+  const newId = () =>
+    (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const canSave = useMemo(() => {
     if (!name.trim()) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
+
     if (buttonMode === 'cta' && ctas.some(b =>
       !b.text.trim() ||
       (b.type === 'URL' && !b.url.trim()) ||
       (b.type === 'PHONE_NUMBER' && !b.phone_number.trim())
     )) return false;
+
     if (buttonMode === 'quick' && quicks.some(q => !q.text.trim())) return false;
+
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
 
-  const newId = () =>
-    (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const addCta = () => {
+    setCtas(prev => (prev.length >= MAX_BTNS ? prev
+      : [...prev, { id:newId(), type:'URL', text:'', url:'', phone_number:'' }]));
+  };
+  const addQuick = () => {
+    setQuicks(prev => (prev.length >= MAX_BTNS ? prev
+      : [...prev, { id:newId(), text:'' }]));
+  };
 
   async function handleSave(e) {
     e.preventDefault();
@@ -85,7 +99,7 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
       const payload = {
         name: name.trim(),
         language_code: language,
-        category,
+        category,                                // já no formato esperado pela API
         header_type: headerType || 'NONE',
         header_text: headerType === 'TEXT' ? headerText.trim() : null,
         body_text: bodyText.trim(),
@@ -107,8 +121,17 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.tcOverlay} role="dialog" aria-modal="true" aria-label="Criar template" onMouseDown={onClose}>
-      <aside className={styles.tcDrawer} onMouseDown={e => e.stopPropagation()}>
+    <div
+      className={styles.tcOverlay}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Criar template"
+      onMouseDown={onClose}
+    >
+      <aside
+        className={styles.tcDrawer}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {/* Cabeçalho */}
         <div className={styles.tcHeader}>
           <h3 className={styles.tcTitle}>Novo modelo de mensagem</h3>
@@ -117,17 +140,19 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
           </button>
         </div>
 
-        {/* Intro */}
+        {/* Introdução */}
         <div className={styles.tcIntro}>
           Preencha os campos abaixo para fazer a submissão de um modelo de mensagem.
           <br />
-          Lembre-se de seguir as <a href="#" onClick={e=>e.preventDefault()}>regras e boas práticas</a> propostas pelo Facebook.
+          Lembre-se de seguir as{' '}
+          <a href="#" onClick={(e)=>e.preventDefault()}>regras e boas práticas</a> propostas pelo Facebook.
         </div>
 
-        {/* Corpo */}
+        {/* Corpo rolável + footer sticky dentro do mesmo container */}
         <form className={styles.tcBody} onSubmit={handleSave}>
           <div className={styles.tcForm}>
-            {err && <div style={{background:'#fff',border:'1px solid #fecaca',color:'#991b1b',padding:'8px 10px',borderRadius:8}}>{err}</div>}
+
+            {err && <div className={styles.alertErr}>{err}</div>}
 
             {/* Nome */}
             <div className={styles.tcGroup}>
@@ -154,7 +179,9 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
                 required
               >
                 <option value="" disabled>Selecione</option>
-                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {CATEGORIES.map(c => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
               </select>
             </div>
 
@@ -168,20 +195,23 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
                 onChange={(e) => setLanguage(e.target.value)}
                 required
               >
-                {LANGS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                {LANGS.map(l => (
+                  <option key={l.value} value={l.value}>{l.label}</option>
+                ))}
               </select>
             </div>
 
             <hr className={styles.tcHr} />
 
-            {/* Tipo de cabeçalho */}
+            {/* Tipo de cabeçalho (segmented) */}
             <div className={styles.tcSegmented} role="tablist" aria-label="Tipo de cabeçalho">
               {HEADER_TYPES.map(h => (
                 <button
                   key={h.value}
                   type="button"
-                  className={styles.tcSegItem}
+                  role="tab"
                   aria-pressed={headerType === h.value}
+                  className={styles.tcSegItem}
                   onClick={() => setHeaderType(h.value)}
                 >
                   {h.label}
@@ -189,7 +219,7 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
               ))}
             </div>
 
-            {/* Cabeçalho / Mídia */}
+            {/* Bloco mensagem */}
             {headerType === 'TEXT' ? (
               <div className={styles.tcGroup}>
                 <label className={styles.tcLabel}>Cabeçalho</label>
@@ -203,7 +233,9 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
             ) : (
               <div className={styles.tcGroup}>
                 <label className={styles.tcLabel}>
-                  {headerType === 'IMAGE' ? 'Imagem' : headerType === 'DOCUMENT' ? 'Documento' : 'Vídeo'}
+                  {headerType === 'IMAGE' ? 'Imagem'
+                    : headerType === 'DOCUMENT' ? 'Documento'
+                    : 'Vídeo'}
                 </label>
                 <input
                   className={styles.tcInput}
@@ -219,7 +251,6 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
               </div>
             )}
 
-            {/* Corpo */}
             <div className={styles.tcGroup}>
               <label className={styles.tcLabel}>Corpo *</label>
               <textarea
@@ -230,10 +261,11 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
                 onChange={(e) => setBodyText(e.target.value)}
                 required
               />
-              <div className={styles.tcHelp}>Use variáveis <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code>…</div>
+              <div className={styles.tcHelp}>
+                Use variáveis <code>{'{{1}}'}</code>, <code>{'{{2}}'}</code>…
+              </div>
             </div>
 
-            {/* Rodapé */}
             <div className={styles.tcGroup}>
               <label className={styles.tcLabel}>Rodapé (opcional)</label>
               <input
@@ -244,52 +276,91 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
               />
             </div>
 
-            {/* Botões: CTAs vs Quick */}
-            <div className={styles.tcPills}>
+            {/* Botões */}
+            <div className={styles.tcPills} role="tablist" aria-label="Tipo de botões">
               <button
                 type="button"
-                className={`${styles.tcPill} ${buttonMode==='cta' ? styles.tcActive : ''}`}
+                className={`${styles.tcPill} ${buttonMode === 'cta' ? styles.tcActive : ''}`}
                 onClick={() => { setButtonMode('cta'); setQuicks([]); }}
+                aria-pressed={buttonMode === 'cta'}
               >
                 Botões de ação
               </button>
               <button
                 type="button"
-                className={`${styles.tcPill} ${buttonMode==='quick' ? styles.tcActive : ''}`}
+                className={`${styles.tcPill} ${buttonMode === 'quick' ? styles.tcActive : ''}`}
                 onClick={() => { setButtonMode('quick'); setCtas([]); }}
+                aria-pressed={buttonMode === 'quick'}
               >
                 Respostas rápidas
               </button>
               <button
                 type="button"
-                className={`${styles.tcPill} ${buttonMode==='none' ? styles.tcActive : ''}`}
+                className={`${styles.tcPill} ${buttonMode === 'none' ? styles.tcActive : ''}`}
                 onClick={() => { setButtonMode('none'); setCtas([]); setQuicks([]); }}
+                aria-pressed={buttonMode === 'none'}
               >
                 Nenhum
               </button>
             </div>
 
             {buttonMode === 'cta' && (
-  <>
-    <div className={styles.tcBtnList}>…</div>
-    {ctas.length < MAX_BTNS && (
-      <button type="button" className={styles.tcAddBtn} onClick={…}>
-        + Adicionar ({ctas.length}/{MAX_BTNS})
-      </button>
-    )}
-  </>
-)}
+              <>
+                <div className={styles.tcBtnList} role="list">
+                  {ctas.map(b => (
+                    <div key={b.id} className={styles.tcBtnItem} role="listitem">
+                      <div className={styles.tcBtnHead}>
+                        <select
+                          className={styles.tcSelect}
+                          value={b.type}
+                          onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
+                        >
+                          <option value="URL">Abrir URL</option>
+                          <option value="PHONE_NUMBER">Chamar</option>
+                        </select>
+                        <button
+                          type="button"
+                          className={styles.tcBtnRemove}
+                          onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}
+                        >
+                          Remover
+                        </button>
+                      </div>
 
-{buttonMode === 'quick' && (
-  <>
-    <div className={styles.tcBtnList}>…</div>
-    {quicks.length < MAX_BTNS && (
-      <button type="button" className={styles.tcAddBtn} onClick={…}>
-        + Adicionar ({quicks.length}/{MAX_BTNS})
-      </button>
-    )}
-  </>
-)}
+                      <div className={styles.tcGrid3}>
+                        <input
+                          className={styles.tcInput}
+                          placeholder="Rótulo do botão"
+                          value={b.text}
+                          onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
+                        />
+                        {b.type === 'URL' ? (
+                          <input
+                            className={styles.tcInput}
+                            placeholder="https://exemplo.com/{{1}}"
+                            value={b.url}
+                            onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
+                          />
+                        ) : (
+                          <input
+                            className={styles.tcInput}
+                            placeholder="+55XXXXXXXXXXX"
+                            value={b.phone_number ?? ''}
+                            onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {ctas.length < MAX_BTNS && (
+                  <button type="button" className={styles.tcAddBtn} onClick={addCta}>
+                    + Adicionar botão ({ctas.length}/{MAX_BTNS})
+                  </button>
+                )}
+              </>
+            )}
 
             {buttonMode === 'quick' && (
               <>
@@ -298,14 +369,17 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
                     <div key={q.id} className={styles.tcBtnItem} role="listitem">
                       <div className={styles.tcBtnHead}>
                         <span className={styles.tcLabel}>Resposta rápida</span>
-                        <button type="button" className={styles.tcBtnRemove}
-                          onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}>
+                        <button
+                          type="button"
+                          className={styles.tcBtnRemove}
+                          onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}
+                        >
                           Remover
                         </button>
                       </div>
                       <input
                         className={styles.tcInput}
-                        placeholder="Texto da resposta (curto)"
+                        placeholder="Texto curto"
                         value={q.text}
                         onChange={e => setQuicks(prev => prev.map(x => x.id === q.id ? { ...x, text:e.target.value } : x))}
                       />
@@ -314,33 +388,34 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
                 </div>
 
                 {quicks.length < MAX_BTNS && (
-                  <button
-                    type="button"
-                    className={styles.tcAddBtn}
-                    onClick={() => setQuicks(p => [...p, { id:newId(), text:'' }])}
-                  >
+                  <button type="button" className={styles.tcAddBtn} onClick={addQuick}>
                     + Adicionar resposta ({quicks.length}/{MAX_BTNS})
                   </button>
                 )}
               </>
             )}
 
-            {/* “Adicionar tradução” – como botão leve */}
-            <button type="button" className={styles.tcAddBtn} onClick={(e)=>e.preventDefault()}>
+            {/* “Adicionar tradução” (placeholder visual) */}
+            <button
+              type="button"
+              className={styles.tcPill}
+              onClick={(e)=>e.preventDefault()}
+              aria-disabled="true"
+              style={{ width:'fit-content' }}
+            >
               + Adicionar tradução
             </button>
           </div>
 
-          {/* Rodapé fixo */}
+          {/* Rodapé sticky (sempre visível) */}
           <div className={styles.tcFooter}>
             <button type="submit" className={styles.tcSubmit} disabled={!canSave || saving}>
-              <SaveIcon size={16} /> {saving ? 'Enviando…' : 'Enviar para avaliação'}
+              <SaveIcon size={16} />
+              {saving ? 'Enviando…' : 'Enviar para avaliação'}
             </button>
           </div>
         </form>
       </aside>
     </div>
   );
-};
-
-export default TemplateModal;
+}
