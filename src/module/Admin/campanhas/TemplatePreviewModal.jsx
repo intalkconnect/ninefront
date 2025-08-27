@@ -93,7 +93,7 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
         </div>
 
         <div className={styles.tpFooter}>
-          <button onClick={onClose}>Fechar</button>
+          <button className={styles.btnPrimary} onClick={onClose}>Fechar</button>
         </div>
       </div>
     </div>
