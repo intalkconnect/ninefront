@@ -36,7 +36,7 @@
 /* Profile */
 .profileArea{display:flex;align-items:center}
 .user{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:6px 8px}
-.avatar{width:32px;height:32px;border-radius:999px;color:#fff;font-weight:700;display:grid;place-items:center}
+.avatar{width:32px;height:32px;border-radius:999px;color:#fff;font-weight:700;display:grid;place-items:center;position:relative;overflow:hidden}
 .userMeta{display:flex;flex-direction:column;line-height:1}
 .userName{font-size:12px;font-weight:700;color:#111827}
 .userEmail{font-size:11px;color:#6b7280}
@@ -61,13 +61,52 @@
 /* Content area */
 .content{flex:1;min-height:0;padding:16px}
 
+/* Focus states */
+.hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus{outline:2px solid #2563eb;outline-offset:2px}
+/* Profile dropdown */
+.profileArea{position:relative;display:flex;align-items:center}
+.userButton{
+  display:flex;align-items:center;gap:10px;
+  border:1px solid #e5e7eb;background:#fff;border-radius:12px;
+  padding:6px 10px; cursor:pointer; color:#111827;
+}
+.userButton:hover{background:#f9fafb}
+.userNameTop{font-size:12px;font-weight:700;color:#111827}
+.statusDot{
+  position:absolute; right:-1px; top:-1px; width:8px; height:8px; border-radius:999px;
+  background:#10b981; border:2px solid #fff;
+}
+
+/* Dropdown box */
+.profileDropdown{
+  position:absolute; right:0; top:calc(100% + 10px);
+  width:240px; background:#fff; border:1px solid #e5e7eb; border-radius:14px;
+  box-shadow:0 22px 60px rgba(0,0,0,.12); padding:8px; z-index:70;
+}
+.pdHeader{
+  display:flex; align-items:center; gap:10px; padding:8px 10px;
+  border-bottom:1px solid #f3f4f6; margin-bottom:6px;
+}
+.pdName{font-weight:800;color:#111827;font-size:14px}
+.pdEmail{font-size:12px;color:#6b7280}
+
+.pdList{list-style:none;margin:0;padding:4px;display:flex;flex-direction:column;gap:4px}
+.pdItem{display:flex}
+.pdItem a,.pdItem button{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:10px 12px; border-radius:10px; border:1px solid transparent;
+  background:#fff; color:#374151; text-decoration:none; cursor:pointer;
+}
+.pdItem a:hover,.pdItem button:hover{background:#f9fafb;border-color:#f3f4f6}
+.pdIcon{display:flex;align-items:center}
+.pdSeparator{height:1px;background:#f3f4f6;margin:6px 0}
+.pdAction{width:100%; justify-content:flex-start; color:#ef4444}
+.pdAction:hover{background:#fef2f2}
+
 /* Responsive */
 @media (min-width:1024px){
   .burger{display:none}
   .hnav{display:flex}
   .mobileDrawer{display:none}
 }
-
-/* Focus states */
-.hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus{outline:2px solid #2563eb;outline-offset:2px}
 
