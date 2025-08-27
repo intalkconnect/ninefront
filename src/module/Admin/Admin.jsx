@@ -34,11 +34,11 @@ import Queues from './atendimento/Queues';
 import QuickReplies from './atendimento/QuickReplies';
 import Templates from './campanhas/Templates';
 import UsersPage from './management/Users';
+import Clientes from './management/clientes/Clientes';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
 const Historico = () => <div>Histórico de Mensagem</div>;
-const Clientes = () => <div>Clientes</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
 
@@ -224,7 +224,7 @@ export default function Admin() {
                 menuKey="campaigns"
                 icon={<Megaphone size={18} />}
                 label="Campanhas"
-                isDevelopment={true}
+
               >
                 <DropdownLink 
                   to="campaigns/templates" 
@@ -241,7 +241,7 @@ export default function Admin() {
                 to="atendimento/clientes" 
                 icon={<FolderClock size={18} />} 
                 label="Clientes"
-                isDevelopment={true}
+/*                 isDevelopment={true} */
               />
             </MenuSection>
             <div className={styles.divider} />
