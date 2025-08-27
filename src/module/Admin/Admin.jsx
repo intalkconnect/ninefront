@@ -71,12 +71,18 @@ export default function Admin() {
     setOpenDropdown(null);
   }, [location.pathname]);
 
+  // descobre o caminho base (ex: /admin)
+  const basePath = useMemo(() => {
+    const root = location.pathname.split('/')[1] || '';
+    return root ? `/${root}` : '/';
+  }, [location.pathname]);
+
   const menus = useMemo(
     () => [
       {
         key: 'dashboard',
         label: 'Dashboard',
-        to: '',
+        to: basePath,
         icon: <Home size={18} />,
         exact: true
       },
@@ -148,7 +154,7 @@ export default function Admin() {
             <span />
             <span />
           </button>
-          <NavLink to="" className={styles.brand}>
+          <NavLink to={basePath} className={styles.brand}>
             <img src="/logo.png" alt="NineChat" />
             <span>Admin</span>
           </NavLink>
