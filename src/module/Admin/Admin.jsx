@@ -77,6 +77,23 @@ export default function Admin() {
     setOpenDropdown(null);
   }, [location.pathname]);
 
+  useEffect(() => {
+    const h = (e) => {
+      if (e.key === "Escape") setProfileOpen(false);
+    };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (!profileRef.current) return;
+      if (!profileRef.current.contains(e.target)) setProfileOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
   // descobre o caminho base (ex: /admin)
   const basePath = useMemo(() => {
     const root = location.pathname.split("/")[1] || "";
@@ -270,26 +287,77 @@ export default function Admin() {
           ))}
         </nav>
 
-        <div className={styles.profileArea}>
+        <div className={styles.profileArea} ref={profileRef}>
           {userData && (
-            <div className={styles.user}>
-              <div
-                className={styles.avatar}
-                style={{ backgroundColor: stringToColor(userData.email) }}
-                title={userData.email}
+            <>
+              <button
+                className={styles.userButton}
+                onClick={() => setProfileOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={isProfileOpen}
               >
-                {userData.name?.charAt(0).toUpperCase() || "U"}
-              </div>
-              <div className={styles.userMeta}>
-                <span className={styles.userName}>
+                <div
+                  className={styles.avatar}
+                  style={{ backgroundColor: stringToColor(userData.email) }}
+                  title={userData.email}
+                >
+                  {userData.name?.charAt(0).toUpperCase() || "U"}
+                  <span className={styles.statusDot} aria-hidden />
+                </div>
+                <span className={styles.userNameTop}>
                   {userData.name?.split(" ")[0] || "Usuário"}
                 </span>
-                <span className={styles.userEmail}>{userData.email}</span>
-              </div>
-              <LogoutButton className={styles.logout} title="Sair">
-                <LogOut size={16} />
-              </LogoutButton>
-            </div>
+              </button>
+
+              {isProfileOpen && (
+                <div className={styles.profileDropdown} role="menu">
+                  <div className={styles.pdHeader}>
+                    <div
+                      className={styles.avatar}
+                      style={{
+                        backgroundColor: stringToColor(userData.email),
+                        width: 36,
+                        height: 36,
+                      }}
+                    >
+                      {userData.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                    <div>
+                      <div className={styles.pdName}>
+                        {userData.name || "Usuário"}
+                      </div>
+                      <div className={styles.pdEmail}>{userData.email}</div>
+                    </div>
+                  </div>
+
+                  <ul className={styles.pdList}>
+                    <li className={styles.pdItem}>
+                      <NavLink
+                        to="preferences"
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <span className={styles.pdIcon}>
+                          <User size={16} />
+                        </span>
+                        Editar perfil
+                      </NavLink>
+                    </li>
+
+                    <li className={styles.pdSeparator} role="separator" />
+
+                    <li className={styles.pdItem}>
+                      <LogoutButton
+                        className={styles.pdAction}
+                        onClick={() => setProfileOpen(false)}
+                      >
+                        <LogOut size={16} />
+                        Logout
+                      </LogoutButton>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </>
           )}
         </div>
       </header>
