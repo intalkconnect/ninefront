@@ -163,8 +163,7 @@ export default function Admin() {
                   ? `${styles.hitem} ${styles.hasChildren} ${openDropdown === m.key ? styles.open : ''}`
                   : styles.hitem
               }
-              onMouseEnter={() => window.innerWidth > 1024 && isDropdown(m) && setOpenDropdown(m.key)}
-              onMouseLeave={() => window.innerWidth > 1024 && isDropdown(m) && setOpenDropdown(null)}
+              
             >
               {m.to ? (
                 <NavLink
