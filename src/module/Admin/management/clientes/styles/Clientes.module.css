@@ -21,7 +21,7 @@
 }
 
 /* Página */
-.container{ padding:24px 24px 32px; background:linear-gradient(180deg,var(--qr-surface) 0%, #fff 600px); }
+.container{ padding:24px 24px 32px; background:transparent !important; }
 .header{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
 .title{ display:flex; gap:10px; align-items:center; margin:0; font-size:32px; font-weight:900; color:var(--qr-text);}
 .subtitle{ margin:6px 0 0; color:var(--qr-muted); font-size:15px; }
