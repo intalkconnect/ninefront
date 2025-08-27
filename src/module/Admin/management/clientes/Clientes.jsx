@@ -95,19 +95,6 @@ export default function Clientes() {
         </div>
 
         <div className={styles.headerActions}>
-          <form onSubmit={onSearch} className={styles.searchGroupTop}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por nome, telefone ou user_id…"
-              value={q}
-              onChange={(e)=> setQ(e.target.value)}
-            />
-            {q && (
-              <button type="button" className={styles.searchClear} onClick={()=> setQ('')} aria-label="Limpar">
-                <XIcon size={14}/>
-              </button>
-            )}
-          </form>
           <button className={styles.btn} onClick={()=> load()} title="Atualizar">
             <RefreshCw size={16}/> Atualizar
           </button>
