@@ -1,7 +1,7 @@
 // src/pages/Tickets/TicketsHistory.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Clock4 as HistoryIcon, RefreshCw, Search, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
-import { apiGet } from '../../../shared/apiClient';
+import { apiGet } from '../../../../shared/apiClient';
 import styles from './styles/TicketsHistory.module.css';
 
 const PAGE_SIZES = [10, 20, 30, 40];
