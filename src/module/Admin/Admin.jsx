@@ -6,7 +6,7 @@ import {
   Users,
   MessageCircle,
   Settings,
-  Activity,
+  SquareActivity,
   Folder,
   Zap,
   Megaphone,
@@ -124,7 +124,7 @@ export default function Admin() {
       {
         key: "monitoring",
         label: "Acompanhamento",
-        icon: <Activity size={18} />,
+        icon: <SquareActivity size={18} />,
         children: [
           {
             to: "monitoring/agents",
