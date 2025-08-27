@@ -270,63 +270,26 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
             </div>
 
             {buttonMode === 'cta' && (
-              <>
-                <div className={styles.tcBtnList} role="list">
-                  {ctas.map(b => (
-                    <div key={b.id} className={styles.tcBtnItem} role="listitem">
-                      <div className={styles.tcBtnHead}>
-                        <select
-                          className={styles.tcSelect}
-                          value={b.type}
-                          onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
-                        >
-                          <option value="URL">Abrir URL</option>
-                          <option value="PHONE_NUMBER">Chamar</option>
-                        </select>
-                        <button type="button" className={styles.tcBtnRemove}
-                          onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}>
-                          Remover
-                        </button>
-                      </div>
+  <>
+    <div className={styles.tcBtnList}>…</div>
+    {ctas.length < MAX_BTNS && (
+      <button type="button" className={styles.tcAddBtn} onClick={…}>
+        + Adicionar ({ctas.length}/{MAX_BTNS})
+      </button>
+    )}
+  </>
+)}
 
-                      <div className={styles.tcGrid3}>
-                        <input
-                          className={styles.tcInput}
-                          placeholder="Rótulo do botão"
-                          value={b.text}
-                          onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
-                        />
-                        {b.type === 'URL' ? (
-                          <input
-                            className={styles.tcInput}
-                            placeholder="https://exemplo.com/{{1}}"
-                            value={b.url}
-                            onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
-                          />
-                        ) : (
-                          <input
-                            className={styles.tcInput}
-                            placeholder="+55XXXXXXXXXXX"
-                            value={b.phone_number ?? ''}
-                            onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {ctas.length < MAX_BTNS && (
-                  <button
-                    type="button"
-                    className={styles.tcAddBtn}
-                    onClick={() => setCtas(p => [...p, { id:newId(), type:'URL', text:'', url:'', phone_number:'' }])}
-                  >
-                    + Adicionar botão ({ctas.length}/{MAX_BTNS})
-                  </button>
-                )}
-              </>
-            )}
+{buttonMode === 'quick' && (
+  <>
+    <div className={styles.tcBtnList}>…</div>
+    {quicks.length < MAX_BTNS && (
+      <button type="button" className={styles.tcAddBtn} onClick={…}>
+        + Adicionar ({quicks.length}/{MAX_BTNS})
+      </button>
+    )}
+  </>
+)}
 
             {buttonMode === 'quick' && (
               <>
