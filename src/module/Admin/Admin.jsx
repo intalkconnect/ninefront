@@ -109,18 +109,15 @@ export default function Admin() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // descobre o caminho base (ex: /admin)
-  const basePath = useMemo(() => {
-    const root = location.pathname.split("/")[1] || "";
-    return root ? `/${root}` : "/";
-  }, [location.pathname]);
+  // caminho fixo do Dashboard; ajuste para "/admin" se sua app estiver montada em /admin
+  const DASHBOARD_PATH = "/"; // <- troque para "/admin" se necessário
 
   const menus = useMemo(
     () => [
       {
         key: "dashboard",
         label: "Dashboard",
-        to: basePath,
+        to: DASHBOARD_PATH,
         icon: <Home size={18} />,
         exact: true,
       },
@@ -208,7 +205,7 @@ export default function Admin() {
         ],
       },
     ],
-    [basePath]
+    []
   );
 
   const isDropdown = (m) => !!m.children?.length;
@@ -228,7 +225,7 @@ export default function Admin() {
             <span />
             <span />
           </button>
-          <NavLink to={basePath} className={styles.brand}>
+          <NavLink to={DASHBOARD_PATH} className={styles.brand}>
             <img src="/logo.png" alt="NineChat" />
             <span>Admin</span>
           </NavLink>
@@ -405,3 +402,4 @@ export default function Admin() {
     </div>
   );
 }
+
