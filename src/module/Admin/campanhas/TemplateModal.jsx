@@ -75,44 +75,54 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
   };
 
   async function handleSave(e) {
-    e.preventDefault();
-    if (!canSave || saving) return;
-    setSaving(true);
-    setErr(null);
+  e.preventDefault();
+  if (!canSave || saving) return;
+  setSaving(true);
+  setErr(null);
 
-    try {
-      let buttons = null;
-      if (buttonMode === 'cta' && ctas.length) {
-        buttons = ctas.map(b =>
-          b.type === 'URL'
-            ? { type:'URL', text:b.text.trim(), url:b.url.trim() }
-            : { type:'PHONE_NUMBER', text:b.text.trim(), phone_number:b.phone_number.trim() }
-        );
-      } else if (buttonMode === 'quick' && quicks.length) {
-        buttons = quicks.map(q => ({ type:'QUICK_REPLY', text:q.text.trim() }));
-      }
-
-      const payload = {
-        name: name.trim(),
-        language_code: language,
-        category,
-        header_type: headerType || 'NONE',
-        header_text: headerType === 'TEXT' ? headerText.trim() : null,
-        body_text: bodyText.trim(),
-        footer_text: footerText.trim() || null,
-        buttons,
-        example: null,
-      };
-
-      await apiPost('/templates', payload);
-      onCreated?.();
-    } catch (e2) {
-      console.error('Erro ao criar template:', e2);
-      setErr(e2?.message || 'Falha ao criar template.');
-    } finally {
-      setSaving(false);
+  try {
+    let buttons = null;
+    if (buttonMode === 'cta' && ctas.length) {
+      buttons = ctas.map(b =>
+        b.type === 'URL'
+          ? { type:'URL', text:b.text.trim(), url:b.url.trim() }
+          : { type:'PHONE_NUMBER', text:b.text.trim(), phone_number:b.phone_number.trim() }
+      );
+    } else if (buttonMode === 'quick' && quicks.length) {
+      buttons = quicks.map(q => ({ type:'QUICK_REPLY', text:q.text.trim() }));
     }
+
+    const payload = {
+      name: name.trim(),
+      language_code: language,              // ex: pt_BR
+      category,                             // UTILITY | MARKETING | AUTHENTICATION
+      header_type: headerType || 'NONE',
+      header_text: headerType === 'TEXT' ? headerText.trim() : null,
+      body_text: bodyText.trim(),
+      footer_text: footerText.trim() || null,
+      buttons,
+      example: null,                        // se tiver exemplo, envie aqui
+    };
+
+    // 1) cria local (draft)
+    const created = await apiPost('/templates', payload); // retorna { id, ... }
+
+    // 2) submete na Meta
+    await apiPost(`/templates/${created.id}/submit`, {});
+
+    // 3) (opcional) sincroniza já para refletir IN_REVIEW / APPROVED / REJECTED
+    await apiPost(`/templates/${created.id}/sync`, {});
+
+    onCreated?.(); // fecha e recarrega lista
+  } catch (e2) {
+    console.error('Erro ao enviar template:', e2);
+    // Se falhar na submissão/sync, o rascunho já ficou salvo.
+    setErr(e2?.message || 'Falha ao enviar template para avaliação.');
+  } finally {
+    setSaving(false);
   }
+}
+
 
   if (!isOpen) return null;
 
