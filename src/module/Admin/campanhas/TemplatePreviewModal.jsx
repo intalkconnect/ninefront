@@ -26,21 +26,19 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
     template.header_type !== 'TEXT';
 
   return (
-    <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Prévia do template" onClick={onClose}>
-      <div className={styles.modal} onClick={(e)=>e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>Prévia — {template.name}</h3>
-          <button className={styles.alertClose} onClick={onClose} aria-label="Fechar">
+    <div className={styles.tpOverlay} role="dialog" aria-modal="true" aria-label="Prévia do template" onClick={onClose}>
+      <div className={styles.tpModal} onClick={(e)=>e.stopPropagation()}>
+        <div className={styles.tpHeader}>
+          <h3 className={styles.tpTitle}>Prévia — {template.name}</h3>
+          <button className={styles.tpClose} onClick={onClose} aria-label="Fechar">
             <XIcon size={16} />
           </button>
         </div>
 
-        <div className={styles.modalBody}>
-          {/* PHONE / CARD */}
+        <div className={styles.tpBody}>
           <div className={styles.waCard}>
             <div className={styles.waTopBar}>Seu modelo</div>
             <div className={styles.waScreen}>
-              {/* (opcional) mídia no cabeçalho */}
               {isMediaHeader && (
                 <div className={styles.waAttachment}>
                   {template.header_type === 'IMAGE'    && '📷 Imagem'}
@@ -49,7 +47,6 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
                 </div>
               )}
 
-              {/* bolha da mensagem */}
               <div className={styles.waBubble}>
                 {template.header_type === 'TEXT' && template.header_text && (
                   <div className={styles.waHeader}>{template.header_text}</div>
@@ -62,26 +59,21 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
                 </div>
 
                 {template.footer_text && (
-                  <div className={styles.waFooter}>
-                    {template.footer_text}
-                  </div>
+                  <div className={styles.waFooter}>{template.footer_text}</div>
                 )}
 
                 <div className={styles.waTime}>{fmtTime()}</div>
               </div>
 
-              {/* botões do template */}
               {btns.length > 0 && (
                 <div className={styles.waButtons}>
                   {btns.map((b, i) => (
                     <button
                       key={i}
                       type="button"
-                      className={
-                        (b?.type || '').toUpperCase() === 'QUICK_REPLY'
-                          ? styles.waBtnReply
-                          : styles.waBtnCta
-                      }
+                      className={(b?.type || '').toUpperCase() === 'QUICK_REPLY'
+                        ? styles.waBtnReply
+                        : styles.waBtnCta}
                       title={b?.type || 'BUTTON'}
                       onClick={(e)=>e.preventDefault()}
                     >
@@ -94,8 +86,10 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
           </div>
         </div>
 
-        <div className={styles.modalActions}>
-          <button className={styles.pill} onClick={onClose}><XIcon size={14}/> Fechar</button>
+        <div className={styles.tpFooter}>
+          <button onClick={onClose} className={styles.tpClose} aria-label="Fechar">
+            <XIcon size={14} />
+          </button>
         </div>
       </div>
     </div>
