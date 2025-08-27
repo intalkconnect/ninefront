@@ -1,5 +1,5 @@
 // File: Admin.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   Home,
   Bot,
@@ -17,6 +17,7 @@ import {
   LogOut,
   FolderClock,
   Headset,
+  User,
 } from "lucide-react";
 import {
   NavLink,
@@ -57,6 +58,8 @@ export default function Admin() {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // chave do menu aberto (mobile) / hover (desktop)
   const location = useLocation();
+  const [isProfileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
   useEffect(() => {
     const fetchAdminInfo = async () => {
