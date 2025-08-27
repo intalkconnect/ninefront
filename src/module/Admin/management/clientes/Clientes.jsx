@@ -5,8 +5,8 @@ import {
   RefreshCw,
   X as XIcon
 } from 'lucide-react';
-import { apiGet } from '../../../shared/apiClient';
-import styles from './styles/Users.module.css'; // reaproveita o CSS da página de usuários
+import { apiGet } from '../../../../shared/apiClient';
+import styles from './styles/Clientes.module.css'; // reaproveita o CSS da página de usuários
 
 const CHANNELS = [
   { key: '',           label: 'Todos' },
