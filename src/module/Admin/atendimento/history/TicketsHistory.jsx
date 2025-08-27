@@ -54,7 +54,7 @@ export default function TicketsHistory() {
     setError(null);
     try {
       // Ajuste a rota se necessário no seu backend.
-      const url = `/tickets/closed?${queryString}`;
+      const url = `/tickets/history?${queryString}`;
       const resp = await apiGet(url);
       const { data = [], total = 0, page = 1 } = resp || {};
       setItems(Array.isArray(data) ? data : []);
