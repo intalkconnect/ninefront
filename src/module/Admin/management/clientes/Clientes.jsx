@@ -1,12 +1,8 @@
 // src/pages/Clients/Clients.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import {
-  Users as UsersIcon,
-  RefreshCw,
-  X as XIcon
-} from 'lucide-react';
-import { apiGet } from '../../../../shared/apiClient';
-import styles from './styles/Clientes.module.css'; // reaproveita o CSS da página de usuários
+import { Users as UsersIcon, RefreshCw, X as XIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { apiGet } from '../../../shared/apiClient';
+import styles from './styles/Users.module.css';
 
 const CHANNELS = [
   { key: '',           label: 'Todos' },
@@ -17,81 +13,88 @@ const CHANNELS = [
 ];
 
 function prettyChannel(c) {
-  const map = {
-    whatsapp: 'WhatsApp',
-    telegram: 'Telegram',
-    instagram: 'Instagram',
-    facebook: 'Facebook'
-  };
+  const map = { whatsapp: 'WhatsApp', telegram: 'Telegram', instagram: 'Instagram', facebook: 'Facebook' };
   return map[(c || '').toLowerCase()] || (c ? String(c) : '—');
 }
-
 function phoneForDisplay(channel, phone) {
   return (String(channel).toLowerCase() === 'whatsapp' && phone) ? phone : '—';
 }
 
 export default function Clients() {
-  const [items, setItems]   = useState([]);
+  // dados vindos do servidor
+  const [rows, setRows]       = useState([]);
+  const [page, setPage]       = useState(1);
+  const [perPage, setPerPage] = useState(10); // 10 | 20 | 30 | 40
+  const [total, setTotal]     = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // ui
+  const [q, setQ] = useState('');
+  const [chan, setChan] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
 
-  const [q, setQ] = useState('');
-  const [chan, setChan] = useState('');
+  // acordeon (um aberto por vez)
+  const [openId, setOpenId] = useState(null);
 
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(10); // 10 | 20 | 30 | 40
+  const load = useCallback(async (opts = {}) => {
+    const nextPage   = Number(opts.page ?? page);
+    const nextLimit  = Number(opts.perPage ?? perPage);
+    const nextQuery  = String(opts.q ?? q);
 
-  const [selected, setSelected] = useState(null); // cliente selecionado para modal
-
-  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // se seu backend aceitar paginação server-side, adapte aqui (query string).
-      const data = await apiGet('/clientes');
-      setItems(Array.isArray(data) ? data : []);
-      setPage(1);
+      const qs = new URLSearchParams({
+        page: String(nextPage),
+        page_size: String(nextLimit),
+        q: nextQuery
+      }).toString();
+
+      const res = await apiGet(`/clientes?${qs}`);
+      const data = res?.data ?? [];
+      setRows(Array.isArray(data) ? data : []);
+      setPage(Number(res?.page || nextPage) || 1);
+      setPerPage(Number(res?.page_size || nextLimit) || 10);
+      setTotal(Number(res?.total || 0));
+      setTotalPages(Math.max(1, Number(res?.total_pages || 1)));
+      // se a página mudou, fecha o acordeon
+      setOpenId(null);
     } catch (e) {
       console.error(e);
       setError('Falha ao carregar clientes.');
+      setRows([]);
+      setTotal(0);
+      setTotalPages(1);
+      setOpenId(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, perPage, q]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, []); // primeira carga
 
+  // filtro por canal (client-side; se quiser server-side, passe ?channel= no backend e aplique no load)
   const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return items.filter(c => {
-      if (chan && String(c.channel || '').toLowerCase() !== chan) return false;
-      if (!needle) return true;
-      const name  = String(c.name || '').toLowerCase();
-      const uid   = String(c.user_id || '').toLowerCase();
-      const phone = String(c.phone || '').toLowerCase();
-      return name.includes(needle) || uid.includes(needle) || phone.includes(needle);
-    });
-  }, [items, chan, q]);
+    if (!chan) return rows;
+    return rows.filter(r => String(r.channel || '').toLowerCase() === chan);
+  }, [rows, chan]);
 
-  const total = filtered.length;
-  const lastPage = Math.max(1, Math.ceil(total / perPage));
-  const pageSafe = Math.min(page, lastPage);
+  // paginação
+  const gotoFirst = () => load({ page: 1 });
+  const gotoPrev  = () => load({ page: Math.max(1, page - 1) });
+  const gotoNext  = () => load({ page: Math.min(totalPages, page + 1) });
+  const gotoLast  = () => load({ page: totalPages });
 
-  const startIdx = (pageSafe - 1) * perPage;
-  const endIdx   = startIdx + perPage;
-  const pageRows = filtered.slice(startIdx, endIdx);
+  const startIdx = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const endIdx   = Math.min(page * perPage, total);
 
-  const gotoFirst = () => setPage(1);
-  const gotoPrev  = () => setPage(p => Math.max(1, p - 1));
-  const gotoNext  = () => setPage(p => Math.min(lastPage, p + 1));
-  const gotoLast  = () => setPage(lastPage);
-
+  // render
   return (
     <div className={styles.container}>
-      {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}><UsersIcon size={22} /> Clientes</h1>
+          <h1 className={styles.title}><UsersIcon size={22}/> Clientes</h1>
           <p className={styles.subtitle}>Listagem de clientes com paginação.</p>
 
           {error && (
@@ -106,20 +109,13 @@ export default function Clients() {
         </div>
 
         <div className={styles.headerActions}>
-          <input
-            className={styles.searchInput}
-            placeholder="Buscar por nome, telefone ou user_id…"
-            value={q}
-            onChange={(e) => { setQ(e.target.value); setPage(1); }}
-          />
-          <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
+          <button className={styles.btn} onClick={() => load()}><RefreshCw size={16}/> Atualizar</button>
         </div>
       </div>
 
-      {/* Card */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          {/* Filtro por canal (chips) */}
+          {/* filtros de canal */}
           <div className={styles.tabs} role="tablist" aria-label="Filtrar por canal">
             {CHANNELS.map(c => (
               <button
@@ -127,7 +123,7 @@ export default function Clients() {
                 role="tab"
                 aria-selected={chan === c.key}
                 className={`${styles.tab} ${chan === c.key ? styles.tabActive : ''}`}
-                onClick={() => { setChan(c.key); setPage(1); }}
+                onClick={() => setChan(c.key)}
                 type="button"
               >
                 {c.label}
@@ -135,17 +131,22 @@ export default function Clients() {
             ))}
           </div>
 
-          {/* Busca duplicada no header do card (opcional) */}
+          {/* busca única */}
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
               placeholder="Buscar por nome, telefone ou user_id…"
               value={q}
-              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') load({ page: 1, q: e.currentTarget.value }); }}
             />
             {q && (
-              <button className={styles.searchClear} onClick={() => setQ('')} aria-label="Limpar busca">
-                <XIcon size={14} />
+              <button
+                className={styles.searchClear}
+                onClick={() => { setQ(''); load({ page: 1, q: '' }); }}
+                aria-label="Limpar busca"
+              >
+                <XIcon size={14}/>
               </button>
             )}
           </div>
@@ -166,90 +167,93 @@ export default function Clients() {
                 <tr><td colSpan={4} className={styles.loading}>Carregando…</td></tr>
               )}
 
-              {!loading && pageRows.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr><td colSpan={4} className={styles.empty}>Nenhum cliente encontrado.</td></tr>
               )}
 
-              {!loading && pageRows.map(c => (
-                <tr
-                  key={c.id || c.user_id}
-                  className={styles.rowHover}
-                  onClick={() => setSelected(c)}
-                  style={{ cursor: 'pointer' }}
-                  title="Clique para ver detalhes"
-                >
-                  <td data-label="Nome">{c.name || '—'}</td>
-                  <td data-label="User ID">{c.user_id || '—'}</td>
-                  <td data-label="Telefone">
-                    {phoneForDisplay(c.channel, c.phone)}
-                  </td>
-                  <td data-label="Canal">{prettyChannel(c.channel)}</td>
-                </tr>
-              ))}
+              {!loading && filtered.map(c => {
+                const isOpen = openId === c.user_id;
+                const NomeCell = (
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    {isOpen ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
+                    <span>{c.name || '—'}</span>
+                  </div>
+                );
+                return (
+                  <React.Fragment key={c.user_id}>
+                    <tr
+                      className={styles.rowHover}
+                      onClick={() => setOpenId(isOpen ? null : c.user_id)}
+                      style={{ cursor:'pointer' }}
+                      title="Clique para ver detalhes"
+                    >
+                      <td data-label="Nome">{NomeCell}</td>
+                      <td data-label="Canal">{prettyChannel(c.channel)}</td>
+                    </tr>
+
+                    {isOpen && (
+                      <tr>
+                        <td colSpan={4} style={{
+                          background: '#fafafa',
+                          borderBottom: '1px solid var(--qr-border-light)',
+                          padding: 0
+                        }}>
+                          {/* conteúdo do acordeon */}
+                          <div style={{
+                            padding: '14px 18px',
+                            display:'grid',
+                            gridTemplateColumns:'repeat(2, minmax(0, 1fr))',
+                            gap: '12px'
+                          }}>
+                            <Detail label="Nome" value={c.name || '—'} />
+                            <Detail label="User ID" value={c.user_id || '—'} />
+                            <Detail label="Telefone" value={phoneForDisplay(c.channel, c.phone)} />
+                            <Detail label="Canal" value={prettyChannel(c.channel)} />
+                            <Detail label="Criado em" value={c.created_at ? new Date(c.created_at).toLocaleString() : '—'} />
+                            <Detail label="Atualizado em" value={c.updated_at ? new Date(c.updated_at).toLocaleString() : '—'} />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        {/* Rodapé: paginação */}
+        {/* paginação */}
         <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 16px' }}>
           <span className={styles.muted}>
-            Mostrando {total === 0 ? 0 : startIdx + 1}–{Math.min(endIdx, total)} de {total}
+            Mostrando {startIdx}–{endIdx} de {total}
           </span>
 
-          <div style={{ marginLeft: 'auto', display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
             <select
               className={styles.selectInline}
               value={perPage}
-              onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }}
+              onChange={(e) => load({ page: 1, perPage: Number(e.target.value) })}
             >
               {[10,20,30,40].map(n => <option key={n} value={n}>{n} por página</option>)}
             </select>
 
-            <button className={styles.btn} onClick={gotoFirst} disabled={pageSafe === 1}>« Primeiro</button>
-            <button className={styles.btn} onClick={gotoPrev}  disabled={pageSafe === 1}>Anterior</button>
-            <span className={styles.muted}>Página {pageSafe} de {lastPage}</span>
-            <button className={styles.btn} onClick={gotoNext}  disabled={pageSafe === lastPage}>Próxima</button>
-            <button className={styles.btn} onClick={gotoLast}  disabled={pageSafe === lastPage}>Última »</button>
+            <button className={styles.btn} onClick={gotoFirst} disabled={page <= 1}>« Primeiro</button>
+            <button className={styles.btn} onClick={gotoPrev}  disabled={page <= 1}>Anterior</button>
+            <span className={styles.muted}>Página {page} de {totalPages}</span>
+            <button className={styles.btn} onClick={gotoNext}  disabled={page >= totalPages}>Próxima</button>
+            <button className={styles.btn} onClick={gotoLast}  disabled={page >= totalPages}>Última »</button>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Modal de detalhes */}
-      {selected && (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Detalhes do cliente" onClick={() => setSelected(null)}>
-          <div className={styles.modal} onClick={(e)=>e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>Cliente</h3>
-              <button className={styles.btn} onClick={() => setSelected(null)} aria-label="Fechar">
-                <XIcon size={16}/>
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              <div className={styles.formGrid}>
-                <div className={styles.inputGroup}>
-                  <span className={styles.label}>Nome</span>
-                  <div>{selected.name || '—'}</div>
-                </div>
-                <div className={styles.inputGroup}>
-                  <span className={styles.label}>User ID</span>
-                  <div>{selected.user_id || '—'}</div>
-                </div>
-                <div className={styles.inputGroup}>
-                  <span className={styles.label}>Telefone</span>
-                  <div>{phoneForDisplay(selected.channel, selected.phone)}</div>
-                </div>
-                <div className={styles.inputGroup}>
-                  <span className={styles.label}>Canal</span>
-                  <div>{prettyChannel(selected.channel)}</div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.btn} onClick={() => setSelected(null)}>Fechar</button>
-            </div>
-          </div>
-        </div>
-      )}
+function Detail({ label, value }) {
+  return (
+    <div>
+      <div style={{ fontSize:12, fontWeight:800, color:'var(--qr-text-2)' }}>{label}</div>
+      <div>{value}</div>
     </div>
   );
 }
