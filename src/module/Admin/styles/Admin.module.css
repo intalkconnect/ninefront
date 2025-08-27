@@ -28,7 +28,7 @@
 .open .megamenu{opacity:1;transform:translateY(0);pointer-events:auto}
 .megagrid{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:260px} 
 .megaitem{border-radius:10px}
-.megalink{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;color:#374151;border:1px solid transparent;justify-content:space-between} .megalink:hover{background:#f9fafb;border-color:#f3f4f6}
+.megalink{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;color:#374151;border:1px solid transparent}
 .megalink:hover{background:#f9fafb;border-color:#f3f4f6}
 .megaicon{display:flex;align-items:center}
 .chev{margin-left:auto;opacity:.4}
@@ -70,3 +70,4 @@
 
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus{outline:2px solid #2563eb;outline-offset:2px}
+
