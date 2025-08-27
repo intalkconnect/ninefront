@@ -35,7 +35,7 @@ import QuickReplies from './atendimento/QuickReplies';
 import Templates from './campanhas/Templates';
 import UsersPage from './management/Users';
 import Clientes from './management/clientes/Clientes';
-import History from './atendimento/TicketsHistory';
+import History from './atendimento/history/TicketsHistory';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
