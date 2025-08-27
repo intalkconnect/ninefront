@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import {
   Info, TrendingUp, Clock, Users, BarChart2,
-  LineChart as LineIcon, Activity, AlertTriangle, Gauge, Smile, Home,
+  LineChart as LineIcon, Activity, AlertTriangle, Gauge, Smile, LayoutDashboard,
 } from 'lucide-react';
 import styles from './styles/Dashboard.module.css';
 
@@ -337,7 +337,7 @@ export default function Dashboard() {
     <div className={styles.container}>
       {/* Indicador da página */}
       <div className={styles.crumbBar}>
-        <span className={styles.crumb}><Home size={14} /> <span>Dashboard</span></span>
+        <span className={styles.crumb}><LayoutDashboard size={14} /> <span>Dashboard</span></span>
         {erro ? <span className={styles.crumbError}>• {erro}</span> : null}
       </div>
 
@@ -503,3 +503,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
