@@ -1,21 +1,15 @@
 .container {
-  /* Força scroll vertical no próprio dashboard */
-  height: 100dvh;
-  height: 100vh; /* fallback */
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
+  /* deixa crescer e usa o scroll da JANELA */
+  height: auto;
+  min-height: calc(100vh - 56px); /* 56px ≈ altura da topbar; ajuste se a sua for outra */
+  overflow: visible;
+  flex: 1 1 auto;
 
   /* base */
   background: #f7f7fb;
   padding: 24px;
   color: #111827;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-
-  /* se o container estiver dentro de layout flex, isso evita “estouro” */
-  min-height: 0;
-  flex: 1 1 auto;
 }
 
 .header { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:18px; }
