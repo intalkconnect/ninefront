@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Gauge,
   Smile,
+  Home,
 } from 'lucide-react';
 import styles from './styles/Dashboard.module.css';
 
@@ -39,6 +40,10 @@ const useDebounce = (value, delay = 300) => {
     return () => clearTimeout(t);
   }, [value, delay]);
   return deb;
+};
+
+const safeGet = async (url) => {
+  try { return await apiGet(url); } catch { return null; }
 };
 
 /* ========================= Tooltip adaptativo ========================= */
@@ -99,6 +104,26 @@ const Stat = ({ label, value, tone = 'default', hint }) => (
     <div className={styles.statValue}>{value}</div>
     <div className={styles.statLabel}>{label}</div>
     {hint ? <div className={styles.statHint}>{hint}</div> : null}
+  </div>
+);
+
+/* ========================= Skeleton ========================= */
+const Skeleton = ({ w = '100%', h = 14, r = 10, className }) => (
+  <div className={`${styles.skeleton} ${className || ''}`} style={{ width: w, height: h, borderRadius: r }} />
+);
+
+const SkeletonCard = () => (
+  <div className={styles.card}>
+    <div className={styles.cardHead}>
+      <div className={styles.cardTitle}>
+        <Skeleton w={18} h={18} r={6} />
+        <Skeleton w={120} h={16} />
+      </div>
+      <Skeleton w={80} h={16} />
+    </div>
+    <div className={styles.cardBody}>
+      <Skeleton w="100%" h={90} />
+    </div>
   </div>
 );
 
@@ -245,12 +270,13 @@ const Dashboard = () => {
   const [abandonment, setAbandonment] = useState({ taxa_pct: 0, abandonados: 0, total: 0, threshold_min: 15 });
   const [aging, setAging] = useState([]);
 
-  // novos: NPS & CSAT
-  const [nps, setNps] = useState({ score: 0, promoters: 0, passives: 0, detractors: 0, responses: 0 });
-  const [csat, setCsat] = useState({ pct: 0, avg: 0, responses: 0, counts: {} });
+  // novos: NPS & CSAT (gracioso se endpoint não existir)
+  const [nps, setNps] = useState({ score: 0, promoters: 0, passives: 0, detractors: 0, responses: 0, available: false });
+  const [csat, setCsat] = useState({ pct: 0, avg: 0, responses: 0, counts: {}, available: false });
 
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -266,9 +292,11 @@ const Dashboard = () => {
         const abd = await apiGet(`/analytics/metrics/abandonment?threshold_min=15&${qs(params)}`);
         const ag = await apiGet(`/analytics/metrics/aging-by-queue`);
 
-        // novos endpoints (tente nomes padrão, com fallback de chaves)
-        const npsRaw = await apiGet(`/analytics/metrics/nps?${qs(params)}`);
-        const csatRaw = await apiGet(`/analytics/metrics/csat?${qs(params)}`);
+        // tentativas graciosas:
+        const [npsRaw, csatRaw] = await Promise.all([
+          safeGet(`/analytics/metrics/nps?${qs(params)}`),
+          safeGet(`/analytics/metrics/csat?${qs(params)}`),
+        ]);
 
         setSummary(s || null);
         setQueues(Array.isArray(q) ? q : []);
@@ -278,27 +306,34 @@ const Dashboard = () => {
         setAbandonment(abd || { taxa_pct: 0, abandonados: 0, total: 0, threshold_min: 15 });
         setAging(Array.isArray(ag) ? ag : []);
 
-        // NPS: normaliza
-        const npsNorm = {
-          score: Number(npsRaw?.nps ?? npsRaw?.score ?? 0),
-          promoters: fmtInt(npsRaw?.promoters ?? npsRaw?.promotores ?? 0),
-          passives: fmtInt(npsRaw?.passives ?? npsRaw?.neutros ?? 0),
-          detractors: fmtInt(npsRaw?.detractors ?? npsRaw?.detratores ?? 0),
-          responses: fmtInt(npsRaw?.responses ?? npsRaw?.respostas ?? 0),
-        };
-        setNps(npsNorm);
+        if (npsRaw && typeof npsRaw === 'object') {
+          setNps({
+            score: Number(npsRaw?.nps ?? npsRaw?.score ?? 0),
+            promoters: fmtInt(npsRaw?.promoters ?? npsRaw?.promotores ?? 0),
+            passives: fmtInt(npsRaw?.passives ?? npsRaw?.neutros ?? 0),
+            detractors: fmtInt(npsRaw?.detractors ?? npsRaw?.detratores ?? 0),
+            responses: fmtInt(npsRaw?.responses ?? npsRaw?.respostas ?? 0),
+            available: true,
+          });
+        } else {
+          setNps((p) => ({ ...p, available: false }));
+        }
 
-        // CSAT: normaliza; pct = % de avaliações 4-5
-        const counts = csatRaw?.counts || csatRaw?.notas || {};
-        const resp = fmtInt(csatRaw?.responses ?? csatRaw?.respostas ?? 0);
-        const good = fmtInt((counts?.[4] || 0) + (counts?.[5] || 0));
-        const pct = resp ? (good / resp) * 100 : Number(csatRaw?.csat_pct ?? csatRaw?.pct ?? 0);
-        setCsat({ pct: pct || 0, avg: Number(csatRaw?.avg ?? csatRaw?.media ?? 0), responses: resp, counts: counts || {} });
+        if (csatRaw && typeof csatRaw === 'object') {
+          const counts = csatRaw?.counts || csatRaw?.notas || {};
+          const resp = fmtInt(csatRaw?.responses ?? csatRaw?.respostas ?? 0);
+          const good = fmtInt((counts?.[4] || 0) + (counts?.[5] || 0));
+          const pct = resp ? (good / resp) * 100 : Number(csatRaw?.csat_pct ?? csatRaw?.pct ?? 0);
+          setCsat({ pct: pct || 0, avg: Number(csatRaw?.avg ?? csatRaw?.media ?? 0), responses: resp, counts: counts || {}, available: true });
+        } else {
+          setCsat((p) => ({ ...p, available: false }));
+        }
       } catch (e) {
         console.error(e);
         setErro('Falha ao carregar métricas. Tente ajustar o período.');
       } finally {
         setLoading(false);
+        setFirstLoad(false);
       }
     };
     if (debFrom && debTo) fetchAll();
@@ -375,14 +410,14 @@ const Dashboard = () => {
   /* ========================= Render ========================= */
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Dashboard Analítico</h1>
-          <p className={styles.subtitle}>Visão consolidada de métricas (sem tempo real)</p>
-          {erro ? <p className={styles.error}>{erro}</p> : null}
-        </div>
+      {/* Indicador da página (no lugar do título grande) */}
+      <div className={styles.crumbBar}>
+        <span className={styles.crumb}><Home size={14} /> <span>Dashboard</span></span>
+        {erro ? <span className={styles.crumbError}>• {erro}</span> : null}
+      </div>
 
-        {/* Filtros de período */}
+      {/* Filtros de período */}
+      <div className={styles.headerRow}>
         <div className={styles.filters}>
           <div className={styles.filterItem}>
             <label>De</label>
@@ -396,53 +431,75 @@ const Dashboard = () => {
       </div>
 
       {/* KPIs de topo */}
-      <div className={styles.statRow}>
-        <Card title="Tickets criados (período)" icon={<TrendingUp size={18} />} help="Quantidade total de tickets criados no intervalo selecionado.">
-          <Stat label="Criados" value={fmtInt(totalCriados)} tone="blue" />
-        </Card>
+      {firstLoad && loading ? (
+        <div className={styles.statRow}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : (
+        <div className={styles.statRow}>
+          <Card title="Tickets criados (período)" icon={<TrendingUp size={18} />} help="Quantidade total de tickets criados no intervalo selecionado.">
+            <Stat label="Criados" value={fmtInt(totalCriados)} tone="blue" />
+          </Card>
 
-        <Card title="Backlog atual" icon={<Activity size={18} />} help="Quantidade de tickets abertos no momento (snapshot).">
-          <div className={styles.statsGrid3}>
-            <Stat label="Abertos" value={backlogAberto} tone="purple" />
-            <Stat label="Aguardando" value={aguardando} tone="amber" />
-            <Stat label="Em atendimento" value={emAtendimento} tone="green" />
-          </div>
-        </Card>
+          <Card title="Backlog atual" icon={<Activity size={18} />} help="Quantidade de tickets abertos no momento (snapshot).">
+            <div className={styles.statsGrid3}>
+              <Stat label="Abertos" value={backlogAberto} tone="purple" />
+              <Stat label="Aguardando" value={aguardando} tone="amber" />
+              <Stat label="Em atendimento" value={emAtendimento} tone="green" />
+            </div>
+          </Card>
 
-        <Card title="SLA de 1ª resposta (15m)" icon={<Gauge size={18} />} help="Percentual de tickets respondidos em até 15 minutos (por dia), no período. Abaixo, donut mostra o inverso do abandono.">
-          <Donut percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? 100 - +abandonment.taxa_pct : 0} label="Dentro do SLA" />
-          <div className={styles.subtleCenter}>Abandono: {fmtPct(abandonment?.taxa_pct ?? 0)} • Limite {abandonment?.threshold_min ?? 15}m</div>
-        </Card>
-      </div>
+          <Card title="SLA de 1ª resposta (15m)" icon={<Gauge size={18} />} help="Percentual de tickets respondidos em até 15 minutos (por dia), no período. Abaixo, donut mostra o inverso do abandono.">
+            <Donut percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? 100 - +abandonment.taxa_pct : 0} label="Dentro do SLA" />
+            <div className={styles.subtleCenter}>Abandono: {fmtPct(abandonment?.taxa_pct ?? 0)} • Limite {abandonment?.threshold_min ?? 15}m</div>
+          </Card>
+        </div>
+      )}
 
       {/* NPS & CSAT */}
       <div className={styles.gridTwo}>
         <Card title="NPS (Net Promoter Score)" icon={<Smile size={18} />} help="NPS no período selecionado. Marcador indica a posição em –100 a 100." right={<span className={styles.kpill}>{fmtInt(nps.responses)} respostas</span>}>
-          <NpsGauge score={nps.score} />
-          <div className={styles.npsBreakdown}>
-            <span className={styles.kpillGreen}>Promotores: {fmtInt(nps.promoters)}</span>
-            <span className={styles.kpillAmber}>Neutros: {fmtInt(nps.passives)}</span>
-            <span className={styles.kpillRed}>Detratores: {fmtInt(nps.detractors)}</span>
-          </div>
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={64} />
+          ) : nps.available ? (
+            <>
+              <NpsGauge score={nps.score} />
+              <div className={styles.npsBreakdown}>
+                <span className={styles.kpillGreen}>Promotores: {fmtInt(nps.promoters)}</span>
+                <span className={styles.kpillAmber}>Neutros: {fmtInt(nps.passives)}</span>
+                <span className={styles.kpillRed}>Detratores: {fmtInt(nps.detractors)}</span>
+              </div>
+            </>
+          ) : (
+            <div className={styles.empty}>Endpoint de NPS não disponível.</div>
+          )}
         </Card>
 
         <Card title="CSAT (Satisfação do Cliente)" icon={<Smile size={18} />} help="Percentual de avaliações satisfeitas (4★ e 5★) no período." right={<span className={styles.kpill}>{satisfiedHint}</span>}>
-          <div className={styles.csatRow}>
-            <Donut percent={csat.pct || 0} label="Satisfeitos" />
-            <div className={styles.csatSide}>
-              <div className={styles.csatBig}>{fmtPct(csat.pct || 0)}</div>
-              <div className={styles.csatAvg}>Média: {Number(csat.avg || 0).toFixed(2)} ★</div>
-              <CsatDistribution counts={csat.counts} />
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={96} />
+          ) : csat.available ? (
+            <div className={styles.csatRow}>
+              <Donut percent={csat.pct || 0} label="Satisfeitos" />
+              <div className={styles.csatSide}>
+                <div className={styles.csatBig}>{fmtPct(csat.pct || 0)}</div>
+                <div className={styles.csatAvg}>Média: {Number(csat.avg || 0).toFixed(2)} ★</div>
+                <CsatDistribution counts={csat.counts} />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className={styles.empty}>Endpoint de CSAT não disponível.</div>
+          )}
         </Card>
       </div>
 
       {/* Linha de gráficos */}
       <div className={styles.gridTwo}>
         <Card title="FRT diário (média em minutos)" icon={<LineIcon size={18} />} help="FRT (First Response Time) médio por dia: tempo da primeira mensagem do cliente até a primeira resposta do agente.">
-          {loading && frtSerie.length === 0 ? (
-            <div className={styles.loading}>Carregando…</div>
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={220} />
           ) : frtSerie.length === 0 ? (
             <div className={styles.empty}>Sem dados para o período.</div>
           ) : (
@@ -451,8 +508,8 @@ const Dashboard = () => {
         </Card>
 
         <Card title="SLA 15m por dia" icon={<Clock size={18} />} help="Percentual de tickets respondidos em até 15 minutos (por dia) no período selecionado.">
-          {loading && slaDia.length === 0 ? (
-            <div className={styles.loading}>Carregando…</div>
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={220} />
           ) : slaDia.length === 0 ? (
             <div className={styles.empty}>Sem dados para o período.</div>
           ) : (
@@ -463,8 +520,8 @@ const Dashboard = () => {
 
       <div className={styles.gridTwo}>
         <Card title="Tempo de resposta por agente (ART médio)" icon={<Users size={18} />} help="ART (Agent Response Time) médio por agente — tempo entre uma mensagem do cliente e a primeira resposta do agente.">
-          {loading && artBars.length === 0 ? (
-            <div className={styles.loading}>Carregando…</div>
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={180} />
           ) : artBars.length === 0 ? (
             <div className={styles.empty}>Sem dados para o período.</div>
           ) : (
@@ -495,8 +552,8 @@ const Dashboard = () => {
         </Card>
 
         <Card title="Backlog por fila (snapshot)" icon={<BarChart2 size={18} />} help="Quantidade de tickets abertos por fila no momento (snapshot atual).">
-          {loading && queuesBacklog.length === 0 ? (
-            <div className={styles.loading}>Carregando…</div>
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={180} />
           ) : queuesBacklog.length === 0 ? (
             <div className={styles.empty}>Sem dados.</div>
           ) : (
@@ -507,8 +564,8 @@ const Dashboard = () => {
 
       <div className={styles.gridTwo}>
         <Card title="Duração média das conversas por fila" icon={<AlertTriangle size={18} />} help="Tempo médio do ciclo de conversa por fila (diferença entre a primeira e a última mensagem) no período selecionado.">
-          {loading && durationBars.length === 0 ? (
-            <div className={styles.loading}>Carregando…</div>
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={180} />
           ) : durationBars.length === 0 ? (
             <div className={styles.empty}>Sem dados para o período.</div>
           ) : (
@@ -539,7 +596,9 @@ const Dashboard = () => {
         </Card>
 
         <Card title="Aging do backlog por fila (snapshot)" icon={<Activity size={18} />} help="Distribuição dos tickets abertos por faixas de idade (0–15m, 15–30m, 30–60m, 1–4h, >4h) por fila — estado atual.">
-          {aging.length === 0 ? (
+          {firstLoad && loading ? (
+            <Skeleton w="100%" h={160} />
+          ) : aging.length === 0 ? (
             <div className={styles.empty}>Sem dados.</div>
           ) : (
             <div className={styles.tableWrap}>
