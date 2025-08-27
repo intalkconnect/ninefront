@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './styles/Templates.module.css';
+import styles from './styles/TemplatePreview.module.css';
 import { X as XIcon } from 'lucide-react';
 
 function parseButtons(raw) {
