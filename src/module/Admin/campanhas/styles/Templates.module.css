@@ -1,6 +1,6 @@
 :root{
   /* Paleta base do projeto */
-  --qr-bg:#ffffff;
+  --qr-bg:#f6f7fb;
   --qr-surface:#f7f8fa;
   --qr-surface-2:#f1f5f9;
 
@@ -34,7 +34,7 @@
   min-height:0 !important;
   overflow-x:hidden; /* evita scroll horizontal acidental na página */
   padding:24px 24px 32px;
-  background: linear-gradient(180deg, var(--qr-surface) 0%, #fff 600px);
+  background:transparent !important;
 }
 
 .header{
