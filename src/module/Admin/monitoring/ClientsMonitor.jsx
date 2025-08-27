@@ -307,7 +307,6 @@ const ClientsMonitor = () => {
                   </td>
                   <td className={styles.actionsCell}>
                     <button className={styles.linkBtn}>Ver</button>
-                    <button className={styles.linkBtnSuccess}>Assumir</button>
                     <button className={styles.linkBtnDanger}>Transferir</button>
                   </td>
                 </tr>
