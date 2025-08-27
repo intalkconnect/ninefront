@@ -36,9 +36,11 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
         </div>
 
         <div className={styles.tpBody}>
+          {/* PHONE / CARD */}
           <div className={styles.waCard}>
             <div className={styles.waTopBar}>Seu modelo</div>
             <div className={styles.waScreen}>
+              {/* (opcional) mídia no cabeçalho */}
               {isMediaHeader && (
                 <div className={styles.waAttachment}>
                   {template.header_type === 'IMAGE'    && '📷 Imagem'}
@@ -47,6 +49,7 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
                 </div>
               )}
 
+              {/* bolha da mensagem */}
               <div className={styles.waBubble}>
                 {template.header_type === 'TEXT' && template.header_text && (
                   <div className={styles.waHeader}>{template.header_text}</div>
@@ -59,12 +62,15 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
                 </div>
 
                 {template.footer_text && (
-                  <div className={styles.waFooter}>{template.footer_text}</div>
+                  <div className={styles.waFooter}>
+                    {template.footer_text}
+                  </div>
                 )}
 
                 <div className={styles.waTime}>{fmtTime()}</div>
               </div>
 
+              {/* botões do template */}
               {btns.length > 0 && (
                 <div className={styles.waButtons}>
                   {btns.map((b, i) => (
@@ -87,9 +93,7 @@ export default function TemplatePreviewModal({ isOpen, template, onClose }) {
         </div>
 
         <div className={styles.tpFooter}>
-          <button onClick={onClose} className={styles.tpClose} aria-label="Fechar">
-            <XIcon size={14} />
-          </button>
+          <button onClick={onClose}>Fechar</button>
         </div>
       </div>
     </div>
