@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Users as UsersIcon, ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
 import { apiGet } from '../../../../shared/apiClient';
-import styles from './styles/Clients.module.css';
+import styles from './styles/Clientes.module.css';
 
 const CHANNELS = [
   { key: '',          label: 'Todos' },
