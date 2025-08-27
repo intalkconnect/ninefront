@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { apiPost } from '../../../shared/apiClient';
-import styles from './styles/Templates.module.css';
+import styles from './styles/TemplateCreate.module.css';
 import { X as XIcon, Save as SaveIcon } from 'lucide-react';
 
 const CATEGORIES = [
