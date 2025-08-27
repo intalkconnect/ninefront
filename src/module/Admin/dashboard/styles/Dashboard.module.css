@@ -1,19 +1,23 @@
 
 /* File: styles/Dashboard.module.css */
 .container{height:auto;min-height:calc(100vh - 56px);overflow:hidden;flex:1 1 auto;background:#f7f7fb;padding:24px;color:#111827;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-.header{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;margin-bottom:18px}
-.title{margin:0;font-size:26px;font-weight:800}
-.subtitle{margin:6px 0 0;color:#4b5563}
-.error{margin-top:6px;color:#b91c1c;font-weight:600}
+
+/* indicador de página + alertas curtos */
+.crumbBar{display:flex;align-items:center;gap:8px;margin:4px 0 12px}
+.crumb{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:999px;font-weight:700;color:#111827;box-shadow:0 1px 1px rgba(0,0,0,.02)}
+.crumbError{color:#b91c1c;font-size:12px}
+
+/* filtros no topo, colados à direita para ficar limpo */
+.headerRow{display:flex;justify-content:flex-end;margin-bottom:6px}
 .filters{display:flex;gap:12px;align-items:flex-end}
 .filterItem{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#374151}
 .filterItem input{padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font-size:14px}
 
-.statRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:16px 0 24px}
+.statRow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:12px 0 16px}
 @media (max-width:1024px){.statRow{grid-template-columns:1fr}}
 
 .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 1px 1px rgba(0,0,0,.02);display:flex;flex-direction:column;min-height:120px;overflow:hidden}
-.cardHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #f1f3f5;background:linear-gradient(180deg,#ffffff, #fbfbfd)}
+.cardHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #f1f3f5;background:linear-gradient(180deg,#ffffff,#fbfbfd)}
 .cardTitle{display:flex;align-items:center;gap:8px;font-weight:700}
 .cardIcon{display:inline-flex;align-items:center;color:#374151}
 .cardRight{display:flex;align-items:center;gap:8px}
@@ -23,6 +27,10 @@
 .kpillGreen{font-size:12px;font-weight:700;color:#166534;background:#ecfdf5;border:1px solid #a7f3d0;padding:4px 8px;border-radius:999px}
 .kpillAmber{font-size:12px;font-weight:700;color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:4px 8px;border-radius:999px}
 .kpillRed{font-size:12px;font-weight:700;color:#7f1d1d;background:#fef2f2;border:1px solid #fecaca;padding:4px 8px;border-radius:999px}
+
+/* Skeleton */
+@keyframes shine{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skeleton{background:linear-gradient(90deg,#f2f4f7 0%,#eceff3 50%,#f2f4f7 100%);background-size:200% 100%;animation:shine 1.2s infinite;display:block}
 
 /* Stats */
 .statsGrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -64,7 +72,7 @@
 /* NPS */
 .npsWrap{display:flex;align-items:center;gap:12px}
 .npsScale{position:relative;flex:1}
-.npsTrack{height:10px;border-radius:999px;background:linear-gradient(90deg,#ef4444, #f59e0b 50%, #16a34a)}
+.npsTrack{height:10px;border-radius:999px;background:linear-gradient(90deg,#ef4444,#f59e0b 50%,#16a34a)}
 .npsMarker{position:absolute;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:999px;background:#111827;box-shadow:0 0 0 2px #fff}
 .npsLabels{display:flex;justify-content:space-between;font-size:10px;color:#6b7280;margin-top:6px}
 .npsValue{font-size:22px;font-weight:800;min-width:56px;text-align:right}
