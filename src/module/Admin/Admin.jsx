@@ -1,7 +1,7 @@
 // File: Admin.jsx
 import { useEffect, useMemo, useState, useRef } from "react";
 import {
-  Home,
+  LayoutDashboard,
   Bot,
   Users,
   MessageCircle,
@@ -118,7 +118,7 @@ export default function Admin() {
         key: "dashboard",
         label: "Dashboard",
         to: DASHBOARD_PATH,
-        icon: <Home size={18} />,
+        icon: <LayoutDashboard size={18} />,
         exact: true,
       },
       {
