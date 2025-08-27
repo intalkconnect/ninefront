@@ -35,10 +35,10 @@ import QuickReplies from './atendimento/QuickReplies';
 import Templates from './campanhas/Templates';
 import UsersPage from './management/Users';
 import Clientes from './management/clientes/Clientes';
+import History from './atendimento/TicketsHistory';
 
 // Componentes temporários para novas rotas
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
-const Historico = () => <div>Histórico de Mensagem</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
 
@@ -213,7 +213,7 @@ export default function Admin() {
                   label="Respostas Rápidas" 
                 />
                                 <DropdownLink 
-                  to="atendimento/historico" 
+                  to="atendimento/history" 
                   icon={<FolderClock size={16} />}
                   label="Histórico de Ticket" 
                 />
@@ -322,7 +322,7 @@ export default function Admin() {
           <Route path="management/users" element={<UsersPage />} />
           <Route path="atendimento/queues" element={<Queues />} />
           <Route path="atendimento/quick-replies" element={<QuickReplies />} />
-          <Route path="atendimento/historico" element={<Historico />} />
+          <Route path="atendimento/history" element={<History />} />
            <Route path="atendimento/clientes" element={<Clientes />} />
           <Route path="campaigns/templates" element={<Templates />} />
           
