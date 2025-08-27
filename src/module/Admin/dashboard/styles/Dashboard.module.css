@@ -2,7 +2,7 @@
   /* deixa crescer e usa o scroll da JANELA */
   height: auto;
   min-height: calc(100vh - 56px); /* 56px ≈ altura da topbar; ajuste se a sua for outra */
-  overflow: visible;
+  overflow: hidden;
   flex: 1 1 auto;
 
   /* base */
