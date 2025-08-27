@@ -224,6 +224,26 @@
 .inputHelper{ font-size:12px; color:var(--qr-muted); }
 .alertErr{ background:#fff; border:1px solid #fecaca; color:#991b1b; border-radius:10px; padding:10px 12px; }
 
+/* ===== Paginação simples ===== */
+.pagerBar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; padding:12px 16px; border-top:1px solid var(--qr-border-light);
+  background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%);
+}
+.pagerLeft{ display:flex; align-items:center; gap:10px; }
+.pagerRight{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.pagerInfo{ color:var(--qr-muted); font-size:13px; }
+.pagerBtns{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.pagerBtn{
+  appearance:none; border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer; transition:var(--t-fast);
+}
+.pagerBtn:hover{ background:var(--qr-surface-2); }
+.pagerBtn:disabled{ opacity:.5; cursor:not-allowed; }
+.pageSizeSelect{
+  height:36px; border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border-radius:10px; padding:0 10px; font-weight:700;
+}
 
 /* Responsive */
 @media (max-width:700px){
