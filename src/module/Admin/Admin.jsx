@@ -386,16 +386,16 @@ export default function Admin() {
           <Route path="monitoring/agents" element={<AgentsMonitor />} />
           <Route path="monitoring/clients" element={<ClientsMonitor />} />
           <Route path="management/users" element={<UsersPage />} />
-          <Route path="atendimento/queues" element={<Queues />} />
-          <Route path="atendimento/quick-replies" element={<QuickReplies />} />
-          <Route path="atendimento/history" element={<History />} />
-          <Route path="atendimento/clientes" element={<Clientes />} />
+          <Route path="management/queues" element={<Queues />} />
+          <Route path="management/quick-replies" element={<QuickReplies />} />
+          <Route path="management/history" element={<History />} />
+          <Route path="management/clientes" element={<Clientes />} />
           <Route path="campaigns/templates" element={<Templates />} />
-          <Route path="builder" element={<Builder />} />
-          <Route path="preferences" element={<Preferences />} />
-          <Route path="channels" element={<Channels />} />
-          <Route path="config/integrations" element={<Integrations />} />
-          <Route path="config/security" element={<Security />} />
+          <Route path="development/builder" element={<Builder />} />
+          <Route path="settings/preferences" element={<Preferences />} />
+          <Route path="settings/channels" element={<Channels />} />
+          <Route path="settings/integrations" element={<Integrations />} />
+          <Route path="settings/security" element={<Security />} />
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
       </main>
