@@ -131,6 +131,7 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
         <div className={styles.tcIntro}>
           Preencha os campos abaixo para fazer a submissão de um modelo de mensagem.
           <br />
+          <br />
           Lembre-se de seguir as <a href="#" onClick={(e)=>e.preventDefault()}>regras e boas práticas</a> propostas pelo Facebook.
         </div>
 
@@ -375,10 +376,6 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
               </>
             )}
 
-            {/* placeholder de tradução */}
-            <button type="button" className={styles.tcPill} onClick={(e)=>e.preventDefault()}>
-              + Adicionar tradução
-            </button>
           </form>
         </main>
 
@@ -390,7 +387,6 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
             className={styles.tcSubmit}
             disabled={!canSave || saving}
           >
-            <SaveIcon size={16} />
             {saving ? 'Enviando…' : 'Enviar para avaliação'}
           </button>
         </footer>
