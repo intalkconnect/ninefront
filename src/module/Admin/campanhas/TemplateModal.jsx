@@ -42,8 +42,8 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
   const [footerText, setFooterText] = useState('');
 
   const [buttonMode, setButtonMode] = useState('none'); // 'none' | 'cta' | 'quick'
-  const [ctas, setCtas] = useState([]);     // [{id, type:'URL'|'PHONE_NUMBER', text, url, phone_number}]
-  const [quicks, setQuicks] = useState([]); // [{id, text}]
+  const [ctas, setCtas] = useState([]);
+  const [quicks, setQuicks] = useState([]);
 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
@@ -63,14 +63,6 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
 
   const newId = () =>
     (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-
-  const addCta = () =>
-    setCtas(prev => (prev.length >= MAX_BTNS ? prev
-      : [...prev, { id:newId(), type:'URL', text:'', url:'', phone_number:'' }]));
-
-  const addQuick = () =>
-    setQuicks(prev => (prev.length >= MAX_BTNS ? prev
-      : [...prev, { id:newId(), text:'' }]));
 
   async function handleSave(e) {
     e.preventDefault();
@@ -115,104 +107,106 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <div className={styles.drawerOverlay} role="dialog" aria-modal="true" aria-label="Criar template" onMouseDown={onClose}>
-      <aside className={`${styles.drawer} ${styles.drawerRight}`} onMouseDown={e => e.stopPropagation()}>
-        {/* Cabeçalho compacto, estilo Meta */}
-        <div className={styles.drawerHeader}>
-          <h3>Novo modelo de mensagem</h3>
-          <button type="button" className={styles.drawerClose} onClick={onClose} aria-label="Fechar">
+    <div className={styles.tcOverlay} role="dialog" aria-modal="true" aria-label="Criar template" onMouseDown={onClose}>
+      <aside className={styles.tcDrawer} onMouseDown={e => e.stopPropagation()}>
+        {/* Cabeçalho */}
+        <div className={styles.tcHeader}>
+          <h3 className={styles.tcTitle}>Novo modelo de mensagem</h3>
+          <button type="button" className={styles.tcClose} onClick={onClose} aria-label="Fechar">
             <XIcon size={18} />
           </button>
         </div>
 
-        {/* Introdução curta */}
-        <div className={styles.drawerIntro}>
+        {/* Intro */}
+        <div className={styles.tcIntro}>
           Preencha os campos abaixo para fazer a submissão de um modelo de mensagem.
           <br />
           Lembre-se de seguir as <a href="#" onClick={e=>e.preventDefault()}>regras e boas práticas</a> propostas pelo Facebook.
         </div>
 
-        {/* Corpo (sem rolagem em alturas comuns; ainda assim overflow:auto se necessário) */}
-        <form className={styles.drawerBody} onSubmit={handleSave}>
-          {err && <div className={styles.alertErr} style={{marginBottom:8}}>{err}</div>}
+        {/* Corpo */}
+        <form className={styles.tcBody} onSubmit={handleSave}>
+          <div className={styles.tcForm}>
+            {err && <div style={{background:'#fff',border:'1px solid #fecaca',color:'#991b1b',padding:'8px 10px',borderRadius:8}}>{err}</div>}
 
-          {/* Nome */}
-          <div className={styles.inputGroupSm}>
-            <label className={styles.labelSm} htmlFor="tpl-name">Nome do modelo *</label>
-            <input
-              id="tpl-name"
-              className={styles.inputSm}
-              placeholder="Use letras minúsculas, números ou underline"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              required
-            />
-          </div>
+            {/* Nome */}
+            <div className={styles.tcGroup}>
+              <label className={styles.tcLabel} htmlFor="tpl-name">Nome do modelo *</label>
+              <input
+                id="tpl-name"
+                className={styles.tcInput}
+                placeholder="Use letras minúsculas, números ou underline"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
 
-          {/* Categoria */}
-          <div className={styles.inputGroupSm}>
-            <label className={styles.labelSm} htmlFor="tpl-category">Categoria *</label>
-            <select
-              id="tpl-category"
-              className={styles.selectSm}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-            >
-              <option value="" disabled>Selecione</option>
-              {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
-          </div>
-
-          {/* Idioma */}
-          <div className={styles.inputGroupSm}>
-            <label className={styles.labelSm} htmlFor="tpl-language">Idioma *</label>
-            <select
-              id="tpl-language"
-              className={styles.selectSm}
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              required
-            >
-              {LANGS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-            </select>
-          </div>
-
-          <hr className={styles.hrThin} />
-
-          {/* Tipo de cabeçalho — segmentado */}
-          <div className={styles.segmentedWrap}>
-            {HEADER_TYPES.map(h => (
-              <button
-                key={h.value}
-                type="button"
-                className={`${styles.segmentedItem} ${headerType === h.value ? styles.segmentedActive : ''}`}
-                onClick={() => setHeaderType(h.value)}
-                aria-pressed={headerType === h.value}
+            {/* Categoria */}
+            <div className={styles.tcGroup}>
+              <label className={styles.tcLabel} htmlFor="tpl-category">Categoria *</label>
+              <select
+                id="tpl-category"
+                className={styles.tcSelect}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
               >
-                {h.label}
-              </button>
-            ))}
-          </div>
+                <option value="" disabled>Selecione</option>
+                {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+              </select>
+            </div>
 
-          {/* Campos do bloco de mensagem */}
-          <div className={styles.blockCard}>
+            {/* Idioma */}
+            <div className={styles.tcGroup}>
+              <label className={styles.tcLabel} htmlFor="tpl-language">Idioma *</label>
+              <select
+                id="tpl-language"
+                className={styles.tcSelect}
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                required
+              >
+                {LANGS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+              </select>
+            </div>
+
+            <hr className={styles.tcHr} />
+
+            {/* Tipo de cabeçalho */}
+            <div className={styles.tcSegmented} role="tablist" aria-label="Tipo de cabeçalho">
+              {HEADER_TYPES.map(h => (
+                <button
+                  key={h.value}
+                  type="button"
+                  className={styles.tcSegItem}
+                  aria-pressed={headerType === h.value}
+                  onClick={() => setHeaderType(h.value)}
+                >
+                  {h.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Cabeçalho / Mídia */}
             {headerType === 'TEXT' ? (
-              <div className={styles.inputGroupSm}>
-                <label className={styles.labelXs}>Cabeçalho</label>
+              <div className={styles.tcGroup}>
+                <label className={styles.tcLabel}>Cabeçalho</label>
                 <input
-                  className={styles.inputSm}
+                  className={styles.tcInput}
                   placeholder="Texto do cabeçalho"
                   value={headerText}
                   onChange={(e) => setHeaderText(e.target.value)}
                 />
               </div>
             ) : (
-              <div className={styles.inputGroupSm}>
-                <label className={styles.labelXs}>{headerType === 'IMAGE' ? 'Imagem' : headerType === 'DOCUMENT' ? 'Documento' : 'Vídeo'}</label>
+              <div className={styles.tcGroup}>
+                <label className={styles.tcLabel}>
+                  {headerType === 'IMAGE' ? 'Imagem' : headerType === 'DOCUMENT' ? 'Documento' : 'Vídeo'}
+                </label>
                 <input
-                  className={styles.inputSm}
+                  className={styles.tcInput}
                   placeholder={
                     headerType === 'IMAGE' ? 'Link da imagem'
                     : headerType === 'DOCUMENT' ? 'Link do documento'
@@ -221,95 +215,114 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
                   value={headerMediaUrl}
                   onChange={(e) => setHeaderMediaUrl(e.target.value)}
                 />
-                <div className={styles.helpXs}>Compatível com formatos padrão. O link é apenas para prévia local.</div>
+                <div className={styles.tcHelp}>Compatível com formatos padrão. O link é apenas para prévia local.</div>
               </div>
             )}
 
-            <div className={styles.inputGroupSm}>
-              <label className={styles.labelXs}>Corpo *</label>
+            {/* Corpo */}
+            <div className={styles.tcGroup}>
+              <label className={styles.tcLabel}>Corpo *</label>
               <textarea
-                className={styles.textareaSm}
+                className={styles.tcTextarea}
                 placeholder="Olá {{1}}, seu pedido {{2}} foi enviado…"
                 rows={5}
                 value={bodyText}
                 onChange={(e) => setBodyText(e.target.value)}
                 required
               />
-              <div className={styles.helpXs}>Use variáveis <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code>…</div>
+              <div className={styles.tcHelp}>Use variáveis <code>{"{{1}}"}</code>, <code>{"{{2}}"}</code>…</div>
             </div>
 
-            <div className={styles.inputGroupSm}>
-              <label className={styles.labelXs}>Rodapé (opcional)</label>
+            {/* Rodapé */}
+            <div className={styles.tcGroup}>
+              <label className={styles.tcLabel}>Rodapé (opcional)</label>
               <input
-                className={styles.inputSm}
+                className={styles.tcInput}
                 placeholder="Mensagem do rodapé"
                 value={footerText}
                 onChange={(e) => setFooterText(e.target.value)}
               />
             </div>
 
-            {/* Botões (segmentado) */}
-            <div className={styles.segmentedWrapAlt}>
+            {/* Botões: CTAs vs Quick */}
+            <div className={styles.tcPills}>
               <button
                 type="button"
-                className={`${styles.segmentedItemAlt} ${buttonMode==='cta' ? styles.segmentedActiveAlt : ''}`}
+                className={`${styles.tcPill} ${buttonMode==='cta' ? styles.tcActive : ''}`}
                 onClick={() => { setButtonMode('cta'); setQuicks([]); }}
               >
                 Botões de ação
               </button>
               <button
                 type="button"
-                className={`${styles.segmentedItemAlt} ${buttonMode==='quick' ? styles.segmentedActiveAlt : ''}`}
+                className={`${styles.tcPill} ${buttonMode==='quick' ? styles.tcActive : ''}`}
                 onClick={() => { setButtonMode('quick'); setCtas([]); }}
               >
                 Respostas rápidas
+              </button>
+              <button
+                type="button"
+                className={`${styles.tcPill} ${buttonMode==='none' ? styles.tcActive : ''}`}
+                onClick={() => { setButtonMode('none'); setCtas([]); setQuicks([]); }}
+              >
+                Nenhum
               </button>
             </div>
 
             {buttonMode === 'cta' && (
               <>
-                {ctas.map(b => (
-                  <div key={b.id} className={styles.inlineRow}>
-                    <select
-                      className={styles.selectSm}
-                      value={b.type}
-                      onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
-                    >
-                      <option value="URL">Abrir URL</option>
-                      <option value="PHONE_NUMBER">Chamar</option>
-                    </select>
-                    <input
-                      className={styles.inputSm}
-                      placeholder="Rótulo"
-                      value={b.text}
-                      onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
-                    />
-                    {b.type === 'URL' ? (
-                      <input
-                        className={styles.inputSm}
-                        placeholder="https://exemplo.com/{{1}}"
-                        value={b.url}
-                        onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
-                      />
-                    ) : (
-                      <input
-                        className={styles.inputSm}
-                        placeholder="+55XXXXXXXXXXX"
-                        value={b.phone_number ?? ''}
-                        onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
-                      />
-                    )}
-                    <button type="button" className={styles.pillMini}
-                      onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}>
-                      Remover
-                    </button>
-                  </div>
-                ))}
+                <div className={styles.tcBtnList} role="list">
+                  {ctas.map(b => (
+                    <div key={b.id} className={styles.tcBtnItem} role="listitem">
+                      <div className={styles.tcBtnHead}>
+                        <select
+                          className={styles.tcSelect}
+                          value={b.type}
+                          onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, type:e.target.value } : x))}
+                        >
+                          <option value="URL">Abrir URL</option>
+                          <option value="PHONE_NUMBER">Chamar</option>
+                        </select>
+                        <button type="button" className={styles.tcBtnRemove}
+                          onClick={() => setCtas(prev => prev.filter(x => x.id !== b.id))}>
+                          Remover
+                        </button>
+                      </div>
+
+                      <div className={styles.tcGrid3}>
+                        <input
+                          className={styles.tcInput}
+                          placeholder="Rótulo do botão"
+                          value={b.text}
+                          onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, text:e.target.value } : x))}
+                        />
+                        {b.type === 'URL' ? (
+                          <input
+                            className={styles.tcInput}
+                            placeholder="https://exemplo.com/{{1}}"
+                            value={b.url}
+                            onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, url:e.target.value } : x))}
+                          />
+                        ) : (
+                          <input
+                            className={styles.tcInput}
+                            placeholder="+55XXXXXXXXXXX"
+                            value={b.phone_number ?? ''}
+                            onChange={e => setCtas(prev => prev.map(x => x.id === b.id ? { ...x, phone_number:e.target.value } : x))}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 {ctas.length < MAX_BTNS && (
-                  <button type="button" className={styles.btnSmall} onClick={() => {
-                    const id = newId(); setCtas(p => [...p, { id, type:'URL', text:'', url:'', phone_number:'' }]);
-                  }}>
-                    + Adicionar ({ctas.length}/{MAX_BTNS})
+                  <button
+                    type="button"
+                    className={styles.tcAddBtn}
+                    onClick={() => setCtas(p => [...p, { id:newId(), type:'URL', text:'', url:'', phone_number:'' }])}
+                  >
+                    + Adicionar botão ({ctas.length}/{MAX_BTNS})
                   </button>
                 )}
               </>
@@ -317,39 +330,47 @@ const TemplateModal = ({ isOpen, onClose, onCreated }) => {
 
             {buttonMode === 'quick' && (
               <>
-                {quicks.map(q => (
-                  <div key={q.id} className={styles.inlineRow}>
-                    <input
-                      className={styles.inputSm}
-                      placeholder="Texto curto"
-                      value={q.text}
-                      onChange={e => setQuicks(prev => prev.map(x => x.id === q.id ? { ...x, text:e.target.value } : x))}
-                    />
-                    <button type="button" className={styles.pillMini}
-                      onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}>
-                      Remover
-                    </button>
-                  </div>
-                ))}
+                <div className={styles.tcBtnList} role="list">
+                  {quicks.map(q => (
+                    <div key={q.id} className={styles.tcBtnItem} role="listitem">
+                      <div className={styles.tcBtnHead}>
+                        <span className={styles.tcLabel}>Resposta rápida</span>
+                        <button type="button" className={styles.tcBtnRemove}
+                          onClick={() => setQuicks(prev => prev.filter(x => x.id !== q.id))}>
+                          Remover
+                        </button>
+                      </div>
+                      <input
+                        className={styles.tcInput}
+                        placeholder="Texto da resposta (curto)"
+                        value={q.text}
+                        onChange={e => setQuicks(prev => prev.map(x => x.id === q.id ? { ...x, text:e.target.value } : x))}
+                      />
+                    </div>
+                  ))}
+                </div>
+
                 {quicks.length < MAX_BTNS && (
-                  <button type="button" className={styles.btnSmall} onClick={() => {
-                    const id = newId(); setQuicks(p => [...p, { id, text:'' }]);
-                  }}>
-                    + Adicionar ({quicks.length}/{MAX_BTNS})
+                  <button
+                    type="button"
+                    className={styles.tcAddBtn}
+                    onClick={() => setQuicks(p => [...p, { id:newId(), text:'' }])}
+                  >
+                    + Adicionar resposta ({quicks.length}/{MAX_BTNS})
                   </button>
                 )}
               </>
             )}
+
+            {/* “Adicionar tradução” – como botão leve */}
+            <button type="button" className={styles.tcAddBtn} onClick={(e)=>e.preventDefault()}>
+              + Adicionar tradução
+            </button>
           </div>
 
-          {/* “Adicionar tradução” (placeholder) */}
-          <button type="button" className={styles.addTransBtn} onClick={(e)=>e.preventDefault()}>
-            + Adicionar tradução
-          </button>
-
-          {/* Rodapé fixo do drawer */}
-          <div className={styles.drawerFooter}>
-            <button type="submit" className={styles.submitBar} disabled={!canSave || saving}>
+          {/* Rodapé fixo */}
+          <div className={styles.tcFooter}>
+            <button type="submit" className={styles.tcSubmit} disabled={!canSave || saving}>
               <SaveIcon size={16} /> {saving ? 'Enviando…' : 'Enviar para avaliação'}
             </button>
           </div>
