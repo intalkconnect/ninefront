@@ -1,5 +1,5 @@
 // File: dashboard/Dashboard.jsx
-import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import {
   Info, TrendingUp, Clock, Users, BarChart2,
@@ -7,6 +7,64 @@ import {
   RefreshCcw
 } from 'lucide-react';
 import styles from './styles/Dashboard.module.css';
+
+/* ========================= Chart.js (canvas) ========================= */
+import {
+  Chart as ChartJS,
+  ArcElement, BarElement, PointElement, LineElement,
+  CategoryScale, LinearScale, Tooltip as ChartTooltip, Legend, Filler,
+} from 'chart.js';
+import { Line as LineChart, Bar as BarChartJS, Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(
+  ArcElement, BarElement, PointElement, LineElement,
+  CategoryScale, LinearScale, ChartTooltip, Legend, Filler
+);
+
+/* -------- Plugin do ponteiro para gauge (semi-donut) -------- */
+const gaugeNeedle = {
+  id: 'gaugeNeedle',
+  afterDraw(chart, _args, opts) {
+    const { ctx, chartArea, options } = chart;
+    const meta = chart.getDatasetMeta(0);
+    if (!meta?.data?.length) return;
+
+    const arc0 = meta.data[0];
+    const cx = arc0.x;
+    const cy = arc0.y;
+    const outer = arc0.outerRadius;
+
+    const min = Number(opts?.min ?? 0);
+    const max = Number(opts?.max ?? 100);
+    const val = Math.min(max, Math.max(min, Number(opts?.value ?? min)));
+
+    const rot = options.rotation ?? -Math.PI;     // -PI (meio-dia)
+    const circ = options.circumference ?? Math.PI; // PI (semicírculo)
+    const t = (val - min) / (max - min || 1);
+    const angle = rot + t * circ;
+
+    const needleLen = outer - 8;
+    const needleWidth = 3.2;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    // haste
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(needleLen, 0);
+    ctx.lineWidth = needleWidth;
+    ctx.strokeStyle = '#0F172A';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    // pivô
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, 2 * Math.PI);
+    ctx.fillStyle = '#0F172A';
+    ctx.fill();
+    ctx.restore();
+  }
+};
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -44,23 +102,7 @@ const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 const toNum = (v) => (Number.isFinite(+v) ? +v : 0);
 const mean = (arr) => (arr.length ? sum(arr) / arr.length : 0);
 
-/* ========================= Resize ========================= */
-const useMeasure = () => {
-  const ref = useRef(null);
-  const [rect, setRect] = useState({ width: 0, height: 0 });
-  useEffect(() => {
-    if (!ref.current) return;
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect;
-      setRect({ width, height });
-    });
-    ro.observe(ref.current);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, rect];
-};
-
-/* ========================= Tooltip ========================= */
+/* ========================= UI base ========================= */
 const HelpIcon = ({ text, className }) => {
   if (!text) return null;
   const ref = useRef(null);
@@ -83,7 +125,6 @@ const HelpIcon = ({ text, className }) => {
   );
 };
 
-/* ========================= UI base ========================= */
 const Card = ({ title, icon, help, right, children }) => (
   <div className={styles.card}>
     <div className={styles.cardHead}>
@@ -123,257 +164,140 @@ const SkeletonCard = () => (
   </div>
 );
 
-/* ========================= Charts ========================= */
-const AreaLineChart = ({ series = [], height = 180, valueFormatter = (v) => v, yMax }) => {
-  const [hostRef, { width }] = useMeasure();
-  const [hover, setHover] = useState(null);
-  const padding = { top: 18, right: 12, bottom: 24, left: 36 };
-  const W = Math.max(160, width || 160);
-  const H = height;
+/* ========================= Componentes Chart.js ========================= */
 
-  const X = series.length ? (W - padding.left - padding.right) / Math.max(1, series.length - 1) : 0;
-  const maxY = Math.max(1, yMax ?? Math.max(...series.map((d) => Number(d.y || 0))));
-  const yTo = (v) => padding.top + (1 - Number(v) / maxY) * (H - padding.top - padding.bottom);
-  const xTo = (i) => padding.left + i * X;
-
-  const pts = series.map((d, i) => `${xTo(i)},${yTo(d.y || 0)}`).join(' ');
-  const area = `M${xTo(0)},${yTo(series[0]?.y || 0)} L${series.map((d, i) => `${xTo(i)},${yTo(d.y || 0)}`).join(' ')} L${xTo(series.length - 1)},${H - padding.bottom} L${xTo(0)},${H - padding.bottom} Z`;
-
-  const axesY = 4;
-  const yTicks = [...Array(axesY + 1)].map((_, i) => Math.round((maxY / axesY) * i));
-
-  const onMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left - padding.left;
-    const idx = Math.min(series.length - 1, Math.max(0, Math.round(x / X)));
-    const rx = xTo(idx);
-    const ry = yTo(series[idx]?.y || 0);
-    setHover({ i: idx, x: rx, y: ry });
+/* Linhas com área (FRT / SLA) */
+const LineMini = ({ labels = [], values = [], height = 180, formatter = (v)=>v, yMax }) => {
+  const data = {
+    labels,
+    datasets: [{
+      data: values,
+      borderWidth: 2,
+      tension: 0.3,
+      fill: 'start',
+      backgroundColor: (ctx) => {
+        const { chart } = ctx;
+        const { ctx: c, chartArea } = chart;
+        if (!chartArea) return 'rgba(99, 102, 241, 0.12)';
+        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        g.addColorStop(0, 'rgba(99, 102, 241, 0.18)');
+        g.addColorStop(1, 'rgba(99, 102, 241, 0.02)');
+        return g;
+      },
+      borderColor: '#6366F1',
+      pointRadius: 2.5
+    }]
   };
+  const options = {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { grid: { display:false } },
+      y: {
+        beginAtZero: true,
+        suggestedMax: yMax ?? undefined,
+        ticks: { callback: (v)=>formatter(v) },
+        grid: { color: 'rgba(0,0,0,0.05)' }
+      }
+    },
+    plugins: { legend: { display:false }, tooltip: { enabled:true, callbacks: { label: (ctx)=>formatter(ctx.parsed.y) } } }
+  };
+  return <div style={{height}}><LineChart data={data} options={options} /></div>;
+};
 
+/* Barras verticais (Novos clientes) */
+const BarsMini = ({ labels = [], values = [], height = 220 }) => {
+  const data = { labels, datasets: [{ data: values, backgroundColor: '#22c55e', borderRadius: 6, maxBarThickness: 28 }] };
+  const options = {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { grid: { display:false } },
+      y: { beginAtZero:true, grid:{ color:'rgba(0,0,0,0.05)' } }
+    },
+    plugins: { legend: { display:false }, tooltip: { enabled:true } }
+  };
+  return <div style={{height}}><BarChartJS data={data} options={options} /></div>;
+};
+
+/* Rosca (SLA) */
+const DonutChart = ({ percent = 0, size = 136, label='Percentual' }) => {
+  const p = clamp(+percent || 0, 0, 100);
+  const data = {
+    labels: ['Dentro', 'Fora'],
+    datasets: [{
+      data: [p, 100 - p],
+      backgroundColor: ['#16a34a', '#e5e7eb'],
+      borderWidth: 0,
+      cutout: '72%'
+    }]
+  };
+  const options = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display:false }, tooltip: { enabled:false } }
+  };
   return (
-    <div ref={hostRef} className={styles.chartRoot} style={{ height }}>
-      <svg width={W} height={H} className={styles.chartSvg}>
-        {yTicks.map((t, i) => {
-          const y = yTo(t);
-          return <line key={i} x1={padding.left} y1={y} x2={W - padding.right} y2={y} className={styles.grid} />;
-        })}
-        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={H - padding.bottom} className={styles.axis} />
-        <line x1={padding.left} y1={H - padding.bottom} x2={W - padding.right} y2={H - padding.bottom} className={styles.axis} />
-        {yTicks.map((t, i) => (
-          <text key={i} x={padding.left - 8} y={yTo(t)} className={styles.tick} textAnchor="end" dy="0.35em">
-            {valueFormatter(t)}
-          </text>
-        ))}
-        <path d={area} className={styles.areaFill} />
-        <polyline points={pts} className={styles.lineStroke} />
-        {series.map((d, i) => (
-          <circle key={i} cx={xTo(i)} cy={yTo(d.y || 0)} r={2.5} className={styles.lineDot} />
-        ))}
-        {hover && (
-          <>
-            <line x1={hover.x} y1={padding.top} x2={hover.x} y2={H - padding.bottom} className={styles.crosshair} />
-            <circle cx={hover.x} cy={hover.y} r={4} className={styles.lineDotActive} />
-          </>
-        )}
-      </svg>
-      {hover && series[hover.i] && (
-        <div className={styles.tt} style={{ left: hover.x, top: hover.y }}>
-          <div className={styles.ttLine}>{series[hover.i].xLabel}</div>
-          <div className={styles.ttValue}>{valueFormatter(series[hover.i].y)}</div>
-        </div>
-      )}
-      <div className={styles.hit} onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
+    <div style={{ width: size, height: size, position:'relative' }}>
+      <Doughnut data={data} options={options} />
+      <div className={styles.donutCenter}>
+        <div className={styles.donutText}>{fmtPct(p)}</div>
+        <div className={styles.donutLabel}>{label}</div>
+      </div>
     </div>
   );
 };
 
-const BarChart = ({ data = [], height = 180, formatter = (v) => v }) => {
-  const [hostRef, { width }] = useMeasure();
-  const [hover, setHover] = useState(null);
-  const padding = { top: 12, right: 12, bottom: 26, left: 36 };
-  const W = Math.max(160, width || 160);
-  const H = height;
-
-  const max = Math.max(1, ...data.map((d) => Number(d.value || 0)));
-  const bw = 22;
-  const gap = 18;
-  const plotW = W - padding.left - padding.right;
-  const totalBarsW = data.length * bw + (data.length - 1) * gap;
-  const offsetX = padding.left + Math.max(0, (plotW - totalBarsW) / 2);
-
-  const yTo = (v) => padding.top + (1 - Number(v) / max) * (H - padding.top - padding.bottom);
-
-  return (
-    <div ref={hostRef} className={styles.chartRoot} style={{ height }}>
-      <svg width={W} height={H} className={styles.chartSvg}>
-        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
-          const y = padding.top + p * (H - padding.top - padding.bottom);
-          return <line key={i} x1={padding.left} y1={y} x2={W - padding.right} y2={y} className={styles.grid} />;
-        })}
-        <line x1={padding.left} y1={H - padding.bottom} x2={W - padding.right} y2={H - padding.bottom} className={styles.axis} />
-        {data.map((d, i) => {
-          const x = offsetX + i * (bw + gap);
-          const y = yTo(d.value || 0);
-          const h = H - padding.bottom - y;
-          return (
-            <g key={i}>
-              <rect
-                x={x}
-                y={y}
-                width={bw}
-                height={h}
-                rx="6"
-                className={styles.barRect}
-                onMouseEnter={() => setHover({ i, x: x + bw / 2, y })}
-                onMouseLeave={() => setHover(null)}
-              />
-              <text x={x + bw / 2} y={H - 8} className={styles.tick} textAnchor="middle">
-                {d.xLabel}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      {hover && data[hover.i] && (
-        <div className={styles.tt} style={{ left: hover.x, top: hover.y }}>
-          <div className={styles.ttLine}>{data[hover.i].xLabel}</div>
-          <div className={styles.ttValue}>{formatter(data[hover.i].value)}</div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const RankList = ({ items = [], unit = '' }) => {
-  const max = Math.max(1, ...items.map((i) => Number(i.value || 0)));
-  return (
-    <ul className={styles.rankList}>
-      {items.map((it, idx) => {
-        const w = (Number(it.value || 0) / max) * 100;
-        return (
-          <li key={it.label + idx} className={styles.rankItem}>
-            <span className={styles.rankLabel} title={it.label}>{it.label}</span>
-            <div className={styles.rankBarWrap}><div className={styles.rankBar} style={{ width: `${w}%` }} /></div>
-            <span className={styles.rankValue}>{fmtInt(it.value)}{unit}</span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-};
-
-/* ========================= Donut ========================= */
-const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
-  const p = Math.min(100, Math.max(0, +percent || 0));
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const dash = (p / 100) * c;
-  return (
-    <div className={styles.donutWrap} title={`${label || 'Percentual'}: ${fmtPct(p)}`}>
-      <svg width={size} height={size}>
-        <circle className={styles.donutBg} cx={size/2} cy={size/2} r={r} />
-        <circle className={styles.donutFg} cx={size/2} cy={size/2} r={r}
-                strokeDasharray={`${dash} ${c - dash}`} strokeLinecap="round"
-                transform={`rotate(-90 ${size/2} ${size/2})`} />
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" className={styles.donutText}>
-          {fmtPct(p)}
-        </text>
-      </svg>
-      {label ? <div className={styles.donutLabel}>{label}</div> : null}
-    </div>
-  );
-};
-
-/* ========================= Gauge segmentado (igual ao da imagem) ========================= */
-const SegmentedGauge = ({
-  value = 0,
-  min = 0,
-  max = 10,
-  tickStep = 1,
-  size = 260,
-  stroke = 14,
-  gapDeg = 4,
-  showDots = true,
-  label,
-  format = (v) => v
+/* Gauge semicircular com ponteiro (NPS / CSAT) — sem SVG */
+const GaugeChart = ({
+  value = 0, min = 0, max = 10,
+  segments = 10, size = 300, thicknessPct = 70
 }) => {
-  const cx = 50, cy = 54, r = 44;
-  const range = max - min;
-  const p = clamp((value - min) / (range || 1), 0, 0.999);
-  const ticks = Math.round(range / tickStep);
-  const stepDeg = 180 / ticks;
-
-  const pol = (deg, R = r) => {
-    const a = (Math.PI / 180) * deg;
-    return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
+  const colors = Array.from({length: segments}, (_, i) => {
+    const h = Math.round(8 + (140 - 8) * (i / Math.max(1, segments - 1))); // vermelho→verde
+    return `hsl(${h} 85% 50%)`;
+  });
+  const data = {
+    labels: Array.from({length: segments}, (_, i) => i + 1),
+    datasets: [{
+      data: new Array(segments).fill(1),
+      backgroundColor: colors,
+      borderWidth: 0
+    }]
   };
-  const arcPath = (a0, a1) => {
-    const s = pol(a0), e = pol(a1);
-    const largeArc = 0; // 0..180°
-    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 0 ${e.x} ${e.y}`;
+  const options = {
+    responsive: true, maintainAspectRatio: false,
+    rotation: -Math.PI,         // inicia na esquerda (topo)
+    circumference: Math.PI,     // semicírculo
+    cutout: `${clamp(thicknessPct, 40, 90)}%`,
+    plugins: {
+      legend: { display:false },
+      tooltip: { enabled:false },
+      gaugeNeedle: { value, min, max }
+    }
   };
-  const lerp = (a,b,t)=>a+(b-a)*t;
-  const segColor = (i, n) => `hsl(${Math.round(lerp(8,140,i/(n-1||1)))} 85% 50%)`;
-
-  const angle = 180 * (1 - p);
-  const tip = pol(angle, r - 8);
-
-  const marks = Array.from({ length: ticks + 1 }, (_, i) => ({
-    a: 180 - i * stepDeg,
-    txt: (min + i * tickStep)
-  }));
-
-  return (
-    <div style={{ width: '100%', display: 'grid', placeItems: 'center' }}>
-      <svg viewBox="0 0 100 70" width={size} height={size*0.7}>
-        {/* fundo */}
-        <path d={arcPath(180, 0)} fill="none" stroke="#E5E7EB" strokeWidth={stroke} strokeLinecap="round" />
-        {/* fatias */}
-        {Array.from({ length: ticks }, (_, i) => {
-          const a0 = 180 - i * stepDeg + gapDeg/2;
-          const a1 = 180 - (i+1) * stepDeg - gapDeg/2;
-          return (
-            <path key={i} d={arcPath(a0, a1)} fill="none" stroke={segColor(i, ticks)} strokeWidth={stroke} strokeLinecap="round" />
-          );
-        })}
-        {/* marcas + labels + pontos */}
-        {marks.map((m, i) => {
-          const p1 = pol(m.a, r - 2), p2 = pol(m.a, r - 6), t = pol(m.a, r + 6);
-          return (
-            <g key={i}>
-              <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#CBD5E1" strokeWidth="1.4" />
-              {showDots ? <circle cx={t.x} cy={t.y} r="0.9" fill="#2563eb" /> : null}
-              <text x={t.x} y={t.y - 2.2} fontSize="5" textAnchor="middle" fill="#475569">{format(m.txt)}</text>
-            </g>
-          );
-        })}
-        {/* ponteiro */}
-        <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="#0F172A" strokeWidth="3.2" strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r="3.8" fill="#0F172A" />
-      </svg>
-      {label ? <div style={{ marginTop: 6, fontSize: 12, color: '#64748B' }}>{label}</div> : null}
-      <div style={{ fontWeight: 700, fontSize: 20, marginTop: 2 }}>{format(value)}</div>
-    </div>
-  );
+  return <div style={{ width: size, height: size*0.6 }}>
+    <Doughnut data={data} options={options} plugins={[gaugeNeedle]} />
+  </div>;
 };
 
-/* ========================= Distribuição CSAT ========================= */
-const CsatDistribution = ({ counts = {} }) => {
-  const total = [1,2,3,4,5].reduce((a,k) => a + (counts[k] || 0), 0);
-  return (
-    <div className={styles.csatDist}>
-      <div className={styles.csatBar}>
-        {[1,2,3,4,5].map((k) => {
-          const v = counts[k] || 0, w = total ? (v / total) * 100 : 0;
-          return <span key={k} className={`${styles.csatSeg} ${styles[`csat${k}`]}`} style={{ width: `${w}%` }} title={`${k}★: ${v}`} />;
-        })}
-      </div>
-      <div className={styles.csatLegend}>
-        {[1,2,3,4,5].map((k) => <span key={k} className={styles.csatLegendItem}><i className={`${styles.dot} ${styles[`csat${k}`]}`} /> {k}★</span>)}
-      </div>
-    </div>
-  );
+/* Distribuição CSAT como barra horizontal empilhada (5 segmentos) */
+const CsatDistributionChart = ({ counts = {} }) => {
+  const total = [1,2,3,4,5].reduce((a,k)=>a+(counts[k]||0),0) || 1;
+  const datasets = [1,2,3,4,5].map((k, idx) => ({
+    label: `${k}★`,
+    data: [((counts[k]||0)/total)*100],
+    stack: 'dist',
+    backgroundColor: ['#ef4444','#f59e0b','#eab308','#22c55e','#16a34a'][idx],
+    borderWidth: 0
+  }));
+  const data = { labels: [''], datasets };
+  const options = {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { stacked:true, min:0, max:100, ticks: { callback:(v)=>`${v}%` }, grid:{ display:false } },
+      y: { stacked:true, grid:{ display:false } }
+    },
+    plugins: { legend:{ display:true, position:'bottom' }, tooltip:{ enabled:true, callbacks:{ label:(ctx)=>`${ctx.dataset.label}: ${fmtPct(ctx.raw,1)}` } } }
+  };
+  return <div style={{height:32}}><BarChartJS data={data} options={options} /></div>;
 };
 
 /* ========================= Página ========================= */
@@ -628,7 +552,7 @@ export default function Dashboard() {
             icon={<Gauge size={18} />}
             help={`Rosca mostra % dentro do SLA de 15m.\n• Cálculo: 100% − taxa de abandono\n• Fonte: /analytics/metrics/abandonment`}
           >
-            <Donut percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? (100 - +abandonment.taxa_pct) : 0} label="Dentro do SLA" />
+            <DonutChart percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? (100 - +abandonment.taxa_pct) : 0} label="Dentro do SLA" />
             <div className={styles.subtleCenter}>Abandono: {fmtPct(abandonment?.taxa_pct ?? 0)} • Limite {abandonment?.threshold_min ?? 15}m</div>
           </Card>
         </div>
@@ -646,7 +570,12 @@ export default function Dashboard() {
             ? <Skeleton w="100%" h={180} />
             : frtSerie.length === 0
               ? <div className={styles.empty}>Sem dados.</div>
-              : <AreaLineChart series={frtSerie} height={180} valueFormatter={fmtMin} />}
+              : <LineMini
+                  labels={frtSerie.map(s=>s.xLabel)}
+                  values={frtSerie.map(s=>s.y)}
+                  height={180}
+                  formatter={fmtMin}
+                />}
         </Card>
 
         <Card
@@ -659,7 +588,13 @@ export default function Dashboard() {
             ? <Skeleton w="100%" h={180} />
             : slaDia.length === 0
               ? <div className={styles.empty}>Sem dados.</div>
-              : <AreaLineChart series={slaDia} height={180} valueFormatter={(v) => fmtPct(v, 0)} yMax={100} />}
+              : <LineMini
+                  labels={slaDia.map(s=>s.xLabel)}
+                  values={slaDia.map(s=>s.y)}
+                  height={180}
+                  formatter={(v)=>fmtPct(v,0)}
+                  yMax={100}
+                />}
         </Card>
       </div>
 
@@ -667,18 +602,11 @@ export default function Dashboard() {
       <div className={styles.gridTwo}>
         <Card title="NPS (Média das notas 0–10)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(nps.responses)} respostas</span>}
-              help={`Velocímetro segmentado com a **média simples** das notas NPS (0–10). Abaixo, a quebra por Promotores/Neutros/Detratores e o **índice NPS** (promotores% − detratores%).`}>
+              help={`Velocímetro (canvas) com a **média simples** 0–10. Abaixo: Promotores/Neutros/Detratores e o **índice NPS** (promotores% − detratores%).`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             nps.available ? (
               <>
-                <SegmentedGauge
-                  value={nps.avgScore}
-                  min={0}
-                  max={10}
-                  tickStep={1}
-                  size={300}
-                  format={(v)=>Number(v).toFixed(2)}
-                />
+                <GaugeChart value={nps.avgScore} min={0} max={10} segments={10} size={300} />
                 <div className={styles.subtleCenter} style={{ marginTop: 6 }}>
                   Índice NPS: <strong>{Number(nps.index || 0).toFixed(1)}</strong>
                 </div>
@@ -693,20 +621,13 @@ export default function Dashboard() {
 
         <Card title="CSAT (Média 1–5)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(csat.responses)} respostas</span>}
-              help={`Velocímetro segmentado com a **média simples** das notas 1–5. A barra abaixo mostra a distribuição por estrelas, quando disponível.`}>
+              help={`Velocímetro (canvas) com a **média simples** das notas 1–5 e barra de distribuição por estrelas.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             csat.available ? (
               <div>
-                <SegmentedGauge
-                  value={csat.avg}
-                  min={1}
-                  max={5}
-                  tickStep={1}
-                  size={300}
-                  format={(v)=>`${Number(v).toFixed(2)} ★`}
-                />
+                <GaugeChart value={csat.avg} min={1} max={5} segments={4} size={300} />
                 {Object.values(csat.counts || {}).some(v => v > 0)
-                  ? <div style={{ marginTop: 10 }}><CsatDistribution counts={csat.counts} /></div>
+                  ? <div style={{ marginTop: 10 }}><CsatDistributionChart counts={csat.counts} /></div>
                   : null}
               </div>
             ) : <div className={styles.empty}>Sem dados de CSAT para o período.</div>}
@@ -720,10 +641,10 @@ export default function Dashboard() {
               help={`Clientes únicos criados por dia no período.\n• Endpoint: /analytics/metrics/new-clients?group=day`}>
           {firstLoad && loading ? <Skeleton w="100%" h={220} /> :
             clientsSeries.length === 0 ? <div className={styles.empty}>Sem dados.</div> :
-            <BarChart
-              data={clientsSeries.map(d => ({ xLabel: d.xLabel, value: d.y }))}
+            <BarsMini
+              labels={clientsSeries.map(d=>d.xLabel)}
+              values={clientsSeries.map(d=>d.y)}
               height={220}
-              formatter={(v)=>fmtInt(v)}
             />}
         </Card>
 
@@ -731,14 +652,26 @@ export default function Dashboard() {
               help={`Tickets abertos por fila no momento. Não depende do período.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={200} /> :
             queuesBacklog.length === 0 ? <div className={styles.empty}>Sem dados.</div> :
-            <RankList items={queuesBacklog} />}
+            <ul className={styles.rankList}>
+              {queuesBacklog.map((it, idx) => {
+                const max = Math.max(...queuesBacklog.map(q=>q.value||0), 1);
+                const w = (Number(it.value || 0) / max) * 100;
+                return (
+                  <li key={it.label + idx} className={styles.rankItem}>
+                    <span className={styles.rankLabel} title={it.label}>{it.label}</span>
+                    <div className={styles.rankBarWrap}><div className={styles.rankBar} style={{ width: `${w}%` }} /></div>
+                    <span className={styles.rankValue}>{fmtInt(it.value)}</span>
+                  </li>
+                );
+              })}
+            </ul>}
         </Card>
       </div>
 
       {/* Tabelas */}
       <div className={styles.gridTwo}>
         <Card title="Tempo de resposta por agente (ART médio)" icon={<Users size={18} />}
-              help={`ART por agente — tempo entre msg do cliente e 1ª resposta do agente.\n• Fonte: /analytics/metrics/agents/art`}>
+              help={`ART por agente — tempo entre a msg do cliente e a 1ª resposta do agente.\n• Fonte: /analytics/metrics/agents/art`}>
           {firstLoad && loading ? <Skeleton w="100%" h={160} /> :
             artRows.length === 0 ? <div className={styles.empty}>Sem dados para o período.</div> :
             <div className={styles.tableWrap}>
