@@ -209,7 +209,7 @@
 }
 
 /* Dark opcional */
-@media (prefers-color-scheme: dark){
+/* @media (prefers-color-scheme: dark){
   .container{background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#e2e8f0}
   .card{background: rgba(30,41,59,.8);border-color: rgba(71,85,105,.6)}
   .cardHead{background: linear-gradient(135deg, rgba(30,41,59,.8) 0%, rgba(15,23,42,.6) 100%);border-color: rgba(71,85,105,.4)}
@@ -223,7 +223,7 @@
   .table tbody tr:hover{background: rgba(51,65,85,.3)}
   .tableWrap{background: rgba(30,41,59,.5)}
   /* charts em dark */
-  .grid{stroke:#293548}
+/*   .grid{stroke:#293548}
   .axis{stroke:#334155}
   .tick{fill:#9aa7b6}
   .areaFill{fill:rgba(59,130,246,.18)}
@@ -231,4 +231,4 @@
   .lineDot{fill:#60a5fa}
   .lineDotActive{fill:#93c5fd}
   .tt{background:#0b1220}
-}
+} */
