@@ -355,8 +355,8 @@ export default function Dashboard() {
         const ag  = await apiGet(`/analytics/metrics/aging-by-queue`);
 
         const [npsRaw, csatRaw] = await Promise.all([
-          safeGet(`/analytics/metrics/nps?${qs(params)}`),
-          safeGet(`/analytics/metrics/csat?${qs(params)}`),
+          safeGet(`/analytics/metrics/series/nps?${qs(params)}`),
+          safeGet(`/analytics/metrics/series/csat?${qs(params)}`),
         ]);
 
         const clientsRaw =
@@ -692,3 +692,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
