@@ -9,27 +9,22 @@ import {
 import styles from './styles/Dashboard.module.css';
 
 /* ========================= Chart.js (canvas) ========================= */
-import {
-  Chart as ChartJS,
-  ArcElement, BarElement, PointElement, LineElement,
-  CategoryScale, LinearScale, Tooltip as ChartTooltip, Legend, Filler,
-} from 'chart.js';
+// Usa auto-registro (não precisa registrar ArcElement/LineElement manualmente)
+import Chart from 'chart.js/auto';
 import { Line as LineChart, Bar as BarChartJS, Doughnut } from 'react-chartjs-2';
 
-ChartJS.register(
-  ArcElement, BarElement, PointElement, LineElement,
-  CategoryScale, LinearScale, ChartTooltip, Legend, Filler
-);
-
-/* -------- Plugin do ponteiro para gauge (semi-donut) -------- */
+/* -------- Plugin do ponteiro para gauge (só em doughnut) -------- */
 const gaugeNeedle = {
   id: 'gaugeNeedle',
-  afterDraw(chart, _args, opts) {
-    const { ctx, chartArea, options } = chart;
-    const meta = chart.getDatasetMeta(0);
-    if (!meta?.data?.length) return;
+  afterDatasetsDraw(chart, _args, opts) {
+    // desenha SOMENTE em doughnut (evita linha preta em outros gráficos)
+    if (chart.config.type !== 'doughnut') return;
 
-    const arc0 = meta.data[0];
+    const meta = chart.getDatasetMeta(0);
+    const arc0 = meta?.data?.[0];
+    if (!arc0) return;
+
+    const { ctx } = chart;
     const cx = arc0.x;
     const cy = arc0.y;
     const outer = arc0.outerRadius;
@@ -38,33 +33,35 @@ const gaugeNeedle = {
     const max = Number(opts?.max ?? 100);
     const val = Math.min(max, Math.max(min, Number(opts?.value ?? min)));
 
-    const rot = options.rotation ?? -Math.PI;     // -PI (meio-dia)
-    const circ = options.circumference ?? Math.PI; // PI (semicírculo)
+    const rot  = chart.options.rotation ?? -Math.PI;      // semicirculo
+    const circ = chart.options.circumference ?? Math.PI;
+
     const t = (val - min) / (max - min || 1);
     const angle = rot + t * circ;
-
-    const needleLen = outer - 8;
-    const needleWidth = 3.2;
 
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(angle);
+
     // haste
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.lineTo(needleLen, 0);
-    ctx.lineWidth = needleWidth;
+    ctx.lineTo(outer - 8, 0);
+    ctx.lineWidth = 3.2;
     ctx.strokeStyle = '#0F172A';
     ctx.lineCap = 'round';
     ctx.stroke();
+
     // pivô
     ctx.beginPath();
     ctx.arc(0, 0, 7, 0, 2 * Math.PI);
     ctx.fillStyle = '#0F172A';
     ctx.fill();
+
     ctx.restore();
   }
 };
+Chart.register(gaugeNeedle);
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -164,9 +161,7 @@ const SkeletonCard = () => (
   </div>
 );
 
-/* ========================= Componentes Chart.js ========================= */
-
-/* Linhas com área (FRT / SLA) */
+/* ========================= Components (Chart.js) ========================= */
 const LineMini = ({ labels = [], values = [], height = 180, formatter = (v)=>v, yMax }) => {
   const data = {
     labels,
@@ -204,7 +199,6 @@ const LineMini = ({ labels = [], values = [], height = 180, formatter = (v)=>v, 
   return <div style={{height}}><LineChart data={data} options={options} /></div>;
 };
 
-/* Barras verticais (Novos clientes) */
 const BarsMini = ({ labels = [], values = [], height = 220 }) => {
   const data = { labels, datasets: [{ data: values, backgroundColor: '#22c55e', borderRadius: 6, maxBarThickness: 28 }] };
   const options = {
@@ -218,7 +212,6 @@ const BarsMini = ({ labels = [], values = [], height = 220 }) => {
   return <div style={{height}}><BarChartJS data={data} options={options} /></div>;
 };
 
-/* Rosca (SLA) */
 const DonutChart = ({ percent = 0, size = 136, label='Percentual' }) => {
   const p = clamp(+percent || 0, 0, 100);
   const data = {
@@ -245,17 +238,16 @@ const DonutChart = ({ percent = 0, size = 136, label='Percentual' }) => {
   );
 };
 
-/* Gauge semicircular com ponteiro (NPS / CSAT) — sem SVG */
 const GaugeChart = ({
   value = 0, min = 0, max = 10,
-  segments = 10, size = 300, thicknessPct = 70
+  segments = 10, size = 320, thicknessPct = 70
 }) => {
-  const colors = Array.from({length: segments}, (_, i) => {
+  const colors = Array.from({ length: segments }, (_, i) => {
     const h = Math.round(8 + (140 - 8) * (i / Math.max(1, segments - 1))); // vermelho→verde
     return `hsl(${h} 85% 50%)`;
   });
   const data = {
-    labels: Array.from({length: segments}, (_, i) => i + 1),
+    labels: Array.from({ length: segments }, () => ''),
     datasets: [{
       data: new Array(segments).fill(1),
       backgroundColor: colors,
@@ -263,8 +255,9 @@ const GaugeChart = ({
     }]
   };
   const options = {
-    responsive: true, maintainAspectRatio: false,
-    rotation: -Math.PI,         // inicia na esquerda (topo)
+    responsive: true,
+    maintainAspectRatio: false,
+    rotation: -Math.PI,         // inicia na esquerda
     circumference: Math.PI,     // semicírculo
     cutout: `${clamp(thicknessPct, 40, 90)}%`,
     plugins: {
@@ -274,11 +267,10 @@ const GaugeChart = ({
     }
   };
   return <div style={{ width: size, height: size*0.6 }}>
-    <Doughnut data={data} options={options} plugins={[gaugeNeedle]} />
+    <Doughnut data={data} options={options} />
   </div>;
 };
 
-/* Distribuição CSAT como barra horizontal empilhada (5 segmentos) */
 const CsatDistributionChart = ({ counts = {} }) => {
   const total = [1,2,3,4,5].reduce((a,k)=>a+(counts[k]||0),0) || 1;
   const datasets = [1,2,3,4,5].map((k, idx) => ({
@@ -453,7 +445,7 @@ export default function Dashboard() {
   );
   const backlogAberto  = fmtInt(summary?.backlog_aberto);
   const aguardando     = fmtInt(summary?.aguardando);
-  const emAtendimento  = fmtInt(summary?.em_atendimento);
+  const emAtendimento  = fmtInt(summary?.emAtendimento ?? summary?.em_atendimento);
 
   const frtSerie = useMemo(() => {
     const items = frtDay.filter((d) => d.group_key).map((d) => {
@@ -606,7 +598,7 @@ export default function Dashboard() {
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             nps.available ? (
               <>
-                <GaugeChart value={nps.avgScore} min={0} max={10} segments={10} size={300} />
+                <GaugeChart value={nps.avgScore} min={0} max={10} segments={10} size={320} />
                 <div className={styles.subtleCenter} style={{ marginTop: 6 }}>
                   Índice NPS: <strong>{Number(nps.index || 0).toFixed(1)}</strong>
                 </div>
@@ -625,7 +617,7 @@ export default function Dashboard() {
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             csat.available ? (
               <div>
-                <GaugeChart value={csat.avg} min={1} max={5} segments={4} size={300} />
+                <GaugeChart value={csat.avg} min={1} max={5} segments={4} size={320} />
                 {Object.values(csat.counts || {}).some(v => v > 0)
                   ? <div style={{ marginTop: 10 }}><CsatDistributionChart counts={csat.counts} /></div>
                   : null}
