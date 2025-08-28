@@ -112,7 +112,7 @@ export default function Users() {
 
   return (
     <div className={styles.container}>
-      {/* Breadcrumb / indicador de página */}
+      {/* Breadcrumb enxuto */}
       <div className={styles.crumbBar}>
         <span className={styles.crumb}><UsersIcon size={14}/> <span>Usuários</span></span>
         {error ? <span className={styles.crumbError}>• {error}</span> : null}
@@ -134,7 +134,7 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Alertas compactos (abaixo da toolbar) */}
+      {/* Alertas compactos */}
       <div className={styles.alertsStack}>
         {okMsg && (
           <div className={styles.alertOk} role="status">
@@ -223,7 +223,9 @@ export default function Users() {
                     <td data-label="Nome">{nome || '—'}</td>
                     <td data-label="Email">{u.email || '—'}</td>
                     <td data-label="Perfil">
-                      <span className={`${styles.tag} ${styles.tagRole}`}>{(u.perfil || '').charAt(0).toUpperCase() + (u.perfil || '').slice(1) || '—'}</span>
+                      <span className={`${styles.tag} ${styles.tagRole}`} data-role={(u.perfil || '').toLowerCase()}>
+                        {(u.perfil || '').charAt(0).toUpperCase() + (u.perfil || '').slice(1) || '—'}
+                      </span>
                     </td>
                     <td data-label="Filas">
                       <div className={styles.tagsWrap}>
@@ -260,7 +262,7 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal controlado */}
       {openModal && (
         <UsersModal
           isOpen={openModal}
