@@ -39,6 +39,9 @@ const avg = (arr) => {
   const v = arr.map((d) => Number(d.y || 0)).filter(Number.isFinite);
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
 };
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+const toNum = (v) => (Number.isFinite(+v) ? +v : 0);
 
 /* ========================= Resize ========================= */
 const useMeasure = () => {
@@ -371,7 +374,30 @@ export default function Dashboard() {
         setAbandonment(abd || { taxa_pct: 0, abandonados: 0, total: 0, threshold_min: 15 });
         setAging(Array.isArray(ag) ? ag : []);
 
-        if (npsRaw && typeof npsRaw === 'object') {
+        /* ======== NPS (series -> resumo ponderado) ======== */
+        if (Array.isArray(npsRaw) && npsRaw.length > 0) {
+          const buckets = npsRaw.map(b => ({
+            total: toNum(b.total),
+            promPct: toNum(b.pct_promoters),
+            detrPct: toNum(b.pct_detractors),
+          })).filter(b => b.total > 0);
+          const totalResp = sum(buckets.map(b => b.total));
+          if (totalResp > 0) {
+            const promPctW = sum(buckets.map(b => b.promPct * b.total)) / totalResp;
+            const detrPctW = sum(buckets.map(b => b.detrPct * b.total)) / totalResp;
+            const promPct = clamp(promPctW, 0, 100);
+            const detrPct = clamp(detrPctW, 0, 100);
+            const passPct = clamp(100 - promPct - detrPct, 0, 100);
+            const score   = Math.round((promPct - detrPct) * 10) / 10; // 1 casa
+            const promoters  = Math.round((promPct / 100) * totalResp);
+            const detractors = Math.round((detrPct / 100) * totalResp);
+            const passives   = Math.max(0, totalResp - promoters - detractors);
+            setNps({ score, promoters, passives, detractors, responses: totalResp, available: true });
+          } else {
+            setNps((p)=>({ ...p, available:false }));
+          }
+        } else if (npsRaw && typeof npsRaw === 'object') {
+          // fallback antigo (objeto)
           setNps({
             score: Number(npsRaw?.nps ?? npsRaw?.score ?? 0),
             promoters: fmtInt(npsRaw?.promoters ?? npsRaw?.promotores ?? 0),
@@ -380,16 +406,38 @@ export default function Dashboard() {
             responses: fmtInt(npsRaw?.responses ?? npsRaw?.respostas ?? 0),
             available: true,
           });
-        } else setNps((p) => ({ ...p, available: false }));
+        } else {
+          setNps((p) => ({ ...p, available: false }));
+        }
 
-        if (csatRaw && typeof csatRaw === 'object') {
+        /* ======== CSAT (series -> média ponderada) ======== */
+        if (Array.isArray(csatRaw) && csatRaw.length > 0) {
+          const buckets = csatRaw.map(b => ({
+            total: toNum(b.total),
+            avg: toNum(b.avg_score ?? b.avg ?? b.media),
+          })).filter(b => b.total > 0 || Number.isFinite(b.avg));
+          const totalResp = sum(buckets.map(b => b.total));
+          let avgScore = 0;
+          if (totalResp > 0) {
+            avgScore = sum(buckets.map(b => (b.avg || 0) * (b.total || 0))) / totalResp;
+          } else {
+            // se não tiver totals, média simples
+            const vals = buckets.map(b => b.avg).filter(Number.isFinite);
+            avgScore = vals.length ? (sum(vals) / vals.length) : 0;
+          }
+          setCsat({ pct: undefined, avg: avgScore || 0, responses: totalResp, counts: {}, available: true });
+        } else if (csatRaw && typeof csatRaw === 'object') {
+          // fallback antigo (objeto com counts/pct)
           const counts = csatRaw?.counts || csatRaw?.notas || {};
           const resp   = fmtInt(csatRaw?.responses ?? csatRaw?.respostas ?? 0);
           const good   = fmtInt((counts?.[4] || 0) + (counts?.[5] || 0));
           const pct    = resp ? (good / resp) * 100 : Number(csatRaw?.csat_pct ?? csatRaw?.pct ?? 0);
           setCsat({ pct: pct || 0, avg: Number(csatRaw?.avg ?? csatRaw?.media ?? 0), responses: resp, counts, available: true });
-        } else setCsat((p) => ({ ...p, available: false }));
+        } else {
+          setCsat((p) => ({ ...p, available: false }));
+        }
 
+        /* ======== Clientes ======== */
         if (clientsRaw && (clientsRaw.metrics || Array.isArray(clientsRaw))) {
           const src = clientsRaw.metrics ?? clientsRaw;
           const items = src
@@ -562,7 +610,7 @@ export default function Dashboard() {
       <div className={styles.gridTwo}>
         <Card title="NPS (Net Promoter Score)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(nps.responses)} respostas</span>}
-              help={`NPS do período.\n• Cálculo: %Promotores (9–10) − %Detratores (0–6)\n• Escala: −100 a 100`}>
+              help={`NPS do período.\n• Cálculo: %Promotores (9–10) − %Detratores (0–6)\n• Escala: −100 a 100\n• Quando a série vem por buckets, calculamos percentuais ponderando por 'total' de cada bucket.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={64} /> :
             nps.available ? (<>
               <NpsGauge score={nps.score} />
@@ -576,15 +624,16 @@ export default function Dashboard() {
 
         <Card title="CSAT (Satisfação do Cliente)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{csat.responses ? `${fmtInt(csat.responses)} respostas` : 'sem respostas'}</span>}
-              help={`CSAT do período.\n• Rosca = % de avaliações 4★ e 5★\n• Média (1–5) e distribuição por notas`}>
+              help={`CSAT do período.\n• Quando a API não traz distribuição (1–5) nem % 4–5★, mostramos a MÉDIA ponderada pelos totais.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={96} /> :
             csat.available ? (
               <div className={styles.csatRow}>
-                <Donut percent={csat.pct || 0} label="Satisfeitos" />
+                {Number.isFinite(+csat.pct) ? <Donut percent={csat.pct || 0} label="Satisfeitos" /> : null}
                 <div className={styles.csatSide}>
-                  <div className={styles.csatBig}>{fmtPct(csat.pct || 0)}</div>
                   <div className={styles.csatAvg}>Média: {Number(csat.avg || 0).toFixed(2)} ★</div>
-                  <CsatDistribution counts={csat.counts} />
+                  {Object.keys(csat.counts || {}).length > 0
+                    ? <CsatDistribution counts={csat.counts} />
+                    : <div className={styles.subtleCenter}>Sem distribuição por notas neste endpoint.</div>}
                 </div>
               </div>
             ) : <div className={styles.empty}>Endpoint de CSAT não disponível.</div>}
@@ -692,4 +741,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
