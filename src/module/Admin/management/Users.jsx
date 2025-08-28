@@ -33,8 +33,8 @@ export default function Users() {
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
-    window.clearTimeout((toastOK)._t);
-    (toastOK)._t = window.setTimeout(() => setOkMsg(null), 2200);
+    clearTimeout((toastOK)._t);
+    (toastOK)._t = setTimeout(() => setOkMsg(null), 2200);
   }, []);
 
   const load = useCallback(async () => {
@@ -118,28 +118,8 @@ export default function Users() {
         {error ? <span className={styles.crumbError}>• {error}</span> : null}
       </div>
 
-      {/* Header */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}><UsersIcon size={22}/> Usuários</h1>
-          <p className={styles.subtitle}>Gerencie usuários, perfis e filas vinculadas.</p>
-
-          {error && (
-            <div className={styles.alertErr} role="alert">
-              <span className={styles.alertIcon}><AlertCircle size={16} /></span>
-              <span>{error}</span>
-              <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar"><XIcon size={14} /></button>
-            </div>
-          )}
-          {okMsg && (
-            <div className={styles.alertOk} role="status">
-              <span className={styles.alertIcon}><CheckCircle2 size={16} /></span>
-              <span>{okMsg}</span>
-              <button className={styles.alertClose} onClick={() => setOkMsg(null)} aria-label="Fechar"><XIcon size={14} /></button>
-            </div>
-          )}
-        </div>
-
+      {/* Toolbar (somente botões à direita) */}
+      <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button className={styles.refreshBtn} onClick={load} disabled={refreshing} title="Atualizar">
             <RefreshCw size={16} className={refreshing ? styles.spinning : ''}/> Atualizar
@@ -152,6 +132,24 @@ export default function Users() {
             <Plus size={16}/> Novo usuário
           </button>
         </div>
+      </div>
+
+      {/* Alertas compactos (abaixo da toolbar) */}
+      <div className={styles.alertsStack}>
+        {okMsg && (
+          <div className={styles.alertOk} role="status">
+            <span className={styles.alertIcon}><CheckCircle2 size={16} /></span>
+            <span>{okMsg}</span>
+            <button className={styles.alertClose} onClick={() => setOkMsg(null)} aria-label="Fechar"><XIcon size={14} /></button>
+          </div>
+        )}
+        {error && (
+          <div className={styles.alertErr} role="alert">
+            <span className={styles.alertIcon}><AlertCircle size={16} /></span>
+            <span>{error}</span>
+            <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar"><XIcon size={14} /></button>
+          </div>
+        )}
       </div>
 
       {/* Card da lista */}
@@ -225,16 +223,14 @@ export default function Users() {
                     <td data-label="Nome">{nome || '—'}</td>
                     <td data-label="Email">{u.email || '—'}</td>
                     <td data-label="Perfil">
-                      <span className={styles.rolePill}>
-                        {(u.perfil || '').charAt(0).toUpperCase() + (u.perfil || '').slice(1) || '—'}
-                      </span>
+                      <span className={`${styles.tag} ${styles.tagRole}`}>{(u.perfil || '').charAt(0).toUpperCase() + (u.perfil || '').slice(1) || '—'}</span>
                     </td>
                     <td data-label="Filas">
-                      <div className={styles.chipsWrap}>
+                      <div className={styles.tagsWrap}>
                         {chipNames.length === 0
                           ? <span className={styles.muted}>—</span>
                           : chipNames.map((n, i) => (
-                              <span key={`${u.id}-f-${i}`} className={styles.chip}>{n}</span>
+                              <span key={`${u.id}-f-${i}`} className={`${styles.tag} ${styles.tagQueue}`}>{n}</span>
                             ))}
                       </div>
                     </td>
