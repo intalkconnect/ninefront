@@ -1,93 +1,98 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { apiGet } from '../../../shared/apiClient';
-import { Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer } from 'lucide-react';
+import {
+  Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer,
+  Headset, RefreshCw
+} from 'lucide-react';
 import styles from './styles/ClientsMonitor.module.css';
 
-// Normaliza nomes das filas (ex.: "Suporte Técnico" -> "suporte_tecnico")
+/* Utils ---------------------------------------------------- */
 const slugify = (str = '') =>
   String(str)
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/[^\w_]/g, '');
+    .toLowerCase().trim()
+    .replace(/\s+/g, '_').replace(/[^\w_]/g, '');
 
 const canais = ['whatsapp', 'telegram', 'webchat', 'instagram'];
 
-const ClientsMonitor = () => {
+/* Tiny helpers */
+const cap = (s='') => s.replace('_', ' ')
+  .replace(/^\w/u, c => c.toUpperCase());
+
+const formatTime = (m = 0) => {
+  const mins = Math.max(0, Math.floor(m));
+  const h = Math.floor(mins / 60);
+  const r = mins % 60;
+  return h > 0 ? `${h}h ${r}m` : `${r}m`;
+};
+
+/* Component ------------------------------------------------ */
+export default function ClientsMonitor() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedFilter, setSelectedFilter] = useState('todos');
   const [atendimentos, setAtendimentos] = useState([]);
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [rt, fs] = await Promise.all([
+        apiGet('/analytics/realtime'),
+        apiGet('/filas'),
+      ]);
+
+      // realtime
+      const rtArray = Array.isArray(rt) ? rt : (Array.isArray(rt?.data) ? rt.data : []);
+      const formatados = rtArray.map((item) => {
+        const inicio = new Date(item.inicioConversa);
+        const esperaMinCalc = Math.floor((Date.now() - inicio.getTime()) / 60000);
+        const esperaSegApi = Number(item.tempoEspera ?? 0);
+        const esperaMinApi = Math.floor(esperaSegApi / 60);
+        return {
+          ...item,
+          inicioConversa: inicio,
+          tempoEspera: item.status === 'aguardando' ? esperaMinCalc : esperaMinApi,
+        };
+      });
+
+      // filas
+      const filasIn = Array.isArray(fs) ? fs : (Array.isArray(fs?.data) ? fs.data : []);
+      const filasNorm = filasIn
+        .map((f) => {
+          if (typeof f === 'string') return { nome: f, slug: slugify(f) };
+          const nome = f?.nome || f?.name || f?.titulo || '';
+          return nome ? { nome, slug: slugify(nome) } : null;
+        })
+        .filter(Boolean);
+
+      setAtendimentos(formatados);
+      setFilas(filasNorm);
+      setErro(null);
+      setCurrentTime(new Date());
+    } catch (e) {
+      console.error('Erro ao buscar dados:', e);
+      setErro('Falha ao atualizar. Tentaremos novamente em 10s.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     let mounted = true;
-
-    const fetchAll = async () => {
-      try {
-        // IMPORTANTE: apiGet é função -> use apiGet('/caminho'), NÃO apiGet.get(...)
-        const [rt, fs] = await Promise.all([
-          apiGet('/analytics/realtime'),
-          apiGet('/filas'),
-        ]);
-
-        if (!mounted) return;
-
-        // /analytics/realtime (aceita Array direto ou {data: Array})
-        const rtArray = Array.isArray(rt) ? rt : (Array.isArray(rt?.data) ? rt.data : []);
-        const formatados = rtArray.map((item) => {
-          const inicio = new Date(item.inicioConversa);
-          const esperaMinCalc = Math.floor((Date.now() - inicio.getTime()) / 60000);
-          const esperaSegApi = Number(item.tempoEspera ?? 0); // vem em segundos no seu exemplo
-          const esperaMinApi = Math.floor(esperaSegApi / 60);
-
-          return {
-            ...item,
-            inicioConversa: inicio,
-            tempoEspera: item.status === 'aguardando' ? esperaMinCalc : esperaMinApi,
-          };
-        });
-
-        // /filas (aceita array de strings ou objetos { nome })
-        const filasIn = Array.isArray(fs) ? fs : (Array.isArray(fs?.data) ? fs.data : []);
-        const filasNorm = filasIn
-          .map((f) => {
-            if (typeof f === 'string') return { nome: f, slug: slugify(f) };
-            const nome = f?.nome || f?.name || f?.titulo || '';
-            return nome ? { nome, slug: slugify(nome) } : null;
-          })
-          .filter(Boolean);
-
-        setAtendimentos(formatados);
-        setFilas(filasNorm);
-        setErro(null);
-        setCurrentTime(new Date());
-      } catch (e) {
-        console.error('Erro ao buscar dados:', e);
-        setErro('Falha ao atualizar dados. Tentaremos novamente em 10s.');
-      } finally {
-        setLoading(false);
-      }
+    const run = async () => {
+      if (!mounted) return;
+      await fetchAll();
     };
+    run();
+    const interval = setInterval(run, 10000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, [fetchAll]);
 
-    // primeira carga + refresh a cada 10s
-    fetchAll();
-    const interval = setInterval(fetchAll, 10000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  const formatTime = (m = 0) => {
-    const mins = Math.max(0, Math.floor(m));
-    const h = Math.floor(mins / 60);
-    const r = mins % 60;
-    return h > 0 ? `${h}h ${r}m` : `${r}m`;
-  };
-
+  /* Filtros ------------------------------------------------ */
   const filasParaFiltro = filas.length
     ? filas
     : Array.from(new Set(atendimentos.map((a) => a.fila).filter(Boolean)))
@@ -104,6 +109,7 @@ const ClientsMonitor = () => {
     });
   }, [atendimentos, selectedFilter, filasParaFiltro]);
 
+  /* KPIs --------------------------------------------------- */
   const stats = useMemo(() => ({
     clientesAguardando: atendimentos.filter((a) => a.status === 'aguardando').length,
     emAtendimento: atendimentos.filter((a) => a.status === 'em_atendimento').length,
@@ -114,7 +120,6 @@ const ClientsMonitor = () => {
         .reduce((s, a) => s + (a.tempoEspera || 0), 0) /
       Math.max(1, atendimentos.filter((a) => a.status === 'em_atendimento').length)
     ),
-    // Placeholder simples, até termos endpoint de métricas
     tempoMedioAtendimento: Math.round(
       (atendimentos.filter((a) => a.status === 'em_atendimento').length ? 8 : 12)
     ),
@@ -126,58 +131,60 @@ const ClientsMonitor = () => {
     ),
   }), [atendimentos]);
 
-  const alertas = useMemo(() => (
+  const alertas = useMemo(() =>
     atendimentos
       .filter((a) => a.status === 'aguardando' && (a.tempoEspera || 0) >= 8)
       .sort((a, b) => (b.tempoEspera || 0) - (a.tempoEspera || 0))
       .slice(0, 3)
-  ), [atendimentos]);
+  , [atendimentos]);
 
+  /* Render ------------------------------------------------- */
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Tempo Real</h1>
-          <p className={styles.subtitle}>
-            Última atualização: {currentTime.toLocaleTimeString('pt-BR')}
-          </p>
-          {erro && <p className={styles.error}>{erro}</p>}
-        </div>
+      {/* Breadcrumb / indicador de página */}
+      <div className={styles.crumbBar}>
+        <span className={styles.crumb}><Headset size={14} /> <span>Acompanhamento · Clientes (tempo real)</span></span>
+        {erro ? <span className={styles.crumbError}>• {erro}</span> : null}
       </div>
 
-      {/* Métricas */}
+      {/* Header com último update e refresh */}
+      <div className={styles.header}>
+        <div className={styles.headerInfo}>
+          <div className={styles.kpillBlue}>Última atualização: {currentTime.toLocaleTimeString('pt-BR')}</div>
+          {alertas.length > 0 && (
+            <div className={styles.kpillAmber}>
+              <AlertTriangle size={14}/> {alertas.length} alerta(s)
+            </div>
+          )}
+        </div>
+        <button
+          className={styles.refreshBtn}
+          onClick={fetchAll}
+          disabled={refreshing}
+          title="Atualizar agora"
+        >
+          <RefreshCw size={16} className={refreshing ? styles.spinning : ''} />
+          Atualizar
+        </button>
+      </div>
+
+      {/* KPIs */}
       <section className={styles.cardGroup}>
-        <div className={styles.card}>
-          <Clock className={styles.cardIcon} />
-          <p className={styles.cardLabel}>Clientes Aguardando</p>
-          <p className={`${styles.cardValue} ${styles.yellow}`}>{stats.clientesAguardando}</p>
-        </div>
-        <div className={styles.card}>
-          <MessageCircle className={styles.cardIcon} />
-          <p className={styles.cardLabel}>Em Atendimento</p>
-          <p className={`${styles.cardValue} ${styles.green}`}>{stats.emAtendimento}</p>
-        </div>
-        <div className={styles.card}>
-          <User className={styles.cardIcon} />
-          <p className={styles.cardLabel}>Atendentes Online</p>
-          <p className={`${styles.cardValue} ${styles.blue}`}>{stats.atendentesOnline}</p>
-        </div>
-        <div className={styles.card}>
-          <Timer className={styles.cardIcon} />
-          <p className={styles.cardLabel}>T. Médio Resposta</p>
-          <p className={`${styles.cardValue} ${styles.purple}`}>{formatTime(stats.tempoMedioResposta)}</p>
-        </div>
-        <div className={styles.card}>
-          <CheckCircle className={styles.cardIcon} />
-          <p className={styles.cardLabel}>T. Médio Atendimento</p>
-          <p className={`${styles.cardValue} ${styles.indigo}`}>{formatTime(stats.tempoMedioAtendimento)}</p>
-        </div>
-        <div className={styles.card}>
-          <AlertTriangle className={styles.cardIcon} />
-          <p className={styles.cardLabel}>T. Médio Aguardando</p>
-          <p className={`${styles.cardValue} ${styles.orange}`}>{formatTime(stats.tempoMedioAguardando)}</p>
-        </div>
+        {loading ? (
+          <>
+            <KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
+            <KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
+          </>
+        ) : (
+          <>
+            <KpiCard icon={<Clock />} label="Clientes Aguardando" value={stats.clientesAguardando} tone="amber" />
+            <KpiCard icon={<MessageCircle />} label="Em Atendimento" value={stats.emAtendimento} tone="green" />
+            <KpiCard icon={<User />} label="Atendentes Online" value={stats.atendentesOnline} tone="blue" />
+            <KpiCard icon={<Timer />} label="T. Médio Resposta" value={formatTime(stats.tempoMedioResposta)} tone="purple" />
+            <KpiCard icon={<CheckCircle />} label="T. Médio Atendimento" value={formatTime(stats.tempoMedioAtendimento)} tone="indigo" />
+            <KpiCard icon={<AlertTriangle />} label="T. Médio Aguardando" value={formatTime(stats.tempoMedioAguardando)} tone="orange" />
+          </>
+        )}
       </section>
 
       {/* Filtros */}
@@ -191,7 +198,7 @@ const ClientsMonitor = () => {
                 onClick={() => setSelectedFilter(f)}
                 className={`${styles.chip} ${selectedFilter === f ? styles.chipActive : ''}`}
               >
-                {f.replace('_', ' ').replace(/^\w/, (c) => c.toUpperCase())}
+                {cap(f)}
               </button>
             ))}
           </div>
@@ -205,6 +212,7 @@ const ClientsMonitor = () => {
                 key={slug}
                 onClick={() => setSelectedFilter(slug)}
                 className={`${styles.chip} ${selectedFilter === slug ? styles.chipGreen : ''}`}
+                title={nome}
               >
                 {nome}
               </button>
@@ -220,8 +228,9 @@ const ClientsMonitor = () => {
                 key={f}
                 onClick={() => setSelectedFilter(f)}
                 className={`${styles.chip} ${selectedFilter === f ? styles.chipPurple : ''}`}
+                title={cap(f)}
               >
-                {f[0].toUpperCase() + f.slice(1)}
+                {cap(f)}
               </button>
             ))}
           </div>
@@ -231,7 +240,7 @@ const ClientsMonitor = () => {
       {/* Tabela */}
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
-          <h2 className={styles.tableTitle}>Atendimentos em Tempo Real ({filtered.length})</h2>
+          <h2 className={styles.tableTitle}>Atendimentos em Tempo Real <span className={styles.kpill}>{filtered.length}</span></h2>
         </div>
         <div className={styles.tableScroll}>
           <table className={styles.table}>
@@ -249,7 +258,11 @@ const ClientsMonitor = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className={styles.loadingCell}>Carregando…</td></tr>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={`sk-${i}`} className={styles.skelRow}>
+                    <td colSpan={8}><div className={styles.skeletonRow}/></td>
+                  </tr>
+                ))
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className={styles.emptyCell}>Sem atendimentos no filtro atual.</td></tr>
               ) : filtered.map((a) => (
@@ -263,30 +276,25 @@ const ClientsMonitor = () => {
                       </div>
                     </div>
                   </td>
+                  <td><span className={styles.queuePill}>{a.fila || '—'}</span></td>
                   <td>
-                    <div className={styles.queueCell}>
-                      <span>{a.fila}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className={styles.channelCell}>
-                      <span className={styles.cap}>{a.canal}</span>
-                    </div>
+                    <span className={`${styles.channelPill} ${styles[`ch_${a.canal || 'default'}`]}`}>
+                      {cap(a.canal || '—')}
+                    </span>
                   </td>
                   <td>{a.agente ? a.agente : <em className={styles.muted}>Não atribuído</em>}</td>
                   <td>
                     <span className={`${styles.status} ${
                       a.status === 'aguardando' ? styles.statusWait :
-                      a.status === 'em_atendimento' ? styles.statusLive :
-                      styles.statusDone
+                      a.status === 'em_atendimento' ? styles.statusLive : styles.statusDone
                     }`}>
                       {a.status === 'aguardando' && <Clock size={12} className={styles.statusIcon} />}
                       {a.status === 'em_atendimento' && <CheckCircle size={12} className={styles.statusIcon} />}
-                      {String(a.status || '').replace('_', ' ')}
+                      {cap(a.status || '—')}
                     </span>
                   </td>
                   <td>
-                    <div>{formatTime(a.tempoEspera)}</div>
+                    <div className={styles.bold}>{formatTime(a.tempoEspera)}</div>
                     <div className={styles.subtle}>
                       Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa)
                         ? a.inicioConversa.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -294,16 +302,13 @@ const ClientsMonitor = () => {
                     </div>
                   </td>
                   <td>
-                    <div className={styles.priorityCell}>
-                      {a.prioridade === 'alta' && <AlertTriangle size={14} className={styles.priorityIcon} />}
-                      <span className={`${styles.priorityText} ${
-                        a.prioridade === 'alta' ? styles.red :
-                        a.prioridade === 'normal' ? styles.amber :
-                        a.prioridade === 'baixa' ? styles.green : styles.gray
-                      }`}>
-                        {a.prioridade ? a.prioridade[0].toUpperCase() + a.prioridade.slice(1) : '—'}
-                      </span>
-                    </div>
+                    <span className={`${styles.priorityPill} ${
+                      a.prioridade === 'alta' ? styles.pRed :
+                      a.prioridade === 'normal' ? styles.pAmber :
+                      a.prioridade === 'baixa' ? styles.pGreen : styles.pGray
+                    }`}>
+                      {cap(a.prioridade || '—')}
+                    </span>
                   </td>
                   <td className={styles.actionsCell}>
                     <button className={styles.linkBtn}>Ver</button>
@@ -316,8 +321,55 @@ const ClientsMonitor = () => {
         </div>
       </section>
 
+      {/* Alertas rápidos */}
+      {alertas.length > 0 && (
+        <section className={styles.alertCard}>
+          <h3 className={styles.alertTitle}><AlertTriangle size={18}/> Espera acima do limite</h3>
+          <ul className={styles.alertList}>
+            {alertas.map((a) => (
+              <li key={`al-${a.ticket_number}`} className={styles.alert}>
+                <span className={styles.badgeTime}>{formatTime(a.tempoEspera)}</span>
+                <strong>{a.cliente}</strong>
+                <span className={styles.subtle}>• Fila: {a.fila || '—'}</span>
+                <span className={styles.subtle}>• Canal: {cap(a.canal || '—')}</span>
+                <span className={styles.subtle}>• Ticket #{a.ticket_number}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
-};
+}
 
-export default ClientsMonitor;
+/* Subcomponents ------------------------------------------- */
+function KpiCard({ icon, label, value, tone = 'blue' }) {
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardHead}>
+        <div className={styles.cardTitle}>
+          <span className={styles.cardIcon}>{icon}</span>
+          <span>{label}</span>
+        </div>
+      </div>
+      <div className={styles.cardBody}>
+        <div className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}>{value}</div>
+      </div>
+    </div>
+  );
+}
+function KpiSkeleton() {
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardHead}>
+        <div className={styles.cardTitle}>
+          <span className={`${styles.skeleton} ${styles.sq16}`} />
+          <span className={`${styles.skeleton} ${styles.sq120}`} />
+        </div>
+      </div>
+      <div className={styles.cardBody}>
+        <div className={`${styles.skeleton} ${styles.sq48}`} />
+      </div>
+    </div>
+  );
+}
