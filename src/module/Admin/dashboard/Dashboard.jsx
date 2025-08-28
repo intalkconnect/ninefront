@@ -263,23 +263,32 @@ const RankList = ({ items = [], unit = '' }) => {
 };
 
 /* ========================= Gauges bonitos ========================= */
+// ===== Speedometer (min..max) com ponteiro "pra cima" =====
 const Speedometer = ({ value = 0, min = 0, max = 100, size = 220, label, format }) => {
   const id = useId();
-  const v = Number.isFinite(+value) ? +value : 0;
-  const mn = Number.isFinite(+min) ? +min : 0;
-  const mx = Number.isFinite(+max) ? +max : 100;
-  const p = clamp((v - mn) / (mx - mn), 0, 1);
-  const cx = 50, cy = 50, r = 45; // viewBox 0..100 x 0..60, mas usamos 0..50.. pra facilidade
-  const start = { x: 5, y: 50 };
-  const end   = { x: 95, y: 50 };
-  const polar = (angleDeg, rad = r) => {
-    const a = (Math.PI * angleDeg) / 180;
-    return { x: cx + rad * Math.cos(a), y: cy + rad * Math.sin(a) };
-  };
-  const angle = Math.PI - Math.PI * p; // 180° .. 0°
-  const needle = { x: cx + (r - 6) * Math.cos(angle), y: cy + (r - 6) * Math.sin(angle) };
-  const endArc = polar(Math.PI - Math.PI * p, r); // usando radianos na mesma escala
+  const v  = Number.isFinite(+value) ? +value : 0;
+  const mn = Number.isFinite(+min)   ? +min   : 0;
+  const mx = Number.isFinite(+max)   ? +max   : 100;
+  const p  = clamp((v - mn) / (mx - mn), 0, 1);       // 0..1
+
+  // Semicírculo superior
+  const cx = 50, cy = 50, r = 45;                     // viewBox 0..100 x 0..60
+  const startX = cx - r, startY = cy;
+  const endX   = cx + r, endY   = cy;
+
+  // Ângulo do ponteiro (180°..0°) e coordenadas no arco de cima
+  const angDeg = 180 * (1 - p);
+  const rad    = (Math.PI / 180) * angDeg;
+
+  // Ponta do ponteiro (um pouco dentro do raio)
+  const tipX   = cx + (r - 6) * Math.cos(rad);
+  const tipY   = cy - (r - 6) * Math.sin(rad);        // *** Y invertido para subir ***
+
+  // Final do arco de progresso
+  const endProgX = cx + r * Math.cos(rad);
+  const endProgY = cy - r * Math.sin(rad);            // *** idem ***
   const largeArc = p > 0.5 ? 1 : 0;
+
   const midVal = (mn + mx) / 2;
 
   return (
@@ -296,29 +305,33 @@ const Speedometer = ({ value = 0, min = 0, max = 100, size = 220, label, format 
           </filter>
         </defs>
 
-        {/* fundo */}
-        <path d={`M ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y}`} fill="none" stroke="#E5E7EB" strokeWidth="10" />
-        {/* progresso */}
-        <path d={`M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${endArc.x} ${endArc.y}`} fill="none" stroke={`url(#grad-${id})`} strokeWidth="10" strokeLinecap="round" />
+        {/* Arco de fundo (superior) */}
+        <path d={`M ${startX} ${startY} A ${r} ${r} 0 0 0 ${endX} ${endY}`}
+              fill="none" stroke="#E5E7EB" strokeWidth="10" />
 
-        {/* marcações min/meio/max */}
-        {[mn, midVal, mx].map((t, i) => {
-          const tp = i === 0 ? 0 : i === 1 ? 0.5 : 1;
-          const a = Math.PI - Math.PI * tp;
-          const p1 = { x: cx + (r - 1) * Math.cos(a), y: cy + (r - 1) * Math.sin(a) };
-          const p2 = { x: cx + (r - 6) * Math.cos(a), y: cy + (r - 6) * Math.sin(a) };
+        {/* Arco de progresso (mesma direção do fundo) */}
+        <path d={`M ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 0 ${endProgX} ${endProgY}`}
+              fill="none" stroke={`url(#grad-${id})`} strokeWidth="10" strokeLinecap="round" />
+
+        {/* Marcas min/meio/max */}
+        {[{t:mn,p:0},{t:midVal,p:0.5},{t:mx,p:1}].map(({t,p},i)=>{
+          const a  = (Math.PI/180) * (180 * (1 - p));
+          const x1 = cx + (r - 1) * Math.cos(a);
+          const y1 = cy - (r - 1) * Math.sin(a);
+          const x2 = cx + (r - 6) * Math.cos(a);
+          const y2 = cy - (r - 6) * Math.sin(a);
           return (
             <g key={i}>
-              <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#CBD5E1" strokeWidth="1.2" />
-              <text x={p2.x} y={p2.y - 2} fontSize="5" textAnchor={i===0?'start':i===2?'end':'middle'} fill="#64748B">
+              <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#CBD5E1" strokeWidth="1.2" />
+              <text x={x2} y={y2 - 2} fontSize="5" textAnchor={i===0?'start':i===2?'end':'middle'} fill="#64748B">
                 {format ? format(t) : t}
               </text>
             </g>
           );
         })}
 
-        {/* agulha */}
-        <line x1={cx} y1={cy} x2={needle.x} y2={needle.y} stroke="#0F172A" strokeWidth="2.2" filter={`url(#shadow-${id})`} />
+        {/* Ponteiro */}
+        <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="#0F172A" strokeWidth="2.2" filter={`url(#shadow-${id})`} />
         <circle cx={cx} cy={cy} r="3.2" fill="#0F172A" />
       </svg>
 
@@ -329,6 +342,7 @@ const Speedometer = ({ value = 0, min = 0, max = 100, size = 220, label, format 
     </div>
   );
 };
+
 
 const ThermoBar = ({ percent = 0, minLabel = '0', maxLabel = '100' }) => {
   const p = clamp(+percent || 0, 0, 100);
@@ -819,3 +833,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
