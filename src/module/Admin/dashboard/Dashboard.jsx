@@ -34,11 +34,16 @@ const useDebounce = (value, delay = 300) => {
 const safeGet = async (url) => { try { return await apiGet(url); } catch { return null; } };
 
 /* ===== Tooltip ===== */
+/* ===== Tooltip ===== */
 const HelpIcon = ({ text, className }) => {
+  if (!text) return null; // evita render quando não há texto
+
   const ref = useRef(null);
   const [pos, setPos] = useState('top');
+
   const onEnter = () => {
-    const el = ref.current; if (!el) return;
+    const el = ref.current;
+    if (!el) return;
     const TIP_W = 260, PAD = 12;
     const rect = el.getBoundingClientRect();
     const midX = rect.left + rect.width / 2;
@@ -47,13 +52,22 @@ const HelpIcon = ({ text, className }) => {
     else if (midX - TIP_W / 2 - PAD < 0) setPos('top-left');
     else setPos('top');
   };
+
   return (
-    <span ref={ref} onMouseEnter={onEnter}
-      className={`${styles.help} ${className || ''}`} data-tooltip={text} data-pos={pos} aria-label="Ajuda">
+    <span
+      ref={ref}
+      onMouseEnter={onEnter}
+      className={`${styles.help} ${className || ''}`}
+      data-tooltip={text}
+      data-pos={pos}
+      aria-label="Ajuda"
+      role="img"
+    >
       <Info size={16} />
     </span>
   );
 };
+
 
 /* ===== UI ===== */
 const Card = ({ title, icon, help, right, children }) => (
