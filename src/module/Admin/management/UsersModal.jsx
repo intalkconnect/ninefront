@@ -1,256 +1,161 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { X as XIcon, Save as SaveIcon } from 'lucide-react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { X, Save, UserPlus, UserCircle2 } from 'lucide-react';
 import { apiPost, apiPut } from '../../../shared/apiClient';
-import styles from './styles/Users.module.css';
+import m from './styles/UsersModal.module.css';
 
-const PERFIS = [
-  { value: 'admin',      label: 'Admin' },
-  { value: 'supervisor', label: 'Supervisor' },
-  { value: 'atendente',  label: 'Atendente' },
-];
-
-const sid   = (v) => String(v ?? '').trim();
-const sname = (v) => String(v ?? '').toLowerCase().trim();
-
-/** ---- MultiSelectChips -------------------------------------------------- **/
-function MultiSelectChips({ allItems, value, onChange, placeholder = 'Adicionar fila…' }) {
-  const wrapRef = useRef(null);
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [activeIdx, setActiveIdx] = useState(0);
-
-  // itens restantes = todos - já selecionados (por id/nome)
-  const options = useMemo(() => {
-    const usedIds   = new Set(value.map(f => sid(f.id)));
-    const usedNames = new Set(value.map(f => sname(f.nome)));
-    const base = (allItems || [])
-      .map(q => ({ id: q.id, nome: q.nome ?? q.name ?? String(q.id) }))
-      .filter(q => !usedIds.has(sid(q.id)) && !usedNames.has(sname(q.nome)));
-    const q = sname(query);
-    return q ? base.filter(o => sname(o.nome).includes(q)) : base;
-  }, [allItems, value, query]);
-
-  // clique fora fecha
-  useEffect(() => {
-    function onDoc(e) {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target)) setOpen(false);
-    }
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
-
-  const add = (opt) => {
-    onChange([...value, opt]);
-    setQuery('');
-    setOpen(true); // mantém aberto para multi seleção rápida
-  };
-  const remove = (id) => onChange(value.filter(f => sid(f.id) !== sid(id)));
-
-  const onKeyDown = (e) => {
-    if (!open) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter') {
-        setOpen(true);
-        e.preventDefault();
-      }
-      return;
-    }
-    if (e.key === 'ArrowDown') {
-      setActiveIdx((p) => Math.min(p + 1, Math.max(options.length - 1, 0)));
-      e.preventDefault();
-    } else if (e.key === 'ArrowUp') {
-      setActiveIdx((p) => Math.max(p - 1, 0));
-      e.preventDefault();
-    } else if (e.key === 'Enter') {
-      if (options[activeIdx]) add(options[activeIdx]);
-      e.preventDefault();
-    } else if (e.key === 'Escape') {
-      setOpen(false);
-      e.preventDefault();
-    } else if (e.key === 'Backspace' && !query && value.length) {
-      // backspace remove último chip
-      remove(value[value.length - 1].id);
-      e.preventDefault();
-    }
-  };
-
-  return (
-    <div className={styles.chipsControl} ref={wrapRef} onClick={() => setOpen(true)}>
-      {/* chips */}
-      {value.map((f) => (
-        <span key={sid(f.id)} className={styles.chip}>
-          {f.nome}
-          <button
-            type="button"
-            className={styles.chipX}
-            onClick={(e) => { e.stopPropagation(); remove(f.id); }}
-            aria-label={`Remover ${f.nome}`}
-          >
-            ×
-          </button>
-        </span>
-      ))}
-
-      {/* “input” de chips */}
-      <input
-        className={styles.chipInput}
-        value={query}
-        onChange={(e) => { setQuery(e.target.value); setActiveIdx(0); }}
-        onKeyDown={onKeyDown}
-        placeholder={value.length ? '' : placeholder}
-        onFocus={() => setOpen(true)}
-      />
-
-      {/* dropdown flutuante */}
-      {open && options.length > 0 && (
-        <div className={styles.options} role="listbox">
-          {options.map((opt, i) => (
-            <button
-              key={sid(opt.id)}
-              type="button"
-              className={`${styles.option} ${i === activeIdx ? styles.optionActive : ''}`}
-              onMouseEnter={() => setActiveIdx(i)}
-              onClick={() => add(opt)}
-              role="option"
-            >
-              {opt.nome}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+function normalizeQueues(queues) {
+  return (Array.isArray(queues) ? queues : []).map((q) => {
+    if (typeof q === 'string') return { id: q, nome: q };
+    const id = q?.id ?? q?.nome ?? q?.name;
+    const nome = q?.nome ?? q?.name ?? String(id || '');
+    return { id: String(id), nome: String(nome) };
+  }).filter(q => q.id && q.nome);
 }
 
-/** ---- UsersModal -------------------------------------------------------- **/
 export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }) {
-  const [name, setName] = useState('');
-  const [lastname, setLastname] = useState('');
-  const [email, setEmail] = useState('');
-  const [perfil, setPerfil] = useState('atendente');
-  const [filasSel, setFilasSel] = useState([]); // [{id,nome}]
+  const qs = useMemo(() => normalizeQueues(queues), [queues]);
+
+  const [form, setForm] = useState({
+    name: '', lastname: '', email: '', perfil: 'atendente', filas: [],
+  });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
   useEffect(() => {
     if (!isOpen) return;
-
     if (editing) {
-      setName(editing.name || '');
-      setLastname(editing.lastname || '');
-      setEmail(editing.email || '');
-      setPerfil(editing.perfil || 'atendente');
-
-      const arr = Array.isArray(editing.filas) ? editing.filas : [];
-      const mapped = arr.map(v => {
-        const byId   = (queues || []).find(x => sid(x.id) === sid(v));
-        const byName = (queues || []).find(x => sname(x.nome ?? x.name) === sname(v));
-        const q = byId || byName;
-        return { id: q?.id ?? v, nome: q?.nome ?? q?.name ?? String(v) };
+      setForm({
+        name: editing.name ?? '',
+        lastname: editing.lastname ?? '',
+        email: editing.email ?? '',
+        perfil: (editing.perfil || 'atendente').toLowerCase(),
+        filas: Array.isArray(editing.filas) ? editing.filas.map(String) : [],
       });
-      setFilasSel(mapped);
     } else {
-      setName(''); setLastname(''); setEmail(''); setPerfil('atendente'); setFilasSel([]);
+      setForm({ name: '', lastname: '', email: '', perfil: 'atendente', filas: [] });
     }
+  }, [isOpen, editing]);
+
+  const onEsc = useCallback((e) => { if (e.key === 'Escape') onClose?.(); }, [onClose]);
+  useEffect(() => {
+    if (!isOpen) return;
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [isOpen, onEsc]);
+
+  if (!isOpen) return null;
+
+  async function handleSave(e) {
+    e?.preventDefault?.();
     setErr(null);
-  }, [isOpen, editing, queues]);
+    if (!form.email.trim()) { setErr('Informe o e-mail.'); return; }
+    if (!form.name.trim()) { setErr('Informe o nome.'); return; }
 
-  const canSave = name.trim() && lastname.trim() && email.trim() && perfil;
-  const showFilas = perfil === 'atendente';
-
-  async function submit(e) {
-    e.preventDefault();
-    if (!canSave || saving) return;
-
-    setSaving(true);
-    setErr(null);
     try {
+      setSaving(true);
       const payload = {
-        name: name.trim(),
-        lastname: lastname.trim(),
-        email: email.trim(),
-        perfil,
-        filas: showFilas ? filasSel.map(f => f.nome) : [],
+        name: form.name.trim(),
+        lastname: form.lastname.trim(),
+        email: form.email.trim(),
+        perfil: String(form.perfil || 'atendente').toLowerCase(),
+        filas: form.filas,
       };
-      if (editing) {
+      if (editing?.id) {
         await apiPut(`/users/${editing.id}`, payload);
       } else {
         await apiPost('/users', payload);
       }
       onSaved?.();
-    } catch (er) {
-      console.error(er);
-      setErr('Falha ao salvar usuário.');
+    } catch (e2) {
+      console.error(e2);
+      setErr('Não foi possível salvar. Verifique os dados e tente novamente.');
     } finally {
       setSaving(false);
     }
   }
 
-  if (!isOpen) return null;
+  function toggleFila(id) {
+    setForm((p) => {
+      const has = p.filas.includes(id);
+      return { ...p, filas: has ? p.filas.filter(x => x !== id) : [...p.filas, id] };
+    });
+  }
 
   return (
-    <div className={styles.modalOverlay} onMouseDown={onClose}>
-      <div
-        className={styles.modal}
-        role="dialog"
-        aria-modal="true"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>{editing ? 'Editar usuário' : 'Novo usuário'}</h3>
-          <button className={`${styles.btn} ${styles.iconOnly}`} onClick={onClose} aria-label="Fechar">
-            <XIcon size={16}/>
-          </button>
+    <div className={m.overlay} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}>
+      <div className={m.modal} role="dialog" aria-modal="true" aria-labelledby="users-modal-title">
+        <div className={m.header}>
+          <h3 id="users-modal-title" className={m.title}>
+            {editing ? <UserCircle2 size={18}/> : <UserPlus size={18}/>}
+            {editing ? 'Editar usuário' : 'Novo usuário'}
+          </h3>
+          <button className={m.iconBtn} onClick={onClose} aria-label="Fechar"><X size={16}/></button>
         </div>
 
-        <form onSubmit={submit}>
-          <div className={styles.modalBody}>
-            <div className={styles.formGrid}>
-              {err && <div className={styles.alertErr}>{err}</div>}
+        <form className={m.body} onSubmit={handleSave}>
+          {err && <div className={m.alert}>{err}</div>}
 
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-nome">Nome *</label>
-                <input id="u-nome" className={styles.input} value={name} onChange={e=>setName(e.target.value)} autoFocus/>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-last">Sobrenome *</label>
-                <input id="u-last" className={styles.input} value={lastname} onChange={e=>setLastname(e.target.value)}/>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-email">Email *</label>
-                <input id="u-email" className={styles.input} value={email} onChange={e=>setEmail(e.target.value)}/>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.label} htmlFor="u-perfil">Perfil *</label>
-                <select id="u-perfil" className={styles.select} value={perfil} onChange={e=>setPerfil(e.target.value)}>
-                  {PERFIS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
-              </div>
-
-              {showFilas && (
-                <div className={styles.inputGroup}>
-                  <label className={styles.label}>Filas</label>
-                  <MultiSelectChips
-                    allItems={queues}
-                    value={filasSel}
-                    onChange={setFilasSel}
-                    placeholder="Adicionar fila…"
-                  />
-                  <div className={styles.inputHelper}>
-                    Digite para filtrar; Enter/Click adiciona. Cada seleção vira uma etiqueta. “×” remove.
-                  </div>
-                </div>
-              )}
+          <div className={m.grid}>
+            <div className={m.group}>
+              <label className={m.label}>Nome</label>
+              <input className={m.input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+            </div>
+            <div className={m.group}>
+              <label className={m.label}>Sobrenome</label>
+              <input className={m.input} value={form.lastname} onChange={e => setForm({ ...form, lastname: e.target.value })} />
             </div>
           </div>
 
-          <div className={styles.modalActions}>
-            <button type="button" className={styles.btn} onClick={onClose}>Cancelar</button>
-            <button type="submit" className={styles.btnPrimary} disabled={!canSave || saving}>
-              <SaveIcon size={16}/> {saving ? 'Salvando…' : 'Salvar'}
+          <div className={m.group}>
+            <label className={m.label}>E-mail</label>
+            <input className={m.input} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+          </div>
+
+          <div className={m.grid}>
+            <div className={m.group}>
+              <label className={m.label}>Perfil</label>
+              <select className={m.select} value={form.perfil} onChange={e => setForm({ ...form, perfil: e.target.value })}>
+                <option value="admin">Admin</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="atendente">Atendente</option>
+              </select>
+            </div>
+
+            <div className={m.group}>
+              <label className={m.label}>Filas vinculadas</label>
+              <div className={m.chipsBox}>
+                <div className={m.chips}>
+                  {form.filas.length === 0
+                    ? <span className={m.muted}>Nenhuma fila selecionada</span>
+                    : form.filas.map(fid => {
+                        const q = qs.find(x => String(x.id) === String(fid));
+                        return (
+                          <span key={fid} className={m.chip}>
+                            {q?.nome ?? fid}
+                            <button type="button" className={m.chipX} onClick={() => toggleFila(String(fid))}>×</button>
+                          </span>
+                        );
+                      })
+                  }
+                </div>
+                <select
+                  className={m.selectInline}
+                  onChange={(e) => { const v = e.target.value; if (v) toggleFila(v); e.target.value=''; }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>Adicionar fila…</option>
+                  {qs.filter(q => !form.filas.includes(String(q.id))).map(q => (
+                    <option key={q.id} value={q.id}>{q.nome}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className={m.footer}>
+            <button type="button" className={m.btn} onClick={onClose}>Cancelar</button>
+            <button type="submit" className={m.btnPrimary} disabled={saving}>
+              <Save size={16}/> {saving ? 'Salvando…' : 'Salvar'}
             </button>
           </div>
         </form>
