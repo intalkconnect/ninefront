@@ -190,7 +190,7 @@ export default function Admin() {
       {
         key: "builder",
         label: "Builder",
-        to: "builder",
+        to: "development/builder",
         icon: <Bot size={18} />,
       },
       {
