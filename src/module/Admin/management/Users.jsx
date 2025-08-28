@@ -1,21 +1,25 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { apiGet, apiPost, apiDelete, apiPut } from '../../../shared/apiClient';
+import {
+  Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw,
+  AlertCircle, CheckCircle2, Shield
+} from 'lucide-react';
+import { apiGet, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
 import { useConfirm } from '../../../components/ConfirmProvider.jsx';
 
 const PERFIS = [
-  { key: '', label: 'Todos' },
-  { key: 'admin', label: 'Admin' },
-  { key: 'supervisor', label: 'Supervisor' },
-  { key: 'atendente', label: 'Atendente' },
+  { key: '',           label: 'Todos',      icon: <UsersIcon size={14}/> },
+  { key: 'admin',      label: 'Admin',      icon: <Shield size={14}/> },
+  { key: 'supervisor', label: 'Supervisor', icon: <Shield size={14}/> },
+  { key: 'atendente',  label: 'Atendente',  icon: <Shield size={14}/> },
 ];
 
 export default function Users() {
   const [items, setItems] = useState([]);
   const [queues, setQueues] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState('');
   const [query, setQuery] = useState('');
@@ -29,11 +33,13 @@ export default function Users() {
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
-    setTimeout(() => setOkMsg(null), 2200);
+    window.clearTimeout((toastOK)._t);
+    (toastOK)._t = window.setTimeout(() => setOkMsg(null), 2200);
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setRefreshing(true);
     setError(null);
     try {
       const [usersResp, filasResp] = await Promise.all([
@@ -47,6 +53,7 @@ export default function Users() {
       setError('Falha ao carregar usuários.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -68,24 +75,32 @@ export default function Users() {
     return map;
   }, [queues]);
 
+  const perfilCounts = useMemo(() => {
+    const counts = items.reduce((acc, u) => {
+      const k = String(u.perfil || '').toLowerCase();
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    counts[''] = items.length;
+    return counts;
+  }, [items]);
+
   async function handleDelete(u) {
     setError(null);
-    // regra: se tiver filas vinculadas, bloquear
     const hasFilas = Array.isArray(u.filas) && u.filas.length > 0;
     if (hasFilas) {
       setError('Não é possível excluir: o usuário possui filas vinculadas. Remova as filas antes de excluir.');
       return;
     }
-
     try {
       const ok = await confirm({
-      title: 'Excluir usuário?',
-      description: `Tem certeza que deseja excluir esse usuário? Esta ação não pode ser desfeita.`,
-      confirmText: 'Excluir',
-      cancelText: 'Cancelar',
-      tone: 'danger', // pinta vermelhinho
-    });
-    if (!ok) return;
+        title: 'Excluir usuário?',
+        description: 'Tem certeza que deseja excluir esse usuário? Esta ação não pode ser desfeita.',
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+        tone: 'danger',
+      });
+      if (!ok) return;
       await apiDelete(`/users/${u.id}`);
       toastOK('Usuário excluído.');
       load();
@@ -97,13 +112,17 @@ export default function Users() {
 
   return (
     <div className={styles.container}>
-      {/* Header da página */}
+      {/* Breadcrumb / indicador de página */}
+      <div className={styles.crumbBar}>
+        <span className={styles.crumb}><UsersIcon size={14}/> <span>Usuários</span></span>
+        {error ? <span className={styles.crumbError}>• {error}</span> : null}
+      </div>
+
+      {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}><UsersIcon size={22} /> Usuários</h1>
-          <p className={styles.subtitle}>
-            Gerencie usuários, perfis e filas vinculadas.
-          </p>
+          <h1 className={styles.title}><UsersIcon size={22}/> Usuários</h1>
+          <p className={styles.subtitle}>Gerencie usuários, perfis e filas vinculadas.</p>
 
           {error && (
             <div className={styles.alertErr} role="alert">
@@ -122,8 +141,14 @@ export default function Users() {
         </div>
 
         <div className={styles.headerActions}>
-          <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
-          <button className={styles.btnPrimary} onClick={() => { setEditing(null); setOpenModal(true); }}>
+          <button className={styles.refreshBtn} onClick={load} disabled={refreshing} title="Atualizar">
+            <RefreshCw size={16} className={refreshing ? styles.spinning : ''}/> Atualizar
+          </button>
+          <button
+            className={styles.btnPrimary}
+            onClick={() => { setEditing(null); setOpenModal(true); }}
+            title="Novo usuário"
+          >
             <Plus size={16}/> Novo usuário
           </button>
         </div>
@@ -132,7 +157,7 @@ export default function Users() {
       {/* Card da lista */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          {/* Filtros à esquerda */}
+          {/* Filtros (tabs) */}
           <div className={styles.tabs} role="tablist" aria-label="Filtrar por perfil">
             {PERFIS.map(t => (
               <button
@@ -142,13 +167,15 @@ export default function Users() {
                 className={`${styles.tab} ${statusFilter === t.key ? styles.tabActive : ''}`}
                 onClick={() => setStatusFilter(t.key)}
                 type="button"
+                title={t.label}
               >
-                {t.label}
+                {t.icon} {t.label}
+                <span className={styles.kpillSmall}>{perfilCounts[t.key] ?? 0}</span>
               </button>
             ))}
           </div>
 
-          {/* Busca à direita */}
+          {/* Busca */}
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
@@ -176,9 +203,11 @@ export default function Users() {
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>
-              )}
+              {loading && Array.from({ length: 6 }).map((_, i) => (
+                <tr key={`sk-${i}`} className={styles.skelRow}>
+                  <td colSpan={5}><div className={styles.skeletonRow}/></td>
+                </tr>
+              ))}
 
               {!loading && filtered.length === 0 && (
                 <tr><td colSpan={5} className={styles.empty}>Nenhum usuário encontrado.</td></tr>
@@ -195,12 +224,18 @@ export default function Users() {
                   <tr key={u.id} className={styles.rowHover}>
                     <td data-label="Nome">{nome || '—'}</td>
                     <td data-label="Email">{u.email || '—'}</td>
-                    <td data-label="Perfil">{(u.perfil || '').charAt(0).toUpperCase() + (u.perfil || '').slice(1)}</td>
+                    <td data-label="Perfil">
+                      <span className={styles.rolePill}>
+                        {(u.perfil || '').charAt(0).toUpperCase() + (u.perfil || '').slice(1) || '—'}
+                      </span>
+                    </td>
                     <td data-label="Filas">
                       <div className={styles.chipsWrap}>
-                        {chipNames.length === 0 ? <span className={styles.muted}>—</span> : chipNames.map((n, i) => (
-                          <span key={`${u.id}-f-${i}`} className={styles.chip}>{n}</span>
-                        ))}
+                        {chipNames.length === 0
+                          ? <span className={styles.muted}>—</span>
+                          : chipNames.map((n, i) => (
+                              <span key={`${u.id}-f-${i}`} className={styles.chip}>{n}</span>
+                            ))}
                       </div>
                     </td>
                     <td className={styles.actionsCell}>
@@ -234,7 +269,11 @@ export default function Users() {
         <UsersModal
           isOpen={openModal}
           onClose={() => setOpenModal(false)}
-          onSaved={() => { setOpenModal(false); load(); toastOK(editing ? 'Usuário atualizado.' : 'Usuário criado.'); }}
+          onSaved={() => {
+            setOpenModal(false);
+            load();
+            toastOK(editing ? 'Usuário atualizado.' : 'Usuário criado.');
+          }}
           editing={editing}
           queues={queues}
         />
