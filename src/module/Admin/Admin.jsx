@@ -149,22 +149,22 @@ export default function Admin() {
             label: "Usuários",
           },
           {
-            to: "atendimento/queues",
+            to: "management/queues",
             icon: <Folder size={16} />,
             label: "Filas",
           },
           {
-            to: "atendimento/quick-replies",
+            to: "management/quick-replies",
             icon: <Zap size={16} />,
             label: "Respostas Rápidas",
           },
           {
-            to: "atendimento/history",
+            to: "management/history",
             icon: <FolderClock size={16} />,
             label: "Histórico de Ticket",
           },
           {
-            to: "atendimento/clientes",
+            to: "management/clientes",
             icon: <FolderClock size={16} />,
             label: "Clientes",
           },
@@ -198,10 +198,10 @@ export default function Admin() {
         label: "Configurações",
         icon: <Settings size={18} />,
         children: [
-          { to: "preferences", label: "Preferências" },
-          { to: "channels", label: "Canais" },
-          { to: "config/integrations", label: "Integrações" },
-          { to: "config/security", label: "Segurança" },
+          { to: "settings/preferences", label: "Preferências" },
+          { to: "settings/channels", label: "Canais" },
+          { to: "settings/integrations", label: "Integrações" },
+          { to: "settings/security", label: "Segurança" },
         ],
       },
     ],
@@ -319,7 +319,7 @@ export default function Admin() {
 
                   <ul className={styles.pdList}>
                     <li className={styles.pdItem}>
-                      <NavLink to="preferences" onClick={() => setProfileOpen(false)}>
+                      <NavLink to="settings/preferences" onClick={() => setProfileOpen(false)}>
                         <span className={styles.pdIcon}><User size={16} /></span>
                         Editar perfil
                       </NavLink>
