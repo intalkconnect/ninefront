@@ -247,7 +247,7 @@ function handler(context) {
   const handleUpdateCode = useCallback(
     (newCode) => {
       setScriptCode(newCode);
-      if (selectedNode && selectedNode.data?.block?.type === "code") {
+      if (selectedNode && selectedNode.data?.block?.type === "script") {
         pushHistory(snapshot());
         setNodes((nds) =>
           nds.map((n) =>
