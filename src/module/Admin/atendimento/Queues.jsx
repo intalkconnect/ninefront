@@ -64,7 +64,7 @@ export default function Queues() {
   return (
     <>
       <div className={styles.container}>
-        {/* HEADER DA PÁGINA (com linha e subtítulo) */
+       
 
           <div>
             <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
@@ -73,9 +73,9 @@ export default function Queues() {
           </div>
 
 
-        {/* LISTA / CARD */}
+       
         <div className={styles.card}>
-          {/* Header do card: busca (à direita) + contador */}
+          
           <div className={styles.cardHead}>
             <div className={styles.cardActions}>
               <div className={styles.searchGroup}>
@@ -155,7 +155,7 @@ export default function Queues() {
         </div>
       </div>
 
-      {/* Modais */}
+     
       <QueueModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
