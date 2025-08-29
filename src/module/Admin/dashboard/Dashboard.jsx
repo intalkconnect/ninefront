@@ -1,4 +1,3 @@
-// File: dashboard/Dashboard.jsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import {
@@ -9,59 +8,8 @@ import {
 import styles from './styles/Dashboard.module.css';
 
 /* ========================= Chart.js (canvas) ========================= */
-// Usa auto-registro (não precisa registrar ArcElement/LineElement manualmente)
 import Chart from 'chart.js/auto';
 import { Line as LineChart, Bar as BarChartJS, Doughnut } from 'react-chartjs-2';
-
-/* -------- Plugin do ponteiro para gauge (só em doughnut) -------- */
-const gaugeNeedle = {
-  id: 'gaugeNeedle',
-  afterDatasetsDraw(chart, _args, opts) {
-    // desenha SOMENTE em doughnut (evita linha preta em outros gráficos)
-    if (chart.config.type !== 'doughnut') return;
-
-    const meta = chart.getDatasetMeta(0);
-    const arc0 = meta?.data?.[0];
-    if (!arc0) return;
-
-    const { ctx } = chart;
-    const cx = arc0.x;
-    const cy = arc0.y;
-    const outer = arc0.outerRadius;
-
-    const min = Number(opts?.min ?? 0);
-    const max = Number(opts?.max ?? 100);
-    const val = Math.min(max, Math.max(min, Number(opts?.value ?? min)));
-
-    const rot  = chart.options.rotation ?? -Math.PI;      // semicirculo
-    const circ = chart.options.circumference ?? Math.PI;
-
-    const t = (val - min) / (max - min || 1);
-    const angle = rot + t * circ;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle);
-
-    // haste
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(outer - 8, 0);
-    ctx.lineWidth = 3.2;
-    ctx.strokeStyle = '#0F172A';
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    // pivô
-    ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, 2 * Math.PI);
-    ctx.fillStyle = '#0F172A';
-    ctx.fill();
-
-    ctx.restore();
-  }
-};
-Chart.register(gaugeNeedle);
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -161,7 +109,7 @@ const SkeletonCard = () => (
   </div>
 );
 
-/* ========================= Components (Chart.js) ========================= */
+/* ========================= Charts (Chart.js) ========================= */
 const LineMini = ({ labels = [], values = [], height = 180, formatter = (v)=>v, yMax }) => {
   const data = {
     labels,
@@ -238,39 +186,6 @@ const DonutChart = ({ percent = 0, size = 136, label='Percentual' }) => {
   );
 };
 
-const GaugeChart = ({
-  value = 0, min = 0, max = 10,
-  segments = 10, size = 320, thicknessPct = 70
-}) => {
-  const colors = Array.from({ length: segments }, (_, i) => {
-    const h = Math.round(8 + (140 - 8) * (i / Math.max(1, segments - 1))); // vermelho→verde
-    return `hsl(${h} 85% 50%)`;
-  });
-  const data = {
-    labels: Array.from({ length: segments }, () => ''),
-    datasets: [{
-      data: new Array(segments).fill(1),
-      backgroundColor: colors,
-      borderWidth: 0
-    }]
-  };
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    rotation: -Math.PI,         // inicia na esquerda
-    circumference: Math.PI,     // semicírculo
-    cutout: `${clamp(thicknessPct, 40, 90)}%`,
-    plugins: {
-      legend: { display:false },
-      tooltip: { enabled:false },
-      gaugeNeedle: { value, min, max }
-    }
-  };
-  return <div style={{ width: size, height: size*0.6 }}>
-    <Doughnut data={data} options={options} />
-  </div>;
-};
-
 const CsatDistributionChart = ({ counts = {} }) => {
   const total = [1,2,3,4,5].reduce((a,k)=>a+(counts[k]||0),0) || 1;
   const datasets = [1,2,3,4,5].map((k, idx) => ({
@@ -290,6 +205,89 @@ const CsatDistributionChart = ({ counts = {} }) => {
     plugins: { legend:{ display:true, position:'bottom' }, tooltip:{ enabled:true, callbacks:{ label:(ctx)=>`${ctx.dataset.label}: ${fmtPct(ctx.raw,1)}` } } }
   };
   return <div style={{height:32}}><BarChartJS data={data} options={options} /></div>;
+};
+
+/* ========================= Gauge radial (SVG) ========================= */
+const GaugeRadialSvg = ({
+  value = 0, min = 0, max = 10,
+  width = 420, height = 240,
+  arcThickness = 18,
+  showTicks = true,
+  label,
+}) => {
+  const pad = 16;
+  const cx = width / 2;
+  const cy = height - pad;
+  const rOuter = Math.min(width / 2 - pad, height - pad);
+  const rInner = rOuter - arcThickness;
+
+  const start = -Math.PI; // -180°
+  const end   = 0;        //   0°
+
+  const _clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const t = ( _clamp(value, min, max) - min) / (max - min || 1);
+  const angle = start + t * (end - start);
+
+  const polar = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const arc = (r, a0, a1) => {
+    const large = Math.abs(a1 - a0) > Math.PI ? 1 : 0;
+    const [x0, y0] = polar(a0, r);
+    const [x1, y1] = polar(a1, r);
+    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
+  };
+  const outer = arc(rOuter, start, end);
+  const inner = arc(rInner, end, start);
+
+  const gradId = `ggrad-${Math.random().toString(36).slice(2)}`;
+  const ticks = showTicks ? [min, (min+max)/2, max] : [];
+  const valueText = Number(value ?? 0).toFixed((max - min) <= 10 ? 2 : 1);
+
+  return (
+    <div style={{ width, margin: '0 auto' }}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stopColor="hsl(8 85% 50%)" />
+            <stop offset="50%"  stopColor="hsl(48 90% 50%)" />
+            <stop offset="100%" stopColor="hsl(140 75% 45%)" />
+          </linearGradient>
+        </defs>
+
+        {/* trilho */}
+        <path d={`${outer} L ${polar(end, rInner)} ${inner} Z`} fill="#eef2f7" />
+        {/* arco colorido */}
+        <path d={`${outer} L ${polar(end, rInner)} ${inner} Z`} fill={`url(#${gradId})`} opacity="0.95" />
+
+        {/* ponteiro */}
+        <g transform={`translate(${cx} ${cy}) rotate(${(angle * 180) / Math.PI})`}>
+          <line x1="0" y1="0" x2={rOuter - 10} y2="0" stroke="#0F172A" strokeWidth="3.2" strokeLinecap="round" />
+        </g>
+        <circle cx={cx} cy={cy} r="7" fill="#0F172A" />
+
+        {/* limites */}
+        <text x={cx - rOuter} y={cy - 4} fontSize="10" fill="#64748b" textAnchor="start">{min}</text>
+        <text x={cx + rOuter} y={cy - 4} fontSize="10" fill="#64748b" textAnchor="end">{max}</text>
+
+        {/* ticks */}
+        {ticks.map((tv, i) => {
+          const a = start + ((tv - min) / (max - min || 1)) * (end - start);
+          const [x, y] = polar(a, rOuter + 12);
+          return (
+            <text key={i} x={x} y={y} fontSize="10" fill="#64748b"
+                  textAnchor="middle" dominantBaseline="middle">{Number(tv).toFixed(0)}</text>
+          );
+        })}
+
+        {/* valor + label */}
+        <text x={cx} y={cy - rOuter + 40} fontSize="28" fontWeight="800"
+              fill="#111827" textAnchor="middle">{valueText}</text>
+        {label && (
+          <text x={cx} y={cy - rOuter + 62} fontSize="12" fill="#64748b"
+                textAnchor="middle">{label}</text>
+        )}
+      </svg>
+    </div>
+  );
 };
 
 /* ========================= Página ========================= */
@@ -594,11 +592,11 @@ export default function Dashboard() {
       <div className={styles.gridTwo}>
         <Card title="NPS (Média das notas 0–10)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(nps.responses)} respostas</span>}
-              help={`Velocímetro (canvas) com a **média simples** 0–10. Abaixo: Promotores/Neutros/Detratores e o **índice NPS** (promotores% − detratores%).`}>
+              help={`Velocímetro SVG com a **média simples** 0–10. Abaixo: Promotores/Neutros/Detratores e o **índice NPS** (promotores% − detratores%).`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             nps.available ? (
               <>
-                <GaugeChart value={nps.avgScore} min={0} max={10} segments={10} size={320} />
+                <GaugeRadialSvg value={nps.avgScore} min={0} max={10} width={420} height={240} label="Média NPS (0–10)" />
                 <div className={styles.subtleCenter} style={{ marginTop: 6 }}>
                   Índice NPS: <strong>{Number(nps.index || 0).toFixed(1)}</strong>
                 </div>
@@ -613,11 +611,11 @@ export default function Dashboard() {
 
         <Card title="CSAT (Média 1–5)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(csat.responses)} respostas</span>}
-              help={`Velocímetro (canvas) com a **média simples** das notas 1–5 e barra de distribuição por estrelas.`}>
+              help={`Velocímetro SVG com a **média simples** das notas 1–5 e barra de distribuição por estrelas.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             csat.available ? (
               <div>
-                <GaugeChart value={csat.avg} min={1} max={5} segments={4} size={320} />
+                <GaugeRadialSvg value={csat.avg} min={1} max={5} width={420} height={240} label="Média de satisfação (1–5)" />
                 {Object.values(csat.counts || {}).some(v => v > 0)
                   ? <div style={{ marginTop: 10 }}><CsatDistributionChart counts={csat.counts} /></div>
                   : null}
