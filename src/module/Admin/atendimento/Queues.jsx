@@ -66,26 +66,6 @@ export default function Queues() {
       <div className={styles.container}>
         {/* HEADER DA PÁGINA (com linha e subtítulo) */}
         <div className={styles.header}>
-          <div>
-            <h1 className={styles.title}>
-              <Users size={24} aria-hidden="true" /> Filas
-            </h1>
-            <p className={styles.subtitle}>
-              Gerencie as filas de atendimento e configure horários/feriados por fila.
-            </p>
-
-            {erro && (
-              <div className={styles.alertErr} role="alert" aria-live="assertive">
-                <span>{erro}</span>
-              </div>
-            )}
-            {okMsg && (
-              <div className={styles.alertOk} role="status" aria-live="polite">
-                <span className={styles.alertIcon} aria-hidden="true"><CheckCircle2 size={16} /></span>
-                <span>{okMsg}</span>
-              </div>
-            )}
-          </div>
 
           <div>
             <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
