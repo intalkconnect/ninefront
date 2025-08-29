@@ -76,23 +76,16 @@ export default function TicketsHistory() {
 
   return (
     <div className={styles.container}>
-      {/* Header da página */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}><HistoryIcon size={22}/> Histórico de tickets</h1>
-          <p className={styles.subtitle}>
-            Listagem de tickets com status fechado.
-          </p>
-        </div>
 
+      <div className={styles.header}>
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
         </div>
       </div>
 
-      {/* Card */}
+
       <div className={styles.card}>
-        {/* Filtros (busca movida para baixo) */}
+
         <div className={styles.cardHead}>
           <div className={styles.filtersLeft}>
             <div className={styles.inputGroupSm}>
@@ -130,7 +123,7 @@ export default function TicketsHistory() {
           </div>
         </div>
 
-        {/* Tabela */}
+      
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
