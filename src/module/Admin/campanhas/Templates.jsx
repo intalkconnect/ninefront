@@ -281,33 +281,6 @@ export default function Templates() {
     <div className={styles.container}>
       {/* Header da página */}
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>
-            <FileText size={22} aria-hidden="true" /> Templates
-          </h1>
-          <p className={styles.subtitle}>
-            Crie, envie para aprovação e acompanhe o status dos templates do WhatsApp.
-          </p>
-
-          {error && (
-            <div className={styles.alertErr} role="alert">
-              <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={16} /></span>
-              <span>{error}</span>
-              <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar">
-                <XIcon size={14} />
-              </button>
-            </div>
-          )}
-          {okMsg && (
-            <div className={styles.alertOk} role="status">
-              <span className={styles.alertIcon} aria-hidden="true"><CheckCircle2 size={16} /></span>
-              <span>{okMsg}</span>
-              <button className={styles.alertClose} onClick={() => setOkMsg(null)} aria-label="Fechar">
-                <XIcon size={14} />
-              </button>
-            </div>
-          )}
-        </div>
 
         <div className={styles.headerActions}>
           <button className={styles.btn} type="button" onClick={load} title="Atualizar lista">
