@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+// File: dashboard/Dashboard.jsx
+import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import {
   Info, TrendingUp, Clock, Users, BarChart2,
@@ -7,14 +8,10 @@ import {
 } from 'lucide-react';
 import styles from './styles/Dashboard.module.css';
 
-/* ========================= Chart.js (canvas) ========================= */
-import Chart from 'chart.js/auto';
-import { Line as LineChart, Bar as BarChartJS, Doughnut } from 'react-chartjs-2';
-
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
 const fmtInt = (n) => (Number.isFinite(+n) ? Math.round(+n) : 0);
-const fmtPct = (n, d = 1) => (Number.isFinite(+n) ? `${(+n).toFixed(d)}%` : '—');
+const fmtPct = (n, d = 0) => (Number.isFinite(+n) ? `${(+n).toFixed(d)}%` : '—');
 const fmtMin = (m) => {
   if (!Number.isFinite(+m)) return '—';
   const mins = Math.max(0, Math.floor(+m));
@@ -45,9 +42,24 @@ const avg = (arr) => {
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 const toNum = (v) => (Number.isFinite(+v) ? +v : 0);
-const mean = (arr) => (arr.length ? sum(arr) / arr.length : 0);
 
-/* ========================= UI base ========================= */
+/* ========================= Resize ========================= */
+const useMeasure = () => {
+  const ref = useRef(null);
+  const [rect, setRect] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    if (!ref.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setRect({ width, height });
+    });
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, rect];
+};
+
+/* ========================= Tooltip ========================= */
 const HelpIcon = ({ text, className }) => {
   if (!text) return null;
   const ref = useRef(null);
@@ -70,6 +82,7 @@ const HelpIcon = ({ text, className }) => {
   );
 };
 
+/* ========================= UI base ========================= */
 const Card = ({ title, icon, help, right, children }) => (
   <div className={styles.card}>
     <div className={styles.cardHead}>
@@ -109,183 +122,257 @@ const SkeletonCard = () => (
   </div>
 );
 
-/* ========================= Charts (Chart.js) ========================= */
-const LineMini = ({ labels = [], values = [], height = 180, formatter = (v)=>v, yMax }) => {
-  const data = {
-    labels,
-    datasets: [{
-      data: values,
-      borderWidth: 2,
-      tension: 0.3,
-      fill: 'start',
-      backgroundColor: (ctx) => {
-        const { chart } = ctx;
-        const { ctx: c, chartArea } = chart;
-        if (!chartArea) return 'rgba(99, 102, 241, 0.12)';
-        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-        g.addColorStop(0, 'rgba(99, 102, 241, 0.18)');
-        g.addColorStop(1, 'rgba(99, 102, 241, 0.02)');
-        return g;
-      },
-      borderColor: '#6366F1',
-      pointRadius: 2.5
-    }]
-  };
-  const options = {
-    responsive: true, maintainAspectRatio: false,
-    scales: {
-      x: { grid: { display:false } },
-      y: {
-        beginAtZero: true,
-        suggestedMax: yMax ?? undefined,
-        ticks: { callback: (v)=>formatter(v) },
-        grid: { color: 'rgba(0,0,0,0.05)' }
-      }
-    },
-    plugins: { legend: { display:false }, tooltip: { enabled:true, callbacks: { label: (ctx)=>formatter(ctx.parsed.y) } } }
-  };
-  return <div style={{height}}><LineChart data={data} options={options} /></div>;
-};
+/* ========================= Charts simples ========================= */
+const AreaLineChart = ({ series = [], height = 180, valueFormatter = (v) => v, yMax }) => {
+  const [hostRef, { width }] = useMeasure();
+  const [hover, setHover] = useState(null);
+  const padding = { top: 18, right: 12, bottom: 24, left: 36 };
+  const W = Math.max(160, width || 160);
+  const H = height;
 
-const BarsMini = ({ labels = [], values = [], height = 220 }) => {
-  const data = { labels, datasets: [{ data: values, backgroundColor: '#22c55e', borderRadius: 6, maxBarThickness: 28 }] };
-  const options = {
-    responsive: true, maintainAspectRatio: false,
-    scales: {
-      x: { grid: { display:false } },
-      y: { beginAtZero:true, grid:{ color:'rgba(0,0,0,0.05)' } }
-    },
-    plugins: { legend: { display:false }, tooltip: { enabled:true } }
-  };
-  return <div style={{height}}><BarChartJS data={data} options={options} /></div>;
-};
+  const X = series.length ? (W - padding.left - padding.right) / Math.max(1, series.length - 1) : 0;
+  const maxY = Math.max(1, yMax ?? Math.max(...series.map((d) => Number(d.y || 0))));
+  const yTo = (v) => padding.top + (1 - Number(v) / maxY) * (H - padding.top - padding.bottom);
+  const xTo = (i) => padding.left + i * X;
 
-const DonutChart = ({ percent = 0, size = 136, label='Percentual' }) => {
-  const p = clamp(+percent || 0, 0, 100);
-  const data = {
-    labels: ['Dentro', 'Fora'],
-    datasets: [{
-      data: [p, 100 - p],
-      backgroundColor: ['#16a34a', '#e5e7eb'],
-      borderWidth: 0,
-      cutout: '72%'
-    }]
+  const pts = series.map((d, i) => `${xTo(i)},${yTo(d.y || 0)}`).join(' ');
+  const area = `M${xTo(0)},${yTo(series[0]?.y || 0)} L${series.map((d, i) => `${xTo(i)},${yTo(d.y || 0)}`).join(' ')} L${xTo(series.length - 1)},${H - padding.bottom} L${xTo(0)},${H - padding.bottom} Z`;
+
+  const axesY = 4;
+  const yTicks = [...Array(axesY + 1)].map((_, i) => Math.round((maxY / axesY) * i));
+
+  const onMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - padding.left;
+    const idx = Math.min(series.length - 1, Math.max(0, Math.round(x / X)));
+    const rx = xTo(idx);
+    const ry = yTo(series[idx]?.y || 0);
+    setHover({ i: idx, x: rx, y: ry });
   };
-  const options = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display:false }, tooltip: { enabled:false } }
-  };
+
   return (
-    <div style={{ width: size, height: size, position:'relative' }}>
-      <Doughnut data={data} options={options} />
-      <div className={styles.donutCenter}>
-        <div className={styles.donutText}>{fmtPct(p)}</div>
-        <div className={styles.donutLabel}>{label}</div>
+    <div ref={hostRef} className={styles.chartRoot} style={{ height }}>
+      <svg width={W} height={H} className={styles.chartSvg}>
+        {yTicks.map((t, i) => {
+          const y = yTo(t);
+          return <line key={i} x1={padding.left} y1={y} x2={W - padding.right} y2={y} className={styles.grid} />;
+        })}
+        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={H - padding.bottom} className={styles.axis} />
+        <line x1={padding.left} y1={H - padding.bottom} x2={W - padding.right} y2={H - padding.bottom} className={styles.axis} />
+        {yTicks.map((t, i) => (
+          <text key={i} x={padding.left - 8} y={yTo(t)} className={styles.tick} textAnchor="end" dy="0.35em">
+            {valueFormatter(t)}
+          </text>
+        ))}
+        <path d={area} className={styles.areaFill} />
+        <polyline points={pts} className={styles.lineStroke} />
+        {series.map((d, i) => (
+          <circle key={i} cx={xTo(i)} cy={yTo(d.y || 0)} r={2.5} className={styles.lineDot} />
+        ))}
+        {hover && (
+          <>
+            <line x1={hover.x} y1={padding.top} x2={hover.x} y2={H - padding.bottom} className={styles.crosshair} />
+            <circle cx={hover.x} cy={hover.y} r={4} className={styles.lineDotActive} />
+          </>
+        )}
+      </svg>
+      {hover && series[hover.i] && (
+        <div className={styles.tt} style={{ left: hover.x, top: hover.y }}>
+          <div className={styles.ttLine}>{series[hover.i].xLabel}</div>
+          <div className={styles.ttValue}>{valueFormatter(series[hover.i].y)}</div>
+        </div>
+      )}
+      <div className={styles.hit} onMouseMove={onMove} onMouseLeave={() => setHover(null)} />
+    </div>
+  );
+};
+
+const BarChart = ({ data = [], height = 180, formatter = (v) => v }) => {
+  const [hostRef, { width }] = useMeasure();
+  const [hover, setHover] = useState(null);
+  const padding = { top: 12, right: 12, bottom: 26, left: 36 };
+  const W = Math.max(160, width || 160);
+  const H = height;
+
+  const max = Math.max(1, ...data.map((d) => Number(d.value || 0)));
+  const bw = 22;
+  const gap = 18;
+  const plotW = W - padding.left - padding.right;
+  const totalBarsW = data.length * bw + (data.length - 1) * gap;
+  const offsetX = padding.left + Math.max(0, (plotW - totalBarsW) / 2);
+
+  const yTo = (v) => padding.top + (1 - Number(v) / max) * (H - padding.top - padding.bottom);
+
+  return (
+    <div ref={hostRef} className={styles.chartRoot} style={{ height }}>
+      <svg width={W} height={H} className={styles.chartSvg}>
+        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
+          const y = padding.top + p * (H - padding.top - padding.bottom);
+          return <line key={i} x1={padding.left} y1={y} x2={W - padding.right} y2={y} className={styles.grid} />;
+        })}
+        <line x1={padding.left} y1={H - padding.bottom} x2={W - padding.right} y2={H - padding.bottom} className={styles.axis} />
+        {data.map((d, i) => {
+          const x = offsetX + i * (bw + gap);
+          const y = yTo(d.value || 0);
+          const h = H - padding.bottom - y;
+          return (
+            <g key={i}>
+              <rect
+                x={x}
+                y={y}
+                width={bw}
+                height={h}
+                rx="6"
+                className={styles.barRect}
+                onMouseEnter={() => setHover({ i, x: x + bw / 2, y })}
+                onMouseLeave={() => setHover(null)}
+              />
+              <text x={x + bw / 2} y={H - 8} className={styles.tick} textAnchor="middle">
+                {d.xLabel}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      {hover && data[hover.i] && (
+        <div className={styles.tt} style={{ left: hover.x, top: hover.y }}>
+          <div className={styles.ttLine}>{data[hover.i].xLabel}</div>
+          <div className={styles.ttValue}>{formatter(data[hover.i].value)}</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RankList = ({ items = [], unit = '' }) => {
+  const max = Math.max(1, ...items.map((i) => Number(i.value || 0)));
+  return (
+    <ul className={styles.rankList}>
+      {items.map((it, idx) => {
+        const w = (Number(it.value || 0) / max) * 100;
+        return (
+          <li key={it.label + idx} className={styles.rankItem}>
+            <span className={styles.rankLabel} title={it.label}>{it.label}</span>
+            <div className={styles.rankBarWrap}><div className={styles.rankBar} style={{ width: `${w}%` }} /></div>
+            <span className={styles.rankValue}>{fmtInt(it.value)}{unit}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
+
+/* ========================= Donut simples ========================= */
+const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
+  const p = Math.min(100, Math.max(0, +percent || 0));
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (p / 100) * c;
+  return (
+    <div className={styles.donutWrap} title={`${label || 'Percentual'}: ${fmtPct(p)}`}>
+      <svg width={size} height={size}>
+        <circle className={styles.donutBg} cx={size/2} cy={size/2} r={r} />
+        <circle className={styles.donutFg} cx={size/2} cy={size/2} r={r}
+                strokeDasharray={`${dash} ${c - dash}`} strokeLinecap="round"
+                transform={`rotate(-90 ${size/2} ${size/2})`} />
+        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="central" className={styles.donutText}>
+          {fmtPct(p)}
+        </text>
+      </svg>
+      {label ? <div className={styles.donutLabel}>{label}</div> : null}
+    </div>
+  );
+};
+
+/* ========================= Gauges (velocímetro) ========================= */
+const Speedometer = ({ value = 0, min = 0, max = 100, size = 240, label, format }) => {
+  const id  = useId();
+  const v   = Number.isFinite(+value) ? +value : 0;
+  const mn  = Number.isFinite(+min)   ? +min   : 0;
+  const mx  = Number.isFinite(+max)   ? +max   : 100;
+  const p   = clamp((v - mn) / (mx - mn), 0, 1);
+
+  // semicírculo superior
+  const cx = 50, cy = 54, r = 44;
+  const startX = cx - r, startY = cy;
+  const endX   = cx + r, endY   = cy;
+
+  // ângulo 180°..0° (esq→dir) e helpers polares (y invertido para "cima")
+  const angDeg = 180 * (1 - p);
+  const pol = (deg, R = r) => {
+    const a = (Math.PI / 180) * deg;
+    return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
+  };
+  const endProg = pol(angDeg, r);
+  const tip     = pol(angDeg, r - 8);
+  const largeArc = p > 0.5 ? 1 : 0;
+
+  const mid = (mn + mx) / 2;
+  const marks = [{ t: mn, a: 180 }, { t: mid, a: 90 }, { t: mx, a: 0 }];
+
+  return (
+    <div style={{ width: '100%', display: 'grid', placeItems: 'center' }}>
+      <svg viewBox="0 0 100 70" width={size} height={size * 0.7}>
+        <defs>
+          <linearGradient id={`grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"  stopColor="#ef4444" />
+            <stop offset="50%" stopColor="#f59e0b" />
+            <stop offset="100%" stopColor="#10b981" />
+          </linearGradient>
+          <filter id={`shadow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="0.6" stdDeviation="1.2" floodOpacity="0.35"/>
+          </filter>
+        </defs>
+
+        {/* arco de fundo */}
+        <path d={`M ${startX} ${startY} A ${r} ${r} 0 0 0 ${endX} ${endY}`}
+              fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round" />
+        {/* progresso (gradiente) */}
+        <path d={`M ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 0 ${endProg.x} ${endProg.y}`}
+              fill="none" stroke={`url(#grad-${id})`} strokeWidth="12" strokeLinecap="round" />
+
+        {/* marcas min/meio/max */}
+        {marks.map(({t,a},i) => {
+          const p1 = pol(a, r - 2), p2 = pol(a, r - 8);
+          return (
+            <g key={i}>
+              <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#CBD5E1" strokeWidth="1.5" />
+              <text x={p2.x} y={p2.y - 2} fontSize="5" textAnchor={i===0?'start':i===2?'end':'middle'} fill="#64748B">
+                {format ? format(t) : t}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* ponteiro */}
+        <g filter={`url(#shadow-${id})`}>
+          <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="#0F172A" strokeWidth="2.8" strokeLinecap="round" />
+          <circle cx={cx} cy={cy} r="3.6" fill="#0F172A" />
+        </g>
+      </svg>
+
+      {label ? <div style={{ marginTop: 4, fontSize: 12, color: '#64748B' }}>{label}</div> : null}
+      <div style={{ fontWeight: 700, fontSize: 20, marginTop: 2 }}>
+        {format ? format(v) : v}
       </div>
     </div>
   );
 };
 
-const CsatDistributionChart = ({ counts = {} }) => {
-  const total = [1,2,3,4,5].reduce((a,k)=>a+(counts[k]||0),0) || 1;
-  const datasets = [1,2,3,4,5].map((k, idx) => ({
-    label: `${k}★`,
-    data: [((counts[k]||0)/total)*100],
-    stack: 'dist',
-    backgroundColor: ['#ef4444','#f59e0b','#eab308','#22c55e','#16a34a'][idx],
-    borderWidth: 0
-  }));
-  const data = { labels: [''], datasets };
-  const options = {
-    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-    scales: {
-      x: { stacked:true, min:0, max:100, ticks: { callback:(v)=>`${v}%` }, grid:{ display:false } },
-      y: { stacked:true, grid:{ display:false } }
-    },
-    plugins: { legend:{ display:true, position:'bottom' }, tooltip:{ enabled:true, callbacks:{ label:(ctx)=>`${ctx.dataset.label}: ${fmtPct(ctx.raw,1)}` } } }
-  };
-  return <div style={{height:32}}><BarChartJS data={data} options={options} /></div>;
-};
-
-/* ========================= Gauge radial (SVG) ========================= */
-const GaugeRadialSvg = ({
-  value = 0, min = 0, max = 10,
-  width = 420, height = 240,
-  arcThickness = 18,
-  showTicks = true,
-  label,
-}) => {
-  const pad = 16;
-  const cx = width / 2;
-  const cy = height - pad;
-  const rOuter = Math.min(width / 2 - pad, height - pad);
-  const rInner = rOuter - arcThickness;
-
-  const start = -Math.PI; // -180°
-  const end   = 0;        //   0°
-
-  const _clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-  const t = ( _clamp(value, min, max) - min) / (max - min || 1);
-  const angle = start + t * (end - start);
-
-  const polar = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-  const arc = (r, a0, a1) => {
-    const large = Math.abs(a1 - a0) > Math.PI ? 1 : 0;
-    const [x0, y0] = polar(a0, r);
-    const [x1, y1] = polar(a1, r);
-    return `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`;
-  };
-  const outer = arc(rOuter, start, end);
-  const inner = arc(rInner, end, start);
-
-  const gradId = `ggrad-${Math.random().toString(36).slice(2)}`;
-  const ticks = showTicks ? [min, (min+max)/2, max] : [];
-  const valueText = Number(value ?? 0).toFixed((max - min) <= 10 ? 2 : 1);
-
+/* ========================= Distribuição CSAT ========================= */
+const CsatDistribution = ({ counts = {} }) => {
+  const total = [1,2,3,4,5].reduce((a,k) => a + (counts[k] || 0), 0);
   return (
-    <div style={{ width, margin: '0 auto' }}>
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        <defs>
-          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stopColor="hsl(8 85% 50%)" />
-            <stop offset="50%"  stopColor="hsl(48 90% 50%)" />
-            <stop offset="100%" stopColor="hsl(140 75% 45%)" />
-          </linearGradient>
-        </defs>
-
-        {/* trilho */}
-        <path d={`${outer} L ${polar(end, rInner)} ${inner} Z`} fill="#eef2f7" />
-        {/* arco colorido */}
-        <path d={`${outer} L ${polar(end, rInner)} ${inner} Z`} fill={`url(#${gradId})`} opacity="0.95" />
-
-        {/* ponteiro */}
-        <g transform={`translate(${cx} ${cy}) rotate(${(angle * 180) / Math.PI})`}>
-          <line x1="0" y1="0" x2={rOuter - 10} y2="0" stroke="#0F172A" strokeWidth="3.2" strokeLinecap="round" />
-        </g>
-        <circle cx={cx} cy={cy} r="7" fill="#0F172A" />
-
-        {/* limites */}
-        <text x={cx - rOuter} y={cy - 4} fontSize="10" fill="#64748b" textAnchor="start">{min}</text>
-        <text x={cx + rOuter} y={cy - 4} fontSize="10" fill="#64748b" textAnchor="end">{max}</text>
-
-        {/* ticks */}
-        {ticks.map((tv, i) => {
-          const a = start + ((tv - min) / (max - min || 1)) * (end - start);
-          const [x, y] = polar(a, rOuter + 12);
-          return (
-            <text key={i} x={x} y={y} fontSize="10" fill="#64748b"
-                  textAnchor="middle" dominantBaseline="middle">{Number(tv).toFixed(0)}</text>
-          );
+    <div className={styles.csatDist}>
+      <div className={styles.csatBar}>
+        {[1,2,3,4,5].map((k) => {
+          const v = counts[k] || 0, w = total ? (v / total) * 100 : 0;
+          return <span key={k} className={`${styles.csatSeg} ${styles[`csat${k}`]}`} style={{ width: `${w}%` }} title={`${k}★: ${v}`} />;
         })}
-
-        {/* valor + label */}
-        <text x={cx} y={cy - rOuter + 40} fontSize="28" fontWeight="800"
-              fill="#111827" textAnchor="middle">{valueText}</text>
-        {label && (
-          <text x={cx} y={cy - rOuter + 62} fontSize="12" fill="#64748b"
-                textAnchor="middle">{label}</text>
-        )}
-      </svg>
+      </div>
+      <div className={styles.csatLegend}>
+        {[1,2,3,4,5].map((k) => <span key={k} className={styles.csatLegendItem}><i className={`${styles.dot} ${styles[`csat${k}`]}`} /> {k}★</span>)}
+      </div>
     </div>
   );
 };
@@ -309,12 +396,7 @@ export default function Dashboard() {
   const [aging, setAging] = useState([]);
 
   // NPS / CSAT / Clientes
-  const [nps, setNps] = useState({
-    avgScore: 0, responses: 0,
-    promoters: 0, passives: 0, detractors: 0,
-    promPct: 0, passPct: 0, detrPct: 0,
-    index: 0, available: false
-  });
+  const [nps, setNps]   = useState({ avgScore: 0, responses: 0, available: false });
   const [csat, setCsat] = useState({ avg: 0, responses: 0, counts: {}, available: false });
   const [clientsSeries, setClientsSeries] = useState([]);
 
@@ -353,47 +435,22 @@ export default function Dashboard() {
         setAbandonment(abd || { taxa_pct: 0, abandonados: 0, total: 0, threshold_min: 15 });
         setAging(Array.isArray(ag) ? ag : []);
 
-        /* ======== NPS — média simples (0..10) + breakdown ======== */
+        /* ======== NPS — média simples (0..10) ======== */
         if (Array.isArray(npsRaw) && npsRaw.length > 0) {
           const avgs = npsRaw.map(b => toNum(b.avg_score)).filter(Number.isFinite);
-          const avgScore = mean(avgs);
-
-          const promoters  = sum(npsRaw.map(b => toNum(b.promoters_count)));
-          const passives   = sum(npsRaw.map(b => toNum(b.passives_count)));
-          const detractors = sum(npsRaw.map(b => toNum(b.detractors_count)));
-          const responses  = sum(npsRaw.map(b => toNum(b.total))) || (promoters + passives + detractors);
-
-          let promPct = 0, passPct = 0, detrPct = 0;
-          if (responses > 0) {
-            promPct = (promoters  / responses) * 100;
-            passPct = (passives   / responses) * 100;
-            detrPct = (detractors / responses) * 100;
-          } else {
-            promPct = mean(npsRaw.map(b => toNum(b.pct_promoters)));
-            passPct = mean(npsRaw.map(b => toNum(b.pct_passives)));
-            detrPct = mean(npsRaw.map(b => toNum(b.pct_detractors)));
-          }
-          const index = promPct - detrPct;
-
-          setNps({
-            avgScore,
-            responses: fmtInt(responses || npsRaw.length),
-            promoters: fmtInt(promoters),
-            passives: fmtInt(passives),
-            detractors: fmtInt(detractors),
-            promPct, passPct, detrPct,
-            index,
-            available: true
-          });
+          const avgScore = avgs.length ? (sum(avgs) / avgs.length) : 0;
+          const totalResp = sum(npsRaw.map(b => toNum(b.total)));
+          setNps({ avgScore, responses: fmtInt(totalResp || npsRaw.length), available: true });
         } else {
           setNps((p)=>({ ...p, available:false }));
         }
 
-        /* ======== CSAT — média simples (1..5) + distribuição ======== */
+        /* ======== CSAT — média simples (1..5) ======== */
         if (Array.isArray(csatRaw) && csatRaw.length > 0) {
           const avgs = csatRaw.map(b => toNum(b.avg_score)).filter(Number.isFinite);
-          const avgScore = mean(avgs);
+          const avgScore = avgs.length ? (sum(avgs) / avgs.length) : 0;
 
+          // agrega distribuição se disponível (opcional, só para visual)
           const counts = {
             1: sum(csatRaw.map(b => toNum(b.count_1))),
             2: sum(csatRaw.map(b => toNum(b.count_2))),
@@ -401,9 +458,9 @@ export default function Dashboard() {
             4: sum(csatRaw.map(b => toNum(b.count_4))),
             5: sum(csatRaw.map(b => toNum(b.count_5))),
           };
-          const responses = sum(csatRaw.map(b => toNum(b.total)));
+          const totalResp = sum(csatRaw.map(b => toNum(b.total)));
 
-          setCsat({ avg: avgScore, responses: fmtInt(responses || csatRaw.length), counts, available: true });
+          setCsat({ avg: avgScore, responses: fmtInt(totalResp || csatRaw.length), counts, available: true });
         } else {
           setCsat((p)=>({ ...p, available:false }));
         }
@@ -443,7 +500,7 @@ export default function Dashboard() {
   );
   const backlogAberto  = fmtInt(summary?.backlog_aberto);
   const aguardando     = fmtInt(summary?.aguardando);
-  const emAtendimento  = fmtInt(summary?.emAtendimento ?? summary?.em_atendimento);
+  const emAtendimento  = fmtInt(summary?.em_atendimento);
 
   const frtSerie = useMemo(() => {
     const items = frtDay.filter((d) => d.group_key).map((d) => {
@@ -542,7 +599,7 @@ export default function Dashboard() {
             icon={<Gauge size={18} />}
             help={`Rosca mostra % dentro do SLA de 15m.\n• Cálculo: 100% − taxa de abandono\n• Fonte: /analytics/metrics/abandonment`}
           >
-            <DonutChart percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? (100 - +abandonment.taxa_pct) : 0} label="Dentro do SLA" />
+            <Donut percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? (100 - +abandonment.taxa_pct) : 0} label="Dentro do SLA" />
             <div className={styles.subtleCenter}>Abandono: {fmtPct(abandonment?.taxa_pct ?? 0)} • Limite {abandonment?.threshold_min ?? 15}m</div>
           </Card>
         </div>
@@ -560,12 +617,7 @@ export default function Dashboard() {
             ? <Skeleton w="100%" h={180} />
             : frtSerie.length === 0
               ? <div className={styles.empty}>Sem dados.</div>
-              : <LineMini
-                  labels={frtSerie.map(s=>s.xLabel)}
-                  values={frtSerie.map(s=>s.y)}
-                  height={180}
-                  formatter={fmtMin}
-                />}
+              : <AreaLineChart series={frtSerie} height={180} valueFormatter={fmtMin} />}
         </Card>
 
         <Card
@@ -578,46 +630,42 @@ export default function Dashboard() {
             ? <Skeleton w="100%" h={180} />
             : slaDia.length === 0
               ? <div className={styles.empty}>Sem dados.</div>
-              : <LineMini
-                  labels={slaDia.map(s=>s.xLabel)}
-                  values={slaDia.map(s=>s.y)}
-                  height={180}
-                  formatter={(v)=>fmtPct(v,0)}
-                  yMax={100}
-                />}
+              : <AreaLineChart series={slaDia} height={180} valueFormatter={(v) => fmtPct(v, 0)} yMax={100} />}
         </Card>
       </div>
 
-      {/* NPS & CSAT — médias simples + breakdown */}
+      {/* NPS & CSAT — médias simples */}
       <div className={styles.gridTwo}>
         <Card title="NPS (Média das notas 0–10)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(nps.responses)} respostas</span>}
-              help={`Velocímetro SVG com a **média simples** 0–10. Abaixo: Promotores/Neutros/Detratores e o **índice NPS** (promotores% − detratores%).`}>
+              help={`Velocímetro com a **média simples** das notas NPS (0–10) nos buckets retornados por /series/nps.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             nps.available ? (
-              <>
-                <GaugeRadialSvg value={nps.avgScore} min={0} max={10} width={420} height={240} label="Média NPS (0–10)" />
-                <div className={styles.subtleCenter} style={{ marginTop: 6 }}>
-                  Índice NPS: <strong>{Number(nps.index || 0).toFixed(1)}</strong>
-                </div>
-                <div className={styles.npsBreakdown} style={{ marginTop: 8 }}>
-                  <span className={styles.kpillGreen}>Promotores: {fmtInt(nps.promoters)} ({fmtPct(nps.promPct)})</span>
-                  <span className={styles.kpillAmber}>Neutros: {fmtInt(nps.passives)} ({fmtPct(nps.passPct)})</span>
-                  <span className={styles.kpillRed}>Detratores: {fmtInt(nps.detractors)} ({fmtPct(nps.detrPct)})</span>
-                </div>
-              </>
+              <Speedometer
+                value={nps.avgScore}
+                min={0}
+                max={10}
+                label="Média NPS (0–10)"
+                format={(v)=>Number(v).toFixed(2)}
+              />
             ) : <div className={styles.empty}>Sem dados de NPS para o período.</div>}
         </Card>
 
         <Card title="CSAT (Média 1–5)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(csat.responses)} respostas</span>}
-              help={`Velocímetro SVG com a **média simples** das notas 1–5 e barra de distribuição por estrelas.`}>
+              help={`Velocímetro com a **média simples** das notas 1–5 nos buckets de /series/csat. Abaixo, a distribuição (se disponível).`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             csat.available ? (
               <div>
-                <GaugeRadialSvg value={csat.avg} min={1} max={5} width={420} height={240} label="Média de satisfação (1–5)" />
+                <Speedometer
+                  value={csat.avg}
+                  min={1}
+                  max={5}
+                  label="Média de satisfação (1–5)"
+                  format={(v)=>`${Number(v).toFixed(2)} ★`}
+                />
                 {Object.values(csat.counts || {}).some(v => v > 0)
-                  ? <div style={{ marginTop: 10 }}><CsatDistributionChart counts={csat.counts} /></div>
+                  ? <div style={{ marginTop: 10 }}><CsatDistribution counts={csat.counts} /></div>
                   : null}
               </div>
             ) : <div className={styles.empty}>Sem dados de CSAT para o período.</div>}
@@ -631,10 +679,10 @@ export default function Dashboard() {
               help={`Clientes únicos criados por dia no período.\n• Endpoint: /analytics/metrics/new-clients?group=day`}>
           {firstLoad && loading ? <Skeleton w="100%" h={220} /> :
             clientsSeries.length === 0 ? <div className={styles.empty}>Sem dados.</div> :
-            <BarsMini
-              labels={clientsSeries.map(d=>d.xLabel)}
-              values={clientsSeries.map(d=>d.y)}
+            <BarChart
+              data={clientsSeries.map(d => ({ xLabel: d.xLabel, value: d.y }))}
               height={220}
+              formatter={(v)=>fmtInt(v)}
             />}
         </Card>
 
@@ -642,26 +690,14 @@ export default function Dashboard() {
               help={`Tickets abertos por fila no momento. Não depende do período.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={200} /> :
             queuesBacklog.length === 0 ? <div className={styles.empty}>Sem dados.</div> :
-            <ul className={styles.rankList}>
-              {queuesBacklog.map((it, idx) => {
-                const max = Math.max(...queuesBacklog.map(q=>q.value||0), 1);
-                const w = (Number(it.value || 0) / max) * 100;
-                return (
-                  <li key={it.label + idx} className={styles.rankItem}>
-                    <span className={styles.rankLabel} title={it.label}>{it.label}</span>
-                    <div className={styles.rankBarWrap}><div className={styles.rankBar} style={{ width: `${w}%` }} /></div>
-                    <span className={styles.rankValue}>{fmtInt(it.value)}</span>
-                  </li>
-                );
-              })}
-            </ul>}
+            <RankList items={queuesBacklog} />}
         </Card>
       </div>
 
       {/* Tabelas */}
       <div className={styles.gridTwo}>
         <Card title="Tempo de resposta por agente (ART médio)" icon={<Users size={18} />}
-              help={`ART por agente — tempo entre a msg do cliente e a 1ª resposta do agente.\n• Fonte: /analytics/metrics/agents/art`}>
+              help={`ART por agente — tempo entre msg do cliente e 1ª resposta do agente.\n• Fonte: /analytics/metrics/agents/art`}>
           {firstLoad && loading ? <Skeleton w="100%" h={160} /> :
             artRows.length === 0 ? <div className={styles.empty}>Sem dados para o período.</div> :
             <div className={styles.tableWrap}>
