@@ -71,7 +71,7 @@ html, body {
 .title{
   margin:0;
   font-size:36px;           /* igual ao Queue/Preferences */
-  font-weight:800;
+  font-weight:700;
   line-height:1.2;
   color:#0f172a;
   display:flex; align-items:center; gap:10px;
