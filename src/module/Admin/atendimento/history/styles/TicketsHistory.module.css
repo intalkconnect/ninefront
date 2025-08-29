@@ -51,7 +51,6 @@
 
 /* Card */
 .card{
-  margin-top:16px;
   background:#fff; border:1px solid var(--qr-border-light);
   border-radius:16px; box-shadow:var(--qr-shadow); overflow:hidden;
 }
