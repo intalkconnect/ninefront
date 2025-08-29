@@ -100,20 +100,6 @@ export default function Clientes() {
       <div className={styles.card}>
         {/* filtros + busca (interno) */}
         <div className={styles.cardHead}>
-          <div className={styles.tabs} role="tablist" aria-label="Filtrar por canal">
-            {CHANNELS.map(t => (
-              <button
-                key={t.key || 'all'}
-                role="tab"
-                aria-selected={channel === t.key}
-                className={`${styles.tab} ${channel === t.key ? styles.tabActive : ''}`}
-                onClick={() => { setChannel(t.key); setOpenRow(null); }}
-                type="button"
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
 
           <form onSubmit={onSearch} className={styles.searchGroup}>
             <input
