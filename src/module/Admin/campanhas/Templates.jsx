@@ -280,7 +280,8 @@ export default function Templates() {
   return (
     <div className={styles.container}>
       {/* Header da página */}
-      <div className={styles.header}>
+             <div className={styles.toolbar}>
+        <div className={styles.headerActions}>
 
         <div className={styles.headerActions}>
           <button className={styles.btn} type="button" onClick={load} title="Atualizar lista">
@@ -291,6 +292,7 @@ export default function Templates() {
           </button>
         </div>
       </div>
+               </div>
 
       {/* Card da lista — tabs + busca */}
       <div className={styles.card}>
