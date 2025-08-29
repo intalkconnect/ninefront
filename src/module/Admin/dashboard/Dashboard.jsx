@@ -286,74 +286,177 @@ const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
 };
 
 /* ========================= Gauge segmentado (igual ao da imagem) ========================= */
+/* ========================= Gauge segmentado corrigido ========================= */
 const SegmentedGauge = ({
   value = 0,
   min = 0,
   max = 10,
   tickStep = 1,
   size = 260,
-  stroke = 14,
-  gapDeg = 4,
+  stroke = 12,
+  gapDeg = 3,
   showDots = true,
   label,
   format = (v) => v
 }) => {
   const cx = 50, cy = 54, r = 44;
   const range = max - min;
-  const p = clamp((value - min) / (range || 1), 0, 0.999);
-  const ticks = Math.round(range / tickStep);
-  const stepDeg = 180 / ticks;
-
+  const normalizedValue = Math.max(min, Math.min(max, value));
+  const p = (normalizedValue - min) / (range || 1);
+  const segments = Math.round(range / tickStep);
+  
+  // Ângulo do ponteiro (180° = min, 0° = max)
+  const pointerAngle = 180 * (1 - p);
+  
   const pol = (deg, R = r) => {
     const a = (Math.PI / 180) * deg;
     return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
   };
-  const arcPath = (a0, a1) => {
-    const s = pol(a0), e = pol(a1);
-    const largeArc = 0; // 0..180°
-    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 0 ${e.x} ${e.y}`;
+  
+  const arcPath = (startDeg, endDeg, radius = r) => {
+    const start = pol(startDeg, radius);
+    const end = pol(endDeg, radius);
+    const largeArcFlag = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
+    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
   };
-  const lerp = (a,b,t)=>a+(b-a)*t;
-  const segColor = (i, n) => `hsl(${Math.round(lerp(8,140,i/(n-1||1)))} 85% 50%)`;
-
-  const angle = 180 * (1 - p);
-  const tip = pol(angle, r - 8);
-
-  const marks = Array.from({ length: ticks + 1 }, (_, i) => ({
-    a: 180 - i * stepDeg,
-    txt: (min + i * tickStep)
+  
+  // Cores dos segmentos (do vermelho ao verde)
+  const getSegmentColor = (index, total) => {
+    const hue = Math.round(8 + (132 * index) / (total - 1 || 1)); // 8 (vermelho) a 140 (verde)
+    return `hsl(${hue}, 85%, 50%)`;
+  };
+  
+  // Posição do ponteiro
+  const pointerTip = pol(pointerAngle, r - 6);
+  
+  // Marcações nos ticks
+  const ticks = Array.from({ length: segments + 1 }, (_, i) => ({
+    angle: 180 - (i * 180) / segments,
+    value: min + i * tickStep
   }));
 
   return (
-    <div style={{ width: '100%', display: 'grid', placeItems: 'center' }}>
-      <svg viewBox="0 0 100 70" width={size} height={size*0.7}>
-        {/* fundo */}
-        <path d={arcPath(180, 0)} fill="none" stroke="#E5E7EB" strokeWidth={stroke} strokeLinecap="round" />
-        {/* fatias */}
-        {Array.from({ length: ticks }, (_, i) => {
-          const a0 = 180 - i * stepDeg + gapDeg/2;
-          const a1 = 180 - (i+1) * stepDeg - gapDeg/2;
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <svg viewBox="0 0 100 70" width={size} height={size * 0.7}>
+        {/* Fundo do gauge */}
+        <path 
+          d={arcPath(180, 0)} 
+          fill="none" 
+          stroke="#E5E7EB" 
+          strokeWidth={stroke} 
+          strokeLinecap="round" 
+        />
+        
+        {/* Segmentos coloridos */}
+        {Array.from({ length: segments }, (_, i) => {
+          const segmentAngle = 180 / segments;
+          const startAngle = 180 - i * segmentAngle + gapDeg / 2;
+          const endAngle = 180 - (i + 1) * segmentAngle - gapDeg / 2;
+          
           return (
-            <path key={i} d={arcPath(a0, a1)} fill="none" stroke={segColor(i, ticks)} strokeWidth={stroke} strokeLinecap="round" />
+            <path
+              key={i}
+              d={arcPath(startAngle, endAngle)}
+              fill="none"
+              stroke={getSegmentColor(i, segments)}
+              strokeWidth={stroke}
+              strokeLinecap="round"
+            />
           );
         })}
-        {/* marcas + labels + pontos */}
-        {marks.map((m, i) => {
-          const p1 = pol(m.a, r - 2), p2 = pol(m.a, r - 6), t = pol(m.a, r + 6);
+        
+        {/* Marcações e labels */}
+        {ticks.map((tick, i) => {
+          const innerPoint = pol(tick.angle, r - 2);
+          const outerPoint = pol(tick.angle, r - 8);
+          const labelPoint = pol(tick.angle, r + 8);
+          
           return (
             <g key={i}>
-              <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#CBD5E1" strokeWidth="1.4" />
-              {showDots ? <circle cx={t.x} cy={t.y} r="0.9" fill="#2563eb" /> : null}
-              <text x={t.x} y={t.y - 2.2} fontSize="5" textAnchor="middle" fill="#475569">{format(m.txt)}</text>
+              {/* Linha da marcação */}
+              <line
+                x1={innerPoint.x}
+                y1={innerPoint.y}
+                x2={outerPoint.x}
+                y2={outerPoint.y}
+                stroke="#64748B"
+                strokeWidth="1.5"
+              />
+              
+              {/* Ponto decorativo */}
+              {showDots && (
+                <circle
+                  cx={labelPoint.x}
+                  cy={labelPoint.y}
+                  r="1"
+                  fill="#2563EB"
+                />
+              )}
+              
+              {/* Label do valor */}
+              <text
+                x={labelPoint.x}
+                y={labelPoint.y - 3}
+                fontSize="5"
+                textAnchor="middle"
+                fill="#475569"
+                fontWeight="500"
+              >
+                {format(tick.value)}
+              </text>
             </g>
           );
         })}
-        {/* ponteiro */}
-        <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="#0F172A" strokeWidth="3.2" strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r="3.8" fill="#0F172A" />
+        
+        {/* Ponteiro */}
+        <line
+          x1={cx}
+          y1={cy}
+          x2={pointerTip.x}
+          y2={pointerTip.y}
+          stroke="#0F172A"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        
+        {/* Centro do ponteiro */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r="3.5"
+          fill="#0F172A"
+        />
+        
+        {/* Círculo interno decorativo */}
+        <circle
+          cx={cx}
+          cy={cy}
+          r="2"
+          fill="#FFFFFF"
+        />
       </svg>
-      {label ? <div style={{ marginTop: 6, fontSize: 12, color: '#64748B' }}>{label}</div> : null}
-      <div style={{ fontWeight: 700, fontSize: 20, marginTop: 2 }}>{format(value)}</div>
+      
+      {/* Label e valor */}
+      {label && (
+        <div style={{ 
+          marginTop: 8, 
+          fontSize: '12px', 
+          color: '#64748B',
+          textAlign: 'center' 
+        }}>
+          {label}
+        </div>
+      )}
+      
+      <div style={{ 
+        fontWeight: '700', 
+        fontSize: '20px', 
+        marginTop: 4,
+        color: '#0F172A',
+        textAlign: 'center'
+      }}>
+        {format(normalizedValue)}
+      </div>
     </div>
   );
 };
@@ -814,3 +917,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
