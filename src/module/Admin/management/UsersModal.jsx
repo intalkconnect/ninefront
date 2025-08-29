@@ -154,7 +154,7 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
           <div className={m.footer}>
             <button type="button" className={m.btn} onClick={onClose}>Cancelar</button>
-            <button type="submit" className={m.btnPrimary} disabled={saving}>
+            <button type="submit" className={m.btnGreen} disabled={saving}>
               <Save size={16}/> {saving ? 'Salvando…' : 'Salvar'}
             </button>
           </div>
