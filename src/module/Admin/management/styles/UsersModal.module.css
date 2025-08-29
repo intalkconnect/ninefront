@@ -48,14 +48,12 @@
 .footer{display:flex;justify-content:flex-end;gap:10px;padding:12px 18px;border-top:1px solid var(--border2);background:linear-gradient(180deg,#fff 0%, #f7f8fa 100%)}
 .btn{appearance:none;border:1px solid var(--border);background:#fff;color:var(--text2);border-radius:10px;padding:10px 14px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
 .btn:hover{background:#f1f5f9}
-.btnPrimary{background:var(--primary);border:1px solid var(--primary);color:#fff;border-radius:10px;padding:10px 14px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-.btnPrimary:hover{background:var(--primary-600)}
 
-.btnSave{
+.btnPrimary{
   display:flex;align-items:center;gap:8px;padding:10px 16px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color:#ffffff;border:none;border-radius:10px;font-weight:600;font-size:14px;
   cursor:pointer;transition: all 0.2s ease;box-shadow:0 2px 8px rgba(59,130,246,0.2);
 }
-.btnSave:hover{background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);box-shadow:0 4px 12px rgba(59,130,246,0.3);transform: translateY(-1px)}
+.btnPrimary:hover{background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);box-shadow:0 4px 12px rgba(59,130,246,0.3);transform: translateY(-1px)}
 
