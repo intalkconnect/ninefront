@@ -128,46 +128,8 @@ export default function Users() {
         </div>
       </div>
 
-
-      <div className={styles.alertsStack}>
-        {okMsg && (
-          <div className={styles.alertOk} role="status">
-            <span className={styles.alertIcon}><CheckCircle2 size={16} /></span>
-            <span>{okMsg}</span>
-            <button className={styles.alertClose} onClick={() => setOkMsg(null)} aria-label="Fechar"><XIcon size={14} /></button>
-          </div>
-        )}
-        {error && (
-          <div className={styles.alertErr} role="alert">
-            <span className={styles.alertIcon}><AlertCircle size={16} /></span>
-            <span>{error}</span>
-            <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar"><XIcon size={14} /></button>
-          </div>
-        )}
-      </div>
-
-
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          {/* Filtros (tabs) */}
-          <div className={styles.tabs} role="tablist" aria-label="Filtrar por perfil">
-            {PERFIS.map(t => (
-              <button
-                key={t.key || 'all'}
-                role="tab"
-                aria-selected={statusFilter === t.key}
-                className={`${styles.tab} ${statusFilter === t.key ? styles.tabActive : ''}`}
-                onClick={() => setStatusFilter(t.key)}
-                type="button"
-                title={t.label}
-              >
-                {t.icon} {t.label}
-                <span className={styles.kpillSmall}>{perfilCounts[t.key] ?? 0}</span>
-              </button>
-            ))}
-          </div>
-
-
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
