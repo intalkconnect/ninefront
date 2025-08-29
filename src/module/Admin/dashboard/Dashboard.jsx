@@ -387,17 +387,16 @@ const SegmentedGauge = ({
                 stroke="#64748B"
                 strokeWidth="1.5"
               />
-              <text
-                x={labelPt.x}
-                y={labelPt.y}
-                fontSize="10"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill="#475569"
-                fontWeight="500"
-              >
-                {format(tick.value)}
-              </text>
+<text
+  x={labelPoint.x}
+  y={labelPoint.y - 3}
+  fontSize="5"
+  textAnchor="middle"
+  fill="#475569"
+  fontWeight="500"
+>
+  {Math.round(tick.value)}   {/* <= agora 0..10 sem casas decimais */}
+</text>
             </g>
           );
         })}
@@ -677,7 +676,7 @@ export default function Dashboard() {
           <Card
             title="Tickets criados (período)"
             icon={<TrendingUp size={18} />}
-            help={`Mostra a soma de tickets CRIADOS no intervalo [De, Até].\n• Fonte: /analytics/metrics/summary\n• O número muda quando você altera o período.`}
+            help={`Mostra a soma de tickets CRIADOS no intervalo [De, Até].\n• O número muda quando você altera o período.`}
           >
             <Stat label="Criados" value={fmtInt(totalCriados)} tone="blue" />
           </Card>
@@ -697,7 +696,7 @@ export default function Dashboard() {
           <Card
             title="SLA de 1ª resposta (15m)"
             icon={<Gauge size={18} />}
-            help={`Rosca mostra % dentro do SLA de 15m.\n• Cálculo: 100% − taxa de abandono\n• Fonte: /analytics/metrics/abandonment`}
+            help={`Rosca mostra % dentro do SLA de 15m.\n• Cálculo: 100% − taxa de abandono.`}
           >
             <Donut percent={abandonment && Number.isFinite(+abandonment.taxa_pct) ? (100 - +abandonment.taxa_pct) : 0} label="Dentro do SLA" />
             <div className={styles.subtleCenter}>Abandono: {fmtPct(abandonment?.taxa_pct ?? 0)} • Limite {abandonment?.threshold_min ?? 15}m</div>
@@ -711,7 +710,7 @@ export default function Dashboard() {
           title="FRT diário (média em minutos)"
           icon={<LineIcon size={18} />}
           right={<span className={styles.kpill}>média: {fmtMin(frtAvg)}</span>}
-          help={`FRT médio por dia.\n• FRT = 1ª msg cliente → 1ª resposta do agente\n• Fonte: /analytics/metrics/frt?group=day`}
+          help={`FRT médio por dia.\n• FRT = 1ª msg cliente → 1ª resposta do agente.`}
         >
           {firstLoad && loading
             ? <Skeleton w="100%" h={180} />
@@ -724,7 +723,7 @@ export default function Dashboard() {
           title="SLA 15m por dia"
           icon={<Clock size={18} />}
           right={<span className={styles.kpill}>{fmtPct(slaAvg, 0)} média</span>}
-          help={`Percentual diário de tickets com FRT ≤ 15m.\n• Fonte: /analytics/metrics/frt?group=day (sla_15min_pct)`}
+          help={`Percentual diário de tickets com FRT ≤ 15m.`}
         >
           {firstLoad && loading
             ? <Skeleton w="100%" h={180} />
@@ -738,7 +737,7 @@ export default function Dashboard() {
       <div className={styles.gridTwo}>
         <Card title="NPS (Média das notas 0–10)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(nps.responses)} respostas</span>}
-              help={`Velocímetro segmentado com a **média simples** das notas NPS (0–10). Abaixo, a quebra por Promotores/Neutros/Detratores e o **índice NPS** (promotores% − detratores%).`}>
+              help={`Velocímetro segmentado com a **média simples** das notas NPS (0–10). Abaixo, a quebra por Promotores/Neutros/Detratores.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             nps.available ? (
               <>
@@ -750,9 +749,6 @@ export default function Dashboard() {
                   size={300}
                   format={(v)=>Number(v).toFixed(2)}
                 />
-                <div className={styles.subtleCenter} style={{ marginTop: 6 }}>
-                  Índice NPS: <strong>{Number(nps.index || 0).toFixed(1)}</strong>
-                </div>
                 <div className={styles.npsBreakdown} style={{ marginTop: 8 }}>
                   <span className={styles.kpillGreen}>Promotores: {fmtInt(nps.promoters)} ({fmtPct(nps.promPct)})</span>
                   <span className={styles.kpillAmber}>Neutros: {fmtInt(nps.passives)} ({fmtPct(nps.passPct)})</span>
@@ -788,7 +784,7 @@ export default function Dashboard() {
       <div className={styles.gridTwo}>
         <Card title="Novos clientes" icon={<Users size={18} />}
               right={<span className={styles.kpill}>{fmtInt(clientsTotal)} no período</span>}
-              help={`Clientes únicos criados por dia no período.\n• Endpoint: /analytics/metrics/new-clients?group=day`}>
+              help={`Clientes únicos criados por dia no período.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={220} /> :
             clientsSeries.length === 0 ? <div className={styles.empty}>Sem dados.</div> :
             <BarChart
@@ -809,7 +805,7 @@ export default function Dashboard() {
       {/* Tabelas */}
       <div className={styles.gridTwo}>
         <Card title="Tempo de resposta por agente (ART médio)" icon={<Users size={18} />}
-              help={`ART por agente — tempo entre msg do cliente e 1ª resposta do agente.\n• Fonte: /analytics/metrics/agents/art`}>
+              help={`ART por agente — tempo entre msg do cliente e 1ª resposta do agente.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={160} /> :
             artRows.length === 0 ? <div className={styles.empty}>Sem dados para o período.</div> :
             <div className={styles.tableWrap}>
@@ -829,7 +825,7 @@ export default function Dashboard() {
         </Card>
 
         <Card title="Duração média das conversas por fila" icon={<AlertTriangle size={18} />}
-              help={`Tempo médio do ciclo de conversa por fila no período.\n• P90 = 90% dos tickets abaixo deste valor\n• Fonte: /analytics/metrics/duration-by-queue`}>
+              help={`Tempo médio do ciclo de conversa por fila no período.\n• P90 = 90% dos tickets abaixo deste valor`}>
           {firstLoad && loading ? <Skeleton w="100%" h={160} /> :
             durationRows.length === 0 ? <div className={styles.empty}>Sem dados para o período.</div> :
             <div className={styles.tableWrap}>
@@ -852,7 +848,7 @@ export default function Dashboard() {
       {/* Aging */}
       <div className={styles.gridTwo}>
         <Card title="Aging do backlog por fila (snapshot)" icon={<Activity size={18} />}
-              help={`Distribuição do backlog atual por faixas de idade.\n• Faixas: ≤15m, 15–30m, 30–60m, 1–4h, >4h\n• Fonte: /analytics/metrics/aging-by-queue`}>
+              help={`Distribuição do backlog atual por faixas de idade.\n• Faixas: ≤15m, 15–30m, 30–60m, 1–4h, >4h`}>
           {firstLoad && loading ? <Skeleton w="100%" h={160} /> :
             aging.length === 0 ? <div className={styles.empty}>Sem dados.</div> :
             <div className={styles.tableWrap}>
@@ -885,6 +881,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
