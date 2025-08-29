@@ -112,13 +112,7 @@ export default function Users() {
 
   return (
     <div className={styles.container}>
-      {/* Breadcrumb enxuto */}
-      <div className={styles.crumbBar}>
-        <span className={styles.crumb}><UsersIcon size={14}/> <span>Usuários</span></span>
-        {error ? <span className={styles.crumbError}>• {error}</span> : null}
-      </div>
 
-      {/* Toolbar (somente botões à direita) */}
       <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button className={styles.refreshBtn} onClick={load} disabled={refreshing} title="Atualizar">
@@ -134,7 +128,7 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Alertas compactos */}
+
       <div className={styles.alertsStack}>
         {okMsg && (
           <div className={styles.alertOk} role="status">
@@ -152,7 +146,7 @@ export default function Users() {
         )}
       </div>
 
-      {/* Card da lista */}
+
       <div className={styles.card}>
         <div className={styles.cardHead}>
           {/* Filtros (tabs) */}
@@ -173,7 +167,7 @@ export default function Users() {
             ))}
           </div>
 
-          {/* Busca */}
+
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
@@ -262,7 +256,6 @@ export default function Users() {
         </div>
       </div>
 
-      {/* Modal controlado */}
       {openModal && (
         <UsersModal
           isOpen={openModal}
