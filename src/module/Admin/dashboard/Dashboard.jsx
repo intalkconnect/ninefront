@@ -373,33 +373,40 @@ const SegmentedGauge = ({
         })}
 
         {/* Ticks e rótulos */}
-        {ticks.map((tick, i) => {
-          const inner = pol(tick.angle, r - 8);
-          const outer = pol(tick.angle, r - 18);
-          const labelPt = pol(tick.angle, r + 14);
-          return (
-            <g key={i}>
-              <line
-                x1={inner.x}
-                y1={inner.y}
-                x2={outer.x}
-                y2={outer.y}
-                stroke="#64748B"
-                strokeWidth="1.5"
-              />
-<text
-  x={labelPoint.x}
-  y={labelPoint.y - 3}
-  fontSize="5"
-  textAnchor="middle"
-  fill="#475569"
-  fontWeight="500"
->
-  {Math.round(tick.value)}   {/* <= agora 0..10 sem casas decimais */}
-</text>
-            </g>
-          );
-        })}
+        /* ===== Marcações e rótulos (corrigido) ===== */
+{ticks.map((tick, i) => {
+  const tickLen = 6;                          // tamanho da “riscada”
+  const innerPoint = pol(tick.angle, r - 2);  // ponto interno
+  const outerPoint = pol(tick.angle, r - 2 - tickLen); // ponto externo
+  const labelPoint = pol(tick.angle, r + 10); // <-- AGORA definido
+
+  return (
+    <g key={i}>
+      {/* Linha da marcação */}
+      <line
+        x1={innerPoint.x}
+        y1={innerPoint.y}
+        x2={outerPoint.x}
+        y2={outerPoint.y}
+        stroke="#64748B"
+        strokeWidth="1.5"
+      />
+
+      {/* Rótulo arredondado: 0..10 (sem .00) */}
+      <text
+        x={labelPoint.x}
+        y={labelPoint.y - 3}
+        fontSize="5"
+        textAnchor="middle"
+        fill="#475569"
+        fontWeight="500"
+      >
+        {Math.round(tick.value)}
+      </text>
+    </g>
+  );
+})}
+
 
         {/* Ponteiro */}
         <line
@@ -881,6 +888,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
