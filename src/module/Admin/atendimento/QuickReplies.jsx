@@ -129,34 +129,6 @@ const QuickReplies = () => {
     <div className={styles.container} data-page="quickreplies">
       {/* Header com linha e subtítulo (mantidos) */}
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>
-            <span className={styles.titleIcon} aria-hidden="true"><MessageSquare size={24} /></span>
-            Respostas Rápidas
-          </h1>
-          <p className={styles.subtitle}>
-            Gerencie atalhos de mensagens para agilizar o atendimento ao cliente.
-          </p>
-
-          {error && (
-            <div className={styles.alertErr} role="alert" aria-live="assertive">
-              <span className={styles.alertIcon} aria-hidden="true"><AlertCircle size={18} /></span>
-              <span>{error}</span>
-              <button className={styles.alertClose} onClick={() => setError(null)} aria-label="Fechar alerta">
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
-          {successMsg && (
-            <div className={styles.alertOk} role="status" aria-live="polite">
-              <span className={styles.alertIcon} aria-hidden="true"><CheckCircle2 size={18} /></span>
-              <span>{successMsg}</span>
-              <button className={styles.alertClose} onClick={() => setSuccessMsg(null)} aria-label="Fechar mensagem">
-                <XIcon size={16} />
-              </button>
-            </div>
-          )}
-        </div>
 
         <div>
           <button
