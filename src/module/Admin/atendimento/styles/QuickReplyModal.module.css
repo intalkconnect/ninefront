@@ -106,16 +106,12 @@
 
 /* Primário roxo com gradiente (igual botão da Fila) */
 .btnPrimary{
-  background: linear-gradient(180deg, #8B5CF6 0%, #7C3AED 100%) !important;
-  border: 1px solid #8B5CF6 !important;
-  color:#fff !important;
-  padding:12px 18px;
-  border-radius: 14px;
-  font-weight:700; transition: all .18s ease;
-  box-shadow: 0 10px 22px rgba(139,92,246,.28) !important;
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color:#ffffff;border:none;border-radius:10px;font-weight:600;font-size:14px;
+  cursor:pointer;transition: all 0.2s ease;box-shadow:0 2px 8px rgba(59,130,246,0.2);
 }
-.btnPrimary:hover{ background: linear-gradient(180deg, #7F63F5 0%, #6F35ED 100%) !important; border-color:#7C3AED !important; }
-.btnPrimary:focus{ outline:none; box-shadow:0 0 0 3px var(--qr-primary-100), 0 10px 22px rgba(124,58,237,.28) !important; }
+.btnPrimary:hover{background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);box-shadow:0 4px 12px rgba(59,130,246,0.3);transform: translateY(-1px)}
 .btnPrimary:disabled{ opacity:.6; cursor:not-allowed; }
 
 /* Responsivo */
