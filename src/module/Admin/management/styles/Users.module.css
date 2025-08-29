@@ -46,7 +46,7 @@
 .btnPrimary{
   display:flex;align-items:center;gap:8px;padding:10px 16px;
   background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:#fff;border:none;border-radius:12px;
-  font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(59,130,246,.2);transition:.2s
+  font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(59,130,246,.2);transition:.2s
 }
 .btnPrimary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,.3)}
 
@@ -75,7 +75,7 @@
 .tabs{display:flex;gap:10px;flex-wrap:wrap}
 .tab{
   border:1px solid var(--border);border-radius:999px;padding:8px 12px;background:#fff;cursor:pointer;
-  font-weight:800;color:var(--text2);transition:.18s;font-size:14px;display:flex;gap:8px;align-items:center
+  font-weight:700;color:var(--text2);transition:.18s;font-size:14px;display:flex;gap:8px;align-items:center
 }
 .tab:hover{background:#f1f5f9}
 .tabActive{
@@ -83,7 +83,7 @@
   box-shadow:0 0 0 3px rgba(167,139,250,.18) inset
 }
 .kpillSmall{
-  margin-left:6px;font-size:11px;font-weight:800;color:#1e40af;background:#dbeafe;border:1px solid #93c5fd;
+  margin-left:6px;font-size:11px;font-weight:700;color:#1e40af;background:#dbeafe;border:1px solid #93c5fd;
   padding:2px 8px;border-radius:999px
 }
 
@@ -123,7 +123,7 @@
 .tagsWrap{display:flex;flex-wrap:wrap;gap:8px}
 .tag{
   display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:999px;
-  font-size:13px;font-weight:800;letter-spacing:.01em;border:1px solid;box-shadow:0 1px 2px rgba(0,0,0,.04)
+  font-size:13px;font-weight:700;letter-spacing:.01em;border:1px solid;box-shadow:0 1px 2px rgba(0,0,0,.04)
 }
 .tagRole{color:#4338ca;background:#f4f5ff;border-color:#c7d2fe}
 .tagRole[data-role="admin"]{color:#1e3a8a;background:#e0e7ff;border-color:#c7d2fe}
