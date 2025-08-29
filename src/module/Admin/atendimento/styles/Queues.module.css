@@ -157,15 +157,10 @@
 .btn:hover{ background:var(--qr-surface-hover); color:var(--qr-text); }
 
 .btnPrimary{
-  background:#8B5CF6 !important;
-  border-color:#8B5CF6 !important;
-  color:#fff !important;
-  box-shadow:0 6px 14px rgba(139,92,246,.25) !important;
+  background:var(--primary);border:1px solid var(--primary);color:#fff;border-radius:12px;
+  padding:10px 16px;font-weight:800;box-shadow:0 10px 22px rgba(139,92,246,.28);cursor:pointer;transition:.2s
 }
-.btnPrimary:hover{
-  background:#7C3AED !important;
-  border-color:#7C3AED !important;
-}
+.btnPrimary:hover{background:var(--primary-600);border-color:var(--primary-600)}
 
 .btnSecondary{
   background:#f1f0ff !important;
