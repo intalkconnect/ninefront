@@ -681,10 +681,6 @@ function handler(context) {
 
   return (
     <div style={{ width: "100%", height: "100vh", position: "relative", backgroundColor: "#f9f9f9", display: "flex", flexDirection: "column" }}>
-      {/* Cabeçalho */}
-      <div style={{ height: "56px", width: "100%", backgroundColor: "#ffffff", borderBottom: "1px solid #ddd", display: "flex", alignItems: "center", padding: "0 20px", fontWeight: 500, fontSize: "1rem", boxShadow: "0 2px 4px rgba(0, 0, 0, 0.03)", zIndex: 10 }}>
-        Construtor de Fluxos
-      </div>
 
       {/* Conteúdo principal */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
