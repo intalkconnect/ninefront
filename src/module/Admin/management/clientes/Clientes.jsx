@@ -89,11 +89,6 @@ export default function Clientes() {
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}><UsersIcon size={22}/> Clientes</h1>
-          <p className={styles.subtitle}>Listagem de clientes com paginação.</p>
-        </div>
-
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={()=> load()} title="Atualizar">
             <RefreshCw size={16}/> Atualizar
