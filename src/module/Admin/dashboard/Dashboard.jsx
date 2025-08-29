@@ -287,6 +287,7 @@ const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
 
 /* ========================= Gauge segmentado (igual ao da imagem) ========================= */
 /* ========================= Gauge segmentado corrigido ========================= */
+/* ========================= Gauge segmentado corrigido ========================= */
 const SegmentedGauge = ({
   value = 0,
   min = 0,
@@ -917,4 +918,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
