@@ -50,3 +50,16 @@
 .btn:hover{background:#f1f5f9}
 .btnPrimary{background:var(--primary);border:1px solid var(--primary);color:#fff;border-radius:10px;padding:10px 14px;font-weight:800;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
 .btnPrimary:hover{background:var(--primary-600)}
+
+.btnGreen {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #fff;
+  border-color: #16a34a;
+  box-shadow: 0 10px 22px rgba(34,197,94,.25);
+}
+.btnGreen:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 0 14px 28px rgba(34,197,94,.32);
+}
+
