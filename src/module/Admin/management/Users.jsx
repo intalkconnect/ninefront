@@ -124,13 +124,14 @@ export default function Users() {
           <button className={styles.refreshBtn} onClick={load} disabled={refreshing} title="Atualizar">
             <RefreshCw size={16} className={refreshing ? styles.spinning : ''}/> Atualizar
           </button>
-          <button
-            className={styles.btnGreen}
-            onClick={() => { setEditing(null); setOpenModal(true); }}
-            title="Novo usuário"
-          >
-            <Plus size={16}/> Novo usuário
-          </button>
+  <button
+    className={`${styles.actionBtn} ${styles.actionBtn--green}`}
+    onClick={() => { setEditing(null); setOpenModal(true); }}
+    title="Novo usuário"
+  >
+    <Plus size={16}/>
+    Novo usuário
+  </button>
         </div>
       </div>
 
