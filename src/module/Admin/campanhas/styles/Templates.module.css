@@ -54,6 +54,10 @@
   margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400;
 }
 
+
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
+.headerActions{display:flex;gap:10px;flex-wrap:wrap}
+
 /* Alerts */
 .alertErr,.alertOk{
   margin-top:10px; padding:10px 12px; border-radius:10px; border:1px solid var(--qr-border-light);
