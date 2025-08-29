@@ -100,7 +100,6 @@
   box-shadow:var(--qr-shadow);
   overflow:hidden;
   transition:var(--qr-transition);
-  margin-top:24px;
 }
 .card:hover{ box-shadow:var(--qr-shadow-lg); border-color:var(--qr-border); }
 
