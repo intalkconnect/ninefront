@@ -287,11 +287,12 @@ const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
 
 /* ========================= Gauge segmentado (igual ao da imagem) ========================= */
 /* ========================= Gauge segmentado corrigido ========================= */
+/* ========================= Gauge segmentado personalizado ========================= */
 const SegmentedGauge = ({
   value = 0,
   min = 0,
   max = 10,
-  tickStep = 1,
+  segments = [], // Array de objetos {label: string, value: number}
   size = 260,
   stroke = 12,
   gapDeg = 3,
@@ -303,7 +304,6 @@ const SegmentedGauge = ({
   const range = max - min;
   const normalizedValue = Math.max(min, Math.min(max, value));
   const p = (normalizedValue - min) / (range || 1);
-  const segments = Math.round(range / tickStep);
   
   // Ângulo do ponteiro (180° = min, 0° = max)
   const pointerAngle = 180 * (1 - p);
@@ -320,6 +320,19 @@ const SegmentedGauge = ({
     return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
   };
   
+  // Se segments for fornecido, usar essas marcações personalizadas
+  const ticks = segments.length > 0 
+    ? segments.map(seg => ({
+        angle: 180 - ((seg.value - min) / range) * 180,
+        value: seg.value,
+        label: seg.label
+      }))
+    : Array.from({ length: Math.round(range) + 1 }, (_, i) => ({
+        angle: 180 - (i * 180) / range,
+        value: min + i,
+        label: format(min + i)
+      }));
+
   // Cores dos segmentos (do vermelho ao verde)
   const getSegmentColor = (index, total) => {
     const hue = Math.round(8 + (132 * index) / (total - 1 || 1)); // 8 (vermelho) a 140 (verde)
@@ -329,12 +342,6 @@ const SegmentedGauge = ({
   // Posição do ponteiro
   const pointerTip = pol(pointerAngle, r - 6);
   
-  // Marcações nos ticks
-  const ticks = Array.from({ length: segments + 1 }, (_, i) => ({
-    angle: 180 - (i * 180) / segments,
-    value: min + i * tickStep
-  }));
-
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <svg viewBox="0 0 100 70" width={size} height={size * 0.7}>
@@ -348,17 +355,16 @@ const SegmentedGauge = ({
         />
         
         {/* Segmentos coloridos */}
-        {Array.from({ length: segments }, (_, i) => {
-          const segmentAngle = 180 / segments;
-          const startAngle = 180 - i * segmentAngle + gapDeg / 2;
-          const endAngle = 180 - (i + 1) * segmentAngle - gapDeg / 2;
+        {Array.from({ length: ticks.length - 1 }, (_, i) => {
+          const startAngle = ticks[i].angle;
+          const endAngle = ticks[i + 1].angle;
           
           return (
             <path
               key={i}
               d={arcPath(startAngle, endAngle)}
               fill="none"
-              stroke={getSegmentColor(i, segments)}
+              stroke={getSegmentColor(i, ticks.length - 1)}
               strokeWidth={stroke}
               strokeLinecap="round"
             />
@@ -402,7 +408,7 @@ const SegmentedGauge = ({
                 fill="#475569"
                 fontWeight="500"
               >
-                {format(tick.value)}
+                {tick.label || format(tick.value)}
               </text>
             </g>
           );
@@ -917,6 +923,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
