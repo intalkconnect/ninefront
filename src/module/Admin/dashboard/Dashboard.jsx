@@ -11,7 +11,7 @@ import styles from './styles/Dashboard.module.css';
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
 const fmtInt = (n) => (Number.isFinite(+n) ? Math.round(+n) : 0);
-const fmtPct = (n, d = 0) => (Number.isFinite(+n) ? `${(+n).toFixed(d)}%` : '—');
+const fmtPct = (n, d = 1) => (Number.isFinite(+n) ? `${(+n).toFixed(d)}%` : '—');
 const fmtMin = (m) => {
   if (!Number.isFinite(+m)) return '—';
   const mins = Math.max(0, Math.floor(+m));
@@ -42,6 +42,7 @@ const avg = (arr) => {
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const sum = (arr) => arr.reduce((a, b) => a + b, 0);
 const toNum = (v) => (Number.isFinite(+v) ? +v : 0);
+const mean = (arr) => (arr.length ? sum(arr) / arr.length : 0);
 
 /* ========================= Resize ========================= */
 const useMeasure = () => {
@@ -122,7 +123,7 @@ const SkeletonCard = () => (
   </div>
 );
 
-/* ========================= Charts simples ========================= */
+/* ========================= Charts ========================= */
 const AreaLineChart = ({ series = [], height = 180, valueFormatter = (v) => v, yMax }) => {
   const [hostRef, { width }] = useMeasure();
   const [hover, setHover] = useState(null);
@@ -262,7 +263,7 @@ const RankList = ({ items = [], unit = '' }) => {
   );
 };
 
-/* ========================= Donut simples ========================= */
+/* ========================= Donut ========================= */
 const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
   const p = Math.min(100, Math.max(0, +percent || 0));
   const r = (size - stroke) / 2;
@@ -284,77 +285,75 @@ const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
   );
 };
 
-/* ========================= Gauges (velocímetro) ========================= */
-const Speedometer = ({ value = 0, min = 0, max = 100, size = 240, label, format }) => {
-  const id  = useId();
-  const v   = Number.isFinite(+value) ? +value : 0;
-  const mn  = Number.isFinite(+min)   ? +min   : 0;
-  const mx  = Number.isFinite(+max)   ? +max   : 100;
-  const p   = clamp((v - mn) / (mx - mn), 0, 1);
-
-  // semicírculo superior
+/* ========================= Gauge segmentado (igual ao da imagem) ========================= */
+const SegmentedGauge = ({
+  value = 0,
+  min = 0,
+  max = 10,
+  tickStep = 1,
+  size = 260,
+  stroke = 14,
+  gapDeg = 4,
+  showDots = true,
+  label,
+  format = (v) => v
+}) => {
   const cx = 50, cy = 54, r = 44;
-  const startX = cx - r, startY = cy;
-  const endX   = cx + r, endY   = cy;
+  const range = max - min;
+  const p = clamp((value - min) / (range || 1), 0, 0.999);
+  const ticks = Math.round(range / tickStep);
+  const stepDeg = 180 / ticks;
 
-  // ângulo 180°..0° (esq→dir) e helpers polares (y invertido para "cima")
-  const angDeg = 180 * (1 - p);
   const pol = (deg, R = r) => {
     const a = (Math.PI / 180) * deg;
     return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
   };
-  const endProg = pol(angDeg, r);
-  const tip     = pol(angDeg, r - 8);
-  const largeArc = p > 0.5 ? 1 : 0;
+  const arcPath = (a0, a1) => {
+    const s = pol(a0), e = pol(a1);
+    const largeArc = 0; // 0..180°
+    return `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 0 ${e.x} ${e.y}`;
+  };
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const segColor = (i, n) => `hsl(${Math.round(lerp(8,140,i/(n-1||1)))} 85% 50%)`;
 
-  const mid = (mn + mx) / 2;
-  const marks = [{ t: mn, a: 180 }, { t: mid, a: 90 }, { t: mx, a: 0 }];
+  const angle = 180 * (1 - p);
+  const tip = pol(angle, r - 8);
+
+  const marks = Array.from({ length: ticks + 1 }, (_, i) => ({
+    a: 180 - i * stepDeg,
+    txt: (min + i * tickStep)
+  }));
 
   return (
     <div style={{ width: '100%', display: 'grid', placeItems: 'center' }}>
-      <svg viewBox="0 0 100 70" width={size} height={size * 0.7}>
-        <defs>
-          <linearGradient id={`grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"  stopColor="#ef4444" />
-            <stop offset="50%" stopColor="#f59e0b" />
-            <stop offset="100%" stopColor="#10b981" />
-          </linearGradient>
-          <filter id={`shadow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="0.6" stdDeviation="1.2" floodOpacity="0.35"/>
-          </filter>
-        </defs>
-
-        {/* arco de fundo */}
-        <path d={`M ${startX} ${startY} A ${r} ${r} 0 0 0 ${endX} ${endY}`}
-              fill="none" stroke="#E5E7EB" strokeWidth="12" strokeLinecap="round" />
-        {/* progresso (gradiente) */}
-        <path d={`M ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 0 ${endProg.x} ${endProg.y}`}
-              fill="none" stroke={`url(#grad-${id})`} strokeWidth="12" strokeLinecap="round" />
-
-        {/* marcas min/meio/max */}
-        {marks.map(({t,a},i) => {
-          const p1 = pol(a, r - 2), p2 = pol(a, r - 8);
+      <svg viewBox="0 0 100 70" width={size} height={size*0.7}>
+        {/* fundo */}
+        <path d={arcPath(180, 0)} fill="none" stroke="#E5E7EB" strokeWidth={stroke} strokeLinecap="round" />
+        {/* fatias */}
+        {Array.from({ length: ticks }, (_, i) => {
+          const a0 = 180 - i * stepDeg + gapDeg/2;
+          const a1 = 180 - (i+1) * stepDeg - gapDeg/2;
+          return (
+            <path key={i} d={arcPath(a0, a1)} fill="none" stroke={segColor(i, ticks)} strokeWidth={stroke} strokeLinecap="round" />
+          );
+        })}
+        {/* marcas + labels + pontos */}
+        {marks.map((m, i) => {
+          const p1 = pol(m.a, r - 2), p2 = pol(m.a, r - 6), t = pol(m.a, r + 6);
           return (
             <g key={i}>
-              <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#CBD5E1" strokeWidth="1.5" />
-              <text x={p2.x} y={p2.y - 2} fontSize="5" textAnchor={i===0?'start':i===2?'end':'middle'} fill="#64748B">
-                {format ? format(t) : t}
-              </text>
+              <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#CBD5E1" strokeWidth="1.4" />
+              {showDots ? <circle cx={t.x} cy={t.y} r="0.9" fill="#2563eb" /> : null}
+              <text x={t.x} y={t.y - 2.2} fontSize="5" textAnchor="middle" fill="#475569">{format(m.txt)}</text>
             </g>
           );
         })}
-
         {/* ponteiro */}
-        <g filter={`url(#shadow-${id})`}>
-          <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="#0F172A" strokeWidth="2.8" strokeLinecap="round" />
-          <circle cx={cx} cy={cy} r="3.6" fill="#0F172A" />
-        </g>
+        <line x1={cx} y1={cy} x2={tip.x} y2={tip.y} stroke="#0F172A" strokeWidth="3.2" strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r="3.8" fill="#0F172A" />
       </svg>
-
-      {label ? <div style={{ marginTop: 4, fontSize: 12, color: '#64748B' }}>{label}</div> : null}
-      <div style={{ fontWeight: 700, fontSize: 20, marginTop: 2 }}>
-        {format ? format(v) : v}
-      </div>
+      {label ? <div style={{ marginTop: 6, fontSize: 12, color: '#64748B' }}>{label}</div> : null}
+      <div style={{ fontWeight: 700, fontSize: 20, marginTop: 2 }}>{format(value)}</div>
     </div>
   );
 };
@@ -396,7 +395,12 @@ export default function Dashboard() {
   const [aging, setAging] = useState([]);
 
   // NPS / CSAT / Clientes
-  const [nps, setNps]   = useState({ avgScore: 0, responses: 0, available: false });
+  const [nps, setNps] = useState({
+    avgScore: 0, responses: 0,
+    promoters: 0, passives: 0, detractors: 0,
+    promPct: 0, passPct: 0, detrPct: 0,
+    index: 0, available: false
+  });
   const [csat, setCsat] = useState({ avg: 0, responses: 0, counts: {}, available: false });
   const [clientsSeries, setClientsSeries] = useState([]);
 
@@ -435,22 +439,47 @@ export default function Dashboard() {
         setAbandonment(abd || { taxa_pct: 0, abandonados: 0, total: 0, threshold_min: 15 });
         setAging(Array.isArray(ag) ? ag : []);
 
-        /* ======== NPS — média simples (0..10) ======== */
+        /* ======== NPS — média simples (0..10) + breakdown ======== */
         if (Array.isArray(npsRaw) && npsRaw.length > 0) {
           const avgs = npsRaw.map(b => toNum(b.avg_score)).filter(Number.isFinite);
-          const avgScore = avgs.length ? (sum(avgs) / avgs.length) : 0;
-          const totalResp = sum(npsRaw.map(b => toNum(b.total)));
-          setNps({ avgScore, responses: fmtInt(totalResp || npsRaw.length), available: true });
+          const avgScore = mean(avgs);
+
+          const promoters  = sum(npsRaw.map(b => toNum(b.promoters_count)));
+          const passives   = sum(npsRaw.map(b => toNum(b.passives_count)));
+          const detractors = sum(npsRaw.map(b => toNum(b.detractors_count)));
+          const responses  = sum(npsRaw.map(b => toNum(b.total))) || (promoters + passives + detractors);
+
+          let promPct = 0, passPct = 0, detrPct = 0;
+          if (responses > 0) {
+            promPct = (promoters  / responses) * 100;
+            passPct = (passives   / responses) * 100;
+            detrPct = (detractors / responses) * 100;
+          } else {
+            promPct = mean(npsRaw.map(b => toNum(b.pct_promoters)));
+            passPct = mean(npsRaw.map(b => toNum(b.pct_passives)));
+            detrPct = mean(npsRaw.map(b => toNum(b.pct_detractors)));
+          }
+          const index = promPct - detrPct;
+
+          setNps({
+            avgScore,
+            responses: fmtInt(responses || npsRaw.length),
+            promoters: fmtInt(promoters),
+            passives: fmtInt(passives),
+            detractors: fmtInt(detractors),
+            promPct, passPct, detrPct,
+            index,
+            available: true
+          });
         } else {
           setNps((p)=>({ ...p, available:false }));
         }
 
-        /* ======== CSAT — média simples (1..5) ======== */
+        /* ======== CSAT — média simples (1..5) + distribuição ======== */
         if (Array.isArray(csatRaw) && csatRaw.length > 0) {
           const avgs = csatRaw.map(b => toNum(b.avg_score)).filter(Number.isFinite);
-          const avgScore = avgs.length ? (sum(avgs) / avgs.length) : 0;
+          const avgScore = mean(avgs);
 
-          // agrega distribuição se disponível (opcional, só para visual)
           const counts = {
             1: sum(csatRaw.map(b => toNum(b.count_1))),
             2: sum(csatRaw.map(b => toNum(b.count_2))),
@@ -458,9 +487,9 @@ export default function Dashboard() {
             4: sum(csatRaw.map(b => toNum(b.count_4))),
             5: sum(csatRaw.map(b => toNum(b.count_5))),
           };
-          const totalResp = sum(csatRaw.map(b => toNum(b.total)));
+          const responses = sum(csatRaw.map(b => toNum(b.total)));
 
-          setCsat({ avg: avgScore, responses: fmtInt(totalResp || csatRaw.length), counts, available: true });
+          setCsat({ avg: avgScore, responses: fmtInt(responses || csatRaw.length), counts, available: true });
         } else {
           setCsat((p)=>({ ...p, available:false }));
         }
@@ -634,34 +663,46 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* NPS & CSAT — médias simples */}
+      {/* NPS & CSAT — médias simples + breakdown */}
       <div className={styles.gridTwo}>
         <Card title="NPS (Média das notas 0–10)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(nps.responses)} respostas</span>}
-              help={`Velocímetro com a **média simples** das notas NPS (0–10) nos buckets retornados por /series/nps.`}>
+              help={`Velocímetro segmentado com a **média simples** das notas NPS (0–10). Abaixo, a quebra por Promotores/Neutros/Detratores e o **índice NPS** (promotores% − detratores%).`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             nps.available ? (
-              <Speedometer
-                value={nps.avgScore}
-                min={0}
-                max={10}
-                label="Média NPS (0–10)"
-                format={(v)=>Number(v).toFixed(2)}
-              />
+              <>
+                <SegmentedGauge
+                  value={nps.avgScore}
+                  min={0}
+                  max={10}
+                  tickStep={1}
+                  size={300}
+                  format={(v)=>Number(v).toFixed(2)}
+                />
+                <div className={styles.subtleCenter} style={{ marginTop: 6 }}>
+                  Índice NPS: <strong>{Number(nps.index || 0).toFixed(1)}</strong>
+                </div>
+                <div className={styles.npsBreakdown} style={{ marginTop: 8 }}>
+                  <span className={styles.kpillGreen}>Promotores: {fmtInt(nps.promoters)} ({fmtPct(nps.promPct)})</span>
+                  <span className={styles.kpillAmber}>Neutros: {fmtInt(nps.passives)} ({fmtPct(nps.passPct)})</span>
+                  <span className={styles.kpillRed}>Detratores: {fmtInt(nps.detractors)} ({fmtPct(nps.detrPct)})</span>
+                </div>
+              </>
             ) : <div className={styles.empty}>Sem dados de NPS para o período.</div>}
         </Card>
 
         <Card title="CSAT (Média 1–5)" icon={<Smile size={18} />}
               right={<span className={styles.kpill}>{fmtInt(csat.responses)} respostas</span>}
-              help={`Velocímetro com a **média simples** das notas 1–5 nos buckets de /series/csat. Abaixo, a distribuição (se disponível).`}>
+              help={`Velocímetro segmentado com a **média simples** das notas 1–5. A barra abaixo mostra a distribuição por estrelas, quando disponível.`}>
           {firstLoad && loading ? <Skeleton w="100%" h={140} /> :
             csat.available ? (
               <div>
-                <Speedometer
+                <SegmentedGauge
                   value={csat.avg}
                   min={1}
                   max={5}
-                  label="Média de satisfação (1–5)"
+                  tickStep={1}
+                  size={300}
                   format={(v)=>`${Number(v).toFixed(2)} ★`}
                 />
                 {Object.values(csat.counts || {}).some(v => v > 0)
