@@ -113,10 +113,6 @@ export default function Users() {
   return (
     <div className={styles.container}>
       {/* Breadcrumb enxuto */}
-      <div className={styles.crumbBar}>
-        <span className={styles.crumb}><UsersIcon size={14}/> <span>Usuários</span></span>
-        {error ? <span className={styles.crumbError}>• {error}</span> : null}
-      </div>
 
       {/* Toolbar (somente botões à direita) */}
       <div className={styles.toolbar}>
