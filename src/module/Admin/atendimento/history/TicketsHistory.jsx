@@ -77,7 +77,7 @@ export default function TicketsHistory() {
   return (
     <div className={styles.container}>
 
-      <div className={styles.header}>
+<div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
         </div>
