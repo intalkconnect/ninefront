@@ -13,7 +13,6 @@
 
 /* Página/contêiner */
 .container{
-  min-height:100vh;
   background:linear-gradient(135deg,#f7f7fb 0%,#f1f5f9 100%);
   padding:24px;
   color:var(--text);
