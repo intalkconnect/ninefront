@@ -143,7 +143,7 @@ export default function ClientsMonitor() {
     <div className={styles.container}>
       {/* Breadcrumb / indicador de página */}
       <div className={styles.crumbBar}>
-        <span className={styles.crumb}><Headset size={14} /> <span>Acompanhamento · Clientes (tempo real)</span></span>
+        <span className={styles.crumb}><Headset size={14} /> <span>Clientes (tempo real)</span></span>
         {erro ? <span className={styles.crumbError}>• {erro}</span> : null}
       </div>
 
