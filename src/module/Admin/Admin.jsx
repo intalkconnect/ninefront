@@ -297,7 +297,6 @@ export default function Admin() {
                   title={userData.email}
                 >
                   {userData.name?.charAt(0).toUpperCase() || "U"}
-                  <span className={styles.statusDot} aria-hidden />
                 </div>
                 <span className={styles.userNameTop}>{userData.name?.split(" ")[0] || "Usuário"}</span>
               </button>
