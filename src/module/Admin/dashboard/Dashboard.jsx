@@ -285,10 +285,7 @@ const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
   );
 };
 
-/* ========================= Gauge segmentado (igual ao da imagem) ========================= */
-/* ========================= Gauge segmentado corrigido ========================= */
-/* ========================= Gauge segmentado personalizado ========================= */
-/* ========================= Gauge segmentado corrigido ========================= */
+/* ========================= SegmentedGauge (corrigido) ========================= */
 const SegmentedGauge = ({
   value = 0,
   min = 0,
@@ -297,105 +294,105 @@ const SegmentedGauge = ({
   size = 260,
   stroke = 12,
   gapDeg = 3,
-  showDots = true,
+  showDots = true, // mantido por compatibilidade (não usado)
   label,
   format = (v) => v
 }) => {
-  // Ajustar as dimensões para criar uma meia-lua perfeita
-  const cx = 50, cy = 70, r = 40; // Centralizar verticalmente e ajustar raio
-  const range = max - min;
-  const normalizedValue = Math.max(min, Math.min(max, value));
-  const p = (normalizedValue - min) / (range || 1);
-  
-  // Ângulo do ponteiro (180° = min, 0° = max)
+  // Geometria estável para meia-lua perfeita
+  const cx = 100, cy = 100, r = 80;       // centro e raio
+  const vbW = 200, vbH = 120;             // viewBox para exibir só a meia-lua
+  const range = Math.max(0.0001, max - min);
+  const normalized = Math.min(max, Math.max(min, value));
+  const p = (normalized - min) / range;
+
+  // Ângulo do ponteiro: 180° (min) → 0° (max)
   const pointerAngle = 180 * (1 - p);
-  
-  // Função para converter graus em coordenadas polares
+
+  // coordenadas polares → cartesianas
   const pol = (deg, R = r) => {
     const a = (Math.PI / 180) * deg;
     return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
   };
-  
-  // Função para criar caminho de arco
+
+  // arco de startDeg → endDeg usando sweep clockwise (1)
   const arcPath = (startDeg, endDeg, radius = r) => {
     const start = pol(startDeg, radius);
     const end = pol(endDeg, radius);
     const largeArcFlag = Math.abs(endDeg - startDeg) > 180 ? 1 : 0;
-    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+    const sweepFlag = 1;
+    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
   };
-  
-  // Cores dos segmentos (do vermelho ao verde)
-  const getSegmentColor = (index, total) => {
-    const hue = Math.round(8 + (132 * index) / (total - 1 || 1)); // 8 (vermelho) a 140 (verde)
+
+  // Cores dos segmentos (vermelho → verde)
+  const getSegmentColor = (i, total) => {
+    const hue = Math.round(8 + (132 * i) / Math.max(1, total - 1)); // 8..140
     return `hsl(${hue}, 85%, 50%)`;
   };
-  
-  // Calcular segmentos
+
+  // Segmentos e ticks
   const segments = Math.round(range / tickStep);
   const segmentAngle = 180 / segments;
-  
-  // Posição do ponteiro
   const pointerTip = pol(pointerAngle, r - 6);
-  
-  // Marcações nos ticks
+
   const ticks = Array.from({ length: segments + 1 }, (_, i) => ({
-    angle: 180 - (i * segmentAngle),
+    angle: 180 - i * segmentAngle,
     value: min + i * tickStep
   }));
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <svg viewBox="0 0 100 80" width={size} height={size * 0.7}>
-        {/* Fundo do gauge - meia-lua completa */}
-        <path 
-          d={arcPath(180, 0)} 
-          fill="none" 
-          stroke="#E5E7EB" 
-          strokeWidth={stroke} 
-          strokeLinecap="round" 
+      <svg
+        viewBox={`0 0 ${vbW} ${vbH}`}
+        width={size}
+        height={size * (vbH / vbW)} // ~0.6
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {/* Trilho de fundo (meia-lua exata) */}
+        <path
+          d={arcPath(180, 0)}
+          fill="none"
+          stroke="#E5E7EB"
+          strokeWidth={stroke}
+          strokeLinecap="butt"
         />
-        
+
         {/* Segmentos coloridos */}
         {Array.from({ length: segments }, (_, i) => {
           const startAngle = 180 - i * segmentAngle + gapDeg / 2;
           const endAngle = 180 - (i + 1) * segmentAngle - gapDeg / 2;
-          
           return (
             <path
               key={i}
               d={arcPath(startAngle, endAngle)}
               fill="none"
               stroke={getSegmentColor(i, segments)}
-              strokeWidth={stroke - 2} // Reduzir ligeiramente para melhor visualização
-              strokeLinecap="round"
+              strokeWidth={stroke}
+              strokeLinecap="butt"
             />
           );
         })}
-        
-        {/* Marcações e labels */}
+
+        {/* Ticks e rótulos */}
         {ticks.map((tick, i) => {
-          const innerPoint = pol(tick.angle, r - 2);
-          const outerPoint = pol(tick.angle, r - 8);
-          const labelPoint = pol(tick.angle, r + 8);
-          
+          const inner = pol(tick.angle, r - 8);
+          const outer = pol(tick.angle, r - 18);
+          const labelPt = pol(tick.angle, r + 14);
           return (
             <g key={i}>
-              {/* Linha da marcação */}
               <line
-                x1={innerPoint.x}
-                y1={innerPoint.y}
-                x2={outerPoint.x}
-                y2={outerPoint.y}
+                x1={inner.x}
+                y1={inner.y}
+                x2={outer.x}
+                y2={outer.y}
                 stroke="#64748B"
                 strokeWidth="1.5"
               />
-              
-              {/* Label do valor */}
               <text
-                x={labelPoint.x}
-                y={labelPoint.y - 3}
-                fontSize="5"
+                x={labelPt.x}
+                y={labelPt.y}
+                fontSize="10"
                 textAnchor="middle"
+                dominantBaseline="middle"
                 fill="#475569"
                 fontWeight="500"
               >
@@ -404,7 +401,7 @@ const SegmentedGauge = ({
             </g>
           );
         })}
-        
+
         {/* Ponteiro */}
         <line
           x1={cx}
@@ -415,44 +412,18 @@ const SegmentedGauge = ({
           strokeWidth="3"
           strokeLinecap="round"
         />
-        
-        {/* Centro do ponteiro */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r="3.5"
-          fill="#0F172A"
-        />
-        
-        {/* Círculo interno decorativo */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r="2"
-          fill="#FFFFFF"
-        />
+        <circle cx={cx} cy={cy} r="3.5" fill="#0F172A" />
+        <circle cx={cx} cy={cy} r="2" fill="#FFFFFF" />
       </svg>
-      
+
       {/* Label e valor */}
       {label && (
-        <div style={{ 
-          marginTop: 8, 
-          fontSize: '12px', 
-          color: '#64748B',
-          textAlign: 'center' 
-        }}>
+        <div style={{ marginTop: 8, fontSize: '12px', color: '#64748B', textAlign: 'center' }}>
           {label}
         </div>
       )}
-      
-      <div style={{ 
-        fontWeight: '700', 
-        fontSize: '20px', 
-        marginTop: 4,
-        color: '#0F172A',
-        textAlign: 'center'
-      }}>
-        {format(normalizedValue)}
+      <div style={{ fontWeight: 700, fontSize: '20px', marginTop: 4, color: '#0F172A', textAlign: 'center' }}>
+        {format(normalized)}
       </div>
     </div>
   );
@@ -914,6 +885,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
