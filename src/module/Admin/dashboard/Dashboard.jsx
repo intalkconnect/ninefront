@@ -288,11 +288,12 @@ const Donut = ({ percent = 0, size = 136, stroke = 12, label }) => {
 /* ========================= Gauge segmentado (igual ao da imagem) ========================= */
 /* ========================= Gauge segmentado corrigido ========================= */
 /* ========================= Gauge segmentado personalizado ========================= */
+/* ========================= Gauge segmentado corrigido ========================= */
 const SegmentedGauge = ({
   value = 0,
   min = 0,
   max = 10,
-  segments = [], // Array de objetos {label: string, value: number}
+  tickStep = 1,
   size = 260,
   stroke = 12,
   gapDeg = 3,
@@ -300,7 +301,8 @@ const SegmentedGauge = ({
   label,
   format = (v) => v
 }) => {
-  const cx = 50, cy = 54, r = 44;
+  // Ajustar as dimensões para criar uma meia-lua perfeita
+  const cx = 50, cy = 70, r = 40; // Centralizar verticalmente e ajustar raio
   const range = max - min;
   const normalizedValue = Math.max(min, Math.min(max, value));
   const p = (normalizedValue - min) / (range || 1);
@@ -308,11 +310,13 @@ const SegmentedGauge = ({
   // Ângulo do ponteiro (180° = min, 0° = max)
   const pointerAngle = 180 * (1 - p);
   
+  // Função para converter graus em coordenadas polares
   const pol = (deg, R = r) => {
     const a = (Math.PI / 180) * deg;
     return { x: cx + R * Math.cos(a), y: cy - R * Math.sin(a) };
   };
   
+  // Função para criar caminho de arco
   const arcPath = (startDeg, endDeg, radius = r) => {
     const start = pol(startDeg, radius);
     const end = pol(endDeg, radius);
@@ -320,32 +324,29 @@ const SegmentedGauge = ({
     return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
   };
   
-  // Se segments for fornecido, usar essas marcações personalizadas
-  const ticks = segments.length > 0 
-    ? segments.map(seg => ({
-        angle: 180 - ((seg.value - min) / range) * 180,
-        value: seg.value,
-        label: seg.label
-      }))
-    : Array.from({ length: Math.round(range) + 1 }, (_, i) => ({
-        angle: 180 - (i * 180) / range,
-        value: min + i,
-        label: format(min + i)
-      }));
-
   // Cores dos segmentos (do vermelho ao verde)
   const getSegmentColor = (index, total) => {
     const hue = Math.round(8 + (132 * index) / (total - 1 || 1)); // 8 (vermelho) a 140 (verde)
     return `hsl(${hue}, 85%, 50%)`;
   };
   
+  // Calcular segmentos
+  const segments = Math.round(range / tickStep);
+  const segmentAngle = 180 / segments;
+  
   // Posição do ponteiro
   const pointerTip = pol(pointerAngle, r - 6);
   
+  // Marcações nos ticks
+  const ticks = Array.from({ length: segments + 1 }, (_, i) => ({
+    angle: 180 - (i * segmentAngle),
+    value: min + i * tickStep
+  }));
+
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <svg viewBox="0 0 100 70" width={size} height={size * 0.7}>
-        {/* Fundo do gauge */}
+      <svg viewBox="0 0 100 80" width={size} height={size * 0.7}>
+        {/* Fundo do gauge - meia-lua completa */}
         <path 
           d={arcPath(180, 0)} 
           fill="none" 
@@ -355,17 +356,17 @@ const SegmentedGauge = ({
         />
         
         {/* Segmentos coloridos */}
-        {Array.from({ length: ticks.length - 1 }, (_, i) => {
-          const startAngle = ticks[i].angle;
-          const endAngle = ticks[i + 1].angle;
+        {Array.from({ length: segments }, (_, i) => {
+          const startAngle = 180 - i * segmentAngle + gapDeg / 2;
+          const endAngle = 180 - (i + 1) * segmentAngle - gapDeg / 2;
           
           return (
             <path
               key={i}
               d={arcPath(startAngle, endAngle)}
               fill="none"
-              stroke={getSegmentColor(i, ticks.length - 1)}
-              strokeWidth={stroke}
+              stroke={getSegmentColor(i, segments)}
+              strokeWidth={stroke - 2} // Reduzir ligeiramente para melhor visualização
               strokeLinecap="round"
             />
           );
@@ -389,16 +390,6 @@ const SegmentedGauge = ({
                 strokeWidth="1.5"
               />
               
-              {/* Ponto decorativo */}
-              {showDots && (
-                <circle
-                  cx={labelPoint.x}
-                  cy={labelPoint.y}
-                  r="1"
-                  fill="#2563EB"
-                />
-              )}
-              
               {/* Label do valor */}
               <text
                 x={labelPoint.x}
@@ -408,7 +399,7 @@ const SegmentedGauge = ({
                 fill="#475569"
                 fontWeight="500"
               >
-                {tick.label || format(tick.value)}
+                {format(tick.value)}
               </text>
             </g>
           );
@@ -923,6 +914,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
