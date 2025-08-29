@@ -64,15 +64,16 @@ export default function Queues() {
   return (
     <>
       <div className={styles.container}>
-       
+             <div className={styles.toolbar}>
+        <div className={styles.headerActions}>
 
           <div>
             <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
               + Criar Fila
             </button>
           </div>
-
-
+          </div>
+          </div>
        
         <div className={styles.card}>
           
