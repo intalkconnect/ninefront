@@ -396,7 +396,7 @@ const SegmentedGauge = ({
       <text
         x={labelPoint.x}
         y={labelPoint.y - 3}
-        fontSize="5"
+        fontSize="10"
         textAnchor="middle"
         fill="#475569"
         fontWeight="500"
@@ -888,6 +888,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
