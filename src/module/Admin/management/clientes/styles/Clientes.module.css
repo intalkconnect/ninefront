@@ -29,10 +29,9 @@
 .headerActions{ display:flex; gap:10px; align-items:center; }
 
 .btn{
-  border:1px solid var(--qr-border);
-  background:#fff; color:var(--qr-text-2);
-  border-radius:12px; padding:10px 14px;
-  font-weight:700; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border-radius:12px; padding:10px 14px; font-weight:700;
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
 }
 .btn:hover{ background:var(--qr-surface-2); }
 
