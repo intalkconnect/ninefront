@@ -125,7 +125,7 @@ export default function Users() {
             <RefreshCw size={16} className={refreshing ? styles.spinning : ''}/> Atualizar
           </button>
           <button
-            className={styles.btnPrimary}
+            className={styles.btnGreen}
             onClick={() => { setEditing(null); setOpenModal(true); }}
             title="Novo usuário"
           >
