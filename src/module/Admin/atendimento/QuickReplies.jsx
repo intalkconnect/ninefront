@@ -127,8 +127,9 @@ const QuickReplies = () => {
 
   return (
     <div className={styles.container} data-page="quickreplies">
-      {/* Header com linha e subtítulo (mantidos) */}
-      <div className={styles.header}>
+   
+                   <div className={styles.toolbar}>
+        <div className={styles.headerActions}>
 
         <div>
           <button
@@ -140,8 +141,9 @@ const QuickReplies = () => {
           </button>
         </div>
       </div>
+                      </div>
 
-      {/* Card da lista com a busca no topo (fora do header) */}
+
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardActions}>
