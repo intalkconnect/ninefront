@@ -120,19 +120,27 @@ export default function Users() {
 
       {/* Toolbar (somente botões à direita) */}
       <div className={styles.toolbar}>
-        <div className={styles.headerActions}>
-          <button className={styles.refreshBtn} onClick={load} disabled={refreshing} title="Atualizar">
-            <RefreshCw size={16} className={refreshing ? styles.spinning : ''}/> Atualizar
-          </button>
+<div className={styles.headerActions}>
+  <button
+    className={`${styles.actionBtn} ${styles.actionBtn--blue}`}
+    onClick={load}
+    disabled={refreshing}
+    title="Atualizar"
+  >
+    <RefreshCw size={16} className={refreshing ? styles.spinning : ''} />
+    Atualizar
+  </button>
+
   <button
     className={`${styles.actionBtn} ${styles.actionBtn--green}`}
     onClick={() => { setEditing(null); setOpenModal(true); }}
     title="Novo usuário"
   >
-    <Plus size={16}/>
+    <Plus size={16} />
     Novo usuário
   </button>
-        </div>
+</div>
+
       </div>
 
       {/* Alertas compactos */}
