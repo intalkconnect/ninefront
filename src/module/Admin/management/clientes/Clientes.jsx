@@ -88,7 +88,6 @@ export default function Clientes() {
   return (
     <div className={styles.container}>
       {/* Header */}
-      <div className={styles.header}>
                      <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={()=> load()} title="Atualizar">
@@ -96,7 +95,6 @@ export default function Clientes() {
           </button>
         </div>
       </div>
-        </div>
 
       {/* Card */}
       <div className={styles.card}>
