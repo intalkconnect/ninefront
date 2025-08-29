@@ -53,6 +53,9 @@
 .alertIcon{ display:inline-flex; }
 .alertClose{ background:transparent; border:0; cursor:pointer; color:inherit; }
 
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
+.headerActions{display:flex;gap:10px;flex-wrap:wrap}
+
 /* ===== Card ===== */
 .card{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:var(--qr-radius-xl);
