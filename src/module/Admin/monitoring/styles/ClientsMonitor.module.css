@@ -27,12 +27,11 @@
 .kpillAmber{color:#92400e;background:#fef3c7;border-color:#fcd34d;display:inline-flex;gap:6px;align-items:center}
 
 .refreshBtn{
-  display:flex;align-items:center;gap:8px;
-  padding:10px 16px;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
-  color:#fff;border:none;border-radius:10px;font-weight:700;cursor:pointer;
-  box-shadow:0 2px 8px rgba(59,130,246,.2);transition:.2s;
+  border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border-radius:12px; padding:10px 14px; font-weight:700;
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
 }
-.refreshBtn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(59,130,246,.3)}
+.refreshBtn:hover{ background:var(--qr-surface-2); }
 .refreshBtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .spinning{animation:spin 1s linear infinite}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
