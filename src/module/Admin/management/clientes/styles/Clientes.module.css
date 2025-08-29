@@ -10,7 +10,7 @@
   --qr-text-2:#374151;
   --qr-muted:#6b7280;
 
-  --qr-primary:#3b82f6;
+  --qr-primary:#8B5CF6;
   --qr-primary-600:#7C3AED;
   --qr-primary-100:rgba(139,92,246,.20);
 
@@ -69,7 +69,7 @@
 }
 .tab:hover{ background:var(--qr-surface-2); }
 .tabActive{
-  background:#f8f9ff; color:var(--qr-primary); border-color:var(--qr-primary);
+  background:#8B5CF6; color:var(--qr-primary); border-color:var(--qr-primary);
   box-shadow:0 0 0 3px var(--qr-primary-100) inset;
 }
 
