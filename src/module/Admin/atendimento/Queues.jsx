@@ -64,15 +64,14 @@ export default function Queues() {
   return (
     <>
       <div className={styles.container}>
-        {/* HEADER DA PÁGINA (com linha e subtítulo) */}
-        <div className={styles.header}>
+        {/* HEADER DA PÁGINA (com linha e subtítulo) */
 
           <div>
             <button type="button" className={styles.btnPrimary} onClick={() => setCreateOpen(true)}>
               + Criar Fila
             </button>
           </div>
-        </div>
+
 
         {/* LISTA / CARD */}
         <div className={styles.card}>
