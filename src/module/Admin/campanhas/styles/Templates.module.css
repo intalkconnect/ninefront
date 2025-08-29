@@ -84,10 +84,12 @@
 .btn{ border-color:var(--qr-border); }
 .btn:hover{ background:var(--qr-surface-2); color:var(--qr-text); }
 .btnPrimary{
-  background:#8B5CF6 !important; border-color:#8B5CF6 !important; color:#fff !important;
-  box-shadow:0 6px 14px rgba(139,92,246,.25) !important;
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color:#ffffff;border:none;border-radius:10px;font-weight:600;font-size:14px;
+  cursor:pointer;transition: all 0.2s ease;box-shadow:0 2px 8px rgba(59,130,246,0.2);
 }
-.btnPrimary:hover{ background:#7C3AED !important; border-color:#7C3AED !important; }
+.btnPrimary:hover{background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);box-shadow:0 4px 12px rgba(59,130,246,0.3);transform: translateY(-1px)}
 .btnSecondary{
   background:#f1f0ff !important; border-color:#e6e4ff !important; color:#4338ca !important;
 }
