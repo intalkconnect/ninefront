@@ -35,13 +35,13 @@
 .filterItem input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);outline:none}
 
 /* Botão de refresh */
+
 .refreshBtn{
-  display:flex;align-items:center;gap:8px;padding:10px 16px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color:#ffffff;border:none;border-radius:10px;font-weight:600;font-size:14px;
-  cursor:pointer;transition: all 0.2s ease;box-shadow:0 2px 8px rgba(59,130,246,0.2);
+  border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border-radius:12px; padding:10px 14px; font-weight:700;
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
 }
-.refreshBtn:hover{background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);box-shadow:0 4px 12px rgba(59,130,246,0.3);transform: translateY(-1px)}
+.refreshBtn:hover{ background:var(--qr-surface-2); }
 .refreshBtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
 .spinning{animation: spin 1s linear infinite}
 @keyframes spin{from{transform: rotate(0)}to{transform: rotate(360deg)}}
