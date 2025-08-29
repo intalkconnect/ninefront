@@ -148,7 +148,14 @@
 .npsMarker{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#1e293b;box-shadow:0 0 0 3px #ffffff, 0 2px 8px rgba(0,0,0,0.2);transition:left .3s ease}
 .npsLabels{display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:8px;font-weight:500}
 .npsValue{font-size:24px;font-weight:800;min-width:60px;text-align:right;color:#1e293b}
-.npsBreakdown{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.npsBreakdown {
+  display: flex;
+  justify-content: center;   /* Centraliza no container */
+  gap: 12px;                 /* Espaço entre os chips */
+  margin-top: 8px;
+  flex-wrap: wrap;           /* Evita quebrar feio em telas pequenas */
+}
+
 
 /* CSAT */
 .csatRow{display:flex;gap:16px;align-items:center}
