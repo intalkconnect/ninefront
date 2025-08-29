@@ -647,10 +647,6 @@ export default function Dashboard() {
   return (
     <div className={styles.container}>
       {/* Indicador da página */}
-      <div className={styles.crumbBar}>
-        <span className={styles.crumb}><LayoutDashboard size={14} /> <span>Dashboard</span></span>
-        {erro ? <span className={styles.crumbError}>• {erro}</span> : null}
-      </div>
 
       {/* Filtros + atualizar */}
       <div className={styles.headerRow}>
@@ -888,6 +884,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
