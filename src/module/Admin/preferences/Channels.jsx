@@ -257,7 +257,7 @@ export default function Channels() {
             {!tg.connected ? (
               <>
                 <p className={styles.cardDesc}>
-                  Conecte informando <strong>Bot Token</strong> e <strong>Webhook Secret</strong> em um modal.
+                  Conecte informando <strong>Bot Token</strong>.
                 </p>
                 <div className={styles.cardActions}>
                   <button className={styles.btnSecondary} onClick={() => setShowTgModal(true)}>Conectar</button>
