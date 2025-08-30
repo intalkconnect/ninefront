@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZap, X } from "lucide-react";
+import { apiGet, apiPost } from '../../../shared/apiClient';
 import styles from "./styles/Channels.module.css";
 import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
 
@@ -54,11 +55,8 @@ function TelegramConnectModal({ open, onClose, tenant, onSuccess }) {
     if (!token)  return setErrMsg("Informe o Bot Token.");
     try {
       setLoading(true); setErrMsg(null);
-      const res = await fetch("/tg/connect", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ subdomain: tenant, botToken: token, secret }) // secret automático
-      });
+      const payload = { subdomain: tenant, botToken: token, secret }
+      const res = await apiPost("/tg/connect", payload);
       const j = await res.json();
       if (!res.ok || !j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
       onSuccess({ botId: j.bot_id, username: j.username, webhookUrl: j.webhook_url });
