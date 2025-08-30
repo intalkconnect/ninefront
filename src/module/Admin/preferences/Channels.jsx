@@ -1,5 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZap } from "lucide-react";
+import {
+  MessageCircle, Instagram, MessageSquareText, Send,
+  CheckCircle2, PlugZap
+} from "lucide-react";
 import styles from "./styles/Channels.module.css";
 import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
 
@@ -18,19 +21,21 @@ function genSecretHex(bytes = 32) {
     window.crypto.getRandomValues(arr);
     return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("");
   }
-  // fallback (não-criptográfico)
   let out = "";
-  for (let i = 0; i < bytes; i++) {
-    out += Math.floor(Math.random() * 256).toString(16).padStart(2, "0");
-  }
+  for (let i = 0; i < bytes; i++) out += Math.floor(Math.random() * 256).toString(16).padStart(2, "0");
   return out;
 }
 
 export default function Channels() {
   const tenant = useMemo(() => getTenantFromHost(), []);
+
+  // qual card está aberto (null = todos fechados)
+  const [openCard, setOpenCard] = useState(null); // 'wa' | 'ig' | 'fb' | 'tg' | null
+
+  // WhatsApp
   const [wa, setWa] = useState({ connected: false, wabaId: "", numbers: [], okMsg: null, errMsg: null });
 
-  // --- Telegram state ---
+  // Telegram
   const [tg, setTg] = useState({
     connected: false,
     botId: "",
@@ -43,16 +48,16 @@ export default function Channels() {
     loading: false,
   });
 
-  // preenche secret inicial
+  // secret inicial do Telegram
   useEffect(() => {
-    setTg((s) => s.secret ? s : { ...s, secret: genSecretHex() });
+    setTg((s) => s.secret ? s : ({ ...s, secret: genSecretHex() }));
   }, []);
 
-  // recebe o resultado do popup (WhatsApp Embedded Signup)
+  // WhatsApp Embedded Signup (postMessage)
   useEffect(() => {
-    const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.dkdevs.com.br
+    const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seudominio.com
     function onMsg(e) {
-      if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return; // segurança
+      if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return;
       const { type, payload, error } = e.data || {};
       if (type === "wa:connected") {
         setWa({
@@ -63,6 +68,7 @@ export default function Channels() {
           errMsg: null,
         });
         setTimeout(() => setWa((s) => ({ ...s, okMsg: null })), 2000);
+        setOpenCard(null); // fecha após conectar
       }
       if (type === "wa:error") {
         setWa((s) => ({ ...s, errMsg: error || "Falha ao conectar." }));
@@ -72,6 +78,7 @@ export default function Channels() {
     return () => window.removeEventListener("message", onMsg);
   }, []);
 
+  // conectar Telegram (chama seu back /api/v1/tg/connect)
   async function connectTelegram() {
     if (!tenant) {
       setTg((s) => ({ ...s, errMsg: "Tenant não identificado pelo subdomínio." }));
@@ -83,22 +90,17 @@ export default function Channels() {
     }
     try {
       setTg((s) => ({ ...s, loading: true, errMsg: null, okMsg: null }));
-      // Se quiser permitir allowed_updates customizados, adicione aqui:
-      // const allowed_updates = ["message", "edited_message", "callback_query"];
-      const res = await fetch("/tg/connect", {
+      const res = await fetch("/api/v1/tg/connect", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           subdomain: tenant,
           botToken: tg.token,
           secret: tg.secret,
-          // allowed_updates
         }),
       });
       const j = await res.json();
-      if (!res.ok || !j?.ok) {
-        throw new Error(j?.error || "Falha ao conectar Telegram");
-      }
+      if (!res.ok || !j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
       setTg((s) => ({
         ...s,
         connected: true,
@@ -109,6 +111,7 @@ export default function Channels() {
         errMsg: null,
       }));
       setTimeout(() => setTg((s) => ({ ...s, okMsg: null })), 2000);
+      setOpenCard(null); // fecha após conectar
     } catch (e) {
       setTg((s) => ({ ...s, errMsg: String(e?.message || e) }));
     } finally {
@@ -116,22 +119,37 @@ export default function Channels() {
     }
   }
 
-  function regenSecret() {
-    setTg((s) => ({ ...s, secret: genSecretHex() }));
-  }
-
-  // helpers de input rápidos (inline style discreto para não depender de novas classes)
-  const inputStyle = {
-    width: "100%",
-    padding: "8px 10px",
-    border: "1px solid #ddd",
-    borderRadius: "6px",
-    background: "#fff",
-    color: "#111",
-    outline: "none",
-  };
+  // estilos locais
+  const inputStyle = { width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: "6px", background: "#fff", color: "#111" };
   const labelStyle = { fontSize: 12, fontWeight: 600, marginBottom: 6, color: "#444" };
   const rowStyle = { display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 };
+
+  // cabeçalho padrão com botão "Conectar" que só abre o card
+  function CardHead({ id, icon, title, connected }) {
+    return (
+      <div className={styles.cardHead}>
+        <div className={`${styles.cardIconWrap} ${styles[id]}`}>{icon}</div>
+        <div className={styles.cardTitle}>{title}</div>
+        {connected ? (
+          <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
+        ) : (
+          <button
+            className={styles.btnSecondary}
+            onClick={() => setOpenCard(id)}
+            title="Abrir para conectar"
+          >
+            Conectar
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // corpo visível somente quando id === openCard
+  function CardBody({ id, children }) {
+    if (openCard !== id) return null;
+    return <div className={styles.cardBody}>{children}</div>;
+  }
 
   return (
     <div className={styles.container}>
@@ -139,10 +157,10 @@ export default function Channels() {
         <div>
           <h1 className={styles.title}>Canais</h1>
           <p className={styles.subtitle}>Conecte seus canais de atendimento.</p>
-          {wa.errMsg ? <div className={styles.alertErr}>{wa.errMsg}</div> : null}
-          {wa.okMsg ? <div className={styles.alertOk}>{wa.okMsg}</div> : null}
-          {tg.errMsg ? <div className={styles.alertErr}>{tg.errMsg}</div> : null}
-          {tg.okMsg ? <div className={styles.alertOk}>{tg.okMsg}</div> : null}
+          {wa.errMsg && <div className={styles.alertErr}>{wa.errMsg}</div>}
+          {wa.okMsg && <div className={styles.alertOk}>{wa.okMsg}</div>}
+          {tg.errMsg && <div className={styles.alertErr}>{tg.errMsg}</div>}
+          {tg.okMsg && <div className={styles.alertOk}>{tg.okMsg}</div>}
         </div>
         <div className={styles.tenantBadge}>
           {tenant ? <>id: <strong>{tenant}</strong></> : <span className={styles.subtle}>defina o tenant</span>}
@@ -152,86 +170,40 @@ export default function Channels() {
       <div className={styles.grid}>
         {/* WhatsApp */}
         <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={`${styles.cardIconWrap} ${styles.wa}`}><MessageCircle size={18} /></div>
-            <div className={styles.cardTitle}>WhatsApp</div>
-            {wa.connected
-              ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
-              : <span className={styles.statusOff}>Não conectado</span>}
-          </div>
-          <div className={styles.cardBody}>
+          <CardHead id="wa" icon={<MessageCircle size={18}/>} title="WhatsApp" connected={wa.connected}/>
+          <CardBody id="wa">
             <p className={styles.cardDesc}>Conecte via Signup Meta e selecione o número.</p>
             {!wa.connected ? (
               <div className={styles.cardActions}>
-                <div className={styles.btnWrap}>
-                  <WhatsAppEmbeddedSignupButton tenant={tenant} />
-                </div>
+                <div className={styles.btnWrap}><WhatsAppEmbeddedSignupButton tenant={tenant} /></div>
                 <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
               </div>
-            ) : (
-              <div className={styles.connectedBlock}>
-                <div className={styles.kv}><span className={styles.k}>WABA</span><span className={styles.v}>{wa.wabaId}</span></div>
-                <div className={styles.kv}><span className={styles.k}>Números</span><span className={styles.v}>{wa.numbers?.length || 0}</span></div>
-                {wa.numbers?.length > 0 && (
-                  <div className={styles.listWrap}>
-                    <div className={styles.listTitle}>Números encontrados</div>
-                    <ul className={styles.numList}>
-                      {wa.numbers.map((n) => (
-                        <li key={n?.id} className={styles.numRow}>
-                          <div className={styles.numMain}>
-                            <span className={styles.numPhone}>{n?.display_phone_number || n?.verified_name || "—"}</span>
-                            <span className={styles.numId}>id: {n?.id}</span>
-                          </div>
-                          <div className={styles.numActions}>
-                            <button className={styles.btnTiny} disabled title="Em breve">Definir principal</button>
-                            <button className={styles.btnTiny} disabled title="Em breve">Enviar teste</button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+            ) : null}
+          </CardBody>
         </div>
 
         {/* Instagram */}
         <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={`${styles.cardIconWrap} ${styles.ig}`}><Instagram size={18}/></div>
-            <div className={styles.cardTitle}>Instagram</div>
-            <span className={styles.statusOff}>Não conectado</span>
-          </div>
-          <div className={styles.cardBody}>
+          <CardHead id="ig" icon={<Instagram size={18}/>} title="Instagram" connected={false}/>
+          <CardBody id="ig">
             <p className={styles.cardDesc}>Em breve: conecte seu Instagram Business.</p>
             <div className={styles.cardActions}><button className={styles.btnSecondary} disabled>Conectar</button></div>
-          </div>
+          </CardBody>
         </div>
 
         {/* Facebook */}
         <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={`${styles.cardIconWrap} ${styles.fb}`}><MessageSquareText size={18}/></div>
-            <div className={styles.cardTitle}>Facebook Messenger</div>
-            <span className={styles.statusOff}>Não conectado</span>
-          </div>
-          <div className={styles.cardBody}>
+          <CardHead id="fb" icon={<MessageSquareText size={18}/>} title="Facebook Messenger" connected={false}/>
+          <CardBody id="fb">
             <p className={styles.cardDesc}>Em breve: conecte sua página do Facebook.</p>
             <div className={styles.cardActions}><button className={styles.btnSecondary} disabled>Conectar</button></div>
-          </div>
+          </CardBody>
         </div>
 
-        {/* Telegram (conector funcional) */}
+        {/* Telegram */}
         <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={`${styles.cardIconWrap} ${styles.tg}`}><Send size={18}/></div>
-            <div className={styles.cardTitle}>Telegram</div>
-            {tg.connected
-              ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
-              : <span className={styles.statusOff}>Não conectado</span>}
-          </div>
-          <div className={styles.cardBody}>
+          <CardHead id="tg" icon={<Send size={18}/>} title="Telegram" connected={tg.connected}/>
+          <CardBody id="tg">
             {!tg.connected ? (
               <>
                 <p className={styles.cardDesc}>
@@ -251,7 +223,7 @@ export default function Channels() {
                   />
                 </div>
 
-                <div style={{ ...rowStyle }}>
+                <div style={rowStyle}>
                   <label style={labelStyle}>Webhook Secret</label>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
                     <input
@@ -264,7 +236,7 @@ export default function Channels() {
                     <button
                       className={styles.btnSecondary}
                       type="button"
-                      onClick={regenSecret}
+                      onClick={() => setTg((s) => ({ ...s, secret: genSecretHex() }))}
                       title="Gerar novo secret"
                     >
                       Gerar
@@ -284,15 +256,8 @@ export default function Channels() {
                   </button>
                 </div>
               </>
-            ) : (
-              <div className={styles.connectedBlock}>
-                <div className={styles.kv}><span className={styles.k}>Bot</span><span className={styles.v}>{tg.username || "—"}</span></div>
-                <div className={styles.kv}><span className={styles.k}>Bot ID</span><span className={styles.v}>{tg.botId || "—"}</span></div>
-                <div className={styles.kv}><span className={styles.k}>Webhook</span><span className={styles.v}>{tg.webhookUrl || "—"}</span></div>
-                <div className={styles.hint}>Já configurado para webhook único. Qualquer update chega com seu secret e vai para <code>{tenant}.incoming</code>.</div>
-              </div>
-            )}
-          </div>
+            ) : null}
+          </CardBody>
         </div>
       </div>
     </div>
