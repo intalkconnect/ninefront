@@ -165,10 +165,18 @@ html, body {
 }
 .btnWrap :global(button[disabled]){ opacity:.6; cursor:not-allowed; }
 
+/* substitua esta regra */
 .btnSecondary{
   background:#fff; color:#111827; border:1px solid #e5e7eb;
-  padding:8px 12px; border-radius:10px; cursor:not-allowed;
+  padding:8px 12px; border-radius:10px; cursor:pointer; /* ← era not-allowed */
 }
+
+/* novo: só mostra 'proibido' quando realmente estiver desabilitado */
+.btnSecondary[disabled]{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
 
 .hint{ display:inline-flex; align-items:center; gap:6px; color:#6b7280; font-size:12px; }
 
