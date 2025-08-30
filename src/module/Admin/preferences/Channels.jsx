@@ -25,45 +25,39 @@ function genSecretHex(bytes = 32) {
 /* =============== Modal Telegram =============== */
 function TelegramConnectModal({ open, onClose, tenant, onSuccess }) {
   const [token, setToken] = useState("");
-  const [secret, setSecret] = useState(genSecretHex());
+  const [secret, setSecret] = useState("");       // gerado silenciosamente
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState(null);
 
   useEffect(() => {
-    if (open) {
-      setToken("");
-      setSecret(genSecretHex());
-      setErrMsg(null);
-      setLoading(false);
-    }
+    if (!open) return;
+    setToken("");
+    setErrMsg(null);
+    setLoading(false);
+    // gera o secret sem mostrar para o usuário
+    setSecret(genSecretHex());
   }, [open]);
 
   if (!open) return null;
 
-  const overlay = {
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000
-  };
-  const modal = {
-    width: "min(520px, 92vw)", background: "#fff", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,.25)",
-    padding: "18px 18px 16px", position: "relative"
-  };
-  const header = { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 };
-  const title = { fontSize: 18, fontWeight: 700 };
-  const input = { width: "100%", padding: "10px 12px", border: "1px solid #e2e8f0", borderRadius: 8 };
-  const label = { fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 6 };
-  const row = { display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 12 };
-  const actions = { display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 };
+  const overlay = { position:"fixed", inset:0, background:"rgba(0,0,0,.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 };
+  const modal   = { width:"min(520px,92vw)", background:"#fff", borderRadius:12, boxShadow:"0 10px 30px rgba(0,0,0,.25)", padding:"18px", position:"relative" };
+  const header  = { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 };
+  const title   = { fontSize:18, fontWeight:700 };
+  const input   = { width:"100%", padding:"10px 12px", border:"1px solid #e2e8f0", borderRadius:8 };
+  const label   = { fontSize:12, fontWeight:600, color:"#475569", marginBottom:6 };
+  const row     = { display:"grid", gridTemplateColumns:"1fr", gap:10, marginBottom:12 };
+  const actions = { display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 };
 
   async function handleConnect() {
     if (!tenant) return setErrMsg("Tenant não identificado pelo subdomínio.");
-    if (!token || !secret) return setErrMsg("Informe Bot Token e Webhook Secret.");
+    if (!token)  return setErrMsg("Informe o Bot Token.");
     try {
       setLoading(true); setErrMsg(null);
       const res = await fetch("/tg/connect", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ subdomain: tenant, botToken: token, secret })
+        body: JSON.stringify({ subdomain: tenant, botToken: token, secret }) // secret automático
       });
       const j = await res.json();
       if (!res.ok || !j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
@@ -81,12 +75,10 @@ function TelegramConnectModal({ open, onClose, tenant, onSuccess }) {
       <div style={modal} onClick={(e) => e.stopPropagation()}>
         <div style={header}>
           <div style={title}>Conectar Telegram</div>
-          <button className={styles.btnIcon} onClick={onClose} title="Fechar" aria-label="Fechar">
-            <X size={18}/>
-          </button>
+          <button className={styles.btnIcon} onClick={onClose} title="Fechar" aria-label="Fechar"><X size={18}/></button>
         </div>
 
-        {errMsg && <div className={styles.alertErr} style={{ marginBottom: 10 }}>{errMsg}</div>}
+        {errMsg && <div className={styles.alertErr} style={{ marginBottom:10 }}>{errMsg}</div>}
 
         <div style={row}>
           <label style={label}>Bot Token</label>
@@ -100,14 +92,9 @@ function TelegramConnectModal({ open, onClose, tenant, onSuccess }) {
           />
         </div>
 
-        <div style={row}>
-          <label style={label}>Webhook Secret</label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
-            <input style={input} type="text" value={secret} onChange={(e) => setSecret(e.target.value)} autoComplete="off" />
-            <button className={styles.btnSecondary} type="button" onClick={() => setSecret(genSecretHex())}>Gerar</button>
-          </div>
-          <div className={styles.hint}>Usado para identificar o tenant no webhook único (header <code>x-telegram-bot-api-secret-token</code>).</div>
-        </div>
+        {/* observação simples; secret é gerado e não é exibido */}
+        <p className={styles.cardDesc}> Conecte informando apenas o <strong>Bot Token</strong>.</p>
+
 
         <div style={actions}>
           <button className={styles.btnGhost} onClick={onClose}>Cancelar</button>
@@ -119,6 +106,7 @@ function TelegramConnectModal({ open, onClose, tenant, onSuccess }) {
     </div>
   );
 }
+
 
 /* ========================= page ========================= */
 export default function Channels() {
