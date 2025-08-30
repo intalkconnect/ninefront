@@ -50,23 +50,47 @@ function TelegramConnectModal({ open, onClose, tenant, onSuccess }) {
   const row     = { display:"grid", gridTemplateColumns:"1fr", gap:10, marginBottom:12 };
   const actions = { display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 };
 
-  async function handleConnect() {
-    if (!tenant) return setErrMsg("Tenant não identificado pelo subdomínio.");
-    if (!token)  return setErrMsg("Informe o Bot Token.");
-    try {
-      setLoading(true); setErrMsg(null);
-      const payload = { subdomain: tenant, botToken: token, secret }
-      const res = await apiPost("/tg/connect", payload);
-      const j = await res.json();
-      if (!res.ok || !j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
-      onSuccess({ botId: j.bot_id, username: j.username, webhookUrl: j.webhook_url });
-      onClose();
-    } catch (e) {
-      setErrMsg(String(e?.message || e));
-    } finally {
-      setLoading(false);
+async function handleConnect() {
+  if (!tenant) return setErrMsg("Tenant não identificado pelo subdomínio.");
+  if (!token)  return setErrMsg("Informe o Bot Token.");
+
+  setLoading(true); setErrMsg(null);
+  try {
+    const res = await fetch("/api/v1/tg/connect", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ subdomain: tenant, botToken: token, secret })
+    });
+
+    // parser robusto: suporta Response do fetch, axios-like e objeto já-JSON
+    const parseJSONLike = async (r) => {
+      if (r && typeof r.json === "function") { // fetch Response
+        // tenta com content-type; se não for json, tenta text() e parse manual
+        const ct = r.headers?.get?.("content-type") || "";
+        if (ct.includes("application/json")) return await r.json();
+        const txt = await r.text();
+        try { return JSON.parse(txt); } catch { return { ok: false, error: "non_json_response", raw: txt }; }
+      }
+      if (r && typeof r === "object" && "data" in r) return r.data; // axios
+      return r; // já é um objeto
+    };
+
+    const j = await parseJSONLike(res);
+
+    if (!res.ok || !j?.ok) {
+      const msg = j?.error || `HTTP ${res.status}`;
+      throw new Error(msg);
     }
+
+    onSuccess({ botId: j.bot_id, username: j.username, webhookUrl: j.webhook_url });
+    onClose();
+  } catch (e) {
+    setErrMsg(String(e?.message || e));
+  } finally {
+    setLoading(false);
   }
+}
+
 
   return (
     <div style={overlay} onClick={onClose}>
