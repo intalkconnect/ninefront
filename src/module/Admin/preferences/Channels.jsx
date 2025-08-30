@@ -56,7 +56,7 @@ async function handleConnect() {
 
   setLoading(true); setErrMsg(null);
   try {
-    const res = await fetch("/api/v1/tg/connect", {
+    const res = await fetch("/tg/connect", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ subdomain: tenant, botToken: token, secret })
@@ -269,7 +269,6 @@ export default function Channels() {
               <div className={styles.connectedBlock}>
                 <div className={styles.kv}><span className={styles.k}>Bot</span><span className={styles.v}>{tg.username || "—"}</span></div>
                 <div className={styles.kv}><span className={styles.k}>Bot ID</span><span className={styles.v}>{tg.botId || "—"}</span></div>
-                <div className={styles.kv}><span className={styles.k}>Webhook</span><span className={styles.v}>{tg.webhookUrl || "—"}</span></div>
               </div>
             )}
           </div>
