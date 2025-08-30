@@ -55,12 +55,9 @@ async function handleConnect() {
   if (!token)  return setErrMsg("Informe o Bot Token.");
 
   setLoading(true); setErrMsg(null);
+  const payload = { subdomain: tenant, botToken: token, secret }
   try {
-    const res = await fetch("/tg/connect", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ subdomain: tenant, botToken: token, secret })
-    });
+    const res = await apiPost("/tg/connect", payload);
 
     // parser robusto: suporta Response do fetch, axios-like e objeto já-JSON
     const parseJSONLike = async (r) => {
@@ -90,6 +87,7 @@ async function handleConnect() {
     setLoading(false);
   }
 }
+
 
 
   return (
