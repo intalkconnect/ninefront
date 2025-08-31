@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
-import styles from './styles/Campaigns.module.css';
+import styles from './Campaigns.module.css';
 import { Plus, RefreshCw, X as XIcon } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -34,7 +34,7 @@ function fmtDateTime(v) {
 export default function Campaigns() {
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState(''); // radio
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -58,14 +58,12 @@ export default function Campaigns() {
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
-    // a API já filtra; aqui só garantimos uma ordenação agradável
     return [...items]
       .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')))
       .reverse();
   }, [items]);
 
   function progressOf(c) {
-    // tenta usar contadores; cai em 0 se não existir
     const total = Number(c.total_items || c.total || 0);
     const sent = Number(c.sent_count || c.sent || 0);
     const delivered = Number(c.delivered_count || c.delivered || 0);
@@ -81,10 +79,9 @@ export default function Campaigns() {
 
   return (
     <div className={styles.container}>
-      {/* Card principal */}
       <div className={styles.card}>
+        {/* Linha superior: filtros (esq) + ações (dir) */}
         <div className={styles.cardHead}>
-          {/* ESQUERDA: label + radios */}
           <div className={styles.headLeft}>
             <div className={styles.groupTitle}>Filtrar por status</div>
             <div className={styles.radioGroup} role="radiogroup" aria-label="Filtrar por status">
@@ -105,7 +102,23 @@ export default function Campaigns() {
             </div>
           </div>
 
-          {/* MEIO: busca */}
+          <div className={styles.headerActions}>
+            <button className={styles.btn} onClick={load} type="button" title="Atualizar lista">
+              <RefreshCw size={16}/> Atualizar
+            </button>
+            <button
+              className={styles.btnPrimary}
+              type="button"
+              onClick={() => { try { window.location.href = '/campaigns/new'; } catch {} }}
+              title="Criar nova campanha"
+            >
+              <Plus size={16}/> Nova campanha
+            </button>
+          </div>
+        </div>
+
+        {/* Linha inferior: somente a busca, alinhada à direita (como no print) */}
+        <div className={styles.subToolbar}>
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
@@ -125,21 +138,6 @@ export default function Campaigns() {
               </button>
             )}
           </div>
-
-          {/* DIREITA: ações */}
-          <div className={styles.headerActions}>
-            <button className={styles.btn} onClick={load} type="button" title="Atualizar lista">
-              <RefreshCw size={16}/> Atualizar
-            </button>
-            <button
-              className={styles.btnPrimary}
-              type="button"
-              onClick={() => { try { window.location.href = '/campaigns/new'; } catch { /* noop */ } }}
-              title="Criar nova campanha"
-            >
-              <Plus size={16}/> Nova campanha
-            </button>
-          </div>
         </div>
 
         {err && (
@@ -152,29 +150,25 @@ export default function Campaigns() {
           </div>
         )}
 
-        {/* Lista */}
+        {/* Tabela */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{minWidth: 260}}>Campanha</th>
-                <th style={{width: 180}}>Agendada para</th>
-                <th style={{width: 140}}>Status</th>
-                <th style={{width: 260}}>Progresso</th>
-                <th style={{width: 180}}>Atualizado em</th>
+                <th style={{minWidth:260}}>Campanha</th>
+                <th style={{width:180}}>Agendada para</th>
+                <th style={{width:140}}>Status</th>
+                <th style={{width:260}}>Progresso</th>
+                <th style={{width:180}}>Atualizado em</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr>
-                  <td className={styles.loading} colSpan={5}>Carregando…</td>
-                </tr>
+                <tr><td className={styles.loading} colSpan={5}>Carregando…</td></tr>
               )}
 
               {!loading && filtered.length === 0 && (
-                <tr>
-                  <td className={styles.empty} colSpan={5}>Nenhuma campanha encontrada.</td>
-                </tr>
+                <tr><td className={styles.empty} colSpan={5}>Nenhuma campanha encontrada.</td></tr>
               )}
 
               {!loading && filtered.map((c) => {
@@ -185,13 +179,8 @@ export default function Campaigns() {
                       <div className={styles.keyTitle}>{c.name}</div>
                       {c.description && <div className={styles.keySub}>{c.description}</div>}
                     </td>
-
                     <td data-label="Agendada para">{fmtDateTime(c.start_at)}</td>
-
-                    <td data-label="Status">
-                      <StatusChip status={c.status} />
-                    </td>
-
+                    <td data-label="Status"><StatusChip status={c.status} /></td>
                     <td data-label="Progresso">
                       <div className={styles.progress}>
                         <div className={styles.progressValue} style={{ width: `${pct}%` }} />
@@ -200,7 +189,6 @@ export default function Campaigns() {
                         {pct}% • {(c.sent_count ?? c.sent ?? 0)}/{c.total_items ?? c.total ?? 0}
                       </div>
                     </td>
-
                     <td data-label="Atualizado em">{fmtDateTime(c.updated_at)}</td>
                   </tr>
                 );
