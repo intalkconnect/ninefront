@@ -1,169 +1,184 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
+import { Plus, RefreshCw, X as XIcon, AlertCircle } from 'lucide-react';
 import styles from './styles/Campaigns.module.css';
-import { Plus, RefreshCw, X as XIcon } from 'lucide-react';
 
-const STATUS_OPTIONS = [
-  { key: '',           label: 'Todos' },
-  { key: 'queued',     label: 'Imediatas (Em fila)' },
-  { key: 'scheduled',  label: 'Agendadas' },
-  { key: 'finished',   label: 'Finalizadas' },
-  { key: 'failed',     label: 'Falhadas' },
+const FILTERS = [
+  { key: '',            label: 'Todos' },
+  { key: 'queued',      label: 'Imediatas (Em fila)' },
+  { key: 'scheduled',   label: 'Agendadas' },
+  { key: 'finished',    label: 'Finalizadas' },
+  { key: 'failed',      label: 'Falhadas' },
 ];
 
-function StatusChip({ status }) {
-  const map = {
-    queued:     styles.stQueued,
-    scheduled:  styles.stScheduled,
-    finished:   styles.stFinished,
-    failed:     styles.stFailed,
-  };
-  const cls = map[status] || styles.stDefault;
-  return <span className={`${styles.statusChip} ${cls}`}>{status || '—'}</span>;
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleString('pt-BR');
 }
 
-function fmtDateTime(v) {
-  if (!v) return '—';
-  try { const d = new Date(v); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR'); }
-  catch { return '—'; }
+function ProgressBar({ processed, total }) {
+  const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
+  return (
+    <div className={styles.progressWrap} title={`${processed}/${total} (${pct}%)`}>
+      <div className={styles.progressBar}>
+        <div className={styles.progressFill} style={{ width: `${pct}%` }} />
+      </div>
+      <div className={styles.progressText}>{processed}/{total}</div>
+    </div>
+  );
 }
 
 export default function Campaigns() {
   const [items, setItems] = useState([]);
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
+
+  const [q, setQ] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
     try {
-      const qs = new URLSearchParams();
-      if (status) qs.set('status', status);
-      if (query.trim()) qs.set('q', query.trim());
-      const data = await apiGet(`/campaigns${qs.toString() ? `?${qs}` : ''}`);
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      if (q.trim()) params.set('q', q.trim());
+      const data = await apiGet(`/campaigns${params.toString() ? `?${params}` : ''}`);
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error(e); setErr('Falha ao carregar campanhas.');
-    } finally { setLoading(false); }
-  }, [status, query]);
+      console.error(e);
+      setErr('Falha ao carregar campanhas.');
+    } finally {
+      setLoading(false);
+    }
+  }, [q, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() =>
-    [...items].sort((a,b) => String(a.updated_at||'').localeCompare(String(b.updated_at||''))).reverse(),
-  [items]);
+  const onCreate = () => {
+    // acione sua navegação/modal de criação aqui
+    window.dispatchEvent(new CustomEvent('open-campaign-create'));
+  };
 
-  function progressOf(c) {
-    const total = Number(c.total_items ?? c.total ?? 0);
-    const processed = Number(
-      c.processed_count ?? (c.sent_count ?? 0) + (c.delivered_count ?? 0) + (c.read_count ?? 0)
-    );
-    if (!total) return 0;
-    return Math.max(0, Math.min(100, Math.round((processed / total) * 100)));
-  }
-
-  const clearSearch = () => setQuery('');
+  const filtered = useMemo(() => {
+    return [...items]
+      .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')))
+      .reverse();
+  }, [items]);
 
   return (
     <div className={styles.container}>
-      {/* TOP BAR: botões ficam acima do card */}
-      <div className={styles.topBar}>
+      {/* Botões no topo (fora do card) */}
+      <div className={styles.toolbar}>
         <div className={styles.headerActions}>
-          <button className={styles.btn} onClick={load} type="button" title="Atualizar lista">
-            <RefreshCw size={16}/> Atualizar
+          <button className={styles.btn} onClick={load} type="button" title="Atualizar">
+            <RefreshCw size={16} /> Atualizar
           </button>
-          <button
-            className={styles.btnPrimary}
-            type="button"
-            onClick={() => { try { window.location.href = '/campaigns/new'; } catch {} }}
-            title="Criar nova campanha"
-          >
-            <Plus size={16}/> Nova campanha
+          <button className={styles.btnPrimary} onClick={onCreate} type="button">
+            <Plus size={16} /> Nova campanha
           </button>
         </div>
       </div>
 
+      {/* Card: header com radios + busca */}
       <div className={styles.card}>
-        {/* HEADER DO CARD: somente options (esq) + busca (dir) */}
         <div className={styles.cardHead}>
-          <div className={styles.headLeft}>
-            <div className={styles.groupTitle}>Filtrar por status</div>
-            <div className={styles.radioGroup} role="radiogroup" aria-label="Filtrar por status">
-              {STATUS_OPTIONS.map(opt => (
-                <label key={opt.key || 'all'} className={styles.radioOption}>
-                  <input
-                    type="radio"
-                    name="status"
-                    value={opt.key}
-                    checked={status === opt.key}
-                    onChange={() => setStatus(opt.key)}
-                    className={styles.radioInput}
-                  />
-                  <span className={styles.radioControl} aria-hidden />
-                  <span className={styles.radioLabel}>{opt.label}</span>
-                </label>
-              ))}
-            </div>
+          <div className={styles.optionGroup} role="radiogroup" aria-label="Filtrar por status">
+            <div className={styles.optionTitle}>Filtrar por status</div>
+            {FILTERS.map(f => (
+              <label key={f.key || 'all'} className={styles.optionItem}>
+                <input
+                  type="radio"
+                  name="status"
+                  value={f.key}
+                  checked={statusFilter === f.key}
+                  onChange={() => setStatusFilter(f.key)}
+                  className={styles.optionControl}
+                />
+                <span className={styles.optionLabel}>{f.label}</span>
+              </label>
+            ))}
           </div>
 
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
-              placeholder="Buscar por nome…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Buscar campanhas"
+              placeholder="Buscar por nome..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
             />
-            {query && (
-              <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca" type="button">
-                <XIcon size={14}/>
+            {q && (
+              <button
+                className={styles.searchClear}
+                onClick={() => setQ('')}
+                type="button"
+                aria-label="Limpar busca"
+              >
+                <XIcon size={14} />
               </button>
             )}
           </div>
         </div>
 
+        {/* Alert de erro (se houver) */}
         {err && (
           <div className={styles.alertErr}>
-            <span className={styles.alertIcon}>⚠️</span>
+            <span className={styles.alertIcon}><AlertCircle size={16} /></span>
             {err}
-            <button className={styles.alertClose} onClick={() => setErr(null)} aria-label="Fechar aviso">
-              <XIcon size={14}/>
-            </button>
+            <button className={styles.alertClose} onClick={() => setErr(null)}><XIcon size={14}/></button>
           </div>
         )}
 
+        {/* Tabela */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{minWidth:260}}>Campanha</th>
-                <th style={{width:180}}>Agendada para</th>
-                <th style={{width:140}}>Status</th>
-                <th style={{width:260}}>Progresso</th>
-                <th style={{width:180}}>Atualizado em</th>
+                <th>Campanha</th>
+                <th>Agendada para</th>
+                <th>Progresso</th>
+                <th>Enviadas</th>
+                <th>Entregues</th>
+                <th>Lidas</th>
+                <th>Falhas</th>
+                <th>Atualizado em</th>
               </tr>
             </thead>
             <tbody>
-              {loading && (<tr><td className={styles.loading} colSpan={5}>Carregando…</td></tr>)}
-              {!loading && filtered.length === 0 && (<tr><td className={styles.empty} colSpan={5}>Nenhuma campanha encontrada.</td></tr>)}
+              {loading && (
+                <tr>
+                  <td className={styles.loading} colSpan={8}>Carregando…</td>
+                </tr>
+              )}
+
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td className={styles.empty} colSpan={8}>Nenhuma campanha encontrada.</td>
+                </tr>
+              )}
+
               {!loading && filtered.map((c) => {
-                const pct = progressOf(c);
+                const total = c.total_items || 0;
+                const processed = (c.processed_count != null)
+                  ? c.processed_count
+                  : (c.sent_count + c.delivered_count + c.read_count + c.failed_count);
+
                 return (
                   <tr key={c.id} className={styles.rowHover}>
-                    <td data-label="Campanha">
+                    <td>
                       <div className={styles.keyTitle}>{c.name}</div>
-                      {c.description && <div className={styles.keySub}>{c.description}</div>}
-                    </td>
-                    <td data-label="Agendada para">{fmtDateTime(c.start_at)}</td>
-                    <td data-label="Status"><StatusChip status={c.status} /></td>
-                    <td data-label="Progresso">
-                      <div className={styles.progress}><div className={styles.progressValue} style={{ width: `${pct}%` }} /></div>
-                      <div className={styles.keySub} style={{ marginTop: 6 }}>
-                        {pct}% • {(c.sent_count ?? 0)}/{c.total_items ?? 0}
+                      <div className={styles.keySub}>
+                        {c.template_name ? `Modelo: ${c.template_name}` : '—'}
                       </div>
                     </td>
-                    <td data-label="Atualizado em">{fmtDateTime(c.updated_at)}</td>
+                    <td>{c.start_at ? formatDate(c.start_at) : '—'}</td>
+                    <td><ProgressBar processed={processed} total={total} /></td>
+                    <td>{c.sent_count || 0}</td>
+                    <td>{c.delivered_count || 0}</td>
+                    <td>{c.read_count || 0}</td>
+                    <td>{c.failed_count || 0}</td>
+                    <td>{formatDate(c.updated_at)}</td>
                   </tr>
                 );
               })}
