@@ -1,7 +1,7 @@
 // src/pages/Campaigns/Campaigns.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
-import styles from './styles/Templates.module.css'; // reaproveitando o mesmo CSS base
+import styles from './styles/Campaigns.module.css'; // reaproveitando o mesmo CSS base
 import {
   Plus, RefreshCw, Upload, CalendarClock, X as XIcon, AlertCircle, BarChart2, FileText
 } from 'lucide-react';
