@@ -1,218 +1,130 @@
 :root{
-  --qr-bg:#f6f7fb;
-  --qr-surface:#f7f8fa;
-  --qr-surface-2:#f1f5f9;
-
-  --qr-border:#e5e7eb;
-  --qr-border-light:#eef2f7;
-
-  --qr-text:#0f172a;
-  --qr-text-2:#374151;
-  --qr-muted:#6b7280;
-
-  --qr-primary:#8B5CF6;
-  --qr-primary-600:#7C3AED;
-  --qr-primary-100:rgba(139,92,246,.18);
-
-  --qr-success:#16a34a;
-  --qr-success-50:#ecfdf5;
-  --qr-success-100:#d1fae5;
-
-  --qr-danger:#dc2626;
-  --qr-danger-100:#fee2e2;
-
+  /* base do projeto */
+  --qr-bg:#f6f7fb; --qr-surface:#f7f8fa; --qr-surface-2:#f1f5f9;
+  --qr-border:#e5e7eb; --qr-border-light:#eef2f7;
+  --qr-text:#0f172a; --qr-text-2:#374151; --qr-muted:#6b7280;
+  --qr-primary:#8B5CF6; --qr-primary-600:#7C3AED; --qr-primary-100:rgba(139,92,246,.18);
+  --qr-success:#16a34a; --qr-success-50:#ecfdf5; --qr-success-100:#d1fae5;
+  --qr-danger:#dc2626; --qr-danger-100:#fee2e2;
   --qr-shadow:0 1px 3px 0 rgb(0 0 0 / 8%), 0 1px 2px -1px rgb(0 0 0 / 6%);
   --qr-shadow-lg:0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .06);
-
   --t-fast: all .18s cubic-bezier(.4,0,.2,1);
+
+  /* azul dos botões (para os options) */
+  --btn-blue-1:#3b82f6; /* primary */
+  --btn-blue-2:#2563eb; /* hover */
+  --btn-blue-100:rgba(59,130,246,.18);
 }
 
 /* ===== Página ===== */
-.container{
-  height:auto !important;
-  min-height:0 !important;
-  overflow-x:hidden;
-  padding:24px 24px 32px;
-  background:transparent !important;
-}
+.container{ height:auto!important; min-height:0!important; overflow-x:hidden; padding:24px 24px 32px; background:transparent!important; }
 
-/* ===== Card ===== */
-.card{
-  background:#fff;
-  border:1px solid var(--qr-border-light);
-  border-radius:16px;
-  box-shadow:var(--qr-shadow);
-  overflow:hidden;
-  transition:var(--t-fast);
-}
-.card:hover{ box-shadow:var(--qr-shadow-lg); }
-
-/* ===== Header (linha dos filtros + botões) ===== */
-.cardHead{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:14px;
-  padding:16px 18px;
-  border-bottom:1px solid var(--qr-border-light);
-  background:
-    linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
-  flex-wrap:wrap;
-}
-.groupTitle{
-  font-size:14px;
-  font-weight:800;
-  color:var(--qr-text);
-  margin-right:8px;
-}
-.headLeft{
-  display:flex;
-  align-items:center;
-  gap:14px;
-  flex-wrap:wrap;
-}
-
-/* ===== Sub-toolbar (apenas a busca, alinhada à direita) ===== */
-.subToolbar{
-  display:flex;
-  justify-content:flex-end;
-  padding:10px 18px 6px;
-  gap:10px;
-}
-
-/* ===== Radios estilo “option” ===== */
-.radioGroup{ display:flex; gap:14px; flex-wrap:wrap; }
-.radioOption{
-  display:inline-flex; align-items:center; gap:8px;
-  cursor:pointer; user-select:none;
-  color:var(--qr-text-2); font-weight:700;
-}
-.radioInput{ position:absolute; opacity:0; pointer-events:none; }
-.radioControl{
-  width:18px; height:18px; border-radius:50%;
-  border:2px solid var(--qr-border);
-  background:#fff; display:inline-block; position:relative;
-  transition:var(--t-fast);
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.03);
-}
-.radioInput:checked + .radioControl{
-  border-color:var(--qr-primary);
-  box-shadow:0 0 0 3px var(--qr-primary-100);
-}
-.radioInput:checked + .radioControl::after{
-  content:''; position:absolute; inset:3px; border-radius:50%; background:var(--qr-primary);
-}
-.radioLabel{ font-size:14px; }
-
-/* ===== Botões (direita) ===== */
+/* ===== Top bar (somente botões) ===== */
+.topBar{ display:flex; justify-content:flex-end; margin-bottom:10px; }
 .headerActions{ display:flex; gap:10px; flex-wrap:wrap; }
 .btn,.btnPrimary{
-  appearance:none; border:1px solid; border-radius:10px;
-  padding:10px 14px; font-size:14px; font-weight:700;
-  display:inline-flex; align-items:center; gap:8px;
-  cursor:pointer; transition:var(--t-fast); background:#fff; color:var(--qr-text-2);
+  appearance:none; border:1px solid; border-radius:10px; padding:10px 14px; font-size:14px; font-weight:700;
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer; transition:var(--t-fast); background:#fff; color:var(--qr-text-2);
 }
 .btn{ border-color:var(--qr-border); }
 .btn:hover{ background:var(--qr-surface-2); color:var(--qr-text); }
 .btnPrimary{
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color:#fff; border:none; padding:10px 16px;
-  box-shadow:0 2px 8px rgba(59,130,246,0.2);
+  background: linear-gradient(135deg, var(--btn-blue-1) 0%, var(--btn-blue-2) 100%);
+  color:#fff; border:none; padding:10px 16px; box-shadow:0 2px 8px rgba(59,130,246,0.2);
 }
-.btnPrimary:hover{
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow:0 4px 12px rgba(59,130,246,0.3);
-  transform: translateY(-1px);
-}
+.btnPrimary:hover{ background: linear-gradient(135deg, var(--btn-blue-2) 0%, #1d4ed8 100%); box-shadow:0 4px 12px rgba(59,130,246,0.3); transform: translateY(-1px); }
 
-/* ===== Busca (visual “pill” como no print) ===== */
+/* ===== Card ===== */
+.card{ background:#fff; border:1px solid var(--qr-border-light); border-radius:16px; box-shadow:var(--qr-shadow); overflow:hidden; transition:var(--t-fast); }
+.card:hover{ box-shadow:var(--qr-shadow-lg); }
+
+/* ===== Header do card: options + busca ===== */
+.cardHead{
+  display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px 18px;
+  border-bottom:1px solid var(--qr-border-light);
+  background: linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%), linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
+  flex-wrap:wrap;
+}
+.groupTitle{ font-size:14px; font-weight:800; color:var(--qr-text); margin-right:8px; }
+.headLeft{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+
+/* Radios “option” com cor dos botões */
+.radioGroup{ display:flex; gap:14px; flex-wrap:wrap; }
+.radioOption{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; color:var(--qr-text-2); font-weight:700; }
+.radioInput{ position:absolute; opacity:0; pointer-events:none; }
+.radioControl{
+  width:18px; height:18px; border-radius:50%;
+  border:2px solid var(--qr-border); background:#fff; display:inline-block; position:relative;
+  transition:var(--t-fast); box-shadow:inset 0 1px 2px rgba(0,0,0,.03);
+}
+.radioInput:checked + .radioControl{ border-color:var(--btn-blue-1); box-shadow:0 0 0 3px var(--btn-blue-100); }
+.radioInput:checked + .radioControl::after{
+  content:''; position:absolute; inset:3px; border-radius:50%;
+  background:linear-gradient(135deg, var(--btn-blue-1), var(--btn-blue-2));
+}
+.radioLabel{ font-size:14px; }
+
+/* Busca */
 .searchGroup{ position:relative; }
 .searchInput{
-  width:min(420px, 48vw); height:40px;
-  padding:0 36px 0 12px;
-  border:1px solid var(--qr-border);
-  border-radius:12px;
-  outline:none; background:#fff; font-size:14px;
+  width:min(420px, 48vw); height:40px; padding:0 36px 0 12px;
+  border:1px solid var(--qr-border); border-radius:12px; outline:none; background:#fff; font-size:14px;
   box-shadow:0 1px 2px rgba(0,0,0,.04);
 }
-.searchInput:focus{
-  box-shadow:0 0 0 3px var(--qr-primary-100), 0 1px 2px rgba(0,0,0,.06);
-  border-color:var(--qr-primary);
-}
+.searchInput:focus{ box-shadow:0 0 0 3px var(--btn-blue-100), 0 1px 2px rgba(0,0,0,.06); border-color:var(--btn-blue-1); }
 .searchClear{
   position:absolute; right:6px; top:50%; transform:translateY(-50%);
   border:1px solid var(--qr-border); background:#fff; border-radius:8px; width:28px; height:28px;
   display:grid; place-items:center; cursor:pointer;
 }
 
-/* ===== Alerts ===== */
+/* Alert */
 .alertErr{
   margin:10px 16px 0; padding:10px 12px; border-radius:10px;
   border:1px solid var(--qr-danger-100); background:#fff; display:flex; gap:8px; align-items:center;
   color:#991b1b; box-shadow:var(--qr-shadow);
 }
 .alertIcon{ display:inline-flex; }
-.alertClose{
-  margin-left:auto; background:#fff; border:1px solid var(--qr-border);
-  border-radius:8px; padding:6px; cursor:pointer;
-}
+.alertClose{ margin-left:auto; background:#fff; border:1px solid var(--qr-border); border-radius:8px; padding:6px; cursor:pointer; }
 
-/* ===== Tabela ===== */
+/* Tabela */
 .tableWrap{ overflow:auto; }
 .table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; }
 .table th, .table td{ text-align:center; vertical-align:middle; }
 .table thead th{
   padding:14px 18px;
-  background:
-    linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
-  border-bottom:1px solid var(--qr-border); color:#64748b;
-  text-transform:uppercase; letter-spacing:.08em; font-size:12px;
+  background: linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%), linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
+  border-bottom:1px solid var(--qr-border); color:#64748b; text-transform:uppercase; letter-spacing:.08em; font-size:12px;
   position:sticky; top:0; z-index:1;
 }
 .table tbody td{ padding:16px 18px; border-bottom:1px solid var(--qr-border-light); }
 .rowHover{ transition:var(--t-fast); }
 .rowHover:hover{ background:linear-gradient(180deg, #fff 0%, var(--qr-surface) 100%); }
-
 .keyTitle{ font-weight:700; color:var(--qr-text); text-align:center; }
 .keySub{ font-size:12px; color:var(--qr-muted); text-align:center; }
 
-/* ===== Progresso ===== */
-.progress{
-  height:8px; width:100%;
-  background:#f3f4f6; border-radius:999px; overflow:hidden;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.04);
-}
-.progressValue{
-  height:100%; width:0%;
-  background: linear-gradient(90deg, #8B5CF6 0%, #6366f1 100%);
-  border-radius:999px; transition: width .25s ease;
-}
+/* Progresso */
+.progress{ height:8px; width:100%; background:#f3f4f6; border-radius:999px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.04); }
+.progressValue{ height:100%; width:0%; background:linear-gradient(90deg, #8B5CF6 0%, #6366f1 100%); border-radius:999px; transition:width .25s ease; }
 
-/* ===== Chips ===== */
-.statusChip{
-  display:inline-flex; align-items:center; padding:6px 10px; gap:6px;
-  border-radius:999px; font-weight:700; border:1px solid var(--qr-border);
-}
+/* Chips */
+.statusChip{ display:inline-flex; align-items:center; padding:6px 10px; gap:6px; border-radius:999px; font-weight:700; border:1px solid var(--qr-border); }
 .stQueued{    background:#f3f4f6; color:#374151; }
 .stScheduled{ background:#eef2ff; color:#1d4ed8; border-color:#c7d2fe; }
 .stFinished{  background:var(--qr-success-50); color:#065f46; border-color:var(--qr-success-100); }
 .stFailed{    background:#fef2f2; color:#991b1b; border-color:#fecaca; }
 .stDefault{   background:#f3f4f6; color:#374151; }
 
-/* ===== Estados ===== */
+/* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
-/* ===== Responsivo ===== */
+/* Responsivo */
 @media (max-width: 900px){
   .searchInput{ width:min(320px, 64vw); }
 }
 @media (max-width: 700px){
   .cardHead{ flex-direction:column; align-items:stretch; gap:10px; }
-  .subToolbar{ justify-content:stretch; }
   .searchInput{ width:100%; }
-
   .table thead{ display:none; }
   .table, .table tbody, .table tr, .table td{ display:block; width:100%; }
   .table tbody td{ padding:12px 14px; text-align:center; }
