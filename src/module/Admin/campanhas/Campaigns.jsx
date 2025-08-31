@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
-import styles from './Campaigns.module.css';
+import styles from './styles/Campaigns.module.css';
 import { Plus, RefreshCw, X as XIcon } from 'lucide-react';
 
 const STATUS_OPTIONS = [
