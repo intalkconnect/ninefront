@@ -43,6 +43,7 @@ import Templates from "./campanhas/Templates";
 import UsersPage from "./management/Users";
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
+import Campaigns from "./campanhas/Campaigns";
 
 // Temporários (mantidos)
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
@@ -181,7 +182,7 @@ export default function Admin() {
             label: "Templates",
           },
           {
-            to: "campaigns/broadcast",
+            to: "campaigns/campaigns",
             icon: <Send size={16} />,
             label: "Disparo de Mensagens",
           },
@@ -390,6 +391,7 @@ export default function Admin() {
           <Route path="management/history" element={<History />} />
           <Route path="management/clientes" element={<Clientes />} />
           <Route path="campaigns/templates" element={<Templates />} />
+          <Route path="campaigns/campaigns" element={<Campaigns />} />
           <Route path="development/builder" element={<Builder />} />
           <Route path="settings/preferences" element={<Preferences />} />
           <Route path="settings/channels" element={<Channels />} />
