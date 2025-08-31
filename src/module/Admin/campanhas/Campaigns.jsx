@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
-import styles from './styles/Campaigns.module.css';
+import styles from './Campaigns.module.css';
 import { Plus, RefreshCw, X as XIcon } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -24,11 +24,8 @@ function StatusChip({ status }) {
 
 function fmtDateTime(v) {
   if (!v) return '—';
-  try {
-    const d = new Date(v);
-    if (Number.isNaN(d.getTime())) return '—';
-    return d.toLocaleString('pt-BR');
-  } catch { return '—'; }
+  try { const d = new Date(v); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR'); }
+  catch { return '—'; }
 }
 
 export default function Campaigns() {
@@ -39,8 +36,7 @@ export default function Campaigns() {
   const [err, setErr] = useState(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setErr(null);
+    setLoading(true); setErr(null);
     try {
       const qs = new URLSearchParams();
       if (status) qs.set('status', status);
@@ -48,29 +44,21 @@ export default function Campaigns() {
       const data = await apiGet(`/campaigns${qs.toString() ? `?${qs}` : ''}`);
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error(e);
-      setErr('Falha ao carregar campanhas.');
-    } finally {
-      setLoading(false);
-    }
+      console.error(e); setErr('Falha ao carregar campanhas.');
+    } finally { setLoading(false); }
   }, [status, query]);
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => {
-    return [...items]
-      .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')))
-      .reverse();
-  }, [items]);
+  const filtered = useMemo(() =>
+    [...items].sort((a,b) => String(a.updated_at||'').localeCompare(String(b.updated_at||''))).reverse(),
+  [items]);
 
   function progressOf(c) {
-    const total = Number(c.total_items || c.total || 0);
-    const sent = Number(c.sent_count || c.sent || 0);
-    const delivered = Number(c.delivered_count || c.delivered || 0);
-    const read = Number(c.read_count || c.read || 0);
-    const processed = c.processed_count != null
-      ? Number(c.processed_count)
-      : sent + delivered + read;
+    const total = Number(c.total_items ?? c.total ?? 0);
+    const processed = Number(
+      c.processed_count ?? (c.sent_count ?? 0) + (c.delivered_count ?? 0) + (c.read_count ?? 0)
+    );
     if (!total) return 0;
     return Math.max(0, Math.min(100, Math.round((processed / total) * 100)));
   }
@@ -79,8 +67,25 @@ export default function Campaigns() {
 
   return (
     <div className={styles.container}>
+      {/* TOP BAR: botões ficam acima do card */}
+      <div className={styles.topBar}>
+        <div className={styles.headerActions}>
+          <button className={styles.btn} onClick={load} type="button" title="Atualizar lista">
+            <RefreshCw size={16}/> Atualizar
+          </button>
+          <button
+            className={styles.btnPrimary}
+            type="button"
+            onClick={() => { try { window.location.href = '/campaigns/new'; } catch {} }}
+            title="Criar nova campanha"
+          >
+            <Plus size={16}/> Nova campanha
+          </button>
+        </div>
+      </div>
+
       <div className={styles.card}>
-        {/* Linha superior: filtros (esq) + ações (dir) */}
+        {/* HEADER DO CARD: somente options (esq) + busca (dir) */}
         <div className={styles.cardHead}>
           <div className={styles.headLeft}>
             <div className={styles.groupTitle}>Filtrar por status</div>
@@ -102,23 +107,6 @@ export default function Campaigns() {
             </div>
           </div>
 
-          <div className={styles.headerActions}>
-            <button className={styles.btn} onClick={load} type="button" title="Atualizar lista">
-              <RefreshCw size={16}/> Atualizar
-            </button>
-            <button
-              className={styles.btnPrimary}
-              type="button"
-              onClick={() => { try { window.location.href = '/campaigns/new'; } catch {} }}
-              title="Criar nova campanha"
-            >
-              <Plus size={16}/> Nova campanha
-            </button>
-          </div>
-        </div>
-
-        {/* Linha inferior: somente a busca, alinhada à direita (como no print) */}
-        <div className={styles.subToolbar}>
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
@@ -128,13 +116,8 @@ export default function Campaigns() {
               aria-label="Buscar campanhas"
             />
             {query && (
-              <button
-                className={styles.searchClear}
-                onClick={clearSearch}
-                aria-label="Limpar busca"
-                type="button"
-              >
-                <XIcon size={14} />
+              <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca" type="button">
+                <XIcon size={14}/>
               </button>
             )}
           </div>
@@ -145,12 +128,11 @@ export default function Campaigns() {
             <span className={styles.alertIcon}>⚠️</span>
             {err}
             <button className={styles.alertClose} onClick={() => setErr(null)} aria-label="Fechar aviso">
-              <XIcon size={14} />
+              <XIcon size={14}/>
             </button>
           </div>
         )}
 
-        {/* Tabela */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -163,14 +145,8 @@ export default function Campaigns() {
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr><td className={styles.loading} colSpan={5}>Carregando…</td></tr>
-              )}
-
-              {!loading && filtered.length === 0 && (
-                <tr><td className={styles.empty} colSpan={5}>Nenhuma campanha encontrada.</td></tr>
-              )}
-
+              {loading && (<tr><td className={styles.loading} colSpan={5}>Carregando…</td></tr>)}
+              {!loading && filtered.length === 0 && (<tr><td className={styles.empty} colSpan={5}>Nenhuma campanha encontrada.</td></tr>)}
               {!loading && filtered.map((c) => {
                 const pct = progressOf(c);
                 return (
@@ -182,11 +158,9 @@ export default function Campaigns() {
                     <td data-label="Agendada para">{fmtDateTime(c.start_at)}</td>
                     <td data-label="Status"><StatusChip status={c.status} /></td>
                     <td data-label="Progresso">
-                      <div className={styles.progress}>
-                        <div className={styles.progressValue} style={{ width: `${pct}%` }} />
-                      </div>
+                      <div className={styles.progress}><div className={styles.progressValue} style={{ width: `${pct}%` }} /></div>
                       <div className={styles.keySub} style={{ marginTop: 6 }}>
-                        {pct}% • {(c.sent_count ?? c.sent ?? 0)}/{c.total_items ?? c.total ?? 0}
+                        {pct}% • {(c.sent_count ?? 0)}/{c.total_items ?? 0}
                       </div>
                     </td>
                     <td data-label="Atualizado em">{fmtDateTime(c.updated_at)}</td>
