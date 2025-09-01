@@ -163,6 +163,12 @@ export default function ClientsMonitor() {
         </button>
       </div>
 
+                  <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Operação em tempo real: quem espera, quem respondeu e quem precisa de ajuda.</p>
+        </div>
+      </div>
+
       {/* KPIs */}
       <section className={styles.cardGroup}>
         {loading ? (
