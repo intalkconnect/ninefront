@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Plus, X as XIcon } from 'lucide-react';
 import { apiGet } from '../../../shared/apiClient';
 import styles from './styles/Campaigns.module.css';
+import CampaignCreateModal from './CampaignCreateModal';
 
 /** Radios (options) do topo */
 const FILTERS = [
@@ -57,6 +58,7 @@ export default function Campaigns() {
   const [loading, setLoading] = useState(false);
   const [okMsg, setOkMsg]   = useState(null);
   const [error, setError]   = useState(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
@@ -110,8 +112,8 @@ export default function Campaigns() {
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
           <button
-            className={styles.btnPrimary}
-            onClick={() => window?.dispatchEvent?.(new CustomEvent('openCampaignCreate'))}
+            className={styles.btnPrimary} 
+            onClick={() => setCreateOpen(true)}
           >
             <Plus size={16}/> Nova campanha
           </button>
@@ -242,6 +244,11 @@ export default function Campaigns() {
         {error && <div className={styles.alertErr} role="alert">⚠️ {error}</div>}
         {okMsg && <div className={styles.alertOk} role="status">✅ {okMsg}</div>}
       </div>
+      <CampaignCreateModal
+  isOpen={createOpen}
+  onClose={() => setCreateOpen(false)}
+  onCreated={() => { setCreateOpen(false); /* recarrega lista */ load(); }}
+/>
     </div>
   );
 }
