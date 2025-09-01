@@ -115,9 +115,6 @@ export default function Users() {
 
       <div className={styles.toolbar}>
         <div className={styles.headerActions}>
-          <button className={styles.refreshBtn} onClick={load} disabled={refreshing} title="Atualizar">
-            <RefreshCw size={16} className={refreshing ? styles.spinning : ''}/> Atualizar
-          </button>
           <button
             className={styles.btnPrimary}
             onClick={() => { setEditing(null); setOpenModal(true); }}
