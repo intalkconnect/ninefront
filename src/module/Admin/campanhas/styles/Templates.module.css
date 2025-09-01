@@ -32,7 +32,7 @@
 .container{
   height:auto !important;
   min-height:0 !important;
-  overflow-x:hidden; /* evita scroll horizontal acidental na página */
+  overflow-x:hidden;
   padding:24px 24px 32px;
   background:transparent !important;
 }
@@ -73,9 +73,6 @@
   border-radius:8px; padding:6px; cursor:pointer;
 }
 
-/* Ações do header (direita) */
-.headerActions{ display:flex; gap:10px; flex-wrap:wrap; }
-
 /* Botões do header */
 .btn,.btnPrimary,.btnSecondary{
   appearance:none; border:1px solid; border-radius:10px;
@@ -103,7 +100,7 @@
 }
 .card:hover{ box-shadow:var(--qr-shadow-lg); }
 
-/* Header do card: tabs + busca */
+/* Header do card: options + busca */
 .cardHead{
   display:flex; align-items:center; justify-content:space-between;
   gap:14px; padding:16px 18px;
@@ -113,16 +110,31 @@
     linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
 }
 
-/* Tabs */
-.tabs{ display:flex; gap:10px; flex-wrap:wrap; }
-.tab{
-  border:1px solid var(--qr-border); border-radius:999px; padding:8px 12px; background:#fff; cursor:pointer;
-  font-weight:700; color:var(--qr-text-2); transition:var(--t-fast); font-size:14px;
+/* ===== Options (radios) como em Campaigns ===== */
+.optionsRow{ display:flex; gap:10px; flex-wrap:wrap; }
+.opt{
+  display:inline-flex; align-items:center; position:relative;
+  user-select:none; cursor:pointer;
 }
-.tab:hover{ background:var(--qr-surface-2); }
-.tabActive{
+.opt input{
+  position:absolute; opacity:0; pointer-events:none;
+}
+.opt span{
+  border:1px solid var(--qr-border); border-radius:999px;
+  padding:8px 12px; background:#fff; font-weight:700; color:var(--qr-text-2);
+  transition:var(--t-fast); font-size:14px; display:inline-flex; align-items:center; gap:8px;
+}
+.opt span::before{
+  content:''; width:10px; height:10px; border-radius:999px;
+  border:2px solid var(--qr-muted); display:inline-block;
+}
+.opt:hover span{ background:var(--qr-surface-2); }
+.opt input:checked + span{
   background:#f8f9ff; color:var(--qr-primary); border-color:var(--qr-primary);
   box-shadow:0 0 0 3px var(--qr-primary-100) inset;
+}
+.opt input:checked + span::before{
+  border-color:var(--qr-primary); box-shadow:inset 0 0 0 4px var(--qr-primary);
 }
 
 /* Busca */
@@ -215,7 +227,6 @@
 @media (max-width: 700px){
   .cardHead{ flex-direction:column; align-items:stretch; gap:10px; }
   .searchInput{ width:100%; }
-  .tabs{ width:100%; }
 
   .table thead{ display:none; }
   .table, .table tbody, .table tr, .table td{ display:block; width:100%; }
