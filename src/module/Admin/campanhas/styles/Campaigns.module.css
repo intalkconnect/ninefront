@@ -218,7 +218,6 @@
   border:1px solid var(--qr-border); border-radius:10px; background:#fff; color:var(--qr-text);
   padding:10px 12px; font-size:14px; outline:none; transition:var(--t-fast);
 }
-.input:focus, .textarea:focus{ border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
 .textarea{ resize:vertical; }
 
 .inputHelper{ color:var(--qr-muted); font-size:12px; }
@@ -260,7 +259,6 @@
   padding:10px 12px; font-size:14px; outline:none; transition:var(--t-fast);
   appearance:none;
 }
-.select:focus{ border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
 
 /* Reaproveita seus botões padrão (.btn / .btnPrimary / .alertClose etc.) */
 
