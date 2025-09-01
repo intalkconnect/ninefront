@@ -128,6 +128,12 @@ export default function Users() {
         </div>
       </div>
 
+                  <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Gestão de usuários: cadastro, papéis e acessos em um só lugar.</p>
+        </div>
+      </div>
+      
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.searchGroup}>
