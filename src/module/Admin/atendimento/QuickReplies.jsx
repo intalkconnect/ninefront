@@ -142,7 +142,11 @@ const QuickReplies = () => {
         </div>
       </div>
                       </div>
-
+            <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Respostas rápidas: mais agilidade no atendimento.</p>
+        </div>
+      </div>
 
       <div className={styles.card}>
         <div className={styles.cardHead}>
