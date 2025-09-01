@@ -1,27 +1,14 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './styles/Campaigns.module.css';
 import { X as XIcon, Upload, Calendar, Clock, Send } from 'lucide-react';
+import { apiGet } from '../../../shared/apiClient';
 
-/**
- * Modal de criação/envio de campanha
- *
- * Props:
- * - isOpen: boolean
- * - onClose: () => void
- * - onCreated: (payload) => void   // chamado com o JSON retornado pelo POST
- *
- * Observação:
- * - Faz POST multipart em "/campaigns" com:
- *   - file: CSV
- *   - meta: JSON string { name, start_at?, template: { name, language: { code }, components? } }
- */
 export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
   const [name, setName] = useState('');
-  const [templateName, setTemplateName] = useState('');
-  const [languageCode, setLanguageCode] = useState('pt_BR');
-  const [componentsStr, setComponentsStr] = useState(''); // JSON opcional
-  const [mode, setMode] = useState('now'); // 'now' | 'schedule'
-  const [startAt, setStartAt] = useState(''); // datetime-local
+  const [templates, setTemplates] = useState([]);
+  const [tplId, setTplId] = useState('');
+  const [mode, setMode] = useState('now'); // now | schedule
+  const [startAt, setStartAt] = useState('');
   const [file, setFile] = useState(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -29,21 +16,43 @@ export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
 
   const fileInputRef = useRef(null);
 
+  // carrega templates aprovados quando abrir
+  useEffect(() => {
+    if (!isOpen) return;
+    (async () => {
+      try {
+        const data = await apiGet('/templates?status=approved');
+        const list = Array.isArray(data) ? data : [];
+        setTemplates(list);
+        // seleciona o primeiro por padrão (se existir)
+        if (list.length && !tplId) setTplId(String(list[0].id || list[0].name));
+      } catch (e) {
+        console.warn('Falha ao carregar templates aprovados:', e?.message || e);
+        setTemplates([]);
+      }
+    })();
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectedTemplate = useMemo(() => {
+    // tenta achar por id; se backend não devolver id, cai para name
+    return (
+      templates.find(t => String(t.id) === String(tplId)) ||
+      templates.find(t => String(t.name) === String(tplId)) ||
+      null
+    );
+  }, [templates, tplId]);
+
+  const languageCode = selectedTemplate?.language_code || selectedTemplate?.language?.code || '';
+
   const isValid = useMemo(() => {
     if (!name.trim()) return false;
-    if (!templateName.trim()) return false;
-    if (!languageCode.trim()) return false;
+    if (!selectedTemplate) return false;
     if (!file) return false;
     if (mode === 'schedule' && !startAt) return false;
-    // valida JSON (components) se preenchido
-    if (componentsStr.trim()) {
-      try { JSON.parse(componentsStr); } catch { return false; }
-    }
     return true;
-  }, [name, templateName, languageCode, file, mode, startAt, componentsStr]);
+  }, [name, selectedTemplate, file, mode, startAt]);
 
   function toIso(dtLocal) {
-    // dtLocal formato "YYYY-MM-DDTHH:mm"
     if (!dtLocal) return null;
     const d = new Date(dtLocal);
     if (Number.isNaN(d.getTime())) return null;
@@ -61,25 +70,16 @@ export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
         name: name.trim(),
         start_at: mode === 'schedule' ? toIso(startAt) : null,
         template: {
-          name: templateName.trim(),
-          language: { code: languageCode.trim() }
+          name: selectedTemplate.name,
+          language: { code: languageCode }
         }
+        // sem components — virá do CSV
       };
-
-      if (componentsStr.trim()) {
-        try {
-          meta.template.components = JSON.parse(componentsStr);
-        } catch {
-          throw new Error('Components inválido: informe um JSON válido.');
-        }
-      }
 
       const fd = new FormData();
       fd.append('file', file, file.name);
       fd.append('meta', JSON.stringify(meta));
 
-      // Usa o mesmo caminho base do seu apiGet('/campaigns').
-      // Se sua API estiver em /api/v1/campaigns, ajuste essa URL.
       const res = await fetch('/campaigns', {
         method: 'POST',
         body: fd,
@@ -91,11 +91,9 @@ export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
       }
       const payload = await res.json();
 
-      // limpa estado e fecha
+      // reset
       setName('');
-      setTemplateName('');
-      setLanguageCode('pt_BR');
-      setComponentsStr('');
+      setTplId(templates[0]?.id ? String(templates[0].id) : '');
       setMode('now');
       setStartAt('');
       setFile(null);
@@ -103,8 +101,8 @@ export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
 
       onCreated?.(payload);
       onClose?.();
-    } catch (e) {
-      setErr(e?.message || 'Erro ao criar campanha.');
+    } catch (e2) {
+      setErr(e2?.message || 'Erro ao criar campanha.');
     } finally {
       setSubmitting(false);
     }
@@ -138,43 +136,33 @@ export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
                 <div className={styles.inputHelper}>Um rótulo para identificar esta campanha.</div>
               </div>
 
-              {/* Template + idioma */}
+              {/* Template (listbox com aprovados) */}
               <div className={styles.field}>
-                <label className={styles.label} htmlFor="cmp-template">Template (nome)</label>
-                <input
+                <label className={styles.label} htmlFor="cmp-template">Template aprovado</label>
+                <select
                   id="cmp-template"
-                  className={styles.input}
-                  placeholder="Ex.: hello_world"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="cmp-lang">Idioma (language_code)</label>
-                <input
-                  id="cmp-lang"
-                  className={styles.input}
-                  placeholder="Ex.: pt_BR"
-                  value={languageCode}
-                  onChange={(e) => setLanguageCode(e.target.value)}
-                />
-              </div>
-
-              {/* Components (JSON) opcional */}
-              <div className={styles.fieldWide}>
-                <label className={styles.label} htmlFor="cmp-components">Components (JSON) — opcional</label>
-                <textarea
-                  id="cmp-components"
-                  className={styles.textarea}
-                  rows={4}
-                  placeholder='Ex.: [{"type":"body","parameters":[{"type":"text","text":"{nome}"}]}]'
-                  value={componentsStr}
-                  onChange={(e) => setComponentsStr(e.target.value)}
-                />
-                <div className={styles.inputHelper}>
-                  Deixe vazio se o template não exigir variáveis. Use JSON válido.
-                </div>
+                  className={styles.select}
+                  value={tplId}
+                  onChange={(e) => setTplId(e.target.value)}
+                >
+                  {templates.map(t => {
+                    const key = String(t.id ?? t.name);
+                    const lang = t.language_code || t.language?.code || '';
+                    return (
+                      <option key={key} value={key}>
+                        {t.name}{lang ? ` — ${lang}` : ''}
+                      </option>
+                    );
+                  })}
+                  {templates.length === 0 && (
+                    <option value="">Nenhum template aprovado</option>
+                  )}
+                </select>
+                {selectedTemplate && (
+                  <div className={styles.inputHelper}>
+                    Idioma do template: <strong>{languageCode || '—'}</strong>
+                  </div>
+                )}
               </div>
 
               {/* CSV */}
@@ -193,7 +181,7 @@ export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
                   </span>
                 </div>
                 <div className={styles.inputHelper}>
-                  O CSV deve ter a coluna <strong>to</strong> (E.164) e, opcionalmente, colunas com variáveis usadas nos components.
+                  O CSV deve ter a coluna <strong>to</strong> (E.164) e colunas com variáveis usadas no template.
                 </div>
               </div>
 
