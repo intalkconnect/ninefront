@@ -299,7 +299,7 @@ export default function Admin() {
                 >
                   {userData.name?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <span className={styles.userNameTop}>{userData.name?.split(" ")[0] || "Usuário"}</span>
+{/*                 <span className={styles.userNameTop}>{userData.name?.split(" ")[0] || "Usuário"}</span> */}
               </button>
 
               {isProfileOpen && (
