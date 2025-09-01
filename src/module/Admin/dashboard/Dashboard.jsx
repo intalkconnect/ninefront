@@ -673,7 +673,7 @@ export default function Dashboard() {
 
                   <div className={styles.header}>
         <div>
-          <p className={styles.subtitle}>Envie imediatamente ou agende. Acompanhe progresso e resultados.</p>
+          <p className={styles.subtitle}>Seu hub de métricas: performance e qualidade.</p>
         </div>
       </div>
 
@@ -890,6 +890,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
