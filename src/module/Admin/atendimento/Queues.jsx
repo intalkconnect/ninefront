@@ -74,6 +74,12 @@ export default function Queues() {
           </div>
           </div>
           </div>
+
+                    <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Gesttão de fila: Criação e edição.</p>
+        </div>
+      </div>
        
         <div className={styles.card}>
           
