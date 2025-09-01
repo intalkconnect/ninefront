@@ -8,37 +8,55 @@ const FILTERS = [
   { key: 'all',       label: 'Todos' },
   { key: 'active',    label: 'Ativos' },      // queued/scheduled ou remaining > 0
   { key: 'finished',  label: 'Finalizados' },
-  { key: 'failed',    label: 'Falhas' },      // renomeado de “Falhou” -> “Falhas”
+  { key: 'failed',    label: 'Falhas' },
 ];
 
-/** Função pura para calcular processados/total (evita 0/1 indevido) */
+/** Processados/total (conta falhas como processadas para não virar “restante”) */
 function calcProcessed(c) {
   const total = Number(c?.total_items || 0);
   const pc = Number(c?.processed_count);
-  if (Number.isFinite(pc) && pc > 0) return { processed: pc, total };
+  if (Number.isFinite(pc) && pc >= 0) return { processed: pc, total };
 
   const rem = Number(c?.remaining);
   if (Number.isFinite(rem) && total > 0) {
     return { processed: Math.max(0, total - rem), total };
   }
 
-  const sum =
-    (Number(c?.sent_count) || 0) +
-    (Number(c?.delivered_count) || 0) +
-    (Number(c?.read_count) || 0) +
-    (Number(c?.failed_count) || 0);
-
+  const sent = Number(c?.sent_count || 0);
+  const del  = Number(c?.delivered_count || 0);
+  const read = Number(c?.read_count || 0);
+  const fail = Number(c?.failed_count || 0);
+  const sum  = sent + del + read + fail;
   const safeTotal = total || sum;
   return { processed: Math.min(safeTotal, sum), total: safeTotal };
 }
 
+function formatDate(v) {
+  if (!v) return '—';
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR');
+}
+
+/** Label + classe do chip de status */
+function getStatusUi(c) {
+  const st = String(c?.status || '').toLowerCase();
+  const { processed, total } = calcProcessed(c);
+  const remaining = Math.max(0, (total || 0) - processed);
+
+  if (st === 'failed')   return { label: 'Falhou',     cls: styles.stFailed };
+  if (st === 'finished') return { label: 'Concluída',  cls: styles.stFinished };
+  if (st === 'scheduled')return { label: 'Agendada',   cls: styles.stScheduled };
+  if (st === 'queued' || remaining > 0) return { label: 'Em andamento', cls: styles.stActive };
+  return { label: st || '—', cls: styles.stDefault };
+}
+
 export default function Campaigns() {
-  const [items, setItems] = useState([]);
+  const [items, setItems]   = useState([]);
   const [filter, setFilter] = useState('all');
-  const [query, setQuery] = useState('');
+  const [query, setQuery]   = useState('');
   const [loading, setLoading] = useState(false);
-  const [okMsg, setOkMsg] = useState(null);
-  const [error, setError] = useState(null);
+  const [okMsg, setOkMsg]   = useState(null);
+  const [error, setError]   = useState(null);
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
@@ -61,7 +79,7 @@ export default function Campaigns() {
 
   useEffect(() => { load(); }, [load]);
 
-  // filtro client-side
+  // filtro client-side (busca só por NOME)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (items || [])
@@ -70,16 +88,14 @@ export default function Campaigns() {
         if (filter === 'failed')    return String(c.status).toLowerCase() === 'failed' || Number(c.failed_count || 0) > 0;
         if (filter === 'active') {
           const st = String(c.status).toLowerCase();
-          return st === 'queued' || st === 'scheduled' || (Number(c.remaining || 0) > 0);
+          const { processed, total } = calcProcessed(c);
+          return st === 'queued' || st === 'scheduled' || (total > processed);
         }
         return true;
       })
       .filter(c => {
         if (!q) return true;
-        return (
-          String(c.name || '').toLowerCase().includes(q) ||
-          String(c.template_name || '').toLowerCase().includes(q)
-        );
+        return String(c.name || '').toLowerCase().includes(q); // 🔎 só nome
       })
       .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')))
       .reverse();
@@ -95,7 +111,7 @@ export default function Campaigns() {
         </div>
       </div>
 
-      {/* Botões acima do card */}
+      {/* Botões acima do card (à direita) */}
       <div className={styles.toolbar}>
         <div className={styles.leftGroup} />
         <div className={styles.headerActions}>
@@ -111,11 +127,11 @@ export default function Campaigns() {
 
       {/* Card da lista */}
       <div className={styles.card}>
-        {/* Header do card: options (radios) + busca */}
+        {/* Header do card: radios + busca */}
         <div className={styles.cardHead}>
           <div className={styles.optionsRow} role="radiogroup" aria-label="Filtro de status">
             {FILTERS.map(f => (
-              <label key={f.key} className={styles.opt} role="radio" aria-checked={filter === f.key}>
+              <label key={f.key} className={styles.opt}>
                 <input
                   type="radio"
                   name="filter"
@@ -123,7 +139,7 @@ export default function Campaigns() {
                   checked={filter === f.key}
                   onChange={() => setFilter(f.key)}
                 />
-                {f.label}
+                <span>{f.label}</span>
               </label>
             ))}
           </div>
@@ -131,10 +147,10 @@ export default function Campaigns() {
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
-              placeholder="Buscar por nome ou modelo…"
+              placeholder="Buscar por nome…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              aria-label="Buscar campanhas"
+              aria-label="Buscar campanhas por nome"
             />
             {query && (
               <button className={styles.searchClear} onClick={() => setQuery('')} aria-label="Limpar busca" type="button">
@@ -149,35 +165,40 @@ export default function Campaigns() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th style={{minWidth:240}}>Campanha</th>
+                <th style={{minWidth:260}}>Campanha</th>
+                <th>Status</th>
                 <th>Carregados</th>
                 <th>Lidos</th>
                 <th>Entregues</th>
                 <th>Falhas</th>
                 <th>Restantes</th>
+                <th>Execução</th>
                 <th>Progresso</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={7} className={styles.loading}>Carregando…</td></tr>
+                <tr><td colSpan={9} className={styles.loading}>Carregando…</td></tr>
               )}
 
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={7} className={styles.empty}>Nenhuma campanha encontrada.</td></tr>
+                <tr><td colSpan={9} className={styles.empty}>Nenhuma campanha encontrada.</td></tr>
               )}
 
               {!loading && filtered.map(c => {
                 const { processed, total } = calcProcessed(c);
                 const pct = total ? Math.round((processed / total) * 100) : 0;
+                const stUi = getStatusUi(c);
+                const execAt = c.exec_at || c.started_at || c.start_at || c.updated_at; // ← “data de execução”
 
                 return (
                   <tr key={c.id} className={styles.rowHover}>
                     <td data-label="Campanha">
                       <div className={styles.keyTitle}>{c.name || '—'}</div>
-                      <div className={styles.keySub}>
-                        modelo: {c.template_name || '—'} • {new Date(c.updated_at).toLocaleString('pt-BR')}
-                      </div>
+                    </td>
+
+                    <td data-label="Status">
+                      <span className={`${styles.statusBadge} ${stUi.cls}`}>{stUi.label}</span>
                     </td>
 
                     <td data-label="Carregados">{c.total_items ?? 0}</td>
@@ -195,7 +216,11 @@ export default function Campaigns() {
                     </td>
 
                     <td data-label="Restantes">
-                      {c.remaining ?? Math.max(0, (c.total_items||0) - processed)}
+                      {Math.max(0, (c.total_items || 0) - (processed || 0))}
+                    </td>
+
+                    <td data-label="Execução" className={styles.execCell}>
+                      {formatDate(execAt)}
                     </td>
 
                     <td data-label="Progresso">
