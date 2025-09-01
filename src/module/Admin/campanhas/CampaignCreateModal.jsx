@@ -166,24 +166,33 @@ export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
               </div>
 
               {/* CSV */}
-              <div className={styles.fieldWide}>
-                <label className={styles.label}>Arquivo CSV</label>
-                <div className={styles.fileRow}>
-                  <input
-                    ref={fileInputRef}
-                    className={styles.fileInput}
-                    type="file"
-                    accept=".csv,text/csv"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                  <span className={styles.fileBadge}>
-                    <Upload size={16} /> {file?.name || 'Selecione um arquivo…'}
-                  </span>
-                </div>
-                <div className={styles.inputHelper}>
-                  O CSV deve ter a coluna <strong>to</strong> (E.164) e colunas com variáveis usadas no template.
-                </div>
-              </div>
+              {/* CSV */}
+<div className={styles.fieldWide}>
+  <label className={styles.label} htmlFor="csvFile">Arquivo CSV</label>
+
+  <div className={styles.fileRow}>
+    {/* input escondido, mas acessível */}
+    <input
+      id="csvFile"
+      ref={fileInputRef}
+      className={styles.fileInputHidden}
+      type="file"
+      accept=".csv,text/csv"
+      onChange={(e) => setFile(e.target.files?.[0] || null)}
+    />
+
+    {/* botão estilizado que abre o seletor de arquivos */}
+    <label htmlFor="csvFile" className={styles.fileBtn}>
+      <Upload size={16} />
+      {file?.name ? file.name : 'Selecione um arquivo…'}
+    </label>
+  </div>
+
+  <div className={styles.inputHelper}>
+    O CSV deve ter a coluna <strong>to</strong> (E.164) e colunas com variáveis usadas no template.
+  </div>
+</div>
+
 
               {/* Modo: imediata x agendada */}
               <div className={styles.fieldWide}>
