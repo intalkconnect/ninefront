@@ -82,7 +82,11 @@ export default function TicketsHistory() {
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
         </div>
       </div>
-
+            <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Revise interações e responsáveis: filtre por período, ticket ou usuário.</p>
+        </div>
+      </div>
 
       <div className={styles.card}>
 
