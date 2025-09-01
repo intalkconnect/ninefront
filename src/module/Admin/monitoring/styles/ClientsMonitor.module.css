@@ -17,8 +17,19 @@
 .crumbError{color:#dc2626;font-size:12px;font-weight:700}
 
 /* Header + Refresh */
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.headerInfo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:18px; position:relative;
+}
+.header::after{
+  content:'';
+  position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+
+.subtitle{
+  margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400;
+}
 .kpill,.kpillBlue,.kpillAmber{
   font-size:11px;font-weight:700;border-radius:999px;padding:6px 10px;border:1px solid;
 }
