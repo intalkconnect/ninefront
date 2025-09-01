@@ -160,7 +160,6 @@ const Preferences = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Preferências</h1>
           <p className={styles.subtitle}>
             As mudanças são salvas automaticamente e afetam todo o workspace.
           </p>
