@@ -257,6 +257,14 @@
   border-radius:999px; padding:6px 10px; font-size:12px; font-weight:700;
 }
 
+/* Select com a mesma base dos inputs */
+.select{
+  border:1px solid var(--qr-border); border-radius:10px; background:#fff; color:var(--qr-text);
+  padding:10px 12px; font-size:14px; outline:none; transition:var(--t-fast);
+  appearance:none;
+}
+.select:focus{ border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
+
 /* Reaproveita seus botões padrão (.btn / .btnPrimary / .alertClose etc.) */
 
 /* Responsivo */
