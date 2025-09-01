@@ -163,7 +163,7 @@ export default function ClientsMonitor() {
         </button>
       </div>
 
-                  <div className={styles.header}>
+                  <div className={styles.subHeader}>
         <div>
           <p className={styles.subtitle}>Operação em tempo real: quem espera, quem respondeu e quem precisa de ajuda.</p>
         </div>
