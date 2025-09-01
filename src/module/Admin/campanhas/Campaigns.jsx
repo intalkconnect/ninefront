@@ -104,13 +104,6 @@ export default function Campaigns() {
   return (
     <div className={styles.container}>
       {/* Cabeçalho superior */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Campanhas</h1>
-          <p className={styles.subtitle}>Envie imediatamente ou agende. Acompanhe progresso e resultados.</p>
-        </div>
-      </div>
-
       {/* Botões acima do card (à direita) */}
       <div className={styles.toolbar}>
         <div className={styles.leftGroup} />
@@ -122,6 +115,12 @@ export default function Campaigns() {
           >
             <Plus size={16}/> Nova campanha
           </button>
+        </div>
+      </div>
+
+            <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Envie imediatamente ou agende. Acompanhe progresso e resultados.</p>
         </div>
       </div>
 
