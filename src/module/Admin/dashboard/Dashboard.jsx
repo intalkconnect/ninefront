@@ -671,6 +671,12 @@ export default function Dashboard() {
         </div>
       </div>
 
+                  <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Envie imediatamente ou agende. Acompanhe progresso e resultados.</p>
+        </div>
+      </div>
+
       {/* KPIs */}
       {firstLoad && loading ? (
         <div className={styles.statRow}><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>
@@ -884,6 +890,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
