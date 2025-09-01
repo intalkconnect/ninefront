@@ -33,14 +33,19 @@
 /* ===== Header da página ===== */
 .header{
   display:flex; align-items:flex-start; justify-content:space-between;
-  gap:24px; margin-bottom:32px; position:relative;
+  gap:24px; margin-bottom:18px; position:relative;
 }
 .header::after{
-  content:''; position:absolute; left:0; right:0; bottom:-12px; height:2px;
-  background:linear-gradient(90deg,var(--qr-primary) 0%, var(--qr-primary-100) 55%, transparent 100%);
+  content:'';
+  position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
 }
+
+.subtitle{
+  margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400;
+}
+
 .title{ display:flex; gap:10px; align-items:center; margin:0; font-size:34px; font-weight:900; color:var(--qr-text); }
-.subtitle{ margin:6px 0 0; color:var(--qr-text-secondary); font-size:15px; }
 .titleIcon{ display:inline-flex; }
 
 /* Alerts */
