@@ -294,6 +294,12 @@ export default function Templates() {
       </div>
                </div>
 
+                  <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Crie seus templates e envie para aprovação da meta.</p>
+        </div>
+      </div>
+
       {/* Card da lista — tabs + busca */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
