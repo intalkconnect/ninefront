@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Plus, X as XIcon } from 'lucide-react';
 import { apiGet } from '../../../shared/apiClient';
 import styles from './styles/Campaigns.module.css';
@@ -24,22 +24,25 @@ function StatusChip({ status }) {
   return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
 }
 
-/** Cálculo robusto do processamento (evita 0/1 quando já há lidos/entregues) */
-function useProcessed(c) {
-  return useMemo(() => {
-    const total = Number(c?.total_items || 0);
-    const pc = Number(c?.processed_count);
-    if (Number.isFinite(pc) && pc > 0) return { processed: pc, total };
-    // fallback por remaining
-    const rem = Number(c?.remaining);
-    if (Number.isFinite(rem) && total > 0) {
-      return { processed: Math.max(0, total - rem), total };
-    }
-    // fallback por soma de contadores
-    const sum = (Number(c?.sent_count)||0) + (Number(c?.delivered_count)||0) + (Number(c?.read_count)||0) + (Number(c?.failed_count)||0);
-    const safeTotal = total || sum;
-    return { processed: Math.min(safeTotal, sum), total: safeTotal };
-  }, [c]);
+/** Função pura (sem hooks) para calcular processados/total */
+function calcProcessed(c) {
+  const total = Number(c?.total_items || 0);
+  const pc = Number(c?.processed_count);
+  if (Number.isFinite(pc) && pc > 0) return { processed: pc, total };
+
+  const rem = Number(c?.remaining);
+  if (Number.isFinite(rem) && total > 0) {
+    return { processed: Math.max(0, total - rem), total };
+  }
+
+  const sum =
+    (Number(c?.sent_count) || 0) +
+    (Number(c?.delivered_count) || 0) +
+    (Number(c?.read_count) || 0) +
+    (Number(c?.failed_count) || 0);
+
+  const safeTotal = total || sum;
+  return { processed: Math.min(safeTotal, sum), total: safeTotal };
 }
 
 export default function Campaigns() {
@@ -57,7 +60,6 @@ export default function Campaigns() {
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      // GET agregado (o seu endpoint que retorna total_items, counts, etc.)
       const data = await apiGet('/campaigns');
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -107,7 +109,7 @@ export default function Campaigns() {
       {/* Barra com botões acima do card */}
       <div className={styles.toolbar}>
         <div className={styles.leftGroup}>
-          {/* Aqui você pode manter um seletor de modelo, se desejar */}
+          {/* espaço para seletor de modelo, se quiser */}
         </div>
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
@@ -177,7 +179,7 @@ export default function Campaigns() {
               )}
 
               {!loading && filtered.map(c => {
-                const { processed, total } = useProcessed(c);
+                const { processed, total } = calcProcessed(c);
                 const pct = total ? Math.round((processed / total) * 100) : 0;
 
                 return (
@@ -207,7 +209,9 @@ export default function Campaigns() {
                       <span className={`${styles.pill} ${styles.pillErr}`}>{c.failed_count ?? 0}</span>
                     </td>
 
-                    <td data-label="Restantes">{c.remaining ?? Math.max(0, (c.total_items||0) - processed)}</td>
+                    <td data-label="Restantes">
+                      {c.remaining ?? Math.max(0, (c.total_items||0) - processed)}
+                    </td>
 
                     <td data-label="Progresso">
                       <div className={styles.progressWrap}>
@@ -226,17 +230,8 @@ export default function Campaigns() {
           </table>
         </div>
 
-        {/* feedbacks */}
-        {error && (
-          <div className={styles.alertErr} role="alert">
-            <span>⚠️ {error}</span>
-          </div>
-        )}
-        {okMsg && (
-          <div className={styles.alertOk} role="status">
-            <span>✅ {okMsg}</span>
-          </div>
-        )}
+        {error && <div className={styles.alertErr} role="alert">⚠️ {error}</div>}
+        {okMsg && <div className={styles.alertOk} role="status">✅ {okMsg}</div>}
       </div>
     </div>
   );
