@@ -96,6 +96,12 @@ export default function Clientes() {
         </div>
       </div>
 
+                  <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Gestão de clientes: veja cadastro, segmento e última atividade.</p>
+        </div>
+      </div>
+
       {/* Card */}
       <div className={styles.card}>
         {/* filtros + busca (interno) */}
