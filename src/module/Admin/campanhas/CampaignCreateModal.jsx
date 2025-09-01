@@ -1,257 +1,251 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import styles from './styles/Campaigns.module.css';
-import { X as XIcon, Upload, Calendar, Clock, Send } from 'lucide-react';
-import { apiGet } from '../../../shared/apiClient';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X as XIcon, Upload, Calendar, Loader2 } from 'lucide-react';
+import { apiGet, apiPost } from '../../../shared/apiClient';
+import styles from './styles/CampaignCreateModal.module.css';
 
-export default function CampaignCreateModal({ isOpen, onClose, onCreated }) {
-  const [name, setName] = useState('');
+export default function CampaignCreateModal({
+  isOpen,
+  onClose,
+  onCreated, // callback para recarregar a lista
+}) {
+  const [loading, setLoading] = useState(false);
   const [templates, setTemplates] = useState([]);
-  const [tplId, setTplId] = useState('');
-  const [mode, setMode] = useState('now'); // now | schedule
-  const [startAt, setStartAt] = useState('');
-  const [file, setFile] = useState(null);
+  const [form, setForm] = useState({
+    name: '',
+    mode: 'immediate',        // 'immediate' | 'scheduled'
+    start_at: '',             // datetime-local (ISO parcial)
+    template_id: '',          // id selecionado
+    file: null,
+  });
+  const [error, setError] = useState(null);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState(null);
-
-  const fileInputRef = useRef(null);
-
-  // carrega templates aprovados quando abrir
+  // carrega templates aprovados
   useEffect(() => {
     if (!isOpen) return;
     (async () => {
       try {
+        setError(null);
         const data = await apiGet('/templates?status=approved');
-        const list = Array.isArray(data) ? data : [];
-        setTemplates(list);
-        // seleciona o primeiro por padrão (se existir)
-        if (list.length && !tplId) setTplId(String(list[0].id || list[0].name));
+        setTemplates(Array.isArray(data) ? data : []);
       } catch (e) {
-        console.warn('Falha ao carregar templates aprovados:', e?.message || e);
-        setTemplates([]);
+        setError('Falha ao carregar templates aprovados.');
       }
     })();
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
-  const selectedTemplate = useMemo(() => {
-    // tenta achar por id; se backend não devolver id, cai para name
-    return (
-      templates.find(t => String(t.id) === String(tplId)) ||
-      templates.find(t => String(t.name) === String(tplId)) ||
-      null
-    );
-  }, [templates, tplId]);
+  // template selecionado
+  const selectedTemplate = useMemo(
+    () => templates.find(t => String(t.id) === String(form.template_id)) || null,
+    [templates, form.template_id]
+  );
 
-  const languageCode = selectedTemplate?.language_code || selectedTemplate?.language?.code || '';
+  function setField(key, val) {
+    setForm(prev => ({ ...prev, [key]: val }));
+  }
 
-  const isValid = useMemo(() => {
-    if (!name.trim()) return false;
-    if (!selectedTemplate) return false;
-    if (!file) return false;
-    if (mode === 'schedule' && !startAt) return false;
-    return true;
-  }, [name, selectedTemplate, file, mode, startAt]);
-
-  function toIso(dtLocal) {
-    if (!dtLocal) return null;
-    const d = new Date(dtLocal);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toISOString();
+  function handlePickFile(e) {
+    const f = e.target.files?.[0] || null;
+    setField('file', f);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!isValid || submitting) return;
+    if (loading) return;
 
-    setSubmitting(true);
-    setErr(null);
+    // validações mínimas
+    if (!form.name.trim()) return setError('Informe o nome da campanha.');
+    if (!selectedTemplate) return setError('Selecione um template aprovado.');
+    if (!form.file) return setError('Selecione o arquivo CSV.');
+
+    if (form.mode === 'scheduled' && !form.start_at) {
+      return setError('Defina a data/horário para agendamento.');
+    }
+
     try {
+      setLoading(true);
+      setError(null);
+
+      // monta meta conforme a rota /campaigns (apenas meta + file)
       const meta = {
-        name: name.trim(),
-        start_at: mode === 'schedule' ? toIso(startAt) : null,
+        name: form.name.trim(),
+        start_at: form.mode === 'scheduled' ? new Date(form.start_at).toISOString() : null,
         template: {
           name: selectedTemplate.name,
-          language: { code: languageCode }
-        }
-        // sem components — virá do CSV
+          language: { code: selectedTemplate.language_code },
+          // sem components — variáveis virão do CSV
+        },
       };
 
       const fd = new FormData();
-      fd.append('file', file, file.name);
+      fd.append('file', form.file);
       fd.append('meta', JSON.stringify(meta));
 
-      const res = await fetch('/campaigns', {
-        method: 'POST',
-        body: fd,
-        credentials: 'include'
+      const res = await apiPost('/campaigns', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(txt || `Falha ao criar campanha (HTTP ${res.status})`);
+
+      if (res?.ok) {
+        // limpa e fecha
+        setForm({ name: '', mode: 'immediate', start_at: '', template_id: '', file: null });
+        onCreated?.(res);
+        onClose?.();
+      } else {
+        setError(res?.error || 'Não foi possível criar a campanha.');
       }
-      const payload = await res.json();
-
-      // reset
-      setName('');
-      setTplId(templates[0]?.id ? String(templates[0].id) : '');
-      setMode('now');
-      setStartAt('');
-      setFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-
-      onCreated?.(payload);
-      onClose?.();
-    } catch (e2) {
-      setErr(e2?.message || 'Erro ao criar campanha.');
+    } catch (e) {
+      setError('Erro ao criar campanha.');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   }
 
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Nova campanha</h2>
-          <button className={styles.alertClose} onClick={onClose} aria-label="Fechar">
-            <XIcon size={16}/>
+    <div className={styles.cmpModalOverlay} onClick={onClose}>
+      <div
+        className={styles.cmpModal}
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.cmpModalHeader}>
+          <h2 className={styles.cmpModalTitle}>Nova campanha</h2>
+
+          {/* botão fechar */}
+          <button
+            type="button"
+            className={`${styles.iconBtn} ${styles.closeBtn}`}
+            onClick={onClose}
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            <XIcon size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className={styles.modalBody}>
-            <div className={styles.formGrid}>
-              {/* Nome */}
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="cmp-name">Nome da campanha</label>
-                <input
-                  id="cmp-name"
-                  className={styles.input}
-                  placeholder="Ex.: Black Friday 2025 - Lote 1"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-                <div className={styles.inputHelper}>Um rótulo para identificar esta campanha.</div>
-              </div>
+        <form className={styles.cmpModalBody} onSubmit={handleSubmit}>
+          {error && <div className={styles.alertErr}>⚠️ {error}</div>}
 
-              {/* Template (listbox com aprovados) */}
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="cmp-template">Template aprovado</label>
-                <select
-                  id="cmp-template"
-                  className={styles.select}
-                  value={tplId}
-                  onChange={(e) => setTplId(e.target.value)}
-                >
-                  {templates.map(t => {
-                    const key = String(t.id ?? t.name);
-                    const lang = t.language_code || t.language?.code || '';
-                    return (
-                      <option key={key} value={key}>
-                        {t.name}{lang ? ` — ${lang}` : ''}
-                      </option>
-                    );
-                  })}
-                  {templates.length === 0 && (
-                    <option value="">Nenhum template aprovado</option>
-                  )}
-                </select>
-                {selectedTemplate && (
-                  <div className={styles.inputHelper}>
-                    Idioma do template: <strong>{languageCode || '—'}</strong>
-                  </div>
-                )}
-              </div>
-
-              {/* CSV */}
-              {/* CSV */}
-<div className={styles.fieldWide}>
-  <label className={styles.label} htmlFor="csvFile">Arquivo CSV</label>
-
-  <div className={styles.fileRow}>
-    {/* input escondido, mas acessível */}
-    <input
-      id="csvFile"
-      ref={fileInputRef}
-      className={styles.fileInputHidden}
-      type="file"
-      accept=".csv,text/csv"
-      onChange={(e) => setFile(e.target.files?.[0] || null)}
-    />
-
-    {/* botão estilizado que abre o seletor de arquivos */}
-    <label htmlFor="csvFile" className={styles.fileBtn}>
-      <Upload size={16} />
-      {file?.name ? file.name : 'Selecione um arquivo…'}
-    </label>
-  </div>
-
-  <div className={styles.inputHelper}>
-    O CSV deve ter a coluna <strong>to</strong> (E.164) e colunas com variáveis usadas no template.
-  </div>
-</div>
-
-
-              {/* Modo: imediata x agendada */}
-              <div className={styles.fieldWide}>
-                <div className={styles.label}>Disparo</div>
-                <div className={styles.radioRow} role="radiogroup" aria-label="Modo de envio">
-                  <label className={styles.opt}>
-                    <input
-                      type="radio"
-                      name="cmp-mode"
-                      value="now"
-                      checked={mode === 'now'}
-                      onChange={() => setMode('now')}
-                    />
-                    <span><Send size={14}/> Imediata</span>
-                  </label>
-                  <label className={styles.opt}>
-                    <input
-                      type="radio"
-                      name="cmp-mode"
-                      value="schedule"
-                      checked={mode === 'schedule'}
-                      onChange={() => setMode('schedule')}
-                    />
-                    <span><Calendar size={14}/> Agendada</span>
-                  </label>
-                </div>
-
-                {mode === 'schedule' && (
-                  <div className={styles.inlineRow}>
-                    <div className={styles.field}>
-                      <label className={styles.label} htmlFor="cmp-start">Data e hora</label>
-                      <div className={styles.inputIconWrap}>
-                        <input
-                          id="cmp-start"
-                          className={styles.input}
-                          type="datetime-local"
-                          value={startAt}
-                          onChange={(e) => setStartAt(e.target.value)}
-                        />
-                        <Clock className={styles.inputIcon} size={16}/>
-                      </div>
-                      <div className={styles.inputHelper}>
-                        O scheduler disparará no horário definido (UTC do servidor).
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {err && <div className={styles.alertErr} role="alert">⚠️ {err}</div>}
+          {/* Nome */}
+          <div className={styles.cmpField}>
+            <label className={styles.cmpLabel}>Nome da campanha</label>
+            <input
+              className={styles.input}
+              placeholder="Ex.: Black Friday Leads"
+              value={form.name}
+              onChange={(e) => setField('name', e.target.value)}
+            />
           </div>
 
-          <div className={styles.modalActions}>
-            <button type="button" className={styles.btn} onClick={onClose}>
-              <XIcon size={14}/> Cancelar
+          {/* Modo de envio (optionsRow / opt) */}
+          <div className={styles.cmpField}>
+            <div className={styles.cmpLabel}>Modo de envio</div>
+            <div className={styles.optionsRow} role="radiogroup" aria-label="Modo de envio">
+              <label className={styles.opt}>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="immediate"
+                  checked={form.mode === 'immediate'}
+                  onChange={() => setField('mode', 'immediate')}
+                />
+                <span>Imediata</span>
+              </label>
+              <label className={styles.opt}>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="scheduled"
+                  checked={form.mode === 'scheduled'}
+                  onChange={() => setField('mode', 'scheduled')}
+                />
+                <span>Agendada</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Data/hora (se agendada) */}
+          {form.mode === 'scheduled' && (
+            <div className={styles.cmpField}>
+              <label className={styles.cmpLabel}>Agendar para</label>
+              <div className={styles.inputIconRow}>
+                <input
+                  type="datetime-local"
+                  className={styles.input}
+                  value={form.start_at}
+                  onChange={(e) => setField('start_at', e.target.value)}
+                />
+                <Calendar size={16} />
+              </div>
+              <div className={styles.cmpHint}>
+                O horário é convertido para ISO e enviado ao backend.
+              </div>
+            </div>
+          )}
+
+          {/* Template aprovado */}
+          <div className={styles.cmpField}>
+            <label className={styles.cmpLabel}>Template aprovado</label>
+            <select
+              className={styles.select}
+              value={form.template_id}
+              onChange={(e) => setField('template_id', e.target.value)}
+            >
+              <option value="">Selecione um template…</option>
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name} • {t.language_code}
+                </option>
+              ))}
+            </select>
+            {selectedTemplate && (
+              <div className={styles.cmpHint}>
+                Idioma usado: <b>{selectedTemplate.language_code}</b>.
+                Variáveis serão carregadas do CSV.
+              </div>
+            )}
+          </div>
+
+          {/* CSV */}
+          <div className={styles.cmpField}>
+            <label className={styles.cmpLabel}>Arquivo CSV</label>
+            <div className={styles.fileRow}>
+              <input
+                id="csvInput"
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handlePickFile}
+                className={styles.fileNative}
+              />
+              <label htmlFor="csvInput" className={styles.fileButton}>
+                <Upload size={16} /> {form.file ? 'Trocar arquivo…' : 'Selecionar arquivo…'}
+              </label>
+              <span className={styles.fileName}>
+                {form.file ? form.file.name : 'Nenhum arquivo selecionado'}
+              </span>
+            </div>
+            <div className={styles.cmpHint}>
+              O CSV deve conter a coluna <b>to</b> (E.164) e colunas com variáveis usadas no template.
+            </div>
+          </div>
+
+          {/* Ações */}
+          <div className={styles.cmpModalActions}>
+            <button
+              type="button"
+              className={styles.btn}
+              onClick={onClose}
+            >
+              Cancelar
             </button>
-            <button type="submit" className={styles.btnPrimary} disabled={!isValid || submitting}>
-              {submitting ? 'Enviando…' : 'Criar campanha'}
+            <button
+              type="submit"
+              className={styles.btnPrimary}
+              disabled={loading}
+            >
+              {loading ? <Loader2 className={styles.spin} size={16}/> : null}
+              Criar campanha
             </button>
           </div>
         </form>
