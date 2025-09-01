@@ -199,7 +199,6 @@ export default function Channels() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Canais</h1>
           <p className={styles.subtitle}>Conecte seus canais de atendimento.</p>
           {wa.errMsg && <div className={styles.alertErr}>{wa.errMsg}</div>}
           {wa.okMsg && <div className={styles.alertOk}>{wa.okMsg}</div>}
