@@ -6,25 +6,12 @@ import styles from './styles/Campaigns.module.css';
 /** Radios (options) do topo */
 const FILTERS = [
   { key: 'all',       label: 'Todos' },
-  { key: 'active',    label: 'Ativos' },     // queued/scheduled ou remaining > 0
+  { key: 'active',    label: 'Ativos' },      // queued/scheduled ou remaining > 0
   { key: 'finished',  label: 'Finalizados' },
-  { key: 'failed',    label: 'Falhou' },
+  { key: 'failed',    label: 'Falhas' },      // renomeado de “Falhou” -> “Falhas”
 ];
 
-function StatusChip({ status }) {
-  const s = String(status || '').toLowerCase();
-  const map = {
-    queued:     { txt: 'Imediata',  cls: styles.stQueued },
-    scheduled:  { txt: 'Agendada',  cls: styles.stScheduled },
-    processing: { txt: 'Processando', cls: styles.stProcessing },
-    finished:   { txt: 'Concluída', cls: styles.stFinished },
-    failed:     { txt: 'Falhou',    cls: styles.stFailed },
-  };
-  const it = map[s] || { txt: status || '—', cls: styles.stQueued };
-  return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
-}
-
-/** Função pura (sem hooks) para calcular processados/total */
+/** Função pura para calcular processados/total (evita 0/1 indevido) */
 function calcProcessed(c) {
   const total = Number(c?.total_items || 0);
   const pc = Number(c?.processed_count);
@@ -54,11 +41,13 @@ export default function Campaigns() {
   const [error, setError] = useState(null);
 
   const toastOK = useCallback((msg) => {
-    setOkMsg(msg); setTimeout(() => setOkMsg(null), 2200);
+    setOkMsg(msg);
+    setTimeout(() => setOkMsg(null), 2200);
   }, []);
 
   const load = useCallback(async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
       const data = await apiGet('/campaigns');
       setItems(Array.isArray(data) ? data : []);
@@ -72,13 +61,13 @@ export default function Campaigns() {
 
   useEffect(() => { load(); }, [load]);
 
-  // filtro client-side simples
+  // filtro client-side
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (items || [])
       .filter(c => {
         if (filter === 'finished')  return String(c.status).toLowerCase() === 'finished';
-        if (filter === 'failed')    return String(c.status).toLowerCase() === 'failed';
+        if (filter === 'failed')    return String(c.status).toLowerCase() === 'failed' || Number(c.failed_count || 0) > 0;
         if (filter === 'active') {
           const st = String(c.status).toLowerCase();
           return st === 'queued' || st === 'scheduled' || (Number(c.remaining || 0) > 0);
@@ -98,7 +87,7 @@ export default function Campaigns() {
 
   return (
     <div className={styles.container}>
-      {/* Cabeçalho */}
+      {/* Cabeçalho superior */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Campanhas</h1>
@@ -106,14 +95,15 @@ export default function Campaigns() {
         </div>
       </div>
 
-      {/* Barra com botões acima do card */}
+      {/* Botões acima do card */}
       <div className={styles.toolbar}>
-        <div className={styles.leftGroup}>
-          {/* espaço para seletor de modelo, se quiser */}
-        </div>
+        <div className={styles.leftGroup} />
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
-          <button className={styles.btnPrimary} onClick={() => window?.dispatchEvent?.(new CustomEvent('openCampaignCreate'))}>
+          <button
+            className={styles.btnPrimary}
+            onClick={() => window?.dispatchEvent?.(new CustomEvent('openCampaignCreate'))}
+          >
             <Plus size={16}/> Nova campanha
           </button>
         </div>
@@ -121,7 +111,7 @@ export default function Campaigns() {
 
       {/* Card da lista */}
       <div className={styles.card}>
-        {/* Header do card: options + busca */}
+        {/* Header do card: options (radios) + busca */}
         <div className={styles.cardHead}>
           <div className={styles.optionsRow} role="radiogroup" aria-label="Filtro de status">
             {FILTERS.map(f => (
@@ -161,7 +151,6 @@ export default function Campaigns() {
               <tr>
                 <th style={{minWidth:240}}>Campanha</th>
                 <th>Carregados</th>
-                <th>Status</th>
                 <th>Lidos</th>
                 <th>Entregues</th>
                 <th>Falhas</th>
@@ -171,11 +160,11 @@ export default function Campaigns() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={8} className={styles.loading}>Carregando…</td></tr>
+                <tr><td colSpan={7} className={styles.loading}>Carregando…</td></tr>
               )}
 
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={8} className={styles.empty}>Nenhuma campanha encontrada.</td></tr>
+                <tr><td colSpan={7} className={styles.empty}>Nenhuma campanha encontrada.</td></tr>
               )}
 
               {!loading && filtered.map(c => {
@@ -192,10 +181,6 @@ export default function Campaigns() {
                     </td>
 
                     <td data-label="Carregados">{c.total_items ?? 0}</td>
-
-                    <td data-label="Status">
-                      <StatusChip status={c.status} />
-                    </td>
 
                     <td data-label="Lidos">
                       <span className={`${styles.pill} ${styles.pillOk}`}>{c.read_count ?? 0}</span>
