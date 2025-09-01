@@ -48,24 +48,18 @@ html, body {
 /* ===========================
    Header – mesmo padrão do Queue/Preferences
    =========================== */
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 32px;
-  position: relative;
+.header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:18px; position:relative;
 }
 .header::after{
   content:'';
-  position:absolute;
-  left:0; right:0; bottom:-16px; height:2px;
-  background: linear-gradient(
-    90deg,
-    var(--qr-primary, #4b5563) 0%,
-    var(--qr-primary-100, #e5e7eb) 60%,
-    transparent 100%
-  );
+  position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+
+.subtitle{
+  margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400;
 }
 
 .title{
@@ -76,7 +70,6 @@ html, body {
   color:#0f172a;
   display:flex; align-items:center; gap:10px;
 }
-.subtitle{ color:#6b7280; margin-top:8px; }
 
 .tenantBadge{
   color:#374151; font-size:13px;
