@@ -173,7 +173,7 @@ export default function Quality() {
       ]);
 
       // Feedback individual — tenta múltiplos caminhos comuns
-      const f1 = await safeGet(`/analytics/quality/responses?${qs(params)}`);
+      const f1 = await safeGet(`/analytics/metrics/responses?${qs(params)}`);
       const f2 = !Array.isArray(f1) ? await safeGet(`/analytics/metrics/quality/responses?${qs(params)}`) : null;
       const f3 = !Array.isArray(f1 || f2) ? await safeGet(`/analytics/metrics/feedback?${qs(params)}`) : null;
       const f4 = !Array.isArray(f1 || f2 || f3)
