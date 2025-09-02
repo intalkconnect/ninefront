@@ -57,9 +57,9 @@ import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campanhas/Campaigns";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
+import Quality from "./analytics/quality/Quality";
 
 // Temporários (mantidos)
-const Quality = () => <div>Qualidade</div>;
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
