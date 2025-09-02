@@ -1,3 +1,4 @@
+// File: BillingExtrato.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet } from '../../../../shared/apiClient';
 import { CalendarRange, Coins, Download, RefreshCcw } from 'lucide-react';
@@ -25,8 +26,9 @@ const useDebounce = (value, delay = 300) => {
   return deb;
 };
 
-// tenta ler diferentes convenções de campos vindos da API
+// =========== Normalizadores ===========
 const pickCents = (row) => {
+  if (Number.isFinite(+row?.amount_cents)) return +row.amount_cents; // <-- novo payload
   if (Number.isFinite(+row?.total_cents)) return +row.total_cents;
   if (Number.isFinite(+row?.total_value_cents)) return +row.total_value_cents;
   if (Number.isFinite(+row?.cents)) return +row.cents;
@@ -34,13 +36,18 @@ const pickCents = (row) => {
   return 0;
 };
 const pickSessions = (row) => {
-  const cands = [row?.windows, row?.sessions, row?.billing_windows, row?.janelas];
-  return cands.find((v) => Number.isFinite(+v)) ?? 0;
+  const cands = [row?.sessions, row?.windows, row?.billing_windows, row?.janelas];
+  const v = cands.find((x) => Number.isFinite(+x));
+  return Number.isFinite(+v) ? +v : 0;
 };
+const pickFirstTs = (row) =>
+  row?.first_ref_ts || row?.first_incoming_at || row?.first_at || row?.start_at || row?.min_ts || row?.first_msg_at;
+const pickLastTs = (row) =>
+  row?.last_ref_ts || row?.last_incoming_at || row?.last_at || row?.end_at || row?.max_ts || row?.last_msg_at;
 
 /* ========================= Página ========================= */
 export default function BillingExtrato() {
-  // período padrão: do 1º dia do mês atual até agora
+  // período padrão: 1º dia do mês atual até agora
   const now = new Date();
   const firstMonthDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
 
@@ -64,13 +71,24 @@ export default function BillingExtrato() {
       const params = { from: toISO(debFrom), to: toISO(debTo) };
       const res = await apiGet(`/billing/statement?${qs(params)}`);
 
-      // back compat: a API pode retornar {rows, total_cents} ou array direto
-      let rows = Array.isArray(res) ? res : (res?.rows || []);
+      // 1) linhas
+      let rows =
+        Array.isArray(res) ? res :
+        (Array.isArray(res?.rows) ? res.rows :
+        (Array.isArray(res?.data) ? res.data : [])); // <-- aceita {data: [...]}
       if (!Array.isArray(rows)) rows = [];
-      const total_cents = Number.isFinite(+res?.total_cents)
-        ? +res.total_cents
-        : rows.reduce((acc, r) => acc + pickCents(r), 0);
 
+      // 2) total do período
+      let total_cents = 0;
+      if (Number.isFinite(+res?.total_cents)) {
+        total_cents = +res.total_cents;
+      } else if (Number.isFinite(+res?.totals?.amount_cents_all_currencies)) {
+        total_cents = +res.totals.amount_cents_all_currencies; // <-- novo payload
+      } else {
+        total_cents = rows.reduce((acc, r) => acc + pickCents(r), 0);
+      }
+
+      // 3) somatório por canal (se API não mandar pronto)
       const totals_by_channel =
         res?.totals_by_channel && Array.isArray(res.totals_by_channel)
           ? res.totals_by_channel
@@ -79,9 +97,9 @@ export default function BillingExtrato() {
                 const ch = r.channel || 'default';
                 const cents = pickCents(r);
                 const sess = pickSessions(r);
-                acc[ch] = acc[ch] || { channel: ch, sessions: 0, total_cents: 0 };
-                acc[ch].sessions += Number.isFinite(+sess) ? +sess : 0;
-                acc[ch].total_cents += Number.isFinite(+cents) ? +cents : 0;
+                if (!acc[ch]) acc[ch] = { channel: ch, sessions: 0, total_cents: 0 };
+                acc[ch].sessions += sess;
+                acc[ch].total_cents += cents;
                 return acc;
               }, {})
             );
@@ -105,6 +123,8 @@ export default function BillingExtrato() {
     const url = `/billing/statement/export?${qs(params)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
+
+  const fmtDt = (ts) => ts ? new Date(ts).toLocaleString('pt-BR') : '—';
 
   return (
     <div className={styles.container}>
@@ -199,9 +219,8 @@ export default function BillingExtrato() {
               {!loading && data.rows?.map((r, i) => {
                 const cents = pickCents(r);
                 const sessions = pickSessions(r);
-                const first = r.first_incoming_at || r.first_at || r.start_at || r.min_ts || r.first_msg_at;
-                const last  = r.last_incoming_at  || r.last_at  || r.end_at  || r.max_ts || r.last_msg_at;
-                const fmtDt = (ts) => ts ? new Date(ts).toLocaleString('pt-BR') : '—';
+                const first = pickFirstTs(r);
+                const last  = pickLastTs(r);
                 return (
                   <tr key={(r.user_id || r.user || '-') + (r.channel || 'default') + i}>
                     <td>{r.user_id || r.user || '—'}</td>
