@@ -160,12 +160,12 @@ export default function Admin() {
       icon: <BarChart2 size={16} />,
       children: [
         {
-          to: "monitoring/analysis/quality",
+          to: "analytics/quality",
           icon: <Gauge size={16} />,
           label: "Qualidade",
         },
         {
-          to: "monitoring/analysis/sessions",
+          to: "analytics/sessions",
           icon: <Clock size={16} />,
           label: "Sessões",
         },
@@ -420,8 +420,8 @@ export default function Admin() {
           <Route path="monitoring/realtime/agents" element={<AgentsMonitor />} />
           <Route path="monitoring/realtime/queues" element={<ClientsMonitor />} />
           <Route path="management/users" element={<UsersPage />} />
-          <Route path="monitoring/analysis/quality" element={<Quality />} />
-          <Route path="monitoring/analysis/sessions" element={<BillingExtrato />} />
+          <Route path="analytics/quality" element={<Quality />} />
+          <Route path="analytics/sessions" element={<BillingExtrato />} />
           <Route path="management/queues" element={<Queues />} />
           <Route path="management/quick-replies" element={<QuickReplies />} />
           <Route path="management/history" element={<History />} />
