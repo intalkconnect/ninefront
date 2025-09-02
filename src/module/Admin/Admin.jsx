@@ -24,6 +24,7 @@ import {
   Clock,
   Plug,
   Shield,
+  Code2, // <- ícone do menu Desenvolvimento
 } from "lucide-react";
 import {
   NavLink,
@@ -69,8 +70,11 @@ export default function Admin() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const location = useLocation();
 
+  // Perfil
   const [isProfileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
+
+  // Nav (para clique fora)
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -86,12 +90,14 @@ export default function Admin() {
     fetchAdminInfo();
   }, [email]);
 
+  // fecha mega menu e drawer ao trocar de rota
   useEffect(() => {
     setMobileMenuOpen(false);
     setOpenDropdown(null);
     setProfileOpen(false);
   }, [location.pathname]);
 
+  // Fecha menus no clique fora
   useEffect(() => {
     const onDocDown = (e) => {
       const target = e.target;
@@ -102,6 +108,7 @@ export default function Admin() {
     return () => document.removeEventListener("mousedown", onDocDown);
   }, []);
 
+  // Fecha menus com ESC
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -113,9 +120,10 @@ export default function Admin() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // caminho fixo do Dashboard
   const DASHBOARD_PATH = "/";
 
-  /* ===================== MENU (sem ícones nos GRUPOS) ===================== */
+  /* ===================== MENU (grupos sem ícone) ===================== */
   const menus = useMemo(
     () => [
       {
@@ -134,7 +142,6 @@ export default function Admin() {
           {
             key: "monitoring-realtime",
             label: "Tempo real",
-            // sem icon aqui (evita duplicar)
             children: [
               { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas (ao vivo)" },
               { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes (ao vivo)" },
@@ -198,11 +205,20 @@ export default function Admin() {
         ],
       },
 
+      /* ========= NOVO: Desenvolvimento ========= */
       {
-        key: "builder",
-        label: "Builder",
-        to: "development/builder",
-        icon: <Bot size={18} />,
+        key: "development",
+        label: "Desenvolvimento",
+        icon: <Code2 size={18} />,
+        children: [
+          {
+            key: "dev-tools",
+            label: "Ferramentas",
+            children: [
+              { to: "development/builder", icon: <Bot size={16} />, label: "Builder" },
+            ],
+          },
+        ],
       },
 
       {
@@ -368,7 +384,9 @@ export default function Admin() {
                         Editar perfil
                       </NavLink>
                     </li>
+
                     <li className={styles.pdSeparator} role="separator" />
+
                     <li className={styles.pdItem}>
                       <LogoutButton className={styles.pdAction} onClick={() => setProfileOpen(false)}>
                         <LogOut size={16} />
@@ -422,7 +440,12 @@ export default function Admin() {
                   ))}
                 </details>
               ) : (
-                <NavLink end={m.exact} to={m.to} className={({ isActive }) => (isActive ? styles.active : undefined)} onClick={() => setMobileMenuOpen(false)}>
+                <NavLink
+                  end={m.exact}
+                  to={m.to}
+                  className={({ isActive }) => (isActive ? styles.active : undefined)}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   {m.icon}
                   <span>{m.label}</span>
                 </NavLink>
@@ -456,7 +479,7 @@ export default function Admin() {
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
 
-          {/* builder */}
+          {/* development */}
           <Route path="development/builder" element={<Builder />} />
 
           {/* settings */}
