@@ -18,6 +18,11 @@ import {
   FolderClock,
   Headset,
   User,
+  Activity, 
+  ListTree, 
+  BarChart2, 
+  Gauge, 
+  Clock
 } from "lucide-react";
 import {
   NavLink,
@@ -44,8 +49,10 @@ import UsersPage from "./management/Users";
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campanhas/Campaigns";
+import BillingExtrato from "./campanhas/BillingExtrato";
 
 // Temporários (mantidos)
+const Quality = () => <div>Qualidade</div>;
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
@@ -123,22 +130,49 @@ export default function Admin() {
         exact: true,
       },
       {
-        key: "monitoring",
-        label: "Acompanhamento",
-        icon: <SquareActivity size={18} />,
-        children: [
-          {
-            to: "monitoring/agents",
-            icon: <Headset size={16} />,
-            label: "Monitor de Atendentes",
-          },
-          {
-            to: "monitoring/clients",
-            icon: <Users size={16} />,
-            label: "Monitor de Clientes",
-          },
-        ],
-      },
+  key: "monitoring",
+  label: "Acompanhamento",
+  icon: <SquareActivity size={18} />,
+  children: [
+    // ===== Tempo real =====
+    {
+      key: "monitoring-realtime",
+      label: "Tempo real",
+      icon: <Activity size={16} />,
+      children: [
+        {
+          to: "monitoring/realtime/queues",
+          icon: <ListTree size={16} />,
+          label: "Filas (ao vivo)",
+        },
+        {
+          to: "monitoring/realtime/agents",
+          icon: <Headset size={16} />,
+          label: "Agentes (ao vivo)",
+        },
+      ],
+    },
+
+    // ===== Análise =====
+    {
+      key: "monitoring-analysis",
+      label: "Análise",
+      icon: <BarChart2 size={16} />,
+      children: [
+        {
+          to: "monitoring/analysis/quality",
+          icon: <Gauge size={16} />,
+          label: "Qualidade",
+        },
+        {
+          to: "monitoring/analysis/sessions",
+          icon: <Clock size={16} />,
+          label: "Sessões",
+        },
+      ],
+    },
+  ],
+},
       {
         key: "management",
         label: "Gestão",
@@ -383,9 +417,11 @@ export default function Admin() {
       <main className={styles.content}>
         <Routes>
           <Route index element={<Dashboard />} />
-          <Route path="monitoring/agents" element={<AgentsMonitor />} />
-          <Route path="monitoring/clients" element={<ClientsMonitor />} />
+          <Route path="monitoring/realtime/agents" element={<AgentsMonitor />} />
+          <Route path="monitoring/realtime/queues" element={<ClientsMonitor />} />
           <Route path="management/users" element={<UsersPage />} />
+          <Route path="monitoring/analysis/quality" element={<Quality />} />
+          <Route path="monitoring/analysis/sessions" element={<BillingExtrato />} />
           <Route path="management/queues" element={<Queues />} />
           <Route path="management/quick-replies" element={<QuickReplies />} />
           <Route path="management/history" element={<History />} />
