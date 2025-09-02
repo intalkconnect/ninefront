@@ -23,6 +23,8 @@ import {
   BarChart2,
   Gauge,
   Clock,
+  Plug, 
+  Shield
 } from "lucide-react";
 import {
   NavLink,
@@ -121,127 +123,147 @@ export default function Admin() {
   const DASHBOARD_PATH = "/"; // <- troque para "/admin" se necessário
 
   const menus = useMemo(
-    () => [
-      {
-        key: "dashboard",
-        label: "Dashboard",
-        to: DASHBOARD_PATH,
-        icon: <LayoutDashboard size={18} />,
-        exact: true,
-      },
-      {
-        key: "monitoring",
-        label: "Acompanhamento",
-        icon: <SquareActivity size={18} />,
-        children: [
-          // ===== Tempo real =====
-          {
-            key: "monitoring-realtime",
-            label: "Tempo real",
-            icon: <Activity size={16} />,
-            children: [
-              {
-                to: "monitoring/realtime/queues",
-                icon: <ListTree size={16} />,
-                label: "Filas (ao vivo)",
-              },
-              {
-                to: "monitoring/realtime/agents",
-                icon: <Headset size={16} />,
-                label: "Agentes (ao vivo)",
-              },
-            ],
-          },
+  () => [
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      to: DASHBOARD_PATH,
+      icon: <LayoutDashboard size={18} />,
+      exact: true,
+    },
 
-          // ===== Análise =====
-          {
-            key: "monitoring-analysis",
-            label: "Análise",
-            icon: <BarChart2 size={16} />,
-            children: [
-              {
-                to: "analytics/quality",
-                icon: <Gauge size={16} />,
-                label: "Qualidade",
-              },
-              {
-                to: "analytics/sessions",
-                icon: <Clock size={16} />,
-                label: "Sessões",
-              },
-            ],
-          },
-        ],
-      },
-      {
-        key: "management",
-        label: "Gestão",
-        icon: <Users size={18} />,
-        children: [
-          {
-            to: "management/users",
-            icon: <Users size={16} />,
-            label: "Usuários",
-          },
-          {
-            to: "management/queues",
-            icon: <Folder size={16} />,
-            label: "Filas",
-          },
-          {
-            to: "management/quick-replies",
-            icon: <Zap size={16} />,
-            label: "Respostas Rápidas",
-          },
-          {
-            to: "management/history",
-            icon: <FolderClock size={16} />,
-            label: "Histórico de Ticket",
-          },
-          {
-            to: "management/clientes",
-            icon: <FolderClock size={16} />,
-            label: "Clientes",
-          },
-        ],
-      },
-      {
-        key: "campaigns",
-        label: "Campanhas",
-        icon: <Megaphone size={18} />,
-        children: [
-          {
-            to: "campaigns/templates",
-            icon: <FileText size={16} />,
-            label: "Templates",
-          },
-          {
-            to: "campaigns/campaigns",
-            icon: <Send size={16} />,
-            label: "Disparo de Mensagens",
-          },
-        ],
-      },
-      {
-        key: "builder",
-        label: "Builder",
-        to: "development/builder",
-        icon: <Bot size={18} />,
-      },
-      {
-        key: "settings",
-        label: "Configurações",
-        icon: <Settings size={18} />,
-        children: [
-          { to: "settings/preferences", label: "Preferências" },
-          { to: "settings/channels", label: "Canais" },
-          { to: "settings/integrations", label: "Integrações" },
-          { to: "settings/security", label: "Segurança" },
-        ],
-      },
-    ],
-    []
-  );
+    /* ================== Acompanhamento ================== */
+    {
+      key: "monitoring",
+      label: "Acompanhamento",
+      icon: <SquareActivity size={18} />,
+      children: [
+        // Seção: Tempo real
+        {
+          key: "monitoring-realtime",
+          label: "Tempo real",
+          icon: <Activity size={16} />,
+          children: [
+            { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas (ao vivo)" },
+            { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes (ao vivo)" },
+          ],
+        },
+        // Seção: Análise
+        {
+          key: "monitoring-analysis",
+          label: "Análise",
+          icon: <BarChart2 size={16} />,
+          children: [
+            { to: "analytics/quality",  icon: <Gauge size={16} />, label: "Qualidade" },
+            { to: "analytics/sessions", icon: <Clock size={16} />, label: "Sessões"   },
+          ],
+        },
+      ],
+    },
+
+    /* ================== Gestão ================== */
+    {
+      key: "management",
+      label: "Gestão",
+      icon: <Users size={18} />,
+      children: [
+        // Seção: Cadastros
+        {
+          key: "mgmt-cadastros",
+          label: "Cadastros",
+          icon: <Folder size={16} />,
+          children: [
+            { to: "management/users",         icon: <Users size={16} />,  label: "Usuários" },
+            { to: "management/queues",        icon: <Folder size={16} />, label: "Filas" },
+            { to: "management/quick-replies", icon: <Zap size={16} />,    label: "Respostas Rápidas" },
+            { to: "management/clientes",      icon: <FolderClock size={16} />, label: "Clientes" },
+          ],
+        },
+        // Seção: Operação
+        {
+          key: "mgmt-operacao",
+          label: "Operação",
+          icon: <Activity size={16} />,
+          children: [
+            { to: "management/history", icon: <FolderClock size={16} />, label: "Histórico de Ticket" },
+          ],
+        },
+      ],
+    },
+
+    /* ================== Campanhas ================== */
+    {
+      key: "campaigns",
+      label: "Campanhas",
+      icon: <Megaphone size={18} />,
+      children: [
+        {
+          key: "camp-modelos",
+          label: "Modelos",
+          icon: <FileText size={16} />,
+          children: [
+            { to: "campaigns/templates", icon: <FileText size={16} />, label: "Templates" },
+          ],
+        },
+        {
+          key: "camp-disparo",
+          label: "Disparo",
+          icon: <Send size={16} />,
+          children: [
+            { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo de Mensagens" },
+          ],
+        },
+      ],
+    },
+
+    /* ================== Builder ================== */
+    {
+      key: "builder",
+      label: "Builder",
+      to: "development/builder",
+      icon: <Bot size={18} />,
+    },
+
+    /* ================== Configurações ================== */
+    {
+      key: "settings",
+      label: "Configurações",
+      icon: <Settings size={18} />,
+      children: [
+        // Seção: Geral
+        {
+          key: "settings-geral",
+          label: "Geral",
+          icon: <Settings size={16} />,
+          children: [
+            { to: "settings/preferences", label: "Preferências" },
+            { to: "settings/channels",    label: "Canais" },
+          ],
+        },
+        // Seção: Integrações
+        {
+          key: "settings-integracoes",
+          label: "Integrações",
+          icon: <Plug size={16} />,
+          children: [
+            { to: "settings/integrations", label: "Integrações" },
+          ],
+        },
+        // Seção: Segurança
+        {
+          key: "settings-seguranca",
+          label: "Segurança",
+          icon: <Shield size={16} />,
+          children: [
+            { to: "settings/security", label: "Segurança" },
+          ],
+        },
+      ],
+    },
+  ],
+  []
+);
+
 
   const isDropdown = (m) => !!m.children?.length;
   const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
