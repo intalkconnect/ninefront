@@ -142,7 +142,7 @@ export default function BillingExtrato() {
 
       {/* Cabeçalho + filtros */}
       <div className={styles.header}>
-        <h1 className={styles.title}><Coins size={28}/> Extrato de Cobrança</h1>
+        <h1 className={styles.title}><Coins size={28}/> Extrato de Sessões</h1>
         <div className={styles.filters}>
           <div className={styles.filterItem}>
             <label><CalendarRange size={14}/> De</label>
