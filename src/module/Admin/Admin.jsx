@@ -49,7 +49,7 @@ import UsersPage from "./management/Users";
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campanhas/Campaigns";
-import BillingExtrato from "./campanhas/BillingExtrato";
+import BillingExtrato from "./analytcs/billing/BillingExtrato";
 
 // Temporários (mantidos)
 const Quality = () => <div>Qualidade</div>;
