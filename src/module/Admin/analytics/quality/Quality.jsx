@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { apiGet } from "../../../../shared/apiClient";
 import { RefreshCcw, CalendarRange, Smile, MessageSquare } from "lucide-react";
 // Reaproveita o visual do Dashboard (cards, tabelas, charts)
-import styles from "../../dashboard/styles/Dashboard.module.css";
+import styles from "./styles/Quality.module.css";
 
 /* ========= Helpers ========= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
