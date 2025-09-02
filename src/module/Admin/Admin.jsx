@@ -24,7 +24,11 @@ import {
   Clock,
   Plug,
   Shield,
-  Code2, // <- ícone do menu Desenvolvimento
+  Code2,
+  Contact,
+  UserPen,
+  MessageSquareReply,
+  WalletCards
 } from "lucide-react";
 import {
   NavLink,
@@ -143,8 +147,8 @@ export default function Admin() {
             key: "monitoring-realtime",
             label: "Tempo real",
             children: [
-              { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas (ao vivo)" },
-              { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes (ao vivo)" },
+              { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas" },
+              { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes" },
             ],
           },
           {
@@ -167,17 +171,17 @@ export default function Admin() {
             key: "mgmt-cadastros",
             label: "Cadastros",
             children: [
-              { to: "management/users",         icon: <Users size={16} />,        label: "Usuários" },
+              { to: "management/users",         icon: <UserPen size={16} />,        label: "Usuários" },
               { to: "management/queues",        icon: <Folder size={16} />,       label: "Filas" },
-              { to: "management/quick-replies", icon: <Zap size={16} />,          label: "Respostas Rápidas" },
-              { to: "management/clientes",      icon: <FolderClock size={16} />,  label: "Clientes" },
+              { to: "management/quick-replies", icon: <MessageSquareReply size={16} />,          label: "Respostas Rápidas" }
             ],
           },
           {
             key: "mgmt-operacao",
             label: "Operação",
             children: [
-              { to: "management/history", icon: <FolderClock size={16} />, label: "Histórico de Ticket" },
+              { to: "management/history", icon: <WalletCards size={16} />, label: "Histórico de Ticket" },
+              { to: "management/clientes",      icon: <Contact size={16} />,  label: "Clientes" },
             ],
           },
         ],
@@ -197,9 +201,9 @@ export default function Admin() {
           },
           {
             key: "camp-disparo",
-            label: "Disparo",
+            label: "Mensagens Ativas",
             children: [
-              { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo de Mensagens" },
+              { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo de Massa" },
             ],
           },
         ],
