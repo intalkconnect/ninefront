@@ -172,14 +172,9 @@ export default function Quality() {
         safeGet(`/analytics/metrics/series/csat?${qs(params)}`),
       ]);
 
-      // Feedback individual — tenta múltiplos caminhos comuns
-      const f1 = await safeGet(`/analytics/metrics/feedback/responses?${qs(params)}`);
-      const f2 = !Array.isArray(f1) ? await safeGet(`/analytics/metrics/feedback/responsess?${qs(params)}`) : null;
-      const f3 = !Array.isArray(f1 || f2) ? await safeGet(`/analytics/metrics/feedback?${qs(params)}`) : null;
-      const f4 = !Array.isArray(f1 || f2 || f3)
-        ? await safeGet(`/analytics/metrics/surveys?${qs(params)}`) : null;
-
-      const fb = normalizeFeedback((f1 && f1.data) || f1 || f2 || f3 || f4 || []);
+      // Feedback individual — 
+      const res = await safeGet(`/analytics/metrics/feedback/responses?${qs(params)}`);
+      const fb = normalizeFeedback(res.data);
 
       // === NPS agregado ===
       if (Array.isArray(npsRaw) && npsRaw.length) {
