@@ -18,11 +18,11 @@ import {
   FolderClock,
   Headset,
   User,
-  Activity, 
-  ListTree, 
-  BarChart2, 
-  Gauge, 
-  Clock
+  Activity,
+  ListTree,
+  BarChart2,
+  Gauge,
+  Clock,
 } from "lucide-react";
 import {
   NavLink,
@@ -130,49 +130,49 @@ export default function Admin() {
         exact: true,
       },
       {
-  key: "monitoring",
-  label: "Acompanhamento",
-  icon: <SquareActivity size={18} />,
-  children: [
-    // ===== Tempo real =====
-    {
-      key: "monitoring-realtime",
-      label: "Tempo real",
-      icon: <Activity size={16} />,
-      children: [
-        {
-          to: "monitoring/realtime/queues",
-          icon: <ListTree size={16} />,
-          label: "Filas (ao vivo)",
-        },
-        {
-          to: "monitoring/realtime/agents",
-          icon: <Headset size={16} />,
-          label: "Agentes (ao vivo)",
-        },
-      ],
-    },
+        key: "monitoring",
+        label: "Acompanhamento",
+        icon: <SquareActivity size={18} />,
+        children: [
+          // ===== Tempo real =====
+          {
+            key: "monitoring-realtime",
+            label: "Tempo real",
+            icon: <Activity size={16} />,
+            children: [
+              {
+                to: "monitoring/realtime/queues",
+                icon: <ListTree size={16} />,
+                label: "Filas (ao vivo)",
+              },
+              {
+                to: "monitoring/realtime/agents",
+                icon: <Headset size={16} />,
+                label: "Agentes (ao vivo)",
+              },
+            ],
+          },
 
-    // ===== Análise =====
-    {
-      key: "monitoring-analysis",
-      label: "Análise",
-      icon: <BarChart2 size={16} />,
-      children: [
-        {
-          to: "analytics/quality",
-          icon: <Gauge size={16} />,
-          label: "Qualidade",
-        },
-        {
-          to: "analytics/sessions",
-          icon: <Clock size={16} />,
-          label: "Sessões",
-        },
-      ],
-    },
-  ],
-},
+          // ===== Análise =====
+          {
+            key: "monitoring-analysis",
+            label: "Análise",
+            icon: <BarChart2 size={16} />,
+            children: [
+              {
+                to: "analytics/quality",
+                icon: <Gauge size={16} />,
+                label: "Qualidade",
+              },
+              {
+                to: "analytics/sessions",
+                icon: <Clock size={16} />,
+                label: "Sessões",
+              },
+            ],
+          },
+        ],
+      },
       {
         key: "management",
         label: "Gestão",
@@ -246,6 +246,88 @@ export default function Admin() {
   const isDropdown = (m) => !!m.children?.length;
   const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
 
+  // --- helpers para submenu de 2 níveis ---
+  const renderMenuChildren = (nodes = []) => (
+    <ul className={styles.megagrid}>
+      {nodes.map((c) => {
+        const isGroup = Array.isArray(c.children) && c.children.length > 0;
+        if (isGroup) {
+          return (
+            <li key={c.key} className={`${styles.megaitem} ${styles.megagroup}`} role="none">
+              <div className={styles.megahdr}>
+                {c.icon && <span className={styles.megaicon}>{c.icon}</span>}
+                <span>{c.label}</span>
+              </div>
+              <ul className={styles.megasublist}>
+                {c.children.map((s) => (
+                  <li key={s.to || s.key} className={styles.megasubitem} role="none">
+                    <NavLink
+                      to={s.to}
+                      className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
+                      onClick={() => setOpenDropdown(null)}
+                      role="menuitem"
+                    >
+                      {s.icon && <span className={styles.megaicon}>{s.icon}</span>}
+                      <span>{s.label}</span>
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          );
+        }
+        // folha
+        return (
+          <li key={c.to || c.key} className={styles.megaitem} role="none">
+            <NavLink
+              to={c.to}
+              className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
+              onClick={() => setOpenDropdown(null)}
+              role="menuitem"
+            >
+              {c.icon && <span className={styles.megaicon}>{c.icon}</span>}
+              <span>{c.label}</span>
+            </NavLink>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  const renderMobileChildren = (nodes = []) => (
+    <ul className={styles.drawerSubList}>
+      {nodes.map((c) => {
+        const isGroup = Array.isArray(c.children) && c.children.length > 0;
+        if (isGroup) {
+          return (
+            <li key={`g-${c.key}`}>
+              <details>
+                <summary>
+                  {c.icon}
+                  <span>{c.label}</span>
+                  <ChevronDown size={16} />
+                </summary>
+                {renderMobileChildren(c.children)}
+              </details>
+            </li>
+          );
+        }
+        return (
+          <li key={`i-${c.to || c.key}`}>
+            <NavLink
+              to={c.to}
+              className={({ isActive }) => (isActive ? styles.active : undefined)}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {c.icon}
+              <span>{c.label}</span>
+            </NavLink>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
     <div className={styles.wrapper}>
       {/* Top Navbar */}
@@ -287,7 +369,10 @@ export default function Admin() {
                   <span>{m.label}</span>
                 </NavLink>
               ) : (
-                <button className={styles.hlink} onClick={() => (isDropdown(m) ? handleTopClick(m.key) : undefined)}>
+                <button
+                  className={styles.hlink}
+                  onClick={() => (isDropdown(m) ? handleTopClick(m.key) : undefined)}
+                >
                   {m.icon}
                   <span>{m.label}</span>
                   {isDropdown(m) && <ChevronDown size={16} />}
@@ -296,21 +381,7 @@ export default function Admin() {
 
               {isDropdown(m) && (
                 <div className={styles.megamenu} role="menu">
-                  <ul className={styles.megagrid}>
-                    {m.children.map((c) => (
-                      <li key={c.to} className={styles.megaitem} role="none">
-                        <NavLink
-                          to={c.to}
-                          className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                          onClick={() => setOpenDropdown(null)}
-                          role="menuitem"
-                        >
-                          {c.icon && <span className={styles.megaicon}>{c.icon}</span>}
-                          <span>{c.label}</span>
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
+                  {renderMenuChildren(m.children)}
                 </div>
               )}
             </div>
@@ -333,7 +404,6 @@ export default function Admin() {
                 >
                   {userData.name?.charAt(0).toUpperCase() || "U"}
                 </div>
-{/*                 <span className={styles.userNameTop}>{userData.name?.split(" ")[0] || "Usuário"}</span> */}
               </button>
 
               {isProfileOpen && (
@@ -385,25 +455,26 @@ export default function Admin() {
           {menus.map((m) => (
             <li key={`m-${m.key}`} className={styles.drawerItem}>
               {isDropdown(m) ? (
-                <details open={openDropdown === m.key} onToggle={(e) => (e.currentTarget.open ? setOpenDropdown(m.key) : setOpenDropdown(null))}>
+                <details
+                  open={openDropdown === m.key}
+                  onToggle={(e) =>
+                    e.currentTarget.open ? setOpenDropdown(m.key) : setOpenDropdown(null)
+                  }
+                >
                   <summary>
                     {m.icon}
                     <span>{m.label}</span>
                     <ChevronDown size={16} />
                   </summary>
-                  <ul>
-                    {m.children.map((c) => (
-                      <li key={`c-${c.to}`}>
-                        <NavLink to={c.to} className={({ isActive }) => (isActive ? styles.active : undefined)}>
-                          {c.icon}
-                          <span>{c.label}</span>
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
+                  {renderMobileChildren(m.children)}
                 </details>
               ) : (
-                <NavLink end={m.exact} to={m.to} className={({ isActive }) => (isActive ? styles.active : undefined)}>
+                <NavLink
+                  end={m.exact}
+                  to={m.to}
+                  className={({ isActive }) => (isActive ? styles.active : undefined)}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   {m.icon}
                   <span>{m.label}</span>
                 </NavLink>
@@ -439,4 +510,3 @@ export default function Admin() {
     </div>
   );
 }
-
