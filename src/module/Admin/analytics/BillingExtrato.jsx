@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { apiGet } from '../../../shared/apiClient';
+import { apiGet } from '../../../../shared/apiClient';
 import { CalendarRange, Coins, Download, RefreshCcw } from 'lucide-react';
 import styles from './styles/BillingExtrato.module.css';
 
