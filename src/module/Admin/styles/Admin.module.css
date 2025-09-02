@@ -23,7 +23,7 @@
 .open>.hlink,.hlink:focus{outline:2px solid #2563eb1a}
 
 /* Mega menu (coluna) */
-.megamenu{position:absolute;left:0;top:calc(100% + 10px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.12);padding:8px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:.15s ease;min-width:260px;max-width:320px}
+.megamenu{position:absolute;left:0;top:calc(100% + 10px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.12);padding:8px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:.15s ease;min-width:260px;max-width:340px}
 .open .megamenu{opacity:1;transform:translateY(0);pointer-events:auto}
 .megagrid{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column;gap:4px}
 .megaitem{border-radius:10px}
@@ -79,3 +79,24 @@
 
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
+
+/* ===== ADIÇÕES PARA 2º NÍVEL ===== */
+
+/* Grupos no megamenu (2º nível) */
+.megagroup { padding: 6px; }
+.megahdr{
+  display:flex; align-items:center; gap:8px;
+  font-size:12px; font-weight:800; color:#111827;
+  padding:6px 8px; margin:2px 0;
+}
+.megasublist{
+  list-style:none; margin:4px 0 0 24px; padding:0;
+  display:flex; flex-direction:column; gap:4px;
+}
+.megasubitem .megalink{ padding:8px 10px; }
+
+/* Sublista no drawer (mobile) para níveis > 1 */
+.drawerSubList{
+  list-style:none; margin:0; padding:6px 6px 10px 26px;
+  display:flex; flex-direction:column; gap:2px;
+}
