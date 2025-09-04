@@ -3,7 +3,7 @@ import {
   Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw,
   AlertCircle, CheckCircle2, Shield
 } from 'lucide-react';
-import { FaUserCog, FaHeadset } from "react-icons/ri";
+import { FaUserCog, FaHeadset } from "react-icons/fa";
 import { apiGet, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
