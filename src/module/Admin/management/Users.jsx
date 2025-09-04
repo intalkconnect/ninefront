@@ -3,17 +3,29 @@ import {
   Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw,
   AlertCircle, CheckCircle2, Shield
 } from 'lucide-react';
+import { FaUserCog, FaHeadset } from "react-icons/ri";
 import { apiGet, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
 import { useConfirm } from '../../../components/ConfirmProvider.jsx';
 
-const PERFIS = [
-  { key: '',           label: 'Todos',      icon: <UsersIcon size={14}/> },
-  { key: 'admin',      label: 'Admin',      icon: <Shield size={14}/> },
-  { key: 'supervisor', label: 'Supervisor', icon: <Shield size={14}/> },
-  { key: 'atendente',  label: 'Atendente',  icon: <Shield size={14}/> },
-];
+const PERFIL_ICONS = {
+  admin:      <FaUserCog size={14} />,
+  atendente:  <FaHeadset size={14} />,
+  supervisor: <Shield size={14} />, // pode trocar se quiser outro ícone
+};
+
+const iconForPerfil = (perfil) => {
+  const k = String(perfil || '').toLowerCase();
+  return PERFIL_ICONS[k] ?? <UsersIcon size={14} />; // fallback
+};
+
+ const PERFIS = [
+   { key: '',           label: 'Todos',      icon: <UsersIcon size={14}/> },
+   { key: 'admin',      label: 'Admin',      icon: PERFIL_ICONS.admin },
+   { key: 'supervisor', label: 'Supervisor', icon: PERFIL_ICONS.supervisor },
+   { key: 'atendente',  label: 'Atendente',  icon: PERFIL_ICONS.atendente },
+ ];
 
 export default function Users() {
   const [items, setItems] = useState([]);
@@ -181,11 +193,22 @@ export default function Users() {
                   <tr key={u.id} className={styles.rowHover}>
                     <td data-label="Nome">{nome || '—'}</td>
                     <td data-label="Email">{u.email || '—'}</td>
-                    <td data-label="Perfil">
-                      <span className={`${styles.tag} ${styles.tagRole}`} data-role={(u.perfil || '').toLowerCase()}>
-                        {(u.perfil || '').charAt(0).toUpperCase() + (u.perfil || '').slice(1) || '—'}
-                      </span>
-                    </td>
+<td data-label="Perfil">
+   {(() => {
+     const k = String(u.perfil || '').toLowerCase();
+     const label = k ? k.charAt(0).toUpperCase() + k.slice(1) : '—';
+     return (
+       <span
+         className={`${styles.tag} ${styles.tagRole}`}
+         data-role={k}
+         title={label}
+         aria-label={label}
+       >
+         {iconForPerfil(k)}
+       </span>
+     );
+   })()}
+ </td>
                     <td data-label="Filas">
                       <div className={styles.tagsWrap}>
                         {chipNames.length === 0
