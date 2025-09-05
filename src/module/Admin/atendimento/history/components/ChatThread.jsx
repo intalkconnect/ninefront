@@ -1,5 +1,6 @@
 // src/components/ChatThread.jsx
 import React from 'react';
+import styles from './ChatThread.module.css';
 
 function fmtDateTime(iso) {
   if (!iso) return '—';
@@ -9,49 +10,35 @@ function fmtDateTime(iso) {
       day: '2-digit', month: '2-digit', year: '2-digit',
       hour: '2-digit', minute: '2-digit'
     });
-  } catch {
-    return '—';
-  }
+  } catch { return '—'; }
 }
 
 /**
  * messages: Array<{
- *   id: string|number,
- *   from_agent?: boolean,
- *   sender_name?: string,
- *   text?: string,
- *   created_at?: string
+ *   id: string, direction: 'incoming'|'outgoing'|'system', type?: string,
+ *   text: string, created_at: string, from_agent?: boolean, sender_name?: string
  * }>
  */
 export default function ChatThread({ messages = [] }) {
   if (!messages.length) {
-    return <div style={{ color: '#6b7280' }}>Sem mensagens.</div>;
+    return <div className={styles.empty}>Sem mensagens.</div>;
   }
 
   return (
-    <div style={{ display: 'grid', gap: 12 }}>
+    <div className={styles.thread}>
       {messages.map((m) => {
-        const isAgent = Boolean(m.from_agent);
+        const cls =
+          m.direction === 'outgoing' ? styles.agent :
+          m.direction === 'system'   ? styles.system : styles.client;
+
         return (
-          <div
-            key={m.id}
-            style={{
-              display: 'grid',
-              gap: 6,
-              padding: '10px 12px',
-              borderRadius: 12,
-              background: isAgent ? '#f1f5f9' : '#fff',
-              border: '1px solid #e5e7eb',
-              justifySelf: isAgent ? 'end' : 'start',
-              maxWidth: 'min(680px, 100%)'
-            }}
-          >
-            <div style={{ fontSize: 12, color: '#64748b' }}>
-              {(m.sender_name || (isAgent ? 'Atendente' : 'Cliente'))} • {fmtDateTime(m.created_at)}
+          <div key={m.id} className={`${styles.msg} ${cls}`}>
+            <div className={styles.meta}>
+              <span className={styles.sender}>{m.sender_name || (m.from_agent ? 'Atendente' : 'Cliente')}</span>
+              <span className={styles.dot}>•</span>
+              <span className={styles.time}>{fmtDateTime(m.created_at)}</span>
             </div>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-              {m.text || '—'}
-            </div>
+            <div className={styles.body}>{m.text || '—'}</div>
           </div>
         );
       })}
