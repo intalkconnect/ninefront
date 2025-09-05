@@ -3,8 +3,7 @@ import {
   Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw,
   AlertCircle, CheckCircle2, Shield
 } from 'lucide-react';
-import { FaUserCog, FaHeadset, FaRegTrashAlt } from "react-icons/fa";
-import { HiOutlinePencilSquare } from "react-icons/hi2";
+import { FaUserCog, FaHeadset, FaRegTrashAlt, FaRegEdit } from "react-icons/fa";
 import { apiGet, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
@@ -226,7 +225,7 @@ export default function Users() {
                           title="Editar"
                           onClick={() => { setEditing(u); setOpenModal(true); }}
                         >
-                          <HiOutlinePencilSquare size={16}/>
+                          <FaRegEdit  size={16}/>
                         </button>
                         <button
                           className={`${styles.qrIconBtn} ${styles.danger}`}
