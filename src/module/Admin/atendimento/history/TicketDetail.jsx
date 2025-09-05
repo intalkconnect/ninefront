@@ -52,10 +52,6 @@ export default function TicketDetail() {
     <div className={styles.page}>
       <div className={styles.header}>
         <button onClick={handleBack} className={styles.btnBack}>← Voltar</button>
-        <div className={styles.actions}>
-          <button onClick={load} className={styles.btn}>Tentar novamente</button>
-          <Link to="/tickets" className={styles.link}>Histórico</Link>
-        </div>
       </div>
       <p className={styles.error}>{err}</p>
     </div>
