@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import ChatThread from './ChatThread';
 import styles from './styles/TicketDetail.module.css';
 import { apiGet } from '../../../../shared/apiClient';
@@ -16,9 +16,11 @@ function fmtDT(iso) {
   } catch { return '—'; }
 }
 
-function statusBadgeClass(status) {
-  // mapeie outras variações se necessário
-  return styles['badge'] + ' ' + styles['badge--warning'];
+function badgeClass(status) {
+  const s = (status || '').toLowerCase();
+  if (s.includes('andamento') || s.includes('pendente')) return `${styles.badge} ${styles.badgeWarn}`;
+  if (s.includes('resolvido') || s.includes('ok')) return `${styles.badge} ${styles.badgeOk}`;
+  return `${styles.badge} ${styles.badgeGray}`;
 }
 
 export default function TicketDetail() {
@@ -54,23 +56,22 @@ export default function TicketDetail() {
 
   const titleNum = data?.ticket_number ? String(data.ticket_number).padStart(6, '0') : '—';
   const messages = data?.messages || [];
-  const tags = Array.isArray(data?.tags) ? data.tags : ['frontend','urgent','mobile']; // fallback visual
+  const tags = Array.isArray(data?.tags) ? data.tags : [];
 
-  const createdAt = fmtDT(data?.created_at);
-  const updatedAt = fmtDT(data?.updated_at);
-
-  function handleExport() {
-    // stub – plugar quando a rota existir
-    // ex.: window.open(`/tickets/${id}/export`, '_blank');
-    alert('Exportar PDF ainda não implementado neste cliente.');
-  }
-
+  // avatar iniciais
   const initials = (data?.name || 'Cliente')
     .split(' ')
+    .filter(Boolean)
     .map(p => p[0])
-    .slice(0,2)
+    .slice(0, 2)
     .join('')
     .toUpperCase();
+
+  function handleExport() {
+    // plugar quando existir a rota de exportação
+    // ex.: window.open(`/tickets/${id}/export`, '_blank');
+    alert('Exportar PDF ainda não está disponível.');
+  }
 
   return (
     <div className={styles.page}>
@@ -83,18 +84,18 @@ export default function TicketDetail() {
         <span>Ticket #{titleNum}</span>
       </div>
 
-      {/* header */}
+      {/* header com título, badge e ações */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Ticket #{titleNum}</h1>
-            <span className={statusBadgeClass(data?.status)}>
+            <span className={badgeClass(data?.status)}>
               <span className={styles.badgeDot} />
-              {data?.status ?? 'Em Andamento'}
+              {data?.status || '—'}
             </span>
           </div>
           <div className={styles.metaRow}>
-            Criado em {createdAt || '—'}
+            Criado em {fmtDT(data?.created_at)}
           </div>
         </div>
 
@@ -103,7 +104,8 @@ export default function TicketDetail() {
             <ArrowLeft size={16}/> Voltar
           </button>
           <button className={styles.exportBtn} onClick={handleExport}>
-            <Download size={16}/> Exportar PDF
+            {/* simples texto para manter dependências mínimas */}
+            Exportar PDF
           </button>
         </div>
       </div>
@@ -112,7 +114,7 @@ export default function TicketDetail() {
         {/* ==== COLUNA ESQUERDA (SIDEBAR COM DADOS) ==== */}
         <aside className={styles.sidebar}>
           <div className={styles.card}>
-            {/* “Cliente” + avatar */}
+            {/* bloco "Cliente" com avatar e user_id */}
             <div className={styles.profile}>
               <div className={styles.avatar}>{initials}</div>
               <div>
@@ -121,38 +123,46 @@ export default function TicketDetail() {
               </div>
             </div>
 
-            <div className={styles.infoList}>
-              <div className={styles.infoRow}>
-                <span className={styles.k}>Fila</span>
-                <span className={styles.v}>{data?.fila || '—'}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.k}>Atendente</span>
-                <span className={styles.v}>{data?.assigned_to || '—'}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.k}>Status</span>
-                <span className={styles.v}>
-                  <span className={statusBadgeClass(data?.status)}>
-                    <span className={styles.badgeDot} />
-                    {data?.status ?? 'Em Andamento'}
-                  </span>
-                </span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.k}>Última atualização</span>
-                <span className={styles.v}>{updatedAt}</span>
-              </div>
-            </div>
+            {loading ? (
+              <div className={styles.loading}>Carregando…</div>
+            ) : err ? (
+              <div className={styles.error}>{err}</div>
+            ) : (
+              <>
+                <div className={styles.infoList}>
+                  <div className={styles.infoRow}>
+                    <span className={styles.k}>Fila</span>
+                    <span className={styles.v}>{data?.fila || '—'}</span>
+                  </div>
+                  <div className={styles.infoRow}>
+                    <span className={styles.k}>Atendente</span>
+                    <span className={styles.v}>{data?.assigned_to || '—'}</span>
+                  </div>
+                  <div className={styles.infoRow}>
+                    <span className={styles.k}>Status</span>
+                    <span className={styles.v}>
+                      <span className={badgeClass(data?.status)}>
+                        <span className={styles.badgeDot} />
+                        {data?.status || '—'}
+                      </span>
+                    </span>
+                  </div>
+                  <div className={styles.infoRow}>
+                    <span className={styles.k}>Última atualização</span>
+                    <span className={styles.v}>{fmtDT(data?.updated_at)}</span>
+                  </div>
+                </div>
 
-            <div className={styles.sep} />
+                <div className={styles.sep} />
 
-            <div className={styles.cardTitle}>Tags</div>
-            <div className={styles.tags}>
-              {tags.length ? tags.map((t, i) => (
-                <span key={i} className={styles.chip}>{t}</span>
-              )) : <span className={styles.personId}>Sem tags</span>}
-            </div>
+                <div className={styles.cardTitle}>Tags</div>
+                <div className={styles.tags}>
+                  {tags.length
+                    ? tags.map((t, i) => <span key={i} className={styles.chip}>{t}</span>)
+                    : <span className={styles.personId}>Sem tags</span>}
+                </div>
+              </>
+            )}
           </div>
         </aside>
 
@@ -184,7 +194,7 @@ export default function TicketDetail() {
               ) : activeTab === 'conversa' ? (
                 <ChatThread messages={messages} />
               ) : (
-                <div className={styles.loading}>Nenhum anexo.</div>
+                <div className={styles.loading}>Nenhum anexo encontrado.</div>
               )}
             </div>
           </div>
