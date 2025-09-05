@@ -1,5 +1,5 @@
 import React from 'react';
-import './ContactsMessage.css';
+import './styles/ContactsMessage.css';
 
 // -------- Utils: vCard <-> objeto simples --------
 function escapeV(v = '') {
