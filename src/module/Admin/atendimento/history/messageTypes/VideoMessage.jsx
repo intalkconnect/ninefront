@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import './VideoMessage.css';
+import './styles/VideoMessage.css';
 
 export default function VideoMessage({
   url,
