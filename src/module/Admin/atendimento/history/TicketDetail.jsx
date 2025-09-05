@@ -1,98 +1,80 @@
-// src/pages/TicketDetail.jsx
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import ChatThread from './ChatThread';
+
 import styles from './styles/TicketDetail.module.css';
+import { apiGet } from '../../shared/apiClient'; // ajuste o caminho se necessário
 
-// ajuste para seu http client
-import { apiGet } from '../../../../shared/apiClient';
-
-function fmtDateTime(iso) {
+function fmtDT(iso) {
   if (!iso) return '—';
   try {
     const d = new Date(iso);
-    return d.toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: '2-digit',
-      hour: '2-digit', minute: '2-digit'
-    });
+    return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
   } catch { return '—'; }
 }
 
 export default function TicketDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
+  const nav = useNavigate();
   const location = useLocation();
 
-  const [ticket, setTicket] = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true); setErr(null);
-    try {
-      const resp = await apiGet(`/tickets/history/${id}?include=messages&messages_limit=100`);
-      setTicket(resp?.data || resp || null);
-    } catch (e) {
-      console.error(e);
-      setErr('Não foi possível carregar o ticket.');
-    } finally {
-      setLoading(false);
-    }
+  const backTo = useMemo(() => location.state?.returnTo || '/management/history', [location.state]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setErr(null);
+      try {
+        const res = await apiGet(`/tickets/history/${id}?include=messages&messages_limit=200`);
+        if (mounted) setData(res);
+      } catch (e) {
+        if (mounted) setErr('Falha ao carregar o ticket.');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
-
-  const handleBack = () => {
-    const back = location.state?.returnTo || '/tickets';
-    navigate(back);
-  };
-
-  if (loading) return <div className={styles.page}>Carregando…</div>;
-  if (err) return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <button onClick={handleBack} className={styles.btnBack}>← Voltar</button>
-      </div>
-      <p className={styles.error}>{err}</p>
-    </div>
-  );
-  if (!ticket) return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <button onClick={handleBack} className={styles.btnBack}>← Voltar</button>
-      </div>
-      <p>Ticket não encontrado.</p>
-    </div>
-  );
+  const messages = data?.messages || [];
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <button onClick={handleBack} className={styles.btnBack} title="Voltar">←</button>
-          <h1 className={styles.title}>
-            Ticket #{String(ticket.ticket_number || id).padStart(6, '0')}
-          </h1>
-        </div>
-        <div className={styles.actions}>
-          <button onClick={load} className={styles.btn}>Atualizar</button>
-          <Link to="/tickets" className={styles.link}>Histórico</Link>
-        </div>
+        <button className={styles.backBtn} onClick={() => nav(backTo)}>
+          <ArrowLeft size={16}/> Voltar
+        </button>
+        <h1 className={styles.title}>Ticket #{String(data?.ticket_number || '').padStart(6, '0')}</h1>
       </div>
 
       <div className={styles.card}>
-        <div><strong>User ID:</strong> {ticket.user_id || '—'}</div>
-        <div><strong>Fila:</strong> {ticket.fila || '—'}</div>
-        <div><strong>Atendente:</strong> {ticket.assigned_to || '—'}</div>
-        <div><strong>Status:</strong> {ticket.status || '—'}</div>
-        <div><strong>Criado:</strong> {fmtDateTime(ticket.created_at)}</div>
-        <div><strong>Atualizado:</strong> {fmtDateTime(ticket.updated_at)}</div>
-        {ticket.closed_at && <div><strong>Fechado:</strong> {fmtDateTime(ticket.closed_at)}</div>}
+        <div className={styles.infoGrid}>
+          <div><span className={styles.k}>User ID:</span> <span className={styles.v}>{data?.user_id || '—'}</span></div>
+          <div><span className={styles.k}>Fila:</span> <span className={styles.v}>{data?.fila || '—'}</span></div>
+          <div><span className={styles.k}>Atendente:</span> <span className={styles.v}>{data?.assigned_to || '—'}</span></div>
+          <div><span className={styles.k}>Status:</span> <span className={styles.v}>{data?.status || '—'}</span></div>
+          <div><span className={styles.k}>Criado:</span> <span className={styles.v}>{fmtDT(data?.created_at)}</span></div>
+          <div><span className={styles.k}>Atualizado:</span> <span className={styles.v}>{fmtDT(data?.updated_at)}</span></div>
+        </div>
       </div>
 
-      <div className={styles.card}>
-        <h2 className={styles.subtitle}>Conversa</h2>
-        <ChatThread messages={ticket.messages || []} />
+      <div className={styles.chatCard}>
+        <div className={styles.cardHead}>Conversa</div>
+        <div className={styles.chatBody}>
+          {loading ? (
+            <div className={styles.loading}>Carregando…</div>
+          ) : err ? (
+            <div className={styles.error}>{err}</div>
+          ) : (
+            <ChatThread messages={messages} />
+          )}
+        </div>
       </div>
     </div>
   );
