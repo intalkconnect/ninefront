@@ -30,7 +30,7 @@ export default function TicketDetail() {
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
     try {
-      const resp = await apiGet(`/tickets/${id}?include=messages&messages_limit=100`);
+      const resp = await apiGet(`/tickets/history/${id}?include=messages&messages_limit=100`);
       setTicket(resp?.data || resp || null);
     } catch (e) {
       console.error(e);
