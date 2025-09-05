@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import './styles/ButtonsMessage.css';
+import './styles/QuickReplyMessage.css';
 
 function normalizeInteractiveButtons(content) {
   // WhatsApp Cloud:
