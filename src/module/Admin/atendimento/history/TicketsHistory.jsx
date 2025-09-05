@@ -166,7 +166,8 @@ export default function TicketsHistory() {
     })
   }
 />
-                  <td>{t.ticket_number?.toString().padStart(6, '0') || '—'}</td>
+                  <td>{t.ticket_number ? t.ticket_number.toString().padStart(6, '0') : '—'}</td>
+
                   <td>{t.user_id || '—'}</td>
                   <td>{t.fila || '—'}</td>
                   <td>{t.assigned_to || '—'}</td>
