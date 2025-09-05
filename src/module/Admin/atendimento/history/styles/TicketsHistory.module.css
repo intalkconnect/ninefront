@@ -139,6 +139,22 @@
 /* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
+/* NOVO: cursor e hover claros para linha clicável */
+.rowClickable {
+  cursor: pointer;
+}
+.rowClickable:hover {
+  background: #f8fafc;           /* leve destaque */
+}
+.rowClickable:active {
+  background: #f1f5f9;
+}
+
+/* garante o cursor mesmo sobre o texto da célula */
+.rowClickable td {
+  cursor: pointer;
+}
+
 /* Responsivo */
 @media (max-width: 920px){
   .inputSm{ width:160px; }
