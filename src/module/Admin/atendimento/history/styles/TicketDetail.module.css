@@ -1,13 +1,78 @@
 .page {
   display: grid;
   gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 12px 32px;
+  color: #0f172a;
 }
 
 /* topo */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+.bcLink {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.bcSep { opacity: .6; }
+
 .pageHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.titleWrap {
+  display: grid;
+  gap: 6px;
+}
+.titleRow {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+.badge--warning {
+  background: #fff7ed;      /* amber-50 */
+  color: #92400e;            /* amber-800 */
+  border: 1px solid #fed7aa; /* amber-200 */
+}
+.badge--warning .badgeDot { background: #f59e0b; }
+
+.metaRow {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .backBtn {
   display: inline-flex;
@@ -16,18 +81,24 @@
   background: #fff;
   border: 1px solid #e3e7ee;
   border-radius: 10px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   cursor: pointer;
 }
-.title {
-  margin: 0;
-  font-size: 20px;
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e3e7ee;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
 }
 
 /* duas colunas */
 .columns {
   display: grid;
-  grid-template-columns: 340px 1fr; /* sidebar | chat */
+  grid-template-columns: 360px 1fr; /* sidebar | chat */
   gap: 16px;
   align-items: start;
 }
@@ -50,6 +121,27 @@
   margin-bottom: 10px;
 }
 
+/* bloco perfil do cliente */
+.profile {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #334155;
+}
+.personName { font-weight: 700; }
+.personId { font-size: 12px; color: #64748b; }
+
 /* lista de infos do cliente */
 .infoList {
   display: grid;
@@ -57,7 +149,7 @@
 }
 .infoRow {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: 120px 1fr;
   gap: 10px;
   align-items: center;
   font-size: 14px;
@@ -67,7 +159,23 @@
 .sep {
   height: 1px;
   background: #eef2f7;
-  margin: 6px 0;
+  margin: 8px 0;
+}
+
+/* tags */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
 }
 
 /* coluna do chat */
@@ -81,10 +189,39 @@
   border-radius: 12px;
 }
 .cardHead {
-  font-weight: 600;
-  padding: 10px 14px;
+  padding: 6px 8px 0 8px;
   border-bottom: 1px solid #eef2f7;
 }
+
+/* tabs no cabeçalho do card */
+.tabs {
+  display: flex;
+  gap: 16px;
+  padding: 6px 6px 0 6px;
+}
+.tab {
+  position: relative;
+  background: transparent;
+  border: 0;
+  padding: 10px 10px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+}
+.tabActive {
+  color: #0f172a;
+}
+.tabActive::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 2px;
+  background: #111827;
+  border-radius: 2px 2px 0 0;
+}
+
 .chatBody {
   padding: 0;
   height: 100%;
@@ -102,5 +239,12 @@
   }
   .sidebar {
     position: static;
+  }
+  .pageHeader {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .headerActions {
+    justify-content: flex-start;
   }
 }
