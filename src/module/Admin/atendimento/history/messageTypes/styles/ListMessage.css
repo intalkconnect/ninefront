@@ -1,0 +1,118 @@
+/* =======================
+   0) RESET DO BALÃO (wrapper)
+   Remove fundo/borda/sombra/padding do(s) contêiner(es) da mensagem
+   que CONTÊM um .list-container, sem afetar .messages-list inteira.
+   ======================= */
+.messages-list > *:has(.list-container),
+.messages-list > * > *:has(.list-container),
+.messages-list > * > * > *:has(.list-container) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Oculta "rabinho" se o wrapper usa pseudo-elemento */
+.messages-list > *:has(.list-container)::before,
+.messages-list > *:has(.list-container)::after,
+.messages-list > * > *:has(.list-container)::before,
+.messages-list > * > *:has(.list-container)::after,
+.messages-list > * > * > *:has(.list-container)::before,
+.messages-list > * > * > *:has(.list-container)::after {
+  display: none !important;
+}
+
+/* Fallback caso seu build não suporte :has():
+   adicione a classe bubble--list no wrapper dessa mensagem */
+.bubble--list {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.bubble--list::before,
+.bubble--list::after { display: none !important; }
+
+/* =======================
+   1) MENU LIST — visual "quick reply" no card branco
+   (mesma aparência dos botões brancos empilhados)
+   ======================= */
+.list-container {
+  background-color: #ffffff;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  max-width: 320px;
+  border: 1px solid #e6e6e6;
+  box-sizing: border-box;
+}
+
+/* título/texto do topo */
+.list-body-text {
+  font-size: 14px;
+  color: #111b21;
+  font-weight: 400;
+  margin: 0;
+}
+
+/* pilha de itens como “botões” */
+.list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0; /* sem divisória */
+}
+
+/* esconda o título de seção para ficar igual ao quick reply */
+.list-section-title { display: none; }
+
+/* cada item = botão branco */
+.list-row {
+  background-color: #ffffff;
+  border: 1px solid #d1d7db;
+  border-radius: 12px;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0d47a1;
+  cursor: pointer;
+  transition: background-color .2s ease, border-color .2s ease;
+}
+.list-row:hover {
+  background-color: #f0f2f5;
+  border-color: #c4cbd0;
+}
+
+/* só o título visível (igual quick reply) */
+.list-row-title {
+  margin: 0;
+  font-weight: 500;
+  font-size: 14px;
+  color: #0d47a1;
+}
+.list-row-description,
+.list-preview { display: none; }
+
+/* rodapé discreto */
+.list-footer {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #667781;
+}
+
+/* acessibilidade */
+.list-row:focus-visible {
+  outline: 2px solid #87b1ff;
+  outline-offset: 2px;
+}
+
+/* responsivo */
+@media (max-width: 360px) {
+  .list-container { max-width: 100%; }
+}
