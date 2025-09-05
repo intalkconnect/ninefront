@@ -1,7 +1,7 @@
 // src/pages/TicketDetail.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
-import ChatThread from '../components/ChatThread';
+import ChatThread from './ChatThread';
 import styles from './styles/TicketDetail.module.css';
 
 // ajuste para seu http client
