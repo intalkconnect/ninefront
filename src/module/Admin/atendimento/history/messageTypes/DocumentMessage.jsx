@@ -1,6 +1,6 @@
 // src/components/ChatWindow/messageTypes/DocumentMessage.jsx
 import React from 'react';
-import { getFileIcon } from '../utils/getFileIcon';
+import { getFileIcon } from './utils/getFileIcon';
 import './styles/DocumentMessage.css';
 
 export default function DocumentMessage({ filename, url, caption, onClick, small }) {
