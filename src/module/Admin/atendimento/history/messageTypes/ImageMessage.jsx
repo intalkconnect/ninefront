@@ -1,7 +1,7 @@
 
 // src/components/ChatWindow/messageTypes/ImageMessage.jsx
 import React from 'react';
-import './ImageMessage.css';
+import './styles/ImageMessage.css';
 
 export default function ImageMessage({ url, caption, onClick, small }) {
   return (
