@@ -1,5 +1,5 @@
 import React from 'react';
-import './QuickReplyMessage.css'; // Crie um CSS simples ou use o do ListMessage
+import './styles/QuickReplyMessage.css'; // Crie um CSS simples ou use o do ListMessage
 
 export default function QuickReplyMessage({ data, small }) {
   if (small) {
