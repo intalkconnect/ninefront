@@ -5,7 +5,7 @@ import ChatThread from './ChatThread';
 import styles from './styles/TicketDetail.module.css';
 
 // ajuste para seu http client
-import { apiGet } from '../../shared/apiClient';
+import { apiGet } from '../../../../shared/apiClient';
 
 function fmtDateTime(iso) {
   if (!iso) return '—';
