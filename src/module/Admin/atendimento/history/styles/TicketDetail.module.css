@@ -1,32 +1,106 @@
-.page { display: grid; gap: 14px; }
+.page {
+  display: grid;
+  gap: 16px;
+}
 
-.header {
-  display: flex; align-items: center; gap: 12px;
+/* topo */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .backBtn {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: #fff; border: 1px solid #e3e7ee; border-radius: 10px;
-  padding: 6px 10px; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #e3e7ee;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
 }
-.title { margin: 0; font-size: 20px; }
+.title {
+  margin: 0;
+  font-size: 20px;
+}
+
+/* duas colunas */
+.columns {
+  display: grid;
+  grid-template-columns: 340px 1fr; /* sidebar | chat */
+  gap: 16px;
+  align-items: start;
+}
+
+/* sidebar fixa ao rolar (dentro da página) */
+.sidebar {
+  position: sticky;
+  top: 12px;            /* ajuste se tiver um header fixo global */
+  align-self: start;
+}
 
 .card {
-  background: #fff; border: 1px solid #e3e7ee; border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e3e7ee;
+  border-radius: 12px;
   padding: 14px;
 }
-.infoGrid {
-  display: grid; grid-template-columns: repeat(3, minmax(180px,1fr));
-  gap: 8px 16px; font-size: 14px;
+.cardTitle {
+  font-weight: 700;
+  margin-bottom: 10px;
 }
-.k { color: #64748b; font-weight: 600; margin-right: 6px; }
-.v { color: #0f172a; }
+
+/* lista de infos do cliente */
+.infoList {
+  display: grid;
+  gap: 8px;
+}
+.infoRow {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+}
+.k { color: #64748b; font-weight: 600; }
+.v { color: #0f172a; word-break: break-all; }
+.sep {
+  height: 1px;
+  background: #eef2f7;
+  margin: 6px 0;
+}
+
+/* coluna do chat */
+.main { min-height: 60vh; }
 
 .chatCard {
-  display: grid; grid-template-rows: auto minmax(320px, 60vh);
-  background: #fff; border: 1px solid #e3e7ee; border-radius: 12px;
+  display: grid;
+  grid-template-rows: auto minmax(480px, 70vh);
+  background: #fff;
+  border: 1px solid #e3e7ee;
+  border-radius: 12px;
 }
 .cardHead {
-  font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #eef2f7;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid #eef2f7;
 }
-.chatBody { padding: 0; height: 100%; }
-.loading, .error { padding: 18px; color: #64748b; }
+.chatBody {
+  padding: 0;
+  height: 100%;
+}
+
+.loading, .error {
+  padding: 18px;
+  color: #64748b;
+}
+
+/* responsivo: empilha no mobile */
+@media (max-width: 1100px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+  }
+}
