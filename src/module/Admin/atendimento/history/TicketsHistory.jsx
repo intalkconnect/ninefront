@@ -160,11 +160,9 @@ export default function TicketsHistory() {
   className={styles.rowHover}
   role="button"
   tabIndex={0}
-  onClick={() =>
-    navigate(`/tickets/${t.id}`, {
+onClick={() => navigate(`/management/history/${t.id}`, {
       state: { returnTo: window.location.pathname + window.location.search }
-    })
-  }
+    })}
 >
                   <td>{t.ticket_number ? t.ticket_number.toString().padStart(6, '0') : '—'}</td>
 
