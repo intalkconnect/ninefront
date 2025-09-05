@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import ChatThread from './ChatThread';
 
 import styles from './styles/TicketDetail.module.css';
-import { apiGet } from '../../shared/apiClient'; // ajuste o caminho se necessário
+import { apiGet } from '../../../../shared/apiClient'; // ajuste o caminho se necessário
 
 function fmtDT(iso) {
   if (!iso) return '—';
