@@ -157,7 +157,7 @@ export default function TicketsHistory() {
               {!loading && !error && items.map((t) => (
                 <tr
   key={t.id}
-  className={styles.rowHover}
+  className={`${styles.rowHover} ${styles.rowClickable}`}
   role="button"
   tabIndex={0}
 onClick={() => navigate(`/management/history/${t.id}`, {
