@@ -165,7 +165,7 @@ export default function TicketsHistory() {
       state: { returnTo: window.location.pathname + window.location.search }
     })
   }
-/>
+>
                   <td>{t.ticket_number ? t.ticket_number.toString().padStart(6, '0') : '—'}</td>
 
                   <td>{t.user_id || '—'}</td>
