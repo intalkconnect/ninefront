@@ -1,6 +1,6 @@
 // src/components/ChatThread.jsx
 import React from 'react';
-import styles from './ChatThread.module.css';
+import styles from './styles/ChatThread.module.css';
 
 function fmtDateTime(iso) {
   if (!iso) return '—';
