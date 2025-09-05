@@ -1,17 +1,16 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  Users as UsersIcon, Plus, Pencil, Trash2, X as XIcon, RefreshCw,
-  AlertCircle, CheckCircle2, Shield
+  Users as UsersIcon, Plus, SquarePen, Trash2, X as XIcon, RefreshCw,
+  AlertCircle, CheckCircle2, Shield, UserRoundCog, Headset
 } from 'lucide-react';
-import { FaUserCog, FaHeadset, FaRegTrashAlt, FaRegEdit } from "react-icons/fa";
 import { apiGet, apiDelete } from '../../../shared/apiClient';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
 import { useConfirm } from '../../../components/ConfirmProvider.jsx';
 
 const PERFIL_ICONS = {
-  admin:      <FaUserCog size={14} />,
-  atendente:  <FaHeadset size={14} />,
+  admin:      <UserRoundCog size={14} />,
+  atendente:  <Headset size={14} />,
   supervisor: <Shield size={14} />, // pode trocar se quiser outro ícone
 };
 
@@ -225,14 +224,14 @@ export default function Users() {
                           title="Editar"
                           onClick={() => { setEditing(u); setOpenModal(true); }}
                         >
-                          <FaRegEdit  size={16}/>
+                          <SquarePen size={16}/>
                         </button>
                         <button
                           className={`${styles.qrIconBtn} ${styles.danger}`}
                           title="Excluir"
                           onClick={() => handleDelete(u)}
                         >
-                          <FaRegTrashAlt size={16}/>
+                          <Trash2 size={16}/>
                         </button>
                       </div>
                     </td>
