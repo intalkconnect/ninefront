@@ -58,6 +58,7 @@ import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campanhas/Campaigns";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
+import TicketDetail from "./atendimento/history/TicketDetail";
 
 // Temporários (mantidos)
 const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
@@ -477,6 +478,7 @@ export default function Admin() {
           <Route path="management/queues" element={<Queues />} />
           <Route path="management/quick-replies" element={<QuickReplies />} />
           <Route path="management/history" element={<History />} />
+          <Route path="management/history/:id" element={<TicketDetail />} />
           <Route path="management/clientes" element={<Clientes />} />
 
           {/* campaigns */}
