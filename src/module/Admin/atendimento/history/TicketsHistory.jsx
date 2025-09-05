@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { History as HistoryIcon, RefreshCw, X as XIcon } from 'lucide-react';
 import styles from './styles/TicketsHistory.module.css';
 import { apiGet } from '../../../../shared/apiClient';
+import { useNavigate } from 'react-router-dom';
 
 const PAGE_SIZES = [10, 20, 30, 40];
 
@@ -32,6 +33,7 @@ export default function TicketsHistory() {
 
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState(null);
+  const navigate = useNavigate();
 
   // debounce da busca
   useEffect(() => {
@@ -153,7 +155,17 @@ export default function TicketsHistory() {
               )}
 
               {!loading && !error && items.map((t) => (
-                <tr key={t.id || t.ticket_number} className={styles.rowHover}>
+                <tr
+  key={t.id}
+  className={styles.rowHover}
+  role="button"
+  tabIndex={0}
+  onClick={() =>
+    navigate(`/tickets/${t.id}`, {
+      state: { returnTo: window.location.pathname + window.location.search }
+    })
+  }
+/>
                   <td>{t.ticket_number?.toString().padStart(6, '0') || '—'}</td>
                   <td>{t.user_id || '—'}</td>
                   <td>{t.fila || '—'}</td>
