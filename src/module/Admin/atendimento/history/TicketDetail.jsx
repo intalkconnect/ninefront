@@ -36,6 +36,7 @@ export default function TicketDetail() {
     (async () => {
       setLoading(true); setErr(null);
       try {
+        // agora o endpoint já retorna nome/contato do cliente
         const res = await apiGet(`/tickets/history/${id}?include=messages&messages_limit=200`);
         if (alive) setData(res);
       } catch (e) {
@@ -51,11 +52,13 @@ export default function TicketDetail() {
   const messages = data?.messages || [];
   const tags = Array.isArray(data?.tags) ? data.tags : [];
 
-  // nome do cliente vindo do endpoint (use o campo que você for retornar)
-  const customerName =
-    data?.customer_name || data?.cliente_nome || data?.name || 'Cliente';
+  // campos retornados pelo endpoint
+  const customerName   = data?.customer_name || data?.name || 'Cliente';
+  const customerEmail  = data?.customer_email || null;
+  const customerPhone  = data?.customer_phone || null;
+  const customerId     = data?.user_id || '—';
+  const customerContact = customerEmail || customerPhone || null;
 
-  // iniciais para avatar
   const initials = (customerName || 'C')
     .split(' ')
     .filter(Boolean)
@@ -79,13 +82,11 @@ export default function TicketDetail() {
         <span>Ticket #{titleNum}</span>
       </div>
 
-      {/* header (sem badge de status aqui, para evitar redundância) */}
+      {/* Header amplo: título à esquerda e ações (Voltar/Exportar) à direita */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <h1 className={styles.title}>Ticket #{titleNum}</h1>
-          <div className={styles.metaRow}>
-            Criado em {fmtDT(data?.created_at)}
-          </div>
+          <div className={styles.metaRow}>Criado em {fmtDT(data?.created_at)}</div>
         </div>
 
         <div className={styles.headerActions}>
@@ -99,16 +100,17 @@ export default function TicketDetail() {
       </div>
 
       <div className={styles.columns}>
-        {/* ==== COLUNA ESQUERDA (SIDEBAR) ==== */}
+        {/* === ESQUERDA: card do cliente === */}
         <aside className={styles.sidebar}>
           <div className={styles.card}>
-            {/* topo: avatar + nome + user_id */}
             <div className={styles.section}>
               <div className={styles.profile}>
                 <div className={styles.avatar}>{initials}</div>
                 <div>
                   <div className={styles.personName}>{customerName}</div>
-                  <div className={styles.personId}>{data?.user_id || '—'}</div>
+                  <div className={styles.personId}>
+                    {customerContact || customerId}
+                  </div>
                 </div>
               </div>
 
@@ -130,9 +132,7 @@ export default function TicketDetail() {
 
                   <div className={styles.infoItem}>
                     <div className={styles.label}>Status</div>
-                    <div>
-                      <span className={styles.pill}>{data?.status || '—'}</span>
-                    </div>
+                    <div><span className={styles.pill}>{data?.status || '—'}</span></div>
                   </div>
 
                   <div className={styles.infoItem}>
@@ -143,8 +143,8 @@ export default function TicketDetail() {
               )}
             </div>
 
-            {/* divisória e Tags */}
             <div className={styles.divider} />
+
             <div className={styles.tagsWrap}>
               <div className={styles.tagsTitle}>Tags</div>
               <div className={styles.tags}>
@@ -156,7 +156,7 @@ export default function TicketDetail() {
           </div>
         </aside>
 
-        {/* ==== COLUNA DIREITA (CHAT + ABAS) ==== */}
+        {/* === DIREITA: conversa (abas) === */}
         <section className={styles.main}>
           <div className={styles.chatCard}>
             <div className={styles.cardHead}>
