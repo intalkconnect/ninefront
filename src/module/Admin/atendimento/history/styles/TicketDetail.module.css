@@ -263,3 +263,25 @@
   .sidebar { position: static; }
   .title { font-size: 22px; }
 }
+
+/* ===== Botão primário (azul degradê) ===== */
+.btnPrimary{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color:#ffffff;border:none;border-radius:10px;font-weight:700;font-size:14px;
+  cursor:pointer;transition: all 0.2s ease;box-shadow:0 2px 8px rgba(59,130,246,0.2);
+}
+.btnPrimary:hover{ transform: translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,0.3); }
+.btnPrimary:active{ transform: translateY(0); box-shadow:0 2px 8px rgba(59,130,246,0.2); }
+.btnPrimary:focus-visible{ outline: 2px solid #bfdbfe; outline-offset: 2px; }
+
+/* Tamanho pequeno para botões compactos (ex.: Baixar) */
+.btnSm{ padding:8px 12px; font-size:13px; border-radius:8px; gap:6px; }
+
+/* Versão “ghost” (linkzinho com hover) – opcional, se quiser usar em outros lugares */
+.btnGhost {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;border:1px solid var(--card-border);border-radius:8px;background:#fff;
+  color:#111827;font-weight:600; cursor:pointer; transition: background .15s ease, box-shadow .15s ease;
+}
+.btnGhost:hover { background:#f8fafc; box-shadow:0 1px 0 rgba(0,0,0,.04); }
