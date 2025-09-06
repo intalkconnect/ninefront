@@ -253,7 +253,6 @@ export default function ClientsMonitor() {
                 <th>Agente</th>
                 <th>Status</th>
                 <th>Tempo</th>
-                <th>Prioridade</th>
                 <th>Ações</th>
               </tr>
             </thead>
