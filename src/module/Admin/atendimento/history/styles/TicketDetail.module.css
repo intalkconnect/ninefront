@@ -1,6 +1,6 @@
 /* ========== Variáveis & base ========== */
 .page {
-  --container-max: 1280px;
+  --container-max: 1440px;
   --gap: 16px;
   --card-bg: #fff;
   --card-border: #e3e7ee;
@@ -87,7 +87,7 @@
 /* ========== Layout 2 colunas ========== */
 .columns {
   display: grid;
-  grid-template-columns: 380px 1fr; /* sidebar | chat */
+  grid-template-columns: 420px 1fr; /* sidebar | chat */
   gap: 16px;
   align-items: start;
 }
@@ -254,11 +254,8 @@
 }
 .fileMeta { font-size: 12px; color: var(--muted); }
 .attachActions { display: flex; align-items: center; gap: 8px; }
-.btnGhost {
-  border: 1px solid #e5e7eb; border-radius: 10px; background: #fff;
-  padding: 6px 10px; font-weight: 600; color: #111827; cursor: pointer;
-}
-.btnGhost:disabled { opacity: .5; cursor: not-allowed; }
+.btnGhost { transition: background .15s ease, box-shadow .15s ease; }
+.btnGhost:hover { background:#f8fafc; box-shadow:0 1px 0 rgba(0,0,0,.04); }
 
 /* ========== Responsivo ========== */
 @media (max-width: 1100px) {
