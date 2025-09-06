@@ -12,7 +12,23 @@ function normalizeQueues(queues) {
   }).filter(q => q.id && q.nome);
 }
 
-export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }) {
+/**
+ * UsersModal
+ * Regras solicitadas:
+ * - Supervisor NÃO pode criar usuários com perfil "admin".
+ * - Supervisor NÃO pode editar um usuário para "admin".
+ *   (Caso esteja editando um admin, o botão Salvar fica desabilitado enquanto o valor for "admin").
+ *
+ * Passe a prop `canCreateAdmin={isAdmin}` a partir da página pai (UsersPage).
+ */
+export default function UsersModal({
+  isOpen,
+  onClose,
+  onSaved,
+  editing,
+  queues,
+  canCreateAdmin = false, // <-- importante: por padrão NÃO permite criar admin
+}) {
   const qs = useMemo(() => normalizeQueues(queues), [queues]);
 
   const [form, setForm] = useState({
@@ -20,6 +36,16 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
+
+  const isEditing = Boolean(editing);
+  const originalPerfil = String(editing?.perfil || '').toLowerCase();
+  const isEditingAdmin = isEditing && originalPerfil === 'admin';
+
+  // Perfis permitidos no seletor
+  const allowedProfiles = useMemo(() => {
+    // Admin pode tudo; supervisor NÃO tem opção de "admin"
+    return canCreateAdmin ? ['admin', 'supervisor', 'atendente'] : ['supervisor', 'atendente'];
+  }, [canCreateAdmin]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -34,6 +60,7 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
     } else {
       setForm({ name: '', lastname: '', email: '', perfil: 'atendente', filas: [] });
     }
+    setErr(null);
   }, [isOpen, editing]);
 
   const onEsc = useCallback((e) => { if (e.key === 'Escape') onClose?.(); }, [onClose]);
@@ -45,11 +72,21 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
   if (!isOpen) return null;
 
+  const perfilLower = String(form.perfil || '').toLowerCase();
+  const isTryingToSaveAsAdmin = perfilLower === 'admin' && !canCreateAdmin;
+
   async function handleSave(e) {
     e?.preventDefault?.();
     setErr(null);
+
     if (!form.email.trim()) { setErr('Informe o e-mail.'); return; }
     if (!form.name.trim()) { setErr('Informe o nome.'); return; }
+
+    // BLOQUEIO: se não pode criar/definir admin e o perfil selecionado é admin, impede salvar
+    if (isTryingToSaveAsAdmin) {
+      setErr('Seu perfil não permite definir o perfil "Admin". Selecione outro perfil.');
+      return;
+    }
 
     try {
       setSaving(true);
@@ -57,7 +94,7 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
         name: form.name.trim(),
         lastname: form.lastname.trim(),
         email: form.email.trim(),
-        perfil: String(form.perfil || 'atendente').toLowerCase(),
+        perfil: perfilLower || 'atendente',
         filas: form.filas,
       };
       if (editing?.id) {
@@ -94,31 +131,64 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
         <form className={m.body} onSubmit={handleSave}>
           {err && <div className={m.alert}>{err}</div>}
+          {isTryingToSaveAsAdmin && (
+            <div className={m.alert}>
+              Seu perfil não permite definir "Admin". Selecione outro perfil para continuar.
+            </div>
+          )}
 
           <div className={m.grid}>
             <div className={m.group}>
               <label className={m.label}>Nome</label>
-              <input className={m.input} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+              <input
+                className={m.input}
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+              />
             </div>
             <div className={m.group}>
               <label className={m.label}>Sobrenome</label>
-              <input className={m.input} value={form.lastname} onChange={e => setForm({ ...form, lastname: e.target.value })} />
+              <input
+                className={m.input}
+                value={form.lastname}
+                onChange={e => setForm({ ...form, lastname: e.target.value })}
+              />
             </div>
           </div>
 
           <div className={m.group}>
             <label className={m.label}>E-mail</label>
-            <input className={m.input} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+            <input
+              className={m.input}
+              type="email"
+              value={form.email}
+              onChange={e => setForm({ ...form, email: e.target.value })}
+            />
           </div>
 
           <div className={m.grid}>
             <div className={m.group}>
               <label className={m.label}>Perfil</label>
-              <select className={m.select} value={form.perfil} onChange={e => setForm({ ...form, perfil: e.target.value })}>
-                <option value="admin">Admin</option>
+              <select
+                className={m.select}
+                value={form.perfil}
+                onChange={e => setForm({ ...form, perfil: e.target.value })}
+              >
+                {/* Se o usuário logado não pode criar admin:
+                    - não mostramos a opção "admin" para novos usuários
+                    - se estiver editando um usuário que JÁ é admin, exibimos opção "Admin (restrito)" desabilitada */}
+                {canCreateAdmin && <option value="admin">Admin</option>}
+                {!canCreateAdmin && isEditingAdmin && (
+                  <option value="admin" disabled>Admin (restrito)</option>
+                )}
                 <option value="supervisor">Supervisor</option>
                 <option value="atendente">Atendente</option>
               </select>
+              {!canCreateAdmin && (
+                <small className={m.hint}>
+                  Supervisores não podem definir perfil "Admin".
+                </small>
+              )}
             </div>
 
             <div className={m.group}>
@@ -132,7 +202,13 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
                         return (
                           <span key={fid} className={m.chip}>
                             {q?.nome ?? fid}
-                            <button type="button" className={m.chipX} onClick={() => toggleFila(String(fid))}>×</button>
+                            <button
+                              type="button"
+                              className={m.chipX}
+                              onClick={() => toggleFila(String(fid))}
+                            >
+                              ×
+                            </button>
                           </span>
                         );
                       })
@@ -154,7 +230,12 @@ export default function UsersModal({ isOpen, onClose, onSaved, editing, queues }
 
           <div className={m.footer}>
             <button type="button" className={m.btn} onClick={onClose}>Cancelar</button>
-            <button type="submit" className={m.btnPrimary} disabled={saving}>
+            <button
+              type="submit"
+              className={m.btnPrimary}
+              disabled={saving || isTryingToSaveAsAdmin}
+              title={isTryingToSaveAsAdmin ? 'Selecione outro perfil para habilitar o salvamento' : undefined}
+            >
               <Save size={16}/> {saving ? 'Salvando…' : 'Salvar'}
             </button>
           </div>
