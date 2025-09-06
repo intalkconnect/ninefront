@@ -16,13 +16,6 @@ function fmtDT(iso) {
   } catch { return '—'; }
 }
 
-function badgeClass(status) {
-  const s = (status || '').toLowerCase();
-  if (s.includes('andamento') || s.includes('pendente')) return `${styles.badge} ${styles.badgeWarn}`;
-  if (s.includes('resolvido') || s.includes('ok')) return `${styles.badge} ${styles.badgeOk}`;
-  return `${styles.badge} ${styles.badgeGray}`;
-}
-
 export default function TicketDetail() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -58,8 +51,12 @@ export default function TicketDetail() {
   const messages = data?.messages || [];
   const tags = Array.isArray(data?.tags) ? data.tags : [];
 
-  // avatar iniciais
-  const initials = (data?.name || 'Cliente')
+  // nome do cliente vindo do endpoint (use o campo que você for retornar)
+  const customerName =
+    data?.customer_name || data?.cliente_nome || data?.name || 'Cliente';
+
+  // iniciais para avatar
+  const initials = (customerName || 'C')
     .split(' ')
     .filter(Boolean)
     .map(p => p[0])
@@ -68,8 +65,6 @@ export default function TicketDetail() {
     .toUpperCase();
 
   function handleExport() {
-    // plugar quando existir a rota de exportação
-    // ex.: window.open(`/tickets/${id}/export`, '_blank');
     alert('Exportar PDF ainda não está disponível.');
   }
 
@@ -84,16 +79,10 @@ export default function TicketDetail() {
         <span>Ticket #{titleNum}</span>
       </div>
 
-      {/* header com título, badge e ações */}
+      {/* header (sem badge de status aqui, para evitar redundância) */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
-          <div className={styles.titleRow}>
-            <h1 className={styles.title}>Ticket #{titleNum}</h1>
-            <span className={badgeClass(data?.status)}>
-              <span className={styles.badgeDot} />
-              {data?.status || '—'}
-            </span>
-          </div>
+          <h1 className={styles.title}>Ticket #{titleNum}</h1>
           <div className={styles.metaRow}>
             Criado em {fmtDT(data?.created_at)}
           </div>
@@ -104,65 +93,66 @@ export default function TicketDetail() {
             <ArrowLeft size={16}/> Voltar
           </button>
           <button className={styles.exportBtn} onClick={handleExport}>
-            {/* simples texto para manter dependências mínimas */}
             Exportar PDF
           </button>
         </div>
       </div>
 
       <div className={styles.columns}>
-        {/* ==== COLUNA ESQUERDA (SIDEBAR COM DADOS) ==== */}
+        {/* ==== COLUNA ESQUERDA (SIDEBAR) ==== */}
         <aside className={styles.sidebar}>
           <div className={styles.card}>
-            {/* bloco "Cliente" com avatar e user_id */}
-            <div className={styles.profile}>
-              <div className={styles.avatar}>{initials}</div>
-              <div>
-                <div className={styles.personName}>{data?.name || 'Cliente'}</div>
-                <div className={styles.personId}>{data?.user_id || '—'}</div>
+            {/* topo: avatar + nome + user_id */}
+            <div className={styles.section}>
+              <div className={styles.profile}>
+                <div className={styles.avatar}>{initials}</div>
+                <div>
+                  <div className={styles.personName}>{customerName}</div>
+                  <div className={styles.personId}>{data?.user_id || '—'}</div>
+                </div>
               </div>
+
+              {loading ? (
+                <div className={styles.loading}>Carregando…</div>
+              ) : err ? (
+                <div className={styles.error}>{err}</div>
+              ) : (
+                <div className={styles.infoList}>
+                  <div className={styles.infoItem}>
+                    <div className={styles.label}>Fila</div>
+                    <div className={styles.value}>{data?.fila || '—'}</div>
+                  </div>
+
+                  <div className={styles.infoItem}>
+                    <div className={styles.label}>Atendente</div>
+                    <div className={styles.value}>{data?.assigned_to || '—'}</div>
+                  </div>
+
+                  <div className={styles.infoItem}>
+                    <div className={styles.label}>Status</div>
+                    <div>
+                      <span className={styles.pill}>{data?.status || '—'}</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.infoItem}>
+                    <div className={styles.label}>Última atualização</div>
+                    <div className={styles.value}>{fmtDT(data?.updated_at)}</div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {loading ? (
-              <div className={styles.loading}>Carregando…</div>
-            ) : err ? (
-              <div className={styles.error}>{err}</div>
-            ) : (
-              <>
-                <div className={styles.infoList}>
-                  <div className={styles.infoRow}>
-                    <span className={styles.k}>Fila</span>
-                    <span className={styles.v}>{data?.fila || '—'}</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.k}>Atendente</span>
-                    <span className={styles.v}>{data?.assigned_to || '—'}</span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.k}>Status</span>
-                    <span className={styles.v}>
-                      <span className={badgeClass(data?.status)}>
-                        <span className={styles.badgeDot} />
-                        {data?.status || '—'}
-                      </span>
-                    </span>
-                  </div>
-                  <div className={styles.infoRow}>
-                    <span className={styles.k}>Última atualização</span>
-                    <span className={styles.v}>{fmtDT(data?.updated_at)}</span>
-                  </div>
-                </div>
-
-                <div className={styles.sep} />
-
-                <div className={styles.cardTitle}>Tags</div>
-                <div className={styles.tags}>
-                  {tags.length
-                    ? tags.map((t, i) => <span key={i} className={styles.chip}>{t}</span>)
-                    : <span className={styles.personId}>Sem tags</span>}
-                </div>
-              </>
-            )}
+            {/* divisória e Tags */}
+            <div className={styles.divider} />
+            <div className={styles.tagsWrap}>
+              <div className={styles.tagsTitle}>Tags</div>
+              <div className={styles.tags}>
+                {tags.length
+                  ? tags.map((t, i) => <span key={i} className={styles.chip}>{t}</span>)
+                  : <span className={styles.personId}>Sem tags</span>}
+              </div>
+            </div>
           </div>
         </aside>
 
