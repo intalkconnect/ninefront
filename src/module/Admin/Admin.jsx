@@ -128,184 +128,135 @@ export default function Admin() {
   // caminho fixo do Dashboard
   const DASHBOARD_PATH = "/";
 
-  /* ===================== CONTROLES DE PERMISSÃO ===================== */
-  const role =
-    userData?.role ||
-    userData?.perfil ||
-    userData?.profile ||
-    "user";
-
-  const isAdmin = role?.toLowerCase() === "admin";
-  const isSupervisor = role?.toLowerCase() === "supervisor";
-
-  // Guard simples para proteger rotas
-  const RequireRole = ({ allow, children }) => {
-    if (!allow) return <Navigate to={DASHBOARD_PATH} replace />;
-    return children;
-  };
-
-  // Filtra itens do menu para o perfil Supervisor:
-  // - Esconde "Desenvolvimento" e "Configurações"
-  // - Remove "Sessões" em Acompanhamento > Análise
-  const filterMenusByRole = (items) => {
-    if (!isSupervisor) return items; // admin (ou outros) veem tudo
-
-    return items
-      .filter((m) => !["development", "settings"].includes(m.key))
-      .map((m) => {
-        if (m.key !== "monitoring") return m;
-
-        const cloned = {
-          ...m,
-          children: m.children?.map((g) => ({ ...g }))
-        };
-
-        cloned.children = cloned.children?.map((grp) => {
-          if (grp.key !== "monitoring-analysis") return grp;
-          return {
-            ...grp,
-            children: (grp.children || []).filter(
-              (leaf) => leaf.to !== "analytics/sessions"
-            ),
-          };
-        });
-
-        return cloned;
-      });
-  };
-
   /* ===================== MENU (grupos sem ícone) ===================== */
   const menus = useMemo(
-    () =>
-      filterMenusByRole([
-        {
-          key: "dashboard",
-          label: "Dashboard",
-          to: DASHBOARD_PATH,
-          icon: <LayoutDashboard size={18} />,
-          exact: true,
-        },
+    () => [
+      {
+        key: "dashboard",
+        label: "Dashboard",
+        to: DASHBOARD_PATH,
+        icon: <LayoutDashboard size={18} />,
+        exact: true,
+      },
 
-        {
-          key: "monitoring",
-          label: "Acompanhamento",
-          icon: <SquareActivity size={18} />,
-          children: [
-            {
-              key: "monitoring-realtime",
-              label: "Tempo real",
-              children: [
-                { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas" },
-                { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes" },
-              ],
-            },
-            {
-              key: "monitoring-analysis",
-              label: "Análise",
-              children: [
-                { to: "analytics/quality",  icon: <Gauge size={16} />, label: "Qualidade" },
-                { to: "analytics/sessions", icon: <Clock size={16} />, label: "Sessões"   },
-              ],
-            },
-          ],
-        },
+      {
+        key: "monitoring",
+        label: "Acompanhamento",
+        icon: <SquareActivity size={18} />,
+        children: [
+          {
+            key: "monitoring-realtime",
+            label: "Tempo real",
+            children: [
+              { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas" },
+              { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes" },
+            ],
+          },
+          {
+            key: "monitoring-analysis",
+            label: "Análise",
+            children: [
+              { to: "analytics/quality",  icon: <Gauge size={16} />, label: "Qualidade" },
+              { to: "analytics/sessions", icon: <Clock size={16} />, label: "Sessões"   },
+            ],
+          },
+        ],
+      },
 
-        {
-          key: "management",
-          label: "Gestão",
-          icon: <Users size={18} />,
-          children: [
-            {
-              key: "mgmt-cadastros",
-              label: "Cadastros",
-              children: [
-                { to: "management/users",         icon: <UserPen size={16} />,  label: "Usuários" },
-                { to: "management/queues",        icon: <Folder size={16} />,   label: "Filas" },
-                { to: "management/quick-replies", icon: <MessageSquareReply size={16} />, label: "Respostas Rápidas" }
-              ],
-            },
-            {
-              key: "mgmt-operacao",
-              label: "Operação",
-              children: [
-                { to: "management/history", icon: <WalletCards size={16} />, label: "Histórico de Ticket" },
-                { to: "management/clientes", icon: <Contact size={16} />,    label: "Clientes" },
-              ],
-            },
-          ],
-        },
+      {
+        key: "management",
+        label: "Gestão",
+        icon: <Users size={18} />,
+        children: [
+          {
+            key: "mgmt-cadastros",
+            label: "Cadastros",
+            children: [
+              { to: "management/users",         icon: <UserPen size={16} />,        label: "Usuários" },
+              { to: "management/queues",        icon: <Folder size={16} />,       label: "Filas" },
+              { to: "management/quick-replies", icon: <MessageSquareReply size={16} />,          label: "Respostas Rápidas" }
+            ],
+          },
+          {
+            key: "mgmt-operacao",
+            label: "Operação",
+            children: [
+              { to: "management/history", icon: <WalletCards size={16} />, label: "Histórico de Ticket" },
+              { to: "management/clientes",      icon: <Contact size={16} />,  label: "Clientes" },
+            ],
+          },
+        ],
+      },
 
-        {
-          key: "campaigns",
-          label: "Campanhas",
-          icon: <Megaphone size={18} />,
-          children: [
-            {
-              key: "camp-modelos",
-              label: "Modelos",
-              children: [
-                { to: "campaigns/templates", icon: <FileText size={16} />, label: "Templates" },
-              ],
-            },
-            {
-              key: "camp-disparo",
-              label: "Mensagens Ativas",
-              children: [
-                { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo de Massa" },
-              ],
-            },
-          ],
-        },
+      {
+        key: "campaigns",
+        label: "Campanhas",
+        icon: <Megaphone size={18} />,
+        children: [
+          {
+            key: "camp-modelos",
+            label: "Modelos",
+            children: [
+              { to: "campaigns/templates", icon: <FileText size={16} />, label: "Templates" },
+            ],
+          },
+          {
+            key: "camp-disparo",
+            label: "Mensagens Ativas",
+            children: [
+              { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo de Massa" },
+            ],
+          },
+        ],
+      },
 
-        /* ========= Desenvolvimento ========= */
-        {
-          key: "development",
-          label: "Desenvolvimento",
-          icon: <Code2 size={18} />,
-          children: [
-            {
-              key: "dev-tools",
-              label: "Ferramentas",
-              children: [
-                { to: "development/builder", icon: <Bot size={16} />, label: "Builder" },
-              ],
-            },
-          ],
-        },
+      /* ========= NOVO: Desenvolvimento ========= */
+      {
+        key: "development",
+        label: "Desenvolvimento",
+        icon: <Code2 size={18} />,
+        children: [
+          {
+            key: "dev-tools",
+            label: "Ferramentas",
+            children: [
+              { to: "development/builder", icon: <Bot size={16} />, label: "Builder" },
+            ],
+          },
+        ],
+      },
 
-        {
-          key: "settings",
-          label: "Configurações",
-          icon: <Settings size={18} />,
-          children: [
-            {
-              key: "settings-geral",
-              label: "Geral",
-              children: [
-                { to: "settings/preferences", icon: <Settings size={16} />,     label: "Preferências" },
-                { to: "settings/channels",    icon: <MessageCircle size={16} />, label: "Canais" },
-              ],
-            },
-            {
-              key: "settings-integracoes",
-              label: "Integrações",
-              children: [
-                { to: "settings/integrations", icon: <Plug size={16} />, label: "Integrações" },
-              ],
-            },
-            {
-              key: "settings-seguranca",
-              label: "Segurança",
-              children: [
-                { to: "settings/security", icon: <Shield size={16} />, label: "Segurança" },
-              ],
-            },
-          ],
-        },
-      ]),
-    // reavalia quando o perfil mudar
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isSupervisor]
+      {
+        key: "settings",
+        label: "Configurações",
+        icon: <Settings size={18} />,
+        children: [
+          {
+            key: "settings-geral",
+            label: "Geral",
+            children: [
+              { to: "settings/preferences", icon: <Settings size={16} />,     label: "Preferências" },
+              { to: "settings/channels",    icon: <MessageCircle size={16} />, label: "Canais" },
+            ],
+          },
+          {
+            key: "settings-integracoes",
+            label: "Integrações",
+            children: [
+              { to: "settings/integrations", icon: <Plug size={16} />, label: "Integrações" },
+            ],
+          },
+          {
+            key: "settings-seguranca",
+            label: "Segurança",
+            children: [
+              { to: "settings/security", icon: <Shield size={16} />, label: "Segurança" },
+            ],
+          },
+        ],
+      },
+    ],
+    []
   );
 
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
@@ -520,18 +471,10 @@ export default function Admin() {
 
           {/* analytics */}
           <Route path="analytics/quality" element={<Quality />} />
-          <Route
-            path="analytics/sessions"
-            element={
-              <RequireRole allow={isAdmin}>
-                <BillingExtrato />
-              </RequireRole>
-            }
-          />
+          <Route path="analytics/sessions" element={<BillingExtrato />} />
 
           {/* management */}
-          {/* Supervisor não pode criar admin; passamos a permissão para a página */}
-          <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
+          <Route path="management/users" element={<UsersPage />} />
           <Route path="management/queues" element={<Queues />} />
           <Route path="management/quick-replies" element={<QuickReplies />} />
           <Route path="management/history" element={<History />} />
@@ -542,49 +485,14 @@ export default function Admin() {
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
 
-          {/* development – admin only */}
-          <Route
-            path="development/builder"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Builder />
-              </RequireRole>
-            }
-          />
+          {/* development */}
+          <Route path="development/builder" element={<Builder />} />
 
-          {/* settings – admin only */}
-          <Route
-            path="settings/preferences"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Preferences />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/channels"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Channels />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/integrations"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Integrations />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/security"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Security />
-              </RequireRole>
-            }
-          />
+          {/* settings */}
+          <Route path="settings/preferences" element={<Preferences />} />
+          <Route path="settings/channels" element={<Channels />} />
+          <Route path="settings/integrations" element={<Integrations />} />
+          <Route path="settings/security" element={<Security />} />
 
           <Route path="*" element={<Navigate to="" />} />
         </Routes>
