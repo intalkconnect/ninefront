@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer,
-  Headset, RefreshCw
+  Headset, RefreshCw, Eye, ArrowLeftRight
 } from 'lucide-react';
 import styles from './styles/ClientsMonitor.module.css';
 
@@ -13,7 +13,7 @@ const slugify = (str = '') =>
     .toLowerCase().trim()
     .replace(/\s+/g, '_').replace(/[^\w_]/g, '');
 
-const canais = ['whatsapp', 'telegram', 'webchat', 'instagram'];
+const canais = ['Whatsapp', 'Telegram', 'Webchat', 'Instagram', 'Facebook'];
 
 /* Tiny helpers */
 const cap = (s='') => s.replace('_', ' ')
@@ -302,19 +302,24 @@ export default function ClientsMonitor() {
                         : '--:--'}
                     </div>
                   </td>
-                  <td>
-                    <span className={`${styles.priorityPill} ${
-                      a.prioridade === 'alta' ? styles.pRed :
-                      a.prioridade === 'normal' ? styles.pAmber :
-                      a.prioridade === 'baixa' ? styles.pGreen : styles.pGray
-                    }`}>
-                      {cap(a.prioridade || '—')}
-                    </span>
-                  </td>
-                  <td className={styles.actionsCell}>
-                    <button className={styles.linkBtn}>Ver</button>
-                    <button className={styles.linkBtnDanger}>Transferir</button>
-                  </td>
+<td className={styles.actionsCell}>
+  <button
+    className={styles.linkBtn}
+    aria-label="Ver"
+    title="Ver"
+  >
+    <Eye size={16} />
+  </button>
+
+  <button
+    className={styles.linkBtnDanger}
+    aria-label="Transferir"
+    title="Transferir"
+  >
+    <ArrowLeftRight size={16} />
+  </button>
+</td>
+
                 </tr>
               ))}
             </tbody>
