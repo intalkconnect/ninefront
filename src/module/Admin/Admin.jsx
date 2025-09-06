@@ -8,18 +8,14 @@ import {
   Settings,
   SquareActivity,
   Folder,
-  Zap,
   Megaphone,
   FileText,
   Send,
   ChevronDown,
   LogOut,
-  FolderClock,
   Headset,
   User,
-  Activity,
   ListTree,
-  BarChart2,
   Gauge,
   Clock,
   Plug,
@@ -71,6 +67,10 @@ export default function Admin() {
   const token = localStorage.getItem("token");
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
+
+  // 🔒 Carregamento do perfil para evitar "flash" de opções
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const location = useLocation();
@@ -83,16 +83,27 @@ export default function Admin() {
   const navRef = useRef(null);
 
   useEffect(() => {
+    let mounted = true;
     const fetchAdminInfo = async () => {
-      if (!email) return;
+      // Enquanto não resolvemos, mantemos a splash
+      setAuthLoading(true);
       try {
-        const res = await apiGet(`/users/${email}`);
-        setUserData(res);
+        if (email) {
+          const res = await apiGet(`/users/${email}`);
+          if (mounted) setUserData(res);
+        } else {
+          // sem email, trata como usuário comum (ou redirecione se necessário)
+          if (mounted) setUserData(null);
+        }
       } catch (err) {
         console.error("Erro ao buscar dados do admin:", err);
+        if (mounted) setUserData(null);
+      } finally {
+        if (mounted) setAuthLoading(false);
       }
     };
     fetchAdminInfo();
+    return () => { mounted = false; };
   }, [email]);
 
   // fecha mega menu e drawer ao trocar de rota
@@ -311,6 +322,59 @@ export default function Admin() {
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
   const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
 
+  /* ===================== SPLASH DE CARREGAMENTO ===================== */
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "var(--bg, #0b0f1a)",
+          color: "var(--fg, #e5e7eb)",
+        }}
+      >
+        <div style={{ display: "grid", gap: 12, placeItems: "center" }}>
+          <img src="/logo.png" alt="NineChat" style={{ width: 56, height: 56, opacity: 0.9 }} />
+          <div style={{ fontSize: 14, opacity: 0.8 }}>Carregando seu workspace…</div>
+          <div
+            aria-label="Carregando"
+            role="status"
+            style={{
+              width: 160,
+              height: 6,
+              borderRadius: 999,
+              overflow: "hidden",
+              background: "rgba(255,255,255,0.08)",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: "40%",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.35)",
+                animation: "nc-shimmer 1.2s infinite",
+              }}
+            />
+            <style>
+              {`@keyframes nc-shimmer {
+                0% { transform: translateX(-40%); }
+                50% { transform: translateX(80%); }
+                100% { transform: translateX(160%); }
+              }`}
+            </style>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ===================== UI PRINCIPAL ===================== */
   return (
     <div className={styles.wrapper}>
       {/* Top Navbar */}
