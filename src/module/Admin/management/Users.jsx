@@ -11,22 +11,23 @@ import { useConfirm } from '../../../components/ConfirmProvider.jsx';
 const PERFIL_ICONS = {
   admin:      <UserRoundCog size={14} />,
   atendente:  <Headset size={14} />,
-  supervisor: <Shield size={14} />, // pode trocar se quiser outro ícone
+  supervisor: <Shield size={14} />,
 };
 
 const iconForPerfil = (perfil) => {
   const k = String(perfil || '').toLowerCase();
-  return PERFIL_ICONS[k] ?? <UsersIcon size={14} />; // fallback
+  return PERFIL_ICONS[k] ?? <UsersIcon size={14} />;
 };
 
- const PERFIS = [
-   { key: '',           label: 'Todos',      icon: <UsersIcon size={14}/> },
-   { key: 'admin',      label: 'Admin',      icon: PERFIL_ICONS.admin },
-   { key: 'supervisor', label: 'Supervisor', icon: PERFIL_ICONS.supervisor },
-   { key: 'atendente',  label: 'Atendente',  icon: PERFIL_ICONS.atendente },
- ];
+const PERFIS = [
+  { key: '',           label: 'Todos',      icon: <UsersIcon size={14}/> },
+  { key: 'admin',      label: 'Admin',      icon: PERFIL_ICONS.admin },
+  { key: 'supervisor', label: 'Supervisor', icon: PERFIL_ICONS.supervisor },
+  { key: 'atendente',  label: 'Atendente',  icon: PERFIL_ICONS.atendente },
+];
 
-export default function Users() {
+// ⬇️ RECEBE do pai (Admin.jsx) — admin pode criar admin; supervisor não
+export default function Users({ canCreateAdmin = false }) {
   const [items, setItems] = useState([]);
   const [queues, setQueues] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -136,7 +137,7 @@ export default function Users() {
         </div>
       </div>
 
-                  <div className={styles.header}>
+      <div className={styles.header}>
         <div>
           <p className={styles.subtitle}>Gestão de usuários: cadastro, papéis e acessos em um só lugar.</p>
         </div>
@@ -192,22 +193,22 @@ export default function Users() {
                   <tr key={u.id} className={styles.rowHover}>
                     <td data-label="Nome">{nome || '—'}</td>
                     <td data-label="Email">{u.email || '—'}</td>
-<td data-label="Perfil">
-   {(() => {
-     const k = String(u.perfil || '').toLowerCase();
-     const label = k ? k.charAt(0).toUpperCase() + k.slice(1) : '—';
-     return (
-       <span
-         className={`${styles.tag} ${styles.tagRole}`}
-         data-role={k}
-         title={label}
-         aria-label={label}
-       >
-         {iconForPerfil(k)}
-       </span>
-     );
-   })()}
- </td>
+                    <td data-label="Perfil">
+                      {(() => {
+                        const k = String(u.perfil || '').toLowerCase();
+                        const label = k ? k.charAt(0).toUpperCase() + k.slice(1) : '—';
+                        return (
+                          <span
+                            className={`${styles.tag} ${styles.tagRole}`}
+                            data-role={k}
+                            title={label}
+                            aria-label={label}
+                          >
+                            {iconForPerfil(k)}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td data-label="Filas">
                       <div className={styles.tagsWrap}>
                         {chipNames.length === 0
@@ -254,6 +255,8 @@ export default function Users() {
           }}
           editing={editing}
           queues={queues}
+          // ⬇️ repassa a permissão pro modal (supervisor NÃO cria admin)
+          canCreateAdmin={canCreateAdmin}
         />
       )}
     </div>
