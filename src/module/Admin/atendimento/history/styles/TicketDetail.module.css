@@ -20,7 +20,7 @@
 .bcLink:hover { text-decoration: underline; }
 .bcSep { opacity: .6; }
 
-/* topo */
+/* topo (sem badge de status aqui) */
 .pageHeader {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -31,51 +31,17 @@
   border-radius: 12px;
   padding: 12px 14px;
 }
-
 .titleWrap { display: grid; gap: 6px; }
-.titleRow { display: flex; align-items: center; gap: 12px; }
-.title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-}
+.title { margin: 0; font-size: 24px; font-weight: 700; }
 .metaRow { font-size: 12px; color: #64748b; }
 
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.headerActions { display: flex; align-items: center; gap: 8px; }
 .backBtn, .exportBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #fff;
-  border: 1px solid #e3e7ee;
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid #e3e7ee; border-radius: 10px;
+  padding: 8px 12px; cursor: pointer;
 }
 .backBtn:hover, .exportBtn:hover { background: #f9fafb; }
-
-/* badge de status (com pontinho) */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid;
-}
-.badgeDot { width: 6px; height: 6px; border-radius: 999px; }
-.badgeWarn { background:#fff7ed; color:#92400e; border-color:#fed7aa; }
-.badgeWarn .badgeDot { background:#f59e0b; }
-.badgeOk { background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
-.badgeOk .badgeDot { background:#10b981; }
-.badgeGray { background:#f3f4f6; color:#374151; border-color:#e5e7eb; }
-.badgeGray .badgeDot { background:#6b7280; }
 
 /* duas colunas */
 .columns {
@@ -85,85 +51,80 @@
   align-items: start;
 }
 
-/* sidebar fixa ao rolar (dentro da página) */
-.sidebar {
-  position: sticky;
-  top: 12px;
-  align-self: start;
-}
+/* sidebar fixa ao rolar */
+.sidebar { position: sticky; top: 12px; align-self: start; }
 
 /* cards */
 .card {
   background: #fff;
   border: 1px solid #e3e7ee;
   border-radius: 12px;
-  padding: 14px;
+  overflow: hidden; /* para a divisória ocupar toda a largura */
 }
-.card + .card { margin-top: 12px; }
-.cardTitle { font-weight: 700; margin-bottom: 10px; }
+.section { padding: 14px; }
+.divider { height: 1px; background: #eef2f7; }
 
-/* bloco perfil do cliente */
+/* topo do card com avatar + nome */
 .profile {
   display: grid;
   grid-template-columns: 48px 1fr;
   gap: 10px;
   align-items: center;
-  margin-bottom: 12px;
 }
 .avatar {
   width: 48px; height: 48px; border-radius: 999px;
-  background: #e2e8f0;
-  display: grid; place-items: center;
-  font-weight: 700; color:#334155;
+  background: #e2e8f0; display: grid; place-items: center;
+  font-weight: 700; color: #334155;
 }
 .personName { font-weight: 700; }
-.personId { font-size: 12px; color:#64748b; }
+.personId { font-size: 12px; color: #64748b; }
 
-/* lista de infos */
-.infoList { display: grid; gap: 8px; }
-.infoRow {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 10px;
-  align-items: center;
-  font-size: 14px;
+/* infos em BLOCO (label em cima, valor embaixo) */
+.infoList { display: grid; gap: 16px; margin-top: 12px; }
+.infoItem { display: grid; gap: 6px; }
+.label {
+  color: #64748b;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
-.k { color: #64748b; font-weight: 600; }
-.v { color: #0f172a; word-break: break-all; }
-.sep { height: 1px; background: #eef2f7; margin: 8px 0; }
+.value { color: #0f172a; font-weight: 600; }
 
-/* tags */
-.tags { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip {
+/* status pill (sem bolinha) */
+.pill {
+  display: inline-block;
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  color: #374151;
+  border: 1px solid #fde68a;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+}
+
+/* tags */
+.tagsWrap { padding: 14px; }
+.tagsTitle { display: flex; align-items: center; gap: 8px; font-weight: 700; margin-bottom: 10px; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  border: 1px solid #e5e7eb; background: #f9fafb; color: #374151;
 }
 
 /* coluna do chat */
 .main { min-height: 60vh; }
 .chatCard {
-  display: grid;
-  grid-template-rows: auto minmax(480px, 70vh);
-  background: #fff;
-  border: 1px solid #e3e7ee;
-  border-radius: 12px;
+  display: grid; grid-template-rows: auto minmax(480px, 70vh);
+  background: #fff; border: 1px solid #e3e7ee; border-radius: 12px;
 }
 .cardHead { padding: 0; border-bottom: 1px solid #eef2f7; }
 
-/* tabs no cabeçalho do card */
+/* tabs */
 .tabs { display: flex; gap: 16px; padding: 10px 12px 0 12px; }
 .tab {
-  position: relative;
-  background: transparent;
-  border: 0;
-  padding: 10px 10px;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
+  position: relative; background: transparent; border: 0;
+  padding: 10px 10px; font-weight: 700; color: #64748b; cursor: pointer;
 }
 .tabActive { color: #0f172a; }
 .tabActive::after {
