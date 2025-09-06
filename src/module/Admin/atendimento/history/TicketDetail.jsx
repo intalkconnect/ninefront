@@ -114,9 +114,10 @@ export default function TicketDetail() {
           <button className={styles.backBtn} onClick={() => nav(backTo)}>
             <ArrowLeft size={16}/> Voltar
           </button>
-          <button className={styles.exportBtn} onClick={handleExportPdf}>
-            Exportar PDF
-          </button>
+<button className={styles.btnPrimary} onClick={handleExportPdf}>
+  Exportar PDF
+</button>
+
         </div>
       </div>
 
@@ -232,13 +233,15 @@ export default function TicketDetail() {
                             </div>
                           </div>
                           <div className={styles.attachActions}>
-                            <button
-                              className={styles.btnGhost}
-                              onClick={() => downloadFile(a.url, a.filename || 'arquivo')}
-                              title="Baixar"
-                            >
-                              <Download size={16} style={{marginRight:6}}/> Baixar
-                            </button>
+<button
+  className={`${styles.btnPrimary} ${styles.btnSm}`}
+  onClick={() => downloadFile(a.url, a.filename || 'arquivo')}
+  title="Baixar"
+  aria-label={`Baixar ${a.filename || 'arquivo'}`}
+>
+  <Download size={16} style={{ marginRight: 6 }} /> Baixar
+</button>
+
                           </div>
                         </div>
                       ))}
