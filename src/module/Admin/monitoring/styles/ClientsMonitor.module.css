@@ -165,6 +165,40 @@
 .alert{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #fde68a;border-radius:12px;background:#fffbeb;color:#92400e}
 .badgeTime{font-weight:700;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:4px 8px}
 
+/* ----------- Linha da tabela (card do atendimento) ----------- */
+.row {
+  transition: background-color .25s ease, box-shadow .25s ease, transform .08s ease;
+}
+
+/* Tons */
+.tone_none {}            /* quando a pintura estiver desabilitada */
+.tone_ok   { background: transparent; }
+.tone_warn {
+  background: #fff7e6;              /* amber-50 */
+  box-shadow: inset 4px 0 0 0 #f59e0b; /* amber-500 */
+}
+.tone_late {
+  background: #ffe6e6;              /* red-50 */
+  box-shadow: inset 4px 0 0 0 #ef4444; /* red-500 */
+}
+
+/* Pequeno feedback ao passar o mouse (opcional) */
+.table tbody tr.tone_warn:hover,
+.table tbody tr.tone_late:hover {
+  transform: translateX(1px);
+}
+
+/* Versão escura (se você usa .dark em algum wrapper) - opcional */
+.dark .tone_warn {
+  background: rgba(245, 158, 11, 0.12);
+  box-shadow: inset 4px 0 0 0 #f59e0b;
+}
+.dark .tone_late {
+  background: rgba(239, 68, 68, 0.14);
+  box-shadow: inset 4px 0 0 0 #ef4444;
+}
+
+
 /* A11y & small screens */
 @media (max-width:768px){
   .container{padding:16px}
