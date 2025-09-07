@@ -1,38 +1,69 @@
 // File: src/pages/admin/monitoring/MiniChatDrawer.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, MessageCircle } from "lucide-react";
+import { X, MessageCircle, Minimize2, Maximize2, Phone, Video } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
 import ChatThread from "../atendimento/history/ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
 /**
- * MiniChat
- * - Preview somente-leitura
+ * MiniChat Melhorado
+ * - Preview somente-leitura com design moderno
  * - variant: "drawer" | "webchat" (default: "webchat")
+ * - Suporte a minimização e indicadores de status
  */
 export default function MiniChatDrawer({
   open,
   onClose,
-  userId,                  // chave p/ /messages/:user_id
+  userId,
   cliente,
   canal,
-  variant = "webchat",     // "drawer" | "webchat"
+  variant = "webchat",
+  agentOnline = false,
+  lastSeen,
 }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [isMinimized, setIsMinimized] = useState(false);
   const viewportRef = useRef(null);
 
   const canShow = open && !!userId;
 
-  const onEsc = useCallback((e) => { if (e.key === "Escape") onClose?.(); }, [onClose]);
+  // Função para determinar avatar baseado no nome
+  const getAvatarText = (name) => {
+    if (!name) return "C";
+    const words = name.trim().split(" ");
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  // Função para formatar último acesso
+  const formatLastSeen = (timestamp) => {
+    if (!timestamp) return null;
+    const now = new Date();
+    const lastSeenDate = new Date(timestamp);
+    const diffMs = now - lastSeenDate;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Online agora";
+    if (diffMins < 60) return `Visto há ${diffMins} min`;
+    if (diffMins < 1440) return `Visto há ${Math.floor(diffMins / 60)}h`;
+    return `Visto há ${Math.floor(diffMins / 1440)} dias`;
+  };
+
+  const onEsc = useCallback((e) => { 
+    if (e.key === "Escape") onClose?.(); 
+  }, [onClose]);
+
   useEffect(() => {
     if (!canShow) return;
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
   }, [canShow, onEsc]);
 
-  // helpers de normalização (iguais ao histórico)
+  // helpers de normalização (mantidos do original)
   const safeParse = (raw) => {
     if (raw == null) return null;
     if (typeof raw === "object") return raw;
@@ -42,6 +73,7 @@ export default function MiniChatDrawer({
       return s;
     }
   };
+
   const mergeContent = (rawContent, meta, type) => {
     const c = safeParse(rawContent);
     const out =
@@ -59,6 +91,7 @@ export default function MiniChatDrawer({
     out.duration  ??= m.duration || m.audio_duration || null;
     return out;
   };
+
   const deriveStatus = (row) => {
     if (row.read_at) return "read";
     if (row.delivered_at) return "delivered";
@@ -72,6 +105,7 @@ export default function MiniChatDrawer({
         .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     } catch { return String(s); }
   };
+
   const is404 = (e) => {
     const st = e?.status ?? e?.response?.status;
     return st === 404 || /\b404\b/.test(String(e?.message || e || ""));
@@ -140,18 +174,62 @@ export default function MiniChatDrawer({
   }, [canShow, userId]);
 
   useEffect(() => {
-    if (!canShow) return;
+    if (!canShow || isMinimized) return;
     const el = viewportRef.current;
     if (!el) return;
     const t = setTimeout(() => { el.scrollTop = el.scrollHeight; }, 60);
     return () => clearTimeout(t);
-  }, [canShow, messages]);
+  }, [canShow, messages, isMinimized]);
 
   const classes = [
     s.container,
     variant === "drawer" ? s.isDrawer : s.isWidget,
-    open ? s.open : ""
+    open ? s.open : "",
+    isMinimized ? s.minimized : ""
   ].join(" ");
+
+  const renderContent = () => {
+    if (!userId) {
+      return (
+        <div className={s.state}>
+          <span>Usuário não informado.</span>
+        </div>
+      );
+    }
+
+    if (loading) {
+      return (
+        <div className={s.state}>
+          <div className={s.spinner} />
+          <span>Carregando conversa…</span>
+        </div>
+      );
+    }
+
+    if (err) {
+      return (
+        <div className={s.state}>
+          <span>⚠️</span>
+          <span>{err}</span>
+        </div>
+      );
+    }
+
+    if (messages.length === 0) {
+      return (
+        <div className={s.state}>
+          <span>Sem histórico de mensagens.</span>
+          <small>Inicie uma conversa para ver as mensagens aqui</small>
+        </div>
+      );
+    }
+
+    return (
+      <div ref={viewportRef} className={s.viewport}>
+        <ChatThread messages={messages} />
+      </div>
+    );
+  };
 
   return (
     <>
@@ -159,44 +237,85 @@ export default function MiniChatDrawer({
         className={`${s.backdrop} ${open ? s.open : ""}`}
         onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       />
-      <aside className={classes} aria-hidden={!open} aria-label="Mini chat (preview)">
+      
+      <aside 
+        className={classes} 
+        aria-hidden={!open} 
+        aria-label="Mini chat (preview)"
+      >
         <header className={s.header}>
           <div className={s.hLeft}>
-            <div className={s.avatar}>{String(cliente || "C").slice(0,2).toUpperCase()}</div>
+            <div className={s.avatar}>
+              {getAvatarText(cliente)}
+              {agentOnline && <div className={s.statusIndicator} />}
+              {!agentOnline && lastSeen && <div className={`${s.statusIndicator} ${s.offline}`} />}
+            </div>
             <div className={s.hText}>
               <div className={s.hTitle}>{cliente || "Conversa"}</div>
               <div className={s.hSub}>
                 <span className={s.badge}>
-                  <MessageCircle size={12} /> {canal || "Canal"}
+                  <MessageCircle size={12} /> 
+                  {canal || "Canal"}
                 </span>
+                {!agentOnline && lastSeen && (
+                  <span className={s.lastSeen}>
+                    {formatLastSeen(lastSeen)}
+                  </span>
+                )}
+                {agentOnline && (
+                  <span className={s.onlineStatus}>
+                    Online
+                  </span>
+                )}
               </div>
             </div>
           </div>
+          
           <div className={s.hRight}>
-            <button className={s.iconBtn} onClick={onClose} aria-label="Fechar mini chat">
-              <X size={16} />
+            {/* Botões de ação adiccionais */}
+            <button 
+              className={s.iconBtn} 
+              onClick={() => {/* ação de chamada */}}
+              aria-label="Iniciar chamada"
+              title="Iniciar chamada"
+            >
+              <Phone size={14} />
+            </button>
+            
+            <button 
+              className={s.iconBtn} 
+              onClick={() => {/* ação de vídeo */}}
+              aria-label="Iniciar videochamada"
+              title="Iniciar videochamada"
+            >
+              <Video size={14} />
+            </button>
+            
+            <button 
+              className={s.iconBtn} 
+              onClick={() => setIsMinimized(!isMinimized)}
+              aria-label={isMinimized ? "Maximizar" : "Minimizar"}
+              title={isMinimized ? "Maximizar" : "Minimizar"}
+            >
+              {isMinimized ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+            </button>
+            
+            <button 
+              className={s.iconBtn} 
+              onClick={onClose} 
+              aria-label="Fechar mini chat"
+              title="Fechar"
+            >
+              <X size={14} />
             </button>
           </div>
         </header>
 
-        <div className={s.body}>
-          {!userId ? (
-            <div className={s.state}>Usuário não informado.</div>
-          ) : loading ? (
-            <div className={s.state}>
-              <div className={s.spinner} />
-              <div>Carregando conversa…</div>
-            </div>
-          ) : err ? (
-            <div className={s.state}>{err}</div>
-          ) : messages.length === 0 ? (
-            <div className={s.state}>Sem histórico de mensagens.</div>
-          ) : (
-            <div ref={viewportRef} className={s.viewport}>
-              <ChatThread messages={messages} />
-            </div>
-          )}
-        </div>
+        {!isMinimized && (
+          <div className={s.body}>
+            {renderContent()}
+          </div>
+        )}
       </aside>
     </>
   );
