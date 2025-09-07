@@ -28,10 +28,10 @@ function findReplyTarget(messages, refId) {
 
 /**
  * MessageList
- * - Força scroll-behavior: auto !important via JS (sem depender de CSS global)
- * - Rola para o fim 1x antes do paint (sem efeito)
- * - NÃO auto-scroll em novas mensagens
- * - “Ver mais” preserva a posição visual
+ * - Inicia já no fim (sem “efeito”): esconde o conteúdo até aplicar o scroll
+ * - Não auto-scroll em updates
+ * - “Ver mais” preserva a posição (âncora pelo delta)
+ * - Força scroll-behavior: auto !important via JS
  */
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
@@ -40,8 +40,9 @@ const MessageList = forwardRef(
     const [visibleCount, setVisibleCount] = useState(30);
     const [prevScrollHeight, setPrevScrollHeight] = useState(0);
 
-    // apenas uma rolagem inicial
+    // controle de inicialização
     const didInitialScroll = useRef(false);
+    const [ready, setReady] = useState(false); // controla visibilidade do conteúdo
 
     const visibleMessages = messages.slice(-visibleCount);
 
@@ -49,30 +50,42 @@ const MessageList = forwardRef(
       scrollToBottomInstant: () => {
         const el = containerRef.current;
         if (!el) return;
+        el.style.setProperty('scroll-behavior', 'auto', 'important');
         el.scrollTop = el.scrollHeight;
       },
     }));
 
-    // (A) Força scroll-behavior: auto !important no container (1x no mount)
+    // Força comportamento de scroll instantâneo no container
     useLayoutEffect(() => {
       const el = containerRef.current;
       if (!el) return;
-      // força inline com prioridade !important
       el.style.setProperty('scroll-behavior', 'auto', 'important');
-      // (opcional) impedir polidez externa
       el.style.setProperty('overscroll-behavior', 'contain');
     }, []);
 
-    // (B) Scroll inicial até o fim (apenas 1x, e antes do paint)
+    // Scroll inicial (antes do paint) e só então mostramos o conteúdo
     useLayoutEffect(() => {
       const el = containerRef.current;
       const len = messages?.length || 0;
-      if (!el || len === 0 || didInitialScroll.current) return;
-      el.scrollTop = el.scrollHeight; // sem “efeito” (já é auto !important)
-      didInitialScroll.current = true;
+
+      if (!el) return;
+
+      // se não há mensagens, já pode mostrar (sem scroll)
+      if (len === 0) {
+        setReady(true);
+        return;
+      }
+
+      // se ainda não aplicamos o scroll inicial, fazemos agora
+      if (!didInitialScroll.current) {
+        el.style.setProperty('scroll-behavior', 'auto', 'important');
+        el.scrollTop = el.scrollHeight; // rola até o fim ANTES do paint
+        didInitialScroll.current = true;
+        setReady(true); // só agora liberamos a visibilidade do conteúdo
+      }
     }, [messages?.length]);
 
-    // (C) “Ver mais”: preserva âncora visual
+    // “Ver mais”: mantém a âncora visual
     const handleShowMore = () => {
       const el = containerRef.current;
       if (!el) return;
@@ -85,12 +98,13 @@ const MessageList = forwardRef(
         const el = containerRef.current;
         const newHeight = el.scrollHeight;
         const delta = newHeight - prevScrollHeight;
+        // compensa o crescimento para não "pular"
         el.scrollTop = (el.scrollTop || 0) + delta;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visibleCount]);
 
-    // (D) Como garantia extra, re-aplica auto !important se o nó trocar
+    // Garantia extra: se o nó mudar, mantém scroll instantâneo
     useEffect(() => {
       const el = containerRef.current;
       if (!el) return;
@@ -101,8 +115,8 @@ const MessageList = forwardRef(
       <div
         ref={containerRef}
         className="chat-scroll-container"
-        // redundante, mas ajuda caso algum CSS global troque depois
-        style={{ scrollBehavior: 'auto' }}
+        // esconde o conteúdo até o scroll inicial estar aplicado
+        style={{ visibility: ready ? 'visible' : 'hidden', scrollBehavior: 'auto' }}
       >
         {messages.length > visibleMessages.length && (
           <div className="show-more-messages">
