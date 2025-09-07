@@ -6,9 +6,9 @@ import ChatThread from "../atendimento/history/ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
 /**
- * MiniChat Simplificado
- * - Preview somente-leitura integrado ao dashboard
+ * MiniChat – preview somente-leitura
  * - variant: "drawer" | "webchat" (default: "webchat")
+ * - Skeleton cobre o webchat inteiro (header + corpo)
  */
 export default function MiniChatDrawer({
   open,
@@ -21,45 +21,39 @@ export default function MiniChatDrawer({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [messages, setMessages] = useState([]);
+
+  // Evita "flash" do skeleton em loads muito rápidos
+  const [showSkel, setShowSkel] = useState(false);
+
   const viewportRef = useRef(null);
   const drawerRef = useRef(null);
 
   const canShow = open && !!userId;
 
-  // Função para determinar avatar baseado no nome
   const getAvatarText = (name) => {
     if (!name) return "C";
     const words = name.trim().split(" ");
-    if (words.length >= 2) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
+    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
     return name.slice(0, 2).toUpperCase();
   };
 
-  const onEsc = useCallback((e) => { 
-    if (e.key === "Escape") onClose?.(); 
-  }, [onClose]);
+  const onEsc = useCallback((e) => { if (e.key === "Escape") onClose?.(); }, [onClose]);
 
-  // Fechar ao clicar fora do webchat
   const handleClickOutside = useCallback((e) => {
-    if (drawerRef.current && !drawerRef.current.contains(e.target)) {
-      onClose?.();
-    }
+    if (drawerRef.current && !drawerRef.current.contains(e.target)) onClose?.();
   }, [onClose]);
 
   useEffect(() => {
     if (!canShow) return;
-    
     window.addEventListener("keydown", onEsc);
     document.addEventListener("mousedown", handleClickOutside);
-    
     return () => {
       window.removeEventListener("keydown", onEsc);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [canShow, onEsc, handleClickOutside]);
 
-  // helpers de normalização (mantidos do original)
+  // ===== normalização (igual ao histórico) =====
   const safeParse = (raw) => {
     if (raw == null) return null;
     if (typeof raw === "object") return raw;
@@ -115,7 +109,7 @@ export default function MiniChatDrawer({
     } catch (e) {
       if (!is404(e)) throw e;
     }
-    // 2) base64url(user_id) se seu backend decode()
+    // 2) base64url(user_id)
     const r2 = await apiGet(`/messages/${b64url(userId)}`);
     return Array.isArray(r2) ? r2 : (Array.isArray(r2?.data) ? r2.data : []);
   };
@@ -147,7 +141,7 @@ export default function MiniChatDrawer({
             ticket_number: m.ticket_number,
             from_agent: dir === "outgoing" || dir === "system",
             sender_name: dir === "outgoing" ? (m.assigned_to || "Atendente")
-                        : (dir === "system" ? "Sistema" : null),
+                      : (dir === "system" ? "Sistema" : null),
             delivered_at: m.delivered_at,
             read_at: m.read_at,
             status: deriveStatus(m),
@@ -177,97 +171,139 @@ export default function MiniChatDrawer({
     return () => clearTimeout(t);
   }, [canShow, messages]);
 
+  useEffect(() => {
+    let t;
+    if (loading) t = setTimeout(() => setShowSkel(true), 120);
+    else setShowSkel(false);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   const classes = [
     s.container,
     variant === "drawer" ? s.isDrawer : s.isWidget,
     open ? s.open : ""
   ].join(" ");
 
-  const renderContent = () => {
-    if (!userId) {
-      return (
-        <div className={s.state}>
-          <span>Usuário não informado.</span>
-        </div>
-      );
-    }
-
-    if (loading) {
-      return (
-        <div className={s.state}>
-          <div className={s.spinner} />
-          <span>Carregando conversa…</span>
-        </div>
-      );
-    }
-
-    if (err) {
-      return (
-        <div className={s.state}>
-          <span>{err}</span>
-        </div>
-      );
-    }
-
-    if (messages.length === 0) {
-      return (
-        <div className={s.state}>
-          <span>Sem histórico de mensagens.</span>
-        </div>
-      );
-    }
-
-    return (
-      <div ref={viewportRef} className={s.viewport}>
-        <ChatThread messages={messages} />
-      </div>
-    );
-  };
+  const ready = !!userId && !loading && !err;
+  const useSkeleton = !!userId && showSkel;
 
   return (
     <>
-      {open && variant === "webchat" && (
-        <div className={s.backdrop} onClick={onClose} />
-      )}
-      
-      <aside 
+      {open && variant === "webchat" && <div className={s.backdrop} onClick={onClose} />}
+
+      <aside
         ref={drawerRef}
-        className={classes} 
-        aria-hidden={!open} 
+        className={classes}
+        aria-hidden={!open}
         aria-label="Mini chat (preview)"
       >
-        <header className={s.header}>
-          <div className={s.hLeft}>
-            <div className={s.avatar}>
-              {getAvatarText(cliente)}
-            </div>
-            <div className={s.hText}>
-              <div className={s.hTitle}>{cliente || "Conversa"}</div>
-              <div className={s.hSub}>
-                <span className={s.badge}>
-                  <MessageCircle size={11} /> 
-                  {canal || "Canal"}
-                </span>
+        {/* TUDO que é “real” (header+corpo) fica aqui dentro e some enquanto carrega */}
+        <div className={`${s.contentWrap} ${useSkeleton ? s.contentHidden : s.contentVisible}`}>
+          <header className={s.header}>
+            <div className={s.hLeft}>
+              <div className={s.avatar}>{getAvatarText(cliente)}</div>
+              <div className={s.hText}>
+                <div className={s.hTitle}>{cliente || "Conversa"}</div>
+                <div className={s.hSub}>
+                  <span className={s.badge}>
+                    <MessageCircle size={11} /> {canal || "Canal"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className={s.hRight}>
-            <button 
-              className={s.iconBtn} 
-              onClick={onClose} 
-              aria-label="Fechar mini chat"
-              title="Fechar"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </header>
+            <div className={s.hRight}>
+              <button
+                className={s.iconBtn}
+                onClick={onClose}
+                aria-label="Fechar mini chat"
+                title="Fechar"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </header>
 
-        <div className={s.body}>
-          {renderContent()}
+          <div className={s.body}>
+            <div
+              ref={viewportRef}
+              className={s.viewport}
+            >
+              {ready ? (
+                messages.length > 0 ? (
+                  <ChatThread messages={messages} />
+                ) : (
+                  <div className={s.state}>Sem histórico de mensagens.</div>
+                )
+              ) : !userId ? (
+                <div className={s.state}>Usuário não informado.</div>
+              ) : err ? (
+                <div className={s.state}>{err}</div>
+              ) : null}
+            </div>
+          </div>
         </div>
+
+        {/* OVERLAY de skeleton cobrindo o WEBCHAT INTEIRO */}
+        {useSkeleton && (
+          <div className={s.overlayShellFull} aria-hidden="true">
+            <WebchatSkeleton />
+          </div>
+        )}
       </aside>
     </>
+  );
+}
+
+/* Skeleton cobrindo header + corpo */
+function WebchatSkeleton() {
+  return (
+    <div className={s.skelRoot}>
+      {/* Header fake */}
+      <div className={s.skelHeader}>
+        <div className={s.skelHLeft}>
+          <div className={s.skelHAvatar} />
+          <div className={s.skelHText}>
+            <div className={s.skelHLine} />
+            <div className={`${s.skelHLine} ${s.skelHLineSmall}`} />
+          </div>
+        </div>
+        <div className={s.skelHBtn} />
+      </div>
+
+      {/* Corpo fake (bolhas) */}
+      <div className={s.skelViewport}>
+        <div className={`${s.skelMsg} ${s.skelLeft}`}>
+          <div className={s.skelAvatar} />
+          <div className={s.skelBubble}>
+            <div className={`${s.skelLine} ${s.skelW80}`} />
+            <div className={`${s.skelLine} ${s.skelW55}`} />
+          </div>
+        </div>
+
+        <div className={`${s.skelMsg} ${s.skelRight}`}>
+          <div className={s.skelBubble}>
+            <div className={`${s.skelLine} ${s.skelW65}`} />
+          </div>
+          <div className={s.skelAvatar} />
+        </div>
+
+        <div className={`${s.skelMsg} ${s.skelLeft}`}>
+          <div className={s.skelAvatar} />
+          <div>
+            <div className={s.skelMedia} />
+            <div style={{ height: 8 }} />
+            <div className={`${s.skelLine} ${s.skelW40}`} />
+          </div>
+        </div>
+
+        <div className={`${s.skelMsg} ${s.skelRight}`}>
+          <div className={s.skelBubble}>
+            <div className={`${s.skelLine} ${s.skelW90}`} />
+            <div className={`${s.skelLine} ${s.skelW65}`} />
+          </div>
+          <div className={s.skelAvatar} />
+        </div>
+      </div>
+    </div>
   );
 }
