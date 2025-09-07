@@ -7,6 +7,7 @@ import {
 import { FaWhatsapp, FaTelegramPlane, FaGlobe, FaInstagram, FaFacebookF } from 'react-icons/fa';
 
 import MiniChatDrawer from './MiniChatDrawer';
+import TransferModal from './TransferModal';
 import styles from './styles/ClientsMonitor.module.css';
 
 /* Utils ---------------------------------------------------- */
@@ -57,6 +58,17 @@ export default function ClientsMonitor() {
   const [erro, setErro] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [transfer, setTransfer] = useState(null); // { userId } | null
+  const onOpenTransfer = useCallback((a) => {
+    // a.user_id é usado pelo TransferModal para montar o body do POST
+    setTransfer({ userId: a.user_id });
+  }, []);
+
+  const onCloseTransfer = useCallback(() => {
+    setTransfer(null);
+    // Após transferir, o modal chama onClose; aqui recarregamos a lista
+    fetchAll();
+  }, [fetchAll]);
 
   // Paginação
   const PAGE_SIZE = 30;
@@ -403,6 +415,7 @@ export default function ClientsMonitor() {
                       className={styles.linkBtnDanger}
                       aria-label="Transferir"
                       title="Transferir"
+                      onClick={() => onOpenTransfer(a)}
                     >
                       <ArrowLeftRight size={16} />
                     </button>
@@ -440,7 +453,13 @@ export default function ClientsMonitor() {
           </button>
         </div>
       </section>
-
+       {/* Modal de Transferência */}
+ {transfer && (
+   <TransferModal
+     userId={transfer.userId}
+     onClose={onCloseTransfer}
+   />
+ )}
       {/* Drawer do mini-chat */}
       <MiniChatDrawer
         open={!!preview}
