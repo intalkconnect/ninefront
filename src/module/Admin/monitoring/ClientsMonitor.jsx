@@ -4,6 +4,8 @@ import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer,
   Headset, RefreshCw, Eye, ArrowLeftRight
 } from 'lucide-react';
+import { FaWhatsapp, FaTelegramPlane, FaGlobe, FaInstagram, FaFacebookF } from 'react-icons/fa';
+
 import MiniChatDrawer from './MiniChatDrawer';
 import styles from './styles/ClientsMonitor.module.css';
 
@@ -26,6 +28,20 @@ const formatTime = (m = 0) => {
   const r = mins % 60;
   return h > 0 ? `${h}h ${r}m` : `${r}m`;
 };
+
+// Ícones por canal
+const channelIcon = (canal) => {
+  const c = String(canal || '').toLowerCase();
+  switch (c) {
+    case 'whatsapp':  return <FaWhatsapp />;
+    case 'telegram':  return <FaTelegramPlane />;
+    case 'webchat':   return <FaGlobe />;
+    case 'instagram': return <FaInstagram />;
+    case 'facebook':  return <FaFacebookF />;
+    default:          return <FaGlobe />;
+  }
+};
+
 
 /* Component ------------------------------------------------ */
 export default function ClientsMonitor() {
@@ -334,11 +350,22 @@ export default function ClientsMonitor() {
                     </div>
                   </td>
                   <td><span className={styles.queuePill}>{a.fila || '—'}</span></td>
-                  <td>
-                    <span className={`${styles.channelPill} ${styles[`ch_${String(a.canal || 'default').toLowerCase()}`]}`}>
-                      {cap(a.canal || '—')}
-                    </span>
-                  </td>
+<td>
+  {(() => {
+    const canalSlug = String(a.canal || 'default').toLowerCase();
+    return (
+      <span
+        className={`${styles.channelPill} ${styles[`ch_${canalSlug}`]}`}
+        title={cap(a.canal || '—')}
+        aria-label={cap(a.canal || '—')}
+      >
+        {channelIcon(a.canal)}
+        <span className={styles.srOnly}>{cap(a.canal || '—')}</span>
+      </span>
+    );
+  })()}
+</td>
+
                   <td>{a.agente ? a.agente : <em className={styles.muted}>Não atribuído</em>}</td>
                   <td>
                     <span className={`${styles.status} ${
