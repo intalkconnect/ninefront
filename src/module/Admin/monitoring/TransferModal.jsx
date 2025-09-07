@@ -7,23 +7,31 @@ export default function TransferModal({
   userId,
   currentFila = '',
   currentAssigned = '',
-  userEmail = '',
-  permiteAtendente = false,
+  userEmail = '',                  // opcional: se vier, vai como transferido_por
+  permiteAtendente = true,         // opcional: se quiser esconder o campo de atendente, passe false
   onClose,
-  onDone,
+  onDone,                          // opcional: pai pode dar fetchAll após sucesso
 }) {
-  const [filas, setFilas] = useState([]);                 // [{id, nome}, ...] (GET /filas)
-  const [filaDestinoNome, setFilaDestinoNome] = useState(''); // nome da fila destino
-  const [atendentes, setAtendentes] = useState([]);       // [{id, name, lastname, email, status}, ...]
-  const [respMsg, setRespMsg] = useState('');             // mensagem opcional do backend
-  const [responsavel, setResponsavel] = useState('');     // email do atendente destino
+  const [filas, setFilas] = useState([]);           // [{id, nome}, ...] (GET /filas)
+  const [filaDestinoNome, setFilaDestinoNome] = useState('');   // nome da fila
+  const [atendentes, setAtendentes] = useState([]); // [{id, name, lastname, email, status}]
+  const [atendentesMsg, setAtendentesMsg] = useState('');
+  const [responsavel, setResponsavel] = useState('');           // email do atendente
   const [loading, setLoading] = useState(false);
+  const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Fila alvo efetiva (se não escolher, mantém a atual)
   const filaAlvoEfetiva = useMemo(
     () => (filaDestinoNome || currentFila || ''),
     [filaDestinoNome, currentFila]
   );
+
+  // houve ao menos uma mudança?
+  const mudouAlgo = useMemo(() => {
+    const mudouFila = !!filaAlvoEfetiva && filaAlvoEfetiva !== (currentFila || '');
+    const mudouResp = !!responsavel && responsavel !== (currentAssigned || '');
+    return mudouFila || mudouResp;
+  }, [filaAlvoEfetiva, currentFila, responsavel, currentAssigned]);
 
   /* Carrega TODAS as filas (GET /filas) */
   useEffect(() => {
@@ -48,128 +56,139 @@ export default function TransferModal({
     (async () => {
       if (!permiteAtendente) {
         setAtendentes([]);
-        setRespMsg('');
+        setAtendentesMsg('');
         return;
       }
       const alvo = filaAlvoEfetiva;
       if (!alvo) {
         setAtendentes([]);
-        setRespMsg('');
+        setAtendentesMsg('');
         return;
       }
       try {
+        setLoadingAgents(true);
         const resp = await apiGet(`/atendentes/${encodeURIComponent(alvo)}`);
         const lista = Array.isArray(resp?.atendentes) ? resp.atendentes : [];
-        setAtendentes(lista.filter(a => a.email !== userEmail)); // não listar o próprio usuário
-        setRespMsg(typeof resp?.message === 'string' ? resp.message : '');
+        setAtendentes(lista);
+        setAtendentesMsg(typeof resp?.message === 'string' ? resp.message : '');
       } catch (err) {
         console.error('Erro ao buscar atendentes online:', err);
         setAtendentes([]);
-        setRespMsg('Erro ao buscar atendentes desta fila.');
+        setAtendentesMsg('Erro ao buscar atendentes desta fila.');
+      } finally {
+        setLoadingAgents(false);
       }
     })();
-    // limpar atendente ao trocar a fila alvo
+    // limpa atendente escolhido ao trocar a fila alvo
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permiteAtendente, filaAlvoEfetiva, userEmail]);
+  }, [permiteAtendente, filaAlvoEfetiva]);
 
-  /* Validação do que será alterado */
-  const validarMudanca = () => {
-    const finalFila = filaAlvoEfetiva;                     // obrigatório para o POST
-    const finalResp = permiteAtendente ? (responsavel || '') : '';
-
-    if (!finalFila) {
-      alert('Defina a fila de destino (ou mantenha a atual).');
-      return null;
-    }
-    const mudouFila = finalFila !== (currentFila || '');
-    const mudouResp = !!finalResp && finalResp !== (currentAssigned || '');
-    if (!mudouFila && !mudouResp) {
-      alert('Selecione ao menos uma mudança (fila e/ou atendente).');
-      return null;
-    }
-    if (!userEmail) {
-      alert('Usuário atual não identificado (userEmail ausente).');
-      return null;
-    }
-    return { finalFila, finalResp };
-  };
-
-  /* Confirmar transferência (POST /tickets/transferir) */
   const confirmarTransferencia = async () => {
-    const sel = validarMudanca();
-    if (!sel) return;
+    if (!filaAlvoEfetiva) {
+      alert('Defina a fila de destino (ou mantenha a atual).');
+      return;
+    }
+    if (!mudouAlgo) {
+      alert('Selecione ao menos uma mudança (fila e/ou atendente).');
+      return;
+    }
 
     const body = {
-      from_user_id: userId,                  // obrigatório
-      to_fila: sel.finalFila,                // NOME da fila (obrigatório)
-      to_assigned_to: sel.finalResp || null, // opcional
-      transferido_por: userEmail,            // obrigatório
+      from_user_id: userId,
+      to_fila: filaAlvoEfetiva,                // obrigatório: nome da fila
+      to_assigned_to: responsavel || null,     // opcional
+      // transferido_por é opcional aqui; só envia se veio
+      ...(userEmail ? { transferido_por: userEmail } : {}),
     };
 
     try {
       setLoading(true);
       await apiPost('/tickets/transferir', body);
-      onDone?.(); // pai pode recarregar a grade
+      onDone?.();
       onClose();
     } catch (err) {
       console.error('Erro ao transferir atendimento:', err);
-      alert('Erro ao transferir atendimento.');
+      const msg = err?.response?.data?.error || 'Erro ao transferir atendimento.';
+      alert(msg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal">
-        <h2>Transferir Atendimento</h2>
-
-        {/* Contexto atual */}
-        <div className="context">
-          <div><strong>Fila atual:</strong> {currentFila || '—'}</div>
-          <div><strong>Responsável atual:</strong> {currentAssigned || '—'}</div>
+    <div className="tm-overlay" role="dialog" aria-modal="true">
+      <div className="tm-modal">
+        <div className="tm-header">
+          <h3 className="tm-title">Transferir Atendimento</h3>
+          <button className="tm-close" onClick={onClose} aria-label="Fechar">×</button>
         </div>
 
-        {/* Seleção de Fila (sempre precisamos de um nome de fila no POST) */}
-        <label>
-          Fila destino:
-          <select
-            value={filaDestinoNome}
-            onChange={(e) => { setFilaDestinoNome(e.target.value); setResponsavel(''); }}
-          >
-            <option value="">— manter fila atual —</option>
-            {filas.map((f) => (
-              <option key={f.id} value={f.nome}>{f.nome}</option>
-            ))}
-          </select>
-        </label>
+        <div className="tm-content">
+          <p className="tm-hint">Escolha a <strong>fila</strong> e/ou um <strong>atendente</strong>. Pelo menos um deles.</p>
 
-        {/* Seleção de Atendente (opcional) */}
-        {permiteAtendente && (
-          <label>
-            Atribuir para (opcional):
-            {atendentes.length === 0 ? (
-              <div className="info-text">
-                {respMsg || `Nenhum atendente online disponível na fila “${filaAlvoEfetiva || '—'}”.`}
+          <div className="tm-context">
+            <div><span className="tm-label">Fila atual:</span> {currentFila || '—'}</div>
+            <div><span className="tm-label">Responsável atual:</span> {currentAssigned || '—'}</div>
+          </div>
+
+          {/* Fila */}
+          <div className="tm-row">
+            <label className="tm-fieldLabel">Fila destino</label>
+            <select
+              className="tm-select"
+              value={filaDestinoNome}
+              onChange={(e) => { setFilaDestinoNome(e.target.value); setResponsavel(''); }}
+            >
+              <option value="">— manter fila atual —</option>
+              {filas.map((f) => (
+                <option key={f.id} value={f.nome}>{f.nome}</option>
+              ))}
+            </select>
+            <div className="tm-caption">Deixe “manter fila atual” se quiser mudar apenas o atendente.</div>
+          </div>
+
+          {/* Atendente (opcional) */}
+          {permiteAtendente && (
+            <div className="tm-row">
+              <label className="tm-fieldLabel">Atribuir para (opcional)</label>
+
+              {loadingAgents ? (
+                <div className="tm-skeleton" />
+              ) : atendentes.length === 0 ? (
+                <div className="tm-muted">
+                  {atendentesMsg || `Nenhum atendente online em “${filaAlvoEfetiva || '—'}”.`}
+                </div>
+              ) : (
+                <select
+                  className="tm-select"
+                  value={responsavel}
+                  onChange={(e) => setResponsavel(e.target.value)}
+                >
+                  <option value="">— não definir —</option>
+                  {atendentes.map(a => (
+                    <option key={a.email} value={a.email}>
+                      {a.name} {a.lastname} ({a.email})
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <div className="tm-caption">
+                Você pode definir apenas o atendente para a fila atual, ou escolher fila + atendente.
               </div>
-            ) : (
-              <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)}>
-                <option value="">— não definir —</option>
-                {atendentes.map((a) => (
-                  <option key={a.email} value={a.email}>
-                    {a.name} {a.lastname} ({a.email})
-                  </option>
-                ))}
-              </select>
-            )}
-          </label>
-        )}
+            </div>
+          )}
+        </div>
 
-        <div className="modal-actions">
-          <button onClick={confirmarTransferencia} disabled={loading}>
-            {loading ? 'Transferindo...' : 'Transferir'}
+        <div className="tm-actions">
+          <button
+            className="tm-btn tm-btnPrimary"
+            onClick={confirmarTransferencia}
+            disabled={loading || !mudouAlgo || !filaAlvoEfetiva}
+          >
+            {loading ? 'Transferindo…' : 'Transferir'}
           </button>
-          <button className="btn-cancelar" onClick={onClose} disabled={loading}>
+          <button className="tm-btn tm-btnGhost" onClick={onClose} disabled={loading}>
             Cancelar
           </button>
         </div>
