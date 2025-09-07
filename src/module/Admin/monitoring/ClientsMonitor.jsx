@@ -357,6 +357,7 @@ export default function ClientsMonitor() {
    userId={preview?.userId}
    cliente={preview?.cliente}
    canal={preview?.canal}
+   variant="webchat"
  />
     </div>
   );
