@@ -1,40 +1,25 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, MessageCircle, ExternalLink } from "lucide-react";
+import { X, MessageCircle } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
-// MESMO ChatThread do histórico:
-import ChatThread from "../atendimento/history/ChatThread";
+// Reaproveita o MESMO renderer de mensagens do histórico
+import ChatThread from "../ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
-/**
- * MiniChatDrawer
- * - Preview somente-leitura da conversa
- * - Reaproveita 100% o ChatThread do histórico
- *
- * Props:
- *  - open, onClose
- *  - historyId?: string|number     -> ID interno (o mesmo do /tickets/history/:id)
- *  - ticketNumber?: string|number  -> número “humano”, fallback
- *  - cliente?, canal?
- *  - historyUrlBase?: string (default: "/admin/management/history")
- */
 export default function MiniChatDrawer({
   open,
   onClose,
-  historyId,
-  ticketNumber,
+  userId,                 // <-- chave para o /messages/:user_id
   cliente,
   canal,
-  historyUrlBase = "/admin/management/history",
 }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [messages, setMessages] = useState([]);
   const viewportRef = useRef(null);
 
-  const hasKey = historyId != null || ticketNumber != null;
-  const canShow = open && hasKey;
+  const canShow = open && !!userId;
 
-  // ESC fecha
+  // fecha com ESC
   const onEsc = useCallback((e) => { if (e.key === "Escape") onClose?.(); }, [onClose]);
   useEffect(() => {
     if (!canShow) return;
@@ -42,95 +27,121 @@ export default function MiniChatDrawer({
     return () => window.removeEventListener("keydown", onEsc);
   }, [canShow, onEsc]);
 
-  const is404 = (e) => {
-    const s = e?.status ?? e?.response?.status;
-    if (s === 404) return true;
-    return /\b404\b/.test(String(e?.message || e || ""));
+  // helpers (mesmos do /history)
+  const safeParse = (raw) => {
+    if (raw == null) return null;
+    if (typeof raw === "object") return raw;
+    const s = String(raw);
+    try { return JSON.parse(s); } catch {
+      if (/^https?:\/\//i.test(s)) return { url: s };
+      return s;
+    }
+  };
+  const mergeContent = (rawContent, meta, type) => {
+    const c = safeParse(rawContent);
+    const out =
+      (c && typeof c === "object" && !Array.isArray(c)) ? { ...c } :
+      (typeof c === "string" ? { text: c } : {});
+    const m = meta || {};
+    out.url       ??= m.url || m.file_url || m.download_url || m.signed_url || m.public_url || null;
+    out.filename  ??= m.filename || m.name || null;
+    out.mime_type ??= m.mime || m.mimetype || m.content_type || null;
+    out.caption   ??= m.caption || null;
+    out.voice     ??= m.voice || (String(type).toLowerCase() === "audio" ? true : undefined);
+    out.size      ??= m.size || m.filesize || null;
+    out.width     ??= m.width || null;
+    out.height    ??= m.height || null;
+    out.duration  ??= m.duration || m.audio_duration || null;
+    return out;
+  };
+  const deriveStatus = (row) => {
+    if (row.read_at) return "read";
+    if (row.delivered_at) return "delivered";
+    const dir = String(row.direction || "").toLowerCase();
+    return dir === "outgoing" ? "sent" : "received";
   };
 
-  // normaliza shape mínimo p/ ChatThread
-  const ensureShape = (arr) =>
-    (Array.isArray(arr) ? arr : []).map((m) => ({
-      id: m.id ?? `${(m.timestamp ?? m.created_at ?? Date.now())}-${Math.random().toString(36).slice(2,7)}`,
-      timestamp: m.timestamp ?? m.created_at ?? m.date ?? Date.now(),
-      ...m,
-    }));
+  // tenta /messages/:user_id (raw), e se vier 404 tenta base64url(user_id)
+  const b64url = (s) => {
+    try {
+      return btoa(unescape(encodeURIComponent(String(s))))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    } catch { return String(s); }
+  };
+  const is404 = (e) => {
+    const st = e?.status ?? e?.response?.status;
+    return st === 404 || /\b404\b/.test(String(e?.message || e || ""));
+  };
 
-  // tenta diferentes endpoints (id interno primeiro, depois número)
-  const fetchMessagesSmart = async () => {
-    setErr(null);
-
-    // 1) Tenta pelo ID interno no endpoint de histórico
-    if (historyId != null) {
-      try {
-        const r = await apiGet(
-          `/tickets/history/${historyId}?include=messages,attachments&messages_limit=500`
-        );
-        // ✅ Sucesso: mesmo que vazio, retorna o array
-        return ensureShape(r?.messages || []);
-      } catch (e) {
-        if (!is404(e)) throw e; // erro real -> propaga
-        // 404: cai no fallback
-      }
-      // 1b) Fallback (se você quiser manter) — ok se este 404:
-      try {
-        const r2 = await apiGet(`/tickets/${historyId}/messages`);
-        return ensureShape(Array.isArray(r2) ? r2 : r2?.data || []);
-      } catch (e2) {
-        if (!is404(e2)) throw e2;
-      }
+  const fetchMessages = async () => {
+    // 1) raw user_id
+    try {
+      const r = await apiGet(`/messages/${encodeURIComponent(userId)}`);
+      return Array.isArray(r) ? r : (Array.isArray(r?.data) ? r.data : []);
+    } catch (e) {
+      if (!is404(e)) throw e;
     }
-
-    // 2) Tenta pelo ticketNumber no endpoint de histórico
-    if (ticketNumber != null) {
-      try {
-        const r3 = await apiGet(
-          `/tickets/history/${ticketNumber}?include=messages,attachments&messages_limit=500`
-        );
-        // ✅ Sucesso: mesmo que vazio, retorna o array
-        return ensureShape(r3?.messages || []);
-      } catch (e3) {
-        if (!is404(e3)) throw e3;
-      }
-      // 2b) Fallback por número (se existir na tua API)
-      try {
-        const r4 = await apiGet(`/tickets/${ticketNumber}/messages`);
-        return ensureShape(Array.isArray(r4) ? r4 : r4?.data || []);
-      } catch (e4) {
-        if (!is404(e4)) throw e4;
-      }
+    // 2) base64url(user_id)
+    try {
+      const r2 = await apiGet(`/messages/${b64url(userId)}`);
+      return Array.isArray(r2) ? r2 : (Array.isArray(r2?.data) ? r2.data : []);
+    } catch (e2) {
+      throw e2;
     }
-
-    // Nada encontrado (id e número falharam)
-    const label = historyId != null ? `ID ${historyId}` : `número ${ticketNumber}`;
-    // 🔕 Não trata como erro fatal: retorna vazio para mostrar "Sem histórico"
-    console.warn(`MiniChat: mensagens não encontradas para (${label}).`);
-    return [];
   };
 
   useEffect(() => {
     let alive = true;
     async function load() {
       if (!canShow) return;
-      setLoading(true);
+      setLoading(true); setErr(null);
       try {
-        const msgs = await fetchMessagesSmart();
-        if (alive) setMessages(msgs);
+        const rows = await fetchMessages();
+
+        const normalized = rows.map((m) => {
+          const dir = String(m.direction || "").toLowerCase();
+          const type = String(m.type || "").toLowerCase();
+          const content = mergeContent(m.content, m.metadata, type);
+
+          const text =
+            typeof content === "string" ? content :
+            (content.text || content.body || content.caption || null);
+
+          return {
+            id: m.id ?? `${m.timestamp ?? Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+            direction: dir,           // "incoming"/"outgoing"/"system"
+            type,                     // "text", "image", "document", ...
+            content,                  // objeto normalizado
+            text,                     // usado pelo renderer para mensagens de texto
+            timestamp: m.timestamp,
+            created_at: m.timestamp,
+            channel: m.channel,
+            message_id: m.message_id,
+            ticket_number: m.ticket_number,
+            from_agent: dir === "outgoing" || dir === "system",
+            sender_name: dir === "outgoing" ? (m.assigned_to || "Atendente")
+                        : (dir === "system" ? "Sistema" : null),
+            delivered_at: m.delivered_at,
+            read_at: m.read_at,
+            status: deriveStatus(m),
+            metadata: m.metadata || null,
+            reply_to: m.reply_to || m.metadata?.context?.message_id || null,
+            context: m.metadata?.context || null,
+          };
+        });
+
+        if (alive) setMessages(normalized);
       } catch (e) {
-        console.error("Falha ao carregar o ticket (mini):", e);
-        if (alive) {
-          setErr(e?.message || "Falha ao carregar a conversa.");
-          setMessages([]);
-        }
+        console.error("MiniChat – erro ao buscar mensagens:", e);
+        if (alive) { setErr("Falha ao carregar as mensagens."); setMessages([]); }
       } finally {
         if (alive) setLoading(false);
       }
     }
     load();
     return () => { alive = false; };
-    // re-carrega quando alterar a chave do ticket
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canShow, historyId, ticketNumber]);
+  }, [canShow, userId]);
 
   // auto-scroll
   useEffect(() => {
@@ -140,9 +151,6 @@ export default function MiniChatDrawer({
     const t = setTimeout(() => { el.scrollTop = el.scrollHeight; }, 60);
     return () => clearTimeout(t);
   }, [canShow, messages]);
-
-  const linkId = historyId ?? ticketNumber;
-  const fullHistoryHref = `${historyUrlBase}/${linkId}`;
 
   return (
     <>
@@ -155,16 +163,11 @@ export default function MiniChatDrawer({
           <div className={s.hLeft}>
             <div className={s.hIcon}><MessageCircle size={16} /></div>
             <div className={s.hText}>
-              <div className={s.hTitle}>{cliente || `Ticket #${linkId ?? "—"}`}</div>
+              <div className={s.hTitle}>{cliente || "Conversa"}</div>
               <div className={s.hSub}>{canal || "Pré-visualização"}</div>
             </div>
           </div>
           <div className={s.hRight}>
-            {linkId != null && (
-              <a className={s.fullBtn} href={fullHistoryHref} title="Abrir no histórico completo">
-                <ExternalLink size={16} />
-              </a>
-            )}
             <button className={s.iconBtn} onClick={onClose} aria-label="Fechar mini chat">
               <X size={16} />
             </button>
@@ -172,8 +175,8 @@ export default function MiniChatDrawer({
         </header>
 
         <div className={s.content}>
-          {!hasKey ? (
-            <div className={s.empty}>Ticket não informado.</div>
+          {!userId ? (
+            <div className={s.empty}>Usuário não informado.</div>
           ) : loading ? (
             <div className={s.loadingWrap}>
               <div className={s.spinner} />
