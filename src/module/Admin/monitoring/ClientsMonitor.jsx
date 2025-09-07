@@ -309,7 +309,7 @@ export default function ClientsMonitor() {
                       aria-label="Visualizar conversa"
                       title="Visualizar conversa"
                       onClick={() => setPreview({
-                        ticketId: a.ticket_number,
+                        ticketId: a.id ?? a.ticket_number, // ⬅️ use o mesmo id que o TicketDetail recebe
                         cliente: a.cliente,
                         canal: a.canal
                       })}
