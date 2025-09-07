@@ -30,10 +30,7 @@
   position: fixed;
   display: flex; 
   flex-direction: column;
-  background: linear-gradient(145deg, 
-    var(--nc-surface) 0%, 
-    var(--nc-surface-2) 60%,
-    #0f1623 100%);
+  background: #dbeafe
   color: var(--nc-text);
   border: 1px solid var(--nc-border);
   transform: translate3d(0,0,0);
@@ -43,7 +40,6 @@
   z-index: 51;
   overflow: hidden;
   border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 /* Drawer variant com animação melhorada */
@@ -67,8 +63,8 @@
   right: 20px; 
   bottom: 20px; 
   top: auto;
-  width: 380px; 
-  height: 500px;
+  width: 480px; 
+  height: 700px;
   max-width: calc(100vw - 40px);
   border-radius: 16px;
   transform: translateY(20px) scale(.95);
@@ -132,13 +128,12 @@
   width: 40px; 
   height: 40px; 
   border-radius: 50%; /* Alterado para redondo */
-  background: #6366f1;
+  background:#dbeafe1;
   display: grid; 
   place-items: center;
   font-weight: 700; 
   font-size: 16px; 
-  color: white;
-  border: 2px solid white; /* Borda branca como na imagem */
+  color:#2563eb
   position: relative;
 }
 
