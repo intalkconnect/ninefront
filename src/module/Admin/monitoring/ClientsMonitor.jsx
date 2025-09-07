@@ -4,6 +4,7 @@ import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer,
   Headset, RefreshCw, Eye, ArrowLeftRight
 } from 'lucide-react';
+import MiniChatDrawer from './MiniChatDrawer';
 import styles from './styles/ClientsMonitor.module.css';
 
 /* Utils ---------------------------------------------------- */
@@ -35,6 +36,7 @@ export default function ClientsMonitor() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [preview, setPreview] = useState(null);
 
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
@@ -301,23 +303,28 @@ export default function ClientsMonitor() {
                         : '--:--'}
                     </div>
                   </td>
-<td className={styles.actionsCell}>
-  <button
-    className={styles.linkBtn}
-    aria-label="Ver"
-    title="Ver"
-  >
-    <Eye size={16} />
-  </button>
+                  <td className={styles.actionsCell}>
+                    <button
+                      className={styles.linkBtn}
+                      aria-label="Visualizar conversa"
+                      title="Visualizar conversa"
+                      onClick={() => setPreview({
+                        ticketId: a.ticket_number,
+                        cliente: a.cliente,
+                        canal: a.canal
+                      })}
+                    >
+                      <Eye size={16} />
+                    </button>
 
-  <button
-    className={styles.linkBtnDanger}
-    aria-label="Transferir"
-    title="Transferir"
-  >
-    <ArrowLeftRight size={16} />
-  </button>
-</td>
+                    <button
+                      className={styles.linkBtnDanger}
+                      aria-label="Transferir"
+                      title="Transferir"
+                    >
+                      <ArrowLeftRight size={16} />
+                    </button>
+                  </td>
 
                 </tr>
               ))}
@@ -343,6 +350,14 @@ export default function ClientsMonitor() {
           </ul>
         </section>
       )}
+           {/* Drawer do mini-chat */}
+      <MiniChatDrawer
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        ticketId={preview?.ticketId}
+        cliente={preview?.cliente}
+        canal={preview?.canal}
+      />
     </div>
   );
 }
