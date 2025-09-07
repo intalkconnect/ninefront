@@ -1,56 +1,167 @@
-/* ====== AgentsMonitor: complementos ====== */
+/* =============== AgentsMonitor.module.css =============== */
+
+/* Base / container */
+.container{
+  min-height:100vh;
+  background:linear-gradient(135deg,#f7f7fb 0%,#f1f5f9 100%);
+  padding:24px;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  color:#111827;
+}
+
+/* Header + Refresh */
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.headerInfo{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.kpill,.kpillBlue{
+  font-size:11px;font-weight:700;border-radius:999px;padding:6px 10px;border:1px solid;
+}
+.kpill{color:#475569;background:#f1f5f9;border-color:#e2e8f0}
+.kpillBlue{color:#1e40af;background:#dbeafe;border-color:#93c5fd}
+
+.refreshBtn{
+  border:1px solid #e5e7eb; background:#fff; color:#1f2937;
+  border-radius:12px; padding:10px 14px; font-weight:700;
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+}
+.refreshBtn:hover{ background:#f9fafb; }
+.refreshBtn:disabled{opacity:.6;cursor:not-allowed}
+.spinning{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* Subheader */
+.subHeader{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:18px; position:relative;
+}
+.subHeader::after{
+  content:''; position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+.subtitle{ margin:6px 0 0; color:#6b7280; font-size:15px; font-weight:400 }
+
+/* KPI cards */
+.cardGroup{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;margin:16px 0 24px;
+}
+@media (max-width:1024px){.cardGroup{grid-template-columns:1fr}}
+.card{
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(8px);
+  border:1px solid #e2e8f0;
+  border-radius:16px;box-shadow:0 4px 6px rgba(0,0,0,.05),0 1px 3px rgba(0,0,0,.1);
+  display:flex;flex-direction:column;overflow:hidden;transition:.25s;
+}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.1)}
+.cardHead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #e5e7f0;background:linear-gradient(135deg,rgba(255,255,255,.9) 0%,rgba(248,250,252,.7) 100%)}
+.cardTitle{display:flex;align-items:center;gap:10px;font-weight:700;color:#1e293b}
+.cardIcon{display:inline-flex;color:#64748b}
+.cardBody{padding:18px}
+.kpiValue{font-size:28px;font-weight:700}
+.tone_blue{color:#2563eb}
+.tone_green{color:#059669}
+.tone_amber{color:#d97706}
+.tone_purple{color:#7c3aed}
+.tone_indigo{color:#4f46e5}
+.tone_orange{color:#ea580c}
+
+/* Skeletons */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skeleton{background:linear-gradient(90deg,#f1f5f9 0%,#e2e8f0 50%,#f1f5f9 100%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+.sq16{width:16px;height:16px}
+.sq120{width:120px;height:14px}
+.sq48{width:100%;height:48px}
+.skelRow td{padding:10px 16px}
+.skeletonRow{height:18px;border-radius:8px;background:linear-gradient(90deg,#f1f5f9 0%,#e2e8f0 50%,#f1f5f9 100%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+
+/* Filtros */
+.filters{
+  background:rgba(255,255,255,.9);backdrop-filter:blur(8px);
+  border:1px solid #e2e8f0;border-radius:16px;padding:16px;margin-bottom:20px;
+}
+.filterGroup{margin-bottom:10px}
+.filterTitle{font-size:14px;font-weight:700;color:#374151;margin:0 0 8px}
+.filterChips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  border:0;background:#f3f4f6;color:#374151;padding:8px 12px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;
+}
+.chip:hover{background:#e5e7eb}
+.chipActive{background:#2563eb;color:#fff}
+.inputSearch{
+  border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:12px;
+  padding:8px 12px;font-size:13px;min-width:260px;
+}
+.inputSearch:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+
+/* Tabela */
+.tableCard{background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1px solid #e2e8f0;border-radius:16px;overflow:hidden}
+.tableHeader{padding:16px 20px;border-bottom:1px solid #e2e8f0}
+.tableTitle{font-size:18px;font-weight:700;margin:0;display:flex;gap:8px;align-items:center}
+.tableScroll{overflow:auto; max-width:100%}
+.table{width:100%;border-collapse:separate;border-spacing:0;table-layout:auto}
+.table thead th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;
+  padding:12px 16px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid #e2e8f0;font-weight:700
+}
+.table tbody td{padding:12px 16px;border-top:1px solid #f3f4f6;font-size:14px;color:#334155}
+.table tbody tr:hover{background:rgba(17,24,39,.015)}
+.emptyCell{text-align:center;padding:22px;color:#94a3b8;font-style:italic}
+
+/* Células comuns */
+.clientCell{display:flex;align-items:center;gap:12px}
+.avatar{width:32px;height:32px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;color:#2563eb}
+.clientName{font-weight:700}
+.clientSub{font-size:12px;color:#64748b}
+.muted{color:#6b7280;font-style:italic}
+.bold{font-weight:700}
+.subtle{color:#6b7280;font-size:12px}
+.srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Status pills (agentes) */
+.status{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid}
+.statusIcon{vertical-align:middle}
+.stOnline{background:#dcfce7;color:#166534;border-color:#86efac}
+.stPause{background:#fef9c3;color:#854d0e;border-color:#fde68a}
+.stOffline{background:#f3f4f6;color:#374151;border-color:#e5e7eb}
+.stInactive{background:#e5e7eb;color:#6b7280;border-color:#d1d5db}
+
+/* Fila badge (se usada) */
+.queuePill{
+  display:inline-flex;align-items:center;gap:6px;font-weight:700;
+  background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:999px;padding:4px 10px;font-size:12px
+}
+
+/* Pintura de linhas por “tom” (se usar tone_ok/warn/late) */
+.row {transition: background-color .25s ease, box-shadow .25s ease, transform .08s ease;}
+.tone_none {}
+.tone_ok { background: transparent; }
+.tone_warn { background:#fff7e6; box-shadow: inset 4px 0 0 0 #f59e0b; }
+.tone_late { background:#ffe6e6; box-shadow: inset 4px 0 0 0 #ef4444; }
+
+.table tbody tr.tone_warn:hover,
+.table tbody tr.tone_late:hover { transform: translateX(1px); }
 
 /* Paginação */
 .pagination{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  padding:12px 16px;
-  border-top:1px solid #e2e8f0;
-  background:#fff;
+  display:flex; align-items:center; justify-content:center;
+  gap:12px; padding:12px 16px; border-top:1px solid #e2e8f0; background:#fff;
 }
 .pageBtn{
-  border:1px solid #e5e7eb;
-  background:#fff;
-  color:#1f2937;
-  border-radius:10px;
-  padding:8px 12px;
-  font-weight:700;
-  cursor:pointer;
-  transition: .15s ease;
+  border:1px solid #e5e7eb; background:#fff; color:#1f2937;
+  border-radius:10px; padding:8px 12px; font-weight:700; cursor:pointer; transition:.15s ease;
 }
 .pageBtn:hover{ background:#f9fafb }
-.pageBtn:disabled{
-  opacity:.55;
-  cursor:not-allowed;
-  background:#fafafa;
-}
-.pageInfo{
-  font-size:12px;
-  color:#64748b;
-  font-weight:600;
-}
+.pageBtn:disabled{ opacity:.55; cursor:not-allowed; background:#fafafa }
+.pageInfo{ font-size:12px; color:#64748b; font-weight:600 }
 
-/* Campo de busca dentro dos filtros (opcional, caso use <input> lá) */
-.filters input[type="text"],
-.filters input[type="search"]{
-  border:1px solid #e5e7eb;
-  background:#fff;
-  color:#111827;
-  border-radius:12px;
-  padding:8px 12px;
-  font-size:13px;
-  min-width:260px;
-}
-.filters input[type="text"]:focus,
-.filters input[type="search"]:focus{
-  outline:none;
-  border-color:#93c5fd;
-  box-shadow:0 0 0 3px rgba(59,130,246,.15);
-}
-
-/* Pequenos ajustes visuais da tabela para o monitor de agentes */
-.table tbody tr:hover{
-  background:rgba(17,24,39,.015);
+/* Responsivo */
+@media (max-width:768px){
+  .container{padding:16px}
+  .cardBody{padding:16px}
+  .cardHead{padding:12px 16px}
+  .cardGroup{gap:12px}
+  .filters{padding:12px}
+  .tableHeader{padding:12px 16px}
+  .table thead th,.table tbody td{padding:10px 12px}
 }
