@@ -7,33 +7,33 @@ export default function TransferModal({
   userId,
   currentFila = '',
   currentAssigned = '',
-  userEmail = '',                  // opcional: se vier, vai como transferido_por
-  permiteAtendente = true,         // opcional: se quiser esconder o campo de atendente, passe false
+  userEmail = '',         // e-mail do operador logado (se vier, vai no transferido_por)
+  userRole = '',          // "admin" | "supervisor" | "atendente" | ...
+  permiteAtendente = true,
   onClose,
-  onDone,                          // opcional: pai pode dar fetchAll após sucesso
+  onDone,
 }) {
-  const [filas, setFilas] = useState([]);           // [{id, nome}, ...] (GET /filas)
-  const [filaDestinoNome, setFilaDestinoNome] = useState('');   // nome da fila
-  const [atendentes, setAtendentes] = useState([]); // [{id, name, lastname, email, status}]
+  const [filas, setFilas] = useState([]);
+  const [filaDestinoNome, setFilaDestinoNome] = useState(''); // nome da fila destino
+  const [atendentes, setAtendentes] = useState([]);
   const [atendentesMsg, setAtendentesMsg] = useState('');
-  const [responsavel, setResponsavel] = useState('');           // email do atendente
+  const [responsavel, setResponsavel] = useState('');         // email do atendente destino
   const [loading, setLoading] = useState(false);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
-  // Fila alvo efetiva (se não escolher, mantém a atual)
+  // fila efetiva (se não escolher, mantém a atual)
   const filaAlvoEfetiva = useMemo(
     () => (filaDestinoNome || currentFila || ''),
     [filaDestinoNome, currentFila]
   );
 
-  // houve ao menos uma mudança?
   const mudouAlgo = useMemo(() => {
     const mudouFila = !!filaAlvoEfetiva && filaAlvoEfetiva !== (currentFila || '');
     const mudouResp = !!responsavel && responsavel !== (currentAssigned || '');
     return mudouFila || mudouResp;
   }, [filaAlvoEfetiva, currentFila, responsavel, currentAssigned]);
 
-  /* Carrega TODAS as filas (GET /filas) */
+  // carrega todas as filas
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -51,35 +51,26 @@ export default function TransferModal({
     return () => { alive = false; };
   }, [onClose]);
 
-  /* Carrega ATENDENTES ONLINE da fila alvo (GET /atendentes/:fila_nome) */
+  // busca ATENDENTES ONLINE da fila alvo
   useEffect(() => {
     (async () => {
-      if (!permiteAtendente) {
-        setAtendentes([]);
-        setAtendentesMsg('');
-        return;
-      }
+      if (!permiteAtendente) { setAtendentes([]); setAtendentesMsg(''); return; }
       const alvo = filaAlvoEfetiva;
-      if (!alvo) {
-        setAtendentes([]);
-        setAtendentesMsg('');
-        return;
-      }
+      if (!alvo) { setAtendentes([]); setAtendentesMsg(''); return; }
       try {
         setLoadingAgents(true);
-        const resp = await apiGet(`/filas/atendentes/${encodeURIComponent(alvo)}`);
+        const resp = await apiGet(`/atendentes/${encodeURIComponent(alvo)}`);
         const lista = Array.isArray(resp?.atendentes) ? resp.atendentes : [];
         setAtendentes(lista);
         setAtendentesMsg(typeof resp?.message === 'string' ? resp.message : '');
       } catch (err) {
         console.error('Erro ao buscar atendentes online:', err);
-        setAtendentes([]);
-        setAtendentesMsg('Erro ao buscar atendentes desta fila.');
+        setAtendentes([]); setAtendentesMsg('Erro ao buscar atendentes desta fila.');
       } finally {
         setLoadingAgents(false);
       }
     })();
-    // limpa atendente escolhido ao trocar a fila alvo
+    // limpa atendente ao trocar a fila
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permiteAtendente, filaAlvoEfetiva]);
 
@@ -93,12 +84,16 @@ export default function TransferModal({
       return;
     }
 
+    // sempre enviar transferido_por:
+    const transferidoPor =
+      (userEmail && userEmail.trim()) ||
+      (userRole ? `perfil:${String(userRole).toLowerCase()}` : 'perfil:desconhecido');
+
     const body = {
       from_user_id: userId,
-      to_fila: filaAlvoEfetiva,                // obrigatório: nome da fila
-      to_assigned_to: responsavel || null,     // opcional
-      // transferido_por é opcional aqui; só envia se veio
-      ...(userEmail ? { transferido_por: userEmail } : {}),
+      to_fila: filaAlvoEfetiva,            // NOME da fila (obrigatório na sua API)
+      to_assigned_to: responsavel || null, // opcional
+      transferido_por: transferidoPor,     // sempre presente
     };
 
     try {
