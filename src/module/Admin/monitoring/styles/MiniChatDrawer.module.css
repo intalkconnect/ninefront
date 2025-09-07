@@ -310,3 +310,29 @@
     --nc-subtle: #cccccc;
   }
 }
+
+/* ===== Overlay de skeleton cobrindo o chat todo ===== */
+.overlayShell {
+  position: absolute;
+  inset: 0;
+  padding: 20px 18px;
+  z-index: 2;                 /* acima do conteúdo do chat */
+  backdrop-filter: blur(0px); /* pode aumentar se quiser um leve blur */
+}
+
+/* Transição do conteúdo real quando fica pronto */
+.contentHidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.contentVisible {
+  opacity: 1;
+  transition: opacity .22s ease;
+}
+
+/* (opcional) evita clique em algo atrás enquanto carrega */
+.body[aria-busy="true"] {
+  pointer-events: none;
+}
+
+/* Reaproveita os estilos de skeleton que já passamos antes */
