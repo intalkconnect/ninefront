@@ -29,26 +29,39 @@ const formatTime = (m = 0) => {
 
 /* Component ------------------------------------------------ */
 export default function ClientsMonitor() {
+  // Settings carregados da API (com defaults)
+  const [settings, setSettings] = useState<{
+    habilitar: boolean;
+    overrides: Record<string, { espera_inicial: number; demora_durante: number }>;
+  }>({
+    habilitar: true,
+    overrides: {
+      alta:  { espera_inicial: 5,  demora_durante: 10 },
+      media: { espera_inicial: 15, demora_durante: 20 },
+    }
+  });
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedFilter, setSelectedFilter] = useState('todos');
-  const [atendimentos, setAtendimentos] = useState([]);
-  const [filas, setFilas] = useState([]);
+  const [atendimentos, setAtendimentos] = useState<any[]>([]);
+  const [filas, setFilas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState(null);
+  const [erro, setErro] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [preview, setPreview] = useState(null);
+  const [preview, setPreview] = useState<any>(null);
 
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [rt, fs] = await Promise.all([
+      const [rt, fs, st] = await Promise.all([
         apiGet('/analytics/realtime'),
         apiGet('/filas'),
+        apiGet('/settings'),
       ]);
 
       // realtime
       const rtArray = Array.isArray(rt) ? rt : (Array.isArray(rt?.data) ? rt.data : []);
-      const formatados = rtArray.map((item) => {
+      const formatados = rtArray.map((item: any) => {
         const inicio = new Date(item.inicioConversa);
         const esperaMinCalc = Math.floor((Date.now() - inicio.getTime()) / 60000);
         const esperaSegApi = Number(item.tempoEspera ?? 0);
@@ -63,13 +76,32 @@ export default function ClientsMonitor() {
       // filas
       const filasIn = Array.isArray(fs) ? fs : (Array.isArray(fs?.data) ? fs.data : []);
       const filasNorm = filasIn
-        .map((f) => {
+        .map((f: any) => {
           if (typeof f === 'string') return { nome: f, slug: slugify(f) };
           const nome = f?.nome || f?.name || f?.titulo || '';
           return nome ? { nome, slug: slugify(nome) } : null;
         })
-        .filter(Boolean);
+        .filter(Boolean) as any[];
 
+      // settings
+      const stArr = Array.isArray(st) ? st : (Array.isArray(st?.data) ? st.data : []);
+      const kv: Record<string, string> = Object.fromEntries(
+        (stArr || []).map((s: any) => [String(s.key), String(s.value ?? '')])
+      );
+
+      let overrides = settings.overrides;
+      try {
+        if (kv.overrides_por_prioridade_json) {
+          overrides = JSON.parse(kv.overrides_por_prioridade_json);
+        }
+      } catch {
+        // mantém defaults em caso de JSON inválido
+      }
+      const habilitar = kv.habilitar_alertas_atendimento
+        ? kv.habilitar_alertas_atendimento === 'true'
+        : settings.habilitar;
+
+      setSettings({ habilitar, overrides });
       setAtendimentos(formatados);
       setFilas(filasNorm);
       setErro(null);
@@ -81,7 +113,7 @@ export default function ClientsMonitor() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [settings.habilitar, settings.overrides]);
 
   useEffect(() => {
     let mounted = true;
@@ -98,7 +130,7 @@ export default function ClientsMonitor() {
   const filasParaFiltro = filas.length
     ? filas
     : Array.from(new Set(atendimentos.map((a) => a.fila).filter(Boolean)))
-        .map((nome) => ({ nome, slug: slugify(nome) }));
+        .map((nome) => ({ nome, slug: slugify(String(nome)) }));
 
   const filtered = useMemo(() => {
     return atendimentos.filter((a) => {
@@ -107,8 +139,7 @@ export default function ClientsMonitor() {
       if (selectedFilter === 'em_atendimento') return a.status === 'em_atendimento';
       if (filasParaFiltro.some((f) => f.slug === selectedFilter)) return slugify(a.fila) === selectedFilter;
       if (canais.map(c => c.toLowerCase()).includes(String(selectedFilter).toLowerCase()))
-      return String(a.canal || '').toLowerCase() === String(selectedFilter).toLowerCase();
-
+        return String(a.canal || '').toLowerCase() === String(selectedFilter).toLowerCase();
       return true;
     });
   }, [atendimentos, selectedFilter, filasParaFiltro]);
@@ -135,12 +166,44 @@ export default function ClientsMonitor() {
     ),
   }), [atendimentos]);
 
-  const alertas = useMemo(() =>
-    atendimentos
-      .filter((a) => a.status === 'aguardando' && (a.tempoEspera || 0) >= 8)
-      .sort((a, b) => (b.tempoEspera || 0) - (a.tempoEspera || 0))
-      .slice(0, 3)
-  , [atendimentos]);
+  /* ---------- ALERTING POR COR (inline) ---------- */
+  // pega limites por prioridade com fallback
+const getLimits = useCallback((prioridade: string | undefined) => {
+  const p = String(prioridade || 'media').toLowerCase();
+  return settings.overrides[p] || settings.overrides.media || { espera_inicial: 15, demora_durante: 20 };
+}, [settings.overrides]);
+
+type Tone = 'ok' | 'warn' | 'late' | 'none';
+const rowTone = useCallback((a: any): Tone => {
+  if (!settings.habilitar) return 'none';
+  const lim = getLimits(a.prioridade);
+  const minutos = Number(a.tempoEspera || 0);
+
+  if (a.status === 'aguardando') {
+    if (minutos >= (lim.espera_inicial * 2)) return 'late';
+    if (minutos >= lim.espera_inicial) return 'warn';
+    return 'ok';
+  }
+  if (a.status === 'em_atendimento') {
+    if (minutos >= (lim.demora_durante * 2)) return 'late';
+    if (minutos >= lim.demora_durante) return 'warn';
+    return 'ok';
+  }
+  return 'ok';
+}, [settings.habilitar, getLimits]);
+
+// classe da linha
+const rowClass = useCallback((a: any) => {
+  const tone = rowTone(a); // ok | warn | late | none
+  return `${styles.row} ${styles['tone_' + tone]}`;
+}, [rowTone]);
+
+// contador para o chip de alertas no header (opcional)
+const alertCount = useMemo(
+  () => atendimentos.filter(a => ['warn','late'].includes(rowTone(a))).length,
+  [atendimentos, rowTone]
+);
+
 
   /* Render ------------------------------------------------- */
   return (
@@ -150,9 +213,9 @@ export default function ClientsMonitor() {
       <div className={styles.header}>
         <div className={styles.headerInfo}>
           <div className={styles.kpillBlue}>Última atualização: {currentTime.toLocaleTimeString('pt-BR')}</div>
-          {alertas.length > 0 && (
+          {alertCount > 0 && (
             <div className={styles.kpillAmber}>
-              <AlertTriangle size={14}/> {alertas.length} alerta(s)
+              <AlertTriangle size={14}/> {alertCount} alerta(s)
             </div>
           )}
         </div>
@@ -167,7 +230,7 @@ export default function ClientsMonitor() {
         </button>
       </div>
 
-                  <div className={styles.subHeader}>
+      <div className={styles.subHeader}>
         <div>
           <p className={styles.subtitle}>Operação em tempo real: quem espera, quem respondeu e quem precisa de ajuda.</p>
         </div>
@@ -270,7 +333,7 @@ export default function ClientsMonitor() {
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className={styles.emptyCell}>Sem atendimentos no filtro atual.</td></tr>
               ) : filtered.map((a) => (
-                <tr key={a.id}>
+                <tr key={a.id} style={rowClass(a)}>
                   <td>
                     <div className={styles.clientCell}>
                       <div className={styles.avatar}><User size={14} /></div>
@@ -300,7 +363,7 @@ export default function ClientsMonitor() {
                   <td>
                     <div className={styles.bold}>{formatTime(a.tempoEspera)}</div>
                     <div className={styles.subtle}>
-                      Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa)
+                      Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa as any)
                         ? a.inicioConversa.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                         : '--:--'}
                     </div>
@@ -311,7 +374,7 @@ export default function ClientsMonitor() {
                       aria-label="Visualizar conversa"
                       title="Visualizar conversa"
                       onClick={() => setPreview({
-                        userId: a.user_id, 
+                        userId: a.user_id,
                         cliente: a.cliente,
                         canal: a.canal
                       })}
@@ -335,38 +398,24 @@ export default function ClientsMonitor() {
         </div>
       </section>
 
-      {/* Alertas rápidos */}
-      {alertas.length > 0 && (
-        <section className={styles.alertCard}>
-          <h3 className={styles.alertTitle}><AlertTriangle size={18}/> Espera acima do limite</h3>
-          <ul className={styles.alertList}>
-            {alertas.map((a) => (
-              <li key={`al-${a.ticket_number}`} className={styles.alert}>
-                <span className={styles.badgeTime}>{formatTime(a.tempoEspera)}</span>
-                <strong>{a.cliente}</strong>
-                <span className={styles.subtle}>• Fila: {a.fila || '—'}</span>
-                <span className={styles.subtle}>• Canal: {cap(a.canal || '—')}</span>
-                <span className={styles.subtle}>• Ticket #{a.ticket_number}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-           {/* Drawer do mini-chat */}
- <MiniChatDrawer
-   open={!!preview}
-   onClose={() => setPreview(null)}
-   userId={preview?.userId}
-   cliente={preview?.cliente}
-   canal={preview?.canal}
-   variant="webchat"
- />
+      {/* (Removido) Alertas rápidos em texto */}
+      {/* Pintura por cor substitui este bloco */}
+
+      {/* Drawer do mini-chat */}
+      <MiniChatDrawer
+        open={!!preview}
+        onClose={() => setPreview(null)}
+        userId={preview?.userId}
+        cliente={preview?.cliente}
+        canal={preview?.canal}
+        variant="webchat"
+      />
     </div>
   );
 }
 
 /* Subcomponents ------------------------------------------- */
-function KpiCard({ icon, label, value, tone = 'blue' }) {
+function KpiCard({ icon, label, value, tone = 'blue' }: any) {
   return (
     <div className={styles.card}>
       <div className={styles.cardHead}>
