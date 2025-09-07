@@ -1,0 +1,56 @@
+/* ====== AgentsMonitor: complementos ====== */
+
+/* Paginação */
+.pagination{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:12px 16px;
+  border-top:1px solid #e2e8f0;
+  background:#fff;
+}
+.pageBtn{
+  border:1px solid #e5e7eb;
+  background:#fff;
+  color:#1f2937;
+  border-radius:10px;
+  padding:8px 12px;
+  font-weight:700;
+  cursor:pointer;
+  transition: .15s ease;
+}
+.pageBtn:hover{ background:#f9fafb }
+.pageBtn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  background:#fafafa;
+}
+.pageInfo{
+  font-size:12px;
+  color:#64748b;
+  font-weight:600;
+}
+
+/* Campo de busca dentro dos filtros (opcional, caso use <input> lá) */
+.filters input[type="text"],
+.filters input[type="search"]{
+  border:1px solid #e5e7eb;
+  background:#fff;
+  color:#111827;
+  border-radius:12px;
+  padding:8px 12px;
+  font-size:13px;
+  min-width:260px;
+}
+.filters input[type="text"]:focus,
+.filters input[type="search"]:focus{
+  outline:none;
+  border-color:#93c5fd;
+  box-shadow:0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* Pequenos ajustes visuais da tabela para o monitor de agentes */
+.table tbody tr:hover{
+  background:rgba(17,24,39,.015);
+}
