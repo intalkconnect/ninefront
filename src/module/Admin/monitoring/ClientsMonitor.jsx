@@ -10,6 +10,27 @@ import MiniChatDrawer from './MiniChatDrawer';
 import TransferModal from './TransferModal';
 import styles from './styles/ClientsMonitor.module.css';
 
+// helper para ler e decodificar o JWT (email e role/profile)
+const getAuthInfo = () => {
+  try {
+    const t = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!t) return { email: '', role: '' };
+    let b64 = t.split('.')[1] || '';
+    b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
+    // padding
+    while (b64.length % 4) b64 += '=';
+    const json = atob(b64);
+    const payload = JSON.parse(json);
+    const email = payload?.email || payload?.user?.email || '';
+    const role  = (payload?.profile || payload?.role || '').toLowerCase();
+    return { email, role };
+  } catch {
+    return { email: '', role: '' };
+  }
+};
+const { email: currentUserEmail, role: currentUserRole } = useMemo(getAuthInfo, []);
+
+
 /* Utils ---------------------------------------------------- */
 const slugify = (str = '') =>
   String(str)
@@ -464,10 +485,14 @@ export default function ClientsMonitor() {
     userId={transfer.userId}
     currentFila={transfer.currentFila}
     currentAssigned={transfer.currentAssigned}
+    userEmail={currentUserEmail}                 // << usado em transferido_por
+    userRole={currentUserRole}                   // << fallback: "perfil:<role>"
+    // permiteAtendente={settings?.permitir_transferencia_atendente === 'true'} // se quiser controlar via settings
     onClose={onCloseTransfer}
     onDone={fetchAll}
   />
 )}
+
       {/* Drawer do mini-chat */}
       <MiniChatDrawer
         open={!!preview}
