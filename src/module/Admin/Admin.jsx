@@ -45,6 +45,7 @@ import { apiGet } from "../../shared/apiClient";
 import Preferences from "./preferences/Preferences";
 import Channels from "./preferences/Channels";
 import ClientsMonitor from "./monitoring/ClientsMonitor";
+import AgentsMonitor from "./monitoring/AgentsMonitor";
 import Queues from "./atendimento/Queues";
 import QuickReplies from "./atendimento/QuickReplies";
 import Templates from "./campanhas/Templates";
@@ -57,7 +58,6 @@ import Quality from "./analytics/quality/Quality";
 import TicketDetail from "./atendimento/history/TicketDetail";
 
 // Temporários (mantidos)
-const AgentsMonitor = () => <div>Monitor de Atendentes</div>;
 const Integrations = () => <div>Integrações</div>;
 const Security = () => <div>Segurança</div>;
 
