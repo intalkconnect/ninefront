@@ -14,7 +14,13 @@ function findReplyTarget(messages, refId) {
   if (!refId) return null;
   return (
     messages.find((m) => {
-      const ids = [m.message_id, m.whatsapp_message_id, m.telegram_message_id, m.provider_id, m.id].filter(Boolean);
+      const ids = [
+        m.message_id,
+        m.whatsapp_message_id,
+        m.telegram_message_id,
+        m.provider_id,
+        m.id
+      ].filter(Boolean);
       return ids.some((x) => String(x) === String(refId));
     }) || null
   );
@@ -22,9 +28,10 @@ function findReplyTarget(messages, refId) {
 
 /**
  * MessageList
- * - Começa já no fim (sem efeito) usando useLayoutEffect e somente 1x
- * - NÃO faz auto-scroll quando chegam novas mensagens
- * - “Ver mais” carrega 30 acima e mantém a âncora visual
+ * - Força scroll-behavior: auto !important via JS (sem depender de CSS global)
+ * - Rola para o fim 1x antes do paint (sem efeito)
+ * - NÃO auto-scroll em novas mensagens
+ * - “Ver mais” preserva a posição visual
  */
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
@@ -35,76 +42,68 @@ const MessageList = forwardRef(
 
     // apenas uma rolagem inicial
     const didInitialScroll = useRef(false);
-    const prevLenRef = useRef(messages?.length || 0);
 
     const visibleMessages = messages.slice(-visibleCount);
 
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
-        if (!containerRef.current) return;
         const el = containerRef.current;
-        const prev = el.style.scrollBehavior;
-        el.style.scrollBehavior = 'auto';
+        if (!el) return;
         el.scrollTop = el.scrollHeight;
-        el.style.scrollBehavior = prev || 'auto';
       },
     }));
 
-    // ===== 1) Força o scroll no fim APENAS na primeira vez que houver mensagens,
-    //          e o faz antes do paint (sem efeito visual).
+    // (A) Força scroll-behavior: auto !important no container (1x no mount)
+    useLayoutEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
+      // força inline com prioridade !important
+      el.style.setProperty('scroll-behavior', 'auto', 'important');
+      // (opcional) impedir polidez externa
+      el.style.setProperty('overscroll-behavior', 'contain');
+    }, []);
+
+    // (B) Scroll inicial até o fim (apenas 1x, e antes do paint)
     useLayoutEffect(() => {
       const el = containerRef.current;
       const len = messages?.length || 0;
-
-      // Se ainda não temos mensagens, não há o que rolar
-      if (!el || len === 0) return;
-
-      // Se já fizemos a rolagem inicial, não rolar de novo
-      if (didInitialScroll.current) return;
-
-      // Primeira vez que aparecem mensagens: rola pro fim sem suavização
-      const prev = el.style.scrollBehavior;
-      el.style.scrollBehavior = 'auto';
-      el.scrollTop = el.scrollHeight;
-      el.style.scrollBehavior = prev || 'auto';
-
+      if (!el || len === 0 || didInitialScroll.current) return;
+      el.scrollTop = el.scrollHeight; // sem “efeito” (já é auto !important)
       didInitialScroll.current = true;
-      prevLenRef.current = len;
-    }, [messages?.length]); // roda quando a lista "passa" de 0 para >0
+    }, [messages?.length]);
 
-    // ===== 2) NÃO auto-scroll em updates normais
-    // (Intencionalmente não há efeito que role ao mudar mensagens)
-
-    // ===== 3) “Ver mais mensagens”: mantém âncora visual (rolando o delta)
+    // (C) “Ver mais”: preserva âncora visual
     const handleShowMore = () => {
-      if (!containerRef.current) return;
-      setPrevScrollHeight(containerRef.current.scrollHeight);
+      const el = containerRef.current;
+      if (!el) return;
+      setPrevScrollHeight(el.scrollHeight);
       setVisibleCount((prev) => Math.min(prev + 30, messages.length));
     };
 
     useLayoutEffect(() => {
-      // Quando aumenta o visibleCount (via "Ver mais"), mantemos a âncora
       if (visibleCount > 30 && containerRef.current) {
         const el = containerRef.current;
-        const prev = el.style.scrollBehavior;
-        el.style.scrollBehavior = 'auto';
         const newHeight = el.scrollHeight;
         const delta = newHeight - prevScrollHeight;
-        // move a janela para baixo exatamente o que cresceu acima
         el.scrollTop = (el.scrollTop || 0) + delta;
-        el.style.scrollBehavior = prev || 'auto';
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [visibleCount]);
 
-    // Opcional: se houver algum CSS global com scroll suave, garante "auto"
+    // (D) Como garantia extra, re-aplica auto !important se o nó trocar
     useEffect(() => {
-      if (!containerRef.current) return;
-      containerRef.current.style.scrollBehavior = 'auto';
-    }, []);
+      const el = containerRef.current;
+      if (!el) return;
+      el.style.setProperty('scroll-behavior', 'auto', 'important');
+    });
 
     return (
-      <div ref={containerRef} className="chat-scroll-container">
+      <div
+        ref={containerRef}
+        className="chat-scroll-container"
+        // redundante, mas ajuda caso algum CSS global troque depois
+        style={{ scrollBehavior: 'auto' }}
+      >
         {messages.length > visibleMessages.length && (
           <div className="show-more-messages">
             <button onClick={handleShowMore}>Ver mais mensagens</button>
@@ -136,7 +135,7 @@ const MessageList = forwardRef(
             msg.ticket_number &&
             (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
-          // resolve reply
+          // resolve reply alvo
           let replyToMessage = msg.replyTo || null;
           const replyId = msg.reply_to || msg.context?.message_id || null;
           if (!replyToMessage && typeof replyId === 'string' && replyId.trim() !== '') {
