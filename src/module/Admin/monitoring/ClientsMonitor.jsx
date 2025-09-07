@@ -28,7 +28,7 @@ const getAuthInfo = () => {
     return { email: '', role: '' };
   }
 };
-const { email: currentUserEmail, role: currentUserRole } = useMemo(getAuthInfo, []);
+
 
 
 /* Utils ---------------------------------------------------- */
@@ -80,13 +80,14 @@ export default function ClientsMonitor() {
   const [refreshing, setRefreshing] = useState(false);
   const [preview, setPreview] = useState(null);
   const [transfer, setTransfer] = useState(null); // { userId } | null
- const onOpenTransfer = useCallback((a) => {
+  const onOpenTransfer = useCallback((a) => {
    setTransfer({
      userId: a.user_id,
      currentFila: a.fila || '',                                  // nome da fila atual
      currentAssigned: a.assigned_to || a.agente_email || '',      // e-mail do responsável atual
    });
  }, []);
+  const { email: currentUserEmail, role: currentUserRole } = useMemo(getAuthInfo, []);
 
 
 
