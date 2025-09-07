@@ -30,7 +30,7 @@ const formatTime = (m = 0) => {
 /* Component ------------------------------------------------ */
 export default function ClientsMonitor() {
   // settings vindos da API (null até carregar)
-  // shape esperado: { habilitar: boolean, overrides: { media?: {espera_inicial, demora_durante}, alta?: {...} } }
+  // { habilitar: boolean, overrides: { media?: {espera_inicial,demora_durante}, alta?: {...} } }
   const [settings, setSettings] = useState(null);
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -41,6 +41,10 @@ export default function ClientsMonitor() {
   const [erro, setErro] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [preview, setPreview] = useState(null);
+
+  // Paginação
+  const PAGE_SIZE = 30;
+  const [page, setPage] = useState(1);
 
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
@@ -75,7 +79,7 @@ export default function ClientsMonitor() {
         })
         .filter(Boolean);
 
-      // settings (sem defaults)
+      // settings
       const stArr = Array.isArray(st) ? st : (Array.isArray(st?.data) ? st.data : []);
       const kv = Object.fromEntries((stArr || []).map((s) => [String(s.key), String(s.value ?? '')]));
 
@@ -89,8 +93,8 @@ export default function ClientsMonitor() {
         overrides = null;
       }
       const habilitar = kv.habilitar_alertas_atendimento === 'true';
+      setSettings({ habilitar, overrides });
 
-      setSettings({ habilitar, overrides }); // pode ser {habilitar:false, overrides:null}
       setAtendimentos(formatados);
       setFilas(filasNorm);
       setErro(null);
@@ -106,10 +110,7 @@ export default function ClientsMonitor() {
 
   useEffect(() => {
     let mounted = true;
-    const run = async () => {
-      if (!mounted) return;
-      await fetchAll();
-    };
+    const run = async () => { if (!mounted) return; await fetchAll(); };
     run();
     const interval = setInterval(run, 10000);
     return () => { mounted = false; clearInterval(interval); };
@@ -129,10 +130,12 @@ export default function ClientsMonitor() {
       if (filasParaFiltro.some((f) => f.slug === selectedFilter)) return slugify(a.fila) === selectedFilter;
       if (canais.map(c => c.toLowerCase()).includes(String(selectedFilter).toLowerCase()))
         return String(a.canal || '').toLowerCase() === String(selectedFilter).toLowerCase();
-
       return true;
     });
   }, [atendimentos, selectedFilter, filasParaFiltro]);
+
+  // resetar página sempre que filtro ou dados mudarem
+  useEffect(() => { setPage(1); }, [selectedFilter, atendimentos]);
 
   /* KPIs --------------------------------------------------- */
   const stats = useMemo(() => ({
@@ -156,23 +159,19 @@ export default function ClientsMonitor() {
     ),
   }), [atendimentos]);
 
-  /* ---------- ALERTING POR COR (via classe CSS) ---------- */
-
-  // limites globais vindos do JSON; retorna null se não houver
+  /* ---------- Coloração por /settings ---------- */
   const getGlobalLimits = useCallback(() => {
     if (!settings || !settings.overrides) return null;
     const ov = settings.overrides;
     if (ov.media) return ov.media;
-    if (ov.alta) return ov.alta;
+    if (ov.alta)  return ov.alta;
     return null;
   }, [settings]);
 
-  // decide o tom da linha; se desabilitado ou sem limites, não pinta
   const rowTone = useCallback((a) => {
     if (!settings?.habilitar) return 'none';
     const lim = getGlobalLimits();
     if (!lim) return 'none';
-
     const minutos = Number(a.tempoEspera || 0);
 
     if (a.status === 'aguardando') {
@@ -198,11 +197,19 @@ export default function ClientsMonitor() {
     [atendimentos, rowTone]
   );
 
+  /* Paginação derivada */
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const pageSafe = Math.min(page, totalPages);
+  const start = (pageSafe - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const paged = useMemo(() => filtered.slice(start, end), [filtered, start, end]);
+
   /* Render ------------------------------------------------- */
   return (
     <div className={styles.container}>
 
-      {/* Header com último update e refresh */}
+      {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerInfo}>
           <div className={styles.kpillBlue}>Última atualização: {currentTime.toLocaleTimeString('pt-BR')}</div>
@@ -301,7 +308,7 @@ export default function ClientsMonitor() {
       {/* Tabela */}
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
-          <h2 className={styles.tableTitle}>Atendimentos em Tempo Real <span className={styles.kpill}>{filtered.length}</span></h2>
+          <h2 className={styles.tableTitle}>Atendimentos em Tempo Real <span className={styles.kpill}>{totalItems}</span></h2>
         </div>
         <div className={styles.tableScroll}>
           <table className={styles.table}>
@@ -323,9 +330,9 @@ export default function ClientsMonitor() {
                     <td colSpan={8}><div className={styles.skeletonRow}/></td>
                   </tr>
                 ))
-              ) : filtered.length === 0 ? (
+              ) : paged.length === 0 ? (
                 <tr><td colSpan={8} className={styles.emptyCell}>Sem atendimentos no filtro atual.</td></tr>
-              ) : filtered.map((a) => (
+              ) : paged.map((a) => (
                 <tr key={a.id} className={rowClass(a)}>
                   <td>
                     <div className={styles.clientCell}>
@@ -338,7 +345,7 @@ export default function ClientsMonitor() {
                   </td>
                   <td><span className={styles.queuePill}>{a.fila || '—'}</span></td>
                   <td>
-                    <span className={`${styles.channelPill} ${styles[`ch_${a.canal || 'default'}`]}`}>
+                    <span className={`${styles.channelPill} ${styles[`ch_${String(a.canal || 'default').toLowerCase()}`]}`}>
                       {cap(a.canal || '—')}
                     </span>
                   </td>
@@ -383,11 +390,37 @@ export default function ClientsMonitor() {
                       <ArrowLeftRight size={16} />
                     </button>
                   </td>
-
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Paginação */}
+        <div className={styles.pagination}>
+          <button
+            className={styles.pageBtn}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={pageSafe <= 1}
+            aria-label="Página anterior"
+            title="Página anterior"
+          >
+            ‹ Anterior
+          </button>
+
+          <span className={styles.pageInfo}>
+            Página {pageSafe} de {totalPages} • {totalItems} registro(s)
+          </span>
+
+          <button
+            className={styles.pageBtn}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={pageSafe >= totalPages}
+            aria-label="Próxima página"
+            title="Próxima página"
+          >
+            Próxima ›
+          </button>
         </div>
       </section>
 
