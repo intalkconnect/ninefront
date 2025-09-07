@@ -60,42 +60,52 @@ export default function MiniChatDrawer({
   const fetchMessagesSmart = async () => {
     setErr(null);
 
+    // 1) Tenta pelo ID interno no endpoint de histórico
     if (historyId != null) {
       try {
-        const r = await apiGet(`/tickets/history/${historyId}?include=messages,attachments&messages_limit=500`);
-        const msgs = ensureShape(r?.messages || []);
-        if (msgs.length) return msgs;
+        const r = await apiGet(
+          `/tickets/history/${historyId}?include=messages,attachments&messages_limit=500`
+        );
+        // ✅ Sucesso: mesmo que vazio, retorna o array
+        return ensureShape(r?.messages || []);
       } catch (e) {
-        if (!is404(e)) throw e;
+        if (!is404(e)) throw e; // erro real -> propaga
+        // 404: cai no fallback
       }
+      // 1b) Fallback (se você quiser manter) — ok se este 404:
       try {
         const r2 = await apiGet(`/tickets/${historyId}/messages`);
-        const msgs2 = ensureShape(Array.isArray(r2) ? r2 : r2?.data || []);
-        if (msgs2.length) return msgs2;
+        return ensureShape(Array.isArray(r2) ? r2 : r2?.data || []);
       } catch (e2) {
         if (!is404(e2)) throw e2;
       }
     }
 
+    // 2) Tenta pelo ticketNumber no endpoint de histórico
     if (ticketNumber != null) {
       try {
-        const r3 = await apiGet(`/tickets/history/${ticketNumber}?include=messages,attachments&messages_limit=500`);
-        const msgs3 = ensureShape(r3?.messages || []);
-        if (msgs3.length) return msgs3;
+        const r3 = await apiGet(
+          `/tickets/history/${ticketNumber}?include=messages,attachments&messages_limit=500`
+        );
+        // ✅ Sucesso: mesmo que vazio, retorna o array
+        return ensureShape(r3?.messages || []);
       } catch (e3) {
         if (!is404(e3)) throw e3;
       }
+      // 2b) Fallback por número (se existir na tua API)
       try {
         const r4 = await apiGet(`/tickets/${ticketNumber}/messages`);
-        const msgs4 = ensureShape(Array.isArray(r4) ? r4 : r4?.data || []);
-        if (msgs4.length) return msgs4;
+        return ensureShape(Array.isArray(r4) ? r4 : r4?.data || []);
       } catch (e4) {
         if (!is404(e4)) throw e4;
       }
     }
 
+    // Nada encontrado (id e número falharam)
     const label = historyId != null ? `ID ${historyId}` : `número ${ticketNumber}`;
-    throw new Error(`Não encontramos mensagens para o ticket (${label}).`);
+    // 🔕 Não trata como erro fatal: retorna vazio para mostrar "Sem histórico"
+    console.warn(`MiniChat: mensagens não encontradas para (${label}).`);
+    return [];
   };
 
   useEffect(() => {
