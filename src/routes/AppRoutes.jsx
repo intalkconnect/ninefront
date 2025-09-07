@@ -1,33 +1,69 @@
 // src/routes/AppRoutes.jsx
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ReactFlowProvider } from 'reactflow';
 import Atendimento from '../module/Atendimento/Atendimento';
 import Admin from '../module/Admin/Admin';
 import { parseJwt } from '../utils/auth';
 
-const AppRoutes = () => {
-  const [role, setRole] = useState(null);
+/** Lê token e resolve o perfil ANTES do primeiro render */
+function getInitialRole() {
+  try {
+    const token =
+      localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (!token) return null;
+    const decoded = parseJwt(token) || {};
+    // aceita tanto 'profile' quanto 'role' e normaliza
+    const raw = decoded.profile || decoded.role || null;
+    return raw ? String(raw).toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
 
-  useEffect(() => {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    try {
-      const decoded = token ? parseJwt(token) : null;
-      if (decoded?.profile) setRole(decoded.profile);
-    } catch {}
-  }, []);
+/** helper para checar papel */
+function isOneOf(role, list) {
+  if (!role) return false;
+  return list.map((r) => r.toLowerCase()).includes(String(role).toLowerCase());
+}
+
+const AppRoutes = () => {
+  // já começa com o role resolvido, evitando "frame" inicial com null
+  const [role] = React.useState(getInitialRole);
+
+  // token presente?
+  const hasToken = Boolean(
+    localStorage.getItem('token') || sessionStorage.getItem('token')
+  );
+
+  // grupos de acesso
+  const adminLike = ['admin', 'supervisor']; // << admin e supervisor juntos
+  const atendenteLike = ['atendente'];
+
+  const canAdmin = isOneOf(role, adminLike);
+  const canAtendimento = isOneOf(role, atendenteLike);
 
   return (
     <BrowserRouter>
       <Routes>
-        {role === 'admin' && (
-          <Route path="/*" element={<ReactFlowProvider><Admin /></ReactFlowProvider>} />
+        {/* Admin & Supervisor compartilham o mesmo módulo */}
+        {canAdmin && (
+          <Route
+            path="/*"
+            element={
+              <ReactFlowProvider>
+                <Admin />
+              </ReactFlowProvider>
+            }
+          />
         )}
-        {role === 'atendente' && (
-          <Route path="/*" element={<Atendimento />} />
+
+        {canAtendimento && <Route path="/*" element={<Atendimento />} />}
+
+        {/* Fallback apenas quando não autenticado ou role desconhecido */}
+        {(!hasToken || (!canAdmin && !canAtendimento)) && (
+          <Route path="/*" element={<Navigate to="/" replace />} />
         )}
-        {/* default/fallback dentro da SPA */}
-        <Route path="/*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
