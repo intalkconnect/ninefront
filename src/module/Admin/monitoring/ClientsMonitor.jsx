@@ -459,14 +459,15 @@ export default function ClientsMonitor() {
         </div>
       </section>
        {/* Modal de Transferência */}
- {transfer && (
-   <TransferModal
-     userId={transfer.userId}
-     currentFila={transfer.currentFila}
-     currentAssigned={transfer.currentAssigned}
-     onClose={onCloseTransfer}
-   />
- )}
+{transfer && (
+  <TransferModal
+    userId={transfer.userId}
+    currentFila={transfer.currentFila}
+    currentAssigned={transfer.currentAssigned}
+    onClose={onCloseTransfer}
+    onDone={fetchAll}
+  />
+)}
       {/* Drawer do mini-chat */}
       <MiniChatDrawer
         open={!!preview}
