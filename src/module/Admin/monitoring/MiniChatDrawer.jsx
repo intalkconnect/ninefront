@@ -22,6 +22,7 @@ export default function MiniChatDrawer({
   const [err, setErr] = useState(null);
   const [messages, setMessages] = useState([]);
   const viewportRef = useRef(null);
+  const drawerRef = useRef(null);
 
   const canShow = open && !!userId;
 
@@ -39,11 +40,24 @@ export default function MiniChatDrawer({
     if (e.key === "Escape") onClose?.(); 
   }, [onClose]);
 
+  // Fechar ao clicar fora do webchat
+  const handleClickOutside = useCallback((e) => {
+    if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+      onClose?.();
+    }
+  }, [onClose]);
+
   useEffect(() => {
     if (!canShow) return;
+    
     window.addEventListener("keydown", onEsc);
-    return () => window.removeEventListener("keydown", onEsc);
-  }, [canShow, onEsc]);
+    document.addEventListener("mousedown", handleClickOutside);
+    
+    return () => {
+      window.removeEventListener("keydown", onEsc);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [canShow, onEsc, handleClickOutside]);
 
   // helpers de normalização (mantidos do original)
   const safeParse = (raw) => {
@@ -211,42 +225,49 @@ export default function MiniChatDrawer({
   };
 
   return (
-    <aside 
-      className={classes} 
-      aria-hidden={!open} 
-      aria-label="Mini chat (preview)"
-    >
-      <header className={s.header}>
-        <div className={s.hLeft}>
-          <div className={s.avatar}>
-            {getAvatarText(cliente)}
-          </div>
-          <div className={s.hText}>
-            <div className={s.hTitle}>{cliente || "Conversa"}</div>
-            <div className={s.hSub}>
-              <span className={s.badge}>
-                <MessageCircle size={11} /> 
-                {canal || "Canal"}
-              </span>
+    <>
+      {open && variant === "webchat" && (
+        <div className={s.backdrop} onClick={onClose} />
+      )}
+      
+      <aside 
+        ref={drawerRef}
+        className={classes} 
+        aria-hidden={!open} 
+        aria-label="Mini chat (preview)"
+      >
+        <header className={s.header}>
+          <div className={s.hLeft}>
+            <div className={s.avatar}>
+              {getAvatarText(cliente)}
+            </div>
+            <div className={s.hText}>
+              <div className={s.hTitle}>{cliente || "Conversa"}</div>
+              <div className={s.hSub}>
+                <span className={s.badge}>
+                  <MessageCircle size={11} /> 
+                  {canal || "Canal"}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <div className={s.hRight}>
-          <button 
-            className={s.iconBtn} 
-            onClick={onClose} 
-            aria-label="Fechar mini chat"
-            title="Fechar"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      </header>
+          
+          <div className={s.hRight}>
+            <button 
+              className={s.iconBtn} 
+              onClick={onClose} 
+              aria-label="Fechar mini chat"
+              title="Fechar"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </header>
 
-      <div className={s.body}>
-        {renderContent()}
-      </div>
-    </aside>
+        <div className={s.body}>
+          {renderContent()}
+        </div>
+      </aside>
+    </>
   );
 }
