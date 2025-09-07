@@ -1,16 +1,22 @@
+// File: src/pages/admin/monitoring/MiniChatDrawer.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, MessageCircle } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
-// Reaproveita o MESMO renderer de mensagens do histórico
-import ChatThread from "./ChatThread";
+import ChatThread from "../atendimento/history/ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
+/**
+ * MiniChat
+ * - Preview somente-leitura
+ * - variant: "drawer" | "webchat" (default: "webchat")
+ */
 export default function MiniChatDrawer({
   open,
   onClose,
-  userId,                 // <-- chave para o /messages/:user_id
+  userId,                  // chave p/ /messages/:user_id
   cliente,
   canal,
+  variant = "webchat",     // "drawer" | "webchat"
 }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
@@ -19,7 +25,6 @@ export default function MiniChatDrawer({
 
   const canShow = open && !!userId;
 
-  // fecha com ESC
   const onEsc = useCallback((e) => { if (e.key === "Escape") onClose?.(); }, [onClose]);
   useEffect(() => {
     if (!canShow) return;
@@ -27,7 +32,7 @@ export default function MiniChatDrawer({
     return () => window.removeEventListener("keydown", onEsc);
   }, [canShow, onEsc]);
 
-  // helpers (mesmos do /history)
+  // helpers de normalização (iguais ao histórico)
   const safeParse = (raw) => {
     if (raw == null) return null;
     if (typeof raw === "object") return raw;
@@ -61,7 +66,6 @@ export default function MiniChatDrawer({
     return dir === "outgoing" ? "sent" : "received";
   };
 
-  // tenta /messages/:user_id (raw), e se vier 404 tenta base64url(user_id)
   const b64url = (s) => {
     try {
       return btoa(unescape(encodeURIComponent(String(s))))
@@ -81,13 +85,9 @@ export default function MiniChatDrawer({
     } catch (e) {
       if (!is404(e)) throw e;
     }
-    // 2) base64url(user_id)
-    try {
-      const r2 = await apiGet(`/messages/${b64url(userId)}`);
-      return Array.isArray(r2) ? r2 : (Array.isArray(r2?.data) ? r2.data : []);
-    } catch (e2) {
-      throw e2;
-    }
+    // 2) base64url(user_id) se seu backend decode()
+    const r2 = await apiGet(`/messages/${b64url(userId)}`);
+    return Array.isArray(r2) ? r2 : (Array.isArray(r2?.data) ? r2.data : []);
   };
 
   useEffect(() => {
@@ -97,22 +97,19 @@ export default function MiniChatDrawer({
       setLoading(true); setErr(null);
       try {
         const rows = await fetchMessages();
-
         const normalized = rows.map((m) => {
           const dir = String(m.direction || "").toLowerCase();
           const type = String(m.type || "").toLowerCase();
           const content = mergeContent(m.content, m.metadata, type);
-
           const text =
             typeof content === "string" ? content :
             (content.text || content.body || content.caption || null);
-
           return {
             id: m.id ?? `${m.timestamp ?? Date.now()}-${Math.random().toString(36).slice(2,7)}`,
-            direction: dir,           // "incoming"/"outgoing"/"system"
-            type,                     // "text", "image", "document", ...
-            content,                  // objeto normalizado
-            text,                     // usado pelo renderer para mensagens de texto
+            direction: dir,
+            type,
+            content,
+            text,
             timestamp: m.timestamp,
             created_at: m.timestamp,
             channel: m.channel,
@@ -129,7 +126,6 @@ export default function MiniChatDrawer({
             context: m.metadata?.context || null,
           };
         });
-
         if (alive) setMessages(normalized);
       } catch (e) {
         console.error("MiniChat – erro ao buscar mensagens:", e);
@@ -143,7 +139,6 @@ export default function MiniChatDrawer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canShow, userId]);
 
-  // auto-scroll
   useEffect(() => {
     if (!canShow) return;
     const el = viewportRef.current;
@@ -152,19 +147,29 @@ export default function MiniChatDrawer({
     return () => clearTimeout(t);
   }, [canShow, messages]);
 
+  const classes = [
+    s.container,
+    variant === "drawer" ? s.isDrawer : s.isWidget,
+    open ? s.open : ""
+  ].join(" ");
+
   return (
     <>
       <div
-        className={`${s.overlay} ${open ? s.open : ""}`}
+        className={`${s.backdrop} ${open ? s.open : ""}`}
         onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
       />
-      <aside className={`${s.drawer} ${open ? s.open : ""}`} aria-hidden={!open} aria-label="Mini chat (preview)">
+      <aside className={classes} aria-hidden={!open} aria-label="Mini chat (preview)">
         <header className={s.header}>
           <div className={s.hLeft}>
-            <div className={s.hIcon}><MessageCircle size={16} /></div>
+            <div className={s.avatar}>{String(cliente || "C").slice(0,2).toUpperCase()}</div>
             <div className={s.hText}>
               <div className={s.hTitle}>{cliente || "Conversa"}</div>
-              <div className={s.hSub}>{canal || "Pré-visualização"}</div>
+              <div className={s.hSub}>
+                <span className={s.badge}>
+                  <MessageCircle size={12} /> {canal || "Canal"}
+                </span>
+              </div>
             </div>
           </div>
           <div className={s.hRight}>
@@ -174,18 +179,18 @@ export default function MiniChatDrawer({
           </div>
         </header>
 
-        <div className={s.content}>
+        <div className={s.body}>
           {!userId ? (
-            <div className={s.empty}>Usuário não informado.</div>
+            <div className={s.state}>Usuário não informado.</div>
           ) : loading ? (
-            <div className={s.loadingWrap}>
+            <div className={s.state}>
               <div className={s.spinner} />
-              <div className={s.loadingTxt}>Carregando conversa…</div>
+              <div>Carregando conversa…</div>
             </div>
           ) : err ? (
-            <div className={s.empty}>{err}</div>
+            <div className={s.state}>{err}</div>
           ) : messages.length === 0 ? (
-            <div className={s.empty}>Sem histórico de mensagens.</div>
+            <div className={s.state}>Sem histórico de mensagens.</div>
           ) : (
             <div ref={viewportRef} className={s.viewport}>
               <ChatThread messages={messages} />
