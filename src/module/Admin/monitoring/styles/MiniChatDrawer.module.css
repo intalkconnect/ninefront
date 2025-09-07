@@ -93,26 +93,13 @@
   align-items: center; 
   justify-content: space-between;
   padding: 16px 18px;
-  background: rgba(255,255,255,.03);
+  background: #2563eb;
   border-bottom: 1px solid var(--nc-border-light);
   backdrop-filter: blur(12px);
   position: relative;
   z-index: 10;
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
-}
-
-.header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(255,255,255,.15) 50%, 
-    transparent);
 }
 
 .hLeft { 
@@ -128,7 +115,7 @@
   width: 40px; 
   height: 40px; 
   border-radius: 50%; /* Alterado para redondo */
-  background:#dbeafe1;
+  background:#dbeafe;
   display: grid; 
   place-items: center;
   font-weight: 700; 
