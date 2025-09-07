@@ -59,10 +59,13 @@ export default function ClientsMonitor() {
   const [refreshing, setRefreshing] = useState(false);
   const [preview, setPreview] = useState(null);
   const [transfer, setTransfer] = useState(null); // { userId } | null
-  const onOpenTransfer = useCallback((a) => {
-    // a.user_id é usado pelo TransferModal para montar o body do POST
-    setTransfer({ userId: a.user_id });
-  }, []);
+ const onOpenTransfer = useCallback((a) => {
+   setTransfer({
+     userId: a.user_id,
+     currentFila: a.fila || '',                                  // nome da fila atual
+     currentAssigned: a.assigned_to || a.agente_email || '',      // e-mail do responsável atual
+   });
+ }, []);
 
   const onCloseTransfer = useCallback(() => {
     setTransfer(null);
@@ -457,6 +460,8 @@ export default function ClientsMonitor() {
  {transfer && (
    <TransferModal
      userId={transfer.userId}
+     currentFila={transfer.currentFila}
+     currentAssigned={transfer.currentAssigned}
      onClose={onCloseTransfer}
    />
  )}
