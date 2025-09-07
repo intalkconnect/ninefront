@@ -17,7 +17,7 @@ const slugify = (str = '') =>
 const canais = ['Whatsapp', 'Telegram', 'Webchat', 'Instagram', 'Facebook'];
 
 /* Tiny helpers */
-const cap = (s='') => s.replace('_', ' ')
+const cap = (s='') => String(s).replace('_', ' ')
   .replace(/^\w/u, c => c.toUpperCase());
 
 const formatTime = (m = 0) => {
@@ -29,26 +29,18 @@ const formatTime = (m = 0) => {
 
 /* Component ------------------------------------------------ */
 export default function ClientsMonitor() {
-  // Settings carregados da API (com defaults)
-  const [settings, setSettings] = useState<{
-    habilitar: boolean;
-    overrides: Record<string, { espera_inicial: number; demora_durante: number }>;
-  }>({
-    habilitar: true,
-    overrides: {
-      alta:  { espera_inicial: 5,  demora_durante: 10 },
-      media: { espera_inicial: 15, demora_durante: 20 },
-    }
-  });
+  // settings vindos da API (null até carregar)
+  // shape esperado: { habilitar: boolean, overrides: { media?: {espera_inicial, demora_durante}, alta?: {...} } }
+  const [settings, setSettings] = useState(null);
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedFilter, setSelectedFilter] = useState('todos');
-  const [atendimentos, setAtendimentos] = useState<any[]>([]);
-  const [filas, setFilas] = useState<any[]>([]);
+  const [atendimentos, setAtendimentos] = useState([]);
+  const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [preview, setPreview] = useState<any>(null);
+  const [preview, setPreview] = useState(null);
 
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
@@ -61,7 +53,7 @@ export default function ClientsMonitor() {
 
       // realtime
       const rtArray = Array.isArray(rt) ? rt : (Array.isArray(rt?.data) ? rt.data : []);
-      const formatados = rtArray.map((item: any) => {
+      const formatados = rtArray.map((item) => {
         const inicio = new Date(item.inicioConversa);
         const esperaMinCalc = Math.floor((Date.now() - inicio.getTime()) / 60000);
         const esperaSegApi = Number(item.tempoEspera ?? 0);
@@ -76,32 +68,29 @@ export default function ClientsMonitor() {
       // filas
       const filasIn = Array.isArray(fs) ? fs : (Array.isArray(fs?.data) ? fs.data : []);
       const filasNorm = filasIn
-        .map((f: any) => {
+        .map((f) => {
           if (typeof f === 'string') return { nome: f, slug: slugify(f) };
           const nome = f?.nome || f?.name || f?.titulo || '';
           return nome ? { nome, slug: slugify(nome) } : null;
         })
-        .filter(Boolean) as any[];
+        .filter(Boolean);
 
-      // settings
+      // settings (sem defaults)
       const stArr = Array.isArray(st) ? st : (Array.isArray(st?.data) ? st.data : []);
-      const kv: Record<string, string> = Object.fromEntries(
-        (stArr || []).map((s: any) => [String(s.key), String(s.value ?? '')])
-      );
+      const kv = Object.fromEntries((stArr || []).map((s) => [String(s.key), String(s.value ?? '')]));
 
-      let overrides = settings.overrides;
+      let overrides = null;
       try {
         if (kv.overrides_por_prioridade_json) {
           overrides = JSON.parse(kv.overrides_por_prioridade_json);
         }
-      } catch {
-        // mantém defaults em caso de JSON inválido
+      } catch (e) {
+        console.warn('overrides_por_prioridade_json inválido; ignorando.', e);
+        overrides = null;
       }
-      const habilitar = kv.habilitar_alertas_atendimento
-        ? kv.habilitar_alertas_atendimento === 'true'
-        : settings.habilitar;
+      const habilitar = kv.habilitar_alertas_atendimento === 'true';
 
-      setSettings({ habilitar, overrides });
+      setSettings({ habilitar, overrides }); // pode ser {habilitar:false, overrides:null}
       setAtendimentos(formatados);
       setFilas(filasNorm);
       setErro(null);
@@ -113,7 +102,7 @@ export default function ClientsMonitor() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [settings.habilitar, settings.overrides]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -130,7 +119,7 @@ export default function ClientsMonitor() {
   const filasParaFiltro = filas.length
     ? filas
     : Array.from(new Set(atendimentos.map((a) => a.fila).filter(Boolean)))
-        .map((nome) => ({ nome, slug: slugify(String(nome)) }));
+        .map((nome) => ({ nome, slug: slugify(nome) }));
 
   const filtered = useMemo(() => {
     return atendimentos.filter((a) => {
@@ -140,6 +129,7 @@ export default function ClientsMonitor() {
       if (filasParaFiltro.some((f) => f.slug === selectedFilter)) return slugify(a.fila) === selectedFilter;
       if (canais.map(c => c.toLowerCase()).includes(String(selectedFilter).toLowerCase()))
         return String(a.canal || '').toLowerCase() === String(selectedFilter).toLowerCase();
+
       return true;
     });
   }, [atendimentos, selectedFilter, filasParaFiltro]);
@@ -166,50 +156,47 @@ export default function ClientsMonitor() {
     ),
   }), [atendimentos]);
 
-  /* ---------- ALERTING POR COR (inline) ---------- */
-  // pega limites por prioridade com fallback
-/* ---------- ALERTING POR COR (via classe CSS) ---------- */
+  /* ---------- ALERTING POR COR (via classe CSS) ---------- */
 
-// pega os limites "globais": usa 'media' (fallback para 'alta')
-const getGlobalLimits = useCallback(() => {
-  const ov = settings.overrides || {};
-  if (ov.media) return ov.media;
-  if (ov.alta)  return ov.alta;
-  // fallback duro se não houver json válido
-  return { espera_inicial: 15, demora_durante: 20 };
-}, [settings.overrides]);
+  // limites globais vindos do JSON; retorna null se não houver
+  const getGlobalLimits = useCallback(() => {
+    if (!settings || !settings.overrides) return null;
+    const ov = settings.overrides;
+    if (ov.media) return ov.media;
+    if (ov.alta) return ov.alta;
+    return null;
+  }, [settings]);
 
-// decide o tom da linha usando os limites globais
-const rowTone = useCallback((a) => {
-  if (!settings.habilitar) return 'none';
-  const lim = getGlobalLimits();
-  const minutos = Number(a.tempoEspera || 0);
+  // decide o tom da linha; se desabilitado ou sem limites, não pinta
+  const rowTone = useCallback((a) => {
+    if (!settings?.habilitar) return 'none';
+    const lim = getGlobalLimits();
+    if (!lim) return 'none';
 
-  if (a.status === 'aguardando') {
-    if (minutos >= (lim.espera_inicial * 2)) return 'late';
-    if (minutos >= lim.espera_inicial)   return 'warn';
+    const minutos = Number(a.tempoEspera || 0);
+
+    if (a.status === 'aguardando') {
+      if (minutos >= (lim.espera_inicial * 2)) return 'late';
+      if (minutos >= lim.espera_inicial)   return 'warn';
+      return 'ok';
+    }
+    if (a.status === 'em_atendimento') {
+      if (minutos >= (lim.demora_durante * 2)) return 'late';
+      if (minutos >= lim.demora_durante)   return 'warn';
+      return 'ok';
+    }
     return 'ok';
-  }
-  if (a.status === 'em_atendimento') {
-    if (minutos >= (lim.demora_durante * 2)) return 'late';
-    if (minutos >= lim.demora_durante)   return 'warn';
-    return 'ok';
-  }
-  return 'ok';
-}, [settings.habilitar, getGlobalLimits]);
+  }, [settings, getGlobalLimits]);
 
-// monta a classe da <tr>
-const rowClass = useCallback((a) => {
-  const tone = rowTone(a); // ok | warn | late | none
-  return `${styles.row} ${styles['tone_' + tone]}`;
-}, [rowTone]);
+  const rowClass = useCallback((a) => {
+    const tone = rowTone(a); // ok | warn | late | none
+    return `${styles.row} ${styles['tone_' + tone]}`;
+  }, [rowTone]);
 
-// contador para o chip de alerta no header
-const alertCount = useMemo(
-  () => atendimentos.filter(a => ['warn','late'].includes(rowTone(a))).length,
-  [atendimentos, rowTone]
-);
-
+  const alertCount = useMemo(
+    () => atendimentos.filter(a => ['warn','late'].includes(rowTone(a))).length,
+    [atendimentos, rowTone]
+  );
 
   /* Render ------------------------------------------------- */
   return (
@@ -339,7 +326,7 @@ const alertCount = useMemo(
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className={styles.emptyCell}>Sem atendimentos no filtro atual.</td></tr>
               ) : filtered.map((a) => (
-                <tr key={a.id} style={rowClass(a)}>
+                <tr key={a.id} className={rowClass(a)}>
                   <td>
                     <div className={styles.clientCell}>
                       <div className={styles.avatar}><User size={14} /></div>
@@ -369,7 +356,7 @@ const alertCount = useMemo(
                   <td>
                     <div className={styles.bold}>{formatTime(a.tempoEspera)}</div>
                     <div className={styles.subtle}>
-                      Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa as any)
+                      Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa)
                         ? a.inicioConversa.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
                         : '--:--'}
                     </div>
@@ -404,9 +391,6 @@ const alertCount = useMemo(
         </div>
       </section>
 
-      {/* (Removido) Alertas rápidos em texto */}
-      {/* Pintura por cor substitui este bloco */}
-
       {/* Drawer do mini-chat */}
       <MiniChatDrawer
         open={!!preview}
@@ -421,7 +405,7 @@ const alertCount = useMemo(
 }
 
 /* Subcomponents ------------------------------------------- */
-function KpiCard({ icon, label, value, tone = 'blue' }: any) {
+function KpiCard({ icon, label, value, tone = 'blue' }) {
   return (
     <div className={styles.card}>
       <div className={styles.cardHead}>
