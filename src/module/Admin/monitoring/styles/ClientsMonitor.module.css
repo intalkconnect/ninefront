@@ -102,8 +102,11 @@
 .tableCard{background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1px solid #e2e8f0;border-radius:16px;overflow:hidden}
 .tableHeader{padding:16px 20px;border-bottom:1px solid #e2e8f0}
 .tableTitle{font-size:18px;font-weight:700;margin:0;display:flex;gap:8px;align-items:center}
-.tableScroll{overflow:auto}
-.table{width:100%;border-collapse:separate;border-spacing:0}
+
+/* >>> evita scroll horizontal desnecessário */
+.tableScroll{overflow: hidden auto;}
+.table{width:100%; border-collapse:separate; border-spacing:0; table-layout: fixed;}
+
 .table thead th{
   text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;
   padding:12px 16px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid #e2e8f0;font-weight:700
@@ -136,18 +139,12 @@
 .bold{font-weight:700}
 .subtle{color:#6b7280;font-size:12px}
 
-/* Status & prioridade */
+/* Status */
 .status{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid}
 .statusIcon{vertical-align:middle}
 .statusWait{background:#fef9c3;color:#854d0e;border-color:#fde68a}
 .statusLive{background:#dcfce7;color:#166534;border-color:#86efac}
 .statusDone{background:#f3f4f6;color:#374151;border-color:#e5e7eb}
-
-.priorityPill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid}
-.pRed{background:#fee2e2;color:#991b1b;border-color:#fecaca}
-.pAmber{background:#fef3c7;color:#92400e;border-color:#fde68a}
-.pGreen{background:#dcfce7;color:#166534;border-color:#a7f3d0}
-.pGray{background:#f3f4f6;color:#374151;border-color:#e5e7eb}
 
 .actionsCell{white-space:nowrap}
 .linkBtn,.linkBtnDanger{
@@ -158,46 +155,39 @@
 .linkBtnDanger{color:#dc2626}
 .linkBtnDanger:hover{text-decoration:underline}
 
-/* Alertas */
-.alertCard{margin-top:20px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1px solid #e2e8f0;border-radius:16px;padding:16px}
-.alertTitle{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;margin:0 0 12px}
-.alertList{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
-.alert{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #fde68a;border-radius:12px;background:#fffbeb;color:#92400e}
-.badgeTime{font-weight:700;background:#fef3c7;border:1px solid #fde68a;border-radius:999px;padding:4px 8px}
-
 /* ----------- Linha da tabela (card do atendimento) ----------- */
-.row {
-  transition: background-color .25s ease, box-shadow .25s ease, transform .08s ease;
-}
+.row { transition: background-color .25s ease, box-shadow .25s ease; }
 
 /* Tons */
-.tone_none {}            /* quando a pintura estiver desabilitada */
+.tone_none {}
 .tone_ok   { background: transparent; }
-.tone_warn {
-  background: #fff7e6;              /* amber-50 */
-  box-shadow: inset 4px 0 0 0 #f59e0b; /* amber-500 */
-}
-.tone_late {
-  background: #ffe6e6;              /* red-50 */
-  box-shadow: inset 4px 0 0 0 #ef4444; /* red-500 */
-}
+.tone_warn { background: #fff7e6; box-shadow: inset 4px 0 0 0 #f59e0b; }
+.tone_late { background: #ffe6e6; box-shadow: inset 4px 0 0 0 #ef4444; }
 
-/* Pequeno feedback ao passar o mouse (opcional) */
-.table tbody tr.tone_warn:hover,
-.table tbody tr.tone_late:hover {
-  transform: translateX(1px);
-}
+/* (REMOVIDO o transform no :hover para não gerar overflow) */
 
-/* Versão escura (se você usa .dark em algum wrapper) - opcional */
-.dark .tone_warn {
-  background: rgba(245, 158, 11, 0.12);
-  box-shadow: inset 4px 0 0 0 #f59e0b;
-}
-.dark .tone_late {
-  background: rgba(239, 68, 68, 0.14);
-  box-shadow: inset 4px 0 0 0 #ef4444;
-}
+/* Versão escura (opcional) */
+.dark .tone_warn { background: rgba(245, 158, 11, 0.12); box-shadow: inset 4px 0 0 0 #f59e0b; }
+.dark .tone_late { background: rgba(239, 68, 68, 0.14); box-shadow: inset 4px 0 0 0 #ef4444; }
 
+/* Paginação */
+.pagination {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+  justify-content: flex-end;
+  padding: .75rem 1rem 1rem 1rem;
+}
+.pageBtn {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: .4rem .7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pageBtn:disabled { opacity: .5; cursor: not-allowed; }
+.pageInfo { color: #6b7280; font-size: .9rem; }
 
 /* A11y & small screens */
 @media (max-width:768px){
