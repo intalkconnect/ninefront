@@ -309,8 +309,7 @@ export default function ClientsMonitor() {
                       aria-label="Visualizar conversa"
                       title="Visualizar conversa"
                       onClick={() => setPreview({
-                        historyId: a.ticket_id, // ⬅️ use o mesmo id que o TicketDetail recebe
-                        ticketNumber: a.ticket_number ?? null,
+                        userId: a.user_id, 
                         cliente: a.cliente,
                         canal: a.canal
                       })}
@@ -355,8 +354,7 @@ export default function ClientsMonitor() {
  <MiniChatDrawer
    open={!!preview}
    onClose={() => setPreview(null)}
-   historyId={preview?.historyId}
-   ticketNumber={preview?.ticketNumber}
+   userId={preview?.userId}
    cliente={preview?.cliente}
    canal={preview?.canal}
  />
