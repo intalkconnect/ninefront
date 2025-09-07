@@ -346,12 +346,16 @@
 
 .statusIndicator.offline {
   background: var(--nc-subtle);
-  animation: none;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .5; }
+/* Estilos para informações adicionais */
+.lastSeen, .onlineStatus {
+  font-size: 10px;
+  color: var(--nc-subtle);
+}
+
+.onlineStatus {
+  color: var(--nc-success);
 }
 
 /* Melhorias para acessibilidade */
