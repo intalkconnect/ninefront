@@ -219,7 +219,6 @@ export default function MiniChatDrawer({
       return (
         <div className={s.state}>
           <span>Sem histórico de mensagens.</span>
-          <small>Inicie uma conversa para ver as mensagens aqui</small>
         </div>
       );
     }
@@ -233,11 +232,6 @@ export default function MiniChatDrawer({
 
   return (
     <>
-      <div
-        className={`${s.backdrop} ${open ? s.open : ""}`}
-        onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
-      />
-      
       <aside 
         className={classes} 
         aria-hidden={!open} 
@@ -247,19 +241,36 @@ export default function MiniChatDrawer({
           <div className={s.hLeft}>
             <div className={s.avatar}>
               {getAvatarText(cliente)}
-              {agentOnline && <div className={s.statusIndicator} />}
-              {!agentOnline && lastSeen && <div className={`${s.statusIndicator} ${s.offline}`} />}
             </div>
             <div className={s.hText}>
               <div className={s.hTitle}>{cliente || "Conversa"}</div>
               <div className={s.hSub}>
                 <span className={s.badge}>
-                  <MessageCircle size={12} /> 
+                  <MessageCircle size={11} /> 
                   {canal || "Canal"}
                 </span>
-                {!agentOnline && lastSeen && (
-                  <span className={s.lastSeen}>
-                    {formatLastSeen(lastSeen)}
+              </div>
+            </div>
+          </div>
+          
+          <div className={s.hRight}>
+            <button 
+              className={s.iconBtn} 
+              onClick={onClose} 
+              aria-label="Fechar mini chat"
+              title="Fechar"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </header>
+
+        <div className={s.body}>
+          {renderContent()}
+        </div>
+      </aside>
+    </>
+  );Seen(lastSeen)}
                   </span>
                 )}
                 {agentOnline && (
