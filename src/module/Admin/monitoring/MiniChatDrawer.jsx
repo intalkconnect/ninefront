@@ -1,15 +1,14 @@
 // File: src/pages/admin/monitoring/MiniChatDrawer.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, MessageCircle, Minimize2, Maximize2, Phone, Video } from "lucide-react";
+import { X, MessageCircle } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
 import ChatThread from "../atendimento/history/ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
 /**
- * MiniChat Melhorado
- * - Preview somente-leitura com design moderno
+ * MiniChat Simplificado
+ * - Preview somente-leitura integrado ao dashboard
  * - variant: "drawer" | "webchat" (default: "webchat")
- * - Suporte a minimização e indicadores de status
  */
 export default function MiniChatDrawer({
   open,
@@ -18,13 +17,10 @@ export default function MiniChatDrawer({
   cliente,
   canal,
   variant = "webchat",
-  agentOnline = false,
-  lastSeen,
 }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [isMinimized, setIsMinimized] = useState(false);
   const viewportRef = useRef(null);
 
   const canShow = open && !!userId;
@@ -37,20 +33,6 @@ export default function MiniChatDrawer({
       return (words[0][0] + words[1][0]).toUpperCase();
     }
     return name.slice(0, 2).toUpperCase();
-  };
-
-  // Função para formatar último acesso
-  const formatLastSeen = (timestamp) => {
-    if (!timestamp) return null;
-    const now = new Date();
-    const lastSeenDate = new Date(timestamp);
-    const diffMs = now - lastSeenDate;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return "Online agora";
-    if (diffMins < 60) return `Visto há ${diffMins} min`;
-    if (diffMins < 1440) return `Visto há ${Math.floor(diffMins / 60)}h`;
-    return `Visto há ${Math.floor(diffMins / 1440)} dias`;
   };
 
   const onEsc = useCallback((e) => { 
@@ -174,18 +156,17 @@ export default function MiniChatDrawer({
   }, [canShow, userId]);
 
   useEffect(() => {
-    if (!canShow || isMinimized) return;
+    if (!canShow) return;
     const el = viewportRef.current;
     if (!el) return;
     const t = setTimeout(() => { el.scrollTop = el.scrollHeight; }, 60);
     return () => clearTimeout(t);
-  }, [canShow, messages, isMinimized]);
+  }, [canShow, messages]);
 
   const classes = [
     s.container,
     variant === "drawer" ? s.isDrawer : s.isWidget,
-    open ? s.open : "",
-    isMinimized ? s.minimized : ""
+    open ? s.open : ""
   ].join(" ");
 
   const renderContent = () => {
@@ -209,7 +190,6 @@ export default function MiniChatDrawer({
     if (err) {
       return (
         <div className={s.state}>
-          <span>⚠️</span>
           <span>{err}</span>
         </div>
       );
@@ -231,103 +211,42 @@ export default function MiniChatDrawer({
   };
 
   return (
-    <>
-      <aside 
-        className={classes} 
-        aria-hidden={!open} 
-        aria-label="Mini chat (preview)"
-      >
-        <header className={s.header}>
-          <div className={s.hLeft}>
-            <div className={s.avatar}>
-              {getAvatarText(cliente)}
-            </div>
-            <div className={s.hText}>
-              <div className={s.hTitle}>{cliente || "Conversa"}</div>
-              <div className={s.hSub}>
-                <span className={s.badge}>
-                  <MessageCircle size={11} /> 
-                  {canal || "Canal"}
-                </span>
-              </div>
+    <aside 
+      className={classes} 
+      aria-hidden={!open} 
+      aria-label="Mini chat (preview)"
+    >
+      <header className={s.header}>
+        <div className={s.hLeft}>
+          <div className={s.avatar}>
+            {getAvatarText(cliente)}
+          </div>
+          <div className={s.hText}>
+            <div className={s.hTitle}>{cliente || "Conversa"}</div>
+            <div className={s.hSub}>
+              <span className={s.badge}>
+                <MessageCircle size={11} /> 
+                {canal || "Canal"}
+              </span>
             </div>
           </div>
-          
-          <div className={s.hRight}>
-            <button 
-              className={s.iconBtn} 
-              onClick={onClose} 
-              aria-label="Fechar mini chat"
-              title="Fechar"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </header>
-
-        <div className={s.body}>
-          {renderContent()}
         </div>
-      </aside>
-    </>
-  );Seen(lastSeen)}
-                  </span>
-                )}
-                {agentOnline && (
-                  <span className={s.onlineStatus}>
-                    Online
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className={s.hRight}>
-            {/* Botões de ação adiccionais */}
-            <button 
-              className={s.iconBtn} 
-              onClick={() => {/* ação de chamada */}}
-              aria-label="Iniciar chamada"
-              title="Iniciar chamada"
-            >
-              <Phone size={14} />
-            </button>
-            
-            <button 
-              className={s.iconBtn} 
-              onClick={() => {/* ação de vídeo */}}
-              aria-label="Iniciar videochamada"
-              title="Iniciar videochamada"
-            >
-              <Video size={14} />
-            </button>
-            
-            <button 
-              className={s.iconBtn} 
-              onClick={() => setIsMinimized(!isMinimized)}
-              aria-label={isMinimized ? "Maximizar" : "Minimizar"}
-              title={isMinimized ? "Maximizar" : "Minimizar"}
-            >
-              {isMinimized ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
-            </button>
-            
-            <button 
-              className={s.iconBtn} 
-              onClick={onClose} 
-              aria-label="Fechar mini chat"
-              title="Fechar"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        </header>
+        
+        <div className={s.hRight}>
+          <button 
+            className={s.iconBtn} 
+            onClick={onClose} 
+            aria-label="Fechar mini chat"
+            title="Fechar"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </header>
 
-        {!isMinimized && (
-          <div className={s.body}>
-            {renderContent()}
-          </div>
-        )}
-      </aside>
-    </>
+      <div className={s.body}>
+        {renderContent()}
+      </div>
+    </aside>
   );
 }
