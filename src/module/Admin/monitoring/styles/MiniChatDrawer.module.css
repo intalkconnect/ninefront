@@ -311,28 +311,124 @@
   }
 }
 
-/* ===== Overlay de skeleton cobrindo o chat todo ===== */
-.overlayShell {
+/* ===== Ocultar/revelar o conteúdo real (header + corpo) ===== */
+.contentWrap { position: relative; height: 100%; display: flex; flex-direction: column; }
+.contentHidden { opacity: 0; pointer-events: none; }
+.contentVisible { opacity: 1; transition: opacity .22s ease; }
+
+/* Overlay skeleton cobrindo o WEBCHAT inteiro (header + corpo) */
+.overlayShellFull {
   position: absolute;
   inset: 0;
+  z-index: 5;
+  pointer-events: none; /* permite clicar no X atrás, se quiser */
+}
+
+/* ===== Skeleton de WEBCHAT (header + corpo) ===== */
+.skelRoot { height: 100%; display: flex; flex-direction: column; }
+
+/* Header fake */
+.skelHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--nc-border-light);
+  background: rgba(255,255,255,.06);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+.skelHLeft { display: flex; align-items: center; gap: 12px; }
+.skelHAvatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--nc-skel-base);
+  border: 1px solid var(--nc-border-light);
+  position: relative; overflow: hidden;
+}
+.skelHAvatar::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--nc-skel-Hi), transparent);
+  animation: skelShimmer 1.2s infinite;
+}
+.skelHText { display: flex; flex-direction: column; gap: 8px; width: 180px; }
+.skelHLine {
+  height: 10px; border-radius: 6px; background: var(--nc-skel-mid);
+}
+.skelHLineSmall { width: 60%; }
+.skelHBtn {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: var(--nc-skel-base);
+  border: 1px solid var(--nc-border-light);
+  position: relative; overflow: hidden;
+}
+.skelHBtn::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--nc-skel-Hi), transparent);
+  animation: skelShimmer 1.2s infinite;
+}
+
+/* Corpo fake (reaproveita o visual do chat real) */
+.skelViewport {
+  flex: 1; min-height: 0; overflow: auto;
   padding: 20px 18px;
-  z-index: 2;                 /* acima do conteúdo do chat */
-  backdrop-filter: blur(0px); /* pode aumentar se quiser um leve blur */
+  background:
+    radial-gradient(ellipse 800px 600px at 50% -10%, rgba(99,102,241,.08) 0%, transparent 70%),
+    radial-gradient(ellipse 600px 400px at 120% 120%, rgba(139,92,246,.06) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,.02) 100%);
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
 }
 
-/* Transição do conteúdo real quando fica pronto */
-.contentHidden {
-  opacity: 0;
-  pointer-events: none;
-}
-.contentVisible {
-  opacity: 1;
-  transition: opacity .22s ease;
+:root {
+  --nc-skel-base: rgba(2, 6, 23, .06);
+  --nc-skel-mid:  rgba(255, 255, 255, .22);
+  --nc-skel-Hi:   rgba(255, 255, 255, .45);
 }
 
-/* (opcional) evita clique em algo atrás enquanto carrega */
-.body[aria-busy="true"] {
-  pointer-events: none;
+.skelMsg { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 14px; }
+.skelLeft { justify-content: flex-start; }
+.skelRight { justify-content: flex-end; }
+
+.skelAvatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--nc-skel-base);
+  border: 1px solid var(--nc-border-light);
+  position: relative; overflow: hidden;
+}
+.skelAvatar::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--nc-skel-Hi), transparent);
+  animation: skelShimmer 1.2s infinite;
 }
 
-/* Reaproveita os estilos de skeleton que já passamos antes */
+.skelBubble {
+  max-width: 72%; min-width: 120px; padding: 12px;
+  border-radius: 14px; background: var(--nc-skel-base);
+  border: 1px solid var(--nc-border-light);
+  position: relative; overflow: hidden;
+}
+.skelBubble::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--nc-skel-Hi), transparent);
+  animation: skelShimmer 1.2s infinite;
+}
+
+.skelLine { height: 10px; border-radius: 6px; background: var(--nc-skel-mid); margin-bottom: 8px; }
+.skelLine:last-child { margin-bottom: 0; }
+
+.skelW40 { width: 40%; }
+.skelW55 { width: 55%; }
+.skelW65 { width: 65%; }
+.skelW80 { width: 80%; }
+.skelW90 { width: 90%; }
+
+.skelMedia {
+  height: 140px; width: min(70%, 320px); border-radius: 14px;
+  background: var(--nc-skel-base); border: 1px solid var(--nc-border-light);
+  position: relative; overflow: hidden;
+}
+.skelMedia::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--nc-skel-Hi), transparent);
+  animation: skelShimmer 1.2s infinite;
+}
+
+@keyframes skelShimmer { 100% { transform: translateX(100%); } }
