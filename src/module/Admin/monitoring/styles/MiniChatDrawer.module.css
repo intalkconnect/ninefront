@@ -1,112 +1,375 @@
 /* File: src/pages/admin/monitoring/styles/MiniChatDrawer.module.css */
-
 :root {
   --nc-bg: #0b0f1a;
-  --nc-overlay: rgba(11, 15, 26, .48);
-  --nc-surface: #0f1422;
-  --nc-surface-2: #141a2b;
-  --nc-border: rgba(255,255,255,.08);
-  --nc-text: #e6e9f5;
-  --nc-subtle: #9aa3b2;
-  --nc-primary: #7c8cff;
-  --nc-shadow: 0 20px 50px rgba(0,0,0,.45), 0 6px 20px rgba(0,0,0,.35);
+  --nc-overlay: rgba(11, 15, 26, .65);
+  --nc-surface: #141b2e;
+  --nc-surface-2: #1a2332;
+  --nc-surface-hover: #202938;
+  --nc-border: rgba(255,255,255,.12);
+  --nc-border-light: rgba(255,255,255,.06);
+  --nc-text: #f0f2f5;
+  --nc-text-secondary: #b8c1d3;
+  --nc-subtle: #8991a0;
+  --nc-primary: #6366f1;
+  --nc-primary-hover: #5855eb;
+  --nc-success: #22c55e;
+  --nc-warning: #f59e0b;
+  --nc-error: #ef4444;
+  --nc-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.6),
+    0 10px 30px -10px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  --nc-shadow-small: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 2px 4px -1px rgba(0, 0, 0, 0.2);
 }
 
-/* backdrop */
+/* Backdrop com efeito blur melhorado */
 .backdrop {
-  position: fixed; inset: 0; background: var(--nc-overlay);
-  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+  position: fixed; 
+  inset: 0; 
+  background: var(--nc-overlay);
+  backdrop-filter: blur(8px);
+  opacity: 0; 
+  pointer-events: none; 
+  transition: all .3s cubic-bezier(.4, 0, .2, 1);
   z-index: 50;
 }
-.backdrop.open { opacity: 1; pointer-events: auto; }
+.backdrop.open { 
+  opacity: 1; 
+  pointer-events: auto; 
+}
 
-/* container base */
+/* Container base com melhor gradiente e bordas */
 .container {
   position: fixed;
-  display: flex; flex-direction: column;
-  background: linear-gradient(180deg, var(--nc-surface) 0%, var(--nc-surface-2) 100%);
+  display: flex; 
+  flex-direction: column;
+  background: linear-gradient(145deg, 
+    var(--nc-surface) 0%, 
+    var(--nc-surface-2) 60%,
+    #0f1623 100%);
   color: var(--nc-text);
   border: 1px solid var(--nc-border);
   box-shadow: var(--nc-shadow);
   transform: translate3d(0,0,0);
-  opacity: 0; pointer-events: none;
-  transition: transform .26s cubic-bezier(.2,.8,.2,1), opacity .2s ease;
+  opacity: 0; 
+  pointer-events: none;
+  transition: all .35s cubic-bezier(.16, 1, .3, 1);
   z-index: 51;
+  overflow: hidden;
 }
 
-/* drawer variant (sheet) */
+/* Drawer variant com animação melhorada */
 .isDrawer {
-  top: 0; right: 0; bottom: 0;
-  width: min(520px, 100vw);
+  top: 0; 
+  right: 0; 
+  bottom: 0;
+  width: min(540px, 100vw);
   border-left: 1px solid var(--nc-border);
-  transform: translateX(16px);
+  border-radius: 0;
+  transform: translateX(100%);
 }
-.isDrawer.open { transform: translateX(0); opacity: 1; pointer-events: auto; }
+.isDrawer.open { 
+  transform: translateX(0); 
+  opacity: 1; 
+  pointer-events: auto; 
+}
 
-/* webchat variant (floating widget) */
+/* Widget variant com melhor posicionamento e responsividade */
 .isWidget {
-  right: 24px; bottom: 24px; top: 24px;
-  width: 420px; max-width: calc(100vw - 48px);
-  border-radius: 18px; overflow: hidden;
-  transform: translateY(12px) scale(.98);
+  right: 20px; 
+  bottom: 20px; 
+  top: 20px;
+  width: 440px; 
+  max-width: calc(100vw - 40px);
+  border-radius: 24px;
+  transform: translateY(20px) scale(.95);
+  max-height: calc(100vh - 40px);
 }
-.isWidget.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
-
-@media (max-width: 680px) {
-  .isWidget { top: 8px; right: 8px; bottom: 8px; left: 8px; width: auto; }
+.isWidget.open { 
+  transform: translateY(0) scale(1); 
+  opacity: 1; 
+  pointer-events: auto; 
 }
 
-/* header */
+@media (max-width: 768px) {
+  .isWidget { 
+    top: 10px; 
+    right: 10px; 
+    bottom: 10px; 
+    left: 10px; 
+    width: auto;
+    border-radius: 20px;
+    max-height: calc(100vh - 20px);
+  }
+}
+
+/* Header redesenhado com melhor hierarquia visual */
 .header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 12px 12px 14px;
-  background: rgba(255,255,255,.02);
-  border-bottom: 1px solid var(--nc-border);
-  backdrop-filter: blur(6px);
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  padding: 16px 18px;
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid var(--nc-border-light);
+  backdrop-filter: blur(12px);
+  position: relative;
+  z-index: 10;
 }
-.hLeft { display: flex; align-items: center; gap: 10px; }
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255,255,255,.15) 50%, 
+    transparent);
+}
+
+.hLeft { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  flex: 1;
+  min-width: 0;
+}
+
 .avatar {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: #232b45; display: grid; place-items: center;
-  font-weight: 700; font-size: 12px; color: #c7d2ff;
-  border: 1px solid var(--nc-border);
+  width: 38px; 
+  height: 38px; 
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  display: grid; 
+  place-items: center;
+  font-weight: 700; 
+  font-size: 14px; 
+  color: white;
+  border: 2px solid rgba(255,255,255,.1);
+  box-shadow: var(--nc-shadow-small);
+  position: relative;
 }
-.hText { line-height: 1.1; }
-.hTitle { font-size: 13px; font-weight: 700; letter-spacing: .2px; }
-.hSub { margin-top: 2px; font-size: 11px; color: var(--nc-subtle); }
+
+.avatar::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 12px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,.2), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: exclude;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+.hText { 
+  line-height: 1.2; 
+  flex: 1;
+  min-width: 0;
+}
+
+.hTitle { 
+  font-size: 14px; 
+  font-weight: 700; 
+  letter-spacing: .3px;
+  color: var(--nc-text);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hSub { 
+  font-size: 12px; 
+  color: var(--nc-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 2px 8px; border-radius: 999px;
-  background: rgba(124,140,255,.12); color: #c9d1ff; border: 1px solid rgba(124,140,255,.25);
+  display: inline-flex; 
+  align-items: center; 
+  gap: 6px;
+  padding: 4px 10px; 
+  border-radius: 20px;
+  background: rgba(99, 102, 241, .15);
+  color: #c7d2ff;
+  border: 1px solid rgba(99, 102, 241, .3);
+  font-size: 11px;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
 }
 
-.hRight { display: flex; align-items: center; gap: 8px; }
+.hRight { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+}
+
 .iconBtn {
-  display: inline-grid; place-items: center;
-  width: 28px; height: 28px; border-radius: 8px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--nc-border);
-  color: var(--nc-text); cursor: pointer;
+  display: inline-grid; 
+  place-items: center;
+  width: 32px; 
+  height: 32px; 
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid var(--nc-border-light);
+  color: var(--nc-text-secondary);
+  cursor: pointer;
+  transition: all .2s ease;
+  position: relative;
+  overflow: hidden;
 }
-.iconBtn:hover { background: rgba(255,255,255,.08); }
 
-/* body */
-.body { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.iconBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.1);
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+.iconBtn:hover {
+  background: rgba(255,255,255,.12);
+  border-color: var(--nc-border);
+  color: var(--nc-text);
+  transform: translateY(-1px);
+}
+
+.iconBtn:hover::before {
+  opacity: 1;
+}
+
+.iconBtn:active {
+  transform: translateY(0);
+}
+
+/* Body com melhor estrutura */
+.body { 
+  display: flex; 
+  flex-direction: column; 
+  min-height: 0; 
+  height: 100%; 
+  position: relative;
+}
+
 .viewport {
-  flex: 1; min-height: 0; overflow: auto; padding: 14px;
+  flex: 1; 
+  min-height: 0; 
+  overflow: auto; 
+  padding: 20px 18px;
   background:
-    radial-gradient(1200px 800px at 120% -20%, rgba(124,140,255,.08), transparent 60%),
-    radial-gradient(900px 700px at -20% 120%, rgba(124,140,255,.06), transparent 55%);
+    radial-gradient(ellipse 800px 600px at 50% -10%, rgba(99,102,241,.08) 0%, transparent 70%),
+    radial-gradient(ellipse 600px 400px at 120% 120%, rgba(139,92,246,.06) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 0%, rgba(0,0,0,.02) 100%);
+  position: relative;
 }
 
-/* states */
+/* Scrollbar personalizada */
+.viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.viewport::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.02);
+  border-radius: 3px;
+}
+
+.viewport::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.15);
+  border-radius: 3px;
+  transition: background .2s ease;
+}
+
+.viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,.25);
+}
+
+/* Estados com melhor design */
 .state {
-  flex: 1; display: grid; place-items: center; text-align: center;
-  color: var(--nc-subtle); padding: 24px;
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--nc-text-secondary); 
+  padding: 40px 24px;
+  gap: 12px;
 }
+
+.state::before {
+  content: '💬';
+  font-size: 48px;
+  opacity: .3;
+  margin-bottom: 8px;
+}
+
+/* Spinner melhorado */
 .spinner {
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,.2); border-top-color: rgba(255,255,255,.9);
-  animation: spin 1s linear infinite; margin: 0 auto 10px;
+  width: 24px; 
+  height: 24px; 
+  border-radius: 50%;
+  border: 2px solid rgba(99,102,241,.2);
+  border-top-color: var(--nc-primary);
+  animation: spin 1s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes spin { 
+  to { transform: rotate(360deg); } 
+}
+
+/* Estados específicos */
+.state:has(.spinner)::before {
+  content: none;
+}
+
+/* Indicadores de status online/offline */
+.statusIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nc-success);
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  border: 2px solid var(--nc-surface);
+  animation: pulse 2s infinite;
+}
+
+.statusIndicator.offline {
+  background: var(--nc-subtle);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+/* Melhorias para acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+  .container,
+  .backdrop,
+  .iconBtn,
+  .spinner {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Modo de alto contraste */
+@media (prefers-contrast: high) {
+  :root {
+    --nc-border: rgba(255,255,255,.3);
+    --nc-text: #ffffff;
+    --nc-subtle: #cccccc;
+  }
+}
