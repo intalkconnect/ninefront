@@ -309,7 +309,8 @@ export default function ClientsMonitor() {
                       aria-label="Visualizar conversa"
                       title="Visualizar conversa"
                       onClick={() => setPreview({
-                        ticketId: a.id ?? a.ticket_number, // ⬅️ use o mesmo id que o TicketDetail recebe
+                        historyId: a.ticket_id, // ⬅️ use o mesmo id que o TicketDetail recebe
+                        ticketNumber: a.ticket_number ?? null,
                         cliente: a.cliente,
                         canal: a.canal
                       })}
@@ -351,13 +352,14 @@ export default function ClientsMonitor() {
         </section>
       )}
            {/* Drawer do mini-chat */}
-      <MiniChatDrawer
-        open={!!preview}
-        onClose={() => setPreview(null)}
-        ticketId={preview?.ticketId}
-        cliente={preview?.cliente}
-        canal={preview?.canal}
-      />
+ <MiniChatDrawerThread
+   open={!!preview}
+   onClose={() => setPreview(null)}
+   historyId={preview?.historyId}
+   ticketNumber={preview?.ticketNumber}
+   cliente={preview?.cliente}
+   canal={preview?.canal}
+ />
     </div>
   );
 }
