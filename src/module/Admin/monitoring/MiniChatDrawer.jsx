@@ -1,6 +1,6 @@
 // File: src/pages/admin/monitoring/MiniChatDrawer.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X } from "lucide-react";
+import { X, MessageCircle  } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
 import ChatThread from "../atendimento/history/ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
