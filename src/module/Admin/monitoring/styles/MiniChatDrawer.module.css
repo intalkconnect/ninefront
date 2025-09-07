@@ -30,7 +30,7 @@
   position: fixed;
   display: flex; 
   flex-direction: column;
-  background: #dbeafe
+  background: #dbeafe;
   color: var(--nc-text);
   border: 1px solid var(--nc-border);
   transform: translate3d(0,0,0);
