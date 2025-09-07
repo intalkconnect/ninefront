@@ -192,11 +192,6 @@ export default function ClientsMonitor() {
     return `${styles.row} ${styles['tone_' + tone]}`;
   }, [rowTone]);
 
-  const alertCount = useMemo(
-    () => atendimentos.filter(a => ['warn','late'].includes(rowTone(a))).length,
-    [atendimentos, rowTone]
-  );
-
   /* Paginação derivada */
   const totalItems = filtered.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
@@ -213,11 +208,6 @@ export default function ClientsMonitor() {
       <div className={styles.header}>
         <div className={styles.headerInfo}>
           <div className={styles.kpillBlue}>Última atualização: {currentTime.toLocaleTimeString('pt-BR')}</div>
-          {alertCount > 0 && (
-            <div className={styles.kpillAmber}>
-              <AlertTriangle size={14}/> {alertCount} alerta(s)
-            </div>
-          )}
         </div>
         <button
           className={styles.refreshBtn}
