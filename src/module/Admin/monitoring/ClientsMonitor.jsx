@@ -352,7 +352,7 @@ export default function ClientsMonitor() {
         </section>
       )}
            {/* Drawer do mini-chat */}
- <MiniChatDrawerThread
+ <MiniChatDrawer
    open={!!preview}
    onClose={() => setPreview(null)}
    historyId={preview?.historyId}
