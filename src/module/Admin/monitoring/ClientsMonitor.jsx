@@ -106,7 +106,9 @@ export default function ClientsMonitor() {
       if (selectedFilter === 'aguardando') return a.status === 'aguardando';
       if (selectedFilter === 'em_atendimento') return a.status === 'em_atendimento';
       if (filasParaFiltro.some((f) => f.slug === selectedFilter)) return slugify(a.fila) === selectedFilter;
-      if (canais.includes(selectedFilter)) return a.canal === selectedFilter;
+      if (canais.map(c => c.toLowerCase()).includes(String(selectedFilter).toLowerCase()))
+      return String(a.canal || '').toLowerCase() === String(selectedFilter).toLowerCase();
+
       return true;
     });
   }, [atendimentos, selectedFilter, filasParaFiltro]);
