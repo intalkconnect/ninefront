@@ -59,7 +59,7 @@ export default function TransferModal({
       if (!alvo) { setAtendentes([]); setAtendentesMsg(''); return; }
       try {
         setLoadingAgents(true);
-        const resp = await apiGet(`/atendentes/${encodeURIComponent(alvo)}`);
+        const resp = await apiGet(`/fila/atendentes/${encodeURIComponent(alvo)}`);
         const lista = Array.isArray(resp?.atendentes) ? resp.atendentes : [];
         setAtendentes(lista);
         setAtendentesMsg(typeof resp?.message === 'string' ? resp.message : '');
