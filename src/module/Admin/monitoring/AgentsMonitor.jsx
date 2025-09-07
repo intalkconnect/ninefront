@@ -59,7 +59,7 @@ export default function AgentsMonitor() {
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
     try {
-      const r = await apiGet('/agents/realtime');
+      const r = await apiGet('/analytcs/agents/realtime');
       // sua rota devolve um array puro; mas se vier {data: [...]}, cobre também
       const list = Array.isArray(r) ? r : (Array.isArray(r?.data) ? r.data : []);
       setRows(list);
