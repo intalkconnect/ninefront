@@ -168,37 +168,43 @@ export default function ClientsMonitor() {
 
   /* ---------- ALERTING POR COR (inline) ---------- */
   // pega limites por prioridade com fallback
-const getLimits = useCallback((prioridade: string | undefined) => {
-  const p = String(prioridade || 'media').toLowerCase();
-  return settings.overrides[p] || settings.overrides.media || { espera_inicial: 15, demora_durante: 20 };
+/* ---------- ALERTING POR COR (via classe CSS) ---------- */
+
+// pega os limites "globais": usa 'media' (fallback para 'alta')
+const getGlobalLimits = useCallback(() => {
+  const ov = settings.overrides || {};
+  if (ov.media) return ov.media;
+  if (ov.alta)  return ov.alta;
+  // fallback duro se não houver json válido
+  return { espera_inicial: 15, demora_durante: 20 };
 }, [settings.overrides]);
 
-type Tone = 'ok' | 'warn' | 'late' | 'none';
-const rowTone = useCallback((a: any): Tone => {
+// decide o tom da linha usando os limites globais
+const rowTone = useCallback((a) => {
   if (!settings.habilitar) return 'none';
-  const lim = getLimits(a.prioridade);
+  const lim = getGlobalLimits();
   const minutos = Number(a.tempoEspera || 0);
 
   if (a.status === 'aguardando') {
     if (minutos >= (lim.espera_inicial * 2)) return 'late';
-    if (minutos >= lim.espera_inicial) return 'warn';
+    if (minutos >= lim.espera_inicial)   return 'warn';
     return 'ok';
   }
   if (a.status === 'em_atendimento') {
     if (minutos >= (lim.demora_durante * 2)) return 'late';
-    if (minutos >= lim.demora_durante) return 'warn';
+    if (minutos >= lim.demora_durante)   return 'warn';
     return 'ok';
   }
   return 'ok';
-}, [settings.habilitar, getLimits]);
+}, [settings.habilitar, getGlobalLimits]);
 
-// classe da linha
-const rowClass = useCallback((a: any) => {
+// monta a classe da <tr>
+const rowClass = useCallback((a) => {
   const tone = rowTone(a); // ok | warn | late | none
   return `${styles.row} ${styles['tone_' + tone]}`;
 }, [rowTone]);
 
-// contador para o chip de alertas no header (opcional)
+// contador para o chip de alerta no header
 const alertCount = useMemo(
   () => atendimentos.filter(a => ['warn','late'].includes(rowTone(a))).length,
   [atendimentos, rowTone]
