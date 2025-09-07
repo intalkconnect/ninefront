@@ -1,28 +1,27 @@
-// File: src/pages/admin/monitoring/MiniChatDrawerThread.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, MessageCircle, ExternalLink } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
-// ⬇️ caminho relativo para o MESMO ChatThread usado pelo TicketDetail
+// MESMO ChatThread do histórico:
 import ChatThread from "../atendimento/history/ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
 /**
- * MiniChatDrawerThread
- * - Drawer lateral (somente visualização) renderizando o MESMO ChatThread do histórico.
- * - Busca mensagens do ticket usando o mesmo endpoint do TicketDetail.
+ * MiniChatDrawer
+ * - Preview somente-leitura da conversa
+ * - Reaproveita 100% o ChatThread do histórico
  *
  * Props:
- *  - open: boolean
- *  - onClose: () => void
- *  - ticketId: string | number  (use o mesmo identificador que o TicketDetail recebe em :id)
- *  - cliente?: string
- *  - canal?: string
- *  - historyUrlBase?: string  (default: "/admin/management/history")
+ *  - open, onClose
+ *  - historyId?: string|number     -> ID interno (o mesmo do /tickets/history/:id)
+ *  - ticketNumber?: string|number  -> número “humano”, fallback
+ *  - cliente?, canal?
+ *  - historyUrlBase?: string (default: "/admin/management/history")
  */
-export default function MiniChatDrawerThread({
+export default function MiniChatDrawer({
   open,
   onClose,
-  ticketId,
+  historyId,
+  ticketNumber,
   cliente,
   canal,
   historyUrlBase = "/admin/management/history",
@@ -32,7 +31,8 @@ export default function MiniChatDrawerThread({
   const [messages, setMessages] = useState([]);
   const viewportRef = useRef(null);
 
-  const canShow = open && ticketId;
+  const hasKey = historyId != null || ticketNumber != null;
+  const canShow = open && hasKey;
 
   // ESC fecha
   const onEsc = useCallback((e) => { if (e.key === "Escape") onClose?.(); }, [onClose]);
@@ -42,31 +42,87 @@ export default function MiniChatDrawerThread({
     return () => window.removeEventListener("keydown", onEsc);
   }, [canShow, onEsc]);
 
-  // Carrega mensagens exatamente como o TicketDetail faz
+  const is404 = (e) => {
+    const s = e?.status ?? e?.response?.status;
+    if (s === 404) return true;
+    return /\b404\b/.test(String(e?.message || e || ""));
+  };
+
+  // normaliza shape mínimo p/ ChatThread
+  const ensureShape = (arr) =>
+    (Array.isArray(arr) ? arr : []).map((m) => ({
+      id: m.id ?? `${(m.timestamp ?? m.created_at ?? Date.now())}-${Math.random().toString(36).slice(2,7)}`,
+      timestamp: m.timestamp ?? m.created_at ?? m.date ?? Date.now(),
+      ...m,
+    }));
+
+  // tenta diferentes endpoints (id interno primeiro, depois número)
+  const fetchMessagesSmart = async () => {
+    setErr(null);
+
+    if (historyId != null) {
+      try {
+        const r = await apiGet(`/tickets/history/${historyId}?include=messages,attachments&messages_limit=500`);
+        const msgs = ensureShape(r?.messages || []);
+        if (msgs.length) return msgs;
+      } catch (e) {
+        if (!is404(e)) throw e;
+      }
+      try {
+        const r2 = await apiGet(`/tickets/${historyId}/messages`);
+        const msgs2 = ensureShape(Array.isArray(r2) ? r2 : r2?.data || []);
+        if (msgs2.length) return msgs2;
+      } catch (e2) {
+        if (!is404(e2)) throw e2;
+      }
+    }
+
+    if (ticketNumber != null) {
+      try {
+        const r3 = await apiGet(`/tickets/history/${ticketNumber}?include=messages,attachments&messages_limit=500`);
+        const msgs3 = ensureShape(r3?.messages || []);
+        if (msgs3.length) return msgs3;
+      } catch (e3) {
+        if (!is404(e3)) throw e3;
+      }
+      try {
+        const r4 = await apiGet(`/tickets/${ticketNumber}/messages`);
+        const msgs4 = ensureShape(Array.isArray(r4) ? r4 : r4?.data || []);
+        if (msgs4.length) return msgs4;
+      } catch (e4) {
+        if (!is404(e4)) throw e4;
+      }
+    }
+
+    const label = historyId != null ? `ID ${historyId}` : `número ${ticketNumber}`;
+    throw new Error(`Não encontramos mensagens para o ticket (${label}).`);
+  };
+
   useEffect(() => {
     let alive = true;
     async function load() {
       if (!canShow) return;
-      setLoading(true); setErr(null);
+      setLoading(true);
       try {
-        // Mesmo endpoint do TicketDetail (ajuste se seu backend diferir)
-        const res = await apiGet(`/tickets/history/${ticketId}?include=messages,attachments&messages_limit=500`);
-        if (!alive) return;
-        setMessages(Array.isArray(res?.messages) ? res.messages : []);
+        const msgs = await fetchMessagesSmart();
+        if (alive) setMessages(msgs);
       } catch (e) {
-        if (!alive) return;
         console.error("Falha ao carregar o ticket (mini):", e);
-        setErr("Falha ao carregar a conversa.");
-        setMessages([]);
+        if (alive) {
+          setErr(e?.message || "Falha ao carregar a conversa.");
+          setMessages([]);
+        }
       } finally {
         if (alive) setLoading(false);
       }
     }
     load();
     return () => { alive = false; };
-  }, [canShow, ticketId]);
+    // re-carrega quando alterar a chave do ticket
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canShow, historyId, ticketNumber]);
 
-  // Auto-scroll para o fim ao trocar mensagens
+  // auto-scroll
   useEffect(() => {
     if (!canShow) return;
     const el = viewportRef.current;
@@ -75,7 +131,8 @@ export default function MiniChatDrawerThread({
     return () => clearTimeout(t);
   }, [canShow, messages]);
 
-  const fullHistoryHref = `${historyUrlBase}/${ticketId}`;
+  const linkId = historyId ?? ticketNumber;
+  const fullHistoryHref = `${historyUrlBase}/${linkId}`;
 
   return (
     <>
@@ -88,14 +145,16 @@ export default function MiniChatDrawerThread({
           <div className={s.hLeft}>
             <div className={s.hIcon}><MessageCircle size={16} /></div>
             <div className={s.hText}>
-              <div className={s.hTitle}>{cliente || `Ticket #${ticketId}`}</div>
+              <div className={s.hTitle}>{cliente || `Ticket #${linkId ?? "—"}`}</div>
               <div className={s.hSub}>{canal || "Pré-visualização"}</div>
             </div>
           </div>
           <div className={s.hRight}>
-            <a className={s.fullBtn} href={fullHistoryHref} title="Abrir no histórico completo">
-              <ExternalLink size={16} />
-            </a>
+            {linkId != null && (
+              <a className={s.fullBtn} href={fullHistoryHref} title="Abrir no histórico completo">
+                <ExternalLink size={16} />
+              </a>
+            )}
             <button className={s.iconBtn} onClick={onClose} aria-label="Fechar mini chat">
               <X size={16} />
             </button>
@@ -103,16 +162,19 @@ export default function MiniChatDrawerThread({
         </header>
 
         <div className={s.content}>
-          {loading ? (
+          {!hasKey ? (
+            <div className={s.empty}>Ticket não informado.</div>
+          ) : loading ? (
             <div className={s.loadingWrap}>
               <div className={s.spinner} />
               <div className={s.loadingTxt}>Carregando conversa…</div>
             </div>
           ) : err ? (
             <div className={s.empty}>{err}</div>
+          ) : messages.length === 0 ? (
+            <div className={s.empty}>Sem histórico de mensagens.</div>
           ) : (
             <div ref={viewportRef} className={s.viewport}>
-              {/* ⬇️ Reaproveitando o MESMO ChatThread do TicketDetail */}
               <ChatThread messages={messages} />
             </div>
           )}
