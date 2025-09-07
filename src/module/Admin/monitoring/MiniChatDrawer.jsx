@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, MessageCircle } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
 // Reaproveita o MESMO renderer de mensagens do histórico
-import ChatThread from "../ChatThread";
+import ChatThread from "./ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
 export default function MiniChatDrawer({
