@@ -67,11 +67,7 @@ export default function ClientsMonitor() {
    });
  }, []);
 
-  const onCloseTransfer = useCallback(() => {
-    setTransfer(null);
-    // Após transferir, o modal chama onClose; aqui recarregamos a lista
-    fetchAll();
-  }, [fetchAll]);
+
 
   // Paginação
   const PAGE_SIZE = 30;
@@ -138,6 +134,12 @@ export default function ClientsMonitor() {
       setRefreshing(false);
     }
   }, []);
+
+    const onCloseTransfer = useCallback(() => {
+    setTransfer(null);
+    // Após transferir, o modal chama onClose; aqui recarregamos a lista
+    fetchAll();
+  }, [fetchAll]);
 
   useEffect(() => {
     let mounted = true;
