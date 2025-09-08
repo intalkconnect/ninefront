@@ -2,9 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import styles from './styles/Preferences.module.css';
 
-/** Exibe overrides apenas quando os alertas estiverem habilitados */
-const HIDE_OV_WHEN_DISABLED = true;
-
 /** Mapeia chaves -> rótulos amigáveis, ajuda e modo de edição */
 const FRIENDLY = {
   permitir_transferencia_fila: {
@@ -38,7 +35,7 @@ const FRIENDLY = {
     ],
   },
 
-  /* ▼ Parte de alertas (visual + depende do “habilitar”) */
+  /* ▼ Parte de alertas (depende do “habilitar”) */
   habilitar_alertas_atendimento: {
     label: 'Habilitar alertas de atendimento',
     help: 'Ativa cores/avisos no monitor com base nos limites por prioridade.',
@@ -53,7 +50,7 @@ const FRIENDLY = {
   },
 };
 
-/** Helpers */
+/** Helpers de rótulo/normalização */
 const valueLabelFor = (key, value) => {
   const spec = FRIENDLY[key];
   if (spec?.type === 'boolean') return !!value ? (spec.onText || 'Ativado') : (spec.offText || 'Desativado');
@@ -98,19 +95,22 @@ const parseOverrides = (raw) => {
 };
 const isBad = (n) => !Number.isFinite(n) || n < 0;
 
-const Preferences = () => {
+export default function Preferences() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
   const [okMsg, setOkMsg] = useState(null);
 
-  /* edição genérica */
+  /* edição genérica (outras chaves que não os overrides) */
   const [editingKey, setEditingKey] = useState(null);
   const [editValue, setEditValue] = useState('');
 
-  /* estado do editor visual de overrides */
+  /* overrides (draft + erros) */
   const [ovDraft, setOvDraft] = useState(DEFAULT_OVERRIDES);
   const [ovErr, setOvErr] = useState({});
+
+  /* acordeão: abre uma sub-linha logo abaixo da linha de overrides */
+  const [ovOpen, setOvOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -134,6 +134,11 @@ const Preferences = () => {
   }, [items]);
 
   const alertsEnabled = !!coerceType(byKey.get('habilitar_alertas_atendimento')?.value);
+
+  useEffect(() => {
+    // se desabilitar o "habilitar", fecha o acordeão
+    if (!alertsEnabled) setOvOpen(false);
+  }, [alertsEnabled]);
 
   const toastOK = (msg) => { setOkMsg(msg); setTimeout(() => setOkMsg(null), 1800); };
 
@@ -174,12 +179,13 @@ const Preferences = () => {
     if (FRIENDLY[key]?.type === 'overrides_form') {
       setOvDraft(parseOverrides(raw));
       setOvErr({});
+      setOvOpen(true);     // abre o acordeão
       return;
     }
     const v = row?.value;
     setEditValue(v !== null && typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v ?? ''));
   };
-  const cancelEdit = () => { setEditingKey(null); setEditValue(''); setOvErr({}); };
+  const cancelEdit = () => { setEditingKey(null); setEditValue(''); setOvErr({}); setOvOpen(false); };
 
   const submitGeneric = async () => {
     if (!editingKey) return;
@@ -212,116 +218,123 @@ const Preferences = () => {
       alta:  { espera_inicial: Number(ovDraft.alta.espera_inicial),  demora_durante: Number(ovDraft.alta.demora_durante) },
       media: { espera_inicial: Number(ovDraft.media.espera_inicial), demora_durante: Number(ovDraft.media.demora_durante) },
     }, byKey.get('overrides_por_prioridade_json')?.description ?? null);
-    cancelEdit();
+    setOvOpen(false);
+    setEditingKey(null);
   };
 
-  /* Se desabilitar alertas enquanto a edição estiver aberta, fecha o editor */
-  useEffect(() => {
-    if (!alertsEnabled && editingKey === 'overrides_por_prioridade_json') {
-      cancelEdit();
-    }
-  }, [alertsEnabled]); // eslint-disable-line
-
-  /* ---------- UI compacta dos overrides ---------- */
-  const NumInput = ({ value, onChange, error, disabled, compact = false }) => (
+  /* ---------- UI dos overrides ---------- */
+  const NumInput = ({ value, onChange, error }) => (
     <div className={styles.numWrap}>
       <input
         type="number"
         min="0"
         step="1"
-        className={`${styles.input} ${styles.inputSm} ${compact ? styles.inputXs : ''} ${error ? styles.inputErr : ''}`}
+        className={`${styles.input} ${styles.inputXs} ${error ? styles.inputErr : ''}`}
         value={value}
         onChange={(e)=>onChange(e.target.value)}
-        disabled={disabled}
       />
       <span className={styles.numSuffix}>min</span>
       {error && <div className={styles.fieldErr}>{error}</div>}
     </div>
   );
 
-  const OverridesRead = ({ raw }) => {
+  const OverridesReadMiniTable = ({ raw }) => {
     const v = parseOverrides(raw);
     return (
-      <div className={styles.ovBlock}>
-        <div className={`${styles.ovGrid} ${styles.ovNarrow}`}>
-          <div className={`${styles.ovHead} ${styles.ovColLabel}`}>Prioridade</div>
-          <div className={styles.ovHead}>Aguardando (espera inicial)</div>
-          <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
+      <div className={`${styles.miniCard} ${!alertsEnabled ? styles.isDisabled : ''}`}>
+        <table className={styles.miniTable} aria-label="Limites por prioridade">
+          <thead>
+            <tr>
+              <th className={styles.tCenter}>Prioridade</th>
+              <th>Aguardando (espera inicial)</th>
+              <th>Durante o atendimento (silêncio)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className={`${styles.tCenter} ${styles.bold}`}>Alta</td>
+              <td>{v.alta.espera_inicial} min</td>
+              <td>{v.alta.demora_durante} min</td>
+            </tr>
+            <tr>
+              <td className={`${styles.tCenter} ${styles.bold}`}>Média</td>
+              <td>{v.media.espera_inicial} min</td>
+              <td>{v.media.demora_durante} min</td>
+            </tr>
+          </tbody>
+        </table>
 
-          <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Alta</div>
-          <div className={styles.ovCell}>{v.alta.espera_inicial} min</div>
-          <div className={styles.ovCell}>{v.alta.demora_durante} min</div>
-
-          <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Média</div>
-          <div className={styles.ovCell}>{v.media.espera_inicial} min</div>
-          <div className={styles.ovCell}>{v.media.demora_durante} min</div>
-        </div>
-
-        <div className={styles.rowNote}>Clique em Editar para ajustar os limites (minutos).</div>
-
-        <div className={styles.cellActions}>
+        <div className={styles.miniActions}>
           <button
-            className={styles.btnTiny}
-            onClick={() => startEdit('overrides_por_prioridade_json')}
-            title="Editar limites"
+            className={`${styles.btnTiny} ${styles.inlineBtn}`}
+            onClick={() => alertsEnabled && startEdit('overrides_por_prioridade_json')}
+            disabled={!alertsEnabled}
+            aria-expanded={ovOpen}
+            aria-controls="ov-accordion"
+            title={!alertsEnabled ? 'Ative os alertas para editar' : 'Editar limites'}
           >
+            <span className={`${styles.caret} ${ovOpen ? styles.caretUp : styles.caretDown}`} />
             Editar
           </button>
+          {!alertsEnabled && <span className={styles.mutedNote}>Ative os alertas para editar.</span>}
         </div>
       </div>
     );
   };
 
-  const OverridesEdit = () => (
-    <div className={styles.ovBlock}>
-      <div className={`${styles.ovGrid} ${styles.ovNarrow}`}>
-        <div className={`${styles.ovHead} ${styles.ovColLabel}`}>Prioridade</div>
-        <div className={styles.ovHead}>Aguardando (espera inicial)</div>
-        <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
+  const OverridesAccordionRow = ({ raw }) => {
+    if (!ovOpen) return null;
+    return (
+      <tr className={styles.subrow}>
+        <td id="ov-accordion" className={styles.subcell} colSpan={4}>
+          <div className={styles.ovEditorCard}>
+            <div className={styles.ovGrid}>
+              <div className={`${styles.ovHead} ${styles.tCenter}`}>Prioridade</div>
+              <div className={styles.ovHead}>Aguardando (espera inicial)</div>
+              <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
 
-        <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Alta</div>
-        <div className={styles.ovCell}>
-          <NumInput
-            compact
-            value={ovDraft.alta.espera_inicial}
-            onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, espera_inicial: v } }))}
-            error={ovErr['alta.espera_inicial']}
-          />
-        </div>
-        <div className={styles.ovCell}>
-          <NumInput
-            compact
-            value={ovDraft.alta.demora_durante}
-            onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, demora_durante: v } }))}
-            error={ovErr['alta.demora_durante']}
-          />
-        </div>
+              <div className={`${styles.ovCell} ${styles.tCenter} ${styles.bold}`}>Alta</div>
+              <div className={styles.ovCell}>
+                <NumInput
+                  value={ovDraft.alta.espera_inicial}
+                  onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, espera_inicial: v } }))}
+                  error={ovErr['alta.espera_inicial']}
+                />
+              </div>
+              <div className={styles.ovCell}>
+                <NumInput
+                  value={ovDraft.alta.demora_durante}
+                  onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, demora_durante: v } }))}
+                  error={ovErr['alta.demora_durante']}
+                />
+              </div>
 
-        <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Média</div>
-        <div className={styles.ovCell}>
-          <NumInput
-            compact
-            value={ovDraft.media.espera_inicial}
-            onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, espera_inicial: v } }))}
-            error={ovErr['media.espera_inicial']}
-          />
-        </div>
-        <div className={styles.ovCell}>
-          <NumInput
-            compact
-            value={ovDraft.media.demora_durante}
-            onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, demora_durante: v } }))}
-            error={ovErr['media.demora_durante']}
-          />
-        </div>
-      </div>
+              <div className={`${styles.ovCell} ${styles.tCenter} ${styles.bold}`}>Média</div>
+              <div className={styles.ovCell}>
+                <NumInput
+                  value={ovDraft.media.espera_inicial}
+                  onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, espera_inicial: v } }))}
+                  error={ovErr['media.espera_inicial']}
+                />
+              </div>
+              <div className={styles.ovCell}>
+                <NumInput
+                  value={ovDraft.media.demora_durante}
+                  onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, demora_durante: v } }))}
+                  error={ovErr['media.demora_durante']}
+                />
+              </div>
+            </div>
 
-      <div className={styles.formActions}>
-        <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
-        <button className={styles.btnPrimary} onClick={saveOv}>Salvar</button>
-      </div>
-    </div>
-  );
+            <div className={styles.formActions}>
+              <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
+              <button className={styles.btnPrimary} onClick={saveOv}>Salvar</button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   /* ---------- ordenação das linhas ---------- */
   const ordered = useMemo(() => {
@@ -368,85 +381,70 @@ const Preferences = () => {
                 const spec = FRIENDLY[key];
                 const raw = row.value;
                 const nice = valueLabelFor(key, raw);
-                const isEditing = editingKey === key;
-
-                /* oculta completamente o bloco de overrides quando desabilitado */
-                if (spec?.type === 'overrides_form' && HIDE_OV_WHEN_DISABLED && !alertsEnabled) {
-                  return null;
-                }
 
                 return (
-                  <tr key={key}>
-                    <td className={styles.cellKey}>
-                      <div className={styles.keyTitle}>{spec?.label ?? key}</div>
-                      <div className={styles.keySub}>({key})</div>
-                    </td>
+                  <React.Fragment key={key}>
+                    <tr>
+                      <td className={styles.cellKey}>
+                        <div className={styles.keyTitle}>{spec?.label ?? key}</div>
+                        <div className={styles.keySub}>({key})</div>
+                      </td>
 
-                    <td>
-                      {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
-                        <button
-                          className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
-                          onClick={() => toggleBoolean(key)}
-                          aria-pressed={!!coerceType(raw)}
-                          aria-label={`${spec?.label ?? key}: ${nice}`}
-                          title={nice}
-                        >
-                          <span className={styles.knob} />
-                          <span className={styles.switchText}>{nice}</span>
-                        </button>
-                      ) : spec?.type === 'enum' ? (
-                        <select
-                          className={styles.select}
-                          value={String(raw ?? '')}
-                          onChange={(e) => changeEnum(key, e.target.value)}
-                          aria-label={spec?.label ?? key}
-                        >
-                          {spec.options.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      ) : spec?.type === 'overrides_form' ? (
-                        <>
-                          {!isEditing ? <OverridesRead raw={raw} /> : <OverridesEdit />}
-                        </>
-                      ) : (
-                        <>
-                          {!isEditing ? (
-                            <>
-                              <pre className={styles.code} title={String(raw ?? '')}>
+                      <td>
+                        {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
+                          <button
+                            className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
+                            onClick={() => toggleBoolean(key)}
+                            aria-pressed={!!coerceType(raw)}
+                            aria-label={`${spec?.label ?? key}: ${nice}`}
+                            title={nice}
+                          >
+                            <span className={styles.knob} />
+                            <span className={styles.switchText}>{nice}</span>
+                          </button>
+                        ) : spec?.type === 'enum' ? (
+                          <select
+                            className={styles.select}
+                            value={String(raw ?? '')}
+                            onChange={(e) => changeEnum(key, e.target.value)}
+                            aria-label={spec?.label ?? key}
+                          >
+                            {spec.options.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        ) : spec?.type === 'overrides_form' ? (
+                          <OverridesReadMiniTable raw={raw} />
+                        ) : (
+                          <>
+                            <pre className={styles.code} title={String(raw ?? '')}>
 {String(raw ?? '')}
-                              </pre>
-                              <div className={styles.cellActions}>
-                                <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <textarea
-                                className={styles.textarea}
-                                rows={4}
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                              />
-                              <div className={styles.formActions}>
-                                <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
-                                <button className={styles.btnPrimary} onClick={submitGeneric}>Salvar</button>
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </td>
+                            </pre>
+                            <div className={styles.cellActions}>
+                              <button className={styles.btnTiny} onClick={() => { setEditingKey(key); }}>
+                                Editar
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </td>
 
-                    <td className={styles.cellDesc}>
-                      {spec?.help ? <div className={styles.helpMain}>{spec.help}</div> : null}
-                      {row.description
-                        ? <div className={styles.helpNote}>{row.description}</div>
-                        : (!spec?.help ? '—' : null)
-                      }
-                    </td>
-                    <td>{row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}</td>
-                  </tr>
+                      <td className={styles.cellDesc}>
+                        {spec?.help ? <div className={styles.helpMain}>{spec.help}</div> : null}
+                        {row.description
+                          ? <div className={styles.helpNote}>{row.description}</div>
+                          : (!spec?.help ? '—' : null)
+                        }
+                      </td>
+
+                      <td>{row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}</td>
+                    </tr>
+
+                    {/* Acordeão só para a linha de overrides */}
+                    {spec?.type === 'overrides_form' && (
+                      <OverridesAccordionRow raw={raw} />
+                    )}
+                  </React.Fragment>
                 );
               })}
 
@@ -462,6 +460,4 @@ const Preferences = () => {
       </div>
     </div>
   );
-};
-
-export default Preferences;
+}
