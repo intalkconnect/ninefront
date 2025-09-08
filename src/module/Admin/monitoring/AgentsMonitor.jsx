@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useCallback, useState } from "react";
 import { apiGet } from "../../../shared/apiClient";
 import { Clock, PauseCircle, ToggleLeft, Power, RefreshCw } from "lucide-react";
-import styles from "./styles/AgentsRealtime.module.css";
+import styles from "./styles/AgentsMonitor.module.css";
 
 /* ---------- helpers ---------- */
 const fmtMin = (m) => {
