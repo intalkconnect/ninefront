@@ -44,8 +44,8 @@ const FRIENDLY = {
     offText: 'Desativado',
   },
   overrides_por_prioridade_json: {
-    label: 'Overrides por prioridade',
-    help: 'Defina, em minutos, os limites por prioridade para “aguardando” e “durante o atendimento”.',
+    label: 'Alertas por prioridade',
+    help: 'Defina, em minutos, os limites por prioridade para o acompanhamenot da fil.',
     type: 'overrides_form', // UI visual (sem JSON na tela)
   },
 };
@@ -235,8 +235,8 @@ const Preferences = () => {
       <div className={`${styles.ovBlock} ${!alertsEnabled ? styles.ovDisabled : ''}`}>
         <div className={`${styles.ovGrid} ${styles.ovNarrow}`}>
           <div className={`${styles.ovHead} ${styles.ovColLabel}`}>Prioridade</div>
-          <div className={styles.ovHead}>Aguardando (espera inicial)</div>
-          <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
+          <div className={styles.ovHead}>Aguardandodiv>
+          <div className={styles.ovHead}>Em atendimento</div>
 
           <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Alta</div>
           <div className={styles.ovCell}>{v.alta.espera_inicial} min</div>
