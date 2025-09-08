@@ -49,7 +49,7 @@ export default function AgentsRealtime() {
     try {
       const [ags, pauses] = await Promise.all([
         apiGet("/analytics/agents/realtime"),
-        apiGet("/pause?active=true"), // ← busca os motivos com seus max_minutes
+        apiGet("/pausas?active=true"), // ← busca os motivos com seus max_minutes
       ]);
 
       // agents
