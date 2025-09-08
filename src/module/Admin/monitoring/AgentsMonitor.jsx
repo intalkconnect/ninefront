@@ -265,7 +265,12 @@ export default function AgentsMonitor() {
                           ))}
                     </td>
                     <td>{Number(a.tickets_abertos) || 0}</td>
-                    <td>{fmtRel(a.last_seen)}</td>
+                    <th>Última atividade</th>
+…
+<td title={a.last_seen ? new Date(a.last_seen).toLocaleString('pt-BR') : ''}>
+  {fmtRel(a.last_seen)}
+</td>
+
                   </tr>
                 ))
               )}
