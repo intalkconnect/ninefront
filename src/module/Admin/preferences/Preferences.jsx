@@ -35,7 +35,7 @@ const FRIENDLY = {
     ],
   },
 
-  // Alertas por prioridade
+  /* ▼ Parte de alertas (visual + depende do “habilitar”) */
   habilitar_alertas_atendimento: {
     label: 'Habilitar alertas de atendimento',
     help: 'Ativa cores/avisos no monitor com base nos limites por prioridade.',
@@ -45,12 +45,12 @@ const FRIENDLY = {
   },
   overrides_por_prioridade_json: {
     label: 'Overrides por prioridade',
-    help: 'Defina, em minutos, os limites por prioridade para “aguardando” e “durante o atendimento (silêncio)”.',
-    type: 'overrides_form', // UI visual
+    help: 'Defina, em minutos, os limites por prioridade para “aguardando” e “durante o atendimento”.',
+    type: 'overrides_form', // UI visual (sem JSON na tela)
   },
 };
 
-/** Helpers de rótulo/normalização */
+/** Helpers */
 const valueLabelFor = (key, value) => {
   const spec = FRIENDLY[key];
   if (spec?.type === 'boolean') return !!value ? (spec.onText || 'Ativado') : (spec.offText || 'Desativado');
@@ -71,7 +71,7 @@ const coerceType = (v) => {
   return s;
 };
 
-/** Modelo e parsing dos overrides (mantém payload do back) */
+/** Modelo dos overrides (mantém o payload atual do back) */
 const DEFAULT_OVERRIDES = {
   alta:  { espera_inicial: 5,  demora_durante: 10 },
   media: { espera_inicial: 15, demora_durante: 20 },
@@ -101,11 +101,11 @@ const Preferences = () => {
   const [erro, setErro] = useState(null);
   const [okMsg, setOkMsg] = useState(null);
 
-  // edição genérica (para chaves livres)
+  /* edição genérica */
   const [editingKey, setEditingKey] = useState(null);
   const [editValue, setEditValue] = useState('');
 
-  // editor visual dos overrides
+  /* estado do editor visual de overrides */
   const [ovDraft, setOvDraft] = useState(DEFAULT_OVERRIDES);
   const [ovErr, setOvErr] = useState({});
 
@@ -191,13 +191,13 @@ const Preferences = () => {
     cancelEdit();
   };
 
-  // valida e salva overrides
+  /* ---------- Overrides: validação + salvar ---------- */
   const validateOv = (d) => {
     const e = {};
-    if (isBad(Number(d.alta.espera_inicial)))  e['alta.espera_inicial']  = 'Número ≥ 0';
-    if (isBad(Number(d.alta.demora_durante)))  e['alta.demora_durante']  = 'Número ≥ 0';
-    if (isBad(Number(d.media.espera_inicial))) e['media.espera_inicial'] = 'Número ≥ 0';
-    if (isBad(Number(d.media.demora_durante))) e['media.demora_durante'] = 'Número ≥ 0';
+    if (isBad(Number(d.alta.espera_inicial)))  e['alta.espera_inicial']  = 'Informe um número ≥ 0';
+    if (isBad(Number(d.alta.demora_durante)))  e['alta.demora_durante']  = 'Informe um número ≥ 0';
+    if (isBad(Number(d.media.espera_inicial))) e['media.espera_inicial'] = 'Informe um número ≥ 0';
+    if (isBad(Number(d.media.demora_durante))) e['media.demora_durante'] = 'Informe um número ≥ 0';
     return e;
   };
 
@@ -212,14 +212,14 @@ const Preferences = () => {
     cancelEdit();
   };
 
-  /** Mini input com sufixo “min” */
-  const NumInput = ({ value, onChange, error, disabled }) => (
+  /* ---------- UI compacta dos overrides ---------- */
+  const NumInput = ({ value, onChange, error, disabled, compact = false }) => (
     <div className={styles.numWrap}>
       <input
         type="number"
         min="0"
         step="1"
-        className={`${styles.input} ${styles.inputSm} ${error ? styles.inputErr : ''}`}
+        className={`${styles.input} ${styles.inputSm} ${compact ? styles.inputXs : ''} ${error ? styles.inputErr : ''}`}
         value={value}
         onChange={(e)=>onChange(e.target.value)}
         disabled={disabled}
@@ -229,22 +229,19 @@ const Preferences = () => {
     </div>
   );
 
-  /** Visão: tabela compacta (somente leitura) */
   const OverridesRead = ({ raw }) => {
     const v = parseOverrides(raw);
     return (
       <div className={`${styles.ovBlock} ${!alertsEnabled ? styles.ovDisabled : ''}`}>
-        <div className={styles.ovGrid}>
+        <div className={`${styles.ovGrid} ${styles.ovNarrow}`}>
           <div className={`${styles.ovHead} ${styles.ovColLabel}`}>Prioridade</div>
           <div className={styles.ovHead}>Aguardando (espera inicial)</div>
           <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
 
-          {/* Alta */}
           <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Alta</div>
           <div className={styles.ovCell}>{v.alta.espera_inicial} min</div>
           <div className={styles.ovCell}>{v.alta.demora_durante} min</div>
 
-          {/* Média */}
           <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Média</div>
           <div className={styles.ovCell}>{v.media.espera_inicial} min</div>
           <div className={styles.ovCell}>{v.media.demora_durante} min</div>
@@ -270,18 +267,17 @@ const Preferences = () => {
     );
   };
 
-  /** Edição: mesma grade com inputs */
   const OverridesEdit = () => (
     <div className={styles.ovBlock}>
-      <div className={styles.ovGrid}>
+      <div className={`${styles.ovGrid} ${styles.ovNarrow}`}>
         <div className={`${styles.ovHead} ${styles.ovColLabel}`}>Prioridade</div>
         <div className={styles.ovHead}>Aguardando (espera inicial)</div>
         <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
 
-        {/* Alta */}
         <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Alta</div>
         <div className={styles.ovCell}>
           <NumInput
+            compact
             value={ovDraft.alta.espera_inicial}
             onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, espera_inicial: v } }))}
             error={ovErr['alta.espera_inicial']}
@@ -289,16 +285,17 @@ const Preferences = () => {
         </div>
         <div className={styles.ovCell}>
           <NumInput
+            compact
             value={ovDraft.alta.demora_durante}
             onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, demora_durante: v } }))}
             error={ovErr['alta.demora_durante']}
           />
         </div>
 
-        {/* Média */}
         <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Média</div>
         <div className={styles.ovCell}>
           <NumInput
+            compact
             value={ovDraft.media.espera_inicial}
             onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, espera_inicial: v } }))}
             error={ovErr['media.espera_inicial']}
@@ -306,6 +303,7 @@ const Preferences = () => {
         </div>
         <div className={styles.ovCell}>
           <NumInput
+            compact
             value={ovDraft.media.demora_durante}
             onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, demora_durante: v } }))}
             error={ovErr['media.demora_durante']}
@@ -320,7 +318,7 @@ const Preferences = () => {
     </div>
   );
 
-  /** Ordenação das linhas (conhecidas primeiro) */
+  /* ---------- ordenação das linhas ---------- */
   const ordered = useMemo(() => {
     const known = Object.keys(FRIENDLY);
     const score = (k) => { const i = known.indexOf(k); return i === -1 ? 999 : i; };
@@ -399,11 +397,7 @@ const Preferences = () => {
                         </select>
                       ) : spec?.type === 'overrides_form' ? (
                         <>
-                          {!isEditing ? (
-                            <OverridesRead raw={raw} />
-                          ) : (
-                            <OverridesEdit />
-                          )}
+                          {!isEditing ? <OverridesRead raw={raw} /> : <OverridesEdit />}
                         </>
                       ) : (
                         <>
