@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useCallback, useState } from "react";
 import { apiGet } from "../../../shared/apiClient";
-import { Clock, PauseCircle, ToggleLeft, Power, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import styles from "./styles/AgentsMonitor.module.css";
 
 /* ---------- helpers ---------- */
@@ -49,7 +49,7 @@ export default function AgentsRealtime() {
     try {
       const [ags, pauses] = await Promise.all([
         apiGet("/analytics/agents/realtime"),
-        apiGet("/pausas?active=true"), // ← busca os motivos com seus max_minutes
+        apiGet("/pausas?active=true"), // ← ajustado
       ]);
 
       // agents
@@ -162,10 +162,6 @@ export default function AgentsRealtime() {
   /* ----- render helpers ----- */
   const StatusPill = ({ s }) => (
     <span className={`${styles.stPill} ${styles["st_"+s]}`}>
-      {s === "online"  && <ToggleLeft size={14} />}
-      {s === "pause"   && <PauseCircle size={14} />}
-      {s === "offline" && <Power size={14} />}
-      {s === "inativo" && <Clock size={14} />}
       <span>{s === "pause" ? "Pausa" :
              s === "online" ? "Online" :
              s === "offline" ? "Offline" : "Inativo"}</span>
@@ -290,7 +286,7 @@ export default function AgentsRealtime() {
                 <th>Detalhe</th>
                 <th>Filas</th>
                 <th>Tickets Abertos</th>
-                <th>Último Ping</th>
+                <th>Última atividade</th>
               </tr>
             </thead>
             <tbody>
@@ -315,11 +311,11 @@ export default function AgentsRealtime() {
                   </td>
                   <td className={styles.bold}>{a.tickets_abertos || 0}</td>
                   <td
-                    className={`${styles.ping} ${
-                      !a.last_seen ? styles.pingStale :
-                      (Date.now()-new Date(a.last_seen).getTime())/1000 <= 60 ? styles.pingOk :
-                      (Date.now()-new Date(a.last_seen).getTime())/1000 <= 180 ? styles.pingWarn :
-                      styles.pingStale
+                    className={`${styles.lastAct} ${
+                      !a.last_seen ? styles.lastStale :
+                      (Date.now()-new Date(a.last_seen).getTime())/1000 <= 60 ? styles.lastOk :
+                      (Date.now()-new Date(a.last_seen).getTime())/1000 <= 180 ? styles.lastWarn :
+                      styles.lastStale
                     }`}
                     title={a.last_seen ? new Date(a.last_seen).toLocaleString("pt-BR") : ""}
                   >
