@@ -211,13 +211,30 @@ export default function AgentsRealtime() {
       </div>
 
       {/* KPIs */}
-      <section className={styles.kpiWrap}>
-        <div className={styles.kpi}><span className={styles.kNum}>{kpis.online}</span><span>Online</span></div>
-        <div className={styles.kpi}><span className={styles.kNum}>{kpis.pause}</span><span>Em Pausa</span></div>
-        <div className={styles.kpi}><span className={styles.kNum}>{kpis.offline}</span><span>Offline</span></div>
-        <div className={styles.kpi}><span className={styles.kNum}>{kpis.inativo}</span><span>Inativos</span></div>
-        <div className={styles.kpi}><span className={styles.kNum}>{kpis.tickets}</span><span>Tickets Abertos</span></div>
-      </section>
+<section className={styles.kpiWrap}>
+  {[
+    { key: 'online',  label: 'Online',         value: kpis.online,  tone: 'green'  },
+    { key: 'pause',   label: 'Em Pausa',       value: kpis.pause,   tone: 'amber'  },
+    { key: 'offline', label: 'Offline',        value: kpis.offline, tone: 'zinc'   },
+    { key: 'inativo', label: 'Inativos',       value: kpis.inativo, tone: 'slate'  },
+    { key: 'tickets', label: 'Tickets Abertos',value: kpis.tickets, tone: 'indigo', noFilter: true },
+  ].map(def => (
+    <div
+      key={def.key}
+      className={`${styles.kpi} ${styles['k_'+def.tone]} ${!def.noFilter ? styles.kClickable : ''}`}
+      onClick={!def.noFilter ? () => setFilterStatus(def.key) : undefined}
+      role={!def.noFilter ? 'button' : undefined}
+      title={!def.noFilter ? `Filtrar por ${def.label}` : undefined}
+    >
+      <div className={styles.kBubble}>{def.value}</div>
+      <div className={styles.kText}>
+        <div className={styles.kLabel}>{def.label}</div>
+        {!def.noFilter && <div className={styles.kSub}>clique para filtrar</div>}
+      </div>
+    </div>
+  ))}
+</section>
+
 
       {/* Filtros */}
       <section className={styles.filters}>
