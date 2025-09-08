@@ -78,7 +78,7 @@
 }
 .inputSm:focus{ border-color:var(--qr-primary); box-shadow:0 0 0 3px var(--qr-primary-100); }
 
-/* Busca (movida para baixo) */
+/* Busca */
 .searchGroup{ position:relative; }
 .searchInput{
   width:min(420px,48vw); height:40px;
@@ -98,7 +98,8 @@
   width:100%; border-collapse:separate; border-spacing:0; font-size:14px;
 }
 .colNum{ width:120px; }
-.colUser{ width:38%; }
+/* novo alias para a coluna Cliente (mantém largura próxima da antiga .colUser) */
+.colClient{ width:38%; }
 .colFila{ width:22%; }
 .colAgent{ width:22%; }
 .colWhen{ width:180px; text-align:right; }
@@ -139,26 +140,16 @@
 /* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
-/* NOVO: cursor e hover claros para linha clicável */
-.rowClickable {
-  cursor: pointer;
-}
-.rowClickable:hover {
-  background: #f8fafc;           /* leve destaque */
-}
-.rowClickable:active {
-  background: #f1f5f9;
-}
-
-/* garante o cursor mesmo sobre o texto da célula */
-.rowClickable td {
-  cursor: pointer;
-}
+/* Linha clicável */
+.rowClickable { cursor: pointer; }
+.rowClickable:hover { background: #f8fafc; }
+.rowClickable:active { background: #f1f5f9; }
+.rowClickable td { cursor: pointer; }
 
 /* Responsivo */
 @media (max-width: 920px){
   .inputSm{ width:160px; }
-  .colUser{ width:auto; }
+  .colClient{ width:auto; }
   .colFila{ width:auto; }
   .colAgent{ width:auto; }
   .colWhen{ width:auto; }
