@@ -34,6 +34,20 @@ const FRIENDLY = {
       { value: 'preditiva', label: 'Automática' },
     ],
   },
+
+  /* ▼ Novas opções com UI visual */
+  habilitar_alertas_atendimento: {
+    label: 'Habilitar alertas de atendimento',
+    help: 'Ativa cores/avisos no monitor conforme limites de tempo. Depende dos “overrides por prioridade”.',
+    type: 'boolean',
+    onText: 'Ativado',
+    offText: 'Desativado',
+  },
+  overrides_por_prioridade_json: {
+    label: 'Overrides por prioridade',
+    help: 'Defina (em minutos) os limites por prioridade para gerar alertas no monitor.',
+    type: 'overrides_form', // << sem JSON na UI
+  },
 };
 
 /** Rótulo amigável para o valor atual */
@@ -59,15 +73,45 @@ const coerceType = (v) => {
   return s;
 };
 
+/* -------- Overrides helpers -------- */
+const DEFAULT_OVERRIDES = {
+  alta:  { espera_inicial: 5,  demora_durante: 10 },
+  media: { espera_inicial: 15, demora_durante: 20 },
+};
+
+const parseOverrides = (raw) => {
+  try {
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+    const out = {
+      alta: {
+        espera_inicial: Number(obj?.alta?.espera_inicial ?? DEFAULT_OVERRIDES.alta.espera_inicial),
+        demora_durante: Number(obj?.alta?.demora_durante ?? DEFAULT_OVERRIDES.alta.demora_durante),
+      },
+      media: {
+        espera_inicial: Number(obj?.media?.espera_inicial ?? DEFAULT_OVERRIDES.media.espera_inicial),
+        demora_durante: Number(obj?.media?.demora_durante ?? DEFAULT_OVERRIDES.media.demora_durante),
+      },
+    };
+    return out;
+  } catch {
+    return { ...DEFAULT_OVERRIDES };
+  }
+};
+
+const invalidNum = (n) => !Number.isFinite(n) || n < 0;
+
+/* -------- Componente -------- */
 const Preferences = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
   const [okMsg, setOkMsg] = useState(null);
 
-  // Edição inline para valores "livres"
+  // Edição inline
   const [editingKey, setEditingKey] = useState(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState('');        // genérico
+  const [ovForm, setOvForm] = useState(DEFAULT_OVERRIDES); // formulário visual de overrides
+  const [ovErrs, setOvErrs] = useState({});             // erros por campo
 
   const load = async () => {
     setLoading(true);
@@ -126,20 +170,56 @@ const Preferences = () => {
     setEditingKey(key);
     const row = byKey.get(key);
     const raw = row?.value;
-    setEditValue(raw !== null && typeof raw === 'object' ? JSON.stringify(raw, null, 2) : String(raw ?? ''));
+
+    if (FRIENDLY[key]?.type === 'overrides_form') {
+      setOvForm(parseOverrides(raw));
+      setOvErrs({});
+    } else {
+      const v = row?.value;
+      setEditValue(v !== null && typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v ?? ''));
+    }
   };
 
-  const cancelEdit = () => { setEditingKey(null); setEditValue(''); };
+  const cancelEdit = () => {
+    setEditingKey(null);
+    setEditValue('');
+    setOvErrs({});
+  };
+
+  const validateOv = (draft) => {
+    const e = {};
+    (['alta','media']).forEach(level => {
+      const p = draft[level] || {};
+      if (invalidNum(Number(p.espera_inicial))) e[`${level}.espera_inicial`] = 'Informe minutos válidos (≥ 0)';
+      if (invalidNum(Number(p.demora_durante))) e[`${level}.demora_durante`] = 'Informe minutos válidos (≥ 0)';
+    });
+    return e;
+    };
 
   const submitEdit = async () => {
     if (!editingKey) return;
     const row = byKey.get(editingKey);
+
+    if (FRIENDLY[editingKey]?.type === 'overrides_form') {
+      const errs = validateOv(ovForm);
+      setOvErrs(errs);
+      if (Object.keys(errs).length) { setErro('Revise os campos destacados.'); return; }
+      await saveSetting(editingKey, {
+        alta:  { espera_inicial: Number(ovForm.alta.espera_inicial),  demora_durante: Number(ovForm.alta.demora_durante) },
+        media: { espera_inicial: Number(ovForm.media.espera_inicial), demora_durante: Number(ovForm.media.demora_durante) },
+      }, row?.description ?? null);
+      cancelEdit();
+      return;
+    }
+
+    // genérico (não-json overrides)
     let val = editValue;
     const orig = row?.value;
     if (typeof orig === 'boolean') val = /^true$/i.test(String(editValue).trim());
     else if (typeof orig === 'number') val = Number(editValue);
     else if (orig !== null && typeof orig === 'object') { try { val = JSON.parse(editValue); } catch { setErro('JSON inválido.'); return; } }
     else { val = coerceType(editValue); }
+
     await saveSetting(editingKey, val, row?.description ?? null);
     cancelEdit();
   };
@@ -156,6 +236,87 @@ const Preferences = () => {
     });
   }, [items]);
 
+  /* ---------- UI helpers ---------- */
+  const renderOverridesView = (key, raw) => {
+    const v = parseOverrides(raw);
+    return (
+      <div>
+        <div className={styles.pillRow}>
+          <span className={`${styles.pill} ${styles.pillAmber}`}>Alta • espera inicial {v.alta.espera_inicial}m</span>
+          <span className={`${styles.pill} ${styles.pillAmber}`}>Alta • durante {v.alta.demora_durante}m</span>
+          <span className={`${styles.pill} ${styles.pillBlue}`}>Média • espera inicial {v.media.espera_inicial}m</span>
+          <span className={`${styles.pill} ${styles.pillBlue}`}>Média • durante {v.media.demora_durante}m</span>
+        </div>
+        <div className={styles.rowNote}>Clique em Editar para ajustar os limites (minutos).</div>
+        <div className={styles.cellActions}>
+          <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderOverridesForm = () => (
+    <>
+      <div className={styles.ovGrid}>
+        {/* Alta */}
+        <div className={`${styles.ovCard} ${styles.ovAmber}`}>
+          <div className={styles.ovTitle}>Prioridade Alta</div>
+          <div className={styles.ovRow}>
+            <label>Espera inicial (min)</label>
+            <input
+              type="number" min="0" step="1"
+              className={`${styles.input} ${ovErrs['alta.espera_inicial'] ? styles.inputErr : ''}`}
+              value={ovForm.alta.espera_inicial}
+              onChange={(e)=> setOvForm(f=>({ ...f, alta:{ ...f.alta, espera_inicial: e.target.value } }))}
+            />
+            {ovErrs['alta.espera_inicial'] && <div className={styles.fieldErr}>{ovErrs['alta.espera_inicial']}</div>}
+          </div>
+          <div className={styles.ovRow}>
+            <label>Demora durante (min)</label>
+            <input
+              type="number" min="0" step="1"
+              className={`${styles.input} ${ovErrs['alta.demora_durante'] ? styles.inputErr : ''}`}
+              value={ovForm.alta.demora_durante}
+              onChange={(e)=> setOvForm(f=>({ ...f, alta:{ ...f.alta, demora_durante: e.target.value } }))}
+            />
+            {ovErrs['alta.demora_durante'] && <div className={styles.fieldErr}>{ovErrs['alta.demora_durante']}</div>}
+          </div>
+        </div>
+
+        {/* Média */}
+        <div className={`${styles.ovCard} ${styles.ovBlue}`}>
+          <div className={styles.ovTitle}>Prioridade Média</div>
+          <div className={styles.ovRow}>
+            <label>Espera inicial (min)</label>
+            <input
+              type="number" min="0" step="1"
+              className={`${styles.input} ${ovErrs['media.espera_inicial'] ? styles.inputErr : ''}`}
+              value={ovForm.media.espera_inicial}
+              onChange={(e)=> setOvForm(f=>({ ...f, media:{ ...f.media, espera_inicial: e.target.value } }))}
+            />
+            {ovErrs['media.espera_inicial'] && <div className={styles.fieldErr}>{ovErrs['media.espera_inicial']}</div>}
+          </div>
+          <div className={styles.ovRow}>
+            <label>Demora durante (min)</label>
+            <input
+              type="number" min="0" step="1"
+              className={`${styles.input} ${ovErrs['media.demora_durante'] ? styles.inputErr : ''}`}
+              value={ovForm.media.demora_durante}
+              onChange={(e)=> setOvForm(f=>({ ...f, media:{ ...f.media, demora_durante: e.target.value } }))}
+            />
+            {ovErrs['media.demora_durante'] && <div className={styles.fieldErr}>{ovErrs['media.demora_durante']}</div>}
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.formActions}>
+        <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
+        <button className={styles.btnPrimary} onClick={submitEdit}>Salvar</button>
+      </div>
+    </>
+  );
+
+  /* ---------- render ---------- */
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -166,13 +327,11 @@ const Preferences = () => {
           {erro ? <div className={styles.alertErr}>{erro}</div> : null}
           {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
         </div>
-        {/* (recarregar removido) */}
       </div>
 
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>Preferências do sistema</div>
-          {/* quantificação removida */}
         </div>
 
         <div className={styles.tableWrap}>
@@ -196,8 +355,8 @@ const Preferences = () => {
                 return (
                   <tr key={key}>
                     <td className={styles.cellKey}>
-                     <div className={styles.keyTitle}>{spec?.label ?? key}</div>
-                     <div className={styles.keySub}>({key})</div>
+                      <div className={styles.keyTitle}>{spec?.label ?? key}</div>
+                      <div className={styles.keySub}>({key})</div>
                     </td>
 
                     <td>
@@ -223,31 +382,46 @@ const Preferences = () => {
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
+                      ) : spec?.type === 'overrides_form' ? (
+                        <>
+                          {!isEditing ? renderOverridesView(key, raw) : renderOverridesForm()}
+                        </>
                       ) : (
                         <>
                           {!isEditing ? (
-                            <pre className={styles.code} title={String(raw ?? '')}>
+                            <>
+                              <pre className={styles.code} title={String(raw ?? '')}>
 {String(raw ?? '')}
-                            </pre>
+                              </pre>
+                              <div className={styles.cellActions}>
+                                <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
+                              </div>
+                            </>
                           ) : (
-                            <textarea
-                              className={styles.textarea}
-                              rows={4}
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                            />
+                            <>
+                              <textarea
+                                className={styles.textarea}
+                                rows={4}
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                              />
+                              <div className={styles.formActions}>
+                                <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
+                                <button className={styles.btnPrimary} onClick={submitEdit}>Salvar</button>
+                              </div>
+                            </>
                           )}
                         </>
                       )}
                     </td>
 
-                                        <td className={styles.cellDesc}>
+                    <td className={styles.cellDesc}>
                       {spec?.help ? <div className={styles.helpMain}>{spec.help}</div> : null}
                       {row.description
                         ? <div className={styles.helpNote}>{row.description}</div>
-                      : (!spec?.help ? '—' : null)
-                    }
-                   </td>
+                        : (!spec?.help ? '—' : null)
+                      }
+                    </td>
                     <td>{row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}</td>
                   </tr>
                 );
