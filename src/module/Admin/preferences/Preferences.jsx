@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import styles from './styles/Preferences.module.css';
 
+/** Exibe overrides apenas quando os alertas estiverem habilitados */
+const HIDE_OV_WHEN_DISABLED = true;
+
 /** Mapeia chaves -> rótulos amigáveis, ajuda e modo de edição */
 const FRIENDLY = {
   permitir_transferencia_fila: {
@@ -45,7 +48,7 @@ const FRIENDLY = {
   },
   overrides_por_prioridade_json: {
     label: 'Alertas por prioridade',
-    help: 'Defina, em minutos, os limites por prioridade para o acompanhamenot da fil.',
+    help: 'Defina, em minutos, os limites por prioridade para “aguardando” e “durante o atendimento”.',
     type: 'overrides_form', // UI visual (sem JSON na tela)
   },
 };
@@ -212,6 +215,13 @@ const Preferences = () => {
     cancelEdit();
   };
 
+  /* Se desabilitar alertas enquanto a edição estiver aberta, fecha o editor */
+  useEffect(() => {
+    if (!alertsEnabled && editingKey === 'overrides_por_prioridade_json') {
+      cancelEdit();
+    }
+  }, [alertsEnabled]); // eslint-disable-line
+
   /* ---------- UI compacta dos overrides ---------- */
   const NumInput = ({ value, onChange, error, disabled, compact = false }) => (
     <div className={styles.numWrap}>
@@ -232,11 +242,11 @@ const Preferences = () => {
   const OverridesRead = ({ raw }) => {
     const v = parseOverrides(raw);
     return (
-      <div className={`${styles.ovBlock} ${!alertsEnabled ? styles.ovDisabled : ''}`}>
+      <div className={styles.ovBlock}>
         <div className={`${styles.ovGrid} ${styles.ovNarrow}`}>
           <div className={`${styles.ovHead} ${styles.ovColLabel}`}>Prioridade</div>
-          <div className={styles.ovHead}>Aguardandodiv>
-          <div className={styles.ovHead}>Em atendimento</div>
+          <div className={styles.ovHead}>Aguardando (espera inicial)</div>
+          <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
 
           <div className={`${styles.ovCell} ${styles.ovRowLabel}`}>Alta</div>
           <div className={styles.ovCell}>{v.alta.espera_inicial} min</div>
@@ -247,18 +257,13 @@ const Preferences = () => {
           <div className={styles.ovCell}>{v.media.demora_durante} min</div>
         </div>
 
-        <div className={styles.rowNote}>
-          {alertsEnabled
-            ? 'Clique em Editar para ajustar os limites (minutos).'
-            : 'Ative “Habilitar alertas de atendimento” para poder editar.'}
-        </div>
+        <div className={styles.rowNote}>Clique em Editar para ajustar os limites (minutos).</div>
 
         <div className={styles.cellActions}>
           <button
             className={styles.btnTiny}
-            onClick={() => alertsEnabled && startEdit('overrides_por_prioridade_json')}
-            disabled={!alertsEnabled}
-            title={!alertsEnabled ? 'Ative os alertas para editar' : 'Editar limites'}
+            onClick={() => startEdit('overrides_por_prioridade_json')}
+            title="Editar limites"
           >
             Editar
           </button>
@@ -364,6 +369,11 @@ const Preferences = () => {
                 const raw = row.value;
                 const nice = valueLabelFor(key, raw);
                 const isEditing = editingKey === key;
+
+                /* oculta completamente o bloco de overrides quando desabilitado */
+                if (spec?.type === 'overrides_form' && HIDE_OV_WHEN_DISABLED && !alertsEnabled) {
+                  return null;
+                }
 
                 return (
                   <tr key={key}>
