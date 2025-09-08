@@ -31,7 +31,6 @@ export default function AgentsRealtime() {
   const [now, setNow] = useState(new Date());
 
   // limites de pausa vindos de /pause
-  // pauseCfg = { map: Map<normalizedLabelOrCode, minutes>, def: number }
   const [pauseCfg, setPauseCfg] = useState({ map: new Map(), def: 15 });
 
   // filtros
@@ -49,18 +48,15 @@ export default function AgentsRealtime() {
     try {
       const [ags, pauses] = await Promise.all([
         apiGet("/analytics/agents/realtime"),
-        apiGet("/pausas?active=true"), // ← ajustado
+        apiGet("/pausas?active=true"),
       ]);
 
-      // agents
       const list = Array.isArray(ags) ? ags : (Array.isArray(ags?.data) ? ags.data : []);
       setAgents(list);
 
-      // pause reasons
       const pList = Array.isArray(pauses) ? pauses : (Array.isArray(pauses?.data) ? pauses.data : []);
       const map = new Map();
       let def = 15;
-
       for (const p of (pList || [])) {
         const label = String(p?.label || "").trim().toLowerCase();
         const code  = String(p?.code  || "").trim().toLowerCase();
@@ -92,19 +88,19 @@ export default function AgentsRealtime() {
     return () => { mounted = false; clearInterval(it); };
   }, [fetchAll]);
 
-  // “relógio” suave só para contagem visual da pausa entre os polls
+  // “relógio” leve pra contagem visual
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
   }, []);
 
-  /* ----- config pausa (agora com /pause) ----- */
+  /* ----- pausa config ----- */
   const getPauseLimit = useCallback((reason) => {
     const key = String(reason || "").trim().toLowerCase();
     return pauseCfg.map.get(key) ?? pauseCfg.def;
   }, [pauseCfg]);
 
-  // tons da linha (warn/late) considerando pausa
+  // tom da linha: alerta por pausa
   const rowTone = useCallback((a) => {
     if (a.status !== "pause") return "ok";
     const dur = Number(a?.pausa?.duracao_min ?? 0);
@@ -144,7 +140,6 @@ export default function AgentsRealtime() {
       if (!txt) return true;
       const hay =
         (a.agente || "").toLowerCase().includes(txt) ||
-        (a.email  || "").toLowerCase().includes(txt) ||
         (a.filas  || []).some(f => String(f).toLowerCase().includes(txt)) ||
         (a.pausa?.motivo || "").toLowerCase().includes(txt);
       return hay;
@@ -162,9 +157,9 @@ export default function AgentsRealtime() {
   /* ----- render helpers ----- */
   const StatusPill = ({ s }) => (
     <span className={`${styles.stPill} ${styles["st_"+s]}`}>
-      <span>{s === "pause" ? "Pausa" :
-             s === "online" ? "Online" :
-             s === "offline" ? "Offline" : "Inativo"}</span>
+      {s === "pause" ? "Pausa" :
+       s === "online" ? "Online" :
+       s === "offline" ? "Offline" : "Inativo"}
     </span>
   );
 
@@ -182,26 +177,17 @@ export default function AgentsRealtime() {
         <span className={styles.pauseReason}>{motivo}</span>
         <span className={styles.sep}>•</span>
         {state === "late" ? (
-          <span className={`${styles.pauseBadge} ${styles.pbLate}`}>
-            excedido +{fmtMin(-rest)}
-          </span>
+          <span className={`${styles.pauseBadge} ${styles.pbLate}`}>excedido +{fmtMin(-rest)}</span>
         ) : state === "warn" ? (
-          <span className={`${styles.pauseBadge} ${styles.pbWarn}`}>
-            restam {fmtMin(rest)}
-          </span>
+          <span className={`${styles.pauseBadge} ${styles.pbWarn}`}>restam {fmtMin(rest)}</span>
         ) : (
-          <span className={`${styles.pauseBadge} ${styles.pbOk}`}>
-            {fmtMin(dur)} / {fmtMin(lim)}
-          </span>
+          <span className={`${styles.pauseBadge} ${styles.pbOk}`}>{fmtMin(dur)} / {fmtMin(lim)}</span>
         )}
       </div>
     );
   };
 
-  const rowClass = (a) => {
-    const tone = rowTone(a); // ok|warn|late
-    return `${styles.row} ${styles["tone_"+tone]}`;
-  };
+  const rowClass = (a) => `${styles.row} ${styles["tone_"+rowTone(a)]}`;
 
   /* ---------- render ---------- */
   return (
@@ -263,7 +249,7 @@ export default function AgentsRealtime() {
           <div className={styles.filterTitle}>Buscar</div>
           <input
             className={styles.input}
-            placeholder="Nome, e-mail, fila, motivo…"
+            placeholder="Nome, fila, motivo…"
             value={filterText}
             onChange={(e)=>setFilterText(e.target.value)}
           />
@@ -273,7 +259,9 @@ export default function AgentsRealtime() {
       {/* Tabela */}
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
-          <h2 className={styles.tableTitle}>Agentes em Tempo Real <span className={styles.kpill}>{total}</span></h2>
+          <h2 className={styles.tableTitle}>
+            Agentes em Tempo Real <span className={styles.kpill}>{total}</span>
+          </h2>
         </div>
 
         <div className={styles.tableScroll}>
@@ -281,7 +269,6 @@ export default function AgentsRealtime() {
             <thead>
               <tr>
                 <th>Agente</th>
-                <th>E-mail</th>
                 <th>Status</th>
                 <th>Detalhe</th>
                 <th>Filas</th>
@@ -293,18 +280,17 @@ export default function AgentsRealtime() {
               {loading ? (
                 Array.from({length:6}).map((_,i)=>(
                   <tr key={`sk-${i}`} className={styles.skelRow}>
-                    <td colSpan={7}><div className={styles.skeletonRow}/></td>
+                    <td colSpan={6}><div className={styles.skeletonRow}/></td>
                   </tr>
                 ))
               ) : pageData.length === 0 ? (
-                <tr><td colSpan={7} className={styles.emptyCell}>Nenhum agente no filtro atual.</td></tr>
+                <tr><td colSpan={6} className={styles.emptyCell}>Nenhum agente no filtro atual.</td></tr>
               ) : pageData.map((a)=>(
-                <tr key={a.email} className={rowClass(a)}>
+                <tr key={a.email || a.agente} className={rowClass(a)}>
                   <td className={styles.bold}>{a.agente}</td>
-                  <td className={styles.muted}>{a.email}</td>
                   <td><StatusPill s={a.status}/></td>
                   <td><PauseInfo a={a}/></td>
-                  <td>
+                  <td className={styles.filasCell}>
                     {(Array.isArray(a.filas) ? a.filas : []).map(f=>(
                       <span key={f} className={styles.filaPill}>{f}</span>
                     ))}
