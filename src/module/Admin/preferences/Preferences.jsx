@@ -234,7 +234,7 @@ export default function Preferences() {
           <thead>
             <tr>
               <th className={styles.tCenter}>Prioridade</th>
-              <th>Aguardando (espera inicial)</th>
+              <th>Aguardando</th>
               <th>Durante o atendimento (silêncio)</th>
             </tr>
           </thead>
@@ -271,8 +271,8 @@ export default function Preferences() {
     <div className={styles.ovBlock}>
       <div className={styles.ovGrid}>
         <div className={`${styles.ovHead} ${styles.tCenter}`}>Prioridade</div>
-        <div className={styles.ovHead}>Aguardando (espera inicial)</div>
-        <div className={styles.ovHead}>Durante o atendimento (silêncio)</div>
+        <div className={styles.ovHead}>Aguardando</div>
+        <div className={styles.ovHead}>Durante o atendimento</div>
 
         <div className={`${styles.ovCell} ${styles.tCenter} ${styles.bold}`}>Alta</div>
         <div className={styles.ovCell}>
@@ -370,60 +370,61 @@ export default function Preferences() {
                     </td>
 
                     <td>
-                      {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
-                        <button
-                          className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
-                          onClick={() => toggleBoolean(key)}
-                          aria-pressed={!!coerceType(raw)}
-                          aria-label={`${spec?.label ?? key}: ${nice}`}
-                          title={nice}
-                        >
-                          <span className={styles.knob} />
-                          <span className={styles.switchText}>{nice}</span>
-                        </button>
-                      ) : spec?.type === 'enum' ? (
-                        <select
-                          className={styles.select}
-                          value={String(raw ?? '')}
-                          onChange={(e) => changeEnum(key, e.target.value)}
-                          aria-label={spec?.label ?? key}
-                        >
-                          {spec.options.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      ) : spec?.type === 'overrides_form' ? (
-                        isEditing
-                          ? <OverridesEdit />
-                          : <OverridesRead raw={raw} />
-                      ) : (
-                        <>
-                          {!isEditing ? (
-                            <>
-                              <pre className={styles.code} title={String(raw ?? '')}>
-{String(raw ?? '')}
-                              </pre>
-                              <div className={styles.cellActions}>
-                                <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <textarea
-                                className={styles.textarea}
-                                rows={4}
-                                value={editValue}
-                                onChange={(e) => setEditValue(e.target.value)}
-                              />
-                              <div className={styles.formActions}>
-                                <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
-                                <button className={styles.btnPrimary} onClick={submitGeneric}>Salvar</button>
-                              </div>
-                            </>
-                          )
-                        }
-                      )}
-                    </td>
+                      <td>
+  {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
+    /* ---- switch boolean ---- */
+    <button
+      className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
+      onClick={() => toggleBoolean(key)}
+      aria-pressed={!!coerceType(raw)}
+      aria-label={`${spec?.label ?? key}: ${nice}`}
+      title={nice}
+    >
+      <span className={styles.knob} />
+      <span className={styles.switchText}>{nice}</span>
+    </button>
+  ) : spec?.type === 'enum' ? (
+    /* ---- select enum ---- */
+    <select
+      className={styles.select}
+      value={String(raw ?? '')}
+      onChange={(e) => changeEnum(key, e.target.value)}
+      aria-label={spec?.label ?? key}
+    >
+      {spec.options.map(opt => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  ) : spec?.type === 'overrides_form' ? (
+    /* ---- bloco visual de overrides (read/edit inline) ---- */
+    isEditing ? <OverridesEdit /> : <OverridesRead raw={raw} />
+  ) : !isEditing ? (
+    /* ---- valor “livre” em leitura ---- */
+    <>
+      <pre className={styles.code} title={String(raw ?? '')}>
+        {String(raw ?? '')}
+      </pre>
+      <div className={styles.cellActions}>
+        <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
+      </div>
+    </>
+  ) : (
+    /* ---- valor “livre” em edição ---- */
+    <>
+      <textarea
+        className={styles.textarea}
+        rows={4}
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+      />
+      <div className={styles.formActions}>
+        <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
+        <button className={styles.btnPrimary} onClick={submitGeneric}>Salvar</button>
+      </div>
+    </>
+  )}
+</td>
+
 
                     <td className={styles.cellDesc}>
                       {spec?.help ? <div className={styles.helpMain}>{spec.help}</div> : null}
