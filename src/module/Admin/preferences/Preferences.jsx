@@ -370,7 +370,7 @@ export default function Preferences() {
                     </td>
 
                     <td>
-                      <td>
+
   {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
     /* ---- switch boolean ---- */
     <button
