@@ -95,7 +95,7 @@ export default function Preferences() {
   const [editingKey, setEditingKey] = useState(null); // inclusive overrides
   const [editValue, setEditValue] = useState('');
 
-  // estado do editor visual de overrides
+  // editor visual de overrides
   const [ovDraft, setOvDraft] = useState(DEFAULT_OVERRIDES);
   const [ovErr, setOvErr] = useState({});
 
@@ -121,7 +121,7 @@ export default function Preferences() {
 
   const alertsEnabled = !!coerceType(byKey.get('habilitar_alertas_atendimento')?.value);
 
-  // se desabilitar "habilitar_alertas_atendimento" enquanto edita overrides, fecha edição
+  // se desabilitar os alertas enquanto edita overrides, fecha a edição
   useEffect(() => {
     if (!alertsEnabled && editingKey === 'overrides_por_prioridade_json') {
       setEditingKey(null);
@@ -210,7 +210,7 @@ export default function Preferences() {
     setEditingKey(null);
   };
 
-  /* ----- UI: leitura e edição inline do bloco ----- */
+  /* ---------- UI dos overrides ---------- */
   const NumInput = ({ value, onChange, error }) => (
     <div className={styles.numWrap}>
       <input
@@ -346,14 +346,23 @@ export default function Preferences() {
 
         <div className={styles.tableWrap}>
           <table className={styles.table}>
+            {/* <- Congela as larguras das colunas */}
+            <colgroup>
+              <col className={styles.colOpt} />
+              <col className={styles.colVal} />
+              <col className={styles.colDesc} />
+              <col className={styles.colUpd} />
+            </colgroup>
+
             <thead>
               <tr>
-                <th style={{ minWidth: 360 }}>Opção</th>
+                <th>Opção</th>
                 <th>Valor</th>
-                <th style={{ minWidth: 260 }}>Descrição</th>
-                <th style={{ minWidth: 160 }}>Atualizado</th>
+                <th>Descrição</th>
+                <th>Atualizado</th>
               </tr>
             </thead>
+
             <tbody>
               {ordered.map((row) => {
                 const key = row.key ?? row['key'];
@@ -369,62 +378,56 @@ export default function Preferences() {
                       <div className={styles.keySub}>({key})</div>
                     </td>
 
-                    <td>
-
-  {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
-    /* ---- switch boolean ---- */
-    <button
-      className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
-      onClick={() => toggleBoolean(key)}
-      aria-pressed={!!coerceType(raw)}
-      aria-label={`${spec?.label ?? key}: ${nice}`}
-      title={nice}
-    >
-      <span className={styles.knob} />
-      <span className={styles.switchText}>{nice}</span>
-    </button>
-  ) : spec?.type === 'enum' ? (
-    /* ---- select enum ---- */
-    <select
-      className={styles.select}
-      value={String(raw ?? '')}
-      onChange={(e) => changeEnum(key, e.target.value)}
-      aria-label={spec?.label ?? key}
-    >
-      {spec.options.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
-  ) : spec?.type === 'overrides_form' ? (
-    /* ---- bloco visual de overrides (read/edit inline) ---- */
-    isEditing ? <OverridesEdit /> : <OverridesRead raw={raw} />
-  ) : !isEditing ? (
-    /* ---- valor “livre” em leitura ---- */
-    <>
-      <pre className={styles.code} title={String(raw ?? '')}>
-        {String(raw ?? '')}
-      </pre>
-      <div className={styles.cellActions}>
-        <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
-      </div>
-    </>
-  ) : (
-    /* ---- valor “livre” em edição ---- */
-    <>
-      <textarea
-        className={styles.textarea}
-        rows={4}
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-      />
-      <div className={styles.formActions}>
-        <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
-        <button className={styles.btnPrimary} onClick={submitGeneric}>Salvar</button>
-      </div>
-    </>
-  )}
-</td>
-
+                    {/* Coluna VALOR com largura fixa */}
+                    <td className={styles.tdVal}>
+                      {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
+                        <button
+                          className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
+                          onClick={() => toggleBoolean(key)}
+                          aria-pressed={!!coerceType(raw)}
+                          aria-label={`${spec?.label ?? key}: ${nice}`}
+                          title={nice}
+                        >
+                          <span className={styles.knob} />
+                          <span className={styles.switchText}>{nice}</span>
+                        </button>
+                      ) : spec?.type === 'enum' ? (
+                        <select
+                          className={styles.select}
+                          value={String(raw ?? '')}
+                          onChange={(e) => changeEnum(key, e.target.value)}
+                          aria-label={spec?.label ?? key}
+                        >
+                          {spec.options.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      ) : spec?.type === 'overrides_form' ? (
+                        isEditing ? <OverridesEdit /> : <OverridesRead raw={raw} />
+                      ) : !isEditing ? (
+                        <>
+                          <pre className={styles.code} title={String(raw ?? '')}>
+                            {String(raw ?? '')}
+                          </pre>
+                          <div className={styles.cellActions}>
+                            <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <textarea
+                            className={styles.textarea}
+                            rows={4}
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                          />
+                          <div className={styles.formActions}>
+                            <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
+                            <button className={styles.btnPrimary} onClick={submitGeneric}>Salvar</button>
+                          </div>
+                        </>
+                      )}
+                    </td>
 
                     <td className={styles.cellDesc}>
                       {spec?.help ? <div className={styles.helpMain}>{spec.help}</div> : null}
