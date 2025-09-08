@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { History as HistoryIcon, RefreshCw, X as XIcon } from 'lucide-react';
+import { RefreshCw, X as XIcon } from 'lucide-react';
 import styles from './styles/TicketsHistory.module.css';
 import { apiGet } from '../../../../shared/apiClient';
 import { useNavigate } from 'react-router-dom';
@@ -55,11 +55,19 @@ export default function TicketsHistory() {
     setLoading(true);
     setError(null);
     try {
-      // Ajuste a rota se necessário no seu backend.
       const url = `/tickets/history?${queryString}`;
       const resp = await apiGet(url);
       const { data = [], total = 0, page = 1 } = resp || {};
-      setItems(Array.isArray(data) ? data : []);
+
+      // Deixa explícito no front o que é cliente/atendente,
+      // independente dos nomes originais vindos da API.
+      const mapped = Array.isArray(data) ? data.map(r => ({
+        ...r,
+        client_name: r.user_id || '—',
+        agent_name: r.assigned_to || '—',
+      })) : [];
+
+      setItems(mapped);
       setTotal(Number(total) || 0);
       setPage(Number(page) || 1);
     } catch (e) {
@@ -79,14 +87,17 @@ export default function TicketsHistory() {
   return (
     <div className={styles.container}>
 
-<div className={styles.toolbar}>
+      <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
         </div>
       </div>
-            <div className={styles.header}>
+
+      <div className={styles.header}>
         <div>
-          <p className={styles.subtitle}>Revise interações e responsáveis: filtre por período, ticket ou usuário.</p>
+          <p className={styles.subtitle}>
+            Revise interações e responsáveis: filtre por período, ticket, cliente ou atendente.
+          </p>
         </div>
       </div>
 
@@ -117,7 +128,7 @@ export default function TicketsHistory() {
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
-              placeholder="Buscar por número, user_id, fila ou atendente…"
+              placeholder="Buscar por número, cliente, fila ou atendente…"
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1); }}
             />
@@ -129,13 +140,12 @@ export default function TicketsHistory() {
           </div>
         </div>
 
-      
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
                 <th className={styles.colNum}>Número</th>
-                <th className={styles.colUser}>User ID</th>
+                <th className={styles.colClient}>Cliente</th>
                 <th className={styles.colFila}>Fila</th>
                 <th className={styles.colAgent}>Atendente</th>
                 <th className={styles.colWhen}>Fechado em</th>
@@ -156,19 +166,18 @@ export default function TicketsHistory() {
 
               {!loading && !error && items.map((t) => (
                 <tr
-  key={t.id}
-  className={`${styles.rowHover} ${styles.rowClickable}`}
-  role="button"
-  tabIndex={0}
-onClick={() => navigate(`/management/history/${t.id}`, {
-      state: { returnTo: window.location.pathname + window.location.search }
-    })}
->
+                  key={t.id}
+                  className={`${styles.rowHover} ${styles.rowClickable}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/management/history/${t.id}`, {
+                    state: { returnTo: window.location.pathname + window.location.search }
+                  })}
+                >
                   <td>{t.ticket_number ? t.ticket_number.toString().padStart(6, '0') : '—'}</td>
-
-                  <td>{t.user_id || '—'}</td>
+                  <td>{t.client_name || '—'}</td>
                   <td>{t.fila || '—'}</td>
-                  <td>{t.assigned_to || '—'}</td>
+                  <td>{t.agent_name || '—'}</td>
                   <td>{fmtDateTime(t.closed_at || t.updated_at)}</td>
                 </tr>
               ))}
