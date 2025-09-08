@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useCallback, useState } from "react";
 import { apiGet } from "../../../shared/apiClient";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ToggleLeft, PauseCircle, Power, Clock } from "lucide-react";
 import styles from "./styles/AgentsMonitor.module.css";
 
 /* ---------- helpers ---------- */
@@ -116,8 +116,7 @@ export default function AgentsRealtime() {
     const pause   = agents.filter(a => a.status === "pause").length;
     const offline = agents.filter(a => a.status === "offline").length;
     const inativo = agents.filter(a => a.status === "inativo").length;
-    const tickets = agents.reduce((s, a) => s + Number(a.tickets_abertos || 0), 0);
-    return { online, pause, offline, inativo, tickets };
+    return { online, pause, offline, inativo };
   }, [agents]);
 
   /* ----- listas auxiliares ----- */
@@ -189,37 +188,37 @@ export default function AgentsRealtime() {
 
   const rowClass = (a) => `${styles.row} ${styles["tone_"+rowTone(a)]}`;
 
+  /* ---------- Cards (padrão do Monitor de Clientes) ---------- */
   function KpiCard({ icon, label, value, tone = 'blue' }) {
-  return (
-    <div className={styles.card}>
-      <div className={styles.cardHead}>
-        <div className={styles.cardTitle}>
-          <span className={styles.cardIcon}>{icon}</span>
-          <span>{label}</span>
+    return (
+      <div className={styles.card}>
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>
+            <span className={styles.cardIcon}>{icon}</span>
+            <span>{label}</span>
+          </div>
+        </div>
+        <div className={styles.cardBody}>
+          <div className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}>{value}</div>
         </div>
       </div>
-      <div className={styles.cardBody}>
-        <div className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}>{value}</div>
-      </div>
-    </div>
-  );
-}
-function KpiSkeleton() {
-  return (
-    <div className={styles.card}>
-      <div className={styles.cardHead}>
-        <div className={styles.cardTitle}>
-          <span className={`${styles.skeleton} ${styles.sq16}`} />
-          <span className={`${styles.skeleton} ${styles.sq120}`} />
+    );
+  }
+  function KpiSkeleton() {
+    return (
+      <div className={styles.card}>
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>
+            <span className={`${styles.skeleton} ${styles.sq16}`} />
+            <span className={`${styles.skeleton} ${styles.sq120}`} />
+          </div>
+        </div>
+        <div className={styles.cardBody}>
+          <div className={`${styles.skeleton} ${styles.sq48}`} />
         </div>
       </div>
-      <div className={styles.cardBody}>
-        <div className={`${styles.skeleton} ${styles.sq48}`} />
-      </div>
-    </div>
-  );
-}
-
+    );
+  }
 
   /* ---------- render ---------- */
   return (
@@ -242,21 +241,21 @@ function KpiSkeleton() {
         </button>
       </div>
 
-      {/* KPIs */}
-<section className={styles.cardGroup}>
-  {loading ? (
-    <>
-      <KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
-    </>
-  ) : (
-    <>
-      <KpiCard icon={<ToggleLeft />} label="Online"     value={kpis.online}  tone="green" />
-      <KpiCard icon={<PauseCircle />} label="Em Pausa"  value={kpis.pause}   tone="amber" />
-      <KpiCard icon={<Power />}      label="Offline"    value={kpis.offline} tone="blue"  />
-      <KpiCard icon={<Clock />}      label="Inativos"   value={kpis.inativo} tone="orange"/>
-    </>
-  )}
-</section>
+      {/* KPIs (padrão unificado) */}
+      <section className={styles.cardGroup}>
+        {loading ? (
+          <>
+            <KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
+          </>
+        ) : (
+          <>
+            <KpiCard icon={<ToggleLeft />}  label="Online"    value={kpis.online}  tone="green" />
+            <KpiCard icon={<PauseCircle />} label="Em Pausa"  value={kpis.pause}   tone="amber" />
+            <KpiCard icon={<Power />}       label="Offline"   value={kpis.offline} tone="blue"  />
+            <KpiCard icon={<Clock />}       label="Inativos"  value={kpis.inativo} tone="orange"/>
+          </>
+        )}
+      </section>
 
       {/* Filtros */}
       <section className={styles.filters}>
@@ -329,7 +328,7 @@ function KpiSkeleton() {
                   <td className={styles.bold}>{a.agente}</td>
                   <td><StatusPill s={a.status}/></td>
                   <td><PauseInfo a={a}/></td>
-                  <td className={styles.filasCell}>
+                  <td>
                     {(Array.isArray(a.filas) ? a.filas : []).map(f=>(
                       <span key={f} className={styles.filaPill}>{f}</span>
                     ))}
