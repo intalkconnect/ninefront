@@ -1,72 +1,53 @@
-// /app/src/module/Admin/monitoring/AgentsMonitor.jsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { apiGet } from '../../../shared/apiClient';
-import {
-  User, Clock, Pause, CheckCircle, RefreshCw, Headphones
-} from 'lucide-react';
+import { RefreshCw, User, Clock, Pause, Power } from 'lucide-react';
 import styles from './styles/AgentsMonitor.module.css';
 
-/* Helpers -------------------------------------------------- */
-const PAGE_SIZE = 30;
-
-const labelStatus = (s='') => {
-  const v = String(s || '').toLowerCase();
-  if (v === 'pause') return 'Pausa';
-  if (v === 'online') return 'Online';
-  if (v === 'inativo') return 'Inativo';
-  if (v === 'offline') return 'Offline';
-  return v;
+/* helpers */
+const cap = (s='') => String(s).replace('_',' ').replace(/^\w/u, c => c.toUpperCase());
+const fmtRel = (d) => {
+  if (!d) return '—';
+  const ms = Date.now() - new Date(d).getTime();
+  if (ms < 0) return 'agora';
+  const m = Math.floor(ms/60000);
+  if (m < 1) return 'agora';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m/60), r = m%60;
+  return `${h}h ${r}m`;
 };
-
-const statusToneCls = (s='') => {
-  const v = String(s || '').toLowerCase();
-  if (v === 'online') return styles.statusLive;   // verde
-  if (v === 'pause')  return styles.statusWait;   // amber
-  // inativo/offline → cinza
-  return styles.statusDone;
-};
-
-const formatHM = (mins = 0) => {
+const formatMins = (mins) => {
   const m = Math.max(0, Math.floor(mins || 0));
-  const h = Math.floor(m / 60);
-  const r = m % 60;
-  return h > 0 ? `${h}h ${r}m` : `${r}m`;
+  const h = Math.floor(m/60), r = m%60;
+  return h ? `${h}h ${r}m` : `${r}m`;
 };
 
-const timeSince = (iso) => {
-  if (!iso) return '—';
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return '—';
-  const diffMin = Math.max(0, Math.floor((Date.now() - t) / 60000));
-  return formatHM(diffMin);
-};
-
-/* Componente ----------------------------------------------- */
 export default function AgentsMonitor() {
-  const [rows, setRows] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
+
+  const [agents, setAgents] = useState([]);
 
   // filtros
-  const [filterStatus, setFilterStatus] = useState('todos'); // todos|online|pause|inativo|offline
+  const [statusFilter, setStatusFilter] = useState('todos'); // todos|online|pause|offline|inativo
+  const [queueFilter, setQueueFilter]   = useState('todas'); // todas|<nome da fila>
   const [q, setQ] = useState('');
 
   // paginação
+  const PAGE_SIZE = 30;
   const [page, setPage] = useState(1);
 
   const fetchAll = useCallback(async () => {
     setRefreshing(true);
     try {
-      const r = await apiGet('/analytics/agents/realtime');
-      // sua rota devolve um array puro; mas se vier {data: [...]}, cobre também
-      const list = Array.isArray(r) ? r : (Array.isArray(r?.data) ? r.data : []);
-      setRows(list);
+      const data = await apiGet('/analytics/agents/realtime');
+      const arr = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+      setAgents(arr);
       setErro(null);
       setCurrentTime(new Date());
     } catch (e) {
-      console.error('[AgentsMonitor] Erro ao buscar /agents/realtime', e);
+      console.error(e);
       setErro('Falha ao atualizar. Tentaremos novamente em 10s.');
     } finally {
       setLoading(false);
@@ -75,64 +56,75 @@ export default function AgentsMonitor() {
   }, []);
 
   useEffect(() => {
-    let alive = true;
-    (async () => { if (!alive) return; await fetchAll(); })();
-    const id = setInterval(fetchAll, 10000);
-    return () => { alive = false; clearInterval(id); };
+    let mounted = true;
+    const run = async () => { if (!mounted) return; await fetchAll(); };
+    run();
+    const interval = setInterval(run, 10000);
+    return () => { mounted = false; clearInterval(interval); };
   }, [fetchAll]);
 
-  // derivados: filtros + busca
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return rows.filter(a => {
-      const s = String(a.status || '').toLowerCase();
-      if (filterStatus !== 'todos') {
-        if (filterStatus === 'offline') {
-          if (['online','pause','inativo'].includes(s)) return false;
-        } else if (s !== filterStatus) {
-          return false;
-        }
-      }
-      if (!term) return true;
-      const name = String(a.agente || '').toLowerCase();
-      const email = String(a.email || '').toLowerCase();
-      return name.includes(term) || email.includes(term);
-    });
-  }, [rows, filterStatus, q]);
-
-  // reset de página quando filtro/dados mudam
-  useEffect(() => { setPage(1); }, [filterStatus, q, rows]);
-
-  // paginação
-  const totalItems = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-  const pageSafe = Math.min(page, totalPages);
-  const start = (pageSafe - 1) * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-  const paged = useMemo(() => filtered.slice(start, end), [filtered, start, end]);
+  // filas únicas (para o filtro)
+  const allQueues = useMemo(() => {
+    const set = new Set();
+    for (const a of agents) (a.filas || []).forEach(f => f && set.add(String(f)));
+    return Array.from(set).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  }, [agents]);
 
   // KPIs
-  const k = useMemo(() => {
-    const out = { online: 0, pause: 0, inativo: 0, offline: 0, tickets: 0 };
-    for (const a of rows) {
-      const s = String(a.status || '').toLowerCase();
-      if (s === 'online') out.online++;
-      else if (s === 'pause') out.pause++;
-      else if (s === 'inativo') out.inativo++;
-      else out.offline++;
-      out.tickets += Number(a.tickets_abertos || 0);
+  const kpis = useMemo(() => {
+    const online  = agents.filter(a => a.status === 'online').length;
+    const pause   = agents.filter(a => a.status === 'pause').length;
+    const inactive= agents.filter(a => a.status === 'inativo').length;
+    const tickets = agents.reduce((s,a) => s + (Number(a.tickets_abertos)||0), 0);
+    return { online, pause, inactive, tickets };
+  }, [agents]);
+
+  // aplica filtros
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return agents.filter(a => {
+      if (statusFilter !== 'todos' && String(a.status) !== statusFilter) return false;
+      if (queueFilter !== 'todas') {
+        const filas = Array.isArray(a.filas) ? a.filas.map(String) : [];
+        if (!filas.includes(queueFilter)) return false;
+      }
+      if (!t) return true;
+      const hay = `${a.agente||''} ${a.email||''}`.toLowerCase();
+      return hay.includes(t);
+    });
+  }, [agents, statusFilter, queueFilter, q]);
+
+  // paginação derivada
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const pageSafe   = Math.min(page, totalPages);
+  const start      = (pageSafe - 1) * PAGE_SIZE;
+  const end        = start + PAGE_SIZE;
+  const paged      = useMemo(() => filtered.slice(start, end), [filtered, start, end]);
+
+  // reset página quando filtros mudam
+  useEffect(() => { setPage(1); }, [statusFilter, queueFilter, q, agents]);
+
+  // mapeia status -> classe da pílula
+  const statusClass = (s) => {
+    switch (String(s)) {
+      case 'online':  return styles.stOnline;
+      case 'pause':   return styles.stPause;
+      case 'offline': return styles.stOffline;
+      case 'inativo': return styles.stInactive;
+      default:        return styles.stOffline;
     }
-    return out;
-  }, [rows]);
+  };
 
   return (
     <div className={styles.container}>
-
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerInfo}>
-          <div className={styles.kpillBlue}>Última atualização: {currentTime.toLocaleTimeString('pt-BR')}</div>
-          {erro && <div className="crumbError">{erro}</div>}
+          <div className={styles.kpillBlue}>
+            Última atualização: {currentTime.toLocaleTimeString('pt-BR')}
+          </div>
+          {erro && <div className={styles.kpill}>{erro}</div>}
         </div>
         <button
           className={styles.refreshBtn}
@@ -146,23 +138,23 @@ export default function AgentsMonitor() {
       </div>
 
       <div className={styles.subHeader}>
-        <div>
-          <p className={styles.subtitle}>Quem está online, em pausa, inativo ou offline — com filas e tickets abertos.</p>
-        </div>
+        <p className={styles.subtitle}>
+          Quem está online, em pausa, inativo ou offline — com filas e tickets abertos.
+        </p>
       </div>
 
       {/* KPIs */}
       <section className={styles.cardGroup}>
         {loading ? (
           <>
-            <KpiSkeleton/><KpiSkeleton/><KpiSkeleton/>
+            <KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
           </>
         ) : (
           <>
-            <KpiCard icon={<CheckCircle/>} label="Online"   value={k.online}  tone="green" />
-            <KpiCard icon={<Pause/>}       label="Em Pausa" value={k.pause}   tone="amber" />
-            <KpiCard icon={<Clock/>}       label="Inativos" value={k.inativo} tone="orange" />
-            <KpiCard icon={<Headphones/>}  label="Tickets Abertos" value={k.tickets} tone="indigo" />
+            <KpiCard icon={<User />}  label="Online"         value={kpis.online}   tone="green" />
+            <KpiCard icon={<Pause />} label="Em Pausa"       value={kpis.pause}    tone="amber" />
+            <KpiCard icon={<Clock />} label="Inativos"       value={kpis.inactive} tone="orange" />
+            <KpiCard icon={<Power />} label="Tickets Abertos" value={kpis.tickets} tone="blue" />
           </>
         )}
       </section>
@@ -172,33 +164,41 @@ export default function AgentsMonitor() {
         <div className={styles.filterGroup}>
           <h4 className={styles.filterTitle}>Status</h4>
           <div className={styles.filterChips}>
-            {[
-              {v:'todos', t:'Todos'},
-              {v:'online', t:'Online'},
-              {v:'pause',  t:'Pausa'},
-              {v:'inativo',t:'Inativo'},
-              {v:'offline',t:'Offline'},
-            ].map(x => (
+            {['todos','online','pause','inativo','offline'].map(s => (
               <button
-                key={x.v}
-                onClick={() => setFilterStatus(x.v)}
-                className={`${styles.chip} ${filterStatus === x.v ? styles.chipActive : ''}`}
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`${styles.chip} ${statusFilter===s ? styles.chipActive : ''}`}
               >
-                {x.t}
+                {cap(s)}
               </button>
             ))}
           </div>
         </div>
+
+        <div className={styles.filterGroup}>
+          <h4 className={styles.filterTitle}>Filtrar por Fila</h4>
+          <select
+            value={queueFilter}
+            onChange={e => setQueueFilter(e.target.value)}
+            className={styles.inputSearch}
+            style={{ minWidth: 220 }}
+          >
+            <option value="todas">Todas as filas</option>
+            {allQueues.map(f => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </div>
+
         <div className={styles.filterGroup}>
           <h4 className={styles.filterTitle}>Buscar</h4>
-          <div className={styles.filterChips} style={{gap:12}}>
-            <input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              placeholder="Nome ou e-mail do agente"
-              style={{padding:'8px 12px', borderRadius:12, border:'1px solid #e5e7eb', minWidth:260}}
-            />
-          </div>
+          <input
+            className={styles.inputSearch}
+            placeholder="Nome ou e-mail do agente"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
         </div>
       </section>
 
@@ -225,57 +225,50 @@ export default function AgentsMonitor() {
             </thead>
             <tbody>
               {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
+                Array.from({length:6}).map((_,i)=>(
                   <tr key={`sk-${i}`} className={styles.skelRow}>
-                    <td colSpan={7}><div className={styles.skeletonRow}/></td>
+                    <td colSpan={7}><div className={styles.skeletonRow} /></td>
                   </tr>
                 ))
               ) : paged.length === 0 ? (
-                <tr><td colSpan={7} className={styles.emptyCell}>Nenhum agente no filtro atual.</td></tr>
-              ) : paged.map((a) => (
-                <tr key={a.email}>
-                  <td>
-                    <div className={styles.clientCell}>
-                      <div className={styles.avatar}><User size={14} /></div>
-                      <div className={styles.clientName}>{a.agente || '—'}</div>
-                    </div>
-                  </td>
-                  <td className={styles.subtle}>{a.email || '—'}</td>
-                  <td>
-                    <span className={`${styles.status} ${statusToneCls(a.status)}`}>
-                      {labelStatus(a.status)}
-                    </span>
-                  </td>
-                  <td>
-                    {/* Se estiver em pausa, mostra motivo e duração; senão, traço */}
-                    {String(a.status).toLowerCase() === 'pause' && a.pausa ? (
-                      <div>
-                        <div className={styles.bold}>
-                          {a.pausa.motivo ? a.pausa.motivo : 'Pausa'}
-                        </div>
-                        <div className={styles.subtle}>
-                          {a.pausa.inicio ? `Desde ${new Date(a.pausa.inicio).toLocaleTimeString('pt-BR',{hour:'2-digit', minute:'2-digit'})}` : '—'}
-                          {typeof a.pausa.duracao_min === 'number' && (
-                            <> • {formatHM(a.pausa.duracao_min)}</>
-                          )}
-                        </div>
-                      </div>
-                    ) : '—'}
-                  </td>
-                  <td>
-                    {(a.filas || []).slice(0,3).map((f) => (
-                      <span key={f} className={styles.queuePill} style={{marginRight:6}}>{f}</span>
-                    ))}
-                    {(a.filas || []).length > 3 && (
-                      <span className={styles.subtle}>+{(a.filas || []).length - 3}</span>
-                    )}
-                  </td>
-                  <td className={styles.bold}>{a.tickets_abertos || 0}</td>
-                  <td className={styles.subtle}>
-                    {a.last_seen ? `${timeSince(a.last_seen)} atrás` : '—'}
-                  </td>
+                <tr>
+                  <td colSpan={7} className={styles.emptyCell}>Nenhum agente no filtro atual.</td>
                 </tr>
-              ))}
+              ) : (
+                paged.map((a, idx) => (
+                  <tr key={`${a.email}-${idx}`}>
+                    <td>
+                      <div className={styles.clientCell}>
+                        <div className={styles.avatar}><User size={14}/></div>
+                        <div className={styles.clientName}>{a.agente || '—'}</div>
+                      </div>
+                    </td>
+                    <td>{a.email || '—'}</td>
+                    <td>
+                      <span className={`${styles.status} ${statusClass(a.status)}`}>
+                        {cap(a.status || '—')}
+                      </span>
+                    </td>
+                    <td>
+                      {a.status === 'pause' && a.pausa
+                        ? <>
+                            <div className={styles.bold}>{a.pausa.motivo || 'Pausa'}</div>
+                            <div className={styles.subtle}>Há {formatMins(a.pausa.duracao_min)}</div>
+                          </>
+                        : <span className={styles.subtle}>—</span>}
+                    </td>
+                    <td>
+                      {(a.filas || []).length === 0
+                        ? <span className={styles.subtle}>—</span>
+                        : (a.filas || []).map(f => (
+                            <span key={f} className={styles.queuePill} style={{marginRight:6}}>{f}</span>
+                          ))}
+                    </td>
+                    <td>{Number(a.tickets_abertos) || 0}</td>
+                    <td>{fmtRel(a.last_seen)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -286,22 +279,16 @@ export default function AgentsMonitor() {
             className={styles.pageBtn}
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={pageSafe <= 1}
-            aria-label="Página anterior"
-            title="Página anterior"
           >
             ‹ Anterior
           </button>
-
           <span className={styles.pageInfo}>
             Página {pageSafe} de {totalPages} • {totalItems} registro(s)
           </span>
-
           <button
             className={styles.pageBtn}
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={pageSafe >= totalPages}
-            aria-label="Próxima página"
-            title="Próxima página"
           >
             Próxima ›
           </button>
@@ -311,7 +298,7 @@ export default function AgentsMonitor() {
   );
 }
 
-/* Subcomponents (reuso do ClientsMonitor) ------------------ */
+/* Subcomponents */
 function KpiCard({ icon, label, value, tone='blue' }) {
   return (
     <div className={styles.card}>
@@ -322,7 +309,7 @@ function KpiCard({ icon, label, value, tone='blue' }) {
         </div>
       </div>
       <div className={styles.cardBody}>
-        <div className={`${styles.kpiValue} ${styles['tone_'+tone]}`}>{value}</div>
+        <div className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}>{value}</div>
       </div>
     </div>
   );
