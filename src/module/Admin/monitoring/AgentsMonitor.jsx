@@ -230,6 +230,7 @@ export default function AgentsRealtime() {
           </span>
           {erro && <span className={styles.kpillAmber}>{erro}</span>}
         </div>
+
         <button
           className={styles.refreshBtn}
           onClick={fetchAll}
@@ -240,7 +241,11 @@ export default function AgentsRealtime() {
           Atualizar
         </button>
       </div>
-
+              <div className={styles.subHeader}>
+        <div>
+          <p className={styles.subtitle}>Operação em tempo real: quem espera, quem respondeu e quem precisa de ajuda.</p>
+        </div>
+      </div>
       {/* KPIs (padrão unificado) */}
       <section className={styles.cardGroup}>
         {loading ? (
