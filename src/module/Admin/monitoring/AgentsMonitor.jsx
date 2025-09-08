@@ -243,7 +243,7 @@ export default function AgentsRealtime() {
       </div>
               <div className={styles.subHeader}>
         <div>
-          <p className={styles.subtitle}>Operação em tempo real: quem espera, quem respondeu e quem precisa de ajuda.</p>
+          <p className={styles.subtitle}>Agentes em tempo real: o status do seu agente acompanhado de perto.</p>
         </div>
       </div>
       {/* KPIs (padrão unificado) */}
