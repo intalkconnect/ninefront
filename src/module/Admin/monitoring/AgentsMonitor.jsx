@@ -220,7 +220,7 @@ export default function AgentsMonitor() {
                 <th>Detalhe</th>
                 <th>Filas</th>
                 <th>Tickets Abertos</th>
-                <th>Último Ping</th>
+                <th>Última atividade</th>
               </tr>
             </thead>
             <tbody>
@@ -265,8 +265,6 @@ export default function AgentsMonitor() {
                           ))}
                     </td>
                     <td>{Number(a.tickets_abertos) || 0}</td>
-                    <th>Última atividade</th>
-…
 <td title={a.last_seen ? new Date(a.last_seen).toLocaleString('pt-BR') : ''}>
   {fmtRel(a.last_seen)}
 </td>
