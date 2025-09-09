@@ -1,11 +1,10 @@
-// src/module/Admin/preferences/WhatsAppProfile.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Save, ImagePlus, Trash2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import styles from "./styles/ChannelEditor.module.css";
 
-/* ============ utils ============ */
+/* -------- tenant via subdomínio -------- */
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname;
@@ -14,354 +13,366 @@ function getTenantFromHost() {
   return parts[0] || "";
 }
 
+/* -------- verticais suportadas (label -> value) -------- */
 const VERTICALS = [
-  "AUTOMOTIVE",
-  "BEAUTY",
-  "CLOTHING_AND_APPAREL",
-  "EDUCATION",
-  "ENTERTAINMENT",
-  "EVENT_PLANNING_AND_SERVICE",
-  "FINANCE",
-  "GROCERY",
-  "GOVERNMENT",
-  "HARDWARE_AND_HOME_IMPROVEMENT",
-  "HEALTH",
-  "HOSPITALITY",
-  "INSURANCE",
-  "LEGAL",
-  "LOCAL_SERVICES",
-  "MANUFACTURING",
-  "MEDIA",
-  "NON_PROFIT",
-  "PROFESSIONAL_SERVICES",
-  "PUBLIC_SERVICES",
-  "SHOPPING_AND_RETAIL",
-  "SPORTS_AND_RECREATION",
-  "TRAVEL_AND_TRANSPORTATION",
-  "UTILITIES",
-  "OTHER",
+  ["Selecione...", ""],
+  ["Serviços profissionais", "PROFESSIONAL_SERVICES"],
+  ["Automotivo", "AUTOMOTIVE"],
+  ["Beleza, spa e salão", "BEAUTY_SPA_AND_SALON"],
+  ["Roupas e vestuário", "CLOTHING_AND_APPAREL"],
+  ["Educação", "EDUCATION"],
+  ["Entretenimento", "ENTERTAINMENT"],
+  ["Eventos e serviços", "EVENT_PLANNING_AND_SERVICE"],
+  ["Finanças e bancos", "FINANCE_AND_BANKING"],
+  ["Alimentos e mercearia", "FOOD_AND_GROCERY"],
+  ["Serviço público", "PUBLIC_SERVICE"],
+  ["Hotelaria e hospedagem", "HOTEL_AND_LODGING"],
+  ["Saúde", "MEDICAL_AND_HEALTH"],
+  ["ONG / Sem fins lucrativos", "NON_PROFIT"],
+  ["Varejo / compras", "SHOPPING_AND_RETAIL"],
+  ["Viagem e transporte", "TRAVEL_AND_TRANSPORTATION"],
+  ["Restaurante", "RESTAURANT"],
+  ["Outros", "OTHER"],
 ];
 
+/* -------- helpers -------- */
+const limit = (s = "", n) => String(s).slice(0, n);
+const count = (s) => (s ? String(s).length : 0);
+const initials = (name) =>
+  (name || "WA").toString().trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+
+/* ======================================================== */
 export default function WhatsAppProfile() {
   const tenant = useMemo(() => getTenantFromHost(), []);
   const navigate = useNavigate();
   const location = useLocation();
   const backTo = location.state?.returnTo || "/channels";
 
-  // loading/msgs
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [photoBusy, setPhotoBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [ok, setOk] = useState(null);
 
-  // dados do número ativo e profile
-  const [phone, setPhone] = useState(null);     // { id, display_phone_number, verified_name, ... }
-  const [profile, setProfile] = useState(null); // { about, description, address, email, vertical, websites[], profile_picture_url }
-
-  // form
+  // metadados do número
+  const [phone, setPhone] = useState(null);
+  // perfil editável
   const [about, setAbout] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [vertical, setVertical] = useState("");
-  const [websites, setWebsites] = useState("");       // string separada por vírgula
+  const [web1, setWeb1] = useState("");
+  const [web2, setWeb2] = useState("");
+  // foto
   const [photoUrl, setPhotoUrl] = useState("");
+  const [profilePic, setProfilePic] = useState(""); // preview (url)
 
-  async function refresh() {
-    setLoading(true); setErr(null); setOk(null);
+  const verifiedName = phone?.verified_name || "";
+  const displayNumber = phone?.display_phone_number || "";
+
+  async function loadAll() {
+    if (!tenant) return;
+    setLoading(true);
+    setErr(null);
+    setOk(null);
     try {
-      const res = await apiGet(`/waProfile?subdomain=${tenant}`);
-      if (!res?.ok) throw new Error(res?.error || "Falha ao carregar perfil");
+      // número (qualidade, modo etc)
+      const num = await apiGet(`/waProfile/number?subdomain=${tenant}`);
+      if (num?.ok) setPhone(num.phone || null);
 
-      const ph = res.phone || {};
-      const pf = res.profile || {};
-
-      setPhone(ph);
-      setProfile(pf);
-
-      setAbout(pf.about || "");
-      setDescription(pf.description || "");
-      setAddress(pf.address || "");
-      setEmail(pf.email || "");
-      setVertical(pf.vertical || "");
-      setWebsites(Array.isArray(pf.websites) ? pf.websites.join(", ") : (pf.websites || ""));
+      // perfil
+      const pf = await apiGet(`/waProfile?subdomain=${tenant}`);
+      if (pf?.ok) {
+        const p = pf.profile || {};
+        setAbout(limit(p.about || "", 139));
+        setDescription(limit(p.description || "", 512));
+        setAddress(limit(p.address || "", 256));
+        setEmail(limit(p.email || "", 128));
+        setVertical(p.vertical || "");
+        const sites = Array.isArray(p.websites) ? p.websites : [];
+        setWeb1(sites[0] || "");
+        setWeb2(sites[1] || "");
+        setProfilePic(p.profile_picture_url || "");
+      }
     } catch (e) {
-      setErr("Falha ao carregar o perfil do WhatsApp.");
+      console.error(e);
+      setErr("Falha ao carregar perfil.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [tenant]);
+  useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, [tenant]);
 
   async function handleSave() {
     setSaving(true); setErr(null); setOk(null);
     try {
-      const body = {
+      const websites = [web1, web2].filter(Boolean);
+      await apiPost("/waProfile", {
         subdomain: tenant,
         about,
         description,
         address,
         email,
         vertical,
-        websites, // o backend sanitiza string/list
-      };
-      const r = await apiPost("/waProfile", body);
-      if (!r?.ok) throw new Error(r?.error || "Falha ao salvar");
+        websites,
+      });
       setOk("Perfil atualizado com sucesso.");
-      // recarrega para pegar possíveis normalizações
-      await refresh();
     } catch (e) {
+      console.error(e);
       setErr("Não foi possível salvar o perfil.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleApplyPhoto() {
+  async function applyPhoto() {
     if (!photoUrl.trim()) return;
-    setPhotoBusy(true); setErr(null); setOk(null);
+    setErr(null); setOk(null);
     try {
-      const r = await apiPost("/waProfile/photo-from-url", {
+      const res = await apiPost("/waProfile/photo-from-url", {
         subdomain: tenant,
         file_url: photoUrl.trim(),
-        // type opcional, backend assume 'image/jpeg' se não informado
       });
-      if (!r?.ok) throw new Error(r?.error || "Falha ao aplicar foto");
-      setOk("Foto de perfil atualizada.");
-      setPhotoUrl("");
-      await refresh();
+      if (res?.ok) {
+        setOk("Foto aplicada.");
+        // força recarregar para pegar a URL do CDN
+        await loadAll();
+        setPhotoUrl("");
+      } else {
+        setErr("Falha ao aplicar foto.");
+      }
     } catch (e) {
-      setErr("Não foi possível aplicar a foto. Verifique a URL.");
-    } finally {
-      setPhotoBusy(false);
+      console.error(e);
+      setErr("Falha ao aplicar foto.");
     }
   }
 
-  async function handleRemovePhoto() {
-    setPhotoBusy(true); setErr(null); setOk(null);
+  async function removePhoto() {
+    setErr(null); setOk(null);
     try {
-      // usando fetch direto para DELETE (apiClient tem get/post apenas)
-      const resp = await fetch(`/api/v1/waProfile/photo?subdomain=${encodeURIComponent(tenant)}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok || !data?.ok) throw new Error(data?.error || "Falha ao remover");
-      setOk("Foto de perfil removida.");
-      await refresh();
+      const res = await apiPost("/waProfile/photo", { _method: "DELETE", subdomain: tenant });
+      if (res?.ok) {
+        setOk("Foto removida.");
+        await loadAll();
+      } else {
+        setErr("Falha ao remover foto.");
+      }
     } catch (e) {
-      setErr("Não foi possível remover a foto de perfil.");
-    } finally {
-      setPhotoBusy(false);
+      console.error(e);
+      setErr("Falha ao remover foto.");
     }
   }
-
-  const hasPhoto = !!profile?.profile_picture_url;
 
   return (
     <div className={styles.page}>
-      {/* Breadcrumbs */}
+      {/* breadcrumbs */}
       <div className={styles.breadcrumbs}>
         <span className={styles.bcLink} onClick={() => navigate("/channels")}>Canais</span>
         <span className={styles.bcSep}>/</span>
         <span>WhatsApp</span>
       </div>
 
-      {/* Header */}
+      {/* header */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <h1 className={styles.title}>WhatsApp — Perfil</h1>
-          <div className={styles.metaRow}>
-            Tenant: <strong>{tenant || "—"}</strong>
-          </div>
+          <div className={styles.metaRow}>Tenant: <strong>{tenant || "—"}</strong></div>
         </div>
 
         <div className={styles.headerActions}>
           <button className={styles.backBtn} onClick={() => navigate(backTo)}>
             <ArrowLeft size={16}/> Voltar
           </button>
-          <button className={styles.backBtn} onClick={refresh} disabled={loading}>
-            <RefreshCw size={16}/> Recarregar
+          <button className={styles.btnGhost} onClick={loadAll} disabled={loading}>
+            <RotateCcw size={16} style={{marginRight:6}}/> Recarregar
           </button>
-          <button
-            className={styles.btnPrimary}
-            onClick={handleSave}
-            disabled={loading || saving}
-          >
-            <Save size={16} style={{marginRight:6}}/> {saving ? "Salvando…" : "Salvar"}
+          <button className={styles.btnPrimary} onClick={handleSave} disabled={loading || saving}>
+            <Save size={16} style={{marginRight:6}}/> Salvar
           </button>
         </div>
       </div>
 
-      {/* Card */}
-      <div className={styles.editorCard}>
-        {loading ? (
-          <div className={styles.loading}>Carregando…</div>
-        ) : err ? (
-          <div className={styles.alertErr}>{err}</div>
-        ) : (
-          <>
-            {ok && <div className={styles.alertOk} style={{marginBottom:12}}>{ok}</div>}
+      {/* avisos */}
+      {err && <div className={styles.alertErr} style={{marginBottom:12}}>{err}</div>}
+      {ok &&  <div className={styles.alertOk}  style={{marginBottom:12}}>{ok}</div>}
 
-            {/* Número ativo (metadados) */}
-            <div className={styles.section}>
-              <div className={styles.kv}>
-                <div className={styles.k}>Phone ID</div>
-                <div className={styles.v}>{phone?.id || "—"}</div>
-              </div>
-              <div className={styles.kv}>
-                <div className={styles.k}>Número</div>
-                <div className={styles.v}>{phone?.display_phone_number || "—"}</div>
-              </div>
-              <div className={styles.kv}>
-                <div className={styles.k}>Nome verificado</div>
-                <div className={styles.v}>{phone?.verified_name || "—"}</div>
-              </div>
-              <div className={styles.kv}>
-                <div className={styles.k}>Qualidade</div>
-                <div className={styles.v}>{phone?.quality_rating || "—"}</div>
-              </div>
-              <div className={styles.kv}>
-                <div className={styles.k}>Conta oficial</div>
-                <div className={styles.v}>{phone?.is_official_business_account ? "Sim" : "Não"}</div>
-              </div>
-              <div className={styles.kv}>
-                <div className={styles.k}>Modo</div>
-                <div className={styles.v}>{phone?.account_mode || "—"}</div>
-              </div>
-              {phone?.code_verification_status && (
-                <div className={styles.kv}>
-                  <div className={styles.k}>Verificação</div>
-                  <div className={styles.v}>{phone.code_verification_status}</div>
-                </div>
+      {/* canvas 2 colunas */}
+      <div className={styles.grid}>
+        {/* ===== coluna esquerda (form) ===== */}
+        <section className={styles.left}>
+          {/* infobar top igual Meta */}
+          <div className={styles.infoTable}>
+            <div className={styles.row}><div className={styles.k}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Qualidade</div><div className={styles.v}>{phone?.quality_rating || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Conta oficial</div><div className={styles.v}>{phone?.is_official_business_account ? "Sim" : "Não"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Modo</div><div className={styles.v}>{phone?.account_mode || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Verificação</div><div className={styles.v}>{phone?.code_verification_status || "—"}</div></div>
+          </div>
+
+          {/* Foto atual + aplicar por URL (como na Meta) */}
+          <div className={styles.section}>
+            <div className={styles.labelStrong}>Foto atual</div>
+            <div className={styles.currentPhoto}>
+              {profilePic ? (
+                <img src={profilePic} alt="Foto do perfil" />
+              ) : (
+                <span className={styles.noPhoto}>Sem foto</span>
               )}
             </div>
+          </div>
 
-            <div className={styles.divider} />
+          <div className={styles.section}>
+            <label className={styles.labelStrong}>Foto por URL</label>
+            <div className={styles.inlinePhoto}>
+              <input
+                className={styles.input}
+                placeholder="https://exemplo.com/imagem.jpg"
+                value={photoUrl}
+                onChange={(e)=>setPhotoUrl(e.target.value)}
+              />
+              <button className={styles.btnBlue} onClick={applyPhoto} disabled={!photoUrl.trim()}>
+                <ImageIcon size={16} style={{marginRight:6}}/> Aplicar
+              </button>
+              <button className={styles.btnGhost} onClick={removePhoto} disabled={!profilePic}>
+                <Trash2 size={16} style={{marginRight:6}}/> Remover
+              </button>
+            </div>
+          </div>
 
-            {/* Foto de perfil */}
-            <div className={styles.section}>
-              <div className={styles.kv} style={{ alignItems: "flex-start" }}>
-                <div className={styles.k}>Foto atual</div>
-                <div className={styles.v}>
-                  {hasPhoto ? (
-                    <img
-                      src={profile.profile_picture_url}
-                      alt="Foto de perfil"
-                      style={{
-                        width: 84, height: 84, borderRadius: "50%",
-                        objectFit: "cover", border: "1px solid #e5e7eb"
-                      }}
-                    />
-                  ) : (
-                    <span className={styles.muted}>Sem foto</span>
-                  )}
-                </div>
+          {/* Campos editáveis */}
+          <div className={styles.section}>
+            <label className={styles.labelStrong}>Sobre</label>
+            <input
+              className={styles.input}
+              value={about}
+              maxLength={139}
+              onChange={(e)=>setAbout(limit(e.target.value,139))}
+              placeholder="Hey there! I am using WhatsApp."
+            />
+            <div className={styles.counter}>{count(about)}/139</div>
+          </div>
+
+          <div className={styles.section}>
+            <label className={styles.labelStrong}>Descrição</label>
+            <textarea
+              className={styles.textarea}
+              rows={4}
+              value={description}
+              maxLength={512}
+              onChange={(e)=>setDescription(limit(e.target.value,512))}
+              placeholder="Descrição do negócio (até ~512 chars)"
+            />
+            <div className={styles.counter}>{count(description)}/512</div>
+          </div>
+
+          <div className={styles.section}>
+            <label className={styles.labelStrong}>Endereço</label>
+            <input
+              className={styles.input}
+              value={address}
+              maxLength={256}
+              onChange={(e)=>setAddress(limit(e.target.value,256))}
+              placeholder="Rua, número, cidade, UF"
+            />
+            <div className={styles.counter}>{count(address)}/256</div>
+          </div>
+
+          <div className={styles.section}>
+            <label className={styles.labelStrong}>Email</label>
+            <input
+              className={styles.input}
+              type="email"
+              value={email}
+              maxLength={128}
+              onChange={(e)=>setEmail(limit(e.target.value,128))}
+              placeholder="contato@empresa.com"
+            />
+            <div className={styles.counter}>{count(email)}/128</div>
+          </div>
+
+          <div className={styles.section}>
+            <label className={styles.labelStrong}>Categoria</label>
+            <div className={styles.selectWrap}>
+              <select
+                className={styles.select}
+                value={vertical}
+                onChange={(e)=>setVertical(e.target.value)}
+              >
+                {VERTICALS.map(([label,val]) => (
+                  <option key={val || "empty"} value={val}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <label className={styles.labelStrong}>Websites</label>
+            <input
+              className={styles.input}
+              value={web1}
+              onChange={(e)=>setWeb1(e.target.value)}
+              placeholder="https://site1.com/"
+            />
+            <input
+              className={styles.input}
+              style={{ marginTop: 8 }}
+              value={web2}
+              onChange={(e)=>setWeb2(e.target.value)}
+              placeholder="https://site2.com/"
+            />
+          </div>
+        </section>
+
+        {/* ===== coluna direita (preview) ===== */}
+        <aside className={styles.preview}>
+          <div className={styles.previewCard}>
+            <div className={styles.prevHeader}>
+              <div className={styles.prevAvatar}>
+                {profilePic ? (
+                  <img src={profilePic} alt="logo" />
+                ) : (
+                  <span>{initials(verifiedName || "WA")}</span>
+                )}
               </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.label}>Foto por URL</label>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr auto auto", gap:8 }}>
-                  <input
-                    className={styles.input}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    value={photoUrl}
-                    onChange={(e)=>setPhotoUrl(e.target.value)}
-                  />
-                  <button
-                    className={styles.btnPrimary}
-                    onClick={handleApplyPhoto}
-                    disabled={!photoUrl.trim() || photoBusy}
-                    title="Aplicar foto por URL"
-                  >
-                    <ImagePlus size={16} style={{marginRight:6}}/> {photoBusy ? "Aplicando…" : "Aplicar"}
-                  </button>
-                  <button
-                    className={styles.btnGhost}
-                    onClick={handleRemovePhoto}
-                    disabled={!hasPhoto || photoBusy}
-                    title="Remover foto atual"
-                  >
-                    <Trash2 size={16} style={{marginRight:6}}/> Remover
-                  </button>
-                </div>
-              </div>
+              <div className={styles.prevName}>{verifiedName || "—"}</div>
+              <div className={styles.prevPhone}>+{displayNumber || "--"}</div>
+              <button className={styles.shareBtn}>Compartilhar</button>
             </div>
 
-            <div className={styles.divider} />
+            <div className={styles.prevBody}>
+              {description && (
+                <div className={styles.line}>
+                  <span className={styles.dot} /> {description}
+                </div>
+              )}
 
-            {/* Form principal */}
-            <div className={styles.section}>
-              <div className={styles.formRow}>
-                <label className={styles.label}>Sobre</label>
-                <input
-                  className={styles.input}
-                  value={about}
-                  onChange={(e)=>setAbout(e.target.value)}
-                  placeholder="Texto curto (até ~139 chars)"
-                />
-              </div>
+              {vertical && (
+                <div className={styles.line}>
+                  <span className={styles.dot} /> {VERTICALS.find(v=>v[1]===vertical)?.[0] || vertical}
+                </div>
+              )}
 
-              <div className={styles.formRow}>
-                <label className={styles.label}>Descrição</label>
-                <textarea
-                  className={styles.input}
-                  value={description}
-                  onChange={(e)=>setDescription(e.target.value)}
-                  placeholder="Descrição do negócio (até ~512 chars)"
-                  rows={4}
-                />
-              </div>
+              {email && (
+                <div className={styles.line}>
+                  <span className={styles.dot} /> {email}
+                </div>
+              )}
 
-              <div className={styles.formRow}>
-                <label className={styles.label}>Endereço</label>
-                <input
-                  className={styles.input}
-                  value={address}
-                  onChange={(e)=>setAddress(e.target.value)}
-                  placeholder="Rua, número, cidade, UF"
-                />
-              </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.label}>Email</label>
-                <input
-                  className={styles.input}
-                  type="email"
-                  value={email}
-                  onChange={(e)=>setEmail(e.target.value)}
-                  placeholder="contato@empresa.com"
-                />
-              </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.label}>Vertical</label>
-                <select
-                  className={styles.input}
-                  value={vertical || ""}
-                  onChange={(e)=>setVertical(e.target.value)}
-                >
-                  <option value="">Selecione…</option>
-                  {VERTICALS.map(v => (
-                    <option key={v} value={v}>{v.replace(/_/g, " ")}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formRow}>
-                <label className={styles.label}>Websites</label>
-                <input
-                  className={styles.input}
-                  value={websites}
-                  onChange={(e)=>setWebsites(e.target.value)}
-                  placeholder="https://site1.com, https://site2.com"
-                />
-              </div>
+              {[web1, web2].filter(Boolean).map((w,i)=>(
+                <div className={styles.line} key={i}>
+                  <span className={styles.dot} /> {w}
+                </div>
+              ))}
             </div>
-          </>
-        )}
+
+            <div className={styles.prevFoot}>
+              Esta experiência pode variar dependendo do dispositivo.
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
