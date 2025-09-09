@@ -14,16 +14,14 @@ function getTenantFromHost() {
   return parts[0] || "";
 }
 
-function formatPhone(p: any) {
+function formatPhone(p) {
   // aceita string ou objeto do Graph { id, display_phone_number, ... }
   const raw =
     typeof p === "string"
       ? p
-      : (p?.display_phone_number || p?.phone_number || p?.number || "");
-  // formatação simples; não mexe se já vier formatado
-  const digits = raw.replace(/[^\d+]/g, "");
+      : (p && (p.display_phone_number || p.phone_number || p.number)) || "";
+  const digits = (raw || "").replace(/[^\d+]/g, "");
   if (!digits) return "—";
-  // exemplo de formato leve: +55 11 9XXXX-XXXX (só organiza visualmente)
   if (digits.startsWith("+")) return digits;
   return `+${digits}`;
 }
@@ -34,16 +32,16 @@ export default function Channels() {
   const location = useLocation();
 
   // WhatsApp
-  const [wa, setWa] = useState<{
-    loading: boolean;
-    connected: boolean;
-    wabaId: string;
-    numbers: any[];
-    okMsg: string | null;
-    errMsg: string | null;
+  const [wa, setWa] = useState({
+    loading: true,
+    connected: false,
+    wabaId: "",
+    numbers: [],
+    okMsg: null,
+    errMsg: null,
     // evita piscar status durante transição do popup
-    stabilizing: boolean;
-  }>({ loading: true, connected: false, wabaId: "", numbers: [], okMsg: null, errMsg: null, stabilizing: false });
+    stabilizing: false
+  });
 
   // Telegram
   const [tg, setTg] = useState({
@@ -52,8 +50,8 @@ export default function Channels() {
     botId: "",
     username: "",
     webhookUrl: "",
-    okMsg: null as string | null,
-    errMsg: null as string | null
+    okMsg: null,
+    errMsg: null
   });
 
   // ✅ Checa status dos canais ao carregar a página
@@ -63,7 +61,7 @@ export default function Channels() {
     (async () => {
       try {
         const s = await apiGet(`/channels/status?subdomain=${tenant}`);
-        if (s?.telegram) {
+        if (s && s.telegram) {
           setTg((prev) => ({
             ...prev,
             loading: false,
@@ -72,8 +70,10 @@ export default function Channels() {
             username: s.telegram.username || "",
             webhookUrl: s.telegram.webhook_url || ""
           }));
+        } else {
+          setTg((prev) => ({ ...prev, loading: false }));
         }
-        if (s?.whatsapp) {
+        if (s && s.whatsapp) {
           setWa((prev) => ({
             ...prev,
             loading: false,
@@ -81,11 +81,13 @@ export default function Channels() {
             wabaId: s.whatsapp.waba_id || "",
             numbers: Array.isArray(s.whatsapp.numbers) ? s.whatsapp.numbers : []
           }));
+        } else {
+          setWa((prev) => ({ ...prev, loading: false }));
         }
       } catch {
         try {
           const ts = await apiGet(`/tg/status?subdomain=${tenant}`);
-          if (ts?.ok) {
+          if (ts && ts.ok) {
             setTg((prev) => ({
               ...prev,
               loading: false,
@@ -102,7 +104,7 @@ export default function Channels() {
         }
         try {
           const ws = await apiGet(`/wa/status?subdomain=${tenant}`);
-          if (ws?.ok) {
+          if (ws && ws.ok) {
             setWa((prev) => ({
               ...prev,
               loading: false,
@@ -123,9 +125,13 @@ export default function Channels() {
   // WhatsApp Embedded Signup → mensagens do popup
   useEffect(() => {
     const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seudominio.com
-    function onMsg(e: MessageEvent) {
+
+    function onMsg(e) {
       if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return;
-      const { type, payload, error } = (e.data || {}) as any;
+      const data = e.data || {};
+      const type = data.type;
+      const payload = data.payload;
+      const error = data.error;
 
       // inicia "stabilizing" pra não mostrar NÃO CONECTADO durante a troca
       if (type === "wa:connecting") {
@@ -138,20 +144,21 @@ export default function Channels() {
           loading: false,
           stabilizing: false,
           connected: true,
-          wabaId: payload?.waba_id || "",
-          numbers: Array.isArray(payload?.numbers) ? payload.numbers : [],
+          wabaId: (payload && payload.waba_id) || "",
+          numbers: Array.isArray(payload && payload.numbers) ? payload.numbers : [],
           okMsg: "WhatsApp conectado com sucesso.",
-          errMsg: null,
+          errMsg: null
         }));
-        // limpa o ok sem piscar o layout
-        const t = setTimeout(() => setWa((st) => ({ ...st, okMsg: null })), 2000);
-        return () => clearTimeout(t);
+        setTimeout(() => {
+          setWa((st) => ({ ...st, okMsg: null }));
+        }, 2000);
       }
 
       if (type === "wa:error") {
         setWa((s) => ({ ...s, stabilizing: false, errMsg: error || "Falha ao conectar." }));
       }
     }
+
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, []);
@@ -162,12 +169,10 @@ export default function Channels() {
   const goToTgConnect = () =>
     navigate("/channels/telegram", { state: { returnTo: location.pathname + location.search } });
 
-  const iconWrap = (cls: string, icon: React.ReactNode) => <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>;
+  const iconWrap = (cls, icon) => <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>;
 
   const waHasData = !wa.loading && !wa.stabilizing;
-
-  const firstNumber =
-    wa.numbers && wa.numbers.length > 0 ? formatPhone(wa.numbers[0]) : "—";
+  const firstNumber = wa.numbers && wa.numbers.length > 0 ? formatPhone(wa.numbers[0]) : "—";
 
   return (
     <div className={styles.container}>
@@ -191,11 +196,13 @@ export default function Channels() {
             {iconWrap(styles.wa, <MessageCircle size={18} />)}
             <div className={styles.cardTitle}>WhatsApp</div>
             {waHasData ? (
-              wa.connected
-                ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
-                : <span className={styles.statusOff}>Não conectado</span>
+              wa.connected ? (
+                <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
+              ) : (
+                <span className={styles.statusOff}>Não conectado</span>
+              )
             ) : (
-              <span className={styles.statusNeutral}>Checando…</span>
+              <span className={styles.statusNeutral || styles.statusOff}>Checando…</span>
             )}
           </div>
           <div className={styles.cardBody}>
@@ -222,7 +229,7 @@ export default function Channels() {
                   </div>
                   <div className={styles.kv}>
                     <span className={styles.k}>Números vinculados</span>
-                    <span className={styles.v}>{wa.numbers?.length || 0}</span>
+                    <span className={styles.v}>{wa.numbers ? wa.numbers.length : 0}</span>
                   </div>
                 </div>
                 <div className={styles.cardActions}>
@@ -267,7 +274,7 @@ export default function Channels() {
             {iconWrap(styles.tg, <Send size={18}/>)}
             <div className={styles.cardTitle}>Telegram</div>
             {tg.loading ? (
-              <span className={styles.statusNeutral}>Checando…</span>
+              <span className={styles.statusNeutral || styles.statusOff}>Checando…</span>
             ) : tg.connected ? (
               <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
             ) : (
