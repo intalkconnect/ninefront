@@ -14,22 +14,46 @@ function getTenantFromHost() {
   return parts[0] || "";
 }
 
+function formatPhone(p: any) {
+  // aceita string ou objeto do Graph { id, display_phone_number, ... }
+  const raw =
+    typeof p === "string"
+      ? p
+      : (p?.display_phone_number || p?.phone_number || p?.number || "");
+  // formatação simples; não mexe se já vier formatado
+  const digits = raw.replace(/[^\d+]/g, "");
+  if (!digits) return "—";
+  // exemplo de formato leve: +55 11 9XXXX-XXXX (só organiza visualmente)
+  if (digits.startsWith("+")) return digits;
+  return `+${digits}`;
+}
+
 export default function Channels() {
   const tenant = useMemo(() => getTenantFromHost(), []);
   const navigate = useNavigate();
   const location = useLocation();
 
   // WhatsApp
-  const [wa, setWa] = useState({ connected: false, wabaId: "", numbers: [], okMsg: null, errMsg: null });
+  const [wa, setWa] = useState<{
+    loading: boolean;
+    connected: boolean;
+    wabaId: string;
+    numbers: any[];
+    okMsg: string | null;
+    errMsg: string | null;
+    // evita piscar status durante transição do popup
+    stabilizing: boolean;
+  }>({ loading: true, connected: false, wabaId: "", numbers: [], okMsg: null, errMsg: null, stabilizing: false });
 
   // Telegram
   const [tg, setTg] = useState({
+    loading: true,
     connected: false,
     botId: "",
     username: "",
     webhookUrl: "",
-    okMsg: null,
-    errMsg: null
+    okMsg: null as string | null,
+    errMsg: null as string | null
   });
 
   // ✅ Checa status dos canais ao carregar a página
@@ -42,6 +66,7 @@ export default function Channels() {
         if (s?.telegram) {
           setTg((prev) => ({
             ...prev,
+            loading: false,
             connected: !!s.telegram.connected,
             botId: s.telegram.bot_id || "",
             username: s.telegram.username || "",
@@ -51,6 +76,7 @@ export default function Channels() {
         if (s?.whatsapp) {
           setWa((prev) => ({
             ...prev,
+            loading: false,
             connected: !!s.whatsapp.connected,
             wabaId: s.whatsapp.waba_id || "",
             numbers: Array.isArray(s.whatsapp.numbers) ? s.whatsapp.numbers : []
@@ -60,15 +86,36 @@ export default function Channels() {
         try {
           const ts = await apiGet(`/tg/status?subdomain=${tenant}`);
           if (ts?.ok) {
-            setTg((prev) => ({ ...prev, connected: true, botId: ts.bot_id || "", username: ts.username || "", webhookUrl: ts.webhook_url || "" }));
+            setTg((prev) => ({
+              ...prev,
+              loading: false,
+              connected: true,
+              botId: ts.bot_id || "",
+              username: ts.username || "",
+              webhookUrl: ts.webhook_url || ""
+            }));
+          } else {
+            setTg((prev) => ({ ...prev, loading: false }));
           }
-        } catch {}
+        } catch {
+          setTg((prev) => ({ ...prev, loading: false }));
+        }
         try {
           const ws = await apiGet(`/wa/status?subdomain=${tenant}`);
           if (ws?.ok) {
-            setWa((prev) => ({ ...prev, connected: true, wabaId: ws.waba_id || "", numbers: Array.isArray(ws.numbers) ? ws.numbers : [] }));
+            setWa((prev) => ({
+              ...prev,
+              loading: false,
+              connected: true,
+              wabaId: ws.waba_id || "",
+              numbers: Array.isArray(ws.numbers) ? ws.numbers : []
+            }));
+          } else {
+            setWa((prev) => ({ ...prev, loading: false }));
           }
-        } catch {}
+        } catch {
+          setWa((prev) => ({ ...prev, loading: false }));
+        }
       }
     })();
   }, [tenant]);
@@ -76,21 +123,33 @@ export default function Channels() {
   // WhatsApp Embedded Signup → mensagens do popup
   useEffect(() => {
     const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seudominio.com
-    function onMsg(e) {
+    function onMsg(e: MessageEvent) {
       if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return;
-      const { type, payload, error } = e.data || {};
+      const { type, payload, error } = (e.data || {}) as any;
+
+      // inicia "stabilizing" pra não mostrar NÃO CONECTADO durante a troca
+      if (type === "wa:connecting") {
+        setWa((s) => ({ ...s, stabilizing: true }));
+      }
+
       if (type === "wa:connected") {
-        setWa({
+        setWa((s) => ({
+          ...s,
+          loading: false,
+          stabilizing: false,
           connected: true,
           wabaId: payload?.waba_id || "",
           numbers: Array.isArray(payload?.numbers) ? payload.numbers : [],
           okMsg: "WhatsApp conectado com sucesso.",
           errMsg: null,
-        });
-        setTimeout(() => setWa((s) => ({ ...s, okMsg: null })), 2000);
+        }));
+        // limpa o ok sem piscar o layout
+        const t = setTimeout(() => setWa((st) => ({ ...st, okMsg: null })), 2000);
+        return () => clearTimeout(t);
       }
+
       if (type === "wa:error") {
-        setWa((s) => ({ ...s, errMsg: error || "Falha ao conectar." }));
+        setWa((s) => ({ ...s, stabilizing: false, errMsg: error || "Falha ao conectar." }));
       }
     }
     window.addEventListener("message", onMsg);
@@ -103,7 +162,12 @@ export default function Channels() {
   const goToTgConnect = () =>
     navigate("/channels/telegram", { state: { returnTo: location.pathname + location.search } });
 
-  const iconWrap = (cls, icon) => <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>;
+  const iconWrap = (cls: string, icon: React.ReactNode) => <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>;
+
+  const waHasData = !wa.loading && !wa.stabilizing;
+
+  const firstNumber =
+    wa.numbers && wa.numbers.length > 0 ? formatPhone(wa.numbers[0]) : "—";
 
   return (
     <div className={styles.container}>
@@ -126,23 +190,40 @@ export default function Channels() {
           <div className={styles.cardHead}>
             {iconWrap(styles.wa, <MessageCircle size={18} />)}
             <div className={styles.cardTitle}>WhatsApp</div>
-            {wa.connected
-              ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
-              : <span className={styles.statusOff}>Não conectado</span>}
+            {waHasData ? (
+              wa.connected
+                ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
+                : <span className={styles.statusOff}>Não conectado</span>
+            ) : (
+              <span className={styles.statusNeutral}>Checando…</span>
+            )}
           </div>
           <div className={styles.cardBody}>
-            <p className={styles.cardDesc}>Conecte via Signup Meta e selecione o número.</p>
-
             {!wa.connected ? (
-              <div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
-                <WhatsAppEmbeddedSignupButton tenant={tenant} />
-                <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
-              </div>
+              <>
+                <p className={styles.cardDesc}>
+                  Conecte via <strong>Meta Embedded Signup</strong> e selecione o número quando conectado.
+                </p>
+                <div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
+                  <WhatsAppEmbeddedSignupButton tenant={tenant} />
+                  <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
+                </div>
+              </>
             ) : (
               <>
                 <div className={styles.connectedBlock}>
-                  <div className={styles.kv}><span className={styles.k}>WABA</span><span className={styles.v}>{wa.wabaId}</span></div>
-                  <div className={styles.kv}><span className={styles.k}>Números</span><span className={styles.v}>{wa.numbers?.length || 0}</span></div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>WABA ID</span>
+                    <span className={styles.v}>{wa.wabaId || "—"}</span>
+                  </div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Número WABA</span>
+                    <span className={styles.v}>{firstNumber}</span>
+                  </div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Números vinculados</span>
+                    <span className={styles.v}>{wa.numbers?.length || 0}</span>
+                  </div>
                 </div>
                 <div className={styles.cardActions}>
                   <button className={styles.btnSecondary} onClick={goToWaProfile}>
@@ -185,9 +266,13 @@ export default function Channels() {
           <div className={styles.cardHead}>
             {iconWrap(styles.tg, <Send size={18}/>)}
             <div className={styles.cardTitle}>Telegram</div>
-            {tg.connected
-              ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
-              : <span className={styles.statusOff}>Não conectado</span>}
+            {tg.loading ? (
+              <span className={styles.statusNeutral}>Checando…</span>
+            ) : tg.connected ? (
+              <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span>
+            ) : (
+              <span className={styles.statusOff}>Não conectado</span>
+            )}
           </div>
           <div className={styles.cardBody}>
             {!tg.connected ? (
