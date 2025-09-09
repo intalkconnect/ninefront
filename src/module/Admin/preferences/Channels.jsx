@@ -15,7 +15,7 @@ function getTenantFromHost() {
 }
 
 function formatPhone(p) {
-  // aceita string ou objeto do Graph { id, display_phone_number, ... }
+  // aceita string ou objeto { display_phone_number, phone_number, number }
   const raw =
     typeof p === "string"
       ? p
@@ -31,16 +31,15 @@ export default function Channels() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // WhatsApp
+  // WhatsApp (via /waProfile/number)
   const [wa, setWa] = useState({
     loading: true,
     connected: false,
-    wabaId: "",
-    numbers: [],
+    phoneId: "",
+    phone: null, // payload completo de phone (quality_rating, verified_name, etc.)
     okMsg: null,
     errMsg: null,
-    // evita piscar status durante transição do popup
-    stabilizing: false
+    stabilizing: false // evita "piscada" durante transição do popup
   });
 
   // Telegram
@@ -54,70 +53,68 @@ export default function Channels() {
     errMsg: null
   });
 
-  // ✅ Checa status dos canais ao carregar a página
+  // ✅ Carrega status individuais
   useEffect(() => {
     if (!tenant) return;
 
+    // WhatsApp
     (async () => {
       try {
-        const s = await apiGet(`/channels/status?subdomain=${tenant}`);
-        if (s && s.telegram) {
-          setTg((prev) => ({
-            ...prev,
-            loading: false,
-            connected: !!s.telegram.connected,
-            botId: s.telegram.bot_id || "",
-            username: s.telegram.username || "",
-            webhookUrl: s.telegram.webhook_url || ""
-          }));
-        } else {
-          setTg((prev) => ({ ...prev, loading: false }));
-        }
-        if (s && s.whatsapp) {
+        const ws = await apiGet(`/waProfile/number?subdomain=${tenant}`);
+        if (ws && ws.ok && ws.phone) {
           setWa((prev) => ({
             ...prev,
             loading: false,
-            connected: !!s.whatsapp.connected,
-            wabaId: s.whatsapp.waba_id || "",
-            numbers: Array.isArray(s.whatsapp.numbers) ? s.whatsapp.numbers : []
+            connected: true,
+            phoneId: ws.phone.id || "",
+            phone: ws.phone,
+            errMsg: null
           }));
         } else {
-          setWa((prev) => ({ ...prev, loading: false }));
+          setWa((prev) => ({
+            ...prev,
+            loading: false,
+            connected: false,
+            phoneId: "",
+            phone: null
+          }));
+        }
+      } catch (e) {
+        setWa((prev) => ({
+          ...prev,
+          loading: false,
+          connected: false,
+          phoneId: "",
+          phone: null,
+          errMsg: "Não foi possível obter o status do WhatsApp."
+        }));
+      }
+    })();
+
+    // Telegram
+    (async () => {
+      try {
+        const ts = await apiGet(`/tg/status?subdomain=${tenant}`);
+        if (ts && ts.ok) {
+          setTg((prev) => ({
+            ...prev,
+            loading: false,
+            connected: true,
+            botId: ts.bot_id || "",
+            username: ts.username || "",
+            webhookUrl: ts.webhook_url || "",
+            errMsg: null
+          }));
+        } else {
+          setTg((prev) => ({ ...prev, loading: false, connected: false }));
         }
       } catch {
-        try {
-          const ts = await apiGet(`/tg/status?subdomain=${tenant}`);
-          if (ts && ts.ok) {
-            setTg((prev) => ({
-              ...prev,
-              loading: false,
-              connected: true,
-              botId: ts.bot_id || "",
-              username: ts.username || "",
-              webhookUrl: ts.webhook_url || ""
-            }));
-          } else {
-            setTg((prev) => ({ ...prev, loading: false }));
-          }
-        } catch {
-          setTg((prev) => ({ ...prev, loading: false }));
-        }
-        try {
-          const ws = await apiGet(`/wa/status?subdomain=${tenant}`);
-          if (ws && ws.ok) {
-            setWa((prev) => ({
-              ...prev,
-              loading: false,
-              connected: true,
-              wabaId: ws.waba_id || "",
-              numbers: Array.isArray(ws.numbers) ? ws.numbers : []
-            }));
-          } else {
-            setWa((prev) => ({ ...prev, loading: false }));
-          }
-        } catch {
-          setWa((prev) => ({ ...prev, loading: false }));
-        }
+        setTg((prev) => ({
+          ...prev,
+          loading: false,
+          connected: false,
+          errMsg: "Não foi possível obter o status do Telegram."
+        }));
       }
     })();
   }, [tenant]);
@@ -133,22 +130,30 @@ export default function Channels() {
       const payload = data.payload;
       const error = data.error;
 
-      // inicia "stabilizing" pra não mostrar NÃO CONECTADO durante a troca
       if (type === "wa:connecting") {
         setWa((s) => ({ ...s, stabilizing: true }));
       }
 
       if (type === "wa:connected") {
+        // payload pode vir de formas distintas; tentamos normalizar
+        const phone =
+          (payload && payload.phone) ||
+          (payload && payload.number) ||
+          (payload && payload.numbers && payload.numbers[0]) ||
+          null;
+
         setWa((s) => ({
           ...s,
           loading: false,
           stabilizing: false,
           connected: true,
-          wabaId: (payload && payload.waba_id) || "",
-          numbers: Array.isArray(payload && payload.numbers) ? payload.numbers : [],
+          phoneId: (phone && (phone.id || phone.phone_id)) || s.phoneId || "",
+          phone: phone || s.phone,
           okMsg: "WhatsApp conectado com sucesso.",
           errMsg: null
         }));
+
+        // limpa a mensagem de OK
         setTimeout(() => {
           setWa((st) => ({ ...st, okMsg: null }));
         }, 2000);
@@ -172,7 +177,7 @@ export default function Channels() {
   const iconWrap = (cls, icon) => <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>;
 
   const waHasData = !wa.loading && !wa.stabilizing;
-  const firstNumber = wa.numbers && wa.numbers.length > 0 ? formatPhone(wa.numbers[0]) : "—";
+  const waDisplayNumber = formatPhone(wa.phone);
 
   return (
     <div className={styles.container}>
@@ -220,17 +225,39 @@ export default function Channels() {
               <>
                 <div className={styles.connectedBlock}>
                   <div className={styles.kv}>
-                    <span className={styles.k}>WABA ID</span>
-                    <span className={styles.v}>{wa.wabaId || "—"}</span>
-                  </div>
-                  <div className={styles.kv}>
                     <span className={styles.k}>Número WABA</span>
-                    <span className={styles.v}>{firstNumber}</span>
+                    <span className={styles.v}>{waDisplayNumber}</span>
                   </div>
                   <div className={styles.kv}>
-                    <span className={styles.k}>Números vinculados</span>
-                    <span className={styles.v}>{wa.numbers ? wa.numbers.length : 0}</span>
+                    <span className={styles.k}>Phone ID</span>
+                    <span className={styles.v}>{wa.phoneId || "—"}</span>
                   </div>
+
+                  {/* Campos opcionais (exibidos se vierem na API) */}
+                  {wa.phone && wa.phone.verified_name && (
+                    <div className={styles.kv}>
+                      <span className={styles.k}>Nome verificado</span>
+                      <span className={styles.v}>{wa.phone.verified_name}</span>
+                    </div>
+                  )}
+                  {wa.phone && wa.phone.quality_rating && (
+                    <div className={styles.kv}>
+                      <span className={styles.k}>Qualidade</span>
+                      <span className={styles.v}>{wa.phone.quality_rating}</span>
+                    </div>
+                  )}
+                  {wa.phone && typeof wa.phone.is_official_business_account === "boolean" && (
+                    <div className={styles.kv}>
+                      <span className={styles.k}>OBA</span>
+                      <span className={styles.v}>{wa.phone.is_official_business_account ? "Sim" : "Não"}</span>
+                    </div>
+                  )}
+                  {wa.phone && wa.phone.account_mode && (
+                    <div className={styles.kv}>
+                      <span className={styles.k}>Modo</span>
+                      <span className={styles.v}>{wa.phone.account_mode}</span>
+                    </div>
+                  )}
                 </div>
                 <div className={styles.cardActions}>
                   <button className={styles.btnSecondary} onClick={goToWaProfile}>
