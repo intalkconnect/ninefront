@@ -14,28 +14,26 @@ function fmtDateTime(iso) {
       day: '2-digit', month: '2-digit', year: '2-digit',
       hour: '2-digit', minute: '2-digit'
     });
-  } catch {
-    return '—';
-  }
+  } catch { return '—'; }
 }
 
 export default function TicketsHistory() {
-  const [items, setItems]           = useState([]);
-  const [page, setPage]             = useState(1);
-  const [pageSize, setPageSize]     = useState(10);
-  const [total, setTotal]           = useState(0);
-  const totalPages                  = Math.max(1, Math.ceil(total / pageSize));
+  const [items, setItems]   = useState([]);
+  const [page, setPage]     = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal]   = useState(0);
+  const totalPages          = Math.max(1, Math.ceil(total / pageSize));
 
-  const [q, setQ]                   = useState('');
-  const [qDeb, setQDeb]             = useState('');
-  const [fromDate, setFromDate]     = useState('');
-  const [toDate, setToDate]         = useState('');
+  const [q, setQ]           = useState('');
+  const [qDeb, setQDeb]     = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState(null);
   const navigate = useNavigate();
 
-  // debounce da busca
+  // debounce
   useEffect(() => {
     const t = setTimeout(() => setQDeb(q.trim()), 350);
     return () => clearTimeout(t);
@@ -55,19 +53,9 @@ export default function TicketsHistory() {
     setLoading(true);
     setError(null);
     try {
-      const url = `/tickets/history?${queryString}`;
-      const resp = await apiGet(url);
+      const resp = await apiGet(`/tickets/history?${queryString}`);
       const { data = [], total = 0, page = 1 } = resp || {};
-
-      // Deixa explícito no front o que é cliente/atendente,
-      // independente dos nomes originais vindos da API.
-      const mapped = Array.isArray(data) ? data.map(r => ({
-        ...r,
-        client_name: r.user_id || '—',
-        agent_name: r.assigned_to || '—',
-      })) : [];
-
-      setItems(mapped);
+      setItems(Array.isArray(data) ? data : []);
       setTotal(Number(total) || 0);
       setPage(Number(page) || 1);
     } catch (e) {
@@ -80,13 +68,11 @@ export default function TicketsHistory() {
 
   useEffect(() => { load(); }, [load]);
 
-  // helpers de paginação
   const startIdx = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIdx   = Math.min(total, page * pageSize);
 
   return (
     <div className={styles.container}>
-
       <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
@@ -96,13 +82,12 @@ export default function TicketsHistory() {
       <div className={styles.header}>
         <div>
           <p className={styles.subtitle}>
-            Revise interações e responsáveis: filtre por período, ticket, cliente ou atendente.
+            Revise interações e responsáveis: filtre por período, ticket, cliente, fila ou atendente.
           </p>
         </div>
       </div>
 
       <div className={styles.card}>
-
         <div className={styles.cardHead}>
           <div className={styles.filtersLeft}>
             <div className={styles.inputGroupSm}>
@@ -151,6 +136,7 @@ export default function TicketsHistory() {
                 <th className={styles.colWhen}>Fechado em</th>
               </tr>
             </thead>
+
             <tbody>
               {loading && (
                 <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>
@@ -164,28 +150,35 @@ export default function TicketsHistory() {
                 <tr><td colSpan={5} className={styles.empty}>Nenhum ticket encontrado.</td></tr>
               )}
 
-              {!loading && !error && items.map((t) => (
-                <tr
-                  key={t.id}
-                  className={`${styles.rowHover} ${styles.rowClickable}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(`/management/history/${t.id}`, {
-                    state: { returnTo: window.location.pathname + window.location.search }
-                  })}
-                >
-                  <td>{t.ticket_number ? t.ticket_number.toString().padStart(6, '0') : '—'}</td>
-                  <td>{t.client_name || '—'}</td>
-                  <td>{t.fila || '—'}</td>
-                  <td>{t.agent_name || '—'}</td>
-                  <td>{fmtDateTime(t.closed_at || t.updated_at)}</td>
-                </tr>
-              ))}
+              {!loading && !error && items.map((t) => {
+                const num = t.ticket_number ? String(t.ticket_number).padStart(5, '0') : '—';
+                const client = t.client_name || t.user_name || t.user_id || '—';
+                const agent  = t.agent_name  || t.assigned_to || '—';
+
+                return (
+                  <tr
+                    key={t.id}
+                    className={`${styles.rowHover} ${styles.rowClickable}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/management/history/${t.id}`, {
+                      state: { returnTo: window.location.pathname + window.location.search }
+                    })}
+                  >
+                    <td className={styles.nowrap}>{num}</td>
+                    <td className={styles.truncate}>{client}</td>
+                    <td className={styles.truncate}>{t.fila || '—'}</td>
+                    <td className={styles.truncate}>{agent}</td>
+                    <td className={`${styles.nowrap} ${styles.textRight}`}>
+                      {fmtDateTime(t.closed_at || t.updated_at)}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        {/* Footer / paginação */}
         <div className={styles.tableFooter}>
           <div className={styles.leftInfo}>
             {`Mostrando ${startIdx}–${endIdx} de ${total}`}
