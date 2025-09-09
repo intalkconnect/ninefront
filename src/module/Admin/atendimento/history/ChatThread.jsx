@@ -1,8 +1,7 @@
 import React, { useRef } from 'react';
-import MessageList from './MessageList'; // <- o arquivo que você anexou
+import MessageList from './MessageList';
 import styles from './styles/ChatThread.module.css';
 
-// callbacks opcionais (zoom de imagem, PDF modal, etc.)
 export default function ChatThread({ messages = [] }) {
   const listRef = useRef(null);
 
@@ -13,7 +12,7 @@ export default function ChatThread({ messages = [] }) {
         messages={messages}
         onImageClick={(url) => window.open(url, '_blank')}
         onPdfClick={(url) => window.open(url, '_blank')}
-        onReply={null} // histórico: só visual
+        onReply={null} // histórico: somente leitura
       />
     </div>
   );
