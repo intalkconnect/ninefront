@@ -14,7 +14,6 @@
   display: grid;
   gap: 16px;
   background: #f6f7fb;
-  scroll-behavior: smooth;
 }
 
 /* Breadcrumbs no topo */
