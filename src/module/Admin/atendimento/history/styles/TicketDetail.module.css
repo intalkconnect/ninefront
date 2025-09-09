@@ -261,6 +261,13 @@
 .btnPrimary:hover{ transform: translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,0.3); }
 .btnPrimary:active{ transform: translateY(0); box-shadow:0 2px 8px rgba(59,130,246,0.2); }
 .btnPrimary:focus-visible{ outline: 2px solid #bfdbfe; outline-offset: 2px; }
+.btnPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: saturate(0.6);
+}
+
 
 /* Tamanho pequeno para botões compactos (ex.: Baixar) */
 .btnSm{ padding:8px 12px; font-size:13px; border-radius:8px; gap:6px; }
