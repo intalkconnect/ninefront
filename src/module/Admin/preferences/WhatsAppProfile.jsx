@@ -230,10 +230,10 @@ export default function WhatsAppProfile() {
         {/* ===== esquerda ===== */}
         <section className={styles.left}>
           <div className={styles.infoTable}>
-            <div className={styles.row}><div className={styles.k}}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}}>Qualidade</div><div className={styles.v}>{qualityBadge(quality)}</div></div>
+            <div className={styles.row}><div className={styles.k}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}>Qualidade</div><div className={styles.v}>{qualityBadge(quality)}</div></div>
             <div className={styles.row}>
               <div className={styles.k}>Conta oficial</div>
               <div className={styles.v}>
