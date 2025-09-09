@@ -129,7 +129,7 @@ export default function TicketsHistory() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th className={styles.colNum}>Número</th>
+                <th className={styles.colNum}>Ticket</th>
                 <th className={styles.colClient}>Cliente</th>
                 <th className={styles.colFila}>Fila</th>
                 <th className={styles.colAgent}>Atendente</th>
