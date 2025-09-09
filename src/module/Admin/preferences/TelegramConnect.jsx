@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, PlugZap, CheckCircle2, RefreshCw, Copy } from "lucide-react";
+import { ArrowLeft, PlugZap, CheckCircle2, RefreshCw, Copy, Bot, AlertCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../shared/apiClient";
-import styles from "./styles/ChannelEditor.module.css";
+import styles from "./styles/TelegramConnect.module.css";
 
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
@@ -11,6 +11,7 @@ function getTenantFromHost() {
   if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
   return parts[0] || "";
 }
+
 function genSecretHex(bytes = 32) {
   if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
     const arr = new Uint8Array(bytes);
@@ -41,6 +42,9 @@ export default function TelegramConnect() {
   const [err, setErr] = useState(null);
   const [ok, setOk] = useState(null);
 
+  // Setup instructions visibility
+  const [showInstructions, setShowInstructions] = useState(false);
+
   async function loadStatus() {
     setChecking(true);
     setErr(null);
@@ -67,13 +71,13 @@ export default function TelegramConnect() {
   async function handleConnect() {
     if (connected) return;
     if (!tenant) return setErr("Tenant não identificado.");
-    if (!token)  return setErr("Informe o Bot Token.");
+    if (!token) return setErr("Informe o Bot Token.");
 
     setLoading(true); setErr(null); setOk(null);
     try {
       const j = await apiPost("/tg/connect", { subdomain: tenant, botToken: token, secret });
       if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
-      setOk("Telegram conectado com sucesso.");
+      setOk("Telegram conectado com sucesso!");
       await loadStatus();
       setToken("");
     } catch (e) {
@@ -81,6 +85,11 @@ export default function TelegramConnect() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleDisconnect() {
+    // Implementar lógica de desconexão se necessário
+    console.log("Desconectar Telegram");
   }
 
   const title = connected ? "Telegram — Conectado" : "Telegram — Conectar";
@@ -117,7 +126,7 @@ export default function TelegramConnect() {
         ) : (
           <>
             {err && <div className={styles.alertErr} style={{ marginBottom: 12 }}>{err}</div>}
-            {ok  && <div className={styles.alertOk}  style={{ marginBottom: 12 }}>{ok}</div>}
+            {ok && <div className={styles.alertOk} style={{ marginBottom: 12 }}>{ok}</div>}
 
             {connected ? (
               <>
@@ -149,34 +158,103 @@ export default function TelegramConnect() {
                     </div>
                   </div>
                 </div>
+
+                <div className={styles.actionsRow}>
+                  <button
+                    className={styles.btnDanger}
+                    onClick={handleDisconnect}
+                  >
+                    Desconectar
+                  </button>
+                </div>
               </>
             ) : (
               <>
+                {/* Hero section */}
+                <div className={styles.heroSection}>
+                  <div className={styles.heroIcon}>
+                    <Bot size={48} />
+                  </div>
+                  <h2 className={styles.heroTitle}>Conecte seu Bot do Telegram</h2>
+                  <p className={styles.heroSubtitle}>
+                    Configure seu bot do Telegram para integração com o sistema de mensageria
+                  </p>
+                </div>
+
                 <div className={styles.section}>
                   <div className={styles.formRow}>
-                    <label className={styles.label}>Bot Token</label>
+                    <label className={styles.label}>Bot Token *</label>
                     <input
                       className={styles.input}
                       type="text"
-                      placeholder="ex.: 123456:AAHk...-seu-token"
+                      placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
                       value={token}
                       onChange={(e) => setToken(e.target.value)}
                       autoComplete="off"
                       disabled={loading}
                     />
                   </div>
+                  
                   <div className={styles.hintRow}>
                     <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
                   </div>
+
+                  <div className={styles.instructionsToggle}>
+                    <button 
+                      className={styles.instructionsBtn}
+                      onClick={() => setShowInstructions(!showInstructions)}
+                    >
+                      <AlertCircle size={14} />
+                      {showInstructions ? 'Ocultar' : 'Como obter o Bot Token?'}
+                    </button>
+                  </div>
+
+                  {showInstructions && (
+                    <div className={styles.instructionsCard}>
+                      <h4 className={styles.instructionsTitle}>Criando um Bot no Telegram</h4>
+                      <div className={styles.instructionsList}>
+                        <div className={styles.instructionItem}>
+                          <div className={styles.instructionStep}>1</div>
+                          <div className={styles.instructionText}>
+                            <strong>Abra o Telegram</strong> e procure por <code>@BotFather</code>
+                          </div>
+                        </div>
+                        <div className={styles.instructionItem}>
+                          <div className={styles.instructionStep}>2</div>
+                          <div className={styles.instructionText}>
+                            <strong>Digite</strong> <code>/newbot</code> e siga as instruções
+                          </div>
+                        </div>
+                        <div className={styles.instructionItem}>
+                          <div className={styles.instructionStep}>3</div>
+                          <div className={styles.instructionText}>
+                            <strong>Escolha um nome</strong> para seu bot (ex: "Meu Sistema Bot")
+                          </div>
+                        </div>
+                        <div className={styles.instructionItem}>
+                          <div className={styles.instructionStep}>4</div>
+                          <div className={styles.instructionText}>
+                            <strong>Escolha um username</strong> que termine com "bot" (ex: "meusistema_bot")
+                          </div>
+                        </div>
+                        <div className={styles.instructionItem}>
+                          <div className={styles.instructionStep}>5</div>
+                          <div className={styles.instructionText}>
+                            <strong>Copie o token</strong> fornecido pelo BotFather e cole no campo acima
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className={styles.actionsRow}>
                   <button
                     className={styles.btnTgPrimary}
                     onClick={handleConnect}
-                    disabled={loading || connected}
+                    disabled={loading || connected || !token.trim()}
                   >
-                    {loading ? "Conectando..." : "Conectar"}
+                    {loading ? "Conectando..." : "Conectar Bot"}
                   </button>
                 </div>
               </>
