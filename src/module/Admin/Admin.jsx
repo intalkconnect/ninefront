@@ -56,6 +56,9 @@ import Campaigns from "./campanhas/Campaigns";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
 import TicketDetail from "./atendimento/history/TicketDetail";
+import WhatsAppProfile from "./preferences/WhatsAppProfile";
+import TelegramConnect from "./preferences/TelegramConnect";
+
 
 // Temporários (mantidos)
 const Integrations = () => <div>Integrações</div>;
