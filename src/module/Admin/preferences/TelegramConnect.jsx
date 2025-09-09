@@ -98,7 +98,7 @@ export default function TelegramConnect() {
     <div className={styles.page}>
       {/* breadcrumbs */}
       <div className={styles.breadcrumbs}>
-        <span className={styles.bcLink} onClick={() => navigate("/channels")}>Canais</span>
+        <span className={styles.bcLink} onClick={() => navigate("/settings/channels")}>Canais</span>
         <span className={styles.bcSep}>/</span>
         <span>Telegram</span>
       </div>
