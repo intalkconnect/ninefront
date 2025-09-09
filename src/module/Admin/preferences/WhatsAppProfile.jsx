@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Save, RotateCcw, Image as ImageIcon, Trash2 } from "lucide-react";
+import {
+  ArrowLeft, Save, RotateCcw, Image as ImageIcon, Trash2,
+  Briefcase, MapPin, Mail, Globe, FileText, MessageSquare
+} from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import styles from "./styles/ChannelEditor.module.css";
@@ -86,10 +89,10 @@ export default function WhatsAppProfile() {
   const [err, setErr] = useState(null);
   const [ok, setOk] = useState(null);
 
-  // número (Graph /number)
+  // número
   const [phone, setPhone] = useState(null);
 
-  // perfil (GET /waProfile)
+  // perfil
   const [about, setAbout] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
@@ -183,6 +186,17 @@ export default function WhatsAppProfile() {
 
   const vertLabel = verticalLabel(vertical);
 
+  // --- itens do preview (com ícones) ---
+  const previewItems = [
+    about && { icon: <MessageSquare size={16}/>, text: about },
+    description && { icon: <FileText size={16}/>, text: description },
+    vertLabel && { icon: <Briefcase size={16}/>, text: vertLabel },
+    address && { icon: <MapPin size={16}/>, text: address },
+    email && { icon: <Mail size={16}/>, text: email },
+    web1 && { icon: <Globe size={16}/>, text: web1, link: true },
+    web2 && { icon: <Globe size={16}/>, text: web2, link: true },
+  ].filter(Boolean);
+
   return (
     <div className={styles.page}>
       <div className={styles.breadcrumbs}>
@@ -216,12 +230,10 @@ export default function WhatsAppProfile() {
         {/* ===== esquerda ===== */}
         <section className={styles.left}>
           <div className={styles.infoTable}>
-            <div className={styles.row}><div className={styles.k}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Qualidade</div><div className={styles.v}>{qualityBadge(quality)}</div></div>
-
-            {/* volta com verificado (OBA) e status */}
+            <div className={styles.row}><div className={styles.k}}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
+            <div className={styles.row}><div className={styles.k}}>Qualidade</div><div className={styles.v}>{qualityBadge(quality)}</div></div>
             <div className={styles.row}>
               <div className={styles.k}>Conta oficial</div>
               <div className={styles.v}>
@@ -359,31 +371,20 @@ export default function WhatsAppProfile() {
             </div>
 
             <div className={styles.prevBody}>
-              {about && (
-                <div className={styles.line}>
-                  <span className={styles.dot} /> {about}
-                </div>
-              )}
-              {description && (
-                <div className={styles.line}>
-                  <span className={styles.dot} /> {description}
-                </div>
-              )}
-              {vertLabel && (
-                <div className={styles.line}>
-                  <span className={styles.dot} /> {vertLabel}
-                </div>
-              )}
-              {email && (
-                <div className={styles.line}>
-                  <span className={styles.dot} /> {email}
-                </div>
-              )}
-              {[web1, web2].filter(Boolean).map((w,i)=>(
-                <div className={styles.line} key={i}>
-                  <span className={styles.dot} /> {w}
-                </div>
-              ))}
+              <div className={styles.prevList}>
+                {previewItems.map((it, idx) => (
+                  <div className={styles.prevItem} key={idx}>
+                    <span className={styles.prevIcon}>{it.icon}</span>
+                    <div className={styles.prevText}>
+                      {it.link ? (
+                        <a href={it.text} target="_blank" rel="noopener noreferrer" className={styles.link}>
+                          {it.text}
+                        </a>
+                      ) : it.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className={styles.prevFoot}>
