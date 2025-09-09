@@ -1,6 +1,5 @@
-// TelegramConnect.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, PlugZap, CheckCircle2, RefreshCw } from "lucide-react";
+import { ArrowLeft, PlugZap, CheckCircle2, RefreshCw, Copy } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import styles from "./styles/ChannelEditor.module.css";
@@ -34,7 +33,6 @@ export default function TelegramConnect() {
   const [connected, setConnected] = useState(false);
   const [botId, setBotId] = useState("");
   const [username, setUsername] = useState("");
-  const [webhook, setWebhook] = useState("");
 
   // form
   const [token, setToken] = useState("");
@@ -52,8 +50,7 @@ export default function TelegramConnect() {
       setConnected(isConn);
       setBotId(s?.bot_id || "");
       setUsername(s?.username || "");
-      setWebhook(s?.webhook_url || "");
-    } catch (e) {
+    } catch {
       setErr("Falha ao consultar status do Telegram.");
     } finally {
       setChecking(false);
@@ -63,13 +60,12 @@ export default function TelegramConnect() {
   useEffect(() => {
     if (!tenant) { setErr("Tenant não identificado."); setChecking(false); return; }
     loadStatus();
-    // secreto novo a cada visita (apenas para conectar)
     setSecret(genSecretHex());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant]);
 
   async function handleConnect() {
-    if (connected) return; // não deixa conectar se já estiver conectado
+    if (connected) return;
     if (!tenant) return setErr("Tenant não identificado.");
     if (!token)  return setErr("Informe o Bot Token.");
 
@@ -78,7 +74,6 @@ export default function TelegramConnect() {
       const j = await apiPost("/tg/connect", { subdomain: tenant, botToken: token, secret });
       if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
       setOk("Telegram conectado com sucesso.");
-      // atualiza status após conectar
       await loadStatus();
       setToken("");
     } catch (e) {
@@ -125,31 +120,37 @@ export default function TelegramConnect() {
             {ok  && <div className={styles.alertOk}  style={{ marginBottom: 12 }}>{ok}</div>}
 
             {connected ? (
-              // ======= Painel somente-leitura quando já conectado =======
-              <div className={styles.section}>
+              <>
+                <div className={styles.statusBar}>
+                  <span className={styles.statusChipOk}>
+                    <CheckCircle2 size={14}/> Conectado
+                  </span>
+                </div>
+
                 <div className={styles.kpiGrid}>
                   <div className={styles.kvCard}>
                     <div className={styles.kvTitle}>Bot</div>
-                    <div className={styles.kvValue}>
-                      {username ? `@${username}` : "—"}
-                    </div>
+                    <div className={styles.kvValue}>{username ? `@${username}` : "—"}</div>
                   </div>
+
                   <div className={styles.kvCard}>
                     <div className={styles.kvTitle}>Bot ID</div>
-                    <div className={`${styles.kvValue} ${styles.mono}`}>{botId || "—"}</div>
-                  </div>
-                  <div className={styles.kvCard}>
-                    <div className={styles.kvTitle}>Webhook</div>
-                    <div className={styles.kvValue}>{webhook || "—"}</div>
+                    <div className={styles.kvValueRow}>
+                      <span className={`${styles.kvValue} ${styles.mono}`}>{botId || "—"}</span>
+                      {botId && (
+                        <button
+                          className={styles.copyBtn}
+                          onClick={() => navigator.clipboard.writeText(botId)}
+                          title="Copiar ID"
+                        >
+                          <Copy size={14}/>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                <div className={styles.hintRow} style={{ marginTop: 8 }}>
-                  <CheckCircle2 size={16} /> Bot já está conectado. Não é necessário reconectar.
-                </div>
-              </div>
+              </>
             ) : (
-              // ======= Formulário de conexão (apenas se NÃO estiver conectado) =======
               <>
                 <div className={styles.section}>
                   <div className={styles.formRow}>
@@ -164,7 +165,6 @@ export default function TelegramConnect() {
                       disabled={loading}
                     />
                   </div>
-
                   <div className={styles.hintRow}>
                     <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
                   </div>
