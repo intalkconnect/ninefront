@@ -200,7 +200,7 @@ export default function WhatsAppProfile() {
   return (
     <div className={styles.page}>
       <div className={styles.breadcrumbs}>
-        <span className={styles.bcLink} onClick={() => navigate("/channels")}>Canais</span>
+        <span className={styles.bcLink} onClick={() => navigate("/preferences/channels")}>Canais</span>
         <span className={styles.bcSep}>/</span>
         <span>WhatsApp</span>
       </div>
