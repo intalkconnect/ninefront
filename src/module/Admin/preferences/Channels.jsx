@@ -216,10 +216,11 @@ export default function Channels() {
                 <p className={styles.cardDesc}>
                   Conecte via <strong>Meta Embedded Signup</strong> e selecione o número quando conectado.
                 </p>
-                <div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
-                  <WhatsAppEmbeddedSignupButton tenant={tenant} />
-                  <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
-                </div>
+<div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
+  <WhatsAppEmbeddedSignupButton tenant={tenant} label="Conectar" />
+  <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
+</div>
+
               </>
             ) : (
               <>
