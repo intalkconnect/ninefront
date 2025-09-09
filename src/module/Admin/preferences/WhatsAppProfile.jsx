@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import styles from "./styles/ChannelEditor.module.css";
 
-/* -------- tenant via subdomínio -------- */
+/* -------- tenant -------- */
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname;
@@ -13,7 +13,7 @@ function getTenantFromHost() {
   return parts[0] || "";
 }
 
-/* -------- verticais suportadas (label -> value) -------- */
+/* -------- verticais -------- */
 const VERTICALS = [
   ["Selecione...", ""],
   ["Serviços profissionais", "PROFESSIONAL_SERVICES"],
@@ -35,11 +35,24 @@ const VERTICALS = [
   ["Outros", "OTHER"],
 ];
 
-/* -------- helpers -------- */
 const limit = (s = "", n) => String(s).slice(0, n);
 const count = (s) => (s ? String(s).length : 0);
 const initials = (name) =>
   (name || "WA").toString().trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+
+function qualityBadge(q) {
+  const val = (q || "").toUpperCase();
+  let cls = styles.qGrey, label = val || "UNKNOWN";
+  if (val === "GREEN") { cls = styles.qGreen; label = "GREEN"; }
+  else if (val === "YELLOW") { cls = styles.qYellow; label = "YELLOW"; }
+  else if (val === "RED") { cls = styles.qRed; label = "RED"; }
+  return <span className={`${styles.qBadge} ${cls}`}><i /> {label}</span>;
+}
+
+function verticalLabel(v) {
+  if (!v || v === "UNDEFINED") return null;
+  return VERTICALS.find(x => x[1] === v)?.[0] || null;
+}
 
 /* ======================================================== */
 export default function WhatsAppProfile() {
@@ -53,9 +66,10 @@ export default function WhatsAppProfile() {
   const [err, setErr] = useState(null);
   const [ok, setOk] = useState(null);
 
-  // metadados do número
+  // número (Graph /number)
   const [phone, setPhone] = useState(null);
-  // perfil editável
+
+  // perfil (GET /waProfile)
   const [about, setAbout] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
@@ -63,24 +77,23 @@ export default function WhatsAppProfile() {
   const [vertical, setVertical] = useState("");
   const [web1, setWeb1] = useState("");
   const [web2, setWeb2] = useState("");
+
   // foto
   const [photoUrl, setPhotoUrl] = useState("");
-  const [profilePic, setProfilePic] = useState(""); // preview (url)
+  const [profilePic, setProfilePic] = useState(""); // preview atual (aplicada)
 
-  const verifiedName = phone?.verified_name || "";
-  const displayNumber = phone?.display_phone_number || "";
+  const verifiedName   = phone?.verified_name || "";
+  const displayNumber  = phone?.display_phone_number || "";
+  const quality        = phone?.quality_rating || "";
+  const avatarSrc      = profilePic || "";
 
   async function loadAll() {
     if (!tenant) return;
-    setLoading(true);
-    setErr(null);
-    setOk(null);
+    setLoading(true); setErr(null); setOk(null);
     try {
-      // número (qualidade, modo etc)
       const num = await apiGet(`/waProfile/number?subdomain=${tenant}`);
       if (num?.ok) setPhone(num.phone || null);
 
-      // perfil
       const pf = await apiGet(`/waProfile?subdomain=${tenant}`);
       if (pf?.ok) {
         const p = pf.profile || {};
@@ -90,8 +103,7 @@ export default function WhatsAppProfile() {
         setEmail(limit(p.email || "", 128));
         setVertical(p.vertical || "");
         const sites = Array.isArray(p.websites) ? p.websites : [];
-        setWeb1(sites[0] || "");
-        setWeb2(sites[1] || "");
+        setWeb1(sites[0] || ""); setWeb2(sites[1] || "");
         setProfilePic(p.profile_picture_url || "");
       }
     } catch (e) {
@@ -101,7 +113,6 @@ export default function WhatsAppProfile() {
       setLoading(false);
     }
   }
-
   useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, [tenant]);
 
   async function handleSave() {
@@ -109,13 +120,7 @@ export default function WhatsAppProfile() {
     try {
       const websites = [web1, web2].filter(Boolean);
       await apiPost("/waProfile", {
-        subdomain: tenant,
-        about,
-        description,
-        address,
-        email,
-        vertical,
-        websites,
+        subdomain: tenant, about, description, address, email, vertical, websites,
       });
       setOk("Perfil atualizado com sucesso.");
     } catch (e) {
@@ -130,18 +135,13 @@ export default function WhatsAppProfile() {
     if (!photoUrl.trim()) return;
     setErr(null); setOk(null);
     try {
-      const res = await apiPost("/waProfile/photo-from-url", {
-        subdomain: tenant,
-        file_url: photoUrl.trim(),
-      });
-      if (res?.ok) {
-        setOk("Foto aplicada.");
-        // força recarregar para pegar a URL do CDN
-        await loadAll();
-        setPhotoUrl("");
-      } else {
-        setErr("Falha ao aplicar foto.");
-      }
+      // otimista no preview:
+      setProfilePic(photoUrl.trim());
+      await apiPost("/waProfile/photo-from-url", { subdomain: tenant, file_url: photoUrl.trim() });
+      setOk("Foto aplicada.");
+      setPhotoUrl("");
+      // garante estado final vindo da Graph/CDN
+      await loadAll();
     } catch (e) {
       console.error(e);
       setErr("Falha ao aplicar foto.");
@@ -151,18 +151,17 @@ export default function WhatsAppProfile() {
   async function removePhoto() {
     setErr(null); setOk(null);
     try {
-      const res = await apiPost("/waProfile/photo", { _method: "DELETE", subdomain: tenant });
-      if (res?.ok) {
-        setOk("Foto removida.");
-        await loadAll();
-      } else {
-        setErr("Falha ao remover foto.");
-      }
+      await apiPost("/waProfile/photo", { _method: "DELETE", subdomain: tenant });
+      setOk("Foto removida.");
+      setProfilePic("");
+      await loadAll();
     } catch (e) {
       console.error(e);
       setErr("Falha ao remover foto.");
     }
   }
+
+  const vertLabel = verticalLabel(vertical);
 
   return (
     <div className={styles.page}>
@@ -179,7 +178,6 @@ export default function WhatsAppProfile() {
           <h1 className={styles.title}>WhatsApp — Perfil</h1>
           <div className={styles.metaRow}>Tenant: <strong>{tenant || "—"}</strong></div>
         </div>
-
         <div className={styles.headerActions}>
           <button className={styles.backBtn} onClick={() => navigate(backTo)}>
             <ArrowLeft size={16}/> Voltar
@@ -193,37 +191,24 @@ export default function WhatsAppProfile() {
         </div>
       </div>
 
-      {/* avisos */}
       {err && <div className={styles.alertErr} style={{marginBottom:12}}>{err}</div>}
       {ok &&  <div className={styles.alertOk}  style={{marginBottom:12}}>{ok}</div>}
 
-      {/* canvas 2 colunas */}
+      {/* duas colunas */}
       <div className={styles.grid}>
-        {/* ===== coluna esquerda (form) ===== */}
+        {/* ===== esquerda ===== */}
         <section className={styles.left}>
-          {/* infobar top igual Meta */}
+          {/* infos do número (campos riscados foram removidos) */}
           <div className={styles.infoTable}>
             <div className={styles.row}><div className={styles.k}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
             <div className={styles.row}><div className={styles.k}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
             <div className={styles.row}><div className={styles.k}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Qualidade</div><div className={styles.v}>{phone?.quality_rating || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Conta oficial</div><div className={styles.v}>{phone?.is_official_business_account ? "Sim" : "Não"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Modo</div><div className={styles.v}>{phone?.account_mode || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Verificação</div><div className={styles.v}>{phone?.code_verification_status || "—"}</div></div>
-          </div>
-
-          {/* Foto atual + aplicar por URL (como na Meta) */}
-          <div className={styles.section}>
-            <div className={styles.labelStrong}>Foto atual</div>
-            <div className={styles.currentPhoto}>
-              {profilePic ? (
-                <img src={profilePic} alt="Foto do perfil" />
-              ) : (
-                <span className={styles.noPhoto}>Sem foto</span>
-              )}
+            <div className={styles.row}><div className={styles.k}>Qualidade</div>
+              <div className={styles.v}>{qualityBadge(quality)}</div>
             </div>
           </div>
 
+          {/* Foto por URL */}
           <div className={styles.section}>
             <label className={styles.labelStrong}>Foto por URL</label>
             <div className={styles.inlinePhoto}>
@@ -236,13 +221,13 @@ export default function WhatsAppProfile() {
               <button className={styles.btnBlue} onClick={applyPhoto} disabled={!photoUrl.trim()}>
                 <ImageIcon size={16} style={{marginRight:6}}/> Aplicar
               </button>
-              <button className={styles.btnGhost} onClick={removePhoto} disabled={!profilePic}>
+              <button className={styles.btnGhost} onClick={removePhoto} disabled={!avatarSrc}>
                 <Trash2 size={16} style={{marginRight:6}}/> Remover
               </button>
             </div>
           </div>
 
-          {/* Campos editáveis */}
+          {/* Campos editáveis (preview em tempo real) */}
           <div className={styles.section}>
             <label className={styles.labelStrong}>Sobre</label>
             <input
@@ -326,13 +311,13 @@ export default function WhatsAppProfile() {
           </div>
         </section>
 
-        {/* ===== coluna direita (preview) ===== */}
+        {/* ===== direita: preview ===== */}
         <aside className={styles.preview}>
           <div className={styles.previewCard}>
             <div className={styles.prevHeader}>
               <div className={styles.prevAvatar}>
-                {profilePic ? (
-                  <img src={profilePic} alt="logo" />
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt="logo" />
                 ) : (
                   <span>{initials(verifiedName || "WA")}</span>
                 )}
@@ -343,24 +328,27 @@ export default function WhatsAppProfile() {
             </div>
 
             <div className={styles.prevBody}>
+              {/* sobre também aparece no preview */}
+              {about && (
+                <div className={styles.line}>
+                  <span className={styles.dot} /> {about}
+                </div>
+              )}
               {description && (
                 <div className={styles.line}>
                   <span className={styles.dot} /> {description}
                 </div>
               )}
-
-              {vertical && (
+              {vertLabel && (
                 <div className={styles.line}>
-                  <span className={styles.dot} /> {VERTICALS.find(v=>v[1]===vertical)?.[0] || vertical}
+                  <span className={styles.dot} /> {vertLabel}
                 </div>
               )}
-
               {email && (
                 <div className={styles.line}>
                   <span className={styles.dot} /> {email}
                 </div>
               )}
-
               {[web1, web2].filter(Boolean).map((w,i)=>(
                 <div className={styles.line} key={i}>
                   <span className={styles.dot} /> {w}
