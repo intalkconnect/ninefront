@@ -605,8 +605,8 @@ export default function Admin() {
           {/* campaigns */}
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
-          <Route path="/channels/whatsapp" element={<WhatsAppProfile />} />
-          <Route path="/channels/telegram" element={<TelegramConnect />} />
+          <Route path="channels/whatsapp" element={<WhatsAppProfile />} />
+          <Route path="channels/telegram" element={<TelegramConnect />} />
 
           {/* development – admin only */}
           <Route
