@@ -105,7 +105,7 @@
 .prevText{ color:#111827; line-height:1.35; word-break:break-word; }
 .link{ color:#2563eb; text-decoration:none; } .link:hover{ text-decoration:underline; }
 
-.prevFoot{ padding:10px 12px; color:#6b7280; font-size:12px; border-top:1px solid var(--border2); 
+.prevFoot{ padding:10px 12px; color:#6b7280; font-size:12px; border-top:1px solid var(--border2); }
 
           /* ====== Grid de metadados (cards) ====== */
 .kpiGrid{
