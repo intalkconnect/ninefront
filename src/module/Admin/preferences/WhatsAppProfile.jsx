@@ -229,22 +229,45 @@ export default function WhatsAppProfile() {
       <div className={styles.grid}>
         {/* ===== esquerda ===== */}
         <section className={styles.left}>
-          <div className={styles.infoTable}>
-            <div className={styles.row}><div className={styles.k}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Qualidade</div><div className={styles.v}>{qualityBadge(quality)}</div></div>
-            <div className={styles.row}>
-              <div className={styles.k}>Conta oficial</div>
-              <div className={styles.v}>
-                {oba ? <span className={`${styles.chip} ${styles.chipOk}`}>Sim</span> : <span className={`${styles.chip} ${styles.chipOff}`}>Não</span>}
-              </div>
-            </div>
-            <div className={styles.row}>
-              <div className={styles.k}>Verificação</div>
-              <div className={styles.v}>{verifyChip(verifyStatus)}</div>
-            </div>
-          </div>
+          {/* === META DADOS EM GRADE (título em cima) === */}
+<section className={styles.kpiGrid}>
+  <div className={styles.kvCard}>
+    <div className={styles.kvTitle}>Phone ID</div>
+    <div className={`${styles.kvValue} ${styles.mono}`}>{phone?.id || "—"}</div>
+  </div>
+
+  <div className={styles.kvCard}>
+    <div className={styles.kvTitle}>Número</div>
+    <div className={styles.kvValue}>{displayNumber || "—"}</div>
+  </div>
+
+  <div className={styles.kvCard}>
+    <div className={styles.kvTitle}>Nome verificado</div>
+    <div className={styles.kvValue}>{verifiedName || "—"}</div>
+  </div>
+
+  <div className={styles.kvCard}>
+    <div className={styles.kvTitle}>Qualidade</div>
+    <div className={styles.kvValue}>{qualityBadge(quality)}</div>
+  </div>
+
+  <div className={styles.kvCard}>
+    <div className={styles.kvTitle}>Conta oficial</div>
+    <div className={styles.kvValue}>
+      {oba ? (
+        <span className={`${styles.chip} ${styles.chipOk}`}>Sim</span>
+      ) : (
+        <span className={`${styles.chip} ${styles.chipOff}`}>Não</span>
+      )}
+    </div>
+  </div>
+
+  <div className={styles.kvCard}>
+    <div className={styles.kvTitle}>Verificação</div>
+    <div className={styles.kvValue}>{verifyChip(verifyStatus)}</div>
+  </div>
+</section>
+
 
           {/* Foto por URL */}
           <div className={styles.section}>
