@@ -105,4 +105,53 @@
 .prevText{ color:#111827; line-height:1.35; word-break:break-word; }
 .link{ color:#2563eb; text-decoration:none; } .link:hover{ text-decoration:underline; }
 
-.prevFoot{ padding:10px 12px; color:#6b7280; font-size:12px; border-top:1px solid var(--border2); }
+.prevFoot{ padding:10px 12px; color:#6b7280; font-size:12px; border-top:1px solid var(--border2); 
+
+          /* ====== Grid de metadados (cards) ====== */
+.kpiGrid{
+  display:grid;
+  gap:12px;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  margin-bottom:12px;
+}
+
+@media (max-width: 1200px){
+  .kpiGrid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 720px){
+  .kpiGrid{ grid-template-columns: 1fr; }
+}
+
+.kvCard{
+  background:#f8fafc;
+  border:1px solid var(--border2);
+  border-radius:12px;
+  padding:10px 12px;
+  min-height:72px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+
+.kvTitle{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:6px;
+}
+
+.kvValue{
+  color:#0f172a;
+  font-weight:700;
+  line-height:1.25;
+  word-break:break-word;
+}
+
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* (opcional) deixa os chips dentro dos cards mais "grudadinhos" ao texto */
+.kvValue .chip{ transform: translateY(-1px); }
+
