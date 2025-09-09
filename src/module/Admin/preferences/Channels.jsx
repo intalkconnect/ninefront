@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZap, X } from "lucide-react";
-import { apiGet, apiPost } from '../../../shared/apiClient';
+import { MessageCircle, Instagram, MessageSquareText, Send, CheckCircle2, PlugZap } from "lucide-react";
+import { apiGet } from '../../../shared/apiClient';
 import styles from "./styles/Channels.module.css";
 import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
+import { useNavigate, useLocation } from "react-router-dom";
 
 /* ================= utils ================= */
 function getTenantFromHost() {
@@ -12,108 +13,16 @@ function getTenantFromHost() {
   if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
   return parts[0] || "";
 }
-function genSecretHex(bytes = 32) {
-  if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
-    const arr = new Uint8Array(bytes);
-    window.crypto.getRandomValues(arr);
-    return Array.from(arr).map(b => b.toString(16).padStart(2, "0")).join("");
-  }
-  let out = "";
-  for (let i = 0; i < bytes; i++) out += Math.floor(Math.random() * 256).toString(16).padStart(2, "0");
-  return out;
-}
 
-/* =============== Modal Telegram =============== */
-function TelegramConnectModal({ open, onClose, tenant, onSuccess }) {
-  const [token, setToken] = useState("");
-  const [secret, setSecret] = useState("");       // gerado silenciosamente
-  const [loading, setLoading] = useState(false);
-  const [errMsg, setErrMsg] = useState(null);
-
-  useEffect(() => {
-    if (!open) return;
-    setToken("");
-    setErrMsg(null);
-    setLoading(false);
-    // gera o secret sem mostrar para o usuário
-    setSecret(genSecretHex());
-  }, [open]);
-
-  if (!open) return null;
-
-  const overlay = { position:"fixed", inset:0, background:"rgba(0,0,0,.45)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000 };
-  const modal   = { width:"min(520px,92vw)", background:"#fff", borderRadius:12, boxShadow:"0 10px 30px rgba(0,0,0,.25)", padding:"18px", position:"relative" };
-  const header  = { display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 };
-  const title   = { fontSize:18, fontWeight:700 };
-  const input   = { width:"100%", padding:"10px 12px", border:"1px solid #e2e8f0", borderRadius:8 };
-  const label   = { fontSize:12, fontWeight:600, color:"#475569", marginBottom:6 };
-  const row     = { display:"grid", gridTemplateColumns:"1fr", gap:10, marginBottom:12 };
-  const actions = { display:"flex", gap:10, justifyContent:"flex-end", marginTop:8 };
-
-  async function handleConnect() {
-    if (!tenant) return setErrMsg("Tenant não identificado pelo subdomínio.");
-    if (!token)  return setErrMsg("Informe o Bot Token.");
-
-    setLoading(true); setErrMsg(null);
-    try {
-      // mantém sua rota funcional atual
-      const j = await apiPost("/tg/connect", { subdomain: tenant, botToken: token, secret });
-      if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
-
-      onSuccess({ botId: j.bot_id, username: j.username, webhookUrl: j.webhook_url });
-      onClose();
-    } catch (e) {
-      setErrMsg(String(e?.message || e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div style={overlay} onClick={onClose}>
-      <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <div style={header}>
-          <div style={title}>Conectar Telegram</div>
-          <button className={styles.btnIcon} onClick={onClose} title="Fechar" aria-label="Fechar"><X size={18}/></button>
-        </div>
-
-        {errMsg && <div className={styles.alertErr} style={{ marginBottom:10 }}>{errMsg}</div>}
-
-        <div style={row}>
-          <label style={label}>Bot Token</label>
-          <input
-            style={input}
-            type="text"
-            placeholder="ex.: 123456:AAHk...-seu-token"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            autoComplete="off"
-          />
-        </div>
-
-        {/* observação simples; secret é gerado e não é exibido */}
-        <p className={styles.cardDesc}>Conecte informando apenas o <strong>Bot Token</strong>.</p>
-
-        <div style={actions}>
-          <button className={styles.btnGhost} onClick={onClose}>Cancelar</button>
-          {/* botão do modal em azul Telegram */}
-          <button className={styles.btnTgPrimary} onClick={handleConnect} disabled={loading}>
-            {loading ? "Conectando..." : "Conectar"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ========================= page ========================= */
 export default function Channels() {
   const tenant = useMemo(() => getTenantFromHost(), []);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // WhatsApp
   const [wa, setWa] = useState({ connected: false, wabaId: "", numbers: [], okMsg: null, errMsg: null });
 
-  // Telegram (estado “conectado” e dados do bot)
+  // Telegram
   const [tg, setTg] = useState({
     connected: false,
     botId: "",
@@ -123,16 +32,12 @@ export default function Channels() {
     errMsg: null
   });
 
-  // controla modal
-  const [showTgModal, setShowTgModal] = useState(false);
-
   // ✅ Checa status dos canais ao carregar a página
   useEffect(() => {
     if (!tenant) return;
 
     (async () => {
       try {
-        // tente um endpoint agregado
         const s = await apiGet(`/channels/status?subdomain=${tenant}`);
         if (s?.telegram) {
           setTg((prev) => ({
@@ -152,7 +57,6 @@ export default function Channels() {
           }));
         }
       } catch {
-        // fallbacks por canal (caso não exista o agregado)
         try {
           const ts = await apiGet(`/tg/status?subdomain=${tenant}`);
           if (ts?.ok) {
@@ -193,6 +97,12 @@ export default function Channels() {
     return () => window.removeEventListener("message", onMsg);
   }, []);
 
+  const goToWaProfile = () =>
+    navigate("/channels/whatsapp", { state: { returnTo: location.pathname + location.search } });
+
+  const goToTgConnect = () =>
+    navigate("/channels/telegram", { state: { returnTo: location.pathname + location.search } });
+
   const iconWrap = (cls, icon) => <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>;
 
   return (
@@ -222,17 +132,24 @@ export default function Channels() {
           </div>
           <div className={styles.cardBody}>
             <p className={styles.cardDesc}>Conecte via Signup Meta e selecione o número.</p>
+
             {!wa.connected ? (
               <div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
-                {/* botão do embedded ficará verde via CSS acima */}
                 <WhatsAppEmbeddedSignupButton tenant={tenant} />
                 <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
               </div>
             ) : (
-              <div className={styles.connectedBlock}>
-                <div className={styles.kv}><span className={styles.k}>WABA</span><span className={styles.v}>{wa.wabaId}</span></div>
-                <div className={styles.kv}><span className={styles.k}>Números</span><span className={styles.v}>{wa.numbers?.length || 0}</span></div>
-              </div>
+              <>
+                <div className={styles.connectedBlock}>
+                  <div className={styles.kv}><span className={styles.k}>WABA</span><span className={styles.v}>{wa.wabaId}</span></div>
+                  <div className={styles.kv}><span className={styles.k}>Números</span><span className={styles.v}>{wa.numbers?.length || 0}</span></div>
+                </div>
+                <div className={styles.cardActions}>
+                  <button className={styles.btnSecondary} onClick={goToWaProfile}>
+                    Gerenciar / Perfil
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -263,7 +180,7 @@ export default function Channels() {
           </div>
         </div>
 
-        {/* Telegram (abre modal) */}
+        {/* Telegram → abre página (sem modal) */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
             {iconWrap(styles.tg, <Send size={18}/>)}
@@ -275,33 +192,25 @@ export default function Channels() {
           <div className={styles.cardBody}>
             {!tg.connected ? (
               <>
-                <p className={styles.cardDesc}>
-                  Conecte informando <strong>Bot Token</strong>.
-                </p>
+                <p className={styles.cardDesc}>Conecte informando <strong>Bot Token</strong>.</p>
                 <div className={styles.cardActions}>
-                  {/* botão azul Telegram */}
-                  <button className={styles.btnTgPrimary} onClick={() => setShowTgModal(true)}>Conectar</button>
+                  <button className={styles.btnTgPrimary} onClick={goToTgConnect}>Conectar</button>
                 </div>
               </>
             ) : (
-              <div className={styles.connectedBlock}>
-                <div className={styles.kv}><span className={styles.k}>Bot</span><span className={styles.v}>{tg.username || "—"}</span></div>
-                <div className={styles.kv}><span className={styles.k}>Bot ID</span><span className={styles.v}>{tg.botId || "—"}</span></div>
-              </div>
+              <>
+                <div className={styles.connectedBlock}>
+                  <div className={styles.kv}><span className={styles.k}>Bot</span><span className={styles.v}>{tg.username || "—"}</span></div>
+                  <div className={styles.kv}><span className={styles.k}>Bot ID</span><span className={styles.v}>{tg.botId || "—"}</span></div>
+                </div>
+                <div className={styles.cardActions}>
+                  <button className={styles.btnSecondary} onClick={goToTgConnect}>Gerenciar</button>
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
-
-      {/* Modal Telegram */}
-      <TelegramConnectModal
-        open={showTgModal}
-        onClose={() => setShowTgModal(false)}
-        tenant={tenant}
-        onSuccess={({ botId, username, webhookUrl }) =>
-          setTg({ connected: true, botId, username, webhookUrl, okMsg: "Telegram conectado com sucesso.", errMsg: null })
-        }
-      />
     </div>
   );
 }
