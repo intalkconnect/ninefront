@@ -216,9 +216,25 @@ html, body {
 /* Bloco conectado + lista */
 .connectedBlock{ display:flex; flex-direction:column; gap:10px; }
 
-.kv{ display:grid; grid-template-columns:90px 1fr; gap:8px; font-size:14px; }
-.k{ color:#6b7280; }
-.v{ color:#111827; word-break:break-all; }
+.kv {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* garante que a coluna da chave tenha largura fixa e não quebre */
+.kv .k {
+  min-width: 140px;   /* ajuste esse valor conforme quiser */
+  white-space: nowrap; /* não deixa quebrar */
+  font-weight: 500;
+}
+
+/* valor fica ao lado */
+.kv .v {
+  flex: 1;
+  font-weight: 400;
+}
+
 
 .listWrap{ border-top:1px dashed #e5e7eb; padding-top:10px; }
 .listTitle{ font-weight:600; font-size:14px; margin-bottom:6px; }
