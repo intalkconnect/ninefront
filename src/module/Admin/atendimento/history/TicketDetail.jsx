@@ -58,6 +58,9 @@ export default function TicketDetail() {
   const messages = data?.messages || [];
   const attachments = data?.attachments || [];
 
+  // Pode exportar somente se carregado, sem erro e houver ao menos 1 mensagem
+  const canExport = !loading && !err && messages.length > 0;
+
   async function downloadFile(url, filename = 'arquivo') {
     try {
       const resp = await fetch(url, { credentials: 'include' });
@@ -65,7 +68,7 @@ export default function TicketDetail() {
       const blob = await resp.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = filename;            // força baixar
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -76,6 +79,7 @@ export default function TicketDetail() {
   }
 
   async function handleExportPdf() {
+    if (!canExport) return; // proteção extra
     try {
       const resp = await fetch(`/api/v1/tickets/history/${id}/pdf`, {
         credentials: 'include'
@@ -114,10 +118,15 @@ export default function TicketDetail() {
           <button className={styles.backBtn} onClick={() => nav(backTo)}>
             <ArrowLeft size={16}/> Voltar
           </button>
-<button className={styles.btnPrimary} onClick={handleExportPdf}>
-  Exportar PDF
-</button>
-
+          <button
+            className={styles.btnPrimary}
+            onClick={handleExportPdf}
+            disabled={!canExport}
+            title={canExport ? 'Exportar PDF' : 'Sem mensagens para exportar'}
+            aria-disabled={!canExport}
+          >
+            Exportar PDF
+          </button>
         </div>
       </div>
 
@@ -233,15 +242,14 @@ export default function TicketDetail() {
                             </div>
                           </div>
                           <div className={styles.attachActions}>
-<button
-  className={`${styles.btnPrimary} ${styles.btnSm}`}
-  onClick={() => downloadFile(a.url, a.filename || 'arquivo')}
-  title="Baixar"
-  aria-label={`Baixar ${a.filename || 'arquivo'}`}
->
-  <Download size={16} style={{ marginRight: 6 }} /> Baixar
-</button>
-
+                            <button
+                              className={`${styles.btnPrimary} ${styles.btnSm}`}
+                              onClick={() => downloadFile(a.url, a.filename || 'arquivo')}
+                              title="Baixar"
+                              aria-label={`Baixar ${a.filename || 'arquivo'}`}
+                            >
+                              <Download size={16} style={{ marginRight: 6 }} /> Baixar
+                            </button>
                           </div>
                         </div>
                       ))}
