@@ -1,21 +1,21 @@
 .threadArea {
   height: 100%;
   display: grid;
-  /* Mantém o fundo neutro do chat */
   background: #f7f9fc;
   border-radius: 12px;
 }
 
-/* Estiliza o container que o MessageList espera */
+/* Container usado pelo MessageList */
 :global(.chat-scroll-container) {
   height: 100%;
   overflow: auto;
   padding: 16px 18px;
   box-sizing: border-box;
-  scroll-behavior: smooth;
+  /* sem suavização/auto-rolagem */
+  scroll-behavior: auto;
 }
 
-/* Divisores de ticket e sistema (se usados) */
+/* Divisores (ticket/sistema) */
 :global(.ticket-divider) {
   text-align: center;
   color: #667781;
