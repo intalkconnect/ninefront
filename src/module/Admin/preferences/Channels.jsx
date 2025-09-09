@@ -228,11 +228,6 @@ export default function Channels() {
                     <span className={styles.k}>Número WABA</span>
                     <span className={styles.v}>{waDisplayNumber}</span>
                   </div>
-                  <div className={styles.kv}>
-                    <span className={styles.k}>Phone ID</span>
-                    <span className={styles.v}>{wa.phoneId || "—"}</span>
-                  </div>
-
                   {/* Campos opcionais (exibidos se vierem na API) */}
                   {wa.phone && wa.phone.verified_name && (
                     <div className={styles.kv}>
@@ -240,28 +235,11 @@ export default function Channels() {
                       <span className={styles.v}>{wa.phone.verified_name}</span>
                     </div>
                   )}
-                  {wa.phone && wa.phone.quality_rating && (
-                    <div className={styles.kv}>
-                      <span className={styles.k}>Qualidade</span>
-                      <span className={styles.v}>{wa.phone.quality_rating}</span>
-                    </div>
-                  )}
-                  {wa.phone && typeof wa.phone.is_official_business_account === "boolean" && (
-                    <div className={styles.kv}>
-                      <span className={styles.k}>OBA</span>
-                      <span className={styles.v}>{wa.phone.is_official_business_account ? "Sim" : "Não"}</span>
-                    </div>
-                  )}
-                  {wa.phone && wa.phone.account_mode && (
-                    <div className={styles.kv}>
-                      <span className={styles.k}>Modo</span>
-                      <span className={styles.v}>{wa.phone.account_mode}</span>
-                    </div>
-                  )}
+                  
                 </div>
                 <div className={styles.cardActions}>
                   <button className={styles.btnSecondary} onClick={goToWaProfile}>
-                    Gerenciar / Perfil
+                    Perfil
                   </button>
                 </div>
               </>
