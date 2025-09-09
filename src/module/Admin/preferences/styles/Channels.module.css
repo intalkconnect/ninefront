@@ -192,6 +192,13 @@ html, body {
 }
 .btnWrapWa :global(button:disabled){ opacity:.6 !important; cursor:not-allowed !important; }
 
+.btnWrapWa{
+  display: flex;
+  align-items: center;
+  gap: 12px;        /* 👈 espaço entre o botão e o texto */
+  flex-wrap: wrap;  /* se apertar, o texto quebra pra baixo */
+}
+
 /* utilidades usadas no modal */
 .btnGhost{
   background:#fff;
