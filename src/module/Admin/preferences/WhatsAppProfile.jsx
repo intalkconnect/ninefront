@@ -54,6 +54,26 @@ function verticalLabel(v) {
   return VERTICALS.find(x => x[1] === v)?.[0] || null;
 }
 
+function verifyChip(code) {
+  const c = (code || "").toUpperCase();
+  if (c === "VERIFIED")   return <span className={`${styles.chip} ${styles.chipOk}`}>Verificado</span>;
+  if (c === "IN_REVIEW" || c === "PENDING") return <span className={`${styles.chip} ${styles.chipWarn}`}>Em análise</span>;
+  if (c === "NOT_VERIFIED" || !c) return <span className={`${styles.chip} ${styles.chipOff}`}>Não verificado</span>;
+  return <span className={`${styles.chip} ${styles.chipOff}`}>{c}</span>;
+}
+
+const VerifiedBadge = ({ show }) => {
+  if (!show) return null;
+  return (
+    <span className={styles.obaBadge} title="Conta empresarial oficial">
+      <svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">
+        <circle cx="10" cy="10" r="10" fill="#22c55e"></circle>
+        <path d="M5.8 10.4l2.7 2.6 5.7-6.2" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </span>
+  );
+};
+
 /* ======================================================== */
 export default function WhatsAppProfile() {
   const tenant = useMemo(() => getTenantFromHost(), []);
@@ -80,11 +100,13 @@ export default function WhatsAppProfile() {
 
   // foto
   const [photoUrl, setPhotoUrl] = useState("");
-  const [profilePic, setProfilePic] = useState(""); // preview atual (aplicada)
+  const [profilePic, setProfilePic] = useState("");
 
   const verifiedName   = phone?.verified_name || "";
   const displayNumber  = phone?.display_phone_number || "";
   const quality        = phone?.quality_rating || "";
+  const oba            = !!phone?.is_official_business_account;
+  const verifyStatus   = phone?.code_verification_status || "";
   const avatarSrc      = profilePic || "";
 
   async function loadAll() {
@@ -135,12 +157,10 @@ export default function WhatsAppProfile() {
     if (!photoUrl.trim()) return;
     setErr(null); setOk(null);
     try {
-      // otimista no preview:
-      setProfilePic(photoUrl.trim());
+      setProfilePic(photoUrl.trim()); // preview otimista
       await apiPost("/waProfile/photo-from-url", { subdomain: tenant, file_url: photoUrl.trim() });
       setOk("Foto aplicada.");
       setPhotoUrl("");
-      // garante estado final vindo da Graph/CDN
       await loadAll();
     } catch (e) {
       console.error(e);
@@ -165,14 +185,12 @@ export default function WhatsAppProfile() {
 
   return (
     <div className={styles.page}>
-      {/* breadcrumbs */}
       <div className={styles.breadcrumbs}>
         <span className={styles.bcLink} onClick={() => navigate("/channels")}>Canais</span>
         <span className={styles.bcSep}>/</span>
         <span>WhatsApp</span>
       </div>
 
-      {/* header */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <h1 className={styles.title}>WhatsApp — Perfil</h1>
@@ -194,17 +212,25 @@ export default function WhatsAppProfile() {
       {err && <div className={styles.alertErr} style={{marginBottom:12}}>{err}</div>}
       {ok &&  <div className={styles.alertOk}  style={{marginBottom:12}}>{ok}</div>}
 
-      {/* duas colunas */}
       <div className={styles.grid}>
         {/* ===== esquerda ===== */}
         <section className={styles.left}>
-          {/* infos do número (campos riscados foram removidos) */}
           <div className={styles.infoTable}>
             <div className={styles.row}><div className={styles.k}>Phone ID</div><div className={styles.v}>{phone?.id || "—"}</div></div>
             <div className={styles.row}><div className={styles.k}>Número</div><div className={styles.v}>{displayNumber || "—"}</div></div>
             <div className={styles.row}><div className={styles.k}>Nome verificado</div><div className={styles.v}>{verifiedName || "—"}</div></div>
-            <div className={styles.row}><div className={styles.k}>Qualidade</div>
-              <div className={styles.v}>{qualityBadge(quality)}</div>
+            <div className={styles.row}><div className={styles.k}>Qualidade</div><div className={styles.v}>{qualityBadge(quality)}</div></div>
+
+            {/* volta com verificado (OBA) e status */}
+            <div className={styles.row}>
+              <div className={styles.k}>Conta oficial</div>
+              <div className={styles.v}>
+                {oba ? <span className={`${styles.chip} ${styles.chipOk}`}>Sim</span> : <span className={`${styles.chip} ${styles.chipOff}`}>Não</span>}
+              </div>
+            </div>
+            <div className={styles.row}>
+              <div className={styles.k}>Verificação</div>
+              <div className={styles.v}>{verifyChip(verifyStatus)}</div>
             </div>
           </div>
 
@@ -227,7 +253,7 @@ export default function WhatsAppProfile() {
             </div>
           </div>
 
-          {/* Campos editáveis (preview em tempo real) */}
+          {/* Campos editáveis */}
           <div className={styles.section}>
             <label className={styles.labelStrong}>Sobre</label>
             <input
@@ -322,13 +348,17 @@ export default function WhatsAppProfile() {
                   <span>{initials(verifiedName || "WA")}</span>
                 )}
               </div>
-              <div className={styles.prevName}>{verifiedName || "—"}</div>
+
+              <div className={styles.nameRow}>
+                <div className={styles.prevName}>{verifiedName || "—"}</div>
+                <VerifiedBadge show={oba} />
+              </div>
+
               <div className={styles.prevPhone}>+{displayNumber || "--"}</div>
               <button className={styles.shareBtn}>Compartilhar</button>
             </div>
 
             <div className={styles.prevBody}>
-              {/* sobre também aparece no preview */}
               {about && (
                 <div className={styles.line}>
                   <span className={styles.dot} /> {about}
