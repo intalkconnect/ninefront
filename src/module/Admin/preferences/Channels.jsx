@@ -94,7 +94,7 @@ export default function Channels() {
     // Telegram
     (async () => {
       try {
-        const ts = await apiGet(`/tg/status?subdomain=${tenant}`);
+        const ts = await apiGet(`/telegram/status?subdomain=${tenant}`);
         if (ts && ts.ok) {
           setTg((prev) => ({
             ...prev,
