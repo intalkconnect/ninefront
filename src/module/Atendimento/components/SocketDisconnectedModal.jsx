@@ -14,7 +14,7 @@ const waitForSessionAndUpdate = (sessionId, status) => {
     const isReady = window.sessionStorage.getItem("sessionReady") === "true";
     if (isReady && sessionId) {
       clearInterval(interval);
-      apiPut(`/atendentes/status/${sessionId}`, { status })
+      apiPut(`/agents/status/${sessionId}`, { status })
         .then(() => console.log(`[status] sessão ${sessionId} → ${status}`))
         .catch((err) => console.error("Erro ao atualizar status:", err));
     }
