@@ -43,7 +43,7 @@ const QuickReplies = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiGet('/quickReplies');
+      const data = await apiGet('/quick-replies');
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('Erro ao carregar:', e);
@@ -82,7 +82,7 @@ const QuickReplies = () => {
     setSavingId(id);
     setError(null);
     try {
-      const updated = await apiPut(`/quickReplies/${id}`, {
+      const updated = await apiPut(`/quick-replies/${id}`, {
         title: editTitle.trim(),
         content: editContent.trim()
       });
@@ -112,7 +112,7 @@ const QuickReplies = () => {
       tone: 'danger', // pinta vermelhinho
       });
       if (!ok) return;
-      await apiDelete(`/quickReplies/${id}`);
+      await apiDelete(`/quick-replies/${id}`);
       setItems(prev => prev.filter(r => r.id !== id));
       showSuccess('Resposta removida.');
     } catch (e) {
