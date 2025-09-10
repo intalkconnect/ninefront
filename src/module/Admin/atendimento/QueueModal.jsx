@@ -75,7 +75,7 @@ export default function QueueModal({ isOpen, onClose, onCreated }) {
       const norm = normalizeHexColor(color);
       if (norm) payload.color = norm;
 
-      await apiPost('/filas', payload);
+      await apiPost('/queues', payload);
       onCreated?.();           // avisa o pai pra recarregar lista/toast
       onClose?.();             // fecha modal
     } catch (err) {
