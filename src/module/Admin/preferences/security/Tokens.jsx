@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Copy, Shield, Plus, Trash2, Star, StarOff, RefreshCw } from 'lucide-react';
-import { apiGet, apiPost } from '../../../shared/apiClient';
+import { apiGet, apiPost } from '../../../../shared/apiClient';
 import styles from './styles/Tokens.module.css';
 
 function mask(s) { return s || '—'; }
