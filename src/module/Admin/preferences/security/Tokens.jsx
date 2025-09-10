@@ -7,9 +7,9 @@ import styles from './styles/Tokens.module.css';
 function shortPreview(preview = '') {
   const parts = String(preview).split('.');
   const secretPart = parts.length > 1 ? parts[1] : parts[0] || '';
-  const raw = secretPart.replace(/[^0-9a-f]/gi, ''); // remove possíveis bullets do back
+  const raw = secretPart.replace(/[^0-9a-f]/gi, ''); // limpa bullets/sinais
   const first8 = raw.slice(0, 8);
-  const bullets = '•'.repeat(Math.max(0, 64 - first8.length)); // segredo padrão: 64 hex
+  const bullets = '•'.repeat(Math.max(0, 64 - first8.length)); // segredo 64 hex
   return `${first8}${bullets}`;
 }
 
@@ -44,31 +44,30 @@ export default function TokensSecurity() {
     setTimeout(()=>setOk(null), 1200);
   };
 
-const createToken = async (e) => {
-  if (e?.preventDefault) e.preventDefault();   // evita submit da página
-  if (creating) return;
+  const createToken = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (creating) return;
 
-  const name = (newName || '').trim();
-  if (!name) {
-    setErr('Informe o nome do token.');
-    nameRef.current?.focus();
-    return;
-  }
+    const name = (newName || '').trim();
+    if (!name) {
+      setErr('Informe o nome do token.');
+      nameRef.current?.focus();
+      return;
+    }
 
-  setCreating(true); setErr(null); setOk(null);
-  try {
-    const j = await apiPost('/security/tokens', { name, is_default: false });
-    if (!j?.ok) throw new Error(j?.message || 'Falha ao criar token');
-    setNewName('');
-    await load();
-    setOk('Token criado.');
-  } catch (e) {
-    setErr(e?.response?.data?.message || e?.message || 'Falha ao criar token.');
-  } finally {
-    setCreating(false);
-  }
-};
-
+    setCreating(true); setErr(null); setOk(null);
+    try {
+      const j = await apiPost('/security/tokens', { name, is_default: false });
+      if (!j?.ok) throw new Error(j?.message || 'Falha ao criar token');
+      setNewName('');
+      await load();
+      setOk('Token criado.');
+    } catch (e) {
+      setErr(e?.response?.data?.message || e?.message || 'Falha ao criar token.');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const revoke = async (id) => {
     if (!id) return;
@@ -83,8 +82,11 @@ const createToken = async (e) => {
     }
   };
 
+  const showNameErr = !newName.trim() && err === 'Informe o nome do token.';
+
   return (
     <div className={styles.page}>
+      {/* Header */}
       <div className={styles.header}>
         <div className={styles.hLeft}>
           <Shield size={20}/><h1>Segurança — Tokens de API</h1>
@@ -96,35 +98,45 @@ const createToken = async (e) => {
         </div>
       </div>
 
-{err && <div className={styles.alertErr} aria-live="polite">{err}</div>}
-{ok  && <div className={styles.alertOk}  aria-live="polite">{ok}</div>}
+      {err && <div className={styles.alertErr} aria-live="polite">{err}</div>}
+      {ok  && <div className={styles.alertOk}  aria-live="polite">{ok}</div>}
 
-
-      {/* criação */}
+      {/* Criar token */}
       <div className={styles.card}>
-<form className={styles.row} onSubmit={createToken} noValidate>
-  <input
-    ref={nameRef}
-    className={`${styles.input} ${(!newName.trim() && err) ? styles.inputErr : ''}`}
-    placeholder="Nome do token"
-    value={newName}
-    onChange={(e)=>{ setNewName(e.target.value); if (err) setErr(null); }}
-    disabled={creating}
-    aria-invalid={!newName.trim() && !!err}
-  />
-  <button
-    type="submit"
-    className={styles.btnPrimary}
-    disabled={creating || !newName.trim()}
-    title={(!newName.trim() ? 'Informe o nome do token' : 'Criar token')}
-  >
-    <Plus size={16}/> Criar token
-  </button>
-</form>
+        <div className={styles.cardBody}>
+          <form className={styles.createBar} onSubmit={createToken} noValidate>
+            <div className={styles.field}>
+              <input
+                ref={nameRef}
+                className={`${styles.input} ${showNameErr ? styles.inputErr : ''}`}
+                placeholder="Nome do token"
+                value={newName}
+                onChange={(e)=>{ setNewName(e.target.value); if (err) setErr(null); }}
+                disabled={creating}
+                aria-invalid={showNameErr ? 'true' : 'false'}
+                aria-describedby="token-name-err"
+              />
+              {showNameErr && (
+                <div id="token-name-err" className={styles.fieldErr}>
+                  Informe o nome do token.
+                </div>
+              )}
+            </div>
 
+            <button
+              type="submit"
+              className={styles.btnPrimary}
+              onClick={createToken}
+              disabled={creating}   // habilitado mesmo com nome vazio para disparar validação
+              title="Criar token"
+            >
+              <Plus size={16}/> Criar token
+            </button>
+          </form>
+        </div>
       </div>
 
-      {/* lista */}
+      {/* Lista */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>Tokens do workspace</div>
