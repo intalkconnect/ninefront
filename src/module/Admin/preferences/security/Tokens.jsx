@@ -7,9 +7,9 @@ import styles from './styles/Tokens.module.css';
 function shortPreview(preview = '') {
   const parts = String(preview).split('.');
   const secretPart = parts.length > 1 ? parts[1] : parts[0] || '';
-  const raw = secretPart.replace(/[^0-9a-f]/gi, ''); // limpa bullets/sinais
+  const raw = secretPart.replace(/[^0-9a-f]/gi, '');
   const first8 = raw.slice(0, 8);
-  const bullets = '•'.repeat(Math.max(0, 64 - first8.length)); // segredo 64 hex
+  const bullets = '•'.repeat(Math.max(0, 64 - first8.length));
   return `${first8}${bullets}`;
 }
 
@@ -44,13 +44,16 @@ export default function TokensSecurity() {
     setTimeout(()=>setOk(null), 1200);
   };
 
+  const NAME_ERR = 'Informe o nome do token.';
+  const isNameErr = err === NAME_ERR;
+
   const createToken = async (e) => {
     if (e?.preventDefault) e.preventDefault();
     if (creating) return;
 
     const name = (newName || '').trim();
     if (!name) {
-      setErr('Informe o nome do token.');
+      setErr(NAME_ERR);
       nameRef.current?.focus();
       return;
     }
@@ -62,8 +65,8 @@ export default function TokensSecurity() {
       setNewName('');
       await load();
       setOk('Token criado.');
-    } catch (e) {
-      setErr(e?.response?.data?.message || e?.message || 'Falha ao criar token.');
+    } catch (e2) {
+      setErr(e2?.response?.data?.message || e2?.message || 'Falha ao criar token.');
     } finally {
       setCreating(false);
     }
@@ -82,8 +85,6 @@ export default function TokensSecurity() {
     }
   };
 
-  const showNameErr = !newName.trim() && err === 'Informe o nome do token.';
-
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -98,7 +99,8 @@ export default function TokensSecurity() {
         </div>
       </div>
 
-      {err && <div className={styles.alertErr} aria-live="polite">{err}</div>}
+      {/* Alerta global só quando NÃO for erro de nome */}
+      {err && !isNameErr && <div className={styles.alertErr} aria-live="polite">{err}</div>}
       {ok  && <div className={styles.alertOk}  aria-live="polite">{ok}</div>}
 
       {/* Criar token */}
@@ -108,17 +110,17 @@ export default function TokensSecurity() {
             <div className={styles.field}>
               <input
                 ref={nameRef}
-                className={`${styles.input} ${showNameErr ? styles.inputErr : ''}`}
+                className={`${styles.input} ${isNameErr ? styles.inputErr : ''}`}
                 placeholder="Nome do token"
                 value={newName}
                 onChange={(e)=>{ setNewName(e.target.value); if (err) setErr(null); }}
                 disabled={creating}
-                aria-invalid={showNameErr ? 'true' : 'false'}
+                aria-invalid={isNameErr ? 'true' : 'false'}
                 aria-describedby="token-name-err"
               />
-              {showNameErr && (
+              {isNameErr && (
                 <div id="token-name-err" className={styles.fieldErr}>
-                  Informe o nome do token.
+                  {NAME_ERR}
                 </div>
               )}
             </div>
@@ -127,7 +129,7 @@ export default function TokensSecurity() {
               type="submit"
               className={styles.btnPrimary}
               onClick={createToken}
-              disabled={creating}   // habilitado mesmo com nome vazio para disparar validação
+              disabled={creating}   // não bloqueia quando sem nome; valida e mostra erro
               title="Criar token"
             >
               <Plus size={16}/> Criar token
