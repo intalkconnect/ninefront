@@ -97,7 +97,7 @@ export default function Sidebar() {
       }
 
       const params = new URLSearchParams({ filas: userFilas.join(",") });
-      const data = await apiGet(`/chats/fila?${params.toString()}`);
+      const data = await apiGet(`/conversations/queues?${params.toString()}`);
       setFilaCount(Array.isArray(data) ? data.length : data?.length || 0);
     } catch (err) {
       console.error("Erro ao buscar configurações/fila:", err);
@@ -214,7 +214,7 @@ export default function Sidebar() {
     (async () => {
       if (!userEmail) return;
       try {
-        const a = await apiGet(`/atendentes/status/${userEmail}`); // GET único atendente
+        const a = await apiGet(`/agents/status/${userEmail}`); // GET único atendente
         console.log(a);
         setStatus(mapFromBackend(a));
       } catch (e) {
@@ -226,7 +226,7 @@ export default function Sidebar() {
   // Puxa próximo ticket da fila
   const puxarProximoTicket = async () => {
     try {
-      const res = await apiPut("/chats/fila/proximo", {
+      const res = await apiPut("/conversations/queues/next", {
         email: userEmail,
         filas: userFilas,
       });
@@ -290,25 +290,25 @@ export default function Sidebar() {
         const sid = getSocket()?.id;
         if (sid) {
           try {
-            await apiPut(`/atendentes/status/${sid}`, { reason: "close" });
+            await apiPut(`/agents/status/${sid}`, { reason: "close" });
           } catch {}
         }
         try {
-          await apiPut(`/atendentes/presence/${userEmail}`, {
+          await apiPut(`/agents/presence/${userEmail}`, {
             status: "offline",
           });
         } catch {}
       } else if (next === "inativo") {
         // apenas seta presença como inativo; mantém session_id (se houver)
-        await apiPut(`/atendentes/presence/${userEmail}`, {
+        await apiPut(`/agents/presence/${userEmail}`, {
           status: "inativo",
         });
       } else if (next === "online") {
         // garante presença online + registra sessão atual
-        await apiPut(`/atendentes/presence/${userEmail}`, { status: "online" });
+        await apiPut(`/agents/presence/${userEmail}`, { status: "online" });
         const sid = getSocket()?.id;
         if (sid) {
-          await apiPut(`/atendentes/session/${userEmail}`, { session: sid });
+          await apiPut(`/agents/session/${userEmail}`, { session: sid });
         }
       }
       setStatus(next);
@@ -316,7 +316,7 @@ export default function Sidebar() {
       console.error("[sidebar] erro ao aplicar status", e);
       // re-sincroniza com o backend em caso de erro
       try {
-        const a = await apiGet(`/atendentes/${userEmail}`);
+        const a = await apiGet(`/agents/${userEmail}`);
         setStatus(mapFromBackend(a));
       } catch {}
     }
