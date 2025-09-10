@@ -5,6 +5,14 @@ import styles from './styles/Tokens.module.css';
 
 function mask(s) { return s || '—'; }
 
+// Mantém o ID completo e só 8 chars do segredo após o ponto
+function shortPreview(preview = '') {
+  const [id, rest = ''] = String(preview).split('.');
+  const seg8 = rest.slice(0, 8);
+  return `${id}.${seg8}••••`;
+}
+
+
 export default function TokensSecurity() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,45 +134,45 @@ export default function TokensSecurity() {
 
         <div className={styles.tableWrap}>
           <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Token (ofuscado)</th>
-                <th>Nome</th>
-                <th>Status</th>
-                <th>Criado</th>
-                <th>Último uso</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!loading && items.map((r)=>(
-                <tr key={r.id}>
-                  <td className={styles.tokenCell}>
-  <code className={styles.code}>{r.preview || '—'}</code>
-</td>
+<thead>
+  <tr>
+    <th>Token</th>
+    <th>Nome</th>
+    <th>Status</th>
+    <th>Criado</th>
+    <th>Ações</th>
+  </tr>
+</thead>
 
-                  <td>{mask(r.name)}</td>
-                  <td>
-                    {r.is_default ? <span className={styles.badgeOk}><Star size={12}/> Default</span> : null}
-                    {r.status === 'revoked' ? <span className={styles.badgeWarn}>Revogado</span> : <span className={styles.badge}>Ativo</span>}
-                  </td>
-                  <td>{r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '—'}</td>
-                  <td>{r.last_used_at ? new Date(r.last_used_at).toLocaleString('pt-BR') : '—'}</td>
-                  <td className={styles.actions}>
-                    {!r.is_default && r.status !== 'revoked' && (
-                      <>
-                        <button className={styles.btnTiny} onClick={()=>setDefault(r.id)} title="Tornar padrão"><Star size={14}/> Padrão</button>
-                        <button className={styles.btnDanger} onClick={()=>revoke(r.id)} title="Revogar"><Trash2 size={14}/> Revogar</button>
-                      </>
-                    )}
-                    {r.is_default && <span className={styles.muted}><StarOff size={14}/> Não pode revogar</span>}
-                    {r.status === 'revoked' && <span className={styles.muted}>—</span>}
-                  </td>
-                </tr>
-              ))}
-              {loading && <tr><td colSpan={6} className={styles.loading}>Carregando…</td></tr>}
-              {!loading && items.length === 0 && <tr><td colSpan={6} className={styles.empty}>Nenhum token criado.</td></tr>}
-            </tbody>
+            <tbody>
+  {!loading && items.map((r)=>(
+    <tr key={r.id}>
+      <td className={styles.tokenCell}>
+        <code className={styles.code}>{shortPreview(r.preview)}</code>
+      </td>
+      <td>{r.name || '—'}</td>
+      <td>
+        {r.is_default && <span className={styles.badgeOk}>Default</span>}{' '}
+        {r.status === 'revoked'
+          ? <span className={styles.badgeWarn}>Revogado</span>
+          : <span className={styles.badge}>Ativo</span>}
+      </td>
+      <td>{r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '—'}</td>
+      <td className={styles.actions}>
+        {r.is_default ? (
+          <span className={styles.muted}>Não alterável</span>
+        ) : r.status !== 'revoked' ? (
+          <button className={styles.btnDanger} onClick={()=>revoke(r.id)}>Revogar</button>
+        ) : (
+          <span className={styles.muted}>—</span>
+        )}
+      </td>
+    </tr>
+  ))}
+  {loading && <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>}
+  {!loading && items.length === 0 && <tr><td colSpan={5} className={styles.empty}>Nenhum token criado.</td></tr>}
+</tbody>
+
           </table>
         </div>
       </div>
