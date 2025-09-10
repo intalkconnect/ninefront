@@ -35,7 +35,7 @@ export default function Queues() {
     setLoading(true);
     setErro(null);
     try {
-      const data = await apiGet('/filas');
+      const data = await apiGet('/queues');
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
