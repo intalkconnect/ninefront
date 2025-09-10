@@ -61,11 +61,6 @@ html, body {
 }
 .input:focus{ outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
 
-/* novo: aviso do token criado */
-.notice{
-  border:1px dashed #c7d2fe; background:#f8fafc; border-radius:12px; padding:12px;
-}
-.noticeTitle{ font-weight:600; margin-bottom:6px; }
 .tokenBox{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .tokenValue{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
