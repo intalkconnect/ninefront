@@ -100,7 +100,7 @@ export default function ClientsMonitor() {
     try {
       const [rt, fs, st] = await Promise.all([
         apiGet('/analytics/realtime'),
-        apiGet('/filas'),
+        apiGet('/queues'),
         apiGet('/settings'),
       ]);
 
