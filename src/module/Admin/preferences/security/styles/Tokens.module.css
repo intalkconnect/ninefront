@@ -1,11 +1,28 @@
 /* ====== Layout ====== */
-.page{
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 24px;
-  background: #f6f7fb;
-  color:#0f172a;
-  font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial;
+:root{
+  --app-bg: #f6f7fb;
+  --page-inline: clamp(12px, 2vw, 24px);
+  /* grid responsiva – ajuste se quiser cards mais largos/estreitos */
+  --card-min: 320px;
+}
+
+/* fundo/scroll global iguais ao Preferences */
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background: var(--app-bg);
+}
+
+/* wrappers herdam o fundo (evita faixas diferentes) */
+#root, #app, .layout, .main, .content, .page {
+  background: var(--app-bg) !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
 }
 
 .header{
@@ -101,7 +118,17 @@
   background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color:#fff; border:none;
   padding:.55rem 1rem; border-radius:10px; font-weight:700; cursor:pointer;
 }
-.btnPrimary:hover{ filter:brightness(.96); }
+/* botão primário alinhado */
+.btnPrimary{
+  display:inline-flex;            /* <- garante alinhamento */
+  align-items:center;             /* <- centraliza verticalmente */
+  gap:8px;                        /* <- espaço ícone/label */
+  line-height:1;                  /* <- evita “pular” vertical */
+  background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
+  color:#fff; border:none; padding:.55rem 1rem; border-radius:10px;
+  font-weight:700; cursor:pointer;
+}
+
 .btnGhost{
   background:#fff; color:#374151; border:1px solid #d1d5db; padding:.5rem 1rem;
   border-radius:10px; font-weight:600; cursor:pointer;
