@@ -144,7 +144,7 @@ export default function WhatsAppProfile() {
     setSaving(true); setErr(null); setOk(null);
     try {
       const websites = [web1, web2].filter(Boolean);
-      await apiPost("/waProfile", {
+      await apiPost("/whatsapp/profile", {
         subdomain: tenant, about, description, address, email, vertical, websites,
       });
       setOk("Perfil atualizado com sucesso.");
@@ -161,7 +161,7 @@ export default function WhatsAppProfile() {
     setErr(null); setOk(null);
     try {
       setProfilePic(photoUrl.trim()); // preview otimista
-      await apiPost("/waProfile/photo-from-url", { subdomain: tenant, file_url: photoUrl.trim() });
+      await apiPost("/whatsapp/photo-from-url", { subdomain: tenant, file_url: photoUrl.trim() });
       setOk("Foto aplicada.");
       setPhotoUrl("");
       await loadAll();
@@ -174,7 +174,7 @@ export default function WhatsAppProfile() {
   async function removePhoto() {
     setErr(null); setOk(null);
     try {
-      await apiPost("/waProfile/photo", { _method: "DELETE", subdomain: tenant });
+      await apiPost("/whatsapp/photo", { _method: "DELETE", subdomain: tenant });
       setOk("Foto removida.");
       setProfilePic("");
       await loadAll();
