@@ -44,29 +44,31 @@ export default function TokensSecurity() {
     setTimeout(()=>setOk(null), 1200);
   };
 
-  const createToken = async () => {
-    if (creating) return;
-    const name = (newName || '').trim();
-    if (!name) {
-      setErr('Informe o nome do token.');
-      nameRef.current?.focus();
-      return;
-    }
+const createToken = async (e) => {
+  if (e?.preventDefault) e.preventDefault();   // evita submit da página
+  if (creating) return;
 
-    setCreating(true); setErr(null); setOk(null);
-    try {
-      const j = await apiPost('/security/tokens', { name, is_default: false });
-      if (!j?.ok) throw new Error(j?.message || 'Falha ao criar token');
-      setNewName('');
-      await load();
-      setOk('Token criado.');
-    } catch (e) {
-      const msg = e?.response?.data?.message || e?.message || String(e);
-      setErr(msg || 'Falha ao criar token.');
-    } finally {
-      setCreating(false);
-    }
-  };
+  const name = (newName || '').trim();
+  if (!name) {
+    setErr('Informe o nome do token.');
+    nameRef.current?.focus();
+    return;
+  }
+
+  setCreating(true); setErr(null); setOk(null);
+  try {
+    const j = await apiPost('/security/tokens', { name, is_default: false });
+    if (!j?.ok) throw new Error(j?.message || 'Falha ao criar token');
+    setNewName('');
+    await load();
+    setOk('Token criado.');
+  } catch (e) {
+    setErr(e?.response?.data?.message || e?.message || 'Falha ao criar token.');
+  } finally {
+    setCreating(false);
+  }
+};
+
 
   const revoke = async (id) => {
     if (!id) return;
@@ -94,34 +96,32 @@ export default function TokensSecurity() {
         </div>
       </div>
 
-      {err && <div className={styles.alertErr}>{err}</div>}
-      {ok &&  <div className={styles.alertOk}>{ok}</div>}
+{err && <div className={styles.alertErr} aria-live="polite">{err}</div>}
+{ok  && <div className={styles.alertOk}  aria-live="polite">{ok}</div>}
+
 
       {/* criação */}
       <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Emitir novo token</div>
-        </div>
-        <div className={styles.cardBody}>
-          <div className={styles.row}>
-            <input
-              ref={nameRef}
-              className={`${styles.input} ${!newName.trim() && err ? styles.inputErr : ''}`}
-              placeholder="Nome do token"
-              value={newName}
-              onChange={(e)=>setNewName(e.target.value)}
-              disabled={creating}
-            />
-            <button
-              className={styles.btnPrimary}
-              onClick={createToken}
-              disabled={creating || !newName.trim()}
-              title={(!newName.trim() ? 'Informe o nome do token' : 'Criar token')}
-            >
-              <Plus size={16}/> Criar token
-            </button>
-          </div>
-        </div>
+<form className={styles.row} onSubmit={createToken} noValidate>
+  <input
+    ref={nameRef}
+    className={`${styles.input} ${(!newName.trim() && err) ? styles.inputErr : ''}`}
+    placeholder="Nome do token"
+    value={newName}
+    onChange={(e)=>{ setNewName(e.target.value); if (err) setErr(null); }}
+    disabled={creating}
+    aria-invalid={!newName.trim() && !!err}
+  />
+  <button
+    type="submit"
+    className={styles.btnPrimary}
+    disabled={creating || !newName.trim()}
+    title={(!newName.trim() ? 'Informe o nome do token' : 'Criar token')}
+  >
+    <Plus size={16}/> Criar token
+  </button>
+</form>
+
       </div>
 
       {/* lista */}
