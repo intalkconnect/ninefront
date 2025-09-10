@@ -56,7 +56,7 @@ export default function Users({ canCreateAdmin = false }) {
     try {
       const [usersResp, filasResp] = await Promise.all([
         apiGet('/users'),
-        apiGet('/filas'),
+        apiGet('/queues'),
       ]);
       setItems(Array.isArray(usersResp) ? usersResp : []);
       setQueues(Array.isArray(filasResp) ? filasResp : []);
