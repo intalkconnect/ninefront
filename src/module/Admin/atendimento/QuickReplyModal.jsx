@@ -29,7 +29,7 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
 
     setSaving(true); setError(null);
     try {
-      await apiPost('/quickReplies', { title: t, content: c });
+      await apiPost('/quick-replies', { title: t, content: c });
       onCreated?.();
       onClose?.();
     } catch (err) {
