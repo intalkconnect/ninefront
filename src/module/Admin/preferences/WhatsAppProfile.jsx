@@ -116,10 +116,10 @@ export default function WhatsAppProfile() {
     if (!tenant) return;
     setLoading(true); setErr(null); setOk(null);
     try {
-      const num = await apiGet(`/waProfile/number?subdomain=${tenant}`);
+      const num = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
       if (num?.ok) setPhone(num.phone || null);
 
-      const pf = await apiGet(`/waProfile?subdomain=${tenant}`);
+      const pf = await apiGet(`/whatsapp/profile?subdomain=${tenant}`);
       if (pf?.ok) {
         const p = pf.profile || {};
         setAbout(limit(p.about || "", 139));
