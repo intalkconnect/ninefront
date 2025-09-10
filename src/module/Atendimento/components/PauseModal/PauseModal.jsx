@@ -19,7 +19,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     const loadMotivos = async () => {
       try {
         setError('');
-        const list = await apiGet('/pausas?active=true');
+        const list = await apiGet('/queues?active=true');
         setMotivos(Array.isArray(list) ? list : []);
       } catch (e) {
         console.error('[PauseModal] erro ao carregar motivos', e);
@@ -82,7 +82,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     setError('');
 
     try {
-      const response = await apiPost(`/pausas/atendentes/${email}/start`, {
+      const response = await apiPost(`/queues/agents/${email}/start`, {
         // reason_id agora é UUID string — enviar sem Number()
         reason_id: selectedId,
       });
@@ -106,7 +106,7 @@ export default function PauseModal({ email, open, onClose, onPaused, onResumed }
     setError('');
 
     try {
-      await apiPatch(`/pausas/atendentes/${email}/${currentSessionId}/end`,{});
+      await apiPatch(`/queues/agents/${email}/${currentSessionId}/end`,{});
       setStartedAt(null);
       setCurrentSessionId(null);
       onResumed?.();
