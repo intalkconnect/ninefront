@@ -6,11 +6,14 @@ import styles from './styles/Tokens.module.css';
 function mask(s) { return s || '—'; }
 
 // Mantém o ID completo e só 8 chars do segredo após o ponto
+// Mostra apenas os 8 primeiros chars do SEGREDO (parte após o ponto)
 function shortPreview(preview = '') {
-  const [id, rest = ''] = String(preview).split('.');
-  const seg8 = rest.slice(0, 8);
-  return `${id}.${seg8}••••`;
+  const parts = String(preview).split('.');
+  const secretPart = parts.length > 1 ? parts[1] : parts[0] || '';
+  const first8 = secretPart.slice(0, 8);
+  return `${first8}••••`; // só 8 chars do segredo + ellipsis de segurança
 }
+
 
 
 export default function TokensSecurity() {
