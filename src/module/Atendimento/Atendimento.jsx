@@ -186,7 +186,7 @@ useEffect(() => {
 
     (async () => {
       try {
-        const data = await apiGet(`/atendentes/${email}`);
+        const data = await apiGet(`/agents/${email}`);
         if (data?.email) {
           setUserInfo({
             email: data.email,
@@ -247,7 +247,7 @@ useEffect(() => {
       const { email } = parseJwt(token) || {};
       if (!email) return;
 
-      const url = `${apiBaseUrl}/atendentes/presence/${encodeURIComponent(email)}`;
+      const url = `${apiBaseUrl}/agents/presence/${encodeURIComponent(email)}`;
       const body = JSON.stringify({ status: "inativo" }); // Mude para "inativo"
       const blob = new Blob([body], { type: "application/json" });
 
@@ -364,7 +364,7 @@ useEffect(() => {
     heartbeatRef.current = setInterval(async () => {
       try {
         // console.debug('[hb] ping', new Date().toISOString(), socket.id);
-        await apiPut(`/atendentes/heartbeat`, { session: socket.id, email: userEmail });
+        await apiPut(`/agents/heartbeat`, { session: socket.id, email: userEmail });
       } catch {
         // silencioso
       }
@@ -454,7 +454,7 @@ useEffect(() => {
         assigned_to: userEmail,
         filas: (userFilas || []).join(","),
       });
-      const data = await apiGet(`/chats?${params.toString()}`);
+      const data = await apiGet(`/conversations?${params.toString()}`);
 
       const socket = getSocket();
 
