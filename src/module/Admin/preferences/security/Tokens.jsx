@@ -139,7 +139,10 @@ export default function TokensSecurity() {
             <tbody>
               {!loading && items.map((r)=>(
                 <tr key={r.id}>
-                  <td><code className={styles.code}>{mask(r.preview)}</code></td>
+                  <td className={styles.tokenCell}>
+  <code className={styles.code}>{r.preview || '—'}</code>
+</td>
+
                   <td>{mask(r.name)}</td>
                   <td>
                     {r.is_default ? <span className={styles.badgeOk}><Star size={12}/> Default</span> : null}
