@@ -40,7 +40,7 @@ export default function Clientes() {
 
     setLoading(true);
     try {
-      const resp = await apiGet('/clientes', {
+      const resp = await apiGet('/customers', {
         params: { q: nextQ, page: nextPage, page_size: nextPageSize }
       });
 
