@@ -6,15 +6,15 @@ import styles from './styles/Tokens.module.css';
 function mask(s) { return s || '—'; }
 
 // Mantém o ID completo e só 8 chars do segredo após o ponto
-// Mostra apenas os 8 primeiros chars do SEGREDO (parte após o ponto)
+// Mostra 8 do segredo + bullets até 64 (não exibe ID)
 function shortPreview(preview = '') {
   const parts = String(preview).split('.');
   const secretPart = parts.length > 1 ? parts[1] : parts[0] || '';
-  const first8 = secretPart.slice(0, 8);
-  return `${first8}••••`; // só 8 chars do segredo + ellipsis de segurança
+  const raw = secretPart.replace(/[^0-9a-f]/gi, ''); // limpa qualquer '•' que venha do back
+  const first8 = raw.slice(0, 8);
+  const bullets = '•'.repeat(Math.max(0, 64 - first8.length)); // segredo é 64 hex
+  return `${first8}${bullets}`;
 }
-
-
 
 export default function TokensSecurity() {
   const [items, setItems] = useState([]);
@@ -116,16 +116,6 @@ export default function TokensSecurity() {
             </button>
           </div>
 
-          {justCreated?.token && (
-            <div className={styles.notice}>
-              <div className={styles.noticeTitle}>Token criado — copie agora</div>
-              <div className={styles.tokenBox}>
-                <code className={styles.tokenValue}>{justCreated.token}</code>
-                <button className={styles.btnTiny} onClick={()=>copy(justCreated.token)}><Copy size={14}/> Copiar</button>
-              </div>
-              <div className={styles.noticeHelp}>Este valor será exibido apenas uma vez.</div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -161,15 +151,24 @@ export default function TokensSecurity() {
           : <span className={styles.badge}>Ativo</span>}
       </td>
       <td>{r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '—'}</td>
-      <td className={styles.actions}>
-        {r.is_default ? (
-          <span className={styles.muted}>Não alterável</span>
-        ) : r.status !== 'revoked' ? (
-          <button className={styles.btnDanger} onClick={()=>revoke(r.id)}>Revogar</button>
-        ) : (
-          <span className={styles.muted}>—</span>
-        )}
-      </td>
+<td className={styles.actions}>
+  <button
+    className={styles.btnTiny}
+    onClick={() => copy(shortPreview(r.preview))}
+    title="Copiar token"
+  >
+    <Copy size={14}/> Copiar
+  </button>
+
+  {r.is_default ? (
+    <span className={styles.muted}>Não alterável</span>
+  ) : r.status !== 'revoked' ? (
+    <button className={styles.btnDanger} onClick={() => revoke(r.id)}>Revogar</button>
+  ) : (
+    <span className={styles.muted}>—</span>
+  )}
+</td>
+
     </tr>
   ))}
   {loading && <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>}
