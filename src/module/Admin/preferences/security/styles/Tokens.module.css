@@ -1,21 +1,45 @@
-/* ====== Page / base ====== */
+/* ====== Layout global – mesmo padrão das demais páginas ====== */
 :root{
   --app-bg: #f6f7fb;
+  --page-inline: clamp(12px, 2vw, 24px);
 }
 
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background: var(--app-bg);
+}
+
+/* wrappers herdam o fundo */
+#root, #app, .layout, .main, .content, .page {
+  background: var(--app-bg) !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+/* ====== PAGE: agora é FLUIDA (sem max-width), com padding lateral ====== */
 .page{
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 24px;
+  margin: 0;
+  padding: 24px var(--page-inline);
   background: var(--app-bg);
   color:#0f172a;
   font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial;
 }
 
-/* Header */
+/* ====== Header ====== */
 .header{
   display:flex; justify-content:space-between; align-items:center;
   margin-bottom:16px; gap:12px; position:relative;
+}
+.header::after{
+  content:'';
+  position:absolute; left:0; right:0; bottom:-12px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
 }
 .hLeft{ display:flex; align-items:center; gap:10px; }
 .hLeft h1{ margin:0; font-size:20px; font-weight:700; }
@@ -23,7 +47,7 @@
 
 /* Alerts */
 .alertErr,.alertOk{
-  padding:10px 12px; border-radius:10px; border:1px solid; margin-bottom:12px;
+  padding:10px 12px; border-radius:10px; border:1px solid; margin:18px 0 12px 0;
 }
 .alertErr{ background:#fef2f2; border-color:#fecaca; color:#991b1b; }
 .alertOk { background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
@@ -31,7 +55,7 @@
 /* ====== Card ====== */
 .card{
   background:#fff; border:1px solid #e5e7eb; border-radius:14px;
-  overflow:hidden; margin-bottom:16px;
+  overflow:hidden; margin:16px 0;
   box-shadow:0 1px 2px rgba(15,23,42,.04);
 }
 .cardHead{
@@ -42,29 +66,29 @@
 .cardTitle{ font-weight:600; color:#1f2937; }
 .cardBody{ padding:16px; display:flex; flex-direction:column; gap:12px; }
 
-/* ====== Create bar ====== */
+/* ====== Create bar (full width) ====== */
 .createBar{
   display:flex;
   align-items:flex-start;
   gap:12px;
-  max-width: 640px;       /* comprimento da barra */
+  width: 100%;
 }
 
 .field{
   display:flex;
   flex-direction:column;
   gap:6px;
-  flex:1 1 auto;
+  flex:1 1 auto;     /* ocupa todo espaço disponível */
   min-width: 280px;
 }
 
 .input{
   width:100%;
-  max-width: 420px;       /* limite visual do input */
   padding:10px 12px;
   border:1px solid #d1d5db;
   border-radius:10px;
   background:#fff;
+  box-sizing:border-box;
 }
 .input:focus{ outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
 .inputErr{ border-color:#ef4444 !important; box-shadow:0 0 0 3px rgba(239,68,68,.12); }
@@ -75,7 +99,7 @@
   line-height:1.3;
 }
 
-/* ====== Table ====== */
+/* ====== Tabela ====== */
 .tableWrap{ overflow-x:auto; }
 .table{ width:100%; border-collapse:separate; border-spacing:0; font-size:.94rem; }
 .table thead th{
@@ -87,8 +111,8 @@
 .table tbody td{ padding:12px 14px; border-bottom:1px solid #f1f5f9; vertical-align:middle; }
 .table tbody tr:hover{ background:#fafafa; }
 
-/* coluna do token (como chip) */
-.tokenCell{ max-width: 520px; }
+/* Token como chip */
+.tokenCell{ max-width: 720px; } /* dá mais respiro na página larga */
 .code{
   display:inline-flex;
   align-items:center;
@@ -101,7 +125,7 @@
   overflow:hidden;
 }
 
-/* badges */
+/* Badges */
 .badge, .badgeOk, .badgeWarn{
   display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
   font-size:.75rem; border:1px solid #e5e7eb;
@@ -110,11 +134,11 @@
 .badgeOk{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
 .badgeWarn{ background:#fffbeb; color:#7c2d12; border-color:#fbbf24; }
 
-/* ações */
+/* Ações */
 .actions{ display:flex; gap:6px; flex-wrap:wrap; }
 .muted{ color:#6b7280; font-size:.86rem; display:inline-flex; gap:6px; align-items:center; }
 
-/* botões */
+/* Botões */
 .btnPrimary{
   display:inline-flex;
   align-items:center;
@@ -158,8 +182,7 @@
 
 /* responsivo */
 @media (max-width: 840px){
-  .page{ padding:18px; }
+  .page{ padding:18px var(--page-inline); }
   .tokenCell{ max-width: 100%; }
-  .createBar{ max-width: 100%; }
-  .createBar .input{ max-width: 100%; }
+  .createBar{ width:100%; }
 }
