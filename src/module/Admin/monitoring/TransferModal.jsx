@@ -59,7 +59,7 @@ export default function TransferModal({
       if (!alvo) { setAtendentes([]); setAtendentesMsg(''); return; }
       try {
         setLoadingAgents(true);
-        const resp = await apiGet(`/filas/atendentes/${encodeURIComponent(alvo)}`);
+        const resp = await apiGet(`/queues/agents/${encodeURIComponent(alvo)}`);
         const lista = Array.isArray(resp?.atendentes) ? resp.atendentes : [];
         setAtendentes(lista);
         setAtendentesMsg(typeof resp?.message === 'string' ? resp.message : '');
@@ -98,7 +98,7 @@ export default function TransferModal({
 
     try {
       setLoading(true);
-      await apiPost('/tickets/transferir', body);
+      await apiPost('/tickets/next', body);
       onDone?.();
       onClose();
     } catch (err) {
