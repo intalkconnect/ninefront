@@ -38,7 +38,7 @@ export default function TransferModal({
     let alive = true;
     (async () => {
       try {
-        const data = await apiGet('/filas');
+        const data = await apiGet('/queues');
         if (!alive) return;
         const list = Array.isArray(data) ? data : (Array.isArray(data?.rows) ? data.rows : []);
         setFilas(list);
