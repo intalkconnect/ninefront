@@ -58,11 +58,11 @@ import Quality from "./analytics/quality/Quality";
 import TicketDetail from "./atendimento/history/TicketDetail";
 import WhatsAppProfile from "./preferences/WhatsAppProfile";
 import TelegramConnect from "./preferences/TelegramConnect";
+import TokensSecurity from "./preferences/security/Tokens";
 
 
 // Temporários (mantidos)
 const Integrations = () => <div>Integrações</div>;
-const Security = () => <div>Segurança</div>;
 
 document.title = "NineChat - Gestão";
 
@@ -650,7 +650,7 @@ export default function Admin() {
             path="settings/security"
             element={
               <RequireRole allow={isAdmin}>
-                <Security />
+                <TokensSecurity />
               </RequireRole>
             }
           />
