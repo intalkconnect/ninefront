@@ -413,7 +413,7 @@ function handler(context) {
     if (!showHistory) return;
     (async () => {
       try {
-        const data = await apiGet("/flow/history");
+        const data = await apiGet("/flows/history");
         setFlowHistory(data);
       } catch (err) {
         console.error("Erro ao carregar histórico de versões:", err);
@@ -485,11 +485,11 @@ function handler(context) {
   useEffect(() => {
     const loadLatestFlow = async () => {
       try {
-        const latestData = await apiGet("/flow/latest");
+        const latestData = await apiGet("/flows/latest");
         const latestFlowId = latestData[0]?.id;
         if (!latestFlowId) return;
 
-        const flowData = await apiGet(`/flow/data/${latestFlowId}`);
+        const flowData = await apiGet(`/flows/data/${latestFlowId}`);
         const blocksObj = flowData.blocks || {};
         const entries = Object.entries(blocksObj);
 
@@ -578,7 +578,7 @@ function handler(context) {
 
       const startNode = nodes.find((n) => n.data.nodeType === "start");
       const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
-      await apiPost("/flow/publish", { data: flowData });
+      await apiPost("/flows/publish", { data: flowData });
       alert("Fluxo publicado com sucesso!");
     } catch (err) {
       alert("Erro de conexão: " + err.message);
@@ -725,7 +725,7 @@ function handler(context) {
               onClose={() => setShowHistory(false)}
               versions={flowHistory}
               onRestore={async (id) => {
-                await apiPost("/flow/activate", { id });
+                await apiPost("/flows/activate", { id });
                 window.location.reload();
               }}
             />
