@@ -81,19 +81,23 @@ html, body {
 .table tbody tr:hover{ background:#fafafa; }
 
 /* coluna do token: sem scroll interno, com fade no fim */
-.tokenCell{
-  max-width: 520px;
-}
+.tokenCell{ max-width: 520px; }
+
 .code{
-  display:block;
+  display:inline-flex;            /* ← deixa o chip do tamanho do conteúdo */
+  align-items:center;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  background:#fff; border:1px solid #e5e7eb; border-radius:10px;
-  padding:8px 10px; white-space:nowrap; overflow:hidden;
-  text-overflow:ellipsis;
-  /* fade elegante no fim */
-  -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
-          mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:6px 10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:clip;             /* nada de elipse enorme */
+  -webkit-mask-image:none;        /* remove o fade que criava “cauda” */
+          mask-image:none;
 }
+
 
 /* badges */
 .badge, .badgeOk, .badgeWarn{
@@ -108,21 +112,27 @@ html, body {
 .actions{ display:flex; gap:6px; flex-wrap:wrap; }
 .muted{ color:#6b7280; font-size:.86rem; display:inline-flex; gap:6px; align-items:center; }
 
-/* botões */
 .btnPrimary{
-  background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color:#fff; border:none;
-  padding:.55rem 1rem; border-radius:10px; font-weight:700; cursor:pointer;
-}
-/* botão primário alinhado */
-.btnPrimary{
-  display:inline-flex;            /* <- garante alinhamento */
-  align-items:center;             /* <- centraliza verticalmente */
-  gap:8px;                        /* <- espaço ícone/label */
-  line-height:1;                  /* <- evita “pular” vertical */
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  line-height:1;
   background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
-  color:#fff; border:none; padding:.55rem 1rem; border-radius:10px;
-  font-weight:700; cursor:pointer;
+  color:#fff;
+  border:none;
+  padding:.55rem 1rem;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+  transition:filter .2s ease, box-shadow .2s ease;
 }
+
+.btnPrimary:hover{
+  filter:brightness(.95);
+  box-shadow:0 2px 6px rgba(37,99,235,.25);
+}
+
 
 .btnGhost{
   background:#fff; color:#374151; border:1px solid #d1d5db; padding:.5rem 1rem;
