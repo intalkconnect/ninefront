@@ -48,7 +48,7 @@ export default function AgentsRealtime() {
     try {
       const [ags, pauses] = await Promise.all([
         apiGet("/analytics/agents/realtime"),
-        apiGet("/pausas?active=true"),
+        apiGet("/breaks?active=true"),
       ]);
 
       const list = Array.isArray(ags) ? ags : (Array.isArray(ags?.data) ? ags.data : []);
