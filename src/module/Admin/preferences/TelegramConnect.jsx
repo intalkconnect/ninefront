@@ -49,7 +49,7 @@ export default function TelegramConnect() {
     setChecking(true);
     setErr(null);
     try {
-      const s = await apiGet(`/tg/status?subdomain=${tenant}`);
+      const s = await apiGet(`/telegram/status?subdomain=${tenant}`);
       const isConn = !!s?.connected;
       setConnected(isConn);
       setBotId(s?.bot_id || "");
@@ -75,7 +75,7 @@ export default function TelegramConnect() {
 
     setLoading(true); setErr(null); setOk(null);
     try {
-      const j = await apiPost("/tg/connect", { subdomain: tenant, botToken: token, secret });
+      const j = await apiPost("/telegram/connect", { subdomain: tenant, botToken: token, secret });
       if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
       setOk("Telegram conectado com sucesso!");
       await loadStatus();
