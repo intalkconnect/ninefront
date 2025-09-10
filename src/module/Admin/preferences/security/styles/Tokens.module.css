@@ -40,6 +40,12 @@ html, body {
 .alertErr{ background:#fef2f2; border-color:#fecaca; color:#991b1b; }
 .alertOk { background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
 
+.inputErr{
+  border-color:#ef4444 !important;
+  box-shadow:0 0 0 3px rgba(239,68,68,.12);
+}
+
+
 /* ====== Cards ====== */
 .card{
   background:#fff; border:1px solid #e5e7eb; border-radius:14px;
