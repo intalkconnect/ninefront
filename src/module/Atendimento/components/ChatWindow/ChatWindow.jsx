@@ -314,7 +314,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       try {
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
           apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/customers/${encodeURIComponent(userIdSelecionado)}`),
           apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
           apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`),
         ]);
