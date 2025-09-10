@@ -60,7 +60,7 @@ export default function Channels() {
     // WhatsApp
     (async () => {
       try {
-        const ws = await apiGet(`/waProfile/number?subdomain=${tenant}`);
+        const ws = await apiGet(`/whatsapp/profile/number?subdomain=${tenant}`);
         if (ws && ws.ok && ws.phone) {
           setWa((prev) => ({
             ...prev,
