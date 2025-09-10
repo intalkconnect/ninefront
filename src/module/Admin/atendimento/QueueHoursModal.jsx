@@ -78,7 +78,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
     (async () => {
       setLoading(true); setErr(null);
       try {
-        const data = await apiGet(`/queueHours/${encodeURIComponent(filaNome)}/hours`);
+        const data = await apiGet(`/queue-hours/${encodeURIComponent(filaNome)}/hours`);
         const norm = normalizeIncoming(data);
         setEnabled(norm.enabled);
         setTz(norm.timezone);
@@ -137,7 +137,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
         setLoading(false);
         return;
       }
-      await apiPut(`/queueHours/${encodeURIComponent(filaNome)}/hours`, {
+      await apiPut(`/queue-hours/${encodeURIComponent(filaNome)}/hours`, {
         enabled,
         timezone: tz,          // backend aceita timezone ou tz
         pre_message: preMsg,   // idem pre_service_message
