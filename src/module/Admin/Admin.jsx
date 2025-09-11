@@ -422,10 +422,17 @@ export default function Admin() {
                     <span>{m.label}</span>
                   </NavLink>
                 ) : (
-                  <button
-                    className={styles.hlink}
-                    onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
-                  >
+<button
+   type="button"
+   className={styles.hlink}
+   onClick={(e) => {
+     if (dropdown) {
+       e.preventDefault();
+       handleTopClick(m.key);
+     }
+   }}
+>
+
                     {m.icon}
                     <span>{m.label}</span>
                     {dropdown && <ChevronDown size={16} />}
@@ -468,12 +475,8 @@ export default function Admin() {
         <div className={styles.profileArea} ref={profileRef}>
           {userData && (
             <>
-              <button
-                className={styles.userButton}
-                onClick={() => setProfileOpen((v) => !v)}
-                aria-haspopup="menu"
-                aria-expanded={isProfileOpen}
-              >
+ <button type="button" className={styles.userButton} onClick={() => setProfileOpen((v) => !v)} aria-haspopup="menu" aria-expanded={isProfileOpen}>
+
                 <div
                   className={styles.avatar}
                   style={{ backgroundColor: stringToColor(userData.email) }}
@@ -526,7 +529,7 @@ export default function Admin() {
       <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ""}`}>
         <div className={styles.drawerHeader}>
           <span className={styles.drawerTitle}>Menu</span>
-          <button className={styles.drawerClose} onClick={() => setMobileMenuOpen(false)} aria-label="Fechar menu">×</button>
+          <button type="button" className={styles.drawerClose} onClick={() => setMobileMenuOpen(false)} aria-label="Fechar menu">×</button>
         </div>
         <ul className={styles.drawerList}>
           {menus.map((m) => (
