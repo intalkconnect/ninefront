@@ -404,14 +404,9 @@ export default function Admin() {
                     end={m.exact}
                     to={m.to}
                     className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (dropdown) {
-                        handleTopClick(m.key);
-                        return;
-                      }
-                      navigate(m.to);
-                    }}
+                     onClick={() => {
+   if (dropdown) { handleTopClick(m.key); }
+ }}
                   >
                     {m.icon}
                     <span>{m.label}</span>
@@ -437,16 +432,12 @@ export default function Admin() {
                           <ul className={styles.megasublist}>
                             {grp.children.map((leaf) => (
                               <li key={leaf.to} className={styles.megaitem} role="none">
-                                <NavLink
-                                  to={leaf.to}
-                                  className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setOpenDropdown(null);
-                                    navigate(leaf.to);
-                                  }}
-                                  role="menuitem"
-                                >
+ <NavLink
+   to={leaf.to}
+   className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
+   onClick={() => setOpenDropdown(null)}
+   role="menuitem"
+ >
                                   {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
                                   <span>{leaf.label}</span>
                                 </NavLink>
@@ -565,11 +556,9 @@ export default function Admin() {
                             <NavLink
                               to={leaf.to}
                               className={({ isActive }) => (isActive ? styles.active : undefined)}
-                              onClick={(e) => {
-                                e.preventDefault();
+                              onClick={() => {
                                 setMobileMenuOpen(false);
-                                navigate(leaf.to);
-                              }}
+                                 }}
                             >
                               {leaf.icon}
                               <span>{leaf.label}</span>
