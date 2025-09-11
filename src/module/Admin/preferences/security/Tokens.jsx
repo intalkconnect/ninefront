@@ -94,11 +94,6 @@ export default function TokensSecurity() {
         <div className={styles.hLeft}>
           <Shield size={20}/><h1>Segurança — Tokens de API</h1>
         </div>
-        <div className={styles.hRight}>
-          <button className={styles.btnGhost} onClick={load} disabled={loading}>
-            <RefreshCw size={14}/> Recarregar
-          </button>
-        </div>
       </div>
 
       {err && <div className={styles.alertErr} aria-live="polite">{err}</div>}
