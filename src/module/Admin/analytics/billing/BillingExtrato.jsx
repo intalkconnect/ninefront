@@ -34,6 +34,51 @@ const useDebounce = (value, delay = 300) => {
   return deb;
 };
 
+
+// ===== CSV helpers (Excel-friendly pt-BR) =====
+const CSV_DELIM = ';'; // ; funciona melhor com Excel em pt-BR
+
+const escapeCSV = (val) => {
+  if (val === null || val === undefined) return '';
+  const s = String(val);
+  const needsQuotes = s.includes('"') || s.includes('\n') || s.includes('\r') || s.includes(CSV_DELIM);
+  const esc = s.replace(/"/g, '""');
+  return needsQuotes ? `"${esc}"` : esc;
+};
+
+const buildCsvFromState = (data) => {
+  const headers = ['User ID','Canal','Janelas','Primeira Mensagem','Última Mensagem','Total (R$)'];
+  const lines = (data?.rows || []).map((row) => {
+    const cents = pickCents(row);
+    const sess  = pickSessions(row);
+    const first = pickFirstTs(row);
+    const last  = pickLastTs(row);
+    return [
+      escapeCSV(row.user_id || row.user || ''),
+      escapeCSV(row.channel || 'default'),
+      escapeCSV(fmtInt(sess)),
+      escapeCSV(first ? new Date(first).toLocaleString('pt-BR') : ''),
+      escapeCSV(last  ? new Date(last ).toLocaleString('pt-BR') : ''),
+      escapeCSV(BRL(cents).replace('R$', '').trim())
+    ].join(CSV_DELIM);
+  });
+
+  // BOM p/ Excel abrir acentuação corretamente
+  return '\uFEFF' + [headers.join(CSV_DELIM), ...lines].join('\n');
+};
+
+const downloadBlob = (data, filename, mime = 'text/csv;charset=utf-8') => {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 // =========== Normalizadores ===========
 const pickCents = (row) => {
   if (Number.isFinite(+row?.amount_cents)) return +row.amount_cents;
@@ -127,11 +172,15 @@ export default function BillingExtrato() {
   const grandTotal = useMemo(() => BRL(data.total_cents || 0), [data.total_cents]);
 
   // export: usa endpoint do servidor (igual ao exemplo sem mock)
-  const handleExport = () => {
-    const params = { from: toISO(debFrom), to: toISO(debTo) };
-    const url = `/billing/statement/export?${qs(params)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  };
+const handleExport = () => {
+  const fromDate = new Date(debFrom).toLocaleDateString('pt-BR');
+  const toDate   = new Date(debTo).toLocaleDateString('pt-BR');
+  const filename = `extrato-faturamento-${fromDate.replace(/\//g, '-')}-a-${toDate.replace(/\//g, '-')}.csv`;
+
+  const csv = buildCsvFromState(data);
+  downloadBlob(csv, filename);
+};
+
 
   const fmtDt = (ts) => (ts ? new Date(ts).toLocaleString('pt-BR') : '—');
 
