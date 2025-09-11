@@ -2,9 +2,9 @@
 
 /* ===== Página “fluida” como as demais ===== */
 .page {
-  width: 100%;
-  margin: 0;
-  padding: 24px var(--page-inline); /* usa o mesmo token das outras telas */
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   background: transparent;          /* herda o app-bg global */
   min-height: 0;
   box-sizing: border-box;
