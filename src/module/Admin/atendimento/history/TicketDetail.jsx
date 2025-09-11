@@ -6,11 +6,34 @@ import ChatThread from './ChatThread';
 import styles from './styles/TicketDetail.module.css';
 import { apiGet } from '../../../../shared/apiClient';
 
-// ===== PDF no cliente =====
-import PDFDocument from 'pdfkit/js/pdfkit.standalone.js';
-import blobStream from 'blob-stream';
-
 // ========================= Helpers comuns =========================
+// Carrega PDFKit + blob-stream no browser (UMD), evitando problemas de polyfill
+async function ensurePdfkit() {
+  if (window.PDFDocument && window.blobStream) {
+    return { PDFDocument: window.PDFDocument, blobStream: window.blobStream };
+  }
+  const load = (src) =>
+    new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+
+  // Blob-stream primeiro
+  await load('https://unpkg.com/blob-stream@0.1.3/blob-stream.js');
+  // Build standalone do PDFKit (já com compat para browser)
+  await load('https://unpkg.com/pdfkit@0.12.3/js/pdfkit.standalone.js');
+
+  if (!window.PDFDocument || !window.blobStream) {
+    throw new Error('Falha ao carregar PDFKit/BlobStream');
+  }
+  return { PDFDocument: window.PDFDocument, blobStream: window.blobStream };
+}
+
+
 function fmtDT(iso) {
   if (!iso) return '—';
   try {
@@ -340,67 +363,70 @@ export default function TicketDetail() {
   }
 
   async function handleExportPdf() {
-    if (!canExport) return;
+  if (!canExport) return;
 
-    // Monta "ticket" + "rows" no formato do back
-    const ticket = {
-      ticket_number : data?.ticket_number,
-      user_id       : data?.user_id,
-      fila          : data?.fila,
-      assigned_to   : data?.assigned_to,
-      status        : data?.status,
-      created_at    : data?.created_at,
-      updated_at    : data?.updated_at,
-      customer_name : data?.customer_name,
-      customer_email: data?.customer_email,
-      customer_phone: data?.customer_phone
-    };
+  // Monta "ticket" + "rows" no formato do back
+  const ticket = {
+    ticket_number : data?.ticket_number,
+    user_id       : data?.user_id,
+    fila          : data?.fila,
+    assigned_to   : data?.assigned_to,
+    status        : data?.status,
+    created_at    : data?.created_at,
+    updated_at    : data?.updated_at,
+    customer_name : data?.customer_name,
+    customer_email: data?.customer_email,
+    customer_phone: data?.customer_phone
+  };
 
-    const rows = (messages || []).map(m => ({
-      id         : m.id,
-      direction  : m.direction,           // incoming | outgoing | system
-      type       : m.type,
-      content    : m.content,
-      timestamp  : m.timestamp || m.created_at,
-      metadata   : m.metadata,
-      assigned_to: m.assigned_to
-    }));
+  const rows = (messages || []).map(m => ({
+    id         : m.id,
+    direction  : m.direction,           // incoming | outgoing | system
+    type       : m.type,
+    content    : m.content,
+    timestamp  : m.timestamp || m.created_at,
+    metadata   : m.metadata,
+    assigned_to: m.assigned_to
+  }));
 
-    // Resolver nomes de atendentes (se backend não trouxe mapeado)
-    const agentNameByEmail = new Map();
-    if (data?.agents && Array.isArray(data.agents)) {
-      data.agents.forEach(a => {
-        const key = String(a.email || '').toLowerCase();
-        if (key) agentNameByEmail.set(key, a.full_name || a.name || a.lastname || a.email);
-      });
-    }
-    const resolveAgent = (email) => {
-      if (!email) return 'Atendente';
-      const key = String(email).toLowerCase();
-      return agentNameByEmail.get(key) || email;
-    };
-
-    const safeNum = data?.ticket_number ? String(data.ticket_number).padStart(6, '0') : String(id);
-
-    // Gera PDF no browser (PDFKit + blob-stream)
-    const doc = new PDFDocument({ size: 'A4', margin: 40 });
-    const stream = doc.pipe(blobStream());
-
-    buildTicketPdf(doc, { ticket, rows, resolveAgent, fmtDT });
-    doc.end();
-
-    stream.on('finish', () => {
-      const blob = stream.toBlob('application/pdf');
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url;
-      a.download = `ticket-${safeNum}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+  // Resolve nome de atendente
+  const agentNameByEmail = new Map();
+  if (data?.agents && Array.isArray(data.agents)) {
+    data.agents.forEach(a => {
+      const key = String(a.email || '').toLowerCase();
+      if (key) agentNameByEmail.set(key, a.full_name || a.name || a.lastname || a.email);
     });
   }
+  const resolveAgent = (email) => {
+    if (!email) return 'Atendente';
+    const key = String(email).toLowerCase();
+    return agentNameByEmail.get(key) || email;
+  };
+
+  const safeNum = data?.ticket_number ? String(data.ticket_number).padStart(6, '0') : String(id);
+
+  // ⬇️ carrega UMDs e gera PDF (sem depender do bundler)
+  const { PDFDocument, blobStream } = await ensurePdfkit();
+
+  const doc = new PDFDocument({ size: 'A4', margin: 40 });
+  const stream = doc.pipe(blobStream());
+
+  buildTicketPdf(doc, { ticket, rows, resolveAgent, fmtDT });
+  doc.end();
+
+  stream.on('finish', () => {
+    const blob = stream.toBlob('application/pdf');
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `ticket-${safeNum}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+}
+
 
   return (
     <div className={styles.page}>
