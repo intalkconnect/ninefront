@@ -26,14 +26,14 @@ import {
   MessageSquareReply,
   WalletCards
 } from "lucide-react";
- import {
-   NavLink,
-   Routes,
-   Route,
-   Navigate,
-   useLocation,
-   useNavigate,
- } from "react-router-dom";
+import {
+  NavLink,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
 import Builder from "./chatbot/Builder";
 import Dashboard from "./dashboard/Dashboard";
@@ -61,8 +61,7 @@ import WhatsAppProfile from "./preferences/WhatsAppProfile";
 import TelegramConnect from "./preferences/TelegramConnect";
 import TokensSecurity from "./preferences/security/Tokens";
 
-
-// Temporários (mantidos)
+// Temporário
 const Integrations = () => <div>Integrações</div>;
 
 document.title = "NineChat - Gestão";
@@ -73,31 +72,25 @@ export default function Admin() {
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
 
-  // 🔒 Carregamento do perfil para evitar "flash" de opções
   const [authLoading, setAuthLoading] = useState(true);
 
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const location = useLocation();
 
-  // Perfil
   const [isProfileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
-
-  // Nav (para clique fora)
   const navRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
     const fetchAdminInfo = async () => {
-      // Enquanto não resolvemos, mantemos a splash
       setAuthLoading(true);
       try {
         if (email) {
           const res = await apiGet(`/users/${email}`);
           if (mounted) setUserData(res);
         } else {
-          // sem email, trata como usuário comum (ou redirecione se necessário)
           if (mounted) setUserData(null);
         }
       } catch (err) {
@@ -118,7 +111,7 @@ export default function Admin() {
     setProfileOpen(false);
   }, [location.pathname]);
 
-  // Fecha menus no clique fora
+  // Clique fora
   useEffect(() => {
     const onDocDown = (e) => {
       const target = e.target;
@@ -129,7 +122,7 @@ export default function Admin() {
     return () => document.removeEventListener("mousedown", onDocDown);
   }, []);
 
-  // Fecha menus com ESC
+  // ESC
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -141,10 +134,9 @@ export default function Admin() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // caminho fixo do Dashboard
   const DASHBOARD_PATH = "/";
 
-  /* ===================== CONTROLES DE PERMISSÃO ===================== */
+  /* ===== Permissões ===== */
   const role =
     userData?.role ||
     userData?.perfil ||
@@ -154,28 +146,21 @@ export default function Admin() {
   const isAdmin = role?.toLowerCase() === "admin";
   const isSupervisor = role?.toLowerCase() === "supervisor";
 
-  // Guard simples para proteger rotas
   const RequireRole = ({ allow, children }) => {
     if (!allow) return <Navigate to={DASHBOARD_PATH} replace />;
     return children;
   };
 
-  // Filtra itens do menu para o perfil Supervisor:
-  // - Esconde "Desenvolvimento" e "Configurações"
-  // - Remove "Sessões" em Acompanhamento > Análise
   const filterMenusByRole = (items) => {
-    if (!isSupervisor) return items; // admin (ou outros) veem tudo
-
+    if (!isSupervisor) return items;
     return items
       .filter((m) => !["development", "settings"].includes(m.key))
       .map((m) => {
         if (m.key !== "monitoring") return m;
-
         const cloned = {
           ...m,
           children: m.children?.map((g) => ({ ...g }))
         };
-
         cloned.children = cloned.children?.map((grp) => {
           if (grp.key !== "monitoring-analysis") return grp;
           return {
@@ -185,12 +170,10 @@ export default function Admin() {
             ),
           };
         });
-
         return cloned;
       });
   };
 
-  /* ===================== MENU (grupos sem ícone) ===================== */
   const menus = useMemo(
     () =>
       filterMenusByRole([
@@ -273,7 +256,6 @@ export default function Admin() {
           ],
         },
 
-        /* ========= Desenvolvimento ========= */
         {
           key: "development",
           label: "Desenvolvimento",
@@ -319,7 +301,6 @@ export default function Admin() {
           ],
         },
       ]),
-    // reavalia quando o perfil mudar
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isSupervisor]
   );
@@ -327,7 +308,6 @@ export default function Admin() {
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
   const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
 
-  /* ===================== SPLASH DE CARREGAMENTO ===================== */
   if (authLoading) {
     return (
       <div
@@ -379,7 +359,6 @@ export default function Admin() {
     );
   }
 
-  /* ===================== UI PRINCIPAL ===================== */
   return (
     <div className={styles.wrapper}>
       {/* Top Navbar */}
@@ -389,12 +368,19 @@ export default function Admin() {
             className={styles.burger}
             aria-label="Abrir menu"
             onClick={() => setMobileMenuOpen((v) => !v)}
+            type="button"
           >
             <span />
             <span />
             <span />
           </button>
-          <NavLink to={DASHBOARD_PATH} className={styles.brand}>
+
+          {/* Logo → força navegação SPA */}
+          <NavLink
+            to={DASHBOARD_PATH}
+            className={styles.brand}
+            onClick={(e) => { e.preventDefault(); navigate(DASHBOARD_PATH); }}
+          >
             <img src="/logo.png" alt="NineChat" />
             <span>Admin</span>
           </NavLink>
@@ -419,7 +405,6 @@ export default function Admin() {
                     to={m.to}
                     className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
                     onClick={(e) => {
-                      // força navegação SPA e evita qualquer submit implícito
                       e.preventDefault();
                       if (dropdown) {
                         handleTopClick(m.key);
@@ -432,12 +417,11 @@ export default function Admin() {
                     <span>{m.label}</span>
                   </NavLink>
                 ) : (
-<button
-   type="button"
-   className={styles.hlink}
-onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
->
-
+                  <button
+                    type="button"
+                    className={styles.hlink}
+                    onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
+                  >
                     {m.icon}
                     <span>{m.label}</span>
                     {dropdown && <ChevronDown size={16} />}
@@ -446,7 +430,6 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
 
                 {dropdown && (
                   <div className={styles.megamenu} role="menu">
-                    {/* cada filho de m é um GRUPO */}
                     <div className={styles.megagrid}>
                       {m.children.map((grp) => (
                         <div className={styles.megagroup} key={grp.key || grp.label}>
@@ -457,11 +440,11 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
                                 <NavLink
                                   to={leaf.to}
                                   className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                   onClick={(e) => {
-                                   e.preventDefault();
-                                   setOpenDropdown(null);
-                                   navigate(leaf.to);
-                                 }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setOpenDropdown(null);
+                                    navigate(leaf.to);
+                                  }}
                                   role="menuitem"
                                 >
                                   {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
@@ -484,8 +467,13 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
         <div className={styles.profileArea} ref={profileRef}>
           {userData && (
             <>
- <button type="button" className={styles.userButton} onClick={() => setProfileOpen((v) => !v)} aria-haspopup="menu" aria-expanded={isProfileOpen}>
-
+              <button
+                type="button"
+                className={styles.userButton}
+                onClick={() => setProfileOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={isProfileOpen}
+              >
                 <div
                   className={styles.avatar}
                   style={{ backgroundColor: stringToColor(userData.email) }}
@@ -512,7 +500,14 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
 
                   <ul className={styles.pdList}>
                     <li className={styles.pdItem}>
-                      <NavLink to="settings/preferences" onClick={() => setProfileOpen(false)}>
+                      <NavLink
+                        to="settings/preferences"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setProfileOpen(false);
+                          navigate("settings/preferences");
+                        }}
+                      >
                         <span className={styles.pdIcon}><User size={16} /></span>
                         Editar perfil
                       </NavLink>
@@ -538,11 +533,17 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
       <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ""}`}>
         <div className={styles.drawerHeader}>
           <span className={styles.drawerTitle}>Menu</span>
-          <button type="button" className={styles.drawerClose}  onClick={(e) => {
-                               e.preventDefault();
-                               setMobileMenuOpen(false);
-                               navigate(leaf.to);
-                             }} aria-label="Fechar menu">×</button>
+          <button
+            type="button"
+            className={styles.drawerClose}
+            onClick={(e) => {
+              e.preventDefault();
+              setMobileMenuOpen(false);
+            }}
+            aria-label="Fechar menu"
+          >
+            ×
+          </button>
         </div>
         <ul className={styles.drawerList}>
           {menus.map((m) => (
@@ -555,7 +556,6 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
                     <ChevronDown size={16} />
                   </summary>
 
-                  {/* grupos do menu m */}
                   {m.children.map((grp) => (
                     <div key={`g-${grp.key || grp.label}`}>
                       <div className={styles.drawerGroupHdr}>{grp.label}</div>
@@ -565,7 +565,11 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
                             <NavLink
                               to={leaf.to}
                               className={({ isActive }) => (isActive ? styles.active : undefined)}
-                              onClick={() => setMobileMenuOpen(false)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setMobileMenuOpen(false);
+                                navigate(leaf.to);
+                              }}
                             >
                               {leaf.icon}
                               <span>{leaf.label}</span>
@@ -581,7 +585,11 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
                   end={m.exact}
                   to={m.to}
                   className={({ isActive }) => (isActive ? styles.active : undefined)}
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileMenuOpen(false);
+                    navigate(m.to);
+                  }}
                 >
                   {m.icon}
                   <span>{m.label}</span>
@@ -613,7 +621,6 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
           />
 
           {/* management */}
-          {/* Supervisor não pode criar admin; passamos a permissão para a página */}
           <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
           <Route path="management/queues" element={<Queues />} />
           <Route path="management/quick-replies" element={<QuickReplies />} />
@@ -624,6 +631,8 @@ onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
           {/* campaigns */}
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
+
+          {/* channels */}
           <Route path="channels/whatsapp" element={<WhatsAppProfile />} />
           <Route path="channels/telegram" element={<TelegramConnect />} />
 
