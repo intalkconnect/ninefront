@@ -40,10 +40,11 @@
    GLOBAL / CONTAINER
 ========================================= */
 .container{
-  height:auto !important;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   min-height:0 !important;
   overflow:visible !important;
-  padding:24px;
   background:transparent !important;
 }
 
