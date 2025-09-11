@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Copy, Shield, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Shield, Plus, Trash2, RefreshCw, Copy } from 'lucide-react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
 import styles from './styles/Tokens.module.css';
 
-// Mostra 8 do segredo + bullets até 64 (não exibe ID)
+// Prévia: 8 primeiros do segredo + bullets até 64 (não exibe ID)
 function shortPreview(preview = '') {
   const parts = String(preview).split('.');
   const secretPart = parts.length > 1 ? parts[1] : parts[0] || '';
@@ -24,6 +24,9 @@ export default function TokensSecurity() {
   const [creating, setCreating] = useState(false);
   const nameRef = useRef(null);
 
+  // aviso de token recém-criado (exibe COMPLETO só aqui)
+  const [justCreated, setJustCreated] = useState(null); // { id, token, name? }
+
   const load = async () => {
     setLoading(true); setErr(null);
     try {
@@ -38,14 +41,11 @@ export default function TokensSecurity() {
   };
   useEffect(() => { load(); }, []);
 
-  const copy = (txt) => {
+  const copyToClipboard = (txt) => {
     navigator.clipboard.writeText(txt);
     setOk('Copiado!');
-    setTimeout(()=>setOk(null), 1200);
+    setTimeout(() => setOk(null), 1200);
   };
-
-  const NAME_ERR = 'Informe o nome do token.';
-  const isNameErr = err === NAME_ERR;
 
   const createToken = async (e) => {
     if (e?.preventDefault) e.preventDefault();
@@ -53,20 +53,23 @@ export default function TokensSecurity() {
 
     const name = (newName || '').trim();
     if (!name) {
-      setErr(NAME_ERR);
+      setErr('Informe o nome do token.');
       nameRef.current?.focus();
       return;
     }
 
     setCreating(true); setErr(null); setOk(null);
     try {
+      // o backend deve retornar { ok: true, id, token } onde token é o VALOR COMPLETO
       const j = await apiPost('/security/tokens', { name, is_default: false });
-      if (!j?.ok) throw new Error(j?.message || 'Falha ao criar token');
+      if (!j?.ok || !j?.token) throw new Error(j?.message || 'Falha ao criar token');
+
+      setJustCreated({ id: j.id, token: j.token, name });
       setNewName('');
       await load();
-      setOk('Token criado.');
-    } catch (e2) {
-      setErr(e2?.response?.data?.message || e2?.message || 'Falha ao criar token.');
+      setOk('Token criado. Copie agora — ele não será mostrado novamente.');
+    } catch (e) {
+      setErr(e?.response?.data?.message || e?.message || 'Falha ao criar token.');
     } finally {
       setCreating(false);
     }
@@ -87,7 +90,6 @@ export default function TokensSecurity() {
 
   return (
     <div className={styles.page}>
-      {/* Header */}
       <div className={styles.header}>
         <div className={styles.hLeft}>
           <Shield size={20}/><h1>Segurança — Tokens de API</h1>
@@ -99,46 +101,60 @@ export default function TokensSecurity() {
         </div>
       </div>
 
-      {/* Alerta global só quando NÃO for erro de nome */}
-      {err && !isNameErr && <div className={styles.alertErr} aria-live="polite">{err}</div>}
+      {err && <div className={styles.alertErr} aria-live="polite">{err}</div>}
       {ok  && <div className={styles.alertOk}  aria-live="polite">{ok}</div>}
 
-      {/* Criar token */}
+      {/* criar novo */}
       <div className={styles.card}>
         <div className={styles.cardBody}>
-          <form className={styles.createBar} onSubmit={createToken} noValidate>
-            <div className={styles.field}>
+          <form className={styles.createInline} onSubmit={createToken} noValidate>
+            <div className={styles.fieldCompact}>
               <input
                 ref={nameRef}
-                className={`${styles.input} ${isNameErr ? styles.inputErr : ''}`}
+                className={`${styles.input} ${(!newName.trim() && err === 'Informe o nome do token.') ? styles.inputErr : ''}`}
                 placeholder="Nome do token"
                 value={newName}
                 onChange={(e)=>{ setNewName(e.target.value); if (err) setErr(null); }}
                 disabled={creating}
-                aria-invalid={isNameErr ? 'true' : 'false'}
-                aria-describedby="token-name-err"
+                aria-invalid={!newName.trim() && err === 'Informe o nome do token.'}
               />
-              {isNameErr && (
-                <div id="token-name-err" className={styles.fieldErr}>
-                  {NAME_ERR}
-                </div>
-              )}
             </div>
-
             <button
               type="submit"
               className={styles.btnPrimary}
-              onClick={createToken}
-              disabled={creating}   // não bloqueia quando sem nome; valida e mostra erro
-              title="Criar token"
+              disabled={creating || !newName.trim()}
+              title={(!newName.trim() ? 'Informe o nome do token' : 'Criar token')}
             >
               <Plus size={16}/> Criar token
             </button>
           </form>
+
+          {/* aviso: exibe o token COMPLETO apenas após criar */}
+          {justCreated?.token && (
+            <div className={styles.notice} role="status" aria-live="polite">
+              <div className={styles.noticeTitle}>
+                Token criado {justCreated.name ? `(${justCreated.name})` : ''} — copie agora
+              </div>
+              <div className={styles.tokenBox}>
+                <code className={styles.tokenValue}>{justCreated.token}</code>
+                <button
+                  type="button"
+                  className={styles.btnTiny}
+                  onClick={()=>copyToClipboard(justCreated.token)}
+                  title="Copiar token completo"
+                >
+                  <Copy size={14}/> Copiar
+                </button>
+              </div>
+              <div className={styles.noticeHelp}>
+                Por segurança, o valor completo do token não será exibido novamente.
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Lista */}
+      {/* lista */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>Tokens do workspace</div>
@@ -170,14 +186,7 @@ export default function TokensSecurity() {
                   </td>
                   <td>{r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '—'}</td>
                   <td className={styles.actions}>
-                    <button
-                      className={styles.btnTiny}
-                      onClick={() => copy(shortPreview(r.preview))}
-                      title="Copiar token ofuscado"
-                    >
-                      <Copy size={14}/> Copiar
-                    </button>
-
+                    {/* Sem copiar aqui — apenas revogar quando não for default */}
                     {r.is_default ? (
                       <span className={styles.muted}>Não alterável</span>
                     ) : r.status !== 'revoked' ? (
