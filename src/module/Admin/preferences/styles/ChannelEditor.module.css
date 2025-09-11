@@ -9,7 +9,12 @@
   --primary-100:rgba(37,99,235,.15);
 }
 
-.page{ padding:24px; background:var(--bg); }
+.page{  
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background:var(--bg);
+}
 .breadcrumbs{ color:#64748b; margin-bottom:8px; }
 .bcLink{ color:#2563eb; cursor:pointer; } .bcLink:hover{ text-decoration:underline; }
 .bcSep{ margin:0 6px; }
