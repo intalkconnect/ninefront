@@ -8,9 +8,9 @@
   --text: #0f172a;
   --divider: #eef2f7;
 
-  max-width: var(--container-max);
+  padding: 24px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 16px;
   display: grid;
   gap: 16px;
   background: #f6f7fb;
