@@ -30,10 +30,10 @@
 
 /* ===== Página/lista ===== */
 .container{
-  height:auto !important;
-  min-height:0 !important;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   overflow-x:hidden;
-  padding:24px 24px 32px;
   background:transparent !important;
 }
 
