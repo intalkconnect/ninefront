@@ -37,12 +37,11 @@ html, body {
   background: transparent !important;
 
   /* página cheia, só com padding lateral como nas outras telas */
-  height: auto !important;
-  min-height: 0 !important;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   overflow: visible !important;
 
-  margin: 0;
-  padding: 24px var(--page-inline);
 }
 
 /* ===========================
