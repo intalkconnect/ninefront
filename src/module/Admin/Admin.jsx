@@ -26,13 +26,14 @@ import {
   MessageSquareReply,
   WalletCards
 } from "lucide-react";
-import {
-  NavLink,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
+ import {
+   NavLink,
+   Routes,
+   Route,
+   Navigate,
+   useLocation,
+   useNavigate,
+ } from "react-router-dom";
 
 import Builder from "./chatbot/Builder";
 import Dashboard from "./dashboard/Dashboard";
@@ -67,6 +68,7 @@ const Integrations = () => <div>Integrações</div>;
 document.title = "NineChat - Gestão";
 
 export default function Admin() {
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
@@ -416,7 +418,15 @@ export default function Admin() {
                     end={m.exact}
                     to={m.to}
                     className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                    onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
+                    onClick={(e) => {
+                      // força navegação SPA e evita qualquer submit implícito
+                      e.preventDefault();
+                      if (dropdown) {
+                        handleTopClick(m.key);
+                        return;
+                      }
+                      navigate(m.to);
+                    }}
                   >
                     {m.icon}
                     <span>{m.label}</span>
@@ -425,12 +435,7 @@ export default function Admin() {
 <button
    type="button"
    className={styles.hlink}
-   onClick={(e) => {
-     if (dropdown) {
-       e.preventDefault();
-       handleTopClick(m.key);
-     }
-   }}
+onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
 >
 
                     {m.icon}
@@ -452,7 +457,11 @@ export default function Admin() {
                                 <NavLink
                                   to={leaf.to}
                                   className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                  onClick={() => setOpenDropdown(null)}
+                                   onClick={(e) => {
+                                   e.preventDefault();
+                                   setOpenDropdown(null);
+                                   navigate(leaf.to);
+                                 }}
                                   role="menuitem"
                                 >
                                   {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
@@ -529,7 +538,11 @@ export default function Admin() {
       <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ""}`}>
         <div className={styles.drawerHeader}>
           <span className={styles.drawerTitle}>Menu</span>
-          <button type="button" className={styles.drawerClose} onClick={() => setMobileMenuOpen(false)} aria-label="Fechar menu">×</button>
+          <button type="button" className={styles.drawerClose}  onClick={(e) => {
+                               e.preventDefault();
+                               setMobileMenuOpen(false);
+                               navigate(leaf.to);
+                             }} aria-label="Fechar menu">×</button>
         </div>
         <ul className={styles.drawerList}>
           {menus.map((m) => (
