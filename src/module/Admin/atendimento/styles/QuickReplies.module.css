@@ -28,7 +28,12 @@
   --qr-transition:.18s ease;
 }
 
-.container{ padding:24px; background:transparent !important; }
+.container{  
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto; 
+  background:transparent !important; 
+}
 
 /* ===== Header da página ===== */
 .header{
