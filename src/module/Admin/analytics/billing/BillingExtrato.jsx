@@ -1,7 +1,15 @@
 // File: BillingExtrato.jsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet } from '../../../../shared/apiClient';
-import { CalendarRange, Coins, Download, RefreshCcw } from 'lucide-react';
+import {
+  CalendarRange,
+  Download,
+  RefreshCcw,
+  Receipt,
+  TrendingUp,
+  Users,
+  DollarSign
+} from 'lucide-react';
 import styles from './styles/BillingExtrato.module.css';
 
 /* ========================= Helpers ========================= */
@@ -28,7 +36,7 @@ const useDebounce = (value, delay = 300) => {
 
 // =========== Normalizadores ===========
 const pickCents = (row) => {
-  if (Number.isFinite(+row?.amount_cents)) return +row.amount_cents; // <-- novo payload
+  if (Number.isFinite(+row?.amount_cents)) return +row.amount_cents;
   if (Number.isFinite(+row?.total_cents)) return +row.total_cents;
   if (Number.isFinite(+row?.total_value_cents)) return +row.total_value_cents;
   if (Number.isFinite(+row?.cents)) return +row.cents;
@@ -47,7 +55,6 @@ const pickLastTs = (row) =>
 
 /* ========================= Página ========================= */
 export default function BillingExtrato() {
-  // período padrão: 1º dia do mês atual até agora
   const now = new Date();
   const firstMonthDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
 
@@ -55,7 +62,7 @@ export default function BillingExtrato() {
   const [to, setTo] = useState(new Date().toISOString().slice(0, 16));
 
   const debFrom = useDebounce(from, 300);
-  const debTo   = useDebounce(to, 300);
+  const debTo = useDebounce(to, 300);
 
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState(null);
@@ -66,16 +73,16 @@ export default function BillingExtrato() {
   useEffect(() => () => { mounted.current = false; }, []);
 
   const load = useCallback(async () => {
-    setLoading(true); setErrMsg(null);
+    setLoading(true);
+    setErrMsg(null);
     try {
       const params = { from: toISO(debFrom), to: toISO(debTo) };
       const res = await apiGet(`/billing/statement?${qs(params)}`);
 
       // 1) linhas
-      let rows =
-        Array.isArray(res) ? res :
-        (Array.isArray(res?.rows) ? res.rows :
-        (Array.isArray(res?.data) ? res.data : [])); // <-- aceita {data: [...]}
+      let rows = Array.isArray(res)
+        ? res
+        : (Array.isArray(res?.rows) ? res.rows : (Array.isArray(res?.data) ? res.data : []));
       if (!Array.isArray(rows)) rows = [];
 
       // 2) total do período
@@ -83,7 +90,7 @@ export default function BillingExtrato() {
       if (Number.isFinite(+res?.total_cents)) {
         total_cents = +res.total_cents;
       } else if (Number.isFinite(+res?.totals?.amount_cents_all_currencies)) {
-        total_cents = +res.totals.amount_cents_all_currencies; // <-- novo payload
+        total_cents = +res.totals.amount_cents_all_currencies;
       } else {
         total_cents = rows.reduce((acc, r) => acc + pickCents(r), 0);
       }
@@ -113,130 +120,234 @@ export default function BillingExtrato() {
     }
   }, [debFrom, debTo]);
 
-  useEffect(() => { if (debFrom && debTo) load(); }, [debFrom, debTo, refreshKey, load]);
+  useEffect(() => {
+    if (debFrom && debTo) load();
+  }, [debFrom, debTo, refreshKey, load]);
 
   const grandTotal = useMemo(() => BRL(data.total_cents || 0), [data.total_cents]);
 
-  // export CSV
+  // export: usa endpoint do servidor (igual ao exemplo sem mock)
   const handleExport = () => {
     const params = { from: toISO(debFrom), to: toISO(debTo) };
     const url = `/billing/statement/export?${qs(params)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const fmtDt = (ts) => ts ? new Date(ts).toLocaleString('pt-BR') : '—';
+  const fmtDt = (ts) => (ts ? new Date(ts).toLocaleString('pt-BR') : '—');
+
+  // métricas extras
+  const totalUsers = data.rows?.length || 0;
+  const totalSessions = data.rows?.reduce((acc, r) => acc + pickSessions(r), 0) || 0;
+  const avgPerUser = totalUsers > 0 ? data.total_cents / totalUsers : 0;
 
   return (
     <div className={styles.container}>
-      {/* Barra superior (ações à direita) */}
+      {/* Barra superior */}
       <div className={styles.toolbar}>
         <div className={styles.headerActions}>
-          <button className={styles.btn} type="button" onClick={() => setRefreshKey(k => k + 1)} disabled={loading} title="Atualizar">
-            <RefreshCcw size={16} className={loading ? styles.spin : ''} /> Atualizar
+          <button
+            className={styles.btn}
+            type="button"
+            onClick={() => setRefreshKey((k) => k + 1)}
+            disabled={loading}
+            title="Atualizar"
+          >
+            <RefreshCcw size={16} className={loading ? styles.spin : ''} />
+            Atualizar
           </button>
-          <button className={styles.btnPrimary} type="button" onClick={handleExport} disabled={loading} title="Exportar CSV">
-            <Download size={16} /> Exportar CSV
+
+          <button
+            className={styles.btnPrimary}
+            type="button"
+            onClick={handleExport}
+            disabled={loading}
+            title="Exportar CSV"
+          >
+            <Download size={16} />
+            Exportar CSV
           </button>
         </div>
       </div>
 
       {/* Cabeçalho + filtros */}
       <div className={styles.header}>
-        <h1 className={styles.title}><Coins size={28}/> Extrato de Sessões</h1>
+        <div className={styles.headerRule} />
+        <div>
+          <h1 className={styles.title}>
+            <Receipt size={32} className={styles.titleIcon} />
+            Relatório Financeiro
+          </h1>
+          <p className={styles.subtitle}>Análise detalhada do faturamento por sessões e usuários</p>
+        </div>
+
         <div className={styles.filters}>
           <div className={styles.filterItem}>
-            <label><CalendarRange size={14}/> De</label>
-            <input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <label>
+              <CalendarRange size={14} /> Período inicial
+            </label>
+            <input
+              className={styles.input}
+              type="datetime-local"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
           </div>
           <div className={styles.filterItem}>
-            <label><CalendarRange size={14}/> Até</label>
-            <input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} />
+            <label>
+              <CalendarRange size={14} /> Período final
+            </label>
+            <input
+              className={styles.input}
+              type="datetime-local"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            />
           </div>
         </div>
       </div>
 
-      {/* Resumo topo */}
-      <div className={styles.kpisRow}>
+      {/* KPIs */}
+      <div className={styles.kpisGrid}>
+        {/* Faturamento total */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardTitle}><Coins size={18}/> Total no período</div>
+            <div className={styles.cardTitle}>
+              <DollarSign size={18} />
+              Faturamento Total
+            </div>
           </div>
           <div className={styles.cardBody}>
             <div className={styles.bigTotal}>{grandTotal}</div>
-            <div className={styles.subtle}>Soma de todas as janelas faturáveis do período.</div>
+            <div className={styles.subtle}>Receita total gerada no período selecionado</div>
           </div>
         </div>
 
+        {/* Usuários ativos */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Totais por canal</div>
+            <div className={styles.cardTitle}>
+              <Users size={18} />
+              Usuários Ativos
+            </div>
           </div>
           <div className={styles.cardBody}>
-            {loading ? <div className={styles.loading}>Carregando…</div> :
-            (data.totals_by_channel?.length ? (
+            <div className={styles.bigNumber}>{totalUsers}</div>
+            <div className={styles.subtle}>Total de usuários com sessões faturáveis</div>
+            <div className={styles.inlineStat}>
+              <TrendingUp size={14} />
+              Média: {BRL(avgPerUser)} por usuário
+            </div>
+          </div>
+        </div>
+
+        {/* Total por canal */}
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>Total por Canal</div>
+          </div>
+          <div className={styles.cardBody}>
+            {loading ? (
+              <div className={styles.loading}>Carregando…</div>
+            ) : data.totals_by_channel?.length ? (
               <ul className={styles.channelList}>
                 {data.totals_by_channel
                   .slice()
                   .sort((a, b) => (b.total_cents || 0) - (a.total_cents || 0))
                   .map((c) => (
                     <li key={c.channel} className={styles.channelItem}>
-                      <span className={styles.channelLabel}>{c.channel || 'default'}</span>
+                      <span
+                        className={[
+                          styles.pill,
+                          c.channel === 'whatsapp'
+                            ? styles['pill--whatsapp']
+                            : c.channel === 'telegram'
+                            ? styles['pill--telegram']
+                            : styles['pill--default']
+                        ].join(' ')}
+                      >
+                        {c.channel || 'default'}
+                      </span>
                       <span className={styles.channelStat}>
-                        {fmtInt(c.sessions || 0)} janelas • <strong>{BRL(c.total_cents || 0)}</strong>
+                        {fmtInt(c.sessions || 0)} sessões • <strong>{BRL(c.total_cents || 0)}</strong>
                       </span>
                     </li>
                   ))}
               </ul>
-            ) : <div className={styles.empty}>Sem dados por canal para o período.</div>)}
+            ) : (
+              <div className={styles.empty}>Sem dados por canal</div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Lista detalhada */}
+      {/* Tabela detalhada */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Detalhamento por usuário</div>
+          <div className={styles.cardTitle}>Detalhamento por Usuário</div>
+          <div className={styles.tableMeta}>{totalSessions} sessões totais</div>
         </div>
+
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>User ID</th>
-                <th>Canal</th>
-                <th>Janelas</th>
-                <th>1ª msg</th>
-                <th>Última msg</th>
-                <th>Total</th>
+                {['User ID', 'Canal', 'Sessões', 'Primeira Mensagem', 'Última Mensagem', 'Valor Total'].map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={6} className={styles.loading}>Carregando…</td></tr>
+                <tr>
+                  <td colSpan={6} className={styles.loading}>
+                    Carregando dados...
+                  </td>
+                </tr>
               )}
               {!loading && (!data.rows || data.rows.length === 0) && (
-                <tr><td colSpan={6} className={styles.empty}>Sem dados no período.</td></tr>
+                <tr>
+                  <td colSpan={6} className={styles.empty}>
+                    Nenhum dado encontrado para o período selecionado
+                  </td>
+                </tr>
               )}
-              {!loading && data.rows?.map((r, i) => {
-                const cents = pickCents(r);
-                const sessions = pickSessions(r);
-                const first = pickFirstTs(r);
-                const last  = pickLastTs(r);
-                return (
-                  <tr key={(r.user_id || r.user || '-') + (r.channel || 'default') + i}>
-                    <td>{r.user_id || r.user || '—'}</td>
-                    <td>{r.channel || 'default'}</td>
-                    <td>{fmtInt(sessions)}</td>
-                    <td>{fmtDt(first)}</td>
-                    <td>{fmtDt(last)}</td>
-                    <td><strong>{BRL(cents)}</strong></td>
-                  </tr>
-                );
-              })}
+              {!loading &&
+                data.rows?.map((r, i) => {
+                  const cents = pickCents(r);
+                  const sessions = pickSessions(r);
+                  const first = pickFirstTs(r);
+                  const last = pickLastTs(r);
+                  return (
+                    <tr key={(r.user_id || r.user || '-') + (r.channel || 'default') + i}>
+                      <td className={styles.cellStrong}>{r.user_id || r.user || '—'}</td>
+                      <td>
+                        <span
+                          className={[
+                            styles.pill,
+                            (r.channel === 'whatsapp'
+                              ? styles['pill--whatsapp']
+                              : r.channel === 'telegram'
+                              ? styles['pill--telegram']
+                              : styles['pill--default'])
+                          ].join(' ')}
+                        >
+                          {r.channel || 'default'}
+                        </span>
+                      </td>
+                      <td className={styles.cellStrong}>{fmtInt(sessions)}</td>
+                      <td>{fmtDt(first)}</td>
+                      <td>{fmtDt(last)}</td>
+                      <td className={styles.cellMoney}>{BRL(cents)}</td>
+                    </tr>
+                  );
+                })}
             </tbody>
             {data.rows?.length ? (
               <tfoot>
                 <tr>
-                  <td colSpan={5} className={styles.tfootLabel}>Total</td>
+                  <td colSpan={5} className={styles.tfootLabel}>
+                    Total Geral
+                  </td>
                   <td className={styles.tfootValue}>{grandTotal}</td>
                 </tr>
               </tfoot>
@@ -244,7 +355,11 @@ export default function BillingExtrato() {
           </table>
         </div>
 
-        {errMsg && <div className={styles.alertErr} role="alert">⚠️ {errMsg}</div>}
+        {errMsg && (
+          <div className={styles.alertErr} role="alert">
+            ⚠️ {errMsg}
+          </div>
+        )}
       </div>
     </div>
   );
