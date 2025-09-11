@@ -2,12 +2,12 @@
 
 /* Container principal */
 .container{
-  height:auto;
-  min-height:calc(100vh - 56px);
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   overflow:hidden;
   flex:1 1 auto;
   background: linear-gradient(135deg, #f7f7fb 0%, #f1f5f9 100%);
-  padding:24px;
   color:#111827;
   font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
 }
