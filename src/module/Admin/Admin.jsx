@@ -375,11 +375,10 @@ export default function Admin() {
             <span />
           </button>
 
-          {/* Logo → força navegação SPA */}
+          {/* Logo → navegação SPA pelo NavLink (sem preventDefault) */}
           <NavLink
             to={DASHBOARD_PATH}
             className={styles.brand}
-            onClick={(e) => { e.preventDefault(); navigate(DASHBOARD_PATH); }}
           >
             <img src="/logo.png" alt="NineChat" />
             <span>Admin</span>
@@ -404,18 +403,21 @@ export default function Admin() {
                     end={m.exact}
                     to={m.to}
                     className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                     onClick={() => {
-   if (dropdown) { handleTopClick(m.key); }
- }}
                   >
                     {m.icon}
                     <span>{m.label}</span>
                   </NavLink>
                 ) : (
+                  // Botão que APENAS abre submenu: usa mouseDown + stopPropagation
                   <button
                     type="button"
                     className={styles.hlink}
-                    onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (dropdown) handleTopClick(m.key);
+                    }}
                   >
                     {m.icon}
                     <span>{m.label}</span>
@@ -432,12 +434,12 @@ export default function Admin() {
                           <ul className={styles.megasublist}>
                             {grp.children.map((leaf) => (
                               <li key={leaf.to} className={styles.megaitem} role="none">
- <NavLink
-   to={leaf.to}
-   className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-   onClick={() => setOpenDropdown(null)}
-   role="menuitem"
- >
+                                <NavLink
+                                  to={leaf.to}
+                                  className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
+                                  onClick={() => setOpenDropdown(null)}
+                                  role="menuitem"
+                                >
                                   {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
                                   <span>{leaf.label}</span>
                                 </NavLink>
@@ -493,11 +495,7 @@ export default function Admin() {
                     <li className={styles.pdItem}>
                       <NavLink
                         to="settings/preferences"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setProfileOpen(false);
-                          navigate("settings/preferences");
-                        }}
+                        onClick={() => setProfileOpen(false)}
                       >
                         <span className={styles.pdIcon}><User size={16} /></span>
                         Editar perfil
@@ -558,7 +556,7 @@ export default function Admin() {
                               className={({ isActive }) => (isActive ? styles.active : undefined)}
                               onClick={() => {
                                 setMobileMenuOpen(false);
-                                 }}
+                              }}
                             >
                               {leaf.icon}
                               <span>{leaf.label}</span>
@@ -574,10 +572,8 @@ export default function Admin() {
                   end={m.exact}
                   to={m.to}
                   className={({ isActive }) => (isActive ? styles.active : undefined)}
-                  onClick={(e) => {
-                    e.preventDefault();
+                  onClick={() => {
                     setMobileMenuOpen(false);
-                    navigate(m.to);
                   }}
                 >
                   {m.icon}
