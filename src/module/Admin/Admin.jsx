@@ -5,7 +5,7 @@ import {
   Bot,
   Users,
   MessageCircle,
-  Settings,
+  Settings as SettingsIcon,
   SquareActivity,
   Folder,
   Megaphone,
@@ -65,6 +65,15 @@ import TokensSecurity from "./preferences/security/Tokens";
 const Integrations = () => <div>Integrações</div>;
 
 document.title = "NineChat - Gestão";
+
+/** <<< FIX PRINCIPAL >>>
+ * Declarar o guard fora do componente Admin, para manter identidade estável
+ * e não remontar as rotas ao re-render do layout.
+ */
+function RequireRole({ allow, children }) {
+  if (!allow) return <Navigate to="/" replace />;
+  return children;
+}
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -145,11 +154,6 @@ export default function Admin() {
 
   const isAdmin = role?.toLowerCase() === "admin";
   const isSupervisor = role?.toLowerCase() === "supervisor";
-
-  const RequireRole = ({ allow, children }) => {
-    if (!allow) return <Navigate to={DASHBOARD_PATH} replace />;
-    return children;
-  };
 
   const filterMenusByRole = (items) => {
     if (!isSupervisor) return items;
@@ -274,13 +278,13 @@ export default function Admin() {
         {
           key: "settings",
           label: "Configurações",
-          icon: <Settings size={18} />,
+          icon: <SettingsIcon size={18} />,
           children: [
             {
               key: "settings-geral",
               label: "Geral",
               children: [
-                { to: "settings/preferences", icon: <Settings size={16} />,     label: "Preferências" },
+                { to: "settings/preferences", icon: <SettingsIcon size={16} />,     label: "Preferências" },
                 { to: "settings/channels",    icon: <MessageCircle size={16} />, label: "Canais" },
               ],
             },
@@ -375,10 +379,11 @@ export default function Admin() {
             <span />
           </button>
 
-          {/* Logo → navegação SPA pelo NavLink (sem preventDefault) */}
+          {/* Logo → força navegação SPA */}
           <NavLink
             to={DASHBOARD_PATH}
             className={styles.brand}
+            onClick={(e) => { e.preventDefault(); navigate(DASHBOARD_PATH); }}
           >
             <img src="/logo.png" alt="NineChat" />
             <span>Admin</span>
@@ -403,21 +408,16 @@ export default function Admin() {
                     end={m.exact}
                     to={m.to}
                     className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
+                    onClick={(e) => { e.preventDefault(); navigate(m.to); }}
                   >
                     {m.icon}
                     <span>{m.label}</span>
                   </NavLink>
                 ) : (
-                  // Botão que APENAS abre submenu: usa mouseDown + stopPropagation
                   <button
                     type="button"
                     className={styles.hlink}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (dropdown) handleTopClick(m.key);
-                    }}
+                    onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
                   >
                     {m.icon}
                     <span>{m.label}</span>
@@ -437,7 +437,7 @@ export default function Admin() {
                                 <NavLink
                                   to={leaf.to}
                                   className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                  onClick={() => setOpenDropdown(null)}
+                                  onClick={(e) => { e.preventDefault(); setOpenDropdown(null); navigate(leaf.to); }}
                                   role="menuitem"
                                 >
                                   {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
@@ -495,7 +495,11 @@ export default function Admin() {
                     <li className={styles.pdItem}>
                       <NavLink
                         to="settings/preferences"
-                        onClick={() => setProfileOpen(false)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setProfileOpen(false);
+                          navigate("settings/preferences");
+                        }}
                       >
                         <span className={styles.pdIcon}><User size={16} /></span>
                         Editar perfil
@@ -554,8 +558,10 @@ export default function Admin() {
                             <NavLink
                               to={leaf.to}
                               className={({ isActive }) => (isActive ? styles.active : undefined)}
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.preventDefault();
                                 setMobileMenuOpen(false);
+                                navigate(leaf.to);
                               }}
                             >
                               {leaf.icon}
@@ -572,8 +578,10 @@ export default function Admin() {
                   end={m.exact}
                   to={m.to}
                   className={({ isActive }) => (isActive ? styles.active : undefined)}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
                     setMobileMenuOpen(false);
+                    navigate(m.to);
                   }}
                 >
                   {m.icon}
