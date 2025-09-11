@@ -1,5 +1,12 @@
 /* ------ Layout base ------ */
-.container { max-width: 100%; margin: 0; padding: 1.5rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fafafa; }
+.container {   
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: #1a1a1a; 
+  background: #fafafa;
+           }
 .header{ display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:18px; position:relative; }
 .header::after{ content:''; position:absolute; left:0; right:0; bottom:-16px; height:2px; background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%); }
 .subtitle{ margin:6px 0 0; color:#6b7280; font-size:15px; font-weight:400; }
