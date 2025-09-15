@@ -11,6 +11,19 @@
 .burger:hover{background:#f9fafb}
 .burger span{display:block;width:16px;height:2px;background:#111827;border-radius:2px}
 
+/* ===== MENUBAR (faixa abaixo, não branca) ===== */
+.menubar{
+  position:relative; z-index:45;
+  background:var(--menubar-bg, linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03)));
+  backdrop-filter:saturate(140%) blur(6px);
+  border-top:1px solid rgba(0,0,0,0.08);
+  border-bottom:1px solid rgba(0,0,0,0.08);
+}
+.menubarInner{
+  max-width:1200px; margin:0 auto; padding:6px 12px;
+  display:flex; justify-content:center; /* centraliza o menu */
+}
+
 /* Horizontal nav */
 .hnav{display:none;align-items:center;gap:6px}
 .hitem{position:relative}
@@ -23,16 +36,13 @@
 .open>.hlink,.hlink:focus{outline:2px solid #2563eb1a}
 
 /* Mega menu (coluna) */
-.megamenu{position:absolute;left:0;top:calc(100% + 10px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.12);padding:8px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:.15s ease;min-width:260px;max-width:360px}
+.megamenu{position:absolute;left:0;top:calc(100% + 10px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.12);padding:8px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:.15s ease;min-width:260px;max-width:360px;z-index:60}
 .open .megamenu{opacity:1;transform:translateY(0);pointer-events:auto}
 .megagrid{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column;gap:8px}
 
 /* ===== grupos dentro do mega menu ===== */
 .megagroup{padding:4px 6px}
-.megahdr{
-  font-weight:800; font-size:12px; color:#111827;
-  padding:6px 8px 4px; margin:2px 0 4px;
-}
+.megahdr{font-weight:800;font-size:12px;color:#111827;padding:6px 8px 4px;margin:2px 0 4px}
 .megasublist{list-style:none;margin:0;padding:0 0 6px 0;display:flex;flex-direction:column;gap:2px}
 
 .megaitem{border-radius:10px}
@@ -41,29 +51,16 @@
 .megaicon{display:flex;align-items:center}
 
 /* Profile */
-.profileArea{display:flex;align-items:center;position:relative;gap: 8px;}
+.profileArea{display:flex;align-items:center;position:relative;gap:8px}
+.toolbarDivider{width:1px;height:24px;background:rgba(17,24,39,0.12);margin:0 6px}
+@media (prefers-color-scheme: dark){.toolbarDivider{background:rgba(255,255,255,0.14)}}
 
-.toolbarDivider {
-  width: 1px;
-  height: 24px;
-  background: rgba(17,24,39,0.12); /* mais visível no fundo branco */
-  margin: 0 6px;
-}
-@media (prefers-color-scheme: dark) {
-  .toolbarDivider { background: rgba(255,255,255,0.14); }
-}
-
-.userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827;}
+.userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827}
 .userButton:hover{color:#111827}
 .userButton:focus{outline:2px solid #2563eb1a}
 .userNameTop{font-size:12px;font-weight:700;color:inherit}
-.userChevron {
-  transition: transform 0.18s ease;
-  opacity: 0.9;
-}
-.isOpen .userChevron {
-  transform: rotate(180deg);
-}
+.userChevron{transition:transform .18s ease;opacity:.9}
+.isOpen .userChevron{transform:rotate(180deg)}
 .avatar{width:32px;height:32px;border-radius:999px;color:#fff;font-weight:700;display:grid;place-items:center;position:relative;overflow:hidden}
 .statusDot{position:absolute;right:0;bottom:0;width:10px;height:10px;border-radius:999px;background:#10b981;transform:translate(35%,35%);box-shadow:0 0 0 2px #fff}
 .profileDropdown{position:absolute;right:0;top:calc(100% + 10px);width:240px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.12);padding:8px;z-index:70}
@@ -94,55 +91,27 @@
 .drawerItem details summary{list-style:none}
 
 /* ===== grupos dentro do drawer (mobile) ===== */
-.drawerGroupHdr{
-  display:flex; align-items:center; gap:8px;
-  font-size:12px; font-weight:800; color:#111827;
-  padding:8px 12px; margin:8px 0 4px 6px;
-  border-left:2px solid #e5e7eb;
-}
+.drawerGroupHdr{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#111827;padding:8px 12px;margin:8px 0 4px 6px;border-left:2px solid #e5e7eb}
 .drawerSubList{list-style:none;margin:0;padding:6px 6px 10px 26px;display:flex;flex-direction:column;gap:2px}
 
+/* Conteúdo */
 .content{flex:1;min-height:0;padding:16px}
 
 /* Responsive */
 @media (min-width:1024px){
   .burger{display:none}
-  .hnav{display:flex}
+  .hnav{display:flex}          /* desktop: mostra o menu */
   .mobileDrawer{display:none}
 }
 
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
-/* ===== Faixa do menu (abaixo da topbar, NÃO branca) ===== */
-.menubar {
-  position: relative;           /* fica no fluxo normal */
-  z-index: 45;                  /* acima do conteúdo */
-  background: var(--menubar-bg, linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03)));
-  backdrop-filter: saturate(140%) blur(6px);
-  border-top: 1px solid rgba(0,0,0,0.08);
-  border-bottom: 1px solid rgba(0,0,0,0.08);
-}
 
-.menubarInner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 6px 12px;            /* faixa mais compacta que a topbar */
-}
-
-/* Se preferir que a faixa também fique fixa ao rolar: */
-/* .menubar { position: sticky; top: 56px; }  // ajuste o top se sua topbar for mais alta */
-
-/* Mega menu por cima do conteúdo/menubar */
-.megamenu { z-index: 60; }
-
-/* Tema escuro: bordas e fundo mais suaves */
-@media (prefers-color-scheme: dark) {
-  .menubar {
-    border-top: 1px solid rgba(255,255,255,0.08);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    background: var(--menubar-bg, linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)));
+/* Tema escuro para a menubar */
+@media (prefers-color-scheme: dark){
+  .menubar{
+    border-top:1px solid rgba(255,255,255,0.08);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    background:var(--menubar-bg, linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)));
   }
 }
-
-
-
