@@ -41,11 +41,25 @@
 .megaicon{display:flex;align-items:center}
 
 /* Profile */
-.profileArea{display:flex;align-items:center;position:relative}
-.userButton{display:flex;align-items:center;gap:10px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827}
+.profileArea{display:flex;align-items:center;position:relative;gap: 8px;}
+
+.toolbarDivider {
+  width: 1px;
+  height: 24px;
+  background: var(--border, rgba(255,255,255,0.14));
+  margin: 0 6px;
++}
+.userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827;}
 .userButton:hover{color:#111827}
 .userButton:focus{outline:2px solid #2563eb1a}
 .userNameTop{font-size:12px;font-weight:700;color:inherit}
+.userChevron {
+  transition: transform 0.18s ease;
+  opacity: 0.9;
+}
+.isOpen .userChevron {
+  transform: rotate(180deg);
+}
 .avatar{width:32px;height:32px;border-radius:999px;color:#fff;font-weight:700;display:grid;place-items:center;position:relative;overflow:hidden}
 .statusDot{position:absolute;right:0;bottom:0;width:10px;height:10px;border-radius:999px;background:#10b981;transform:translate(35%,35%);box-shadow:0 0 0 2px #fff}
 .profileDropdown{position:absolute;right:0;top:calc(100% + 10px);width:240px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.12);padding:8px;z-index:70}
@@ -95,3 +109,4 @@
 
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
+
