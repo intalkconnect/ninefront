@@ -387,73 +387,7 @@ export default function Admin() {
           </NavLink>
         </div>
 
-        {/* ===== DESKTOP NAV ===== */}
-        <nav ref={navRef} className={styles.hnav} aria-label="Menu principal">
-          {menus.map((m) => {
-            const dropdown = isGroup(m);
-            return (
-              <div
-                key={m.key}
-                className={
-                  dropdown
-                    ? `${styles.hitem} ${styles.hasChildren} ${openDropdown === m.key ? styles.open : ""}`
-                    : styles.hitem
-                }
-              >
-                {m.to ? (
-                  <NavLink
-                    end={m.exact}
-                    to={m.to}
-                    className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                    onClick={(e) => { e.preventDefault(); navigate(m.to); }}
-                  >
-                    {m.icon}
-                    <span>{m.label}</span>
-                  </NavLink>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.hlink}
-                    onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
-                  >
-                    {m.icon}
-                    <span>{m.label}</span>
-                    {dropdown && <ChevronDown size={16} />}
-                  </button>
-                )}
-
-                {dropdown && (
-                  <div className={styles.megamenu} role="menu">
-                    <div className={styles.megagrid}>
-                      {m.children.map((grp) => (
-                        <div className={styles.megagroup} key={grp.key || grp.label}>
-                          <div className={styles.megahdr}>{grp.label}</div>
-                          <ul className={styles.megasublist}>
-                            {grp.children.map((leaf) => (
-                              <li key={leaf.to} className={styles.megaitem} role="none">
-                                <NavLink
-                                  to={leaf.to}
-                                  className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                  onClick={(e) => { e.preventDefault(); setOpenDropdown(null); navigate(leaf.to); }}
-                                  role="menuitem"
-                                >
-                                  {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
-                                  <span>{leaf.label}</span>
-                                </NavLink>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-
- {/* Help + Profile */}
+        {/* Help + Profile */}
         <div className={styles.profileArea}>
           {/* Help button */}
           <div ref={helpRef} style={{ position: "relative" }}>
@@ -477,8 +411,8 @@ export default function Admin() {
                   {isAdmin && (
                     <li className={styles.pdItem}>
                       <a
-                        href= "https://docs.ninechat.com.br"
-                       target="_blank"
+                        href="https://docs.ninechat.com.br"
+                        target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setHelpOpen(false)}
                       >
@@ -489,7 +423,7 @@ export default function Admin() {
                   )}
                   <li className={styles.pdItem}>
                     <a
-                      href= "#"
+                      href="#"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setHelpOpen(false)}
@@ -507,71 +441,141 @@ export default function Admin() {
 
           {/* Profile */}
           <div ref={profileRef}>
-          {userData && (
-            <>
-              <button
-                type="button"
-                className={`${styles.userButton} ${isProfileOpen ? styles.isOpen : ""}`}
-                onClick={() => setProfileOpen((v) => !v)}
-                aria-haspopup="menu"
-                aria-expanded={isProfileOpen}
-              >
-                <div
-                  className={styles.avatar}
-                  style={{ backgroundColor: stringToColor(userData.email) }}
-                  title={userData.email}
+            {userData && (
+              <>
+                <button
+                  type="button"
+                  className={`${styles.userButton} ${isProfileOpen ? styles.isOpen : ""}`}
+                  onClick={() => setProfileOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileOpen}
                 >
-                  {userData.name?.charAt(0).toUpperCase() || "U"}
-                </div>
-                <ChevronDown size={14} className={styles.userChevron} aria-hidden="true" />
-              </button>
-
-              {isProfileOpen && (
-                <div className={styles.profileDropdown} role="menu">
-                  <div className={styles.pdHeader}>
-                    <div
-                      className={styles.avatar}
-                      style={{ backgroundColor: stringToColor(userData.email), width: 36, height: 36 }}
-                    >
-                      {userData.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                    <div>
-                      <div className={styles.pdName}>{userData.name || "Usuário"}</div>
-                      <div className={styles.pdEmail}>{userData.email}</div>
-                    </div>
+                  <div
+                    className={styles.avatar}
+                    style={{ backgroundColor: stringToColor(userData.email) }}
+                    title={userData.email}
+                  >
+                    {userData.name?.charAt(0).toUpperCase() || "U"}
                   </div>
+                  <ChevronDown size={14} className={styles.userChevron} aria-hidden="true" />
+                </button>
 
-                  <ul className={styles.pdList}>
-                    <li className={styles.pdItem}>
-                      <NavLink
-                        to="settings/preferences"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setProfileOpen(false);
-                          navigate("settings/preferences");
-                        }}
+                {isProfileOpen && (
+                  <div className={styles.profileDropdown} role="menu">
+                    <div className={styles.pdHeader}>
+                      <div
+                        className={styles.avatar}
+                        style={{ backgroundColor: stringToColor(userData.email), width: 36, height: 36 }}
                       >
-                        <span className={styles.pdIcon}><User size={16} /></span>
-                        Editar perfil
-                      </NavLink>
-                    </li>
+                        {userData.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <div className={styles.pdName}>{userData.name || "Usuário"}</div>
+                        <div className={styles.pdEmail}>{userData.email}</div>
+                      </div>
+                    </div>
 
-                    <li className={styles.pdSeparator} role="separator" />
+                    <ul className={styles.pdList}>
+                      <li className={styles.pdItem}>
+                        <NavLink
+                          to="settings/preferences"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setProfileOpen(false);
+                            navigate("settings/preferences");
+                          }}
+                        >
+                          <span className={styles.pdIcon}><User size={16} /></span>
+                          Editar perfil
+                        </NavLink>
+                      </li>
 
-                    <li className={styles.pdItem}>
-                      <LogoutButton className={styles.pdAction} onClick={() => setProfileOpen(false)}>
-                        <LogOut size={16} />
-                        Logout
-                      </LogoutButton>
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </>
-          )}
-  </div>
+                      <li className={styles.pdSeparator} role="separator" />
+
+                      <li className={styles.pdItem}>
+                        <LogoutButton className={styles.pdAction} onClick={() => setProfileOpen(false)}>
+                          <LogOut size={16} />
+                          Logout
+                        </LogoutButton>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </header>
+
+      {/* ===== MENUBAR (faixa abaixo, não branca) ===== */}
+      <div className={styles.menubar}>
+        <div className={styles.menubarInner}>
+          <nav ref={navRef} className={styles.hnav} aria-label="Menu principal">
+            {menus.map((m) => {
+              const dropdown = isGroup(m);
+              return (
+                <div
+                  key={m.key}
+                  className={
+                    dropdown
+                      ? `${styles.hitem} ${styles.hasChildren} ${openDropdown === m.key ? styles.open : ""}`
+                      : styles.hitem
+                  }
+                >
+                  {m.to ? (
+                    <NavLink
+                      end={m.exact}
+                      to={m.to}
+                      className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
+                      onClick={(e) => { e.preventDefault(); navigate(m.to); }}
+                    >
+                      {m.icon}
+                      <span>{m.label}</span>
+                    </NavLink>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.hlink}
+                      onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
+                    >
+                      {m.icon}
+                      <span>{m.label}</span>
+                      {dropdown && <ChevronDown size={16} />}
+                    </button>
+                  )}
+
+                  {dropdown && (
+                    <div className={styles.megamenu} role="menu">
+                      <div className={styles.megagrid}>
+                        {m.children.map((grp) => (
+                          <div className={styles.megagroup} key={grp.key || grp.label}>
+                            <div className={styles.megahdr}>{grp.label}</div>
+                            <ul className={styles.megasublist}>
+                              {grp.children.map((leaf) => (
+                                <li key={leaf.to} className={styles.megaitem} role="none">
+                                  <NavLink
+                                    to={leaf.to}
+                                    className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
+                                    onClick={(e) => { e.preventDefault(); setOpenDropdown(null); navigate(leaf.to); }}
+                                    role="menuitem"
+                                  >
+                                    {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
+                                    <span>{leaf.label}</span>
+                                  </NavLink>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
 
       {/* ===== MOBILE DRAWER ===== */}
       <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ""}`}>
