@@ -46,9 +46,13 @@
 .toolbarDivider {
   width: 1px;
   height: 24px;
-  background: var(--border, rgba(255,255,255,0.14));
+  background: rgba(17,24,39,0.12); /* mais visível no fundo branco */
   margin: 0 6px;
 }
+@media (prefers-color-scheme: dark) {
+  .toolbarDivider { background: rgba(255,255,255,0.14); }
+}
+
 .userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827;}
 .userButton:hover{color:#111827}
 .userButton:focus{outline:2px solid #2563eb1a}
@@ -109,5 +113,36 @@
 
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
+/* ===== Faixa do menu (abaixo da topbar, NÃO branca) ===== */
+.menubar {
+  position: relative;           /* fica no fluxo normal */
+  z-index: 45;                  /* acima do conteúdo */
+  background: var(--menubar-bg, linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03)));
+  backdrop-filter: saturate(140%) blur(6px);
+  border-top: 1px solid rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+.menubarInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 6px 12px;            /* faixa mais compacta que a topbar */
+}
+
+/* Se preferir que a faixa também fique fixa ao rolar: */
+/* .menubar { position: sticky; top: 56px; }  // ajuste o top se sua topbar for mais alta */
+
+/* Mega menu por cima do conteúdo/menubar */
+.megamenu { z-index: 60; }
+
+/* Tema escuro: bordas e fundo mais suaves */
+@media (prefers-color-scheme: dark) {
+  .menubar {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: var(--menubar-bg, linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)));
+  }
+}
+
 
 
