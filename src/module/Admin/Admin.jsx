@@ -7,6 +7,8 @@ import {
   MessageCircle,
   Settings as SettingsIcon,
   SquareActivity,
+  CircleHelp,
+  GraduationCap,
   Folder,
   Megaphone,
   FileText,
@@ -89,6 +91,8 @@ export default function Admin() {
 
   const [isProfileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
+  const [isHelpOpen, setHelpOpen] = useState(false);
+  const helpRef = useRef(null);
   const navRef = useRef(null);
 
   useEffect(() => {
@@ -118,6 +122,7 @@ export default function Admin() {
     setMobileMenuOpen(false);
     setOpenDropdown(null);
     setProfileOpen(false);
+    setHelpOpen(false);
   }, [location.pathname]);
 
   // Clique fora
@@ -126,6 +131,7 @@ export default function Admin() {
       const target = e.target;
       if (navRef.current && !navRef.current.contains(target)) setOpenDropdown(null);
       if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
+      if (helpRef.current && !helpRef.current.contains(target)) setHelpOpen(false);
     };
     document.addEventListener("mousedown", onDocDown);
     return () => document.removeEventListener("mousedown", onDocDown);
@@ -137,6 +143,7 @@ export default function Admin() {
       if (e.key === "Escape") {
         setOpenDropdown(null);
         setProfileOpen(false);
+        setHelpOpen(false);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -456,8 +463,58 @@ export default function Admin() {
           })}
         </nav>
 
-        {/* Profile */}
-        <div className={styles.profileArea} ref={profileRef}>
+ {/* Help + Profile */}
+        <div className={styles.profileArea}>
+          {/* Help button */}
+          <div ref={helpRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              className={styles.userButton}
+              onClick={() => {
+                setHelpOpen((v) => !v);
+                setProfileOpen(false);
+              }}
+              aria-label="Abrir ajuda"
+              aria-haspopup="menu"
+              aria-expanded={isHelpOpen}
+              title="Ajuda"
+            >
+              <CircleHelp size={18} />
+            </button>
+            {isHelpOpen && (
+              <div className={styles.profileDropdown} role="menu" aria-label="Ajuda">
+                <ul className={styles.pdList}>
+                  {isAdmin && (
+                    <li className={styles.pdItem}>
+                      <a
+                        href={NINEDOCS_URL}
+                       target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setHelpOpen(false)}
+                      >
+                        <span className={styles.pdIcon}><FileText size={16} /></span>
+                        NineDocs
+                      </a>
+                    </li>
+                  )}
+                  <li className={styles.pdItem}>
+                    <a
+                      href={NINE_ACADEMY_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setHelpOpen(false)}
+                    >
+                      <span className={styles.pdIcon}><GraduationCap size={16} /></span>
+                      Nine Academy
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Profile */}
+          <div ref={profileRef}>
           {userData && (
             <>
               <button
@@ -519,6 +576,7 @@ export default function Admin() {
               )}
             </>
           )}
+  </div>
         </div>
       </header>
 
