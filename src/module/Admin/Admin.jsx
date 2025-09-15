@@ -63,9 +63,6 @@ import WhatsAppProfile from "./preferences/WhatsAppProfile";
 import TelegramConnect from "./preferences/TelegramConnect";
 import TokensSecurity from "./preferences/security/Tokens";
 
-// Temporário
-const Integrations = () => <div>Integrações</div>;
-
 document.title = "NineChat - Gestão";
 
 /** <<< FIX PRINCIPAL >>>
@@ -293,13 +290,6 @@ export default function Admin() {
               children: [
                 { to: "settings/preferences", icon: <SettingsIcon size={16} />,     label: "Preferências" },
                 { to: "settings/channels",    icon: <MessageCircle size={16} />, label: "Canais" },
-              ],
-            },
-            {
-              key: "settings-integracoes",
-              label: "Integrações",
-              children: [
-                { to: "settings/integrations", icon: <Plug size={16} />, label: "Integrações" },
               ],
             },
             {
@@ -714,14 +704,6 @@ export default function Admin() {
             element={
               <RequireRole allow={isAdmin}>
                 <Channels />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/integrations"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Integrations />
               </RequireRole>
             }
           />
