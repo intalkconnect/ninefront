@@ -513,13 +513,15 @@ export default function Admin() {
             )}
           </div>
 
+          <span className={styles.toolbarDivider} aria-hidden="true" />
+
           {/* Profile */}
           <div ref={profileRef}>
           {userData && (
             <>
               <button
                 type="button"
-                className={styles.userButton}
+                className={`${styles.userButton} ${isProfileOpen ? styles.isOpen : ""}`}
                 onClick={() => setProfileOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={isProfileOpen}
@@ -531,6 +533,7 @@ export default function Admin() {
                 >
                   {userData.name?.charAt(0).toUpperCase() || "U"}
                 </div>
+                <ChevronDown size={14} className={styles.userChevron} aria-hidden="true" />
               </button>
 
               {isProfileOpen && (
