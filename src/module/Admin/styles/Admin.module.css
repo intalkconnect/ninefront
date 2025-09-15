@@ -48,7 +48,7 @@
   height: 24px;
   background: var(--border, rgba(255,255,255,0.14));
   margin: 0 6px;
-+}
+}
 .userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827;}
 .userButton:hover{color:#111827}
 .userButton:focus{outline:2px solid #2563eb1a}
@@ -109,4 +109,5 @@
 
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
+
 
