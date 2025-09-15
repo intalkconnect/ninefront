@@ -487,7 +487,7 @@ export default function Admin() {
                   {isAdmin && (
                     <li className={styles.pdItem}>
                       <a
-                        href={NINEDOCS_URL}
+                        href= "https://docs.ninechat.com.br"
                        target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setHelpOpen(false)}
@@ -499,7 +499,7 @@ export default function Admin() {
                   )}
                   <li className={styles.pdItem}>
                     <a
-                      href={NINE_ACADEMY_URL}
+                      href= "#"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setHelpOpen(false)}
