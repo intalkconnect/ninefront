@@ -321,7 +321,7 @@ export default function Admin() {
         }}
       >
         <div style={{ display: "grid", gap: 12, placeItems: "center" }}>
-          <img src="/logo-front.png.png" alt="NineChat" style={{ width: 56, height: 56, opacity: 0.9 }} />
+          <img src="/logo-front.png" alt="NineChat" style={{ width: 56, height: 56, opacity: 0.9 }} />
           <div style={{ fontSize: 14, opacity: 0.8 }}>Carregando seu workspace…</div>
           <div
             aria-label="Carregando"
