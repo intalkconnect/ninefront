@@ -94,7 +94,7 @@
 /* ===== MENUBAR (faixa abaixo do topo) ===== */
 .menubar{
   position:relative;z-index:45;
-  background:#eef2ff;                /* visível no claro */
+  background:#374151;                /* visível no claro */
   border-top:1px solid #e0e7ff;
   border-bottom:1px solid #e0e7ff;
 }
@@ -126,3 +126,4 @@
   .menubar .hlink:hover{background:rgba(255,255,255,.12)}
   .menubar .active{color:#93c5fd}   /* azul claro no dark */
 }
+
