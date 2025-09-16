@@ -11,7 +11,7 @@
 .burger:hover{background:#f9fafb}
 .burger span{display:block;width:16px;height:2px;background:#111827;border-radius:2px}
 
-/* Horizontal nav */
+/* Horizontal nav (base) */
 .hnav{display:none;align-items:center;gap:6px}
 .hitem{position:relative}
 .hlink{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid transparent;background:transparent;color:#374151;font-size:14px;cursor:pointer;text-decoration:none}
@@ -29,12 +29,8 @@
 
 /* ===== grupos dentro do mega menu ===== */
 .megagroup{padding:4px 6px}
-.megahdr{
-  font-weight:800; font-size:12px; color:#111827;
-  padding:6px 8px 4px; margin:2px 0 4px;
-}
+.megahdr{font-weight:800;font-size:12px;color:#111827;padding:6px 8px 4px;margin:2px 0 4px}
 .megasublist{list-style:none;margin:0;padding:0 0 6px 0;display:flex;flex-direction:column;gap:2px}
-
 .megaitem{border-radius:10px}
 .megalink{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;color:#374151;border:1px solid transparent;justify-content:flex-start}
 .megalink:hover{background:#f9fafb;border-color:#f3f4f6}
@@ -44,7 +40,6 @@
 .profileArea{display:flex;align-items:center;position:relative;gap:8px}
 .toolbarDivider{width:1px;height:24px;background:rgba(17,24,39,0.12);margin:0 6px}
 @media (prefers-color-scheme: dark){.toolbarDivider{background:rgba(255,255,255,0.14)}}
-
 .userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827}
 .userButton:hover{color:#111827}
 .userButton:focus{outline:2px solid #2563eb1a}
@@ -81,12 +76,7 @@
 .drawerItem details summary{list-style:none}
 
 /* ===== grupos dentro do drawer (mobile) ===== */
-.drawerGroupHdr{
-  display:flex; align-items:center; gap:8px;
-  font-size:12px; font-weight:800; color:#111827;
-  padding:8px 12px; margin:8px 0 4px 6px;
-  border-left:2px solid #e5e7eb;
-}
+.drawerGroupHdr{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#111827;padding:8px 12px;margin:8px 0 4px 6px;border-left:2px solid #e5e7eb}
 .drawerSubList{list-style:none;margin:0;padding:6px 6px 10px 26px;display:flex;flex-direction:column;gap:2px}
 
 .content{flex:1;min-height:0;padding:16px}
@@ -101,25 +91,38 @@
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
 
-/* ===== Faixa do menu (abaixo da topbar, NÃO branca) ===== */
+/* ===== MENUBAR (faixa abaixo do topo) ===== */
 .menubar{
-  position:relative; z-index:45;
-  /* cor suave para diferenciar do topo branco */
-  background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03));
-  border-top:1px solid rgba(0,0,0,0.08);
-  border-bottom:1px solid rgba(0,0,0,0.08);
+  position:relative;z-index:45;
+  background:#eef2ff;                /* visível no claro */
+  border-top:1px solid #e0e7ff;
+  border-bottom:1px solid #e0e7ff;
 }
 .menubarInner{
-  max-width:1200px; margin:0 auto; padding:8px 12px;
-  display:flex; justify-content:center; /* <<< centraliza o menu */
+  max-width:1200px;margin:0 auto;padding:10px 12px;
+  display:flex;justify-content:center; /* centraliza o menu */
 }
-.menubar .hnav{gap:8px} /* pode ajustar o espaçamento aqui, só na menubar */
+.menubar .hnav{gap:8px}
 
-/* Tema escuro: bordas e fundo mais suaves */
+/* Pills/“chips” só na menubar */
+.menubar .hlink{
+  background:rgba(29,78,216,.06);   /* indigo-600 @ 6% */
+  color:#1f2937;
+}
+.menubar .hlink:hover{background:rgba(29,78,216,.12)}
+.menubar .active{color:#1d4ed8}     /* indigo-600 */
+
+/* Dark mode da menubar */
 @media (prefers-color-scheme: dark){
   .menubar{
-    border-top:1px solid rgba(255,255,255,0.08);
-    border-bottom:1px solid rgba(255,255,255,0.08);
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+    background:#0e1528;
+    border-top:1px solid rgba(255,255,255,.08);
+    border-bottom:1px solid rgba(255,255,255,.08);
   }
+  .menubar .hlink{
+    background:rgba(255,255,255,.06);
+    color:#e5e7eb;
+  }
+  .menubar .hlink:hover{background:rgba(255,255,255,.12)}
+  .menubar .active{color:#93c5fd}   /* azul claro no dark */
 }
