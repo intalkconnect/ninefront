@@ -382,7 +382,7 @@ export default function Admin() {
             className={styles.brand}
             onClick={(e) => { e.preventDefault(); navigate(DASHBOARD_PATH); }}
           >
-            <img src="/logo.png" alt="NineChat" />
+            <img src="/logo-front.png" alt="NineChat" />
             <span>Admin</span>
           </NavLink>
         </div>
