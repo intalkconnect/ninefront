@@ -60,31 +60,8 @@ const useMeasure = () => {
   return [ref, rect];
 };
 
-/* ========================= Tooltip ========================= */
-const HelpIcon = ({ text, className }) => {
-  if (!text) return null;
-  const ref = useRef(null);
-  const [pos, setPos] = useState('top');
-  const onEnter = () => {
-    const el = ref.current; if (!el) return;
-    const TIP_W = 260, PAD = 12;
-    const rect = el.getBoundingClientRect();
-    const midX = rect.left + rect.width / 2;
-    const vw = window.innerWidth;
-    if (midX + TIP_W / 2 + PAD > vw) setPos('top-right');
-    else if (midX - TIP_W / 2 - PAD < 0) setPos('top-left');
-    else setPos('top');
-  };
-  return (
-    <span ref={ref} onMouseEnter={onEnter}
-      className={`${styles.help} ${className || ''}`} data-tooltip={text} data-pos={pos} aria-label="Ajuda" role="img">
-      <Info size={16} />
-    </span>
-  );
-};
-
 /* ========================= UI base ========================= */
-const Card = ({ title, icon, help, right, children }) => (
+const Card = ({ title, icon,  right, children }) => (
   <div className={styles.card}>
     <div className={styles.cardHead}>
       <div className={styles.cardTitle}>
@@ -93,7 +70,6 @@ const Card = ({ title, icon, help, right, children }) => (
       </div>
       <div className={styles.cardRight}>
         {right}
-        {help ? <HelpIcon text={help} /> : null}
       </div>
     </div>
     <div className={styles.cardBody}>{children}</div>
@@ -890,6 +866,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
