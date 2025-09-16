@@ -92,40 +92,47 @@
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
 
 /* ===== MENUBAR (faixa abaixo do topo) ===== */
+/* ===== MENUBAR (faixa abaixo do topo) ===== */
 .menubar{
-  position:relative;z-index:45;
-  background:#374151;                /* visível no claro */
-  border-top:1px solid #e0e7ff;
-  border-bottom:1px solid #e0e7ff;
+  position:relative; z-index:45;
+  background:#374151;                /* barra escura */
+  border-top:1px solid rgba(255,255,255,0.06);
+  border-bottom:1px solid rgba(0,0,0,0.18);
 }
 .menubarInner{
-  max-width:1200px;margin:0 auto;padding:10px 12px;
-  display:flex;justify-content:center; /* centraliza o menu */
+  max-width:1200px; margin:0 auto; padding:10px 12px;
+  display:flex; justify-content:center;  /* centraliza o nav */
 }
-.menubar .hnav{gap:8px}
 
-/* Pills/“chips” só na menubar */
+/* Links planos na menubar (SEM "botões") */
+.menubar .hnav{gap:14px}
 .menubar .hlink{
-  background:rgba(29,78,216,.06);   /* indigo-600 @ 6% */
-  color:#1f2937;
+  background: transparent !important;   /* remove pill */
+  color:#e5e7eb;                        /* texto claro */
+  border-color: transparent;
 }
-.menubar .hlink:hover{background:rgba(29,78,216,.12)}
-.menubar .active{color:#1d4ed8}     /* indigo-600 */
+.menubar .hlink:hover{
+  background: transparent !important;   /* sem fundo no hover */
+  color:#f8fafc;                        /* só clareia o texto */
+}
+.menubar .active{
+  color:#60a5fa;                        /* destaque ativo */
+}
 
-/* Dark mode da menubar */
+/* Ajustes de foco na barra escura */
+.menubar .hlink:focus{
+  outline:2px solid rgba(255,255,255,0.28);
+  outline-offset:2px;
+}
+
+/* Dark mode (mantém mesma lógica) */
 @media (prefers-color-scheme: dark){
   .menubar{
-    background:#374151;
-    border-top:1px solid rgba(255,255,255,.08);
-    border-bottom:1px solid rgba(255,255,255,.08);
+    background:#111827;
+    border-top:1px solid rgba(255,255,255,0.08);
+    border-bottom:1px solid rgba(255,255,255,0.06);
   }
-  .menubar .hlink{
-    background:rgba(255,255,255,.06);
-    color:#e5e7eb;
-  }
-  .menubar .hlink:hover{background:rgba(255,255,255,.12)}
-  .menubar .active{color:#93c5fd}   /* azul claro no dark */
+  .menubar .hlink{ color:#e5e7eb; }
+  .menubar .hlink:hover{ color:#ffffff; }
+  .menubar .active{ color:#93c5fd; }
 }
-
-
-
