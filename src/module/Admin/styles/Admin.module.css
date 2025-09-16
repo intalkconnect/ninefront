@@ -92,60 +92,47 @@
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
 
 /* ===== MENUBAR (harmonizada com a UI do print) ===== */
+/* ===== MENUBAR (faixa abaixo do topo) ===== */
 .menubar{
   position:relative; z-index:45;
-  background: linear-gradient(180deg,#f3f7ff 0%, #eef4ff 100%); /* azul bem suave */
-  border-top:1px solid #e7efff;   /* bordas azuladas leves */
-  border-bottom:1px solid #e7efff;
-  box-shadow: inset 0 -1px 0 rgba(37,99,235,0.06);
+  background:#15202B !important;                /* navy escuro pedido */
+  border-top:1px solid rgba(255,255,255,0.06);
+  border-bottom:1px solid rgba(0,0,0,0.45);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
 }
 .menubarInner{
   max-width:1200px; margin:0 auto; padding:10px 12px;
-  display:flex; justify-content:center;
+  display:flex; justify-content:center;          /* centraliza o nav */
 }
-.menubar .hnav{ gap:18px; }
+.menubar .hnav{ gap:16px; }
 
-/* Links “planos” com tipografia e cores suaves */
+/* Links planos (sem pills), letras brancas */
 .menubar .hlink{
   position:relative;
+  color:#ffffff !important;
   background:transparent !important;
   border:0;
-  color:#334155 !important;            /* slate-700 */
+  padding:10px 12px;
   font-weight:600;
   letter-spacing:.005em;
-  padding:10px 12px;                   /* um pouco mais de área de clique */
 }
 .menubar .hlink:hover{
-  color:#1d4ed8 !important;            /* blue-600 */
-  text-decoration:none;
+  color:#BFD9FF !important;                      /* branco-azulado no hover */
 }
-/* Ativo: só cor + barra inferior sutil */
+
+/* Ativo: azul e barra sutil embaixo */
 .menubar .active{
-  color:#1d4ed8 !important;
+  color:#7CB2FF !important;                      /* azul claro */
 }
 .menubar .active::after{
   content:"";
   position:absolute; left:10px; right:10px; bottom:6px;
-  height:2px; background:#2563eb; border-radius:999px;
+  height:2px; background:#3B82F6;               /* blue-500 */
+  border-radius:999px;
 }
 
-/* Foco acessível, porém discreto */
+/* Foco acessível na barra escura */
 .menubar .hlink:focus{
-  outline:2px solid rgba(37,99,235,.22);
+  outline:2px solid rgba(96,165,250,0.55);       /* blue-400 */
   outline-offset:2px;
-}
-
-/* ===== Dropdown (mega menu) combinando com a menubar clara ===== */
-.megamenu{
-  background:#ffffff;
-  border:1px solid #e7efff;           /* mesma família de cor das bordas */
-  box-shadow:
-    0 10px 30px rgba(37,99,235,.08),
-    0 2px 8px rgba(15,23,42,.06);
-}
-.megahdr{ color:#0f172a; }            /* cabeçalho mais nítido */
-.megalink{ color:#334155; }           /* itens do dropdown */
-.megalink:hover{
-  background:#f5f8ff;                 /* hover azulado bem leve */
-  border-color:#eef4ff;
 }
