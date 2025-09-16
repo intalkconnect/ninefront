@@ -11,19 +11,6 @@
 .burger:hover{background:#f9fafb}
 .burger span{display:block;width:16px;height:2px;background:#111827;border-radius:2px}
 
-/* ===== MENUBAR (faixa abaixo, não branca) ===== */
-.menubar{
-  position:relative; z-index:45;
-  background:var(--menubar-bg, linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03)));
-  backdrop-filter:saturate(140%) blur(6px);
-  border-top:1px solid rgba(0,0,0,0.08);
-  border-bottom:1px solid rgba(0,0,0,0.08);
-}
-.menubarInner{
-  max-width:1200px; margin:0 auto; padding:6px 12px;
-  display:flex; justify-content:center; /* centraliza o menu */
-}
-
 /* Horizontal nav */
 .hnav{display:none;align-items:center;gap:6px}
 .hitem{position:relative}
@@ -42,7 +29,10 @@
 
 /* ===== grupos dentro do mega menu ===== */
 .megagroup{padding:4px 6px}
-.megahdr{font-weight:800;font-size:12px;color:#111827;padding:6px 8px 4px;margin:2px 0 4px}
+.megahdr{
+  font-weight:800; font-size:12px; color:#111827;
+  padding:6px 8px 4px; margin:2px 0 4px;
+}
 .megasublist{list-style:none;margin:0;padding:0 0 6px 0;display:flex;flex-direction:column;gap:2px}
 
 .megaitem{border-radius:10px}
@@ -91,27 +81,45 @@
 .drawerItem details summary{list-style:none}
 
 /* ===== grupos dentro do drawer (mobile) ===== */
-.drawerGroupHdr{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#111827;padding:8px 12px;margin:8px 0 4px 6px;border-left:2px solid #e5e7eb}
+.drawerGroupHdr{
+  display:flex; align-items:center; gap:8px;
+  font-size:12px; font-weight:800; color:#111827;
+  padding:8px 12px; margin:8px 0 4px 6px;
+  border-left:2px solid #e5e7eb;
+}
 .drawerSubList{list-style:none;margin:0;padding:6px 6px 10px 26px;display:flex;flex-direction:column;gap:2px}
 
-/* Conteúdo */
 .content{flex:1;min-height:0;padding:16px}
 
 /* Responsive */
 @media (min-width:1024px){
   .burger{display:none}
-  .hnav{display:flex}          /* desktop: mostra o menu */
+  .hnav{display:flex}
   .mobileDrawer{display:none}
 }
 
 /* Focus states */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
 
-/* Tema escuro para a menubar */
+/* ===== Faixa do menu (abaixo da topbar, NÃO branca) ===== */
+.menubar{
+  position:relative; z-index:45;
+  /* cor suave para diferenciar do topo branco */
+  background: linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.03));
+  border-top:1px solid rgba(0,0,0,0.08);
+  border-bottom:1px solid rgba(0,0,0,0.08);
+}
+.menubarInner{
+  max-width:1200px; margin:0 auto; padding:8px 12px;
+  display:flex; justify-content:center; /* <<< centraliza o menu */
+}
+.menubar .hnav{gap:8px} /* pode ajustar o espaçamento aqui, só na menubar */
+
+/* Tema escuro: bordas e fundo mais suaves */
 @media (prefers-color-scheme: dark){
   .menubar{
     border-top:1px solid rgba(255,255,255,0.08);
     border-bottom:1px solid rgba(255,255,255,0.08);
-    background:var(--menubar-bg, linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)));
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
   }
 }
