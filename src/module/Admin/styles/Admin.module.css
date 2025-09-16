@@ -1,17 +1,25 @@
 /* File: styles/Admin.module.css */
 .wrapper{display:flex;flex-direction:column;min-height:100vh;background:#f6f7fb;color:#111827}
 
-/* Topbar */
-.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:#ffffff;border-bottom:1px solid #e5e7eb;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+/* ===================== Topbar (azul) ===================== */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 16px;
+  background:linear-gradient(180deg,#1e3a8a 0%, #1d4ed8 100%);
+  color:#fff;
+  border-bottom:1px solid rgba(255,255,255,0.15);
+  box-shadow:0 2px 10px rgba(29,78,216,0.25);
+}
 .brandArea{display:flex;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:8px;font-weight:800;color:#111827;text-decoration:none}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;color:#fff;text-decoration:none}
 .brand img{height:28px}
-.brand span{font-size:14px;letter-spacing:.02em}
-.burger{display:inline-flex;flex-direction:column;gap:3px;width:34px;height:34px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;align-items:center;justify-content:center;cursor:pointer}
-.burger:hover{background:#f9fafb}
-.burger span{display:block;width:16px;height:2px;background:#111827;border-radius:2px}
+.brand span{font-size:14px;letter-spacing:.02em;color:inherit}
+.burger{display:inline-flex;flex-direction:column;gap:3px;width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.25);background:transparent;align-items:center;justify-content:center;cursor:pointer;color:#fff}
+.burger:hover{background:rgba(255,255,255,0.06)}
+.burger span{display:block;width:16px;height:2px;background:#fff;border-radius:2px}
 
-/* Horizontal nav (base) */
+/* ===================== Horizontal nav (base) ===================== */
 .hnav{display:none;align-items:center;gap:6px}
 .hitem{position:relative}
 .hlink{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid transparent;background:transparent;color:#374151;font-size:14px;cursor:pointer;text-decoration:none}
@@ -22,27 +30,33 @@
 .hasChildren>.hlink svg:last-child{margin-left:4px}
 .open>.hlink,.hlink:focus{outline:2px solid #2563eb1a}
 
-/* Mega menu (coluna) */
-.megamenu{position:absolute;left:0;top:calc(100% + 10px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.12);padding:8px;opacity:0;transform:translateY(-4px);pointer-events:none;transition:.15s ease;min-width:260px;max-width:360px;z-index:60}
+/* ===================== Mega menu (coluna) ===================== */
+.megamenu{
+  position:absolute; left:0; top:calc(100% + 10px);
+  background:#fff; border:1px solid #e5e7eb; border-radius:14px;
+  box-shadow:0 22px 60px rgba(0,0,0,.12);
+  padding:8px; opacity:0; transform:translateY(-4px);
+  pointer-events:none; transition:.15s ease; min-width:260px; max-width:360px; z-index:60
+}
 .open .megamenu{opacity:1;transform:translateY(0);pointer-events:auto}
 .megagrid{list-style:none;margin:0;padding:6px;display:flex;flex-direction:column;gap:8px}
 
 /* ===== grupos dentro do mega menu ===== */
 .megagroup{padding:4px 6px}
-.megahdr{font-weight:800;font-size:12px;color:#111827;padding:6px 8px 4px;margin:2px 0 4px}
+.megahdr{font-weight:800;font-size:12px;color:#0f172a;padding:6px 8px 4px;margin:2px 0 4px}
 .megasublist{list-style:none;margin:0;padding:0 0 6px 0;display:flex;flex-direction:column;gap:2px}
 .megaitem{border-radius:10px}
-.megalink{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;color:#374151;border:1px solid transparent;justify-content:flex-start}
-.megalink:hover{background:#f9fafb;border-color:#f3f4f6}
+.megalink{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;text-decoration:none;color:#334155;border:1px solid transparent;justify-content:flex-start}
+.megalink:hover{background:#f5f8ff;border-color:#eef4ff}
 .megaicon{display:flex;align-items:center}
 
-/* Profile */
+/* ===================== Profile / Help ===================== */
 .profileArea{display:flex;align-items:center;position:relative;gap:8px}
 .toolbarDivider{width:1px;height:24px;background:rgba(17,24,39,0.12);margin:0 6px}
-@media (prefers-color-scheme: dark){.toolbarDivider{background:rgba(255,255,255,0.14)}}
-.userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#111827}
-.userButton:hover{color:#111827}
-.userButton:focus{outline:2px solid #2563eb1a}
+.topbar .toolbarDivider{background:rgba(255,255,255,0.22)} /* no topo azul */
+.userButton{display:inline-flex;align-items:center;gap:8px;background:transparent;border:none;border-radius:10px;padding:4px 6px;cursor:pointer;color:#fff}
+.userButton:hover{color:#fff}
+.userButton:focus{outline:2px solid rgba(255,255,255,0.35)}
 .userNameTop{font-size:12px;font-weight:700;color:inherit}
 .userChevron{transition:transform .18s ease;opacity:.9}
 .isOpen .userChevron{transform:rotate(180deg)}
@@ -61,7 +75,7 @@
 .pdAction{width:100%;justify-content:flex-start;color:#ef4444}
 .pdAction:hover{background:#fef2f2}
 
-/* Mobile drawer */
+/* ===================== Mobile drawer ===================== */
 .mobileDrawer{position:fixed;inset:0 auto 0 0;width:84%;max-width:340px;background:#fff;border-right:1px solid #e5e7eb;box-shadow:0 12px 40px rgba(0,0,0,.16);transform:translateX(-100%);transition:transform .2s ease;z-index:60}
 .mobileDrawer.open{transform:translateX(0)}
 .drawerHeader{display:flex;align-items:center;justify-content:space-between;padding:14px 14px;border-bottom:1px solid #f3f4f6}
@@ -79,60 +93,54 @@
 .drawerGroupHdr{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#111827;padding:8px 12px;margin:8px 0 4px 6px;border-left:2px solid #e5e7eb}
 .drawerSubList{list-style:none;margin:0;padding:6px 6px 10px 26px;display:flex;flex-direction:column;gap:2px}
 
+/* ===================== Conteúdo ===================== */
 .content{flex:1;min-height:0;padding:16px}
 
-/* Responsive */
+/* ===================== Responsive ===================== */
 @media (min-width:1024px){
   .burger{display:none}
   .hnav{display:flex}
   .mobileDrawer{display:none}
 }
 
-/* Focus states */
+/* ===================== Focus states (genérico) ===================== */
 .hlink:focus,.megalink:focus,.drawerItem a:focus,.drawerItem summary:focus,.userButton:focus{outline:2px solid #2563eb;outline-offset:2px}
 
-/* ===== MENUBAR (harmonizada com a UI do print) ===== */
-/* ===== MENUBAR (faixa abaixo do topo) ===== */
+/* ===================== MENUBAR (branca, menu centralizado) ===================== */
 .menubar{
   position:relative; z-index:45;
-  background:#15202B !important;                /* navy escuro pedido */
-  border-top:1px solid rgba(255,255,255,0.06);
-  border-bottom:1px solid rgba(0,0,0,0.45);
-  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.04);
+  background:#ffffff;
+  border-top:1px solid #e5e7eb;      /* separa do topo azul */
+  border-bottom:1px solid #e5e7eb;
+  box-shadow:inset 0 -1px 0 rgba(16,24,40,0.04);
 }
 .menubarInner{
   max-width:1200px; margin:0 auto; padding:10px 12px;
-  display:flex; justify-content:center;          /* centraliza o nav */
+  display:flex; justify-content:center;         /* centraliza o nav */
 }
-.menubar .hnav{ gap:16px; }
 
-/* Links planos (sem pills), letras brancas */
+/* Links planos, sem “pill”, com realce azul */
+.menubar .hnav{gap:16px}
 .menubar .hlink{
   position:relative;
-  color:#ffffff !important;
   background:transparent !important;
   border:0;
   padding:10px 12px;
-  font-weight:600;
-  letter-spacing:.005em;
+  color:#374151 !important;                     /* slate-700 */
+  font-weight:600; letter-spacing:.005em;
 }
-.menubar .hlink:hover{
-  color:#BFD9FF !important;                      /* branco-azulado no hover */
-}
+.menubar .hlink:hover{color:#1d4ed8 !important} /* blue-600 */
+.menubar .active{color:#1d4ed8 !important}
 
-/* Ativo: azul e barra sutil embaixo */
-.menubar .active{
-  color:#7CB2FF !important;                      /* azul claro */
-}
+/* Indicador sutil do ativo */
 .menubar .active::after{
   content:"";
   position:absolute; left:10px; right:10px; bottom:6px;
-  height:2px; background:#3B82F6;               /* blue-500 */
-  border-radius:999px;
+  height:2px; background:#1d4ed8; border-radius:999px;
 }
 
-/* Foco acessível na barra escura */
+/* Foco acessível na menubar branca */
 .menubar .hlink:focus{
-  outline:2px solid rgba(96,165,250,0.55);       /* blue-400 */
+  outline:2px solid rgba(29,78,216,0.25);
   outline-offset:2px;
 }
