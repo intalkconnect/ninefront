@@ -36,7 +36,6 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
-
 import Builder from "./chatbot/Builder";
 import Dashboard from "./dashboard/Dashboard";
 import LogoutButton from "./components/LogoutButton";
@@ -44,7 +43,6 @@ import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../utils/auth";
 import { stringToColor } from "../../utils/color";
 import { apiGet } from "../../shared/apiClient";
-
 import Preferences from "./preferences/Preferences";
 import Channels from "./preferences/Channels";
 import ClientsMonitor from "./monitoring/ClientsMonitor";
@@ -65,10 +63,6 @@ import TokensSecurity from "./preferences/security/Tokens";
 
 document.title = "NineChat - Gestão";
 
-/** <<< FIX PRINCIPAL >>>
- * Declarar o guard fora do componente Admin, para manter identidade estável
- * e não remontar as rotas ao re-render do layout.
- */
 function RequireRole({ allow, children }) {
   if (!allow) return <Navigate to="/" replace />;
   return children;
@@ -79,18 +73,13 @@ export default function Admin() {
   const token = localStorage.getItem("token");
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
-
   const [authLoading, setAuthLoading] = useState(true);
-
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null);
   const location = useLocation();
-
   const [isProfileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
   const [isHelpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef(null);
-  const navRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -114,10 +103,9 @@ export default function Admin() {
     return () => { mounted = false; };
   }, [email]);
 
-  // fecha mega menu e drawer ao trocar de rota
+  // fecha drawer e dropdowns ao trocar de rota
   useEffect(() => {
     setMobileMenuOpen(false);
-    setOpenDropdown(null);
     setProfileOpen(false);
     setHelpOpen(false);
   }, [location.pathname]);
@@ -126,7 +114,6 @@ export default function Admin() {
   useEffect(() => {
     const onDocDown = (e) => {
       const target = e.target;
-      if (navRef.current && !navRef.current.contains(target)) setOpenDropdown(null);
       if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
       if (helpRef.current && !helpRef.current.contains(target)) setHelpOpen(false);
     };
@@ -138,7 +125,6 @@ export default function Admin() {
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
-        setOpenDropdown(null);
         setProfileOpen(false);
         setHelpOpen(false);
       }
@@ -150,12 +136,7 @@ export default function Admin() {
   const DASHBOARD_PATH = "/";
 
   /* ===== Permissões ===== */
-  const role =
-    userData?.role ||
-    userData?.perfil ||
-    userData?.profile ||
-    "user";
-
+  const role = userData?.role || userData?.perfil || userData?.profile || "user";
   const isAdmin = role?.toLowerCase() === "admin";
   const isSupervisor = role?.toLowerCase() === "supervisor";
 
@@ -165,10 +146,7 @@ export default function Admin() {
       .filter((m) => !["development", "settings"].includes(m.key))
       .map((m) => {
         if (m.key !== "monitoring") return m;
-        const cloned = {
-          ...m,
-          children: m.children?.map((g) => ({ ...g }))
-        };
+        const cloned = { ...m, children: m.children?.map((g) => ({ ...g })) };
         cloned.children = cloned.children?.map((grp) => {
           if (grp.key !== "monitoring-analysis") return grp;
           return {
@@ -192,7 +170,6 @@ export default function Admin() {
           icon: <LayoutDashboard size={18} />,
           exact: true,
         },
-
         {
           key: "monitoring",
           label: "Acompanhamento",
@@ -216,7 +193,6 @@ export default function Admin() {
             },
           ],
         },
-
         {
           key: "management",
           label: "Gestão",
@@ -241,7 +217,6 @@ export default function Admin() {
             },
           ],
         },
-
         {
           key: "campaigns",
           label: "Campanhas",
@@ -263,7 +238,6 @@ export default function Admin() {
             },
           ],
         },
-
         {
           key: "development",
           label: "Desenvolvimento",
@@ -278,7 +252,6 @@ export default function Admin() {
             },
           ],
         },
-
         {
           key: "settings",
           label: "Configurações",
@@ -302,12 +275,8 @@ export default function Admin() {
           ],
         },
       ]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isSupervisor]
   );
-
-  const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
-  const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
 
   if (authLoading) {
     return (
@@ -360,234 +329,91 @@ export default function Admin() {
     );
   }
 
+  // Função para renderizar itens da sidebar
+  const renderSidebarItems = () => {
+    return menus.map((menu) => {
+      if (menu.children) {
+        // Grupo com children
+        return (
+          <div key={menu.key} className={styles.sidebarGroup}>
+            <div className={styles.sidebarGroupTitle}>{menu.label}</div>
+            <ul className={styles.sidebarList}>
+              {menu.children.map((group) => (
+                <div key={group.key}>
+                  {group.children.map((item) => (
+                    <li key={item.to} className={styles.sidebarItem}>
+                      <NavLink
+                        to={item.to}
+                        className={({ isActive }) => `${styles.sidebarSubLink} ${isActive ? styles.active : ""}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigate(item.to);
+                        }}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </li>
+                  ))}
+                </div>
+              ))}
+            </ul>
+          </div>
+        );
+      } else {
+        // Item simples
+        return (
+          <li key={menu.key} className={styles.sidebarItem}>
+            <NavLink
+              end={menu.exact}
+              to={menu.to}
+              className={({ isActive }) => `${styles.sidebarLink} ${isActive ? styles.active : ""}`}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(menu.to);
+              }}
+            >
+              {menu.icon}
+              <span>{menu.label}</span>
+            </NavLink>
+          </li>
+        );
+      }
+    });
+  };
+
   return (
     <div className={styles.wrapper}>
-      {/* Top Navbar */}
-      <header className={styles.topbar}>
-        <div className={styles.brandArea}>
-          <button
-            className={styles.burger}
-            aria-label="Abrir menu"
-            onClick={() => setMobileMenuOpen((v) => !v)}
-            type="button"
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-
-          {/* Logo → força navegação SPA */}
+      {/* Sidebar */}
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
           <NavLink
             to={DASHBOARD_PATH}
-            className={styles.brand}
-            onClick={(e) => { e.preventDefault(); navigate(DASHBOARD_PATH); }}
+            className={styles.sidebarBrand}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(DASHBOARD_PATH);
+            }}
           >
             <img src="/logo.png" alt="NineChat" />
             <span>Admin</span>
           </NavLink>
         </div>
+        <nav className={styles.sidebarNav}>
+          <ul className={styles.sidebarList}>
+            {renderSidebarItems()}
+          </ul>
+        </nav>
+      </aside>
 
-        {/* Help + Profile */}
-        <div className={styles.profileArea}>
-          {/* Help button */}
-          <div ref={helpRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              className={styles.userButton}
-              onClick={() => {
-                setHelpOpen((v) => !v);
-                setProfileOpen(false);
-              }}
-              aria-label="Abrir ajuda"
-              aria-haspopup="menu"
-              aria-expanded={isHelpOpen}
-              title="Ajuda"
-            >
-              <CircleHelp size={18} />
-            </button>
-            {isHelpOpen && (
-              <div className={styles.profileDropdown} role="menu" aria-label="Ajuda">
-                <ul className={styles.pdList}>
-                  {isAdmin && (
-                    <li className={styles.pdItem}>
-                      <a
-                        href="https://docs.ninechat.com.br"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setHelpOpen(false)}
-                      >
-                        <span className={styles.pdIcon}><FileText size={16} /></span>
-                        NineDocs
-                      </a>
-                    </li>
-                  )}
-                  <li className={styles.pdItem}>
-                    <a
-                      href="#"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setHelpOpen(false)}
-                    >
-                      <span className={styles.pdIcon}><GraduationCap size={16} /></span>
-                      Nine Academy
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <span className={styles.toolbarDivider} aria-hidden="true" />
-
-          {/* Profile */}
-          <div ref={profileRef}>
-            {userData && (
-              <>
-                <button
-                  type="button"
-                  className={`${styles.userButton} ${isProfileOpen ? styles.isOpen : ""}`}
-                  onClick={() => setProfileOpen((v) => !v)}
-                  aria-haspopup="menu"
-                  aria-expanded={isProfileOpen}
-                >
-                  <div
-                    className={styles.avatar}
-                    style={{ backgroundColor: stringToColor(userData.email) }}
-                    title={userData.email}
-                  >
-                    {userData.name?.charAt(0).toUpperCase() || "U"}
-                  </div>
-                  <ChevronDown size={14} className={styles.userChevron} aria-hidden="true" />
-                </button>
-
-                {isProfileOpen && (
-                  <div className={styles.profileDropdown} role="menu">
-                    <div className={styles.pdHeader}>
-                      <div
-                        className={styles.avatar}
-                        style={{ backgroundColor: stringToColor(userData.email), width: 36, height: 36 }}
-                      >
-                        {userData.name?.charAt(0).toUpperCase() || "U"}
-                      </div>
-                      <div>
-                        <div className={styles.pdName}>{userData.name || "Usuário"}</div>
-                        <div className={styles.pdEmail}>{userData.email}</div>
-                      </div>
-                    </div>
-
-                    <ul className={styles.pdList}>
-                      <li className={styles.pdItem}>
-                        <NavLink
-                          to="settings/preferences"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setProfileOpen(false);
-                            navigate("settings/preferences");
-                          }}
-                        >
-                          <span className={styles.pdIcon}><User size={16} /></span>
-                          Editar perfil
-                        </NavLink>
-                      </li>
-
-                      <li className={styles.pdSeparator} role="separator" />
-
-                      <li className={styles.pdItem}>
-                        <LogoutButton className={styles.pdAction} onClick={() => setProfileOpen(false)}>
-                          <LogOut size={16} />
-                          Logout
-                        </LogoutButton>
-                      </li>
-                    </ul>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* ===== MENUBAR (faixa abaixo, não branca) ===== */}
-      <div className={styles.menubar}>
-        <div className={styles.menubarInner}>
-          <nav ref={navRef} className={styles.hnav} aria-label="Menu principal">
-            {menus.map((m) => {
-              const dropdown = isGroup(m);
-              return (
-                <div
-                  key={m.key}
-                  className={
-                    dropdown
-                      ? `${styles.hitem} ${styles.hasChildren} ${openDropdown === m.key ? styles.open : ""}`
-                      : styles.hitem
-                  }
-                >
-                  {m.to ? (
-                    <NavLink
-                      end={m.exact}
-                      to={m.to}
-                      className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                      onClick={(e) => { e.preventDefault(); navigate(m.to); }}
-                    >
-                      {m.icon}
-                      <span>{m.label}</span>
-                    </NavLink>
-                  ) : (
-                    <button
-                      type="button"
-                      className={styles.hlink}
-                      onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
-                    >
-                      {m.icon}
-                      <span>{m.label}</span>
-                      {dropdown && <ChevronDown size={16} />}
-                    </button>
-                  )}
-
-                  {dropdown && (
-                    <div className={styles.megamenu} role="menu">
-                      <div className={styles.megagrid}>
-                        {m.children.map((grp) => (
-                          <div className={styles.megagroup} key={grp.key || grp.label}>
-                            <div className={styles.megahdr}>{grp.label}</div>
-                            <ul className={styles.megasublist}>
-                              {grp.children.map((leaf) => (
-                                <li key={leaf.to} className={styles.megaitem} role="none">
-                                  <NavLink
-                                    to={leaf.to}
-                                    className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                    onClick={(e) => { e.preventDefault(); setOpenDropdown(null); navigate(leaf.to); }}
-                                    role="menuitem"
-                                  >
-                                    {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
-                                    <span>{leaf.label}</span>
-                                  </NavLink>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
-      {/* ===== MOBILE DRAWER ===== */}
+      {/* Mobile Drawer */}
       <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ""}`}>
         <div className={styles.drawerHeader}>
           <span className={styles.drawerTitle}>Menu</span>
           <button
             type="button"
             className={styles.drawerClose}
-            onClick={(e) => {
-              e.preventDefault();
-              setMobileMenuOpen(false);
-            }}
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Fechar menu"
           >
             ×
@@ -596,14 +422,13 @@ export default function Admin() {
         <ul className={styles.drawerList}>
           {menus.map((m) => (
             <li key={`m-${m.key}`} className={styles.drawerItem}>
-              {isGroup(m) ? (
+              {m.children ? (
                 <details>
                   <summary>
                     {m.icon}
                     <span>{m.label}</span>
                     <ChevronDown size={16} />
                   </summary>
-
                   {m.children.map((grp) => (
                     <div key={`g-${grp.key || grp.label}`}>
                       <div className={styles.drawerGroupHdr}>{grp.label}</div>
@@ -648,81 +473,205 @@ export default function Admin() {
         </ul>
       </aside>
 
-      {/* Conteúdo */}
-      <main className={styles.content}>
-        <Routes>
-          <Route index element={<Dashboard />} />
+      {/* Main Content Area */}
+      <div className={styles.mainContent}>
+        {/* Top Navbar */}
+        <header className={styles.topbar}>
+          <div className={styles.brandArea}>
+            <button
+              className={styles.burger}
+              aria-label="Abrir menu"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              type="button"
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
 
-          {/* monitoring */}
-          <Route path="monitoring/realtime/agents" element={<AgentsMonitor />} />
-          <Route path="monitoring/realtime/queues" element={<ClientsMonitor />} />
+          {/* Help + Profile */}
+          <div className={styles.profileArea}>
+            {/* Help button */}
+            <div ref={helpRef} style={{ position: "relative" }}>
+              <button
+                type="button"
+                className={styles.userButton}
+                onClick={() => {
+                  setHelpOpen((v) => !v);
+                  setProfileOpen(false);
+                }}
+                aria-label="Abrir ajuda"
+                aria-haspopup="menu"
+                aria-expanded={isHelpOpen}
+                title="Ajuda"
+              >
+                <CircleHelp size={18} />
+              </button>
+              {isHelpOpen && (
+                <div className={styles.profileDropdown} role="menu" aria-label="Ajuda">
+                  <ul className={styles.pdList}>
+                    {isAdmin && (
+                      <li className={styles.pdItem}>
+                        <a
+                          href="https://docs.ninechat.com.br"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setHelpOpen(false)}
+                        >
+                          <span className={styles.pdIcon}><FileText size={16} /></span>
+                          NineDocs
+                        </a>
+                      </li>
+                    )}
+                    <li className={styles.pdItem}>
+                      <a
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setHelpOpen(false)}
+                      >
+                        <span className={styles.pdIcon}><GraduationCap size={16} /></span>
+                        Nine Academy
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+            <span className={styles.toolbarDivider} aria-hidden="true" />
+            {/* Profile */}
+            <div ref={profileRef}>
+              {userData && (
+                <>
+                  <button
+                    type="button"
+                    className={`${styles.userButton} ${isProfileOpen ? styles.isOpen : ""}`}
+                    onClick={() => setProfileOpen((v) => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={isProfileOpen}
+                  >
+                    <div
+                      className={styles.avatar}
+                      style={{ backgroundColor: stringToColor(userData.email) }}
+                      title={userData.email}
+                    >
+                      {userData.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                    <ChevronDown size={14} className={styles.userChevron} aria-hidden="true" />
+                  </button>
+                  {isProfileOpen && (
+                    <div className={styles.profileDropdown} role="menu">
+                      <div className={styles.pdHeader}>
+                        <div
+                          className={styles.avatar}
+                          style={{ backgroundColor: stringToColor(userData.email), width: 36, height: 36 }}
+                        >
+                          {userData.name?.charAt(0).toUpperCase() || "U"}
+                        </div>
+                        <div>
+                          <div className={styles.pdName}>{userData.name || "Usuário"}</div>
+                          <div className={styles.pdEmail}>{userData.email}</div>
+                        </div>
+                      </div>
+                      <ul className={styles.pdList}>
+                        <li className={styles.pdItem}>
+                          <NavLink
+                            to="settings/preferences"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setProfileOpen(false);
+                              navigate("settings/preferences");
+                            }}
+                          >
+                            <span className={styles.pdIcon}><User size={16} /></span>
+                            Editar perfil
+                          </NavLink>
+                        </li>
+                        <li className={styles.pdSeparator} role="separator" />
+                        <li className={styles.pdItem}>
+                          <LogoutButton className={styles.pdAction} onClick={() => setProfileOpen(false)}>
+                            <LogOut size={16} />
+                            Logout
+                          </LogoutButton>
+                        </li>
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </header>
 
-          {/* analytics */}
-          <Route path="analytics/quality" element={<Quality />} />
-          <Route
-            path="analytics/sessions"
-            element={
-              <RequireRole allow={isAdmin}>
-                <BillingExtrato />
-              </RequireRole>
-            }
-          />
-
-          {/* management */}
-          <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
-          <Route path="management/queues" element={<Queues />} />
-          <Route path="management/quick-replies" element={<QuickReplies />} />
-          <Route path="management/history" element={<History />} />
-          <Route path="management/history/:id" element={<TicketDetail />} />
-          <Route path="management/clientes" element={<Clientes />} />
-
-          {/* campaigns */}
-          <Route path="campaigns/templates" element={<Templates />} />
-          <Route path="campaigns/campaigns" element={<Campaigns />} />
-
-          {/* channels */}
-          <Route path="channels/whatsapp" element={<WhatsAppProfile />} />
-          <Route path="channels/telegram" element={<TelegramConnect />} />
-
-          {/* development – admin only */}
-          <Route
-            path="development/builder"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Builder />
-              </RequireRole>
-            }
-          />
-
-          {/* settings – admin only */}
-          <Route
-            path="settings/preferences"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Preferences />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/channels"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Channels />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/security"
-            element={
-              <RequireRole allow={isAdmin}>
-                <TokensSecurity />
-              </RequireRole>
-            }
-          />
-
-          <Route path="*" element={<Navigate to="" />} />
-        </Routes>
-      </main>
+        {/* Content */}
+        <main className={styles.content}>
+          <Routes>
+            <Route index element={<Dashboard />} />
+            {/* monitoring */}
+            <Route path="monitoring/realtime/agents" element={<AgentsMonitor />} />
+            <Route path="monitoring/realtime/queues" element={<ClientsMonitor />} />
+            {/* analytics */}
+            <Route path="analytics/quality" element={<Quality />} />
+            <Route
+              path="analytics/sessions"
+              element={
+                <RequireRole allow={isAdmin}>
+                  <BillingExtrato />
+                </RequireRole>
+              }
+            />
+            {/* management */}
+            <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
+            <Route path="management/queues" element={<Queues />} />
+            <Route path="management/quick-replies" element={<QuickReplies />} />
+            <Route path="management/history" element={<History />} />
+            <Route path="management/history/:id" element={<TicketDetail />} />
+            <Route path="management/clientes" element={<Clientes />} />
+            {/* campaigns */}
+            <Route path="campaigns/templates" element={<Templates />} />
+            <Route path="campaigns/campaigns" element={<Campaigns />} />
+            {/* channels */}
+            <Route path="channels/whatsapp" element={<WhatsAppProfile />} />
+            <Route path="channels/telegram" element={<TelegramConnect />} />
+            {/* development – admin only */}
+            <Route
+              path="development/builder"
+              element={
+                <RequireRole allow={isAdmin}>
+                  <Builder />
+                </RequireRole>
+              }
+            />
+            {/* settings – admin only */}
+            <Route
+              path="settings/preferences"
+              element={
+                <RequireRole allow={isAdmin}>
+                  <Preferences />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="settings/channels"
+              element={
+                <RequireRole allow={isAdmin}>
+                  <Channels />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="settings/security"
+              element={
+                <RequireRole allow={isAdmin}>
+                  <TokensSecurity />
+                </RequireRole>
+              }
+            />
+            <Route path="*" element={<Navigate to="" />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
