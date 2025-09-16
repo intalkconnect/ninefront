@@ -115,7 +115,7 @@
 /* Dark mode da menubar */
 @media (prefers-color-scheme: dark){
   .menubar{
-    background:#0e1528;
+    background:#374151;
     border-top:1px solid rgba(255,255,255,.08);
     border-bottom:1px solid rgba(255,255,255,.08);
   }
@@ -126,5 +126,6 @@
   .menubar .hlink:hover{background:rgba(255,255,255,.12)}
   .menubar .active{color:#93c5fd}   /* azul claro no dark */
 }
+
 
 
