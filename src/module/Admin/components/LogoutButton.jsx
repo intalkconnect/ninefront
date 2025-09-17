@@ -17,7 +17,7 @@ const ENV_AUTH =
   '';
 let AUTH_ORIGIN = normalizeOrigin(ENV_AUTH);
 if (!AUTH_ORIGIN) {
-  AUTH_ORIGIN = isLocalHost() ? 'http://localhost:4000' : 'https://srv-auth.ninechat.com.br';
+  AUTH_ORIGIN = 'https://srv-auth.ninechat.com.br';
 }
 
 // 2) URL do PORTAL para onde vamos após logout
