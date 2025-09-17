@@ -24,7 +24,7 @@ if (!AUTH_ORIGIN) {
 // Preferência: VITE_APP_PORTAL_URL; senão, heurística
 let PORTAL_URL = normalizeOrigin(import.meta.env?.VITE_APP_PORTAL_URL || '');
 if (!PORTAL_URL) {
-  PORTAL_URL = isLocalHost() ? 'http://localhost:5173' : 'https://portal.ninechat.com.br';
+  PORTAL_URL = 'https://portal.ninechat.com.br';
 }
 
 export default function LogoutButton({ className, children, onClick }) {
@@ -61,7 +61,7 @@ export default function LogoutButton({ className, children, onClick }) {
     onClick?.();
 
     // Vai para o portal/login (hard redirect)
-    window.location.replace(`${PORTAL_URL}/login`);
+    window.location.replace(`${PORTAL_URL}`);
   };
 
   return (
