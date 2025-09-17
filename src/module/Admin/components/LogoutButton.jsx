@@ -1,13 +1,31 @@
 // File: ./components/LogoutButton.jsx
 import React, { useState } from 'react';
 
-const RAW_BACKEND = (import.meta.env?.VITE_APP_LOGIN_BACKEND_URL || '').trim();
-const API_BASE = (RAW_BACKEND.startsWith('http') ? RAW_BACKEND : `https://${RAW_BACKEND}`)
-  .replace(/\/+$/, '');
-const apiUrl = (p = '') => `${API_BASE}/${String(p).replace(/^\/+/, '')}`;
+function normalizeOrigin(s) {
+  return String(s || '').replace(/\/+$/, '');
+}
+function isLocalHost() {
+  const h = window.location.hostname;
+  return /^(localhost|127\.0\.0\.1|\[::1\])$|\.local$/.test(h);
+}
 
-const PORTAL_URL = (import.meta.env?.VITE_APP_PORTAL_URL || 'https://portal.ninechat.com.br')
-  .replace(/\/+$/, '');
+// 1) Origem do AUTH (onde vive /api/logout)
+// Preferência: VITE_APP_AUTH_ORIGIN; fallback: VITE_APP_LOGIN_BACKEND_URL; senão, heurística
+const ENV_AUTH =
+  import.meta.env?.VITE_APP_AUTH_ORIGIN ||
+  import.meta.env?.VITE_APP_LOGIN_BACKEND_URL ||
+  '';
+let AUTH_ORIGIN = normalizeOrigin(ENV_AUTH);
+if (!AUTH_ORIGIN) {
+  AUTH_ORIGIN = isLocalHost() ? 'http://localhost:4000' : 'https://srv-auth.ninechat.com.br';
+}
+
+// 2) URL do PORTAL para onde vamos após logout
+// Preferência: VITE_APP_PORTAL_URL; senão, heurística
+let PORTAL_URL = normalizeOrigin(import.meta.env?.VITE_APP_PORTAL_URL || '');
+if (!PORTAL_URL) {
+  PORTAL_URL = isLocalHost() ? 'http://localhost:5173' : 'https://portal.ninechat.com.br';
+}
 
 export default function LogoutButton({ className, children, onClick }) {
   const [busy, setBusy] = useState(false);
@@ -17,33 +35,33 @@ export default function LogoutButton({ className, children, onClick }) {
     if (busy) return;
     setBusy(true);
 
+    // Tenta invalidar sessão no AUTH (cookies SameSite=None exigem credentials)
     try {
-      await fetch(apiUrl('/api/logout'), {
+      await fetch(`${AUTH_ORIGIN}/api/logout`, {
         method: 'POST',
-        credentials: 'include', // envia cookies SameSite=None
+        credentials: 'include',
       });
     } catch {
-      // não bloqueia o fluxo de saída em caso de rede falhando
+      // ignora erro de rede para não travar a saída
     }
 
+    // Limpa client-side
     try {
-      // Limpa credenciais e estados locais
       localStorage.removeItem('token');
       localStorage.removeItem('rememberedEmail');
       sessionStorage.removeItem('token');
 
-      // Remove ?token e ?redirect da URL atual para evitar loops
-      const here = new URL(window.location.href);
-      here.searchParams.delete('token');
-      here.searchParams.delete('redirect');
-      window.history.replaceState({}, '', here.toString());
+      const u = new URL(window.location.href);
+      u.searchParams.delete('token');
+      u.searchParams.delete('redirect');
+      window.history.replaceState({}, '', u.toString());
     } catch {}
 
-    // Fecha o dropdown do perfil, se o pai passou handler
+    // Fecha dropdown se o pai passou handler
     onClick?.();
 
-    // Vai para o portal/login (hard redirect, sem manter estado SPA)
-    window.location.replace(`${PORTAL_URL}`);
+    // Vai para o portal/login (hard redirect)
+    window.location.replace(`${PORTAL_URL}/login`);
   };
 
   return (
