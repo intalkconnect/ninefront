@@ -43,7 +43,7 @@ export default function LogoutButton({ className, children, onClick }) {
     onClick?.();
 
     // Vai para o portal/login (hard redirect, sem manter estado SPA)
-    window.location.replace(`${PORTAL_URL}/login`);
+    window.location.replace(`${PORTAL_URL}`);
   };
 
   return (
