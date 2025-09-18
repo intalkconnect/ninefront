@@ -165,8 +165,6 @@ export default function ChatWindow({ userIdSelecionado }) {
   const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
   const userEmail = useConversationsStore(state => state.userEmail);
   const userFilas = useConversationsStore(state => state.userFilas);
-  const appendOrUpdateMessageStore = useConversationsStore(state => state.appendOrUpdateMessage);
-  const setMessagesStore = useConversationsStore(state => state.setMessages);
 
   const [allMessages, setAllMessages] = useState([]);
   const [displayedMessages, setDisplayed] = useState([]);
@@ -223,7 +221,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         clone.sort((a, b) => tsOf(a) - tsOf(b));
         messageCacheRef.current.set(msg.user_id, clone);
         updateDisplayedMessages(clone, pageRef.current);
-        appendOrUpdateMessageStore(userIdSelecionado, clone[idx]);
         return clone;
       }
 
@@ -231,14 +228,12 @@ export default function ChatWindow({ userIdSelecionado }) {
         const next = upsertOutgoing(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
         updateDisplayedMessages(next, pageRef.current);
-        appendOrUpdateMessageStore(userIdSelecionado, msg);
         return next;
       }
 
       const updated = [...prev, msg].sort((a, b) => tsOf(a) - tsOf(b));
       messageCacheRef.current.set(msg.user_id, updated);
       updateDisplayedMessages(updated, pageRef.current);
-      appendOrUpdateMessageStore(userIdSelecionado, msg);
       return updated;
     });
   }, [userIdSelecionado, updateDisplayedMessages, appendOrUpdateMessageStore]);
@@ -259,7 +254,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         clone.sort((a, b) => tsOf(a) - tsOf(b));
         messageCacheRef.current.set(msg.user_id, clone);
         updateDisplayedMessages(clone, pageRef.current);
-        appendOrUpdateMessageStore(userIdSelecionado, clone[idx]);
         return clone;
       }
 
@@ -267,7 +261,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         const next = upsertOutgoing(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
         updateDisplayedMessages(next, pageRef.current);
-        appendOrUpdateMessageStore(userIdSelecionado, msg);
         return next;
       }
 
@@ -332,7 +325,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
         updateDisplayedMessages(msgs, 1);
-        setMessagesStore(userIdSelecionado, msgs); // sincroniza store
 
         const lastMsg = msgs[msgs.length - 1] || {};
         const lastText = contentToText(lastMsg?.content);
@@ -413,7 +405,6 @@ export default function ChatWindow({ userIdSelecionado }) {
           setAllMessages(arr);
           messageCacheRef.current.set(userIdSelecionado, arr);
           updateDisplayedMessages(arr, pageRef.current);
-          setMessagesStore(userIdSelecionado, arr); // mantém store em sincronia
         } catch (err) {
           console.error("Erro ao recarregar mensagens:", err);
         }
