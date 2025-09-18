@@ -228,7 +228,7 @@ export default function Sidebar() {
     try {
       const res = await apiPut("/conversations/queues/next", {
         email: userEmail,
-        filas: userFilas,
+        queues: userFilas,
       });
 
       await fetchSettingsAndFila();
