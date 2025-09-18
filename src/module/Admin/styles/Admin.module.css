@@ -3,21 +3,52 @@
 
 /* ===================== Topbar (azul) ===================== */
 .topbar{
-  position:sticky; top:0; z-index:50;
+  position: sticky; top:0; z-index:50;
   display:flex; align-items:center; justify-content:space-between; gap:12px;
   padding:10px 16px;
   background:linear-gradient(180deg,#1e3a8a 0%, #1d4ed8 100%);
   color:#fff;
   border-bottom:1px solid rgba(255,255,255,0.15);
   box-shadow:0 2px 10px rgba(29,78,216,0.25);
+  min-height:56px;               /* garante altura p/ centralizar */
 }
+
+/* área da esquerda (burger etc.) permanece igual */
 .brandArea{display:flex;align-items:center;gap:12px}
-.brand{display:flex;align-items:center;gap:8px;font-weight:800;color:#fff;text-decoration:none}
-.brand img{height:28px}
+
+/* ⬇️ truque: o link do brand fica ABSOLUTE, centralizado no topo */
+.brand{
+  position:absolute;             /* tira do fluxo do flex e permite centralizar */
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);/* centro exato (x e y) */
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-weight:800;
+  color:#fff;
+  text-decoration:none;
+  pointer-events:auto;           /* continua clicável */
+  z-index:1;                     /* fica acima do gradiente/sombras */
+}
+
+.brand img{height:40px; display:block}
 .brand span{font-size:14px;letter-spacing:.02em;color:inherit}
-.burger{display:inline-flex;flex-direction:column;gap:3px;width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,0.25);background:transparent;align-items:center;justify-content:center;cursor:pointer;color:#fff}
+
+/* burger continua do lado esquerdo */
+.burger{
+  display:inline-flex;flex-direction:column;gap:3px;
+  width:34px;height:34px;border-radius:10px;
+  border:1px solid rgba(255,255,255,0.25);
+  background:transparent;align-items:center;justify-content:center;
+  cursor:pointer;color:#fff
+}
 .burger:hover{background:rgba(255,255,255,0.06)}
 .burger span{display:block;width:16px;height:2px;background:#fff;border-radius:2px}
+
+/* (opcional) se tiver uma área de ações à direita, deixe-a empurrar até a borda */
+.topbar .rightActions{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+
 
 /* ===================== Horizontal nav (base) ===================== */
 .hnav{display:none;align-items:center;gap:6px}
@@ -144,3 +175,4 @@
   outline:2px solid rgba(29,78,216,0.25);
   outline-offset:2px;
 }
+
