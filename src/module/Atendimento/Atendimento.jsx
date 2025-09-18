@@ -461,14 +461,15 @@ useEffect(() => {
       (data || []).forEach((conv) => {
         const ts = conv.timestamp || conv.updated_at || new Date().toISOString();
 
-        // atualiza card com preview
-        mergeConversation(conv.user_id, {
-          ...conv,
-          content: contentToText(conv.content),
-          last_message: buildPreview(conv),
-          last_message_at: ts,
-          updated_at: ts,
-        });
+// já vem com last_message e last_message_at do backend
+mergeConversation(conv.user_id, {
+  ...conv,
+  content: conv.last_message,        // opcional manter compat
+  last_message: conv.last_message,   // já pronto do back
+  last_message_at: conv.last_message_at,
+  updated_at: conv.last_message_at || conv.updated_at
+});
+
 
         // se está atribuído e aberto, entra no room
         const isMine = conv.assigned_to === userEmail;
