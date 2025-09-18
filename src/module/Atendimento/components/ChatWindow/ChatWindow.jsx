@@ -11,9 +11,8 @@ import PdfModal from "./modals/PdfModal";
 import ChatHeader from "./ChatHeader";
 
 import "./ChatWindow.css";
-import "./ChatWindowPagination.css";
 
-const MESSAGES_PER_PAGE = 100;
+const PAGE_LIMIT = 100;
 
 /* -------------------- helpers -------------------- */
 function extractText(c) {
@@ -54,59 +53,23 @@ function contentToText(content) {
 }
 const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, error: 1, undefined: 0, null: 0 };
 function rankStatus(s) { return STATUS_RANK[s] ?? 0; }
-
-function normText(x) {
-  return extractText(x).replace(/\s+/g, " ").toLowerCase();
-}
 function isOutgoing(m) { return m?.direction === "outgoing"; }
-
 function tsOf(m) {
   const t = m?.timestamp || m?.created_at || null;
   const n = t ? new Date(t).getTime() : NaN;
   return Number.isFinite(n) ? n : 0;
 }
-function closeInTime(a, b, windowMs = 15000) {
-  const ta = tsOf(a);
-  const tb = tsOf(b);
-  return Math.abs(ta - tb) <= windowMs;
+function findIndexByAnyId(list, msg) {
+  const keys = new Set([msg?.id, msg?.message_id, msg?.provider_id, msg?.client_id].filter(Boolean).map(String));
+  if (!keys.size) return -1;
+  return list.findIndex(m => {
+    const ks = [m?.id, m?.message_id, m?.provider_id, m?.client_id].filter(Boolean).map(String);
+    return ks.some(k => keys.has(k));
+  });
 }
-
-// comparação por quaisquer chaves fortes
-function sameByAnyId(a, b) {
-  const keysA = new Set(
-    [a?.id, a?.message_id, a?.provider_id, a?.client_id].filter(Boolean).map(String)
-  );
-  const keysB = [b?.id, b?.message_id, b?.provider_id, b?.client_id].filter(Boolean).map(String);
-  return keysB.some(k => keysA.has(k));
-}
-
-// mesma mensagem? (regras mais seguras)
-function isSameOutgoing(a, b) {
-  if (!a || !b || !isOutgoing(a) || !isOutgoing(b)) return false;
-
-  if (a.client_id && b.client_id && a.client_id === b.client_id) return true;
-
-  if (!closeInTime(a, b)) return false;
-
-  if ((a.type || "text") !== (b.type || "text")) return false;
-
-  const ta = normText(a.content);
-  const tb = normText(b.content);
-
-  if (ta || tb) return ta === tb;
-
-  const ua = extractUrlOrFilename(a.content);
-  const ub = extractUrlOrFilename(b.content);
-  if (ua && ub) return ua === ub;
-
-  return false;
-}
-
-// mescla campos, priorizando a “melhor”
 function mergeOutgoing(a, b) {
   const first = rankStatus(a.status) >= rankStatus(b.status) ? a : b;
   const second = first === a ? b : a;
-
   return {
     ...first,
     id: first.id || second.id,
@@ -123,75 +86,63 @@ function mergeOutgoing(a, b) {
   };
 }
 
-// acha índice por qualquer id forte
-function findIndexByAnyId(list, msg) {
-  const keys = new Set([msg?.id, msg?.message_id, msg?.provider_id, msg?.client_id].filter(Boolean).map(String));
-  if (!keys.size) return -1;
-  return list.findIndex(m => {
-    const ks = [m?.id, m?.message_id, m?.provider_id, m?.client_id].filter(Boolean).map(String);
-    return ks.some(k => keys.has(k));
-  });
+/** Inserção ordenada ASC por timestamp (evita sort global) */
+function insertSortedAsc(list, msg) {
+  const t = tsOf(msg);
+  if (!list.length || tsOf(list[list.length - 1]) <= t) return [...list, msg];
+  let lo = 0, hi = list.length - 1, mid;
+  while (lo <= hi) {
+    mid = (lo + hi) >> 1;
+    if (tsOf(list[mid]) <= t) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  const copy = list.slice();
+  copy.splice(lo, 0, msg);
+  return copy;
 }
-
-// garante que ao inserir/atualizar um outgoing não crie duplicata
-function upsertOutgoing(list, msg) {
-  const byStrong = findIndexByAnyId(list, msg);
-  if (byStrong >= 0) {
-    const clone = [...list];
-    clone[byStrong] = mergeOutgoing(clone[byStrong], msg);
-    clone.sort((a, b) => tsOf(a) - tsOf(b));
-    return clone;
-  }
-
-  const N = 20;
-  for (let i = Math.max(0, list.length - N); i < list.length; i++) {
-    const m = list[i];
-    if (isSameOutgoing(m, msg)) {
-      const clone = [...list];
-      clone[i] = mergeOutgoing(m, msg);
-      clone.sort((a, b) => tsOf(a) - tsOf(b));
-      return clone;
+function upsertByKeySortedAsc(list, msg) {
+  const idx = findIndexByAnyId(list, msg);
+  if (idx >= 0) {
+    const merged = mergeOutgoing(list[idx], msg);
+    if (tsOf(merged) >= tsOf(list[idx])) {
+      const copy = list.slice();
+      copy[idx] = merged;
+      return copy;
     }
+    const copy = list.slice();
+    copy.splice(idx, 1);
+    return insertSortedAsc(copy, merged);
   }
-
-  const added = [...list, msg];
-  added.sort((a, b) => tsOf(a) - tsOf(b));
-  return added;
+  return insertSortedAsc(list, msg);
 }
 
 /* -------------------- componente -------------------- */
 export default function ChatWindow({ userIdSelecionado }) {
-  const mergeConversation = useConversationsStore(state => state.mergeConversation);
-  const setClienteAtivo = useConversationsStore(state => state.setClienteAtivo);
-  const userEmail = useConversationsStore(state => state.userEmail);
-  const userFilas = useConversationsStore(state => state.userFilas);
+  const mergeConversation = useConversationsStore((state) => state.mergeConversation);
+  const setClienteAtivo   = useConversationsStore((state) => state.setClienteAtivo);
+  const userEmail         = useConversationsStore((state) => state.userEmail);
+  const userFilas         = useConversationsStore((state) => state.userFilas);
 
   const [allMessages, setAllMessages] = useState([]);
-  const [displayedMessages, setDisplayed] = useState([]);
   const [modalImage, setModalImage] = useState(null);
   const [pdfModal, setPdfModal] = useState(null);
   const [clienteInfo, setClienteInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
-  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
 
-  const messageListRef = useRef(null);
-  const loaderRef = useRef(null);
-  const socketRef = useRef(null);
-  const pageRef = useRef(1);
-  const messageCacheRef = useRef(new Map());
-  const bottomRef = useRef(null);
+  const messageListRef   = useRef(null);
+  const loaderRef        = useRef(null);
+  const socketRef        = useRef(null);
+  const messageCacheRef  = useRef(new Map());
+  const bottomRef        = useRef(null);
+
+  // paginação por cursor
+  const oldestTsRef      = useRef(null);
+  const fetchingMoreRef  = useRef(false);
 
   // rooms já aderidos (NÃO fazer leave_room)
   const joinedRoomsRef = useRef(new Set());
-
-  const updateDisplayedMessages = useCallback((messages, page) => {
-    const startIndex = Math.max(0, messages.length - page * MESSAGES_PER_PAGE);
-    const slice = messages.slice(startIndex);
-    setDisplayed(slice);
-    setHasMoreMessages(startIndex > 0);
-  }, []);
 
   const scrollToBottom = useCallback(() => {
     bottomRef.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
@@ -205,68 +156,46 @@ export default function ChatWindow({ userIdSelecionado }) {
 
   /* ------ socket handlers ------ */
   const handleNewMessage = useCallback((msg) => {
-    console.groupCollapsed("%cSOCKET → new_message", "color:#4caf50;font-weight:bold;");
-    console.log("payload (obj):", msg);
-    try { console.log("payload (json):", JSON.stringify(msg)); } catch {}
-    console.log("userId selecionado:", userIdSelecionado);
-    console.groupEnd();
-
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
-    setAllMessages(prev => {
-      const idx = findIndexByAnyId(prev, msg);
-      if (idx >= 0) {
-        const clone = [...prev];
-        clone[idx] = mergeOutgoing(clone[idx], msg);
-        clone.sort((a, b) => tsOf(a) - tsOf(b));
-        messageCacheRef.current.set(msg.user_id, clone);
-        updateDisplayedMessages(clone, pageRef.current);
-        return clone;
-      }
+    setAllMessages((prev) => {
+      const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
+      messageCacheRef.current.set(msg.user_id, next);
 
-      if (isOutgoing(msg)) {
-        const next = upsertOutgoing(prev, { ...msg, pending: false });
-        messageCacheRef.current.set(msg.user_id, next);
-        updateDisplayedMessages(next, pageRef.current);
-        return next;
-      }
+      // atualiza card/snippet
+      const ts = msg.timestamp || new Date().toISOString();
+      mergeConversation(msg.user_id, {
+        content: contentToText(msg.content),
+        channel: msg.channel,
+        direction: msg.direction,
+        timestamp: ts,
+        type: (msg.type || "text").toLowerCase(),
+      });
 
-      const updated = [...prev, msg].sort((a, b) => tsOf(a) - tsOf(b));
-      messageCacheRef.current.set(msg.user_id, updated);
-      updateDisplayedMessages(updated, pageRef.current);
-      return updated;
+      return next;
     });
-  }, [userIdSelecionado, updateDisplayedMessages, appendOrUpdateMessageStore]);
+  }, [userIdSelecionado, mergeConversation]);
 
   const handleUpdateMessage = useCallback((msg) => {
-    console.groupCollapsed("%cSOCKET → update_message", "color:#fb8c00;font-weight:bold;");
-    console.log("payload (obj):", msg);
-    try { console.log("payload (json):", JSON.stringify(msg)); } catch {}
-    console.groupEnd();
-
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
-    setAllMessages(prev => {
-      const idx = findIndexByAnyId(prev, msg);
-      if (idx >= 0) {
-        const clone = [...prev];
-        clone[idx] = mergeOutgoing(clone[idx], msg);
-        clone.sort((a, b) => tsOf(a) - tsOf(b));
-        messageCacheRef.current.set(msg.user_id, clone);
-        updateDisplayedMessages(clone, pageRef.current);
-        return clone;
-      }
+    setAllMessages((prev) => {
+      const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
+      messageCacheRef.current.set(msg.user_id, next);
 
-      if (isOutgoing(msg)) {
-        const next = upsertOutgoing(prev, { ...msg, pending: false });
-        messageCacheRef.current.set(msg.user_id, next);
-        updateDisplayedMessages(next, pageRef.current);
-        return next;
-      }
+      const ts = msg.timestamp || new Date().toISOString();
+      mergeConversation(msg.user_id, {
+        content: contentToText(msg.content),
+        channel: msg.channel,
+        direction: msg.direction,
+        timestamp: ts,
+        status: msg.status,
+        type: (msg.type || "text").toLowerCase(),
+      });
 
-      return prev;
+      return next;
     });
-  }, [userIdSelecionado, updateDisplayedMessages, appendOrUpdateMessageStore]);
+  }, [userIdSelecionado, mergeConversation]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -297,16 +226,15 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => { socket.off("connect", onConnect); };
   }, [userIdSelecionado]);
 
-  /* ------ load on user change ------ */
+  /* ------ load on user change (pega últimos N ASC + cursor) ------ */
   useEffect(() => {
     if (!userIdSelecionado) return;
-    pageRef.current = 1;
     setIsLoading(true);
 
     (async () => {
       try {
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?limit=${PAGE_LIMIT}&sort=asc`),
           apiGet(`/customers/${encodeURIComponent(userIdSelecionado)}`),
           apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
           apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`),
@@ -320,11 +248,12 @@ export default function ChatWindow({ userIdSelecionado }) {
         }
 
         const msgs = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
-        msgs.sort((a, b) => tsOf(a) - tsOf(b));
 
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
-        updateDisplayedMessages(msgs, 1);
+
+        // cursor = TS da mais antiga carregada
+        oldestTsRef.current = msgs.length ? (msgs[0].timestamp || msgs[0].created_at) : null;
 
         const lastMsg = msgs[msgs.length - 1] || {};
         const lastText = contentToText(lastMsg?.content);
@@ -339,7 +268,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           user_id: clienteRes?.user_id || userIdSelecionado,
           assigned_to,
           status,
-          content: lastText, // snippet string
+          content: lastText,
           timestamp: lastMsg?.timestamp || lastMsg?.created_at,
           type: (lastMsg?.type || "text").toLowerCase(),
         });
@@ -370,50 +299,69 @@ export default function ChatWindow({ userIdSelecionado }) {
     userEmail,
     userFilas,
     mergeConversation,
-    updateDisplayedMessages,
     setClienteAtivo,
     scrollToBottom,
-    setMessagesStore,
   ]);
 
-  /* ------ infinite scroll ------ */
+  /* ------ infinite scroll (carrega mensagens mais antigas via cursor) ------ */
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMoreMessages) {
-        pageRef.current += 1;
-        const cached = messageCacheRef.current.get(userIdSelecionado) || [];
-        updateDisplayedMessages(cached, pageRef.current);
+    const container = messageListRef.current?.getContainer?.();
+    const observer = new IntersectionObserver(async (entries) => {
+      if (!entries[0].isIntersecting) return;
+      if (!oldestTsRef.current || fetchingMoreRef.current) return;
+
+      fetchingMoreRef.current = true;
+      const prevHeight = container?.scrollHeight || 0;
+
+      try {
+        const qs = new URLSearchParams({
+          limit: String(PAGE_LIMIT),
+          before_ts: String(oldestTsRef.current),
+          sort: "desc", // mais rápido no servidor
+        });
+        const older = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
+        const arr = Array.isArray(older) ? older : (older?.data || []);
+        arr.reverse(); // volta para ASC no cliente
+
+        if (arr.length) {
+          setAllMessages((prev) => {
+            const next = [...arr, ...prev]; // preprende
+            messageCacheRef.current.set(userIdSelecionado, next);
+            return next;
+          });
+          oldestTsRef.current = arr[0].timestamp || arr[0].created_at;
+
+          // mantém posição na tela após preprender
+          requestAnimationFrame(() => {
+            const newHeight = container?.scrollHeight || 0;
+            if (container) container.scrollTop = newHeight - prevHeight;
+          });
+        } else {
+          // acabou
+          oldestTsRef.current = null;
+        }
+      } catch (e) {
+        console.error("Erro ao paginar mensagens:", e);
+      } finally {
+        fetchingMoreRef.current = false;
       }
-    }, { threshold: 0.1 });
+    }, { threshold: 0.01 });
 
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
-  }, [hasMoreMessages, userIdSelecionado, updateDisplayedMessages]);
+  }, [userIdSelecionado]);
 
-  /* ------ tab visible refresh ------ */
+  /* ------ tab visible refresh (reconecta socket) ------ */
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible" || !userIdSelecionado) return;
       const socket = getSocket();
       if (socket && !socket.connected) socket.connect();
-
-      (async () => {
-        try {
-          const msgs = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}`);
-          const arr = Array.isArray(msgs) ? msgs : (msgs?.data || []);
-          arr.sort((a, b) => tsOf(a) - tsOf(b));
-          setAllMessages(arr);
-          messageCacheRef.current.set(userIdSelecionado, arr);
-          updateDisplayedMessages(arr, pageRef.current);
-        } catch (err) {
-          console.error("Erro ao recarregar mensagens:", err);
-        }
-      })();
+      // opcional: se quiser, busque apenas os últimos N novamente (mantive simples)
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [userIdSelecionado, updateDisplayedMessages, setMessagesStore]);
+  }, [userIdSelecionado]);
 
   /* ------ envio otimista ------ */
   const onMessageAdded = useCallback((tempMsg) => {
@@ -428,10 +376,9 @@ export default function ChatWindow({ userIdSelecionado }) {
       reply_to: tempMsg.reply_to || null,
     };
 
-    setAllMessages(prev => {
-      const next = upsertOutgoing(prev, optimistic);
+    setAllMessages((prev) => {
+      const next = upsertByKeySortedAsc(prev, optimistic);
       messageCacheRef.current.set(userIdSelecionado, next);
-      updateDisplayedMessages(next, pageRef.current);
       return next;
     });
 
@@ -443,14 +390,9 @@ export default function ChatWindow({ userIdSelecionado }) {
       type: (tempMsg.type || "text").toLowerCase(),
     });
 
-    appendOrUpdateMessageStore(userIdSelecionado, {
-      ...optimistic,
-      timestamp: optimistic.timestamp || new Date().toISOString(),
-    });
-
     setReplyTo(null);
     setTimeout(scrollToBottom, 0);
-  }, [mergeConversation, updateDisplayedMessages, userIdSelecionado, scrollToBottom, appendOrUpdateMessageStore]);
+  }, [mergeConversation, userIdSelecionado, scrollToBottom]);
 
   /* ------ render ------ */
   if (!userIdSelecionado) {
@@ -480,13 +422,12 @@ export default function ChatWindow({ userIdSelecionado }) {
       <ChatHeader userIdSelecionado={userIdSelecionado} clienteInfo={clienteInfo} />
 
       <MessageList
-        initialKey={userIdSelecionado}
         ref={messageListRef}
-        messages={displayedMessages}
+        messages={allMessages}
         onImageClick={setModalImage}
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
-        loaderRef={hasMoreMessages ? loaderRef : null}
+        loaderRef={oldestTsRef.current ? loaderRef : null}
       />
 
       <div ref={bottomRef} />
