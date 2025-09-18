@@ -1,0 +1,187 @@
+.page {
+  min-height: 100vh;
+  background: #f9fafb;
+  color: #111827;
+}
+
+/* Header */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+}
+.headerInner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.headerTitle h1 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+}
+.headerSub {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.actions { display: flex; gap: 8px; }
+.refreshBtn {
+  background: #2563eb;
+  color: #fff;
+  border: 0; border-radius: 8px;
+  padding: 8px 12px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.refreshBtn:disabled { opacity: .6; cursor: not-allowed; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Metrics */
+.metricsGrid {
+  max-width: 1120px;
+  margin: 0 auto 12px;
+  padding: 0 24px 12px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.kpiCard {
+  border-radius: 10px;
+  background: #f3f4f6;
+  padding: 12px;
+}
+.kpiValue { font-size: 22px; font-weight: 800; }
+.kpiLabel { font-size: 12px; color: #374151; margin-top: 4px; }
+.tone_red { background: #fee2e2; color: #991b1b; }
+.tone_orange { background: #ffedd5; color: #9a3412; }
+.tone_yellow { background: #fef9c3; color: #854d0e; }
+.tone_green { background: #dcfce7; color: #166534; }
+
+/* Filtros */
+.filters {
+  max-width: 1120px; margin: 0 auto 12px;
+  padding: 0 24px 16px;
+  display: flex; gap: 12px; align-items: center;
+}
+.searchWrap { position: relative; flex: 1; min-width: 260px; }
+.searchIcon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: #9ca3af;
+}
+.searchInput {
+  width: 100%; padding: 10px 12px 10px 34px;
+  border: 1px solid #d1d5db; border-radius: 8px;
+  outline: none;
+}
+.searchInput:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.15); }
+.select {
+  border: 1px solid #d1d5db; border-radius: 8px;
+  padding: 10px 12px; background: #fff;
+}
+
+/* Conteúdo */
+.content { max-width: 1120px; margin: 0 auto; padding: 24px; }
+
+/* Page bar + pager */
+.pageBar {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+}
+.pageInfo { font-size: 12px; color: #6b7280; }
+.pager { display: flex; gap: 8px; align-items: center; }
+.pageBtn {
+  border: 1px solid #d1d5db; background: #fff; border-radius: 8px;
+  padding: 6px; line-height: 0;
+}
+.pageBtn:disabled { opacity: .5; cursor: not-allowed; }
+.pageBadge {
+  background: #f3f4f6; padding: 6px 10px; border-radius: 8px; font-size: 12px;
+}
+
+/* Tabela */
+.tableCard { background: #fff; border-radius: 10px; box-shadow: 0 1px 2px rgba(0,0,0,.04); overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; }
+.table thead tr { background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+.table th, .table td { text-align: left; padding: 12px; font-size: 13px; }
+.table th { text-transform: uppercase; font-weight: 700; color: #6b7280; font-size: 11px; }
+.row:hover { background: #f9fafb; }
+
+/* Célula Cliente */
+.clientCell { display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 32px; height: 32px; border-radius: 999px;
+  background: #e0e7ff; display: flex; align-items: center; justify-content: center;
+  color: #4338ca;
+}
+.clientName { font-weight: 600; font-size: 13px; }
+.clientSub { font-size: 11px; color: #6b7280; }
+
+/* Estágio */
+.stageCell { display: flex; align-items: center; gap: 8px; }
+.stageIcon { color: #7c3aed; display: inline-flex; }
+.stageName { font-size: 13px; font-weight: 600; }
+.bgStage { background: #f5f3ff; }
+.txtPrimary { color: #6d28d9; }
+
+/* Pílulas */
+.pill {
+  display: inline-block; padding: 4px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+}
+.pillGreen { background: #dcfce7; color: #166534; }
+.pillYellow { background: #fef9c3; color: #854d0e; }
+.pillRed { background: #fee2e2; color: #991b1b; }
+
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+/* Vazio */
+.emptyCell { text-align: center; padding: 24px; color: #6b7280; }
+
+/* Botões */
+.linkBtn {
+  border: 0; background: #e0f2fe; color: #075985;
+  padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  display: inline-flex; gap: 6px; align-items: center;
+}
+
+/* Modal */
+.modalBackdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px;
+}
+.modalCard {
+  background: #fff; border-radius: 10px; width: 100%; max-width: 880px; max-height: 90vh; overflow: auto;
+}
+.modalHead {
+  padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;
+}
+.modalTitle { margin: 0; font-size: 18px; font-weight: 800; }
+.modalSub { font-size: 12px; color: #6b7280; }
+.modalClose { border: 0; background: transparent; font-size: 18px; color: #6b7280; }
+.modalBody { padding: 16px; display: grid; gap: 16px; }
+
+.sectionTitle { font-weight: 700; margin-bottom: 8px; }
+
+/* Timeline */
+.timeline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.timelineItem {
+  border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; min-width: 220px;
+}
+.timelineTop { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.timelineTitle { font-size: 12px; font-weight: 700; }
+.timelineMeta { display: grid; gap: 2px; font-size: 11px; color: #374151; }
+.timelineArrow { color: #9ca3af; }
+
+/* Dwell diag */
+.dwellBox { border: 1px dashed #e5e7eb; border-radius: 10px; padding: 12px; }
+.dgrid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.stat { background: #f9fafb; border-radius: 8px; padding: 10px; }
+.statLabel { font-size: 11px; color: #6b7280; }
+.statValue { font-weight: 700; font-size: 13px; }
