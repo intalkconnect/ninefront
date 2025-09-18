@@ -43,45 +43,16 @@ export default function Sidebar() {
   const queueRoomsRef = useRef(new Set());
 
   // Gera o snippet para exibição (sempre string)
-  const getSnippet = (conv) => {
-    if (!conv) return "";
-    if (typeof conv.content === "string" && conv.content.trim())
-      return conv.content;
+ const getSnippet = (conv) => {
+  if (!conv) return "";
+  if (typeof conv.last_message === "string" && conv.last_message.trim()) return conv.last_message;
+  // fallback (quase nunca será usado se o back preencher)
+  if (typeof conv.content === "string" && conv.content.trim()) return conv.content;
+  return "[Mensagem]";
+};
 
-    // Se chegou aqui, a store não entregou string; loga pra investigar
-    console.warn("[sidebar] snippet fallback acionado", {
-      type: conv.type,
-      typeofContent: typeof conv.content,
-      sample:
-        typeof conv.content === "string"
-          ? conv.content.slice(0, 200)
-          : conv.content,
-    });
-
-    const map = {
-      audio: "🎤 Áudio",
-      voice: "🎤 Áudio",
-      image: "🖼️ Imagem",
-      photo: "🖼️ Imagem",
-      video: "🎥 Vídeo",
-      file: "📄 Arquivo",
-      document: "📄 Arquivo",
-      template: "📋 Template",
-      location: "📍 Localização",
-      contact: "👤 Contato",
-      sticker: "🌟 Sticker",
-      text: "[Texto]",
-    };
-    const t = (conv.type || "").toLowerCase();
-    return map[t] || "[Mensagem]";
-  };
-
-  // Converte conteúdo para string para busca
-  const contentToString = (conv) => {
-    if (!conv) return "";
-    const snippet = getSnippet(conv);
-    return snippet && typeof snippet === "string" ? snippet : "[Mídia]";
-  };
+// busca no input de pesquisa
+const contentToString = (conv) => getSnippet(conv) || "";
 
   // Carrega configurações e fila
   const fetchSettingsAndFila = async () => {
@@ -270,11 +241,11 @@ export default function Sidebar() {
 
   const sortedConversations = React.useMemo(() => {
     const arr = [...filteredConversations];
-    arr.sort((a, b) => {
-      const dateA = new Date(a.timestamp || 0);
-      const dateB = new Date(b.timestamp || 0);
-      return ordemAscendente ? dateA - dateB : dateB - dateA;
-    });
+arr.sort((a, b) => {
+  const ta = new Date(a.last_message_at || a.timestamp || 0);
+  const tb = new Date(b.last_message_at || b.timestamp || 0);
+  return ordemAscendente ? ta - tb : tb - ta;
+});
     return arr;
   }, [filteredConversations, ordemAscendente]);
 
@@ -431,11 +402,11 @@ export default function Sidebar() {
                 <div className="chat-details">
                   <div className="chat-title-row">
                     <div className="chat-title">{conv.name || fullId}</div>
-                    <div className="chat-time">
-                      {conv.timestamp
-                        ? getRelativeTime(conv.timestamp)
-                        : "--:--"}
-                    </div>
+ <div className="chat-time">
+  { (conv.last_message_at || conv.timestamp)
+      ? getRelativeTime(conv.last_message_at || conv.timestamp)
+      : "--:--" }
+</div>
                   </div>
 
                   <div className="chat-snippet">{getSnippet(conv)}</div>
