@@ -51,7 +51,7 @@
 }
 
 .logo-img {
-  height: 24px;
+  height: 32px;
   object-fit: contain;
   filter: brightness(0) invert(1);
 }
