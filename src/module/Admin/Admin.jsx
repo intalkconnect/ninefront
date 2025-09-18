@@ -8,6 +8,7 @@ import {
   Settings as SettingsIcon,
   SquareActivity,
   CircleHelp,
+  Route as RouteIcon,
   GraduationCap,
   Folder,
   Megaphone,
@@ -49,6 +50,7 @@ import Preferences from "./preferences/Preferences";
 import Channels from "./preferences/Channels";
 import ClientsMonitor from "./monitoring/ClientsMonitor";
 import AgentsMonitor from "./monitoring/AgentsMonitor";
+import CustomerJourneyTracker from "./monitoring/CustomerJourneyTracker";
 import Queues from "./atendimento/Queues";
 import QuickReplies from "./atendimento/QuickReplies";
 import Templates from "./campanhas/Templates";
@@ -274,11 +276,11 @@ export default function Admin() {
               label: "Ferramentas",
               children: [
                 { to: "development/builder", icon: <Bot size={16} />, label: "Builder" },
+                { to: "development/tracker", icon: <RouteIcon size={16} />, label: "Tracker" },
               ],
             },
           ],
         },
-
         {
           key: "settings",
           label: "Configurações",
@@ -689,6 +691,14 @@ export default function Admin() {
             element={
               <RequireRole allow={isAdmin}>
                 <Builder />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="development/tracker"
+            element={
+              <RequireRole allow={isAdmin}>
+                <CustomerJourneyTracker />
               </RequireRole>
             }
           />
