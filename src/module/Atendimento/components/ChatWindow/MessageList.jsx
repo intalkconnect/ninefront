@@ -2,54 +2,54 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useRef,
-  useEffect,
-  useState
+  useEffect
 } from 'react';
 
 import MessageRow from './MessageRow';
 
 function findReplyTarget(messages, refId) {
   if (!refId) return null;
-  return messages.find(m => {
-    const ids = [
-      m.message_id,
-      m.whatsapp_message_id,
-      m.telegram_message_id,
-      m.provider_id,
-      m.id
-    ].filter(Boolean);
-    return ids.some((x) => String(x) === String(refId));
-  }) || null;
+  return (
+    messages.find((m) => {
+      const ids = [
+        m.message_id,
+        m.whatsapp_message_id,
+        m.telegram_message_id,
+        m.provider_id,
+        m.id,
+      ].filter(Boolean);
+      return ids.some((x) => String(x) === String(refId));
+    }) || null
+  );
 }
 
 /**
- * MessageList (versão com "Ver mais" e scroll no final)
+ * MessageList (puro, sem paginação interna; usa um sentinel no topo para carregar mais)
  */
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
-    const [visibleCount, setVisibleCount] = useState(30);
-    const [prevScrollHeight, setPrevScrollHeight] = useState(0);
-
-    const visibleMessages = messages.slice(-visibleCount);
 
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         if (containerRef.current) {
           containerRef.current.scrollTo({
             top: containerRef.current.scrollHeight,
-            behavior: 'auto'
+            behavior: 'auto',
           });
         }
       },
+      getContainer: () => containerRef.current,
     }));
 
+    // sempre desce pro fim quando a lista muda
     useEffect(() => {
       if (containerRef.current) {
         containerRef.current.scrollTop = containerRef.current.scrollHeight;
       }
-    }, [visibleMessages]);
+    }, [messages]);
 
+    // ao voltar o foco pra aba, garante que está no fim
     useEffect(() => {
       const handleVisibility = () => {
         if (document.visibilityState === 'visible') {
@@ -64,31 +64,12 @@ const MessageList = forwardRef(
       return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, []);
 
-    const handleShowMore = () => {
-      if (containerRef.current) {
-        setPrevScrollHeight(containerRef.current.scrollHeight);
-        setVisibleCount((prev) => Math.min(prev + 30, messages.length));
-      }
-    };
-
-    useEffect(() => {
-      if (visibleCount > 30 && containerRef.current) {
-        const newHeight = containerRef.current.scrollHeight;
-        const delta = newHeight - prevScrollHeight;
-        containerRef.current.scrollTop = delta;
-      }
-    }, [visibleCount]); // eslint-disable-line react-hooks/exhaustive-deps
-
     return (
       <div ref={containerRef} className="chat-scroll-container">
+        {/* Sentinel no topo para "carregar mais" via IntersectionObserver */}
+        {loaderRef && <div ref={loaderRef} style={{ height: 1 }} />}
 
-        {messages.length > visibleMessages.length && (
-          <div className="show-more-messages">
-            <button onClick={handleShowMore}>Ver mais mensagens</button>
-          </div>
-        )}
-
-        {visibleMessages.map((msg, index) => {
+        {messages.map((msg, index) => {
           if (!msg) return null;
 
           const isSystem = msg.direction === 'system' || msg.type === 'system';
@@ -106,16 +87,13 @@ const MessageList = forwardRef(
             );
           }
 
-          const fullIndex = messages.length - visibleMessages.length + index;
-          const prevMsg = messages[fullIndex - 1];
+          const prevMsg = messages[index - 1];
 
           const showTicketDivider =
             msg.ticket_number &&
             (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
-          // 🧩 Resolução do alvo de resposta:
-          // - aceita msg.replyTo (objeto)
-          // - tenta achar pelo reply_to/context.message_id quando forem ids
+          // 🧩 Resolução do alvo de resposta
           let replyToMessage = msg.replyTo || null;
           const replyId = msg.reply_to || msg.context?.message_id || null;
           if (!replyToMessage && typeof replyId === 'string' && replyId.trim() !== '') {
@@ -123,7 +101,7 @@ const MessageList = forwardRef(
           }
 
           return (
-            <React.Fragment key={msg.id || index}>
+            <React.Fragment key={msg.id || msg.message_id || index}>
               {showTicketDivider && (
                 <div className="ticket-divider">Ticket #{msg.ticket_number}</div>
               )}
