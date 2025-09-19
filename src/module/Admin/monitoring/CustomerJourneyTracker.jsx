@@ -6,7 +6,7 @@ import { useConfirm } from '../../../components/ConfirmProvider'; // ajuste o im
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, ArrowRight,
-  BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Headset, Trash2
+  BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Headset, Trash2, Plus
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -31,9 +31,6 @@ export default function CustomerJourneyTracker() {
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState('all');
-  const [excludeHuman, setExcludeHuman] = useState(true);
-  const [stages, setStages] = useState([]);
 
   // pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,33 +56,19 @@ export default function CustomerJourneyTracker() {
     debouncedSet(searchTerm);
   }, [searchTerm, debouncedSet]);
 
-  // load stages + metrics on mount
+  // load metrics on mount
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [stResp, mtResp] = await Promise.all([
-          apiGet('/tracert/stages').catch(() => null),
-          apiGet('/tracert/metrics').catch(() => null),
-        ]);
-
-        const stData = stResp && stResp.data ? stResp.data : stResp;
+        const mtResp = await apiGet('/tracert/metrics').catch(() => null);
         const mtData = mtResp && mtResp.data ? mtResp.data : mtResp;
 
         if (!mounted) return;
-
-        // stages endpoint might return: ["label1","label2"] or [{label,type},...]
-        if (Array.isArray(stData)) {
-          setStages(stData.map(s => (typeof s === 'string' ? { label: s } : s)));
-        } else {
-          setStages([]);
-        }
-
         setMetrics(mtData || {});
       } catch (err) {
-        console.error('Erro carregando stages/metrics:', err);
+        console.error('Erro carregando metrics:', err);
         if (!mounted) return;
-        setStages([]);
         setMetrics({});
       } finally {
         if (mounted) setLoading(false);
@@ -94,14 +77,13 @@ export default function CustomerJourneyTracker() {
     return () => { mounted = false; };
   }, []);
 
-  // fetch list
+  // fetch list (always excludes human sessions)
   const fetchList = useCallback(async () => {
     setRefreshing(true);
     try {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set('q', debouncedSearch);
-      if (stageFilter && stageFilter !== 'all') params.set('stage', stageFilter);
-      if (excludeHuman) params.set('exclude_human', 'true');
+      // Always exclude human sessions - remove include_human parameter
       params.set('page', String(currentPage));
       params.set('pageSize', String(itemsPerPage));
 
@@ -117,14 +99,14 @@ export default function CustomerJourneyTracker() {
     } finally {
       setRefreshing(false);
     }
-  }, [debouncedSearch, stageFilter, excludeHuman, currentPage, itemsPerPage]);
+  }, [debouncedSearch, currentPage, itemsPerPage]);
 
   // auto fetch when filters/page change
   useEffect(() => {
     fetchList();
   }, [fetchList]);
 
-  // open details modal and trim journey by last_reset_at
+  // open details modal and show only journey after reset
   const openDetails = async (row) => {
     setSelectedCustomer(row);
     setSelectedDetail(null);
@@ -134,23 +116,16 @@ export default function CustomerJourneyTracker() {
       const resp = await apiGet(`/tracert/customers/${encodeURIComponent(row.user_id)}`);
       const det = resp && resp.data ? resp.data : resp;
 
-      // normalize journey
+      // normalize journey - only show events after reset (excluding the reset event itself)
       let journey = Array.isArray(det?.journey) ? det.journey : [];
 
-      // if last_reset_at present, trim all events before that timestamp
+      // if last_reset_at present, show only events after that timestamp (excluding reset event)
       if (det?.last_reset_at) {
         const resetTs = new Date(det.last_reset_at).getTime();
         journey = journey.filter(j => {
           const t = j?.timestamp ? new Date(j.timestamp).getTime() : 0;
-          return t >= resetTs;
-        });
-
-        // insert a RESET node at top so user sees reset happened
-        journey.unshift({
-          stage: 'RESET TO START',
-          timestamp: det.last_reset_at,
-          duration: 0,
-          visits: 1,
+          // Only show events after reset timestamp AND exclude reset events
+          return t > resetTs && j?.stage !== 'RESET TO START';
         });
       }
 
@@ -193,13 +168,13 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // transfer to human / create ticket
-  const transferToHuman = async (userId, queueName) => {
+  // create ticket (not transfer)
+  const createTicket = async (userId, queueName) => {
     if (!userId) return;
     const ok = await confirm({
-      title: 'Transferir para humano?',
-      description: `Deseja abrir ticket e transferir ${userId} para atendimento humano${queueName ? ' (' + queueName + ')' : ''}?`,
-      confirmText: 'Transferir',
+      title: 'Criar ticket?',
+      description: `Deseja criar ticket para ${userId}${queueName ? ' (' + queueName + ')' : ''}?`,
+      confirmText: 'Criar Ticket',
       cancelText: 'Cancelar',
       destructive: false
     });
@@ -207,9 +182,9 @@ export default function CustomerJourneyTracker() {
 
     try {
       // ajuste a URL se sua API usar outro caminho; o corpo abaixo é apenas ilustrativo
-      const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/transfer`, { queue: queueName });
+      const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/ticket`, { queue: queueName });
       const data = resp && resp.data ? resp.data : resp;
-      toast.success('Ticket criado e transferido para humano');
+      toast.success('Ticket criado com sucesso');
       // atualizar lista + detalhe
       await fetchList();
       if (selectedCustomer?.user_id === userId) {
@@ -217,8 +192,8 @@ export default function CustomerJourneyTracker() {
       }
       return data;
     } catch (err) {
-      console.error('Erro ao transferir para humano:', err);
-      toast.error('Falha ao transferir para humano');
+      console.error('Erro ao criar ticket:', err);
+      toast.error('Falha ao criar ticket');
       throw err;
     }
   };
@@ -283,22 +258,23 @@ export default function CustomerJourneyTracker() {
               <h2 className={styles.modalTitle}>{customer.name || customer.user_id}</h2>
               <p className={styles.modalSub}>ID: {customer.user_id}</p>
             </div>
-            <div>
+            <div className={styles.modalActions}>
               <button
-                className={styles.resetBtn}
+                className={styles.actionBtn}
                 onClick={() => resetSession(customer.user_id)}
                 title="Reset para início"
               >
-                <Trash2 size={14} /> Reset
+                <Trash2 size={16} />
+                Reset
               </button>
 
               <button
-                className={styles.resetBtn}
-                onClick={() => transferToHuman(customer.user_id, 'Recepção')}
-                title="Criar ticket / Transferir para humano"
-                style={{ marginLeft: 8 }}
+                className={styles.actionBtn}
+                onClick={() => createTicket(customer.user_id, 'Recepção')}
+                title="Criar ticket"
               >
-                <Headset size={14} /> To Human
+                <Plus size={16} />
+                Criar Ticket
               </button>
 
               <button onClick={onClose} className={styles.modalClose} aria-label="Fechar">✕</button>
@@ -307,12 +283,12 @@ export default function CustomerJourneyTracker() {
 
           <div className={styles.modalBody}>
             <section>
-              <h3 className={styles.sectionTitle}>Jornada Completa</h3>
+              <h3 className={styles.sectionTitle}>Jornada (após último reset)</h3>
               <div className={styles.timeline}>
                 {detailLoading ? (
                   <div className={styles.emptyCell}>Carregando...</div>
                 ) : journey.length === 0 ? (
-                  <div className={styles.emptyCell}>Sem histórico de estágios.</div>
+                  <div className={styles.emptyCell}>Sem histórico de estágios após reset.</div>
                 ) : journey.map((st, i) => (
                   <React.Fragment key={`${st.stage}-${i}`}>
                     <div className={styles.timelineItem}>
@@ -360,7 +336,7 @@ export default function CustomerJourneyTracker() {
         <div className={styles.headerInner}>
           <div className={styles.headerTitle}>
             <h1>Tracert do Bot</h1>
-            <span className={styles.headerSub}>Estágio atual, tempo e loops</span>
+            <span className={styles.headerSub}>Estágio atual, tempo e loops (sessões humanas ocultas)</span>
           </div>
 
           <div className={styles.actions}>
@@ -390,26 +366,6 @@ export default function CustomerJourneyTracker() {
               className={styles.searchInput}
             />
           </div>
-
-          <select
-            value={stageFilter}
-            onChange={(e) => { setStageFilter(e.target.value); setCurrentPage(1); }}
-            className={styles.select}
-          >
-            <option value="all">Todos os Estágios</option>
-            {stages.map((s) => (
-              <option key={s.label || s} value={s.label || s}>{labelize(s.label || s)}</option>
-            ))}
-          </select>
-
-          <label className={styles.checkboxLabel}>
-            <input
-              type="checkbox"
-              checked={excludeHuman}
-              onChange={(e) => { setExcludeHuman(!!e.target.checked); setCurrentPage(1); }}
-            />
-            Ocultar sessões humanas
-          </label>
         </div>
       </div>
 
@@ -472,9 +428,15 @@ export default function CustomerJourneyTracker() {
                   </td>
 
                   <td className={styles.rowActions}>
-                    <button onClick={() => openDetails(r)} className={styles.linkBtn} title="Ver detalhes"><Eye size={14} /> Ver</button>
-                    <button onClick={() => resetSession(r.user_id)} className={styles.resetSmall} title="Resetar sessão"><Trash2 size={14} /></button>
-                    <button onClick={() => transferToHuman(r.user_id, 'Recepção')} className={styles.transferSmall} title="Transferir para humano"> <Headset size={14} /> </button>
+                    <button onClick={() => openDetails(r)} className={styles.actionBtn} title="Ver detalhes">
+                      <Eye size={16} /> Ver
+                    </button>
+                    <button onClick={() => resetSession(r.user_id)} className={styles.actionBtn} title="Resetar sessão">
+                      <Trash2 size={16} /> Reset
+                    </button>
+                    <button onClick={() => createTicket(r.user_id, 'Recepção')} className={styles.actionBtn} title="Criar ticket">
+                      <Plus size={16} /> Ticket
+                    </button>
                   </td>
                 </tr>
               ))}
