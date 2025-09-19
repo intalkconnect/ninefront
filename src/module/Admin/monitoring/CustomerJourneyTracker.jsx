@@ -1,6 +1,6 @@
 // File: CustomerJourneyTracker.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import debounce from 'lodash.debounce';
+import debounce from 'lodash/debounce';
 import { toast } from 'react-toastify';
 import { useConfirm } from '../../../components/ConfirmProvider'; // ajuste o import conforme seu projeto
 import { apiGet, apiPost } from '../../../shared/apiClient';
