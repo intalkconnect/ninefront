@@ -219,15 +219,29 @@ export default function CustomerJourneyTracker() {
 
   const StageCell = ({ label, type }) => {
     const key = String(label || '');
-    // choose icon by type
+    // choose icon and color by type
     let Icon = MessageCircle;
-    if (type === 'human') Icon = Headset;
-    else if (type === 'interactive') Icon = MessageCircle;
-    else if (type === 'script' || type === 'api_call') Icon = BarChart3;
-    else Icon = MessageCircle;
+    let colorClass = styles.stageDefault;
+    
+    if (type === 'human') {
+      Icon = Headset;
+      colorClass = styles.stageHuman;
+    } else if (type === 'interactive') {
+      Icon = MessageCircle;
+      colorClass = styles.stageInteractive;
+    } else if (type === 'script' || type === 'api_call') {
+      Icon = BarChart3;
+      colorClass = styles.stageScript;
+    } else if (type === 'condition') {
+      Icon = AlertTriangle;
+      colorClass = styles.stageCondition;
+    } else if (type === 'input') {
+      Icon = MessageCircle;
+      colorClass = styles.stageInput;
+    }
 
     return (
-      <div className={styles.stageCell}>
+      <div className={`${styles.stageCell} ${colorClass}`}>
         <span className={styles.stageIcon}><Icon size={14} /></span>
         <div>
           <div className={styles.stageName}>{key || '—'}</div>
@@ -281,22 +295,40 @@ export default function CustomerJourneyTracker() {
                   <div className={styles.emptyCell}>Carregando...</div>
                 ) : journey.length === 0 ? (
                   <div className={styles.emptyCell}>Sem histórico de estágios após reset.</div>
-                ) : journey.map((st, i) => (
-                  <React.Fragment key={`${st.stage}-${i}`}>
-                    <div className={styles.timelineItem}>
-                      <div className={styles.timelineTop}>
-                        <MessageCircle size={16} />
-                        <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
+                ) : journey.map((st, i) => {
+                  // Determine color class based on stage name/type patterns
+                  let timelineColorClass = styles.timelineDefault;
+                  const stageName = String(st.stage || '').toLowerCase();
+                  
+                  if (stageName.includes('human') || stageName.includes('atendimento')) {
+                    timelineColorClass = styles.timelineHuman;
+                  } else if (stageName.includes('input') || stageName.includes('entrada')) {
+                    timelineColorClass = styles.timelineInput;
+                  } else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) {
+                    timelineColorClass = styles.timelineCondition;
+                  } else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) {
+                    timelineColorClass = styles.timelineScript;
+                  } else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) {
+                    timelineColorClass = styles.timelineInteractive;
+                  }
+
+                  return (
+                    <React.Fragment key={`${st.stage}-${i}`}>
+                      <div className={`${styles.timelineItem} ${timelineColorClass}`}>
+                        <div className={styles.timelineTop}>
+                          <MessageCircle size={16} />
+                          <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
+                        </div>
+                        <div className={styles.timelineMeta}>
+                          <div>Tempo: {fmtTime(st.duration)}</div>
+                          <div>Visitas: {st.visits ?? 1}x</div>
+                          <div>Início: {st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
+                        </div>
                       </div>
-                      <div className={styles.timelineMeta}>
-                        <div>Tempo: {fmtTime(st.duration)}</div>
-                        <div>Visitas: {st.visits ?? 1}x</div>
-                        <div>Início: {st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
-                      </div>
-                    </div>
-                    {i < journey.length - 1 && <ArrowRight className={styles.timelineArrow} size={16} />}
-                  </React.Fragment>
-                ))}
+                      {i < journey.length - 1 && <ArrowRight className={styles.timelineArrow} size={16} />}
+                    </React.Fragment>
+                  );
+                })}
               </div>
             </section>
 
