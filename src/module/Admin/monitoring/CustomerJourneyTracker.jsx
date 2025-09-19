@@ -1,9 +1,9 @@
 // File: CustomerJourneyTracker.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiGet } from '../../../shared/apiClient';
+import { apiGet, apiPost as apiClientPost } from '../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, ArrowRight,
-  BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw
+  BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Headset
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
 
@@ -13,9 +13,15 @@ import styles from './styles/CustomerJourneyTracker.module.css';
  * GET  /tracert/metrics
  * GET  /tracert/customers?q=&stage=&page=&pageSize=
  * GET  /tracert/customers/:userId
+ * POST /tracert/customers/:userId/reset
+ *
+ * Observações:
+ * - backend deve retornar para /tracert/customers cada linha com:
+ *   { user_id, name, current_stage, current_stage_label, current_stage_type, time_in_stage_sec, loops_in_stage, stage_entered_at, ... }
+ * - /tracert/stages pode retornar array de strings (labels) ou array de { label, type }.
  */
 
-// ícones por estágio (adicione conforme precisar)
+// ícones por estágio (adicione conforme necessário)
 const stageIcon = {
   default: MessageCircle,
   saudacao_inicial: MessageCircle,
@@ -38,13 +44,29 @@ const fmtTime = (sec = 0) => {
   return `${r}s`;
 };
 
+// fallback para POST se apiClient não expor apiPost
+async function apiPostFallback(url, body) {
+  const base = '/api/v1'; // ajuste se seu prefixo for outro
+  const res = await fetch(`${base}${url}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+    credentials: 'same-origin',
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`POST ${url} falhou: ${res.status} ${text}`);
+  }
+  return res.json().catch(() => ({}));
+}
+
 export default function CustomerJourneyTracker() {
   // filtros / UI
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
-  const [stages, setStages] = useState([]);
+  const [stages, setStages] = useState([]); // may be array of strings or objects {label,type}
 
-  // paginação
+  // pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
@@ -59,30 +81,53 @@ export default function CustomerJourneyTracker() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
 
-  // stageConfig dinâmico (nome/ícone)
+  // include humans toggle (hidden by default)
+  const [includeHuman, setIncludeHuman] = useState(false);
+
+  // stageConfig dinâmico a partir de 'stages'
   const stageConfig = useMemo(() => {
     const cfg = {};
-    (stages || []).forEach((k) => {
-      const key = String(k || '');
-      const Icon = stageIcon[key] || stageIcon.default;
-      cfg[key.toLowerCase()] = {
-        key,
-        name: labelize(key),
-        icon: Icon,
-        textColor: styles.txtPrimary || '',
-        bgColor: styles.bgStage || '',
-      };
-    });
-
-    // defaults (caso view retorne block ids diferentes)
-    if (!cfg.initial_contact) cfg.initial_contact = { name: 'Contato Inicial', icon: MessageCircle, textColor: styles.txtPrimary, bgColor: styles.bgStage };
-    if (!cfg.bot_interaction) cfg.bot_interaction = { name: 'Bot', icon: MessageCircle, textColor: styles.txtPrimary, bgColor: styles.bgStage };
-    if (!cfg.resolved) cfg.resolved = { name: 'Resolvido', icon: CheckCircle, textColor: styles.txtPrimary, bgColor: styles.bgStage };
-
+    if (Array.isArray(stages)) {
+      stages.forEach((s) => {
+        if (!s) return;
+        if (typeof s === 'string') {
+          const key = s;
+          cfg[key.toLowerCase()] = {
+            key,
+            name: labelize(key),
+            icon: stageIcon[key] || stageIcon.default,
+          };
+        } else if (typeof s === 'object' && s.label) {
+          const key = s.label;
+          cfg[key.toLowerCase()] = {
+            key,
+            name: s.label,
+            icon: stageIcon[s.label] || stageIcon.default,
+            type: s.type || null,
+          };
+        }
+      });
+    }
+    // defaults
+    if (!cfg.initial_contact) cfg.initial_contact = { name: 'Contato Inicial', icon: MessageCircle };
+    if (!cfg.bot_interaction) cfg.bot_interaction = { name: 'Bot', icon: MessageCircle };
+    if (!cfg.resolved) cfg.resolved = { name: 'Resolvido', icon: CheckCircle };
     return cfg;
   }, [stages]);
 
-  // carregar estágios + métricas iniciais
+  // wrapper POST: tenta usar apiClientPost, senão fallback
+  const apiPost = async (url, body) => {
+    try {
+      if (typeof apiClientPost === 'function') {
+        return await apiClientPost(url, body);
+      }
+    } catch (e) {
+      // se apiClientPost existir mas falhar, fallback para fetch
+    }
+    return apiPostFallback(url, body);
+  };
+
+  // carregar estágios + métricas
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -92,18 +137,18 @@ export default function CustomerJourneyTracker() {
           apiGet('/tracert/metrics'),
         ]);
 
-        // apiGet pode retornar { data: ... } ou os dados diretamente
-        const stData = (stResp && stResp.data) ? stResp.data : stResp;
-        const mtData = (mtResp && mtResp.data) ? mtResp.data : mtResp;
+        const stData = stResp && stResp.data ? stResp.data : stResp;
+        const mtData = mtResp && mtResp.data ? mtResp.data : mtResp;
 
         if (!mounted) return;
 
+        // stages endpoint pode retornar array de strings ou objetos { label, type }
         setStages(Array.isArray(stData) ? stData : []);
         setMetrics({
           total: Number(mtData?.total || 0),
           loopers: Number(mtData?.loopers || 0),
           topStage: mtData?.topStage || mtData?.top_stage || null,
-          byStage: Array.isArray(mtData?.byStage) ? mtData.byStage : (Array.isArray(mtData?.by_stage) ? mtData.by_stage : []),
+          byStage: Array.isArray(mtData?.distribution) ? mtData.distribution : (Array.isArray(mtData?.byStage) ? mtData.byStage : []),
         });
       } catch (e) {
         console.error('Erro carregando stages/metrics', e);
@@ -117,19 +162,22 @@ export default function CustomerJourneyTracker() {
     return () => { mounted = false; };
   }, []);
 
-  // fetch list (server-side pagination)
-  const fetchList = async (opts = {}) => {
+  // fetch list (server-side)
+  const fetchList = async () => {
     setRefreshing(true);
     try {
       const params = new URLSearchParams();
       if (searchTerm) params.set('q', searchTerm);
-      if (stageFilter && stageFilter !== 'all') params.set('stage', stageFilter);
+      if (stageFilter && stageFilter !== 'all') {
+        // backend admite stage (id) e stageLabel — aqui usamos stageLabel (label) porque /stages devolve label
+        params.set('stageLabel', stageFilter);
+      }
+      if (includeHuman) params.set('include_human', 'true');
       params.set('page', String(currentPage));
       params.set('pageSize', String(itemsPerPage));
 
       const resp = await apiGet(`/tracert/customers?${params.toString()}`);
-      const data = (resp && resp.data) ? resp.data : resp;
-
+      const data = resp && resp.data ? resp.data : resp;
       setRows(Array.isArray(data?.rows) ? data.rows : []);
       setTotalRows(Number(data?.total || 0));
     } catch (e) {
@@ -144,13 +192,13 @@ export default function CustomerJourneyTracker() {
   useEffect(() => {
     fetchList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, stageFilter, currentPage, itemsPerPage]);
+  }, [searchTerm, stageFilter, currentPage, itemsPerPage, includeHuman]);
 
   // KPI cards
   const kpiCards = useMemo(() => {
     return [
       { tone: 'red',    value: metrics.loopers || 0, label: 'Com loops (>1)' },
-      { tone: 'orange', value: metrics.topStage?.users || 0, label: `Top Estágio: ${labelize(metrics.topStage?.block || metrics.topStage?.stage || '—')}` },
+      { tone: 'orange', value: metrics.topStage?.users || metrics.topStage?.count || 0, label: `Top Estágio: ${labelize(metrics.topStage?.block || metrics.topStage?.label || '—')}` },
       { tone: 'yellow', value: (metrics.byStage || []).reduce((s, i) => s + (i.users || 0), 0), label: 'Usuários em fluxo' },
       { tone: 'green',  value: metrics.total || 0, label: 'Total (base atual)' },
     ];
@@ -173,6 +221,23 @@ export default function CustomerJourneyTracker() {
     }
   };
 
+  // reset de sessão (POST)
+  const resetSession = async (row) => {
+    if (!window.confirm(`Resetar sessão de ${row.name || row.user_id} para o início?`)) return;
+    try {
+      await apiPost(`/tracert/customers/${encodeURIComponent(row.user_id)}/reset`, {});
+      // recarrega lista e detalhe se estiver aberto
+      await fetchList();
+      if (selectedCustomer && selectedCustomer.user_id === row.user_id) {
+        openDetails(row);
+      }
+      alert('Sessão resetada para o início.');
+    } catch (e) {
+      console.error('Erro ao resetar sessão', e);
+      alert('Falha ao resetar sessão.');
+    }
+  };
+
   const PriorityPill = ({ loops }) => {
     const l = Number(loops || 0);
     let klass = styles.pillGreen;
@@ -182,26 +247,21 @@ export default function CustomerJourneyTracker() {
     return <span className={`${styles.pill} ${klass}`}>{txt}</span>;
   };
 
-const StageCell = ({ label, type }) => {
-  const key = String(label || '');
-  // tenta achar ícone pela 'type' primeiro (por exemplo 'human' -> Headset, 'interactive' -> MessageCircle)
-  let Icon = MessageCircle;
-  if (type === 'human') Icon = Headset;           // importe Headset
-  else if (type === 'interactive') Icon = MessageCircle;
-  else if (type === 'text') Icon = MessageCircle;
-  else if (type === 'script' || type === 'api_call') Icon = BarChart3;
-
-  return (
-    <div className={styles.stageCell}>
-      <span className={styles.stageIcon}><Icon size={14} /></span>
-      <div>
-        <div className={styles.stageName}>{key || '—'}</div>
-        {type && <div className={styles.stageType}>{type}</div>}
+  // StageCell exibe label e tipo (se disponível)
+  const StageCell = ({ label, type }) => {
+    const key = String((label || '').toLowerCase());
+    const cfg = stageConfig[key] || {};
+    const Icon = cfg.icon || stageIcon.default;
+    return (
+      <div className={styles.stageCell}>
+        <span className={styles.stageIcon}><Icon size={14} /></span>
+        <div>
+          <div className={styles.stageName}>{label || cfg.name || '—'}</div>
+          {type && <div className={styles.stageType}>{type}</div>}
+        </div>
       </div>
-    </div>
-  );
-};
-
+    );
+  };
 
   const CustomerModal = ({ customer, detail, onClose }) => {
     if (!customer) return null;
@@ -315,10 +375,17 @@ const StageCell = ({ label, type }) => {
             className={styles.select}
           >
             <option value="all">Todos os Estágios</option>
-            {stages.map((s) => (
-              <option key={s} value={s}>{labelize(s)}</option>
-            ))}
+            {stages.map((s, idx) => {
+              if (!s) return null;
+              if (typeof s === 'string') return <option key={s} value={s}>{labelize(s)}</option>;
+              return <option key={s.label || idx} value={s.label}>{labelize(s.label)}</option>;
+            })}
           </select>
+
+          <label className={styles.humanToggle}>
+            <input type="checkbox" checked={includeHuman} onChange={(e) => setIncludeHuman(e.target.checked)} />
+            Mostrar sessões humanas
+          </label>
         </div>
       </div>
 
@@ -391,13 +458,13 @@ const StageCell = ({ label, type }) => {
                     }) : '—'}
                   </td>
 
-                  <td>
-                    <button
-                      onClick={() => openDetails(r)}
-                      className={styles.linkBtn}
-                      title="Ver detalhes"
-                    >
+                  <td className={styles.actionsCell}>
+                    <button onClick={() => openDetails(r)} className={styles.linkBtn} title="Ver detalhes">
                       <Eye size={14} /> Ver
+                    </button>
+
+                    <button onClick={() => resetSession(r)} className={styles.resetBtn} title="Resetar sessão">
+                      Reset
                     </button>
                   </td>
                 </tr>
