@@ -182,20 +182,26 @@ export default function CustomerJourneyTracker() {
     return <span className={`${styles.pill} ${klass}`}>{txt}</span>;
   };
 
-  const StageCell = ({ block }) => {
-    const key = String(block || '').toLowerCase();
-    const cfg = stageConfig[key] || { name: labelize(block || '—'), icon: MessageCircle, textColor: styles.txtPrimary, bgColor: styles.bgStage };
-    const Icon = cfg.icon || MessageCircle;
-    return (
-      <div className={styles.stageCell}>
-        <span className={styles.stageIcon}><Icon size={14} /></span>
-        <div>
-          <div className={styles.stageName}>{cfg.name || labelize(key)}</div>
-          <div className={styles.stageSub}>{String(block || '').slice(0, 40)}</div>
-        </div>
+const StageCell = ({ label, type }) => {
+  const key = String(label || '');
+  // tenta achar ícone pela 'type' primeiro (por exemplo 'human' -> Headset, 'interactive' -> MessageCircle)
+  let Icon = MessageCircle;
+  if (type === 'human') Icon = Headset;           // importe Headset
+  else if (type === 'interactive') Icon = MessageCircle;
+  else if (type === 'text') Icon = MessageCircle;
+  else if (type === 'script' || type === 'api_call') Icon = BarChart3;
+
+  return (
+    <div className={styles.stageCell}>
+      <span className={styles.stageIcon}><Icon size={14} /></span>
+      <div>
+        <div className={styles.stageName}>{key || '—'}</div>
+        {type && <div className={styles.stageType}>{type}</div>}
       </div>
-    );
-  };
+    </div>
+  );
+};
+
 
   const CustomerModal = ({ customer, detail, onClose }) => {
     if (!customer) return null;
@@ -373,7 +379,7 @@ export default function CustomerJourneyTracker() {
                     </div>
                   </td>
 
-                  <td><StageCell block={r.current_stage_label || r.current_stage} /></td>
+                  <td><StageCell label={r.current_stage_label || r.current_stage} type={r.current_stage_type} /></td>
 
                   <td><span className={styles.mono}>{fmtTime(r.time_in_stage_sec)}</span></td>
 
