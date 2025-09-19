@@ -116,18 +116,10 @@ export default function CustomerJourneyTracker() {
       const resp = await apiGet(`/tracert/customers/${encodeURIComponent(row.user_id)}`);
       const det = resp && resp.data ? resp.data : resp;
 
-      // normalize journey - only show events after reset (excluding the reset event itself)
-      let journey = Array.isArray(det?.journey) ? det.journey : [];
-
-      // if last_reset_at present, show only events after that timestamp (excluding reset event)
-      if (det?.last_reset_at) {
-        const resetTs = new Date(det.last_reset_at).getTime();
-        journey = journey.filter(j => {
-          const t = j?.timestamp ? new Date(j.timestamp).getTime() : 0;
-          // Only show events after reset timestamp AND exclude reset events
-          return t > resetTs && j?.stage !== 'RESET TO START';
-        });
-      }
+      // A jornada já vem filtrada do backend - apenas eventos após o reset
+      // Se houve reset, mostra só o que aconteceu depois
+      // Se não houve reset, mostra a jornada completa desde o início
+      const journey = Array.isArray(det?.journey) ? det.journey : [];
 
       setSelectedDetail({ ...det, journey });
     } catch (err) {
