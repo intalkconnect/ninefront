@@ -124,9 +124,30 @@
 .clientSub { font-size: 11px; color: #6b7280; }
 
 /* Estágio */
-.stageCell { display: flex; align-items: center; gap: 8px; }
-.stageIcon { color: #7c3aed; display: inline-flex; }
+.stageCell { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 6px; }
+.stageIcon { display: inline-flex; }
 .stageName { font-size: 13px; font-weight: 600; }
+.stageType { font-size: 11px; opacity: 0.7; }
+
+/* Cores por tipo de bloco */
+.stageDefault { background: #f3f4f6; color: #374151; }
+.stageDefault .stageIcon { color: #6b7280; }
+
+.stageHuman { background: #fef3c7; color: #92400e; }
+.stageHuman .stageIcon { color: #d97706; }
+
+.stageInteractive { background: #dbeafe; color: #1e40af; }
+.stageInteractive .stageIcon { color: #2563eb; }
+
+.stageScript { background: #f3e8ff; color: #7c2d12; }
+.stageScript .stageIcon { color: #a855f7; }
+
+.stageCondition { background: #fef2f2; color: #991b1b; }
+.stageCondition .stageIcon { color: #dc2626; }
+
+.stageInput { background: #ecfdf5; color: #065f46; }
+.stageInput .stageIcon { color: #059669; }
+
 .bgStage { background: #f5f3ff; }
 .txtPrimary { color: #6d28d9; }
 
@@ -232,6 +253,44 @@
 .timelineTitle { font-size: 12px; font-weight: 700; }
 .timelineMeta { display: grid; gap: 2px; font-size: 11px; color: #374151; }
 .timelineArrow { color: #9ca3af; }
+
+/* Cores do timeline por tipo */
+.timelineDefault { background: #f9fafb; border-color: #e5e7eb; }
+
+.timelineHuman { 
+  background: #fffbeb; 
+  border-color: #fbbf24; 
+  color: #92400e; 
+}
+.timelineHuman svg { color: #d97706; }
+
+.timelineInteractive { 
+  background: #eff6ff; 
+  border-color: #60a5fa; 
+  color: #1e40af; 
+}
+.timelineInteractive svg { color: #2563eb; }
+
+.timelineScript { 
+  background: #faf5ff; 
+  border-color: #c084fc; 
+  color: #7c2d12; 
+}
+.timelineScript svg { color: #a855f7; }
+
+.timelineCondition { 
+  background: #fef2f2; 
+  border-color: #fca5a5; 
+  color: #991b1b; 
+}
+.timelineCondition svg { color: #dc2626; }
+
+.timelineInput { 
+  background: #f0fdf4; 
+  border-color: #86efac; 
+  color: #065f46; 
+}
+.timelineInput svg { color: #059669; }
 
 /* Dwell diag */
 .dwellBox { border: 1px dashed #e5e7eb; border-radius: 10px; padding: 12px; }
