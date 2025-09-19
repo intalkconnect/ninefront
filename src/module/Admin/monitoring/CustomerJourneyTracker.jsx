@@ -373,7 +373,7 @@ export default function CustomerJourneyTracker() {
                     </div>
                   </td>
 
-                  <td><StageCell block={r.current_stage || r.current_stage_label || r.current_stage_id} /></td>
+                  <td><StageCell block={r.current_stage_label || r.current_stage} /></td>
 
                   <td><span className={styles.mono}>{fmtTime(r.time_in_stage_sec)}</span></td>
 
