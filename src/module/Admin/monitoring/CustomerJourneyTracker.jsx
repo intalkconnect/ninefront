@@ -1,28 +1,18 @@
 // File: CustomerJourneyTracker.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import debounce from 'lodash.debounce';
+import { toast } from 'react-toastify';
+import { useConfirm } from '../../../components/ConfirmProvider'; // ajuste o import conforme seu projeto
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, ArrowRight,
   BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Headset, Trash2
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
+import 'react-toastify/dist/ReactToastify.css';
 
-/**
- * CustomerJourneyTracker
- *
- * Requisitos cobertos:
- * - filtros: q (nome | user_id), stage (label), ocultar sessões humanas
- * - reset de sessão (POST /tracert/customers/:userId/reset)
- * - modal com jornada; jornada é cortada a partir de last_reset_at
- * - métricas iniciais (GET /tracert/metrics) e estágios (GET /tracert/stages)
- *
- * Espera-se:
- * - GET  /tracert/stages                  -> [{ label, type? }, ...]  OR plain array of labels
- * - GET  /tracert/metrics                 -> object with totals (used lightly)
- * - GET  /tracert/customers?q=&stage=&exclude_human=true&page=&pageSize=
- * - GET  /tracert/customers/:userId       -> detail including journey[] and last_reset_at
- * - POST /tracert/customers/:userId/reset -> { ok: true, reset_at }
- */
+// inicializa Toast (faça isso apenas uma vez em seu app raiz idealmente)
+import { ToastContainer } from 'react-toastify';
 
 const labelize = (s = '') =>
   String(s || '').replace(/_/g, ' ').replace(/^\w/u, c => c.toUpperCase());
@@ -36,8 +26,11 @@ const fmtTime = (sec = 0) => {
 };
 
 export default function CustomerJourneyTracker() {
+  const confirm = useConfirm();
+
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [excludeHuman, setExcludeHuman] = useState(true);
   const [stages, setStages] = useState([]);
@@ -57,6 +50,14 @@ export default function CustomerJourneyTracker() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // debounce search input -> setDebouncedSearch
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedSet = useCallback(debounce((val) => setDebouncedSearch(val), 450), []);
+
+  useEffect(() => {
+    debouncedSet(searchTerm);
+  }, [searchTerm, debouncedSet]);
 
   // load stages + metrics on mount
   useEffect(() => {
@@ -94,11 +95,11 @@ export default function CustomerJourneyTracker() {
   }, []);
 
   // fetch list
-  const fetchList = async () => {
+  const fetchList = useCallback(async () => {
     setRefreshing(true);
     try {
       const params = new URLSearchParams();
-      if (searchTerm) params.set('q', searchTerm);
+      if (debouncedSearch) params.set('q', debouncedSearch);
       if (stageFilter && stageFilter !== 'all') params.set('stage', stageFilter);
       if (excludeHuman) params.set('exclude_human', 'true');
       params.set('page', String(currentPage));
@@ -110,18 +111,18 @@ export default function CustomerJourneyTracker() {
       setTotalRows(Number(data?.total || 0));
     } catch (err) {
       console.error('Erro ao buscar lista de tracert:', err);
+      toast.error('Falha ao carregar lista do tracert');
       setRows([]);
       setTotalRows(0);
     } finally {
       setRefreshing(false);
     }
-  };
+  }, [debouncedSearch, stageFilter, excludeHuman, currentPage, itemsPerPage]);
 
   // auto fetch when filters/page change
   useEffect(() => {
     fetchList();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, stageFilter, excludeHuman, currentPage, itemsPerPage]);
+  }, [fetchList]);
 
   // open details modal and trim journey by last_reset_at
   const openDetails = async (row) => {
@@ -144,7 +145,7 @@ export default function CustomerJourneyTracker() {
           return t >= resetTs;
         });
 
-        // optional: insert a RESET node at top so user sees reset happened
+        // insert a RESET node at top so user sees reset happened
         journey.unshift({
           stage: 'RESET TO START',
           timestamp: det.last_reset_at,
@@ -156,6 +157,7 @@ export default function CustomerJourneyTracker() {
       setSelectedDetail({ ...det, journey });
     } catch (err) {
       console.error('Erro ao buscar detalhe do cliente:', err);
+      toast.error('Falha ao carregar detalhe do cliente');
       setSelectedDetail(null);
     } finally {
       setDetailLoading(false);
@@ -165,18 +167,59 @@ export default function CustomerJourneyTracker() {
   // reset session action (calls POST /tracert/customers/:userId/reset)
   const resetSession = async (userId) => {
     if (!userId) return;
-    if (!window.confirm('Confirma resetar a sessão deste cliente para o início do fluxo?')) return;
+    const ok = await confirm({
+      title: 'Resetar sessão?',
+      description: 'Força o cliente a voltar ao início do fluxo. Confirma?',
+      destructive: true,
+      confirmText: 'Resetar',
+      cancelText: 'Cancelar'
+    });
+    if (!ok) return;
 
     try {
-      await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`);
-      // atualizar lista +, se modal aberto para esse user, reabrir detalhe
-      fetchList();
+      const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`);
+      const data = resp && resp.data ? resp.data : resp;
+      toast.success('Sessão resetada');
+      // atualizar lista + reabrir detalhe se estiver aberto
+      await fetchList();
       if (selectedCustomer?.user_id === userId) {
-        openDetails(selectedCustomer);
+        await openDetails(selectedCustomer);
       }
+      return data;
     } catch (err) {
       console.error('Erro ao resetar sessão:', err);
-      alert('Falha ao resetar sessão (ver logs).');
+      toast.error('Falha ao resetar sessão');
+      throw err;
+    }
+  };
+
+  // transfer to human / create ticket
+  const transferToHuman = async (userId, queueName) => {
+    if (!userId) return;
+    const ok = await confirm({
+      title: 'Transferir para humano?',
+      description: `Deseja abrir ticket e transferir ${userId} para atendimento humano${queueName ? ' (' + queueName + ')' : ''}?`,
+      confirmText: 'Transferir',
+      cancelText: 'Cancelar',
+      destructive: false
+    });
+    if (!ok) return;
+
+    try {
+      // ajuste a URL se sua API usar outro caminho; o corpo abaixo é apenas ilustrativo
+      const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/transfer`, { queue: queueName });
+      const data = resp && resp.data ? resp.data : resp;
+      toast.success('Ticket criado e transferido para humano');
+      // atualizar lista + detalhe
+      await fetchList();
+      if (selectedCustomer?.user_id === userId) {
+        await openDetails(selectedCustomer);
+      }
+      return data;
+    } catch (err) {
+      console.error('Erro ao transferir para humano:', err);
+      toast.error('Falha ao transferir para humano');
+      throw err;
     }
   };
 
@@ -241,9 +284,23 @@ export default function CustomerJourneyTracker() {
               <p className={styles.modalSub}>ID: {customer.user_id}</p>
             </div>
             <div>
-              <button className={styles.resetBtn} onClick={() => resetSession(customer.user_id)} title="Reset para início">
+              <button
+                className={styles.resetBtn}
+                onClick={() => resetSession(customer.user_id)}
+                title="Reset para início"
+              >
                 <Trash2 size={14} /> Reset
               </button>
+
+              <button
+                className={styles.resetBtn}
+                onClick={() => transferToHuman(customer.user_id, 'Recepção')}
+                title="Criar ticket / Transferir para humano"
+                style={{ marginLeft: 8 }}
+              >
+                <Headset size={14} /> To Human
+              </button>
+
               <button onClick={onClose} className={styles.modalClose} aria-label="Fechar">✕</button>
             </div>
           </div>
@@ -297,6 +354,8 @@ export default function CustomerJourneyTracker() {
 
   return (
     <div className={styles.page}>
+      <ToastContainer position="top-right" autoClose={2500} />
+
       <div className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.headerTitle}>
@@ -415,6 +474,7 @@ export default function CustomerJourneyTracker() {
                   <td className={styles.rowActions}>
                     <button onClick={() => openDetails(r)} className={styles.linkBtn} title="Ver detalhes"><Eye size={14} /> Ver</button>
                     <button onClick={() => resetSession(r.user_id)} className={styles.resetSmall} title="Resetar sessão"><Trash2 size={14} /></button>
+                    <button onClick={() => transferToHuman(r.user_id, 'Recepção')} className={styles.transferSmall} title="Transferir para humano"> <Headset size={14} /> </button>
                   </td>
                 </tr>
               ))}
