@@ -1,4 +1,4 @@
-// File: CustomerJourneyTracker.jsx (refatorado)
+// File: CustomerJourneyTracker.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import debounce from 'lodash/debounce';
 import { toast, ToastContainer } from 'react-toastify';
@@ -6,7 +6,8 @@ import { useConfirm } from '../../../components/ConfirmProvider';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, ArrowRight,
-  BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Headset, RefreshCcw, Plus
+  BarChart3, Search, Eye, RefreshCw, Headset, RefreshCcw, Plus,
+  ToggleLeft, ToggleRight
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -57,6 +58,9 @@ export default function CustomerJourneyTracker() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // auto-refresh (10s) – desativado por padrão
+  const [autoRefresh, setAutoRefresh] = useState(false);
+
   // modal detail
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
@@ -105,6 +109,13 @@ export default function CustomerJourneyTracker() {
   }, [debouncedSearch, currentPage, itemsPerPage]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
+
+  // auto-refresh opcional (10s)
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => { fetchList(); }, 10000);
+    return () => clearInterval(id);
+  }, [autoRefresh, fetchList]);
 
   // detalhes
   const openDetails = async (row) => {
@@ -233,12 +244,24 @@ export default function CustomerJourneyTracker() {
               <p className={styles.modalSub}>ID: {customer.user_id}</p>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.refreshBtn} onClick={() => resetSession(customer.user_id)} title="Reset para início">
-                <RefreshCw size={16} className={refreshing ? styles.spinning : ''} /> Reset
-              </button>
-              <button className={styles.refreshBtn} onClick={() => createTicket(customer.user_id, 'Recepção')} title="Criar ticket">
-                <Plus size={16} /> Criar Ticket
-              </button>
+              <div className={styles.iconGroup}>
+                <button
+                  className={styles.iconBtn}
+                  onClick={() => resetSession(customer.user_id)}
+                  title="Reset para início"
+                  aria-label="Reset para início"
+                >
+                  <RefreshCw size={18} />
+                </button>
+                <button
+                  className={styles.iconBtn}
+                  onClick={() => createTicket(customer.user_id, 'Recepção')}
+                  title="Criar ticket"
+                  aria-label="Criar ticket"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
               <button onClick={onClose} className={styles.modalClose} aria-label="Fechar">✕</button>
             </div>
           </div>
@@ -246,36 +269,52 @@ export default function CustomerJourneyTracker() {
           <div className={styles.modalBody}>
             <section>
               <h3 className={styles.sectionTitle}>Jornada do Usuário</h3>
-              <div className={styles.timeline}>
-                {detailLoading ? (
-                  <div className={styles.emptyCell}>Carregando...</div>
-                ) : journey.length === 0 ? (
-                  <div className={styles.emptyCell}>Sem histórico de etapas.</div>
-                ) : journey.map((st, i) => {
-                  let timelineColorClass = styles.timelineDefault;
-                  const stageName = String(st.stage || '').toLowerCase();
-                  if (stageName.includes('human') || stageName.includes('atendimento')) timelineColorClass = styles.timelineHuman;
-                  else if (stageName.includes('input') || stageName.includes('entrada')) timelineColorClass = styles.timelineInput;
-                  else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) timelineColorClass = styles.timelineCondition;
-                  else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) timelineColorClass = styles.timelineScript;
-                  else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) timelineColorClass = styles.timelineInteractive;
-                  return (
-                    <React.Fragment key={`${st.stage}-${i}`}>
-                      <div className={`${styles.timelineItem} ${timelineColorClass}`}>
-                        <div className={styles.timelineTop}>
-                          <MessageCircle size={16} />
-                          <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
+
+              {/* container com scroll */}
+              <div className={styles.timelineScroll}>
+                <div className={styles.timeline}>
+                  {detailLoading ? (
+                    <div className={styles.emptyCell}>Carregando...</div>
+                  ) : journey.length === 0 ? (
+                    <div className={styles.emptyCell}>Sem histórico de etapas.</div>
+                  ) : journey.map((st, i) => {
+                    let timelineColorClass = styles.timelineDefault;
+                    const stageName = String(st.stage || '').toLowerCase();
+                    if (stageName.includes('human') || stageName.includes('atendimento')) timelineColorClass = styles.timelineHuman;
+                    else if (stageName.includes('input') || stageName.includes('entrada')) timelineColorClass = styles.timelineInput;
+                    else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) timelineColorClass = styles.timelineCondition;
+                    else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) timelineColorClass = styles.timelineScript;
+                    else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) timelineColorClass = styles.timelineInteractive;
+
+                    const block = (
+                      <React.Fragment key={`${st.stage}-${i}`}>
+                        <div className={`${styles.timelineItem} ${timelineColorClass}`}>
+                          <div className={styles.timelineTop}>
+                            <MessageCircle size={16} />
+                            <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
+                          </div>
+                          <div className={styles.timelineMeta}>
+                            <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
+                            <div>Visitas: {st.visits ?? 1}x</div>
+                            <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
+                          </div>
                         </div>
-                        <div className={styles.timelineMeta}>
-                          <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
-                          <div>Visitas: {st.visits ?? 1}x</div>
-                          <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
-                        </div>
-                      </div>
-                      {i < journey.length - 1 && <ArrowRight className={styles.timelineArrow} size={16} />}
-                    </React.Fragment>
-                  );
-                })}
+                        {/* seta entre blocos (opcional) */}
+                        {i < journey.length - 1 && <ArrowRight className={styles.timelineArrow} size={16} />}
+                      </React.Fragment>
+                    );
+
+                    // a cada 10 blocos, força quebra de linha
+                    const needsBreak = (i + 1) % 10 === 0 && i < journey.length - 1;
+
+                    return (
+                      <React.Fragment key={`frag-${i}`}>
+                        {block}
+                        {needsBreak && <span className={styles.timelineBreak} aria-hidden="true" />}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
               </div>
             </section>
 
@@ -308,6 +347,16 @@ export default function CustomerJourneyTracker() {
       <div className={styles.header}>
         <div className={styles.headerInfo}>
           <span className={styles.kpillBlue}>Monitor de Jornada • {new Date().toLocaleDateString('pt-BR')}</span>
+
+          <button
+            type="button"
+            className={`${styles.chip} ${autoRefresh ? styles.chipActive : ''}`}
+            onClick={() => setAutoRefresh(v => !v)}
+            title="Alternar auto refresh (10s)"
+          >
+            {autoRefresh ? <ToggleRight size={16}/> : <ToggleLeft size={16}/>}
+            Auto (10s)
+          </button>
         </div>
         <button className={styles.refreshBtn} onClick={() => fetchList()} disabled={refreshing}>
           <RefreshCw size={16} className={refreshing ? styles.spinning : ''} /> Atualizar
@@ -398,15 +447,17 @@ export default function CustomerJourneyTracker() {
                   </td>
 
                   <td className={styles.rowActions}>
-                    <button onClick={() => openDetails(r)} className={styles.actionBtn} title="Ver detalhes">
-                      <Eye size={16} /> Ver
-                    </button>
-                    <button onClick={() => resetSession(r.user_id)} className={styles.actionBtn} title="Resetar sessão">
-                      <RefreshCcw size={16} /> Reset
-                    </button>
-                    <button onClick={() => createTicket(r.user_id, 'Recepção')} className={styles.actionBtn} title="Criar ticket">
-                      <Plus size={16} /> Ticket
-                    </button>
+                    <div className={styles.iconGroup}>
+                      <button onClick={() => openDetails(r)} className={styles.iconBtn} title="Ver detalhes" aria-label="Ver detalhes">
+                        <Eye size={18} />
+                      </button>
+                      <button onClick={() => resetSession(r.user_id)} className={styles.iconBtn} title="Resetar sessão" aria-label="Resetar sessão">
+                        <RefreshCcw size={18} />
+                      </button>
+                      <button onClick={() => createTicket(r.user_id, 'Recepção')} className={styles.iconBtn} title="Criar ticket" aria-label="Criar ticket">
+                        <Plus size={18} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
