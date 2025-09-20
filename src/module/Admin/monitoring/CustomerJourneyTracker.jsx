@@ -144,7 +144,7 @@ export default function CustomerJourneyTracker() {
     if (!ok) return;
 
     try {
-      const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`);
+      const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`, {});
       const data = resp && resp.data ? resp.data : resp;
       toast.success('Sessão resetada');
       // atualizar lista + reabrir detalhe se estiver aberto
