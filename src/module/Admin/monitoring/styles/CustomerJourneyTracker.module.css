@@ -1,4 +1,8 @@
-:root{ --qr-muted:#6b7280; }
+:root{
+  --qr-muted:#6b7280;
+  --qr-border:#e5e7eb;
+  --qr-ring: rgba(45,110,239,.35);
+}
 
 /* Container */
 .container{
@@ -134,22 +138,6 @@
 .st_pause{background:#fef9c3;color:#854d0e;border-color:#fde68a}
 .st_offline{background:#fee2e2;color:#991b1b;border-color:#fecaca}
 
-/* Modal */
-.modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
-.modalCard{
-  background:#fff;border-radius:16px;width:100%;max-width:980px;max-height:90vh;
-  overflow:auto;border:1px solid #e5e7eb;box-shadow:0 10px 25px rgba(0,0,0,.15)
-}
-.modalHead{
-  padding:16px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;
-  background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%)
-}
-.modalTitle{margin:0;font-size:18px;font-weight:800}
-.modalSub{font-size:12px;color:#6b7280}
-.modalActions{display:flex;align-items:center;gap:8px}
-.modalClose{border:0;background:transparent;font-size:18px;color:#6b7280;cursor:pointer;padding:8px;border-radius:8px}
-.modalClose:hover{background:#f3f4f6;color:#374151}
-.modalBody{padding:16px;display:grid;gap:16px}
 .sectionTitle{font-weight:800;margin:0 0 8px}
 
 /* Timeline: 10 colunas fixas + scroll vertical */
@@ -236,31 +224,27 @@
   transition: transform .2s ease;
 }
 
-/* ON */
+/* ON (cor #2d6eef) */
 .switch input:checked + .slider{
-  background:rgba(37,99,235,.15);
-  border-color:#93c5fd;
+  background:#2d6eef;
+  border-color:#2d6eef;
 }
 .switch input:checked + .slider::before{
   transform: translate(18px, -50%);  /* desliza para a direita */
   background:#fff;
 }
 
-/* Foco acessível */
+/* Foco acessível (usa a mesma cor) */
 .switch input:focus-visible + .slider{
   box-shadow: 0 0 0 3px var(--qr-ring);
 }
 
 /* Hover sutil */
-.switch:hover .slider{
-  filter: brightness(0.98);
-}
+.switch:hover .slider{ filter: brightness(0.98); }
 
 /* Respeita prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce){
-  .slider, .slider::before{
-    transition:none;
-  }
+  .slider, .slider::before{ transition:none; }
 }
 
 /* Rótulo do toggle */
