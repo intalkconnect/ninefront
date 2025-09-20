@@ -62,7 +62,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     }
   }, [userId]);
 
-  // carrega e auto-atualiza a cada 5s (sem botão manual)
+  // carrega e auto-atualiza a cada 5s
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
   useEffect(() => {
     if (!userId) return;
@@ -83,38 +83,25 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     return styles.bNeutral;
   };
 
-  if (!userId) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.header}>
-          <div className={styles.heading}>
-            <h1 className={styles.pageTitle}>Jornada</h1>
-            <div className={styles.pageSubtitle}>—</div>
-          </div>
-          <div className={styles.actions}>
-            <button className={styles.backBtn} onClick={() => (onBack ? onBack() : navigate(-1))}>
-              <ChevronLeft size={18} /> Voltar
-            </button>
-          </div>
-        </div>
-        <div className={styles.content}>
-          <div className={styles.empty}>Faltou o identificador do usuário na URL.</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={styles.page}>
-      {/* Topo padrão NineChat: título à esquerda, ações à direita */}
+      {/* Header: breadcrumb Journey + título; botão Voltar à direita */}
       <div className={styles.header}>
         <div className={styles.heading}>
-          <h1 className={styles.pageTitle}>{detail?.name || userId}</h1>
-          <div className={styles.pageSubtitle}>{detail?.user_id || userId}</div>
+          <div className={styles.breadcrumbs}>
+            <span
+              className={styles.bcLink}
+              onClick={() => navigate("/development/tracker")}
+            >
+              Journey
+            </span>
+            <span className={styles.bcSep}>/</span>
+            <span>{detail?.user_id || userId || "—"}</span>
+          </div>
+          <h1 className={styles.pageTitle}>{detail?.name || userId || "Jornada"}</h1>
         </div>
 
         <div className={styles.actions}>
-          {/* indicador sutil de atualização */}
           {refreshing && <span className={styles.dot} aria-label="Atualizando" />}
           <button
             type="button"
@@ -138,7 +125,6 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
         ) : (
           lanes.map((lane, idx) => (
             <section className={styles.lane} key={`lane-${idx}`}>
-              {/* 10 por linha; em telas menores vira scroll horizontal */}
               <div className={styles.flow}>
                 {lane.map((st, i) => (
                   <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
