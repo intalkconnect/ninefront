@@ -39,27 +39,23 @@ const transformJourneyData = (journeyData) => {
 export default function CustomerJourneyTracker() {
   const confirm = useConfirm();
 
-  // UI state
+  // busca / paginação
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const debouncedSet = useCallback(debounce((val) => setDebouncedSearch(val), 450), []);
   useEffect(() => { debouncedSet(searchTerm); }, [searchTerm, debouncedSet]);
 
-  // paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
-  // data
+  // dados
   const [rows, setRows] = useState([]);
   const [totalRows, setTotalRows] = useState(0);
   const [metrics, setMetrics] = useState({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // auto-refresh (10s) – desativado por padrão
-  const [autoRefresh, setAutoRefresh] = useState(false);
-
-  // modal detail
+  // modal
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -108,31 +104,37 @@ export default function CustomerJourneyTracker() {
 
   useEffect(() => { fetchList(); }, [fetchList]);
 
-  // auto-refresh opcional (10s)
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const id = setInterval(() => { fetchList(); }, 10000);
-    return () => clearInterval(id);
-  }, [autoRefresh, fetchList]);
-
-  /* ----- detalhes ----- */
-  const openDetails = async (row) => {
-    setSelectedCustomer(row);
-    setSelectedDetail(null);
-    setDetailLoading(true);
+  /* ----- detalhes (com auto-refresh no modal a cada 5s) ----- */
+  const fetchDetail = useCallback(async (userId) => {
+    if (!userId) return;
     try {
-      const resp = await apiGet(`/tracert/customers/${encodeURIComponent(row.user_id)}`);
+      const resp = await apiGet(`/tracert/customers/${encodeURIComponent(userId)}`);
       const det = resp && resp.data ? resp.data : resp;
       const journey = Array.isArray(det?.journey) ? transformJourneyData(det.journey) : [];
       setSelectedDetail({ ...det, journey });
     } catch (err) {
       console.error('Erro ao buscar detalhe do cliente:', err);
       toast.error('Falha ao carregar detalhe do cliente');
-      setSelectedDetail(null);
+    }
+  }, []);
+
+  const openDetails = async (row) => {
+    setSelectedCustomer(row);
+    setSelectedDetail(null);
+    setDetailLoading(true);
+    try {
+      await fetchDetail(row.user_id);
     } finally {
       setDetailLoading(false);
     }
   };
+
+  // auto-refresh SOMENTE no modal (5s)
+  useEffect(() => {
+    if (!selectedCustomer?.user_id) return;
+    const id = setInterval(() => fetchDetail(selectedCustomer.user_id), 5000);
+    return () => clearInterval(id);
+  }, [selectedCustomer, fetchDetail]);
 
   /* ----- ações ----- */
   const resetSession = async (userId) => {
@@ -149,7 +151,7 @@ export default function CustomerJourneyTracker() {
       const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`, {});
       toast.success('Sessão resetada');
       await fetchList();
-      if (selectedCustomer?.user_id === userId) await openDetails(selectedCustomer);
+      if (selectedCustomer?.user_id === userId) await fetchDetail(userId);
       return resp?.data ?? resp;
     } catch (err) {
       console.error('Erro ao resetar sessão:', err);
@@ -172,7 +174,7 @@ export default function CustomerJourneyTracker() {
       const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/ticket`, { queue: queueName });
       toast.success('Ticket criado com sucesso');
       await fetchList();
-      if (selectedCustomer?.user_id === userId) await openDetails(selectedCustomer);
+      if (selectedCustomer?.user_id === userId) await fetchDetail(userId);
       return resp?.data ?? resp;
     } catch (err) {
       console.error('Erro ao criar ticket:', err);
@@ -181,7 +183,7 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  /* ----- KPIs ----- */
+  /* ----- KPIs (mantidos para quando quiser exibir) ----- */
   const kpiCards = useMemo(() => {
     const loopers = Number(metrics?.loopers || 0);
     const top = metrics?.topStage || metrics?.top_stage || null;
@@ -232,37 +234,6 @@ export default function CustomerJourneyTracker() {
     const journey = Array.isArray(detail?.journey) ? detail.journey : [];
     const dwell = detail?.dwell || null;
 
-    // gera a lista com quebras a cada 10 blocos, sem setas (para não bagunçar a contagem)
-    const journeyBlocks = journey.map((st, i) => {
-      let timelineColorClass = styles.timelineDefault;
-      const stageName = String(st.stage || '').toLowerCase();
-      if (stageName.includes('human') || stageName.includes('atendimento')) timelineColorClass = styles.timelineHuman;
-      else if (stageName.includes('input') || stageName.includes('entrada')) timelineColorClass = styles.timelineInput;
-      else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) timelineColorClass = styles.timelineCondition;
-      else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) timelineColorClass = styles.timelineScript;
-      else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) timelineColorClass = styles.timelineInteractive;
-
-      const block = (
-        <div className={`${styles.timelineItem} ${timelineColorClass}`} key={`${st.stage}-${i}`}>
-          <div className={styles.timelineTop}>
-            <MessageCircle size={16} />
-            <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
-          </div>
-          <div className={styles.timelineMeta}>
-            <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
-            <div>Visitas: {st.visits ?? 1}x</div>
-            <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
-          </div>
-        </div>
-      );
-
-      const withBreak = ((i + 1) % 10 === 0 && i < journey.length - 1)
-        ? [block, <span className={styles.timelineBreak} key={`br-${i}`} aria-hidden="true" />]
-        : [block];
-
-      return withBreak;
-    }).flat();
-
     return (
       <div className={styles.modalBackdrop}>
         <div className={styles.modalCard}>
@@ -298,15 +269,28 @@ export default function CustomerJourneyTracker() {
             <section>
               <h3 className={styles.sectionTitle}>Jornada do Usuário</h3>
 
-              {/* container com scroll vertical */}
+              {/* Scroll vertical; grid com 10 colunas fixas */}
               <div className={styles.timelineScroll}>
-                <div className={styles.timeline}>
+                <div className={styles.timelineGrid10}>
                   {detailLoading ? (
                     <div className={styles.emptyCell}>Carregando...</div>
-                  ) : journeyBlocks.length === 0 ? (
+                  ) : journey.length === 0 ? (
                     <div className={styles.emptyCell}>Sem histórico de etapas.</div>
                   ) : (
-                    journeyBlocks
+                    journey.map((st, i) => (
+                      <div className={styles.timelineItem} key={`${st.stage}-${i}`}>
+                        <div className={styles.timelineTop}>
+                          <MessageCircle size={16} />
+                          <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
+                        </div>
+                        <div className={styles.timelineMeta}>
+                          <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
+                          <div>Visitas: {st.visits ?? 1}x</div>
+                          <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') :
+                                st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
@@ -337,20 +321,9 @@ export default function CustomerJourneyTracker() {
     <div className={styles.container}>
       <ToastContainer position="top-right" autoClose={2500} />
 
-      {/* Header (switch + Refresh) */}
+      {/* Header simples: só refresh manual da lista */}
       <div className={styles.header}>
-        <div className={styles.headerInfo}>
-          <label className={styles.switch} title="Auto-refresh a cada 10s">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={() => setAutoRefresh(v => !v)}
-            />
-            <span className={styles.slider} />
-          </label>
-          <span className={styles.switchText}>Auto refresh (10s)</span>
-        </div>
-
+        <div />
         <button className={styles.refreshBtn} onClick={() => fetchList()} disabled={refreshing}>
           <RefreshCw size={16} className={refreshing ? styles.spinning : ''} /> Atualizar
         </button>
@@ -373,8 +346,8 @@ export default function CustomerJourneyTracker() {
         </div>
       </section>
 
-      {/* KPIs (opcional: mantém estrutura para quando quiser exibir) */}
-      <section className={styles.cardGroup}>
+      {/* (KPIs opcionais; mantidos para futuro uso) */}
+      <section className={styles.cardGroup} aria-hidden>
         {loading ? (
           <>
             <KpiSkeleton /> <KpiSkeleton /> <KpiSkeleton />
@@ -471,6 +444,7 @@ export default function CustomerJourneyTracker() {
   );
 }
 
+/* ---------- auxiliares de UI ---------- */
 function Stat({ label, value }) {
   return (
     <div className={styles.stat}>
@@ -479,7 +453,6 @@ function Stat({ label, value }) {
     </div>
   );
 }
-
 function KpiCard({ icon, label, value, tone = 'blue' }) {
   return (
     <div className={styles.card}>
@@ -495,7 +468,6 @@ function KpiCard({ icon, label, value, tone = 'blue' }) {
     </div>
   );
 }
-
 function KpiSkeleton() {
   return (
     <div className={styles.card}>
