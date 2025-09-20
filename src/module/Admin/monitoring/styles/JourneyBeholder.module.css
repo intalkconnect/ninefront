@@ -1,0 +1,100 @@
+/* Padrão claro (mesmo “look” do Agents Monitor/Customers) */
+.page{
+  min-height:100vh;
+  background: linear-gradient(135deg,#f7f7fb 0%,#f1f5f9 100%);
+  color:#111827;
+  padding:24px;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+/* Header */
+.header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid #e5e7eb;
+}
+.left{display:flex;align-items:center;gap:12px}
+.backBtn{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid #e5e7eb;background:#fff;color:#111827;
+  border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;
+}
+.backBtn:hover{background:#f9fafb}
+.identity .title{font-weight:800}
+.identity .sub{color:#6b7280;font-size:12px}
+
+.refreshBtn{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid #e5e7eb;background:#fff;color:#111827;
+  border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;
+}
+.refreshBtn:hover{background:#f9fafb}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.content{display:grid;gap:16px}
+.empty{color:#6b7280}
+
+/* Lane (faixa) */
+.lane{
+  background:#ffffff;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  box-shadow:0 4px 6px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.06);
+  overflow:hidden;
+}
+.laneHead{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 14px;background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);
+  border-bottom:1px solid #e5e7eb;
+}
+.laneTitle{display:flex;align-items:center;gap:8px;font-weight:800;color:#1e293b}
+.laneMeta{color:#64748b;font-weight:700}
+
+/* Flow: 10 por linha SEM espremer; em telas menores vira scroll X */
+.flow{
+  display:grid;
+  grid-template-columns: repeat(10, minmax(220px, 1fr)); /* 10 colunas; min 220px */
+  gap:22px; padding:18px 20px 22px;
+  overflow-x:auto; /* permite rolar horizontalmente em telas estreitas */
+}
+
+/* Bloco */
+.blockWrap{position:relative;display:grid;justify-items:center;align-content:start;gap:8px}
+.block{
+  width:100%; min-height:66px;
+  border-radius:12px; border:1px solid #e5e7eb; background:#f8fafc; color:#0f172a;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:10px 12px; font-weight:800;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+.blockTitle{font-size:13px;line-height:1.15}
+
+/* Cores por tipo (mesma paleta clara usada no tracker) */
+.bNeutral   { background:#f3f4f6; }
+.bHuman     { background:#fef3c7; }   /* amber */
+.bInteractive{ background:#dbeafe; }  /* blue */
+.bScript    { background:#f3e8ff; }   /* purple */
+.bCondition { background:#fee2e2; }   /* red */
+.bInput     { background:#ecfdf5; }   /* green */
+
+.timeLink{
+  font-size:12px;color:#b45309;font-weight:800;
+  text-decoration:underline;text-underline-offset:3px;
+}
+
+/* Setas entre blocos */
+.arrow{
+  position:absolute; right:-14px; top:50%; transform:translateY(-50%);
+  width:24px; height:2px; background:#cbd5e1;
+}
+.arrow::after{
+  content:""; position:absolute; right:-5px; top:-3px;
+  border-left:6px solid #cbd5e1;
+  border-top:4px solid transparent; border-bottom:4px solid transparent;
+}
+
+/* Responsivo extra (quando a viewport for muito estreita) */
+@media (max-width:1200px){
+  .flow{grid-template-columns:repeat(10, 240px);} /* garante leitura com scroll X */
+  .block{min-width:240px}
+}
