@@ -25,7 +25,7 @@ const normalizeJourney = (det) =>
     visits: it.visits ?? 1,
   }));
 
-const chunk10 = (arr) => {
+const splitEvery10 = (arr) => {
   const out = [];
   for (let i = 0; i < arr.length; i += 10) out.push(arr.slice(i, i + 10));
   return out;
@@ -62,7 +62,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     }
   }, [userId]);
 
-  // carrega e auto-atualiza a cada 5s
+  // carrega e auto-atualiza a cada 5s (sem botão manual)
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
   useEffect(() => {
     if (!userId) return;
@@ -70,7 +70,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     return () => clearInterval(id);
   }, [userId, fetchDetail]);
 
-  const lanes = useMemo(() => chunk10(detail?.journey || []), [detail]);
+  const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
 
   const toneClass = (stage, type) => {
     const name = String(stage || "").toLowerCase();
@@ -88,7 +88,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
       <div className={styles.page}>
         <div className={styles.header}>
           <div className={styles.heading}>
-            <div className={styles.pageTitle}>Jornada</div>
+            <h1 className={styles.pageTitle}>Jornada</h1>
             <div className={styles.pageSubtitle}>—</div>
           </div>
           <div className={styles.actions}>
@@ -97,29 +97,31 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
             </button>
           </div>
         </div>
-        <div className={styles.content}><div className={styles.empty}>Faltou o identificador do usuário na URL.</div></div>
+        <div className={styles.content}>
+          <div className={styles.empty}>Faltou o identificador do usuário na URL.</div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={styles.page}>
-      {/* Topo no padrão: título à esquerda, ações à direita */}
+      {/* Topo padrão NineChat: título à esquerda, ações à direita */}
       <div className={styles.header}>
         <div className={styles.heading}>
-          <div className={styles.pageTitle}>{detail?.name || userId}</div>
+          <h1 className={styles.pageTitle}>{detail?.name || userId}</h1>
           <div className={styles.pageSubtitle}>{detail?.user_id || userId}</div>
         </div>
 
         <div className={styles.actions}>
-          {/* sem botão atualizar; apenas indicador discreto */}
+          {/* indicador sutil de atualização */}
           {refreshing && <span className={styles.dot} aria-label="Atualizando" />}
           <button
+            type="button"
             className={styles.backBtn}
             onClick={() => (onBack ? onBack() : navigate(-1))}
             aria-label="Voltar"
             title="Voltar"
-            type="button"
           >
             <ChevronLeft size={18} />
             Voltar
@@ -136,6 +138,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
         ) : (
           lanes.map((lane, idx) => (
             <section className={styles.lane} key={`lane-${idx}`}>
+              {/* 10 por linha; em telas menores vira scroll horizontal */}
               <div className={styles.flow}>
                 {lane.map((st, i) => (
                   <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
@@ -164,13 +167,38 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           <section className={styles.dwellCard}>
             <div className={styles.dwellHead}>Diagnóstico da etapa atual</div>
             <div className={styles.dwellGrid}>
-              <div><span className={styles.dt}>Etapa</span><span className={styles.dv}>{labelize(detail?.dwell?.block || "")}</span></div>
-              <div><span className={styles.dt}>Desde</span><span className={styles.dv}>{detail?.dwell?.entered_at ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR") : "—"}</span></div>
-              <div><span className={styles.dt}>Duração</span><span className={styles.dv}>{fmtTime(detail?.dwell?.duration_sec)}</span></div>
-              <div><span className={styles.dt}>Msgs Bot</span><span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span></div>
-              <div><span className={styles.dt}>Msgs Usuário</span><span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span></div>
-              <div><span className={styles.dt}>Falhas Validação</span><span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span></div>
-              <div><span className={styles.dt}>Maior gap (usuário)</span><span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span></div>
+              <div>
+                <span className={styles.dt}>Etapa</span>
+                <span className={styles.dv}>{labelize(detail?.dwell?.block || "")}</span>
+              </div>
+              <div>
+                <span className={styles.dt}>Desde</span>
+                <span className={styles.dv}>
+                  {detail?.dwell?.entered_at
+                    ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR")
+                    : "—"}
+                </span>
+              </div>
+              <div>
+                <span className={styles.dt}>Duração</span>
+                <span className={styles.dv}>{fmtTime(detail?.dwell?.duration_sec)}</span>
+              </div>
+              <div>
+                <span className={styles.dt}>Msgs Bot</span>
+                <span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span>
+              </div>
+              <div>
+                <span className={styles.dt}>Msgs Usuário</span>
+                <span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span>
+              </div>
+              <div>
+                <span className={styles.dt}>Falhas Validação</span>
+                <span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span>
+              </div>
+              <div>
+                <span className={styles.dt}>Maior gap (usuário)</span>
+                <span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span>
+              </div>
             </div>
           </section>
         )}
