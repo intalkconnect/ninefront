@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import debounce from 'lodash/debounce';
 import { toast } from 'react-toastify';
-import { useConfirm } from '../../../components/ConfirmProvider'; // ajuste o import conforme seu projeto
+import { useConfirm } from '../../../components/ConfirmProvider';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, ArrowRight,
@@ -10,8 +10,6 @@ import {
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
 import 'react-toastify/dist/ReactToastify.css';
-
-// inicializa Toast (faça isso apenas uma vez em seu app raiz idealmente)
 import { ToastContainer } from 'react-toastify';
 
 const labelize = (s = '') =>
@@ -23,6 +21,21 @@ const fmtTime = (sec = 0) => {
   const r = s % 60;
   if (m > 0) return `${m}m ${String(r).padStart(2, '0')}s`;
   return `${r}s`;
+};
+
+// Função para transformar os dados da jornada no formato esperado pelo frontend
+const transformJourneyData = (journeyData) => {
+  if (!Array.isArray(journeyData)) return [];
+  
+  return journeyData.map(item => ({
+    stage: item.stage,
+    timestamp: item.entered_at,
+    duration: item.duration_sec,
+    visits: 1,
+    // Mantenha os dados originais para referência
+    entered_at: item.entered_at,
+    duration_sec: item.duration_sec
+  }));
 };
 
 export default function CustomerJourneyTracker() {
@@ -49,7 +62,6 @@ export default function CustomerJourneyTracker() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   // debounce search input -> setDebouncedSearch
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSet = useCallback(debounce((val) => setDebouncedSearch(val), 450), []);
 
   useEffect(() => {
@@ -83,7 +95,6 @@ export default function CustomerJourneyTracker() {
     try {
       const params = new URLSearchParams();
       if (debouncedSearch) params.set('q', debouncedSearch);
-      // Always exclude human sessions - remove include_human parameter
       params.set('page', String(currentPage));
       params.set('pageSize', String(itemsPerPage));
 
@@ -106,7 +117,7 @@ export default function CustomerJourneyTracker() {
     fetchList();
   }, [fetchList]);
 
-  // open details modal and show only journey after reset
+  // open details modal
   const openDetails = async (row) => {
     setSelectedCustomer(row);
     setSelectedDetail(null);
@@ -116,10 +127,10 @@ export default function CustomerJourneyTracker() {
       const resp = await apiGet(`/tracert/customers/${encodeURIComponent(row.user_id)}`);
       const det = resp && resp.data ? resp.data : resp;
 
-      // A jornada já vem filtrada do backend - apenas eventos após o reset
-      // Se houve reset, mostra só o que aconteceu depois
-      // Se não houve reset, mostra a jornada completa desde o início
-      const journey = Array.isArray(det?.journey) ? det.journey : [];
+      // Transforme os dados da jornada para o formato esperado pelo frontend
+      const journey = Array.isArray(det?.journey) 
+        ? transformJourneyData(det.journey) 
+        : [];
 
       setSelectedDetail({ ...det, journey });
     } catch (err) {
@@ -131,7 +142,7 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // reset session action (calls POST /tracert/customers/:userId/reset)
+  // reset session action
   const resetSession = async (userId) => {
     if (!userId) return;
     const ok = await confirm({
@@ -147,7 +158,6 @@ export default function CustomerJourneyTracker() {
       const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`, {});
       const data = resp && resp.data ? resp.data : resp;
       toast.success('Sessão resetada');
-      // atualizar lista + reabrir detalhe se estiver aberto
       await fetchList();
       if (selectedCustomer?.user_id === userId) {
         await openDetails(selectedCustomer);
@@ -160,7 +170,7 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // create ticket (not transfer)
+  // create ticket
   const createTicket = async (userId, queueName) => {
     if (!userId) return;
     const ok = await confirm({
@@ -173,11 +183,9 @@ export default function CustomerJourneyTracker() {
     if (!ok) return;
 
     try {
-      // ajuste a URL se sua API usar outro caminho; o corpo abaixo é apenas ilustrativo
       const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/ticket`, { queue: queueName });
       const data = resp && resp.data ? resp.data : resp;
       toast.success('Ticket criado com sucesso');
-      // atualizar lista + detalhe
       await fetchList();
       if (selectedCustomer?.user_id === userId) {
         await openDetails(selectedCustomer);
@@ -219,7 +227,6 @@ export default function CustomerJourneyTracker() {
 
   const StageCell = ({ label, type }) => {
     const key = String(label || '');
-    // choose icon and color by type
     let Icon = MessageCircle;
     let colorClass = styles.stageDefault;
     
@@ -289,14 +296,13 @@ export default function CustomerJourneyTracker() {
 
           <div className={styles.modalBody}>
             <section>
-              <h3 className={styles.sectionTitle}>Jornada (após último reset)</h3>
+              <h3 className={styles.sectionTitle}>Jornada do Usuário</h3>
               <div className={styles.timeline}>
                 {detailLoading ? (
                   <div className={styles.emptyCell}>Carregando...</div>
                 ) : journey.length === 0 ? (
-                  <div className={styles.emptyCell}>Sem histórico de estágios após reset.</div>
+                  <div className={styles.emptyCell}>Sem histórico de estágios.</div>
                 ) : journey.map((st, i) => {
-                  // Determine color class based on stage name/type patterns
                   let timelineColorClass = styles.timelineDefault;
                   const stageName = String(st.stage || '').toLowerCase();
                   
@@ -320,9 +326,10 @@ export default function CustomerJourneyTracker() {
                           <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
                         </div>
                         <div className={styles.timelineMeta}>
-                          <div>Tempo: {fmtTime(st.duration)}</div>
+                          <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
                           <div>Visitas: {st.visits ?? 1}x</div>
-                          <div>Início: {st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
+                          <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : 
+                                st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
                         </div>
                       </div>
                       {i < journey.length - 1 && <ArrowRight className={styles.timelineArrow} size={16} />}
@@ -342,7 +349,7 @@ export default function CustomerJourneyTracker() {
                   <Stat label="Msgs Bot" value={dwell.bot_msgs ?? 0} />
                   <Stat label="Msgs Usuário" value={dwell.user_msgs ?? 0} />
                   <Stat label="Falhas Validação" value={dwell.validation_fails ?? 0} />
-                  <Stat label="Maior gap (usuário)" value={fmtTime(dwell.max_user_response_gap_sec)} />
+                  <Stat label="Maior gap (usuário)" value={fmtTime(dwell.max_user_response_gap_sec ?? 0)} />
                 </div>
               </section>
             )}
