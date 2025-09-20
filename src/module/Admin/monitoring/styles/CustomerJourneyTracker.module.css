@@ -187,3 +187,85 @@
   .dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .rowActions{flex-direction:column;gap:4px}
 }
+
+
+/* ----- Header container do toggle ----- */
+.headerInfo{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+/* ===== TOGGLE ===== */
+.switch{
+  position:relative;
+  display:inline-block;
+  width:42px;
+  height:24px;
+  cursor:pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.switch input{
+  /* esconde mas mantém acessível */
+  position:absolute;
+  opacity:0;
+  inset:0;
+  width:100%;
+  height:100%;
+  margin:0;
+  cursor:pointer;
+}
+.slider{
+  position:absolute;
+  inset:0;
+  background:#d1d5db;                /* trilho OFF */
+  border:1px solid var(--qr-border);
+  border-radius:999px;
+  transition:background-color .2s ease, border-color .2s ease;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.02);
+}
+.slider::before{
+  content:"";
+  position:absolute;
+  width:18px; height:18px;
+  left:3px; top:50%;
+  transform:translateY(-50%);
+  background:#fff;
+  border-radius:999px;
+  box-shadow:0 1px 2px rgba(0,0,0,.15);
+  transition: transform .2s ease;
+}
+
+/* ON */
+.switch input:checked + .slider{
+  background:rgba(37,99,235,.15);
+  border-color:#93c5fd;
+}
+.switch input:checked + .slider::before{
+  transform: translate(18px, -50%);  /* desliza para a direita */
+  background:#fff;
+}
+
+/* Foco acessível */
+.switch input:focus-visible + .slider{
+  box-shadow: 0 0 0 3px var(--qr-ring);
+}
+
+/* Hover sutil */
+.switch:hover .slider{
+  filter: brightness(0.98);
+}
+
+/* Respeita prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce){
+  .slider, .slider::before{
+    transition:none;
+  }
+}
+
+/* Rótulo do toggle */
+.switchText{
+  font-weight:600;
+  color:#374151;
+  user-select:none;
+}
