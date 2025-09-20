@@ -5,9 +5,8 @@ import { toast, ToastContainer } from 'react-toastify';
 import { useConfirm } from '../../../components/ConfirmProvider';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
-  Clock, User, MessageCircle, AlertTriangle, CheckCircle, ArrowRight,
-  BarChart3, Search, Eye, RefreshCw, Headset, RefreshCcw, Plus,
-  ToggleLeft, ToggleRight
+  User, MessageCircle, AlertTriangle, CheckCircle, BarChart3, Search,
+  Eye, RefreshCw, Headset, RefreshCcw, Plus
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -20,8 +19,7 @@ const fmtTime = (sec = 0) => {
   const s = Math.max(0, Math.floor(Number(sec) || 0));
   const m = Math.floor(s / 60);
   const r = s % 60;
-  if (m > 0) return `${m}m ${String(r).padStart(2, '0')}s`;
-  return `${r}s`;
+  return m > 0 ? `${m}m ${String(r).padStart(2, '0')}s` : `${r}s`;
 };
 
 // normaliza jornada para o formato do frontend
@@ -66,7 +64,7 @@ export default function CustomerJourneyTracker() {
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // métricas na montagem
+  /* ----- métricas na montagem ----- */
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -86,7 +84,7 @@ export default function CustomerJourneyTracker() {
     return () => { mounted = false; };
   }, []);
 
-  // buscar lista
+  /* ----- lista ----- */
   const fetchList = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -99,7 +97,7 @@ export default function CustomerJourneyTracker() {
       setRows(Array.isArray(data?.rows) ? data.rows : []);
       setTotalRows(Number(data?.total || 0));
     } catch (err) {
-      console.error('Erro ao buscar lista de tracert:', err);
+      console.error(err);
       toast.error('Falha ao carregar lista do tracert');
       setRows([]);
       setTotalRows(0);
@@ -117,7 +115,7 @@ export default function CustomerJourneyTracker() {
     return () => clearInterval(id);
   }, [autoRefresh, fetchList]);
 
-  // detalhes
+  /* ----- detalhes ----- */
   const openDetails = async (row) => {
     setSelectedCustomer(row);
     setSelectedDetail(null);
@@ -136,7 +134,7 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // reset
+  /* ----- ações ----- */
   const resetSession = async (userId) => {
     if (!userId) return;
     const ok = await confirm({
@@ -160,7 +158,6 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // ticket
   const createTicket = async (userId, queueName) => {
     if (!userId) return;
     const ok = await confirm({
@@ -184,7 +181,7 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // KPIs
+  /* ----- KPIs ----- */
   const kpiCards = useMemo(() => {
     const loopers = Number(metrics?.loopers || 0);
     const top = metrics?.topStage || metrics?.top_stage || null;
@@ -201,7 +198,7 @@ export default function CustomerJourneyTracker() {
   const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
 
-  /* ---------- pequenos componentes ---------- */
+  /* ----- mini componentes ----- */
   const PriorityPill = ({ loops = 0 }) => {
     const l = Number(loops || 0);
     let klass = styles.st_online; let txt = 'OK';
@@ -234,6 +231,37 @@ export default function CustomerJourneyTracker() {
     if (!customer) return null;
     const journey = Array.isArray(detail?.journey) ? detail.journey : [];
     const dwell = detail?.dwell || null;
+
+    // gera a lista com quebras a cada 10 blocos, sem setas (para não bagunçar a contagem)
+    const journeyBlocks = journey.map((st, i) => {
+      let timelineColorClass = styles.timelineDefault;
+      const stageName = String(st.stage || '').toLowerCase();
+      if (stageName.includes('human') || stageName.includes('atendimento')) timelineColorClass = styles.timelineHuman;
+      else if (stageName.includes('input') || stageName.includes('entrada')) timelineColorClass = styles.timelineInput;
+      else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) timelineColorClass = styles.timelineCondition;
+      else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) timelineColorClass = styles.timelineScript;
+      else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) timelineColorClass = styles.timelineInteractive;
+
+      const block = (
+        <div className={`${styles.timelineItem} ${timelineColorClass}`} key={`${st.stage}-${i}`}>
+          <div className={styles.timelineTop}>
+            <MessageCircle size={16} />
+            <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
+          </div>
+          <div className={styles.timelineMeta}>
+            <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
+            <div>Visitas: {st.visits ?? 1}x</div>
+            <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
+          </div>
+        </div>
+      );
+
+      const withBreak = ((i + 1) % 10 === 0 && i < journey.length - 1)
+        ? [block, <span className={styles.timelineBreak} key={`br-${i}`} aria-hidden="true" />]
+        : [block];
+
+      return withBreak;
+    }).flat();
 
     return (
       <div className={styles.modalBackdrop}>
@@ -270,50 +298,16 @@ export default function CustomerJourneyTracker() {
             <section>
               <h3 className={styles.sectionTitle}>Jornada do Usuário</h3>
 
-              {/* container com scroll */}
+              {/* container com scroll vertical */}
               <div className={styles.timelineScroll}>
                 <div className={styles.timeline}>
                   {detailLoading ? (
                     <div className={styles.emptyCell}>Carregando...</div>
-                  ) : journey.length === 0 ? (
+                  ) : journeyBlocks.length === 0 ? (
                     <div className={styles.emptyCell}>Sem histórico de etapas.</div>
-                  ) : journey.map((st, i) => {
-                    let timelineColorClass = styles.timelineDefault;
-                    const stageName = String(st.stage || '').toLowerCase();
-                    if (stageName.includes('human') || stageName.includes('atendimento')) timelineColorClass = styles.timelineHuman;
-                    else if (stageName.includes('input') || stageName.includes('entrada')) timelineColorClass = styles.timelineInput;
-                    else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) timelineColorClass = styles.timelineCondition;
-                    else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) timelineColorClass = styles.timelineScript;
-                    else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) timelineColorClass = styles.timelineInteractive;
-
-                    const block = (
-                      <React.Fragment key={`${st.stage}-${i}`}>
-                        <div className={`${styles.timelineItem} ${timelineColorClass}`}>
-                          <div className={styles.timelineTop}>
-                            <MessageCircle size={16} />
-                            <span className={styles.timelineTitle}>{labelize(st.stage)}</span>
-                          </div>
-                          <div className={styles.timelineMeta}>
-                            <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
-                            <div>Visitas: {st.visits ?? 1}x</div>
-                            <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
-                          </div>
-                        </div>
-                        {/* seta entre blocos (opcional) */}
-                        {i < journey.length - 1 && <ArrowRight className={styles.timelineArrow} size={16} />}
-                      </React.Fragment>
-                    );
-
-                    // a cada 10 blocos, força quebra de linha
-                    const needsBreak = (i + 1) % 10 === 0 && i < journey.length - 1;
-
-                    return (
-                      <React.Fragment key={`frag-${i}`}>
-                        {block}
-                        {needsBreak && <span className={styles.timelineBreak} aria-hidden="true" />}
-                      </React.Fragment>
-                    );
-                  })}
+                  ) : (
+                    journeyBlocks
+                  )}
                 </div>
               </div>
             </section>
@@ -343,44 +337,24 @@ export default function CustomerJourneyTracker() {
     <div className={styles.container}>
       <ToastContainer position="top-right" autoClose={2500} />
 
-      {/* Header + refresh */}
+      {/* Header (switch + Refresh) */}
       <div className={styles.header}>
         <div className={styles.headerInfo}>
-          <span className={styles.kpillBlue}>Monitor de Jornada • {new Date().toLocaleDateString('pt-BR')}</span>
-
-          <button
-            type="button"
-            className={`${styles.chip} ${autoRefresh ? styles.chipActive : ''}`}
-            onClick={() => setAutoRefresh(v => !v)}
-            title="Alternar auto refresh (10s)"
-          >
-            {autoRefresh ? <ToggleRight size={16}/> : <ToggleLeft size={16}/>}
-            Auto (10s)
-          </button>
+          <label className={styles.switch} title="Auto-refresh a cada 10s">
+            <input
+              type="checkbox"
+              checked={autoRefresh}
+              onChange={() => setAutoRefresh(v => !v)}
+            />
+            <span className={styles.slider} />
+          </label>
+          <span className={styles.switchText}>Auto refresh (10s)</span>
         </div>
+
         <button className={styles.refreshBtn} onClick={() => fetchList()} disabled={refreshing}>
           <RefreshCw size={16} className={refreshing ? styles.spinning : ''} /> Atualizar
         </button>
       </div>
-
-      <div className={styles.subHeader}>
-        <div>
-          <p className={styles.subtitle}>Tracert do fluxo — acompanhe etapa atual, tempo e loops por cliente.</p>
-        </div>
-      </div>
-
-      {/* KPIs unificados */}
-      <section className={styles.cardGroup}>
-        {loading ? (
-          <>
-            <KpiSkeleton /> <KpiSkeleton /> <KpiSkeleton />
-          </>
-        ) : (
-          kpiCards.map((c, i) => (
-            <KpiCard key={i} icon={c.icon} label={c.label} value={c.value} tone={c.tone} />
-          ))
-        )}
-      </section>
 
       {/* Filtros */}
       <section className={styles.filters}>
@@ -397,6 +371,19 @@ export default function CustomerJourneyTracker() {
             />
           </div>
         </div>
+      </section>
+
+      {/* KPIs (opcional: mantém estrutura para quando quiser exibir) */}
+      <section className={styles.cardGroup}>
+        {loading ? (
+          <>
+            <KpiSkeleton /> <KpiSkeleton /> <KpiSkeleton />
+          </>
+        ) : (
+          kpiCards.map((c, i) => (
+            <KpiCard key={i} icon={c.icon} label={c.label} value={c.value} tone={c.tone} />
+          ))
+        )}
       </section>
 
       {/* Tabela */}
