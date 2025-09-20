@@ -10,26 +10,6 @@
 
 /* Header + Refresh */
 .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.headerInfo{display:flex;gap:10px;align-items:center}
-
-/* Switch (auto refresh 10s) */
-.switch{position:relative;display:inline-block;width:40px;height:20px}
-.switch input{opacity:0;width:0;height:0}
-.slider{
-  position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;
-  background:#e5e7eb;border-radius:34px;transition:.2s;
-  box-shadow:inset 0 0 0 1px #d1d5db;
-}
-.slider:before{
-  content:"";position:absolute;height:14px;width:14px;left:3px;bottom:3px;
-  background:#fff;border-radius:999px;transition:.2s;
-  box-shadow:0 1px 2px rgba(0,0,0,.15);
-}
-.switch input:checked + .slider{background:#2563eb;box-shadow:none}
-.switch input:checked + .slider:before{transform:translateX(20px)}
-.switchText{font-weight:700;color:#374151}
-
-/* Refresh */
 .refreshBtn{
   border:1px solid #e5e7eb;background:#fff;color:#111827;border-radius:12px;
   padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer
@@ -82,10 +62,11 @@
 .filterGroupGrow{flex:1;min-width:240px}
 .filterTitle{font-size:14px;font-weight:700;color:#374151;margin:0 0 8px}
 .searchWrap{position:relative}
-.searchIcon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af}
+.searchIcon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#9ca3af}
 .input{
   width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:12px;
-  padding:10px 12px;font-weight:600;outline:0
+  padding:12px 14px 12px 40px; /* padding extra p/ o ícone não “encostar” na borda */
+  font-weight:600;outline:0
 }
 .input:focus{box-shadow:0 0 0 3px rgba(37,99,235,.15);border-color:#93c5fd}
 
@@ -147,7 +128,7 @@
 .stageInput{background:#ecfdf5;color:#065f46}
 .stageInput .stageIcon{color:#059669}
 
-/* Status pill reutilizando esquema do AgentsMonitor */
+/* Status pill */
 .stPill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid}
 .st_online{background:#dcfce7;color:#166534;border-color:#86efac}
 .st_pause{background:#fef9c3;color:#854d0e;border-color:#fde68a}
@@ -156,7 +137,7 @@
 /* Modal */
 .modalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modalCard{
-  background:#fff;border-radius:16px;width:100%;max-width:920px;max-height:90vh;
+  background:#fff;border-radius:16px;width:100%;max-width:980px;max-height:90vh;
   overflow:auto;border:1px solid #e5e7eb;box-shadow:0 10px 25px rgba(0,0,0,.15)
 }
 .modalHead{
@@ -171,39 +152,25 @@
 .modalBody{padding:16px;display:grid;gap:16px}
 .sectionTitle{font-weight:800;margin:0 0 8px}
 
-/* Timeline (com scroll e quebra a cada 10 blocos) */
+/* Timeline: 10 colunas fixas + scroll vertical */
 .timelineScroll{
-  max-height:420px;            /* habilita scroll vertical no modal */
-  overflow:auto;
-  padding-right:4px;
+  max-height:50vh;          /* garante rolagem mesmo em telas menores */
+  overflow-y:auto;
+  padding-right:6px;
 }
-.timeline{
-  display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px;
-}
-.timelineBreak{
-  flex-basis:100%;
-  height:0;         /* elemento vazio só para quebrar a linha */
+.timelineGrid10{
+  display:grid;
+  grid-template-columns: repeat(10, 1fr);  /* 10 blocos por linha */
+  gap:8px;
+  align-items:start;
 }
 .timelineItem{
-  border:1px solid #e5e7eb; border-radius:12px; padding:10px; min-width:240px;
+  border:1px solid #e5e7eb; border-radius:12px; padding:10px;
   background:#fff;
 }
 .timelineTop{display:flex;align-items:center;gap:6px;margin-bottom:6px}
 .timelineTitle{font-size:12px;font-weight:800}
 .timelineMeta{display:grid;gap:2px;font-size:11px;color:#374151}
-
-/* cores por tipo */
-.timelineDefault{background:#f9fafb;border-color:#e5e7eb}
-.timelineHuman{background:#fffbeb;border-color:#fbbf24;color:#92400e}
-.timelineHuman svg{color:#d97706}
-.timelineInteractive{background:#eff6ff;border-color:#60a5fa;color:#1e40af}
-.timelineInteractive svg{color:#2563eb}
-.timelineScript{background:#faf5ff;border-color:#c084fc;color:#7c2d12}
-.timelineScript svg{color:#a855f7}
-.timelineCondition{background:#fef2f2;border-color:#fca5a5;color:#991b1b}
-.timelineCondition svg{color:#dc2626}
-.timelineInput{background:#f0fdf4;border-color:#86efac;color:#065f46}
-.timelineInput svg{color:#059669}
 
 /* Dwell box */
 .dwellBox{border:1px dashed #e5e7eb;border-radius:12px;padding:12px;background:#fafafa}
