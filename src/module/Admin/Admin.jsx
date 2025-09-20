@@ -703,7 +703,14 @@ export default function Admin() {
               </RequireRole>
             }
           />
-          <Route path="/development/tracker/:userId" element={<JourneyBeholder />} />
+          <Route 
+            path="/development/tracker/:userId" 
+            element={
+            <RequireRole allow={isAdmin}>
+              <JourneyBeholder />
+              </RequireRole>
+            }
+            />
 
           {/* settings – admin only */}
           <Route
