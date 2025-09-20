@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 import { toast, ToastContainer } from 'react-toastify';
 import { useConfirm } from '../../../components/ConfirmProvider';
 import { apiGet, apiPost } from '../../../shared/apiClient';
+import { useNavigate } from 'react-router-dom';
 import {
   User, MessageCircle, AlertTriangle, BarChart3, Search,
   Eye, RefreshCw, RefreshCcw, Plus, Headset
@@ -25,6 +26,7 @@ const fmtTime = (sec = 0) => {
 /* ---------------- component ---------------- */
 export default function CustomerJourneyTracker({ onOpenJourney }) {
   const confirm = useConfirm();
+  const navigate = useNavigate();
 
   // filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -183,6 +185,7 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerInfo}>
+          {/* Toggle de auto refresh (10s, inicia OFF) */}
           <label className={styles.switch} title="Auto-refresh a cada 10s">
             <input
               type="checkbox"
@@ -295,8 +298,12 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
                         title="Ver jornada"
                         aria-label="Ver jornada"
                         onClick={() => {
-                          if (typeof onOpenJourney === 'function') onOpenJourney(r);
-                          else window.location.assign(`/journey/${encodeURIComponent(r.user_id)}`);
+                          if (typeof onOpenJourney === 'function') {
+                            onOpenJourney(r);
+                          } else {
+                            // navegação SPA para a rota registrada no Admin.jsx
+                            navigate(`/development/tracker/${encodeURIComponent(r.user_id)}`);
+                          }
                         }}
                       >
                         <Eye size={18} />
