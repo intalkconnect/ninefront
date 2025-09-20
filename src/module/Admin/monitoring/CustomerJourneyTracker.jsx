@@ -1,7 +1,7 @@
-// File: CustomerJourneyTracker.jsx
+// File: CustomerJourneyTracker.jsx (refatorado)
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import debounce from 'lodash/debounce';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import { useConfirm } from '../../../components/ConfirmProvider';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
 import 'react-toastify/dist/ReactToastify.css';
-import { ToastContainer } from 'react-toastify';
 
+/* ---------------- helpers ---------------- */
 const labelize = (s = '') =>
   String(s || '').replace(/_/g, ' ').replace(/^\w/u, c => c.toUpperCase());
 
@@ -23,29 +23,30 @@ const fmtTime = (sec = 0) => {
   return `${r}s`;
 };
 
-// Função para transformar os dados da jornada no formato esperado pelo frontend
+// normaliza jornada para o formato do frontend
 const transformJourneyData = (journeyData) => {
   if (!Array.isArray(journeyData)) return [];
-  
   return journeyData.map(item => ({
     stage: item.stage,
     timestamp: item.entered_at,
     duration: item.duration_sec,
     visits: 1,
-    // Mantenha os dados originais para referência
     entered_at: item.entered_at,
     duration_sec: item.duration_sec
   }));
 };
 
+/* ---------------- componente ---------------- */
 export default function CustomerJourneyTracker() {
   const confirm = useConfirm();
 
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSet = useCallback(debounce((val) => setDebouncedSearch(val), 450), []);
+  useEffect(() => { debouncedSet(searchTerm); }, [searchTerm, debouncedSet]);
 
-  // pagination
+  // paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
 
@@ -61,21 +62,13 @@ export default function CustomerJourneyTracker() {
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // debounce search input -> setDebouncedSearch
-  const debouncedSet = useCallback(debounce((val) => setDebouncedSearch(val), 450), []);
-
-  useEffect(() => {
-    debouncedSet(searchTerm);
-  }, [searchTerm, debouncedSet]);
-
-  // load metrics on mount
+  // métricas na montagem
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const mtResp = await apiGet('/tracert/metrics').catch(() => null);
         const mtData = mtResp && mtResp.data ? mtResp.data : mtResp;
-
         if (!mounted) return;
         setMetrics(mtData || {});
       } catch (err) {
@@ -89,7 +82,7 @@ export default function CustomerJourneyTracker() {
     return () => { mounted = false; };
   }, []);
 
-  // fetch list (always excludes human sessions)
+  // buscar lista
   const fetchList = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -97,7 +90,6 @@ export default function CustomerJourneyTracker() {
       if (debouncedSearch) params.set('q', debouncedSearch);
       params.set('page', String(currentPage));
       params.set('pageSize', String(itemsPerPage));
-
       const resp = await apiGet(`/tracert/customers?${params.toString()}`);
       const data = resp && resp.data ? resp.data : resp;
       setRows(Array.isArray(data?.rows) ? data.rows : []);
@@ -112,26 +104,17 @@ export default function CustomerJourneyTracker() {
     }
   }, [debouncedSearch, currentPage, itemsPerPage]);
 
-  // auto fetch when filters/page change
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
+  useEffect(() => { fetchList(); }, [fetchList]);
 
-  // open details modal
+  // detalhes
   const openDetails = async (row) => {
     setSelectedCustomer(row);
     setSelectedDetail(null);
     setDetailLoading(true);
-
     try {
       const resp = await apiGet(`/tracert/customers/${encodeURIComponent(row.user_id)}`);
       const det = resp && resp.data ? resp.data : resp;
-
-      // Transforme os dados da jornada para o formato esperado pelo frontend
-      const journey = Array.isArray(det?.journey) 
-        ? transformJourneyData(det.journey) 
-        : [];
-
+      const journey = Array.isArray(det?.journey) ? transformJourneyData(det.journey) : [];
       setSelectedDetail({ ...det, journey });
     } catch (err) {
       console.error('Erro ao buscar detalhe do cliente:', err);
@@ -142,7 +125,7 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // reset session action
+  // reset
   const resetSession = async (userId) => {
     if (!userId) return;
     const ok = await confirm({
@@ -153,16 +136,12 @@ export default function CustomerJourneyTracker() {
       cancelText: 'Cancelar'
     });
     if (!ok) return;
-
     try {
       const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`, {});
-      const data = resp && resp.data ? resp.data : resp;
       toast.success('Sessão resetada');
       await fetchList();
-      if (selectedCustomer?.user_id === userId) {
-        await openDetails(selectedCustomer);
-      }
-      return data;
+      if (selectedCustomer?.user_id === userId) await openDetails(selectedCustomer);
+      return resp?.data ?? resp;
     } catch (err) {
       console.error('Erro ao resetar sessão:', err);
       toast.error('Falha ao resetar sessão');
@@ -170,7 +149,7 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // create ticket
+  // ticket
   const createTicket = async (userId, queueName) => {
     if (!userId) return;
     const ok = await confirm({
@@ -181,16 +160,12 @@ export default function CustomerJourneyTracker() {
       destructive: false
     });
     if (!ok) return;
-
     try {
       const resp = await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/ticket`, { queue: queueName });
-      const data = resp && resp.data ? resp.data : resp;
       toast.success('Ticket criado com sucesso');
       await fetchList();
-      if (selectedCustomer?.user_id === userId) {
-        await openDetails(selectedCustomer);
-      }
-      return data;
+      if (selectedCustomer?.user_id === userId) await openDetails(selectedCustomer);
+      return resp?.data ?? resp;
     } catch (err) {
       console.error('Erro ao criar ticket:', err);
       toast.error('Falha ao criar ticket');
@@ -198,57 +173,43 @@ export default function CustomerJourneyTracker() {
     }
   };
 
-  // KPI cards computed
+  // KPIs
   const kpiCards = useMemo(() => {
     const loopers = Number(metrics?.loopers || 0);
     const top = metrics?.topStage || metrics?.top_stage || null;
     const total = Number(metrics?.total || metrics?.total_users || 0);
     const usersInFlow = Array.isArray(metrics?.byStage) ? metrics.byStage.reduce((s, i) => s + (i.users || 0), 0) : 0;
     return [
-      { tone: 'red', value: loopers, label: 'Com loops (>1)' },
-      { tone: 'orange', value: top?.users || 0, label: `Top Etapas: ${labelize(top?.block || top?.stage || '—')}` },
-      { tone: 'yellow', value: usersInFlow, label: 'Usuários no fluxo' },
-      { tone: 'green', value: total, label: 'Total (base atual)' },
+      { tone: 'orange', value: loopers, label: 'Com loops (>1)', icon: <AlertTriangle size={16}/> },
+      { tone: 'blue',   value: top?.users || 0, label: `Top Etapas: ${labelize(top?.block || top?.stage || '—')}`, icon: <BarChart3 size={16}/> },
+      { tone: 'amber',  value: usersInFlow, label: 'Usuários no fluxo', icon: <MessageCircle size={16}/> },
+      { tone: 'green',  value: total, label: 'Total (base atual)', icon: <CheckCircle size={16}/> },
     ];
   }, [metrics]);
 
   const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
 
-  // small presentational components
+  /* ---------- pequenos componentes ---------- */
   const PriorityPill = ({ loops = 0 }) => {
     const l = Number(loops || 0);
-    let klass = styles.pillGreen;
-    let txt = 'OK';
-    if (l >= 3) { klass = styles.pillRed; txt = 'Crítico'; }
-    else if (l === 2) { klass = styles.pillYellow; txt = 'Atenção'; }
-    return <span className={`${styles.pill} ${klass}`}>{txt}</span>;
+    let klass = styles.st_online; let txt = 'OK';
+    if (l >= 3) { klass = styles.st_offline; txt = 'Crítico'; }
+    else if (l === 2) { klass = styles.st_pause; txt = 'Atenção'; }
+    return <span className={`${styles.stPill} ${klass}`}>{txt}</span>;
   };
 
   const StageCell = ({ label, type }) => {
     const key = String(label || '');
     let Icon = MessageCircle;
-    let colorClass = styles.stageDefault;
-    
-    if (type === 'human') {
-      Icon = Headset;
-      colorClass = styles.stageHuman;
-    } else if (type === 'interactive') {
-      Icon = MessageCircle;
-      colorClass = styles.stageInteractive;
-    } else if (type === 'script' || type === 'api_call') {
-      Icon = BarChart3;
-      colorClass = styles.stageScript;
-    } else if (type === 'condition') {
-      Icon = AlertTriangle;
-      colorClass = styles.stageCondition;
-    } else if (type === 'input') {
-      Icon = MessageCircle;
-      colorClass = styles.stageInput;
-    }
-
+    let tone = styles.stageDefault;
+    if (type === 'human') { Icon = Headset; tone = styles.stageHuman; }
+    else if (type === 'interactive') { Icon = MessageCircle; tone = styles.stageInteractive; }
+    else if (type === 'script' || type === 'api_call') { Icon = BarChart3; tone = styles.stageScript; }
+    else if (type === 'condition') { Icon = AlertTriangle; tone = styles.stageCondition; }
+    else if (type === 'input') { Icon = MessageCircle; tone = styles.stageInput; }
     return (
-      <div className={`${styles.stageCell} ${colorClass}`}>
+      <div className={`${styles.stageCell} ${tone}`}>
         <span className={styles.stageIcon}><Icon size={14} /></span>
         <div>
           <div className={styles.stageName}>{key || '—'}</div>
@@ -272,24 +233,12 @@ export default function CustomerJourneyTracker() {
               <p className={styles.modalSub}>ID: {customer.user_id}</p>
             </div>
             <div className={styles.modalActions}>
-              <button
-                className={styles.actionBtn}
-                onClick={() => resetSession(customer.user_id)}
-                title="Reset para início"
-              >
-                <RefreshCw size={16} />
-                Reset
+              <button className={styles.refreshBtn} onClick={() => resetSession(customer.user_id)} title="Reset para início">
+                <RefreshCw size={16} className={refreshing ? styles.spinning : ''} /> Reset
               </button>
-
-              <button
-                className={styles.actionBtn}
-                onClick={() => createTicket(customer.user_id, 'Recepção')}
-                title="Criar ticket"
-              >
-                <Plus size={16} />
-                Criar Ticket
+              <button className={styles.refreshBtn} onClick={() => createTicket(customer.user_id, 'Recepção')} title="Criar ticket">
+                <Plus size={16} /> Criar Ticket
               </button>
-
               <button onClick={onClose} className={styles.modalClose} aria-label="Fechar">✕</button>
             </div>
           </div>
@@ -305,19 +254,11 @@ export default function CustomerJourneyTracker() {
                 ) : journey.map((st, i) => {
                   let timelineColorClass = styles.timelineDefault;
                   const stageName = String(st.stage || '').toLowerCase();
-                  
-                  if (stageName.includes('human') || stageName.includes('atendimento')) {
-                    timelineColorClass = styles.timelineHuman;
-                  } else if (stageName.includes('input') || stageName.includes('entrada')) {
-                    timelineColorClass = styles.timelineInput;
-                  } else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) {
-                    timelineColorClass = styles.timelineCondition;
-                  } else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) {
-                    timelineColorClass = styles.timelineScript;
-                  } else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) {
-                    timelineColorClass = styles.timelineInteractive;
-                  }
-
+                  if (stageName.includes('human') || stageName.includes('atendimento')) timelineColorClass = styles.timelineHuman;
+                  else if (stageName.includes('input') || stageName.includes('entrada')) timelineColorClass = styles.timelineInput;
+                  else if (stageName.includes('condition') || stageName.includes('decisao') || stageName.includes('validacao')) timelineColorClass = styles.timelineCondition;
+                  else if (stageName.includes('script') || stageName.includes('api') || stageName.includes('webhook')) timelineColorClass = styles.timelineScript;
+                  else if (stageName.includes('interactive') || stageName.includes('menu') || stageName.includes('opcao')) timelineColorClass = styles.timelineInteractive;
                   return (
                     <React.Fragment key={`${st.stage}-${i}`}>
                       <div className={`${styles.timelineItem} ${timelineColorClass}`}>
@@ -328,8 +269,7 @@ export default function CustomerJourneyTracker() {
                         <div className={styles.timelineMeta}>
                           <div>Tempo: {fmtTime(st.duration_sec || st.duration)}</div>
                           <div>Visitas: {st.visits ?? 1}x</div>
-                          <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : 
-                                st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
+                          <div>Início: {st.entered_at ? new Date(st.entered_at).toLocaleString('pt-BR') : st.timestamp ? new Date(st.timestamp).toLocaleString('pt-BR') : '—'}</div>
                         </div>
                       </div>
                       {i < journey.length - 1 && <ArrowRight className={styles.timelineArrow} size={16} />}
@@ -343,7 +283,7 @@ export default function CustomerJourneyTracker() {
               <section className={styles.dwellBox}>
                 <h4 className={styles.sectionTitle}>Diagnóstico da etapa atual</h4>
                 <div className={styles.dgrid}>
-                  <Stat label="Etapa" value={labelize(dwell.block || detail?.current_stage || '')} />
+                  <Stat label="Etapa" value={labelize(dwell.block || selectedDetail?.current_stage || '')} />
                   <Stat label="Desde" value={dwell.entered_at ? new Date(dwell.entered_at).toLocaleString('pt-BR') : '—'} />
                   <Stat label="Duração" value={fmtTime(dwell.duration_sec)} />
                   <Stat label="Msgs Bot" value={dwell.bot_msgs ?? 0} />
@@ -359,34 +299,44 @@ export default function CustomerJourneyTracker() {
     );
   };
 
+  /* ---------------- render ---------------- */
   return (
-    <div className={styles.page}>
+    <div className={styles.container}>
       <ToastContainer position="top-right" autoClose={2500} />
 
+      {/* Header + refresh */}
       <div className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.headerTitle}>
-            <h1>Tracert do fluxo</h1>
-            <span className={styles.headerSub}>Etapa atual, tempo e loops.</span>
-          </div>
-
-          <div className={styles.actions}>
-            <button className={styles.refreshBtn} onClick={() => fetchList()} disabled={refreshing}>
-              <RefreshCw size={16} className={refreshing ? styles.spin : ''} /> Atualizar
-            </button>
-          </div>
+        <div className={styles.headerInfo}>
+          <span className={styles.kpillBlue}>Monitor de Jornada • {new Date().toLocaleDateString('pt-BR')}</span>
         </div>
+        <button className={styles.refreshBtn} onClick={() => fetchList()} disabled={refreshing}>
+          <RefreshCw size={16} className={refreshing ? styles.spinning : ''} /> Atualizar
+        </button>
+      </div>
 
-        <div className={styles.metricsGrid}>
-          {kpiCards.map((c, i) => (
-            <div key={i} className={`${styles.kpiCard} ${styles['tone_' + c.tone]}`}>
-              <div className={styles.kpiValue}>{c.value}</div>
-              <div className={styles.kpiLabel}>{c.label}</div>
-            </div>
-          ))}
+      <div className={styles.subHeader}>
+        <div>
+          <p className={styles.subtitle}>Tracert do fluxo — acompanhe etapa atual, tempo e loops por cliente.</p>
         </div>
+      </div>
 
-        <div className={styles.filters}>
+      {/* KPIs unificados */}
+      <section className={styles.cardGroup}>
+        {loading ? (
+          <>
+            <KpiSkeleton /> <KpiSkeleton /> <KpiSkeleton />
+          </>
+        ) : (
+          kpiCards.map((c, i) => (
+            <KpiCard key={i} icon={c.icon} label={c.label} value={c.value} tone={c.tone} />
+          ))
+        )}
+      </section>
+
+      {/* Filtros */}
+      <section className={styles.filters}>
+        <div className={styles.filterGroupGrow}>
+          <div className={styles.filterTitle}>Buscar</div>
           <div className={styles.searchWrap}>
             <Search size={16} className={styles.searchIcon} />
             <input
@@ -394,32 +344,21 @@ export default function CustomerJourneyTracker() {
               placeholder="Buscar por nome ou user_id..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className={styles.searchInput}
+              className={styles.input}
             />
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className={styles.content}>
-        <div className={styles.pageBar}>
-          <p className={styles.pageInfo}>
-            Mostrando {totalRows === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, totalRows)} de {totalRows} clientes
-          </p>
-
-          <div className={styles.pager}>
-            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className={styles.pageBtn} title="Página anterior" aria-label="Página anterior">
-              <ChevronLeft size={16} />
-            </button>
-
-            <span className={styles.pageBadge}>{currentPage} / {totalPages}</span>
-
-            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className={styles.pageBtn} title="Próxima página" aria-label="Próxima página">
-              <ChevronRight size={16} />
-            </button>
-          </div>
+      {/* Tabela */}
+      <section className={styles.tableCard}>
+        <div className={styles.tableHeader}>
+          <h2 className={styles.tableTitle}>
+            Clientes no Fluxo <span className={styles.kpill}>{totalRows}</span>
+          </h2>
         </div>
 
-        <div className={styles.tableCard}>
+        <div className={styles.tableScroll}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -435,12 +374,14 @@ export default function CustomerJourneyTracker() {
               {rows.length === 0 ? (
                 <tr><td colSpan={6} className={styles.emptyCell}>{refreshing ? 'Carregando...' : 'Sem resultados.'}</td></tr>
               ) : rows.map((r) => (
-                <tr key={r.user_id} className={styles.row}>
-                  <td className={styles.clientCell}>
-                    <div className={styles.avatar}><User size={14} /></div>
-                    <div>
-                      <div className={styles.clientName}>{r.name || r.user_id}</div>
-                      <div className={styles.clientSub}>{r.user_id}</div>
+                <tr key={r.user_id}>
+                  <td>
+                    <div className={styles.clientCell}>
+                      <div className={styles.avatar}><User size={14} /></div>
+                      <div>
+                        <div className={styles.clientName}>{r.name || r.user_id}</div>
+                        <div className={styles.clientSub}>{r.user_id}</div>
+                      </div>
                     </div>
                   </td>
 
@@ -453,9 +394,7 @@ export default function CustomerJourneyTracker() {
                   <td><PriorityPill loops={r.loops_in_stage ?? 0} /></td>
 
                   <td className={styles.subtle}>
-                    {r.stage_entered_at ? new Date(r.stage_entered_at).toLocaleString('pt-BR', {
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                    }) : '—'}
+                    {r.stage_entered_at ? new Date(r.stage_entered_at).toLocaleString('pt-BR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                   </td>
 
                   <td className={styles.rowActions}>
@@ -474,7 +413,14 @@ export default function CustomerJourneyTracker() {
             </tbody>
           </table>
         </div>
-      </div>
+
+        {/* paginação */}
+        <div className={styles.pagination}>
+          <button className={styles.pageBtn} onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>‹ Anterior</button>
+          <span className={styles.pageInfo}>Página {currentPage} de {totalPages} • {totalRows} registro(s) — mostrando {totalRows === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + itemsPerPage, totalRows)}</span>
+          <button className={styles.pageBtn} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Próxima ›</button>
+        </div>
+      </section>
 
       {selectedCustomer && (
         <CustomerModal
@@ -492,6 +438,38 @@ function Stat({ label, value }) {
     <div className={styles.stat}>
       <div className={styles.statLabel}>{label}</div>
       <div className={styles.statValue}>{value}</div>
+    </div>
+  );
+}
+
+function KpiCard({ icon, label, value, tone = 'blue' }) {
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardHead}>
+        <div className={styles.cardTitle}>
+          <span className={styles.cardIcon}>{icon}</span>
+          <span>{label}</span>
+        </div>
+      </div>
+      <div className={styles.cardBody}>
+        <div className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function KpiSkeleton() {
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardHead}>
+        <div className={styles.cardTitle}>
+          <span className={`${styles.skeleton} ${styles.sq16}`} />
+          <span className={`${styles.skeleton} ${styles.sq120}`} />
+        </div>
+      </div>
+      <div className={styles.cardBody}>
+        <div className={`${styles.skeleton} ${styles.sq48}`} />
+      </div>
     </div>
   );
 }
