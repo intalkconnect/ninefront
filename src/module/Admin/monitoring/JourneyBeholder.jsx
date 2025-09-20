@@ -1,5 +1,6 @@
-// File: JourneyBeholder.jsx (página clara, 10 blocos por faixa, auto-refresh 5s)
+// File: JourneyBeholder.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { apiGet } from "../../../shared/apiClient";
 import { toast } from "react-toastify";
 import { ChevronLeft, RefreshCw, MessageCircle } from "lucide-react";
@@ -33,7 +34,11 @@ const chunk10 = (arr) => {
 };
 
 /* ---------- página ---------- */
-export default function JourneyBeholder({ userId, onBack }) {
+export default function JourneyBeholder({ userId: propUserId, onBack }) {
+  const { userId: routeUserId } = useParams();
+  const userId = propUserId ?? routeUserId; // aceita prop OU rota
+  const navigate = useNavigate();
+
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -48,6 +53,7 @@ export default function JourneyBeholder({ userId, onBack }) {
         user_id: det?.user_id || userId,
         name: det?.name || det?.user_id || userId,
         journey: normalizeJourney(det),
+        dwell: det?.dwell ?? null,
       });
     } catch (e) {
       console.error(e);
@@ -68,6 +74,33 @@ export default function JourneyBeholder({ userId, onBack }) {
 
   const lanes = useMemo(() => chunk10(detail?.journey || []), [detail]);
 
+  // mapeia tom por tipo/label (mesma paleta clara do tracker)
+  const toneClass = (stage, type) => {
+    const name = String(stage || "").toLowerCase();
+    const t = String(type || "");
+    if (t.includes("human") || name.includes("atendimento")) return styles.bHuman;
+    if (t.includes("interactive") || name.includes("menu") || name.includes("opcao")) return styles.bInteractive;
+    if (t.includes("script") || t.includes("api") || name.includes("webhook")) return styles.bScript;
+    if (t.includes("condition") || name.includes("condi") || name.includes("valida")) return styles.bCondition;
+    if (t.includes("input") || name.includes("entrada")) return styles.bInput;
+    return styles.bNeutral;
+  };
+
+  if (!userId) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.header}>
+          <button className={styles.backBtn} onClick={() => (onBack ? onBack() : navigate(-1))}>
+            <ChevronLeft size={18} /> Voltar
+          </button>
+        </div>
+        <div className={styles.content}>
+          <div className={styles.empty}>Faltou o identificador do usuário na URL.</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       {/* Topbar */}
@@ -75,7 +108,7 @@ export default function JourneyBeholder({ userId, onBack }) {
         <div className={styles.left}>
           <button
             className={styles.backBtn}
-            onClick={() => onBack?.()}
+            onClick={() => (onBack ? onBack() : navigate(-1))}
             title="Voltar"
             aria-label="Voltar"
           >
@@ -119,31 +152,36 @@ export default function JourneyBeholder({ userId, onBack }) {
                 </div>
               </header>
 
-              {/* 10 por linha (sem espremer) — em telas menores habilita scroll X */}
+              {/* 10 por linha. Em telas estreitas vira scroll X */}
               <div className={styles.flow}>
-                {lane.map((st, i) => {
-                  let tone = styles.bNeutral;
-                  const name = String(st.stage || "").toLowerCase();
-                  const t = String(st.type || "");
-                  if (t.includes("human") || name.includes("atendimento")) tone = styles.bHuman;
-                  else if (t.includes("interactive") || name.includes("menu") || name.includes("opcao")) tone = styles.bInteractive;
-                  else if (t.includes("script") || t.includes("api") || name.includes("webhook")) tone = styles.bScript;
-                  else if (t.includes("condition") || name.includes("condi") || name.includes("valida")) tone = styles.bCondition;
-                  else if (t.includes("input") || name.includes("entrada")) tone = styles.bInput;
-
-                  return (
-                    <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
-                      <div className={`${styles.block} ${tone}`}>
-                        <div className={styles.blockTitle}>{labelize(st.stage)}</div>
-                      </div>
-                      <div className={styles.timeLink}>{fmtTime(st.duration_sec)}</div>
-                      {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
+                {lane.map((st, i) => (
+                  <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
+                    <div className={`${styles.block} ${toneClass(st.stage, st.type)}`}>
+                      <div className={styles.blockTitle}>{labelize(st.stage)}</div>
                     </div>
-                  );
-                })}
+                    <div className={styles.timeLink}>{fmtTime(st.duration_sec)}</div>
+                    {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
+                  </div>
+                ))}
               </div>
             </section>
           ))
+        )}
+
+        {/* Diagnóstico (se disponível) */}
+        {detail?.dwell && (
+          <section className={styles.dwellCard}>
+            <div className={styles.dwellHead}>Diagnóstico da etapa atual</div>
+            <div className={styles.dwellGrid}>
+              <div><span className={styles.dt}>Etapa</span><span className={styles.dv}>{labelize(detail?.dwell?.block || "")}</span></div>
+              <div><span className={styles.dt}>Desde</span><span className={styles.dv}>{detail?.dwell?.entered_at ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR") : "—"}</span></div>
+              <div><span className={styles.dt}>Duração</span><span className={styles.dv}>{fmtTime(detail?.dwell?.duration_sec)}</span></div>
+              <div><span className={styles.dt}>Msgs Bot</span><span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span></div>
+              <div><span className={styles.dt}>Msgs Usuário</span><span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span></div>
+              <div><span className={styles.dt}>Falhas Validação</span><span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span></div>
+              <div><span className={styles.dt}>Maior gap (usuário)</span><span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span></div>
+            </div>
+          </section>
         )}
       </div>
     </div>
