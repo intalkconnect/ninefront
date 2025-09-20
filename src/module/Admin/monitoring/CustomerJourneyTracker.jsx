@@ -183,25 +183,26 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       <ToastContainer position="top-right" autoClose={2500} />
 
       {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerInfo}>
-          {/* Toggle de auto refresh (10s, inicia OFF) */}
-          <label className={styles.switch} title="Auto-refresh a cada 10s">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={() => setAutoRefresh(v => !v)}
-            />
-            <span className={styles.slider} />
-          </label>
-          <span className={styles.switchText}>Auto refresh (10s)</span>
-        </div>
+<div className={styles.header}>
+  <div className={styles.headerInfo}>
+    {/* Toggle de auto refresh (10s, inicia OFF) */}
+    <label className={styles.switch} title="Auto-refresh a cada 10s">
+      <input
+        type="checkbox"
+        checked={autoRefresh}
+        onChange={() => setAutoRefresh(v => !v)}
+        aria-label="Ativar auto refresh a cada 10s"
+      />
+      <span className={styles.slider} />
+    </label>
+    <span className={styles.switchText}>Auto refresh (10s)</span>
+  </div>
 
-        <button className={styles.refreshBtn} onClick={fetchList} disabled={refreshing}>
-          <RefreshCw size={16} className={refreshing ? styles.spinning : ''} />
-          Atualizar
-        </button>
-      </div>
+  <button className={styles.refreshBtn} onClick={fetchList} disabled={refreshing}>
+    <RefreshCw size={16} className={refreshing ? styles.spinning : ''} />
+    Atualizar
+  </button>
+</div>
 
       {/* KPIs */}
       <section className={styles.cardGroup}>
