@@ -6,7 +6,7 @@ import { useConfirm } from '../../../components/ConfirmProvider';
 import { apiGet, apiPost } from '../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, ArrowRight,
-  BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Headset, Trash2, Plus
+  BarChart3, Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Headset, RefreshCcw, Plus
 } from 'lucide-react';
 import styles from './styles/CustomerJourneyTracker.module.css';
 import 'react-toastify/dist/ReactToastify.css';
@@ -206,8 +206,8 @@ export default function CustomerJourneyTracker() {
     const usersInFlow = Array.isArray(metrics?.byStage) ? metrics.byStage.reduce((s, i) => s + (i.users || 0), 0) : 0;
     return [
       { tone: 'red', value: loopers, label: 'Com loops (>1)' },
-      { tone: 'orange', value: top?.users || 0, label: `Top Estágio: ${labelize(top?.block || top?.stage || '—')}` },
-      { tone: 'yellow', value: usersInFlow, label: 'Usuários em fluxo' },
+      { tone: 'orange', value: top?.users || 0, label: `Top Etapas: ${labelize(top?.block || top?.stage || '—')}` },
+      { tone: 'yellow', value: usersInFlow, label: 'Usuários no fluxo' },
       { tone: 'green', value: total, label: 'Total (base atual)' },
     ];
   }, [metrics]);
@@ -301,7 +301,7 @@ export default function CustomerJourneyTracker() {
                 {detailLoading ? (
                   <div className={styles.emptyCell}>Carregando...</div>
                 ) : journey.length === 0 ? (
-                  <div className={styles.emptyCell}>Sem histórico de estágios.</div>
+                  <div className={styles.emptyCell}>Sem histórico de etapas.</div>
                 ) : journey.map((st, i) => {
                   let timelineColorClass = styles.timelineDefault;
                   const stageName = String(st.stage || '').toLowerCase();
@@ -341,9 +341,9 @@ export default function CustomerJourneyTracker() {
 
             {dwell && (
               <section className={styles.dwellBox}>
-                <h4 className={styles.sectionTitle}>Diagnóstico do estágio atual</h4>
+                <h4 className={styles.sectionTitle}>Diagnóstico da etapa atual</h4>
                 <div className={styles.dgrid}>
-                  <Stat label="Estágio" value={labelize(dwell.block || detail?.current_stage || '')} />
+                  <Stat label="Etapa" value={labelize(dwell.block || detail?.current_stage || '')} />
                   <Stat label="Desde" value={dwell.entered_at ? new Date(dwell.entered_at).toLocaleString('pt-BR') : '—'} />
                   <Stat label="Duração" value={fmtTime(dwell.duration_sec)} />
                   <Stat label="Msgs Bot" value={dwell.bot_msgs ?? 0} />
@@ -366,8 +366,8 @@ export default function CustomerJourneyTracker() {
       <div className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.headerTitle}>
-            <h1>Tracert do Bot</h1>
-            <span className={styles.headerSub}>Estágio atual, tempo e loops (sessões humanas ocultas)</span>
+            <h1>Tracert do fluxo</h1>
+            <span className={styles.headerSub}>Etapa atual, tempo e loops.</span>
           </div>
 
           <div className={styles.actions}>
@@ -424,8 +424,8 @@ export default function CustomerJourneyTracker() {
             <thead>
               <tr>
                 <th>Cliente</th>
-                <th>Estágio Atual</th>
-                <th>Tempo no Estágio</th>
+                <th>Etapa Atual</th>
+                <th>Tempo na Etapa</th>
                 <th>Loops</th>
                 <th>Última Entrada</th>
                 <th>Ações</th>
@@ -463,7 +463,7 @@ export default function CustomerJourneyTracker() {
                       <Eye size={16} /> Ver
                     </button>
                     <button onClick={() => resetSession(r.user_id)} className={styles.actionBtn} title="Resetar sessão">
-                      <Trash2 size={16} /> Reset
+                      <RefreshCcw size={16} /> Reset
                     </button>
                     <button onClick={() => createTicket(r.user_id, 'Recepção')} className={styles.actionBtn} title="Criar ticket">
                       <Plus size={16} /> Ticket
