@@ -277,7 +277,7 @@ export default function CustomerJourneyTracker() {
                 onClick={() => resetSession(customer.user_id)}
                 title="Reset para início"
               >
-                <Trash2 size={16} />
+                <RefreshCw size={16} />
                 Reset
               </button>
 
