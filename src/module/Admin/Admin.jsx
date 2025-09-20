@@ -51,6 +51,7 @@ import Channels from "./preferences/Channels";
 import ClientsMonitor from "./monitoring/ClientsMonitor";
 import AgentsMonitor from "./monitoring/AgentsMonitor";
 import CustomerJourneyTracker from "./monitoring/CustomerJourneyTracker";
+import JourneyBeholder from "./monitoring/JourneyBeholder";
 import Queues from "./atendimento/Queues";
 import QuickReplies from "./atendimento/QuickReplies";
 import Templates from "./campanhas/Templates";
@@ -702,6 +703,7 @@ export default function Admin() {
               </RequireRole>
             }
           />
+          <Route path="/development/journey/:userId" element={<JourneyBeholder />} />
 
           {/* settings – admin only */}
           <Route
