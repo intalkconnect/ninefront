@@ -96,7 +96,6 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
               Journey
             </span>
             <span className={styles.bcSep}>/</span>
-            <span>{detail?.user_id || userId || "—"}</span>
           </div>
           <h1 className={styles.pageTitle}>{detail?.name || userId || "Jornada"}</h1>
         </div>
