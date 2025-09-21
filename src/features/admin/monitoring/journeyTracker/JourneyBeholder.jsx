@@ -103,7 +103,6 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
         session_vars: det?.session_vars ?? null,
       });
     } catch (e) {
-      console.error(e);
       toast.error("Falha ao carregar jornada");
     } finally {
       setLoading(false);
