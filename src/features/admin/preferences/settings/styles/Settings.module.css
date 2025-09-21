@@ -24,7 +24,6 @@
 .tableHead{
   display:grid;
   grid-template-columns: 1fr 28vw 144px;
-  background: linear-gradient(180deg,#f7fbff 0%, #eef5ff 100%);
   border-bottom:1px solid #e6edf7;
 }
 .th{
