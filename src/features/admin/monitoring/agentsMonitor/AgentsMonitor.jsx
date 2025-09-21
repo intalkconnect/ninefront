@@ -79,7 +79,6 @@ export default function AgentsRealtime() {
       setNow(new Date());
       if (fromButton) toast.success("Atualizado com sucesso"); // NEW
     } catch (e) {
-      console.error(e);
       setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
       if (fromButton) toast.error("Não foi possível atualizar agora"); // NEW
     } finally {
