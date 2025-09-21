@@ -17,39 +17,33 @@ const fmtTime = (sec = 0) => {
 };
 const labelize = (s = "") =>
   String(s || "").replace(/_/g, " ").replace(/^\w/u, (c) => c.toUpperCase());
+const splitEvery10 = (arr) => { const out=[]; for (let i=0;i<arr.length;i+=10) out.push(arr.slice(i,i+10)); return out; };
 
-const splitEvery10 = (arr) => {
-  const out = [];
-  for (let i = 0; i < arr.length; i += 10) out.push(arr.slice(i, i + 10));
-  return out;
-};
-
-/* borda por tipo; fundo é fixo (azul claro) */
+/* classes por tipo */
 const typeClass = (type) => {
   const t = String(type || "").toLowerCase();
-  if (t === "text")        return styles.bText;
-  if (t === "media")       return styles.bMedia;
-  if (t === "location")    return styles.bLocation;
+  if (t === "text") return styles.bText;
+  if (t === "media") return styles.bMedia;
+  if (t === "location") return styles.bLocation;
   if (t === "interactive") return styles.bInteractive;
-  if (t === "human")       return styles.bHuman;
-  if (t === "api_call")    return styles.bApiCall;
-  if (t === "document")    return styles.bDocument;
-  if (t === "end")         return styles.bEnd;
-  if (t === "script")      return styles.bScript;
-  if (t === "system_reset")return styles.bSystemReset;
+  if (t === "human") return styles.bHuman;
+  if (t === "api_call") return styles.bApiCall;
+  if (t === "document") return styles.bDocument;
+  if (t === "end") return styles.bEnd;
+  if (t === "script") return styles.bScript;
+  if (t === "system_reset") return styles.bSystemReset;
   return styles.bNeutral;
 };
-
 const typeIcon = (type) => {
   const t = String(type || "").toLowerCase();
-  if (t === "text")        return <MessageCircle size={16} />;
+  if (t === "text") return <MessageCircle size={16} />;
   if (t === "interactive") return <BarChart3 size={16} />;
-  if (t === "system_reset")return <RefreshCw size={16} />;
-  if (t === "human")       return <User size={16} />;
-  if (t === "api_call")    return <Activity size={16} />;
-  if (t === "document")    return <FileText size={16} />;
-  if (t === "end")         return <AlertTriangle size={16} />;
-  if (t === "location")    return <MapPin size={16} />;
+  if (t === "system_reset") return <RefreshCw size={16} />;
+  if (t === "human") return <User size={16} />;
+  if (t === "api_call") return <Activity size={16} />;
+  if (t === "document") return <FileText size={16} />;
+  if (t === "end") return <AlertTriangle size={16} />;
+  if (t === "location") return <MapPin size={16} />;
   return <Clock size={16} />;
 };
 
@@ -63,10 +57,18 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // modal
+  // MODAL
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState("vars"); // vars | preview
-  const [selectedStage, setSelectedStage] = useState(null); // objeto da journey
+  const [activeTab, setActiveTab] = useState("logs"); // logs | vars_stage | vars_session
+  const [modalData, setModalData] = useState({
+    stage: null,
+    entered_at: null,
+    left_at: null,
+    vars_stage: null,
+    vars_session: null,
+    logsLoading: false,
+    logs: [],
+  });
 
   const fetchDetail = useCallback(async () => {
     if (!userId) return;
@@ -105,10 +107,42 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
 
   const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
 
-  const openStageModal = (st) => {
-    setSelectedStage(st);
-    setModalTab("vars");
+  // Abre o modal e busca logs por intervalo
+  const openModalForStage = async (st) => {
+    setActiveTab("logs");
+    setModalData({
+      stage: st.stage,
+      entered_at: st.entered_at,
+      left_at: st.left_at ?? null,
+      vars_stage: st.vars ?? null,
+      vars_session: detail?.session_vars ?? null,
+      logsLoading: true,
+      logs: [],
+    });
     setModalOpen(true);
+
+    // --- BUSCA LOGS (intervalo da etapa) ---
+    try {
+      // ajuste o path se o seu backend expuser outro endpoint
+      const qs = new URLSearchParams({
+        from: st.entered_at,
+        to: st.left_at || st.entered_at, // se não tiver left_at, usa entered_at pra não quebrar
+        limit: "300",
+      });
+      const res = await apiGet(
+        `/tracert/customers/${encodeURIComponent(detail.user_id)}/stage-log?${qs.toString()}`
+      );
+      const items = res?.data ?? res;
+      setModalData((prev) => ({
+        ...prev,
+        logsLoading: false,
+        logs: Array.isArray(items) ? items : [],
+      }));
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao carregar logs do intervalo");
+      setModalData((prev) => ({ ...prev, logsLoading: false, logs: [] }));
+    }
   };
 
   return (
@@ -151,12 +185,15 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
                     <button
                       type="button"
                       className={[styles.block, typeClass(st.type)].join(" ")}
-                      onClick={() => openStageModal(st)}
-                      title="Clique para ver detalhes"
+                      onClick={() => openModalForStage(st)}
+                      title="Clique para ver logs e variáveis"
                     >
                       <div className={styles.blockTop}>
                         <div className={styles.typeLeft}>
                           {typeIcon(st.type)}
+                          {Number(st.visits ?? 1) > 1 && (
+                            <span className={`${styles.badge} ${styles.badgeVisits}`}>{st.visits}x</span>
+                          )}
                           {st?.has_error && (
                             <span className={`${styles.badge} ${styles.badgeError}`} title="Erro detectado">
                               Erro
@@ -177,11 +214,8 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
                             : "—"}
                         </span>
                       </div>
-
-                      {/* nada de “última do bot/usuário” aqui */}
                     </button>
 
-                    {/* seta entre cartões */}
                     {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
                   </div>
                 ))}
@@ -190,155 +224,108 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           ))
         )}
 
-        {/* resumo opcional */}
         {detail?.dwell && (
           <section className={styles.dwellCard}>
             <div className={styles.dwellHead}>Visão da etapa atual</div>
             <div className={styles.dwellGrid}>
-              <div>
-                <span className={styles.dt}>Etapa</span>
-                <span className={styles.dv}>{labelize(detail.dwell.block)}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Desde</span>
-                <span className={styles.dv}>
-                  {detail.dwell.entered_at ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR") : "—"}
-                </span>
-              </div>
-              <div>
-                <span className={styles.dt}>Duração</span>
-                <span className={styles.dv}>{fmtTime(detail.dwell.duration_sec)}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Msgs Bot</span>
-                <span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Msgs Usuário</span>
-                <span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Falhas Validação</span>
-                <span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span>
-              </div>
-              <div className={styles.span2}>
-                <span className={styles.dt}>Maior gap (usuário)</span>
-                <span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span>
-              </div>
+              <div><span className={styles.dt}>Etapa</span><span className={styles.dv}>{labelize(detail.dwell.block)}</span></div>
+              <div><span className={styles.dt}>Desde</span><span className={styles.dv}>{detail.dwell.entered_at ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR") : "—"}</span></div>
+              <div><span className={styles.dt}>Duração</span><span className={styles.dv}>{fmtTime(detail.dwell.duration_sec)}</span></div>
+              <div><span className={styles.dt}>Msgs Bot</span><span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span></div>
+              <div><span className={styles.dt}>Msgs Usuário</span><span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span></div>
+              <div><span className={styles.dt}>Falhas Validação</span><span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span></div>
+              <div className={styles.span2}><span className={styles.dt}>Maior gap (usuário)</span><span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span></div>
             </div>
           </section>
         )}
       </div>
 
       {/* MODAL */}
-      {modalOpen && selectedStage && (
+      {modalOpen && (
         <div className={styles.modalOverlay} onClick={() => setModalOpen(false)}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHead}>
-              <div>
-                <div className={styles.modalTitle}>
-                  {typeIcon(selectedStage.type)}
-                  <span>{labelize(selectedStage.stage)}</span>
-                </div>
-                <div className={styles.modalSub}>
-                  {selectedStage.entered_at
-                    ? new Date(selectedStage.entered_at).toLocaleString("pt-BR")
-                    : "—"}{" "}
-                  · {fmtTime(selectedStage.duration_sec)}
-                </div>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitle}>
+                <span className={styles.modalStage}>{labelize(modalData.stage)}</span>
+                <span className={styles.modalMeta}>
+                  {modalData.entered_at ? new Date(modalData.entered_at).toLocaleString("pt-BR") : "—"}
+                </span>
               </div>
               <button className={styles.modalClose} onClick={() => setModalOpen(false)} aria-label="Fechar">
                 <X size={18} />
               </button>
             </div>
 
-            <div className={styles.modalTabs}>
+            {/* Abas */}
+            <div className={styles.tabs}>
               <button
-                className={`${styles.tabBtn} ${modalTab === "vars" ? styles.tabActive : ""}`}
-                onClick={() => setModalTab("vars")}
+                className={`${styles.tab} ${activeTab === "logs" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("logs")}
               >
-                Variáveis
+                Logs
               </button>
               <button
-                className={`${styles.tabBtn} ${modalTab === "preview" ? styles.tabActive : ""}`}
-                onClick={() => setModalTab("preview")}
+                className={`${styles.tab} ${activeTab === "vars_stage" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("vars_stage")}
               >
-                Prévia (opcional)
+                Variáveis (etapa)
+              </button>
+              <button
+                className={`${styles.tab} ${activeTab === "vars_session" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("vars_session")}
+              >
+                Variáveis (sessão)
               </button>
             </div>
 
-            <div className={styles.modalBody}>
-              {modalTab === "vars" ? (
-                <div className={styles.varsGrid}>
-                  <div className={styles.varsCard}>
-                    <div className={styles.varsHead}>Variáveis do bloco</div>
-                    <div className={styles.varsScroll}>
-                      {selectedStage?.vars && Object.keys(selectedStage.vars).length ? (
-                        <table className={styles.kvTable}>
-                          <tbody>
-                            {Object.entries(selectedStage.vars).map(([k, v]) => (
-                              <tr key={k}>
-                                <td className={styles.kCell}>{k}</td>
-                                <td className={styles.vCell}>
-                                  {typeof v === "object" ? (
-                                    <pre className={styles.code}>{JSON.stringify(v, null, 2)}</pre>
-                                  ) : (
-                                    String(v)
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <div className={styles.emptySmall}>Sem variáveis registradas neste bloco.</div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.varsCard}>
-                    <div className={styles.varsHead}>Variáveis da sessão</div>
-                    <div className={styles.varsScroll}>
-                      {detail?.session_vars && Object.keys(detail.session_vars).length ? (
-                        <table className={styles.kvTable}>
-                          <tbody>
-                            {Object.entries(detail.session_vars).map(([k, v]) => (
-                              <tr key={k}>
-                                <td className={styles.kCell}>{k}</td>
-                                <td className={styles.vCell}>
-                                  {typeof v === "object" ? (
-                                    <pre className={styles.code}>{JSON.stringify(v, null, 2)}</pre>
-                                  ) : (
-                                    String(v)
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <div className={styles.emptySmall}>Sem variáveis de sessão.</div>
-                      )}
-                    </div>
-                  </div>
+            {/* Conteúdo das abas */}
+            <div className={styles.tabContent}>
+              {activeTab === "logs" && (
+                <div className={styles.logsScroll}>
+                  {modalData.logsLoading ? (
+                    <div className={styles.logsEmpty}>Carregando…</div>
+                  ) : modalData.logs.length === 0 ? (
+                    <div className={styles.logsEmpty}>Sem mensagens neste intervalo.</div>
+                  ) : (
+                    <ul className={styles.logsList}>
+                      {modalData.logs.map((lg, i) => (
+                        <li key={i} className="logRow">
+                          <div className={styles.logHead}>
+                            <span className={
+                              lg.direction === "incoming" ? styles.dirIn :
+                              lg.direction === "outgoing" ? styles.dirOut : styles.dirSys
+                            }>
+                              {lg.direction === "incoming" ? "Usuário" : lg.direction === "outgoing" ? "Bot" : "Sistema"}
+                            </span>
+                            <span className={styles.logTs}>{new Date(lg.ts).toLocaleString("pt-BR")}</span>
+                          </div>
+                          <pre className={`${styles.logBody} ${lg.is_error ? styles.isError : ""}`}>
+{String(lg.content ?? "").trim()}
+                          </pre>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-              ) : (
-                <div className={styles.previewWrap}>
-                  <div className={styles.pLine}>
-                    <span className={styles.pLabel}>Último do usuário:</span>
-                    <pre className={styles.pCode}>
-{selectedStage?.last_incoming ? String(selectedStage.last_incoming) : "—"}
-                    </pre>
-                  </div>
-                  <div className={styles.pLine}>
-                    <span className={styles.pLabel}>Último do bot:</span>
-                    <pre className={styles.pCode}>
-{selectedStage?.last_outgoing ? String(selectedStage.last_outgoing) : "—"}
-                    </pre>
-                  </div>
-                  <div className={styles.pHint}>
-                    Observação: esta é apenas uma prévia rápida. Logs completos por intervalo não estão habilitados.
-                  </div>
+              )}
+
+              {activeTab === "vars_stage" && (
+                <div className={styles.varsBox}>
+                  {modalData.vars_stage ? (
+                    <pre className={styles.varsPre}>{JSON.stringify(modalData.vars_stage, null, 2)}</pre>
+                  ) : (
+                    <div className={styles.logsEmpty}>Sem variáveis registradas para esta etapa.</div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "vars_session" && (
+                <div className={styles.varsBox}>
+                  {modalData.vars_session ? (
+                    <pre className={styles.varsPre}>{JSON.stringify(modalData.vars_session, null, 2)}</pre>
+                  ) : (
+                    <div className={styles.logsEmpty}>Sem variáveis na sessão.</div>
+                  )}
                 </div>
               )}
             </div>
