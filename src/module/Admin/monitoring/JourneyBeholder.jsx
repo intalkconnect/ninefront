@@ -1,9 +1,10 @@
+// File: JourneyBeholder.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ChevronLeft, Clock, User, MessageCircle, AlertTriangle,
-  Activity, RefreshCw, BarChart3, MapPin, FileText
+  Activity, RefreshCw, BarChart3, MapPin, FileText, X
 } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
 import styles from "./styles/JourneyBeholder.module.css";
@@ -53,6 +54,24 @@ const typeIcon = (type) => {
   return <Clock size={16} />;
 };
 
+/* ---------- modal ---------- */
+function Modal({ open, title, onClose, children }) {
+  if (!open) return null;
+  return (
+    <div className={styles.modalBackdrop} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHead}>
+          <h3>{title}</h3>
+          <button className={styles.iconBtn} onClick={onClose} aria-label="Fechar">
+            <X size={18} />
+          </button>
+        </div>
+        <div className={styles.modalBody}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- page ---------- */
 export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const { userId: routeUserId } = useParams();
@@ -63,9 +82,13 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // expansão inline por etapa (um por vez)
-  const [expandedKey, setExpandedKey] = useState(null);
-  const [logsByKey, setLogsByKey] = useState({}); // { key: { loading, items } }
+  // modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState("logs"); // "logs" | "vars"
+  const [modalStage, setModalStage] = useState(null);
+  const [stageLogs, setStageLogs] = useState([]);
+  const [stageVars, setStageVars] = useState(null);
+  const [stageLoading, setStageLoading] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     if (!userId) return;
@@ -103,27 +126,35 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
 
   const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
 
-  // lazy-load de logs da etapa (intervalo entered_at..left_at)
-  const fetchStageLog = useCallback(async (key, st) => {
-    if (!detail?.user_id) return;
-    if (logsByKey[key]?.items) return;
-
-    setLogsByKey(prev => ({ ...prev, [key]: { loading: true, items: [] } }));
+  // carrega logs + variáveis da etapa selecionada
+  const openStageModal = useCallback(async (st, tab = "logs") => {
+    setModalStage(st);
+    setModalTab(tab);
+    setModalOpen(true);
+    setStageLoading(true);
     try {
-      const qs = new URLSearchParams({
-        entered_at: st.entered_at,
-        stage: st.stage,
-        limit: "200",
-      });
-      const resp = await apiGet(`/tracert/customers/${encodeURIComponent(detail.user_id)}/stage-log?${qs.toString()}`);
-      const items = resp?.data ?? resp;
-      setLogsByKey(prev => ({ ...prev, [key]: { loading: false, items: Array.isArray(items) ? items : [] } }));
+      const q1 = new URLSearchParams({ entered_at: st.entered_at, stage: st.stage, limit: "300" });
+      const q2 = new URLSearchParams({ entered_at: st.entered_at, stage: st.stage });
+
+      const [logsResp, varsResp] = await Promise.allSettled([
+        apiGet(`/tracert/customers/${encodeURIComponent(userId)}/stage-log?${q1.toString()}`),
+        apiGet(`/tracert/customers/${encodeURIComponent(userId)}/stage-vars?${q2.toString()}`),
+      ]);
+
+      const logs = logsResp.status === "fulfilled" ? (logsResp.value?.data ?? logsResp.value ?? []) : [];
+      const vars = varsResp.status === "fulfilled" ? (varsResp.value?.data ?? varsResp.value ?? null) : null;
+
+      setStageLogs(Array.isArray(logs) ? logs : []);
+      setStageVars(vars && typeof vars === "object" ? vars : null);
     } catch (e) {
       console.error(e);
-      toast.error("Falha ao carregar logs da etapa");
-      setLogsByKey(prev => ({ ...prev, [key]: { loading: false, items: [] } }));
+      toast.error("Falha ao carregar detalhes da etapa");
+      setStageLogs([]);
+      setStageVars(null);
+    } finally {
+      setStageLoading(false);
     }
-  }, [detail?.user_id, logsByKey]);
+  }, [userId]);
 
   return (
     <div className={styles.page}>
@@ -160,102 +191,48 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           lanes.map((lane, idx) => (
             <section className={styles.lane} key={`lane-${idx}`}>
               <div className={styles.flow}>
-                {lane.map((st, i) => {
-                  const key = `${st.stage}|${st.entered_at}`;
-                  const isOpen = expandedKey === key;
-                  return (
-                    <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
-                      <div className={[
-                        styles.block,
-                        typeClass(st.type),
-                        isOpen ? styles.blockExpanded : ""
-                      ].join(" ")}>
-                        <div className={styles.blockTop}>
-                          <div className={styles.typeLeft}>
-                            {typeIcon(st.type)}
-                            {Number(st.visits ?? 1) > 1 && (
-                              <span className={`${styles.badge} ${styles.badgeVisits}`}>{st.visits}x</span>
-                            )}
-                            {st?.has_error && (
-                              <span className={`${styles.badge} ${styles.badgeError}`} title="Erro detectado">
-                                Erro
-                              </span>
-                            )}
-                          </div>
-                          <span className={styles.duration}>{fmtTime(st.duration_sec)}</span>
+                {lane.map((st, i) => (
+                  <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
+                    <button
+                      type="button"
+                      className={[styles.block, typeClass(st.type)].join(" ")}
+                      onClick={() => openStageModal(st, "logs")}
+                      title="Clique para ver logs e variáveis"
+                    >
+                      <div className={styles.blockTop}>
+                        <div className={styles.typeLeft}>
+                          {typeIcon(st.type)}
+                          {Number(st.visits ?? 1) > 1 && (
+                            <span className={`${styles.badge} ${styles.badgeVisits}`}>{st.visits}x</span>
+                          )}
+                          {st?.has_error && (
+                            <span className={`${styles.badge} ${styles.badgeError}`} title="Erro detectado">
+                              Erro
+                            </span>
+                          )}
                         </div>
-
-                        <div className={styles.blockTitle}>{labelize(st.stage)}</div>
-
-                        <div className={styles.metaRow}>
-                          <span className={styles.started}>
-                            {st.entered_at
-                              ? new Date(st.entered_at).toLocaleTimeString("pt-BR", {
-                                  hour: "2-digit", minute: "2-digit", second: "2-digit",
-                                })
-                              : "—"}
-                          </span>
-                        </div>
-
-                        <div className={styles.controlsRow}>
-                          <button
-                            type="button"
-                            className={styles.expBtn}
-                            onClick={async () => {
-                              const willOpen = !isOpen;
-                              setExpandedKey(willOpen ? key : null);
-                              if (willOpen) await fetchStageLog(key, st);
-                            }}
-                          >
-                            {isOpen ? "Ocultar logs" : "Ver logs"}
-                          </button>
-                        </div>
-
-                        {/* LOGS INLINE (texto simples, sem bolhas e sem scroll interno) */}
-                        {isOpen && (
-                          <div className={styles.inlineLogs}>
-                            {logsByKey[key]?.loading ? (
-                              <div className={styles.inlineEmpty}>Carregando…</div>
-                            ) : (logsByKey[key]?.items?.length || 0) === 0 ? (
-                              <div className={styles.inlineEmpty}>Sem mensagens neste intervalo.</div>
-                            ) : (
-                              <ul className={styles.inlineList}>
-                                {logsByKey[key].items.slice(0, 20).map((lg, j) => (
-                                  <li key={j} className={styles.inlineItem}>
-                                    <div className={styles.inlineHead}>
-                                      <span className={
-                                        lg.direction === "incoming"
-                                          ? styles.dirIn
-                                          : lg.direction === "outgoing"
-                                          ? styles.dirOut
-                                          : styles.dirSys
-                                      }>
-                                        {lg.direction === "incoming"
-                                          ? "Usuário"
-                                          : lg.direction === "outgoing"
-                                          ? "Bot"
-                                          : "Sistema"}
-                                      </span>
-                                      <span className={styles.inlineTs}>
-                                        {new Date(lg.ts).toLocaleTimeString("pt-BR")}
-                                      </span>
-                                    </div>
-                                    <pre className={`${styles.inlineBody} ${lg.is_error ? styles.isError : ""}`}>
-{String(lg.content || "").trim()}
-                                    </pre>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
+                        <span className={styles.duration}>{fmtTime(st.duration_sec)}</span>
                       </div>
 
-                      {/* seta entre cartões */}
-                      {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
-                    </div>
-                  );
-                })}
+                      <div className={styles.blockTitle}>{labelize(st.stage)}</div>
+
+                      <div className={styles.metaRow}>
+                        <span className={styles.started}>
+                          {st.entered_at
+                            ? new Date(st.entered_at).toLocaleTimeString("pt-BR", {
+                                hour: "2-digit", minute: "2-digit", second: "2-digit",
+                              })
+                            : "—"}
+                        </span>
+                      </div>
+
+                      <div className={styles.hint}>Clique para abrir</div>
+                    </button>
+
+                    {/* seta entre cartões */}
+                    {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
+                  </div>
+                ))}
               </div>
             </section>
           ))
@@ -300,6 +277,68 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           </section>
         )}
       </div>
+
+      {/* MODAL (Logs / Variáveis) */}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={
+          modalStage
+            ? `${labelize(modalStage.stage)} — ${new Date(modalStage.entered_at).toLocaleString("pt-BR")}`
+            : "Detalhes da etapa"
+        }
+      >
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tabBtn} ${modalTab === "logs" ? styles.tabActive : ""}`}
+            onClick={() => setModalTab("logs")}
+          >
+            Logs
+          </button>
+          <button
+            className={`${styles.tabBtn} ${modalTab === "vars" ? styles.tabActive : ""}`}
+            onClick={() => setModalTab("vars")}
+          >
+            Variáveis
+          </button>
+        </div>
+
+        {stageLoading ? (
+          <div className={styles.modalEmpty}>Carregando…</div>
+        ) : modalTab === "logs" ? (
+          (stageLogs?.length || 0) === 0 ? (
+            <div className={styles.modalEmpty}>Sem logs no intervalo.</div>
+          ) : (
+            <ul className={styles.logList}>
+              {stageLogs.map((lg, idx) => (
+                <li key={idx} className={styles.logRow}>
+                  <div className={styles.logHead}>
+                    <span
+                      className={
+                        lg.direction === "incoming"
+                          ? styles.dirIn
+                          : lg.direction === "outgoing"
+                          ? styles.dirOut
+                          : styles.dirSys
+                      }
+                    >
+                      {lg.direction === "incoming" ? "Usuário" : lg.direction === "outgoing" ? "Bot" : "Sistema"}
+                    </span>
+                    <span className={styles.logTs}>{new Date(lg.ts).toLocaleString("pt-BR")}</span>
+                  </div>
+                  <pre className={`${styles.logBody} ${lg.is_error ? styles.isError : ""}`}>
+                    {String(lg.content || "").trim()}
+                  </pre>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : stageVars ? (
+          <pre className={styles.jsonView}>{JSON.stringify(stageVars, null, 2)}</pre>
+        ) : (
+          <div className={styles.modalEmpty}>Sem variáveis para esta etapa.</div>
+        )}
+      </Modal>
     </div>
   );
 }
