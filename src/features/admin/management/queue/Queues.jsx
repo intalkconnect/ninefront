@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Users, Clock3, CheckCircle2, X as XIcon } from 'lucide-react';
 import { apiGet } from '../../../../shared/apiClient';
+import { toast } from 'react-toastify';
 import QueueHoursModal from './QueueHoursModal';
 import QueueModal from './QueueModal';
 import styles from './styles/Queues.module.css';
@@ -39,7 +40,7 @@ export default function Queues() {
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      setErro('Falha ao carregar filas.');
+      toast.error('Falha ao carregar filas.');
     } finally {
       setLoading(false);
     }
@@ -60,6 +61,17 @@ export default function Queues() {
   }, [rows, query]);
 
   const clearSearch = () => setQuery('');
+
+    // feedback leve quando a busca não encontra nada (debounced para não “spammar”)
+  useEffect(() => {
+    if (!query.trim()) return;
+    const t = setTimeout(() => {
+      if (!loading && filas.length > 0 && filtered.length === 0) {
+        toast.info('Nenhuma fila corresponde à sua busca.');
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [query, loading, filas.length, filtered.length]);
 
   return (
     <>
@@ -166,13 +178,21 @@ export default function Queues() {
       <QueueModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => { setCreateOpen(false); load(); }}
+          onCreated={() => {
+          setCreateOpen(false);
+          toast.success('Fila criada com sucesso.');
+          load();
+        }}
       />
       {hoursOpenFor && (
         <QueueHoursModal
           filaNome={hoursOpenFor}
           onClose={() => setHoursOpenFor(null)}
-          onSaved={() => { setHoursOpenFor(null); load(); }}
+                   onSaved={() => {
+            setHoursOpenFor(null);
+            toast.success('Horários/feriados salvos.');
+            load();
+          }}
         />
       )}
     </>
