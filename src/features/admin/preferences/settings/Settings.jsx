@@ -96,7 +96,6 @@ const Toggle = ({ checked, onChange, label }) => (
     title={label}
   >
     <span className={styles.knob} />
-    {/* escondemos o texto do switch para não duplicar com o label da coluna */}
     <span className={styles.toggleText} />
   </button>
 );
@@ -308,58 +307,55 @@ export default function Preferences() {
 
   return (
     <div className={styles.container}>
-      {/* sem título – só subtítulo + linha azul igual ao print */}
+      {/* topo sem título, sem glow */}
       <div className={styles.header}>
         <div className={styles.subtitle}>
           Envie imediatamente ou agende. Acompanhe progresso e resultados.
         </div>
         <div className={styles.ruleWrap}>
           <div className={styles.ruleTop} />
-          <div className={styles.ruleGlow} />
         </div>
       </div>
 
-      {/* Cabeçalho da “tabela” */}
-      <div className={styles.headRow}>
-        <div className={styles.headOption}>OPÇÃO</div>
-        <div className={styles.headValue}>VALOR</div>
-        <div className={styles.headUpdated}>ATUALIZADO</div>
-      </div>
+      {/* Card da “tabela” com header como no print */}
+      <div className={styles.tableCard}>
+        <div className={styles.tableHead}>
+          <div className={styles.th}>Opção</div>
+          <div className={styles.th}>Valor</div>
+          <div className={styles.th}>Atualizado</div>
+        </div>
 
-      {/* Lista */}
-      <div className={styles.list}>
-        {loading && <div className={styles.loading}>Carregando…</div>}
+        <div className={styles.tableBody}>
+          {loading && <div className={styles.loading}>Carregando…</div>}
 
-        {!loading && ordered.map((row) => {
-          const key = row.key ?? row['key'];
-          const spec = FRIENDLY[key];
-          const raw = row.value;
+          {!loading && ordered.map((row) => {
+            const key = row.key ?? row['key'];
+            const spec = FRIENDLY[key];
+            const raw = row.value;
 
-          return (
-            <div className={styles.row} key={key}>
-              {/* OPÇÃO */}
-              <div className={styles.colOption}>
-                <div className={styles.optionTitle}>{spec?.label ?? key}</div>
-                {spec?.help && <div className={styles.optionHelp}>{spec.help}</div>}
-                {row.description && <div className={styles.optionDesc}>{row.description}</div>}
+            return (
+              <div className={styles.row} key={key}>
+                <div className={styles.colOption}>
+                  <div className={styles.optionTitle}>{spec?.label ?? key}</div>
+                  {spec?.help && <div className={styles.optionHelp}>{spec.help}</div>}
+                  {row.description && <div className={styles.optionDesc}>{row.description}</div>}
+                </div>
+
+                <div className={styles.colValue}>
+                  {renderValueCell(key, raw)}
+                </div>
+
+                <div className={styles.colUpdated}>
+                  {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
+                </div>
               </div>
+            );
+          })}
 
-              {/* VALOR */}
-              <div className={styles.colValue}>
-                {renderValueCell(key, raw)}
-              </div>
-
-              {/* ATUALIZADO */}
-              <div className={styles.colUpdated}>
-                {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
-              </div>
-            </div>
-          );
-        })}
-
-        {!loading && ordered.length === 0 && (
-          <div className={styles.empty}>Nenhuma preferência encontrada.</div>
-        )}
+          {!loading && ordered.length === 0 && (
+            <div className={styles.empty}>Nenhuma preferência encontrada.</div>
+          )}
+        </div>
       </div>
     </div>
   );
