@@ -1,0 +1,116 @@
+:root{
+  --qr-surface:#f7f8fa;
+  --qr-border:#e5e7eb;
+  --qr-border-light:#eef2f7;
+  --qr-text:#0f172a;
+  --qr-text-2:#374151;
+  --qr-primary:#8B5CF6;
+  --qr-primary-600:#7C3AED;
+}
+
+/* ===== Modal central ===== */
+.tpOverlay{
+  position:fixed; inset:0; background:rgba(17,24,39,.45);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px; z-index:9999; overflow-x:hidden;
+}
+.tpModal{
+  width:100%; max-width:560px; max-height:88vh;
+  display:flex; flex-direction:column; background:#fff;
+  border:1px solid var(--qr-border-light); border-radius:16px;
+  box-shadow:0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .06);
+  overflow:hidden;
+}
+.tpHeader{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 18px; border-bottom:1px solid var(--qr-border-light);
+  background: linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%),
+              linear-gradient(90deg, rgba(139,92,246,.18) 0%, transparent 40%);
+}
+.tpTitle{ margin:0; font-size:18px; font-weight:800; color:var(--qr-text); }
+.tpClose{
+  background:#fff; border:1px solid var(--qr-border); border-radius:8px; padding:6px; cursor:pointer;
+}
+.tpBody{ flex:1 1 auto; overflow:auto; padding:14px 18px; overflow-x:hidden; }
+.tpFooter{
+  display:flex; justify-content:flex-end; gap:10px; padding:12px 18px;
+  border-top:1px solid var(--qr-border-light);
+  background:linear-gradient(180deg, #fff 0%, var(--qr-surface) 100%);
+}
+
+.btn,.btnPrimary,.btnSecondary{
+  appearance:none; border:1px solid; border-radius:10px;
+  padding:10px 14px; font-size:14px; font-weight:700;
+  display:inline-flex; align-items:center; gap:8px;
+  cursor:pointer; transition:var(--t-fast); background:#fff; color:var(--qr-text-2);
+}
+.btn{ border-color:var(--qr-border); }
+.btn:hover{ background:var(--qr-surface-2); color:var(--qr-text); }
+.btnPrimary{
+  background:#8B5CF6 !important; border-color:#8B5CF6 !important; color:#fff !important;
+  box-shadow:0 6px 14px rgba(139,92,246,.25) !important;
+}
+.btnPrimary:hover{ background:#7C3AED !important; border-color:#7C3AED !important; }
+.btnSecondary{
+  background:#f1f0ff !important; border-color:#e6e4ff !important; color:#4338ca !important;
+}
+
+/* ===== Preview estilo app (meta-like com identidade própria) ===== */
+.waCard{
+  margin:0 auto; max-width:360px; width:100%;
+  background:#fff; border:1px solid var(--qr-border-light);
+  border-radius:16px; box-shadow:0 1px 3px 0 rgb(0 0 0 / 8%);
+  overflow:hidden;
+}
+.waTopBar{
+  padding:12px 14px;
+  background:linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%);
+  border-bottom:1px solid var(--qr-border-light);
+  font-weight:800; color:var(--qr-text-2); text-align:left;
+}
+.waScreen{
+  padding:16px;
+  background:
+    radial-gradient(circle at 12px 12px, rgba(139,92,246,.08) 2px, transparent 2px) 0 0/18px 18px,
+    linear-gradient(180deg,#fbfbfc 0%, #f6f7fb 100%);
+  min-height:220px; display:grid; gap:10px; overflow-x:hidden;
+}
+.waAttachment{
+  width:100%; height:160px; border-radius:14px;
+  background:#efeafe; color:#4c1d95; display:grid; place-items:center; font-weight:700;
+  box-shadow:0 1px 0 rgba(0,0,0,.04);
+}
+.waBubble{
+  position:relative; max-width:92%; background:#fff;
+  border:1px solid #e9eaf3; border-radius:14px;
+  box-shadow:0 1px 0 rgba(0,0,0,.04);
+  padding:10px 12px 22px; color:#151826; line-height:1.35;
+  word-break:break-word;
+}
+.waBubble::after{
+  content:''; position:absolute; left:16px; bottom:-7px; width:18px; height:14px;
+  background: radial-gradient(18px 14px at 0 100%, #ffffff 99%, transparent 100%),
+              radial-gradient(18px 14px at 100% 0, #ffffff 99%, transparent 100%);
+  filter: drop-shadow(0 -1px 0 #e9eaf3);
+}
+.waHeader{ font-weight:800; margin-bottom:6px; color:#111827; }
+.waBody{ white-space:pre-wrap; }
+.waFooter{ margin-top:8px; font-size:12px; color:#6b7280; }
+.waTime{ position:absolute; right:10px; bottom:4px; font-size:11px; color:#9ca3af; }
+
+.waButtons{ display:flex; gap:8px; flex-wrap:wrap; padding-left:4px; }
+.waBtnReply{
+  border:1px solid var(--qr-border); background:#fff; color:#111827;
+  border-radius:999px; padding:6px 12px; font-weight:700; cursor:default;
+}
+.waBtnCta{
+  border:1px solid var(--qr-primary);
+  background:linear-gradient(180deg, var(--qr-primary) 0%, var(--qr-primary-600) 100%);
+  color:#fff; border-radius:999px; padding:6px 14px; font-weight:800; cursor:default;
+  box-shadow:0 1px 0 rgba(0,0,0,.08);
+}
+
+/* Responsivo */
+@media (max-width: 480px){
+  .tpModal{ width:100%; }
+}

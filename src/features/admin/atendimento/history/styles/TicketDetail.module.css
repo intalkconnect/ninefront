@@ -1,0 +1,281 @@
+/* ========== Variáveis & base ========== */
+.page {
+  --container-max: 1440px;
+  --gap: 16px;
+  --card-bg: #fff;
+  --card-border: #e3e7ee;
+  --muted: #64748b;
+  --text: #0f172a;
+  --divider: #eef2f7;
+
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+  background: #f6f7fb;
+}
+
+/* Breadcrumbs no topo */
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+}
+.bcLink {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+.bcLink:hover { color: #111827; text-decoration: underline; }
+.bcSep { margin: 0 6px; color: #94a3b8; }
+
+/* ========== Header (título à esquerda, ações à direita) ========== */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.titleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 800;
+  color: var(--text);
+}
+.metaRow {
+  color: var(--muted);
+  font-size: 14px;
+}
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #111827;
+}
+.backBtn:hover { background: #f8fafc; }
+
+/* ========== Layout 2 colunas ========== */
+.columns {
+  display: grid;
+  grid-template-columns: 420px 1fr; /* sidebar | chat */
+  gap: 16px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 88px; /* cola abaixo do header da página */
+  align-self: start;
+}
+
+/* ========== Cards & seções ========== */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.section { padding: 16px; }
+
+.divider {
+  height: 1px;
+  background: var(--divider);
+  margin: 0;
+}
+
+/* Perfil do cliente (avatar + nome + id/contato) */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.personName { font-weight: 700; color: var(--text); }
+.personId   { font-size: 12px; color: var(--muted); }
+
+/* Lista de infos (Fila / Atendente / Status / Última atualização) */
+.infoList { display: grid; gap: 14px; }
+.infoItem { display: grid; gap: 6px; }
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #94a3b8;
+}
+.value { color: var(--text); font-weight: 600; }
+
+/* Pill de status */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fef9c3;
+  color: #854d0e;
+  font-weight: 600;
+  font-size: 12px;
+  border: 1px solid #fde68a;
+}
+
+/* Tags */
+.tagsWrap { padding: 14px 16px; }
+.tagsTitle { font-weight: 700; margin-bottom: 8px; }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+/* ========== Coluna do chat ========== */
+.main { min-height: 60vh; }
+
+.chatCard {
+  display: grid;
+  grid-template-rows: auto minmax(480px, 70vh);
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cardHead {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--divider);
+  background: #fff;
+}
+
+/* Tabs */
+.tabs { display: flex; gap: 24px; }
+.tab {
+  padding: 12px 4px;
+  border: 0;
+  background: none;
+  font-weight: 600;
+  color: #64748b;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.tab:hover { color: #111827; }
+.tabActive {
+  color: #2563eb;
+  border-bottom-color: #3b82f6;
+}
+
+.chatBody { padding: 0; height: 100%; }
+
+/* Loading & erro */
+.loading, .error {
+  padding: 18px;
+  color: var(--muted);
+}
+
+/* ====== Empty states (sem mensagens / sem anexos) ====== */
+.emptyState {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--muted);
+  padding: 24px;
+}
+.emptyTitle { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.emptySub   { font-size: 13px; }
+
+/* ====== Attachments ====== */
+.attachWrap { padding: 12px; }
+.attachList { display: grid; gap: 8px; }
+.attachItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  background: #fff;
+}
+.attachLeft { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.fileIcon {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: #eef2ff; color: #3730a3;
+  display: grid; place-items: center; font-weight: 700;
+}
+.fileText { min-width: 0; }
+.fileName {
+  font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fileMeta { font-size: 12px; color: var(--muted); }
+.attachActions { display: flex; align-items: center; gap: 8px; }
+.btnGhost { transition: background .15s ease, box-shadow .15s ease; }
+.btnGhost:hover { background:#f8fafc; box-shadow:0 1px 0 rgba(0,0,0,.04); }
+
+/* ========== Responsivo ========== */
+@media (max-width: 1100px) {
+  .columns { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .title { font-size: 22px; }
+}
+
+/* ===== Botão primário (azul degradê) ===== */
+.btnPrimary{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color:#ffffff;border:none;border-radius:10px;font-weight:700;font-size:14px;
+  cursor:pointer;transition: all 0.2s ease;box-shadow:0 2px 8px rgba(59,130,246,0.2);
+}
+.btnPrimary:hover{ transform: translateY(-1px); box-shadow:0 4px 12px rgba(59,130,246,0.3); }
+.btnPrimary:active{ transform: translateY(0); box-shadow:0 2px 8px rgba(59,130,246,0.2); }
+.btnPrimary:focus-visible{ outline: 2px solid #bfdbfe; outline-offset: 2px; }
+.btnPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: saturate(0.6);
+}
+
+
+/* Tamanho pequeno para botões compactos (ex.: Baixar) */
+.btnSm{ padding:8px 12px; font-size:13px; border-radius:8px; gap:6px; }
+
+/* Versão “ghost” (linkzinho com hover) – opcional, se quiser usar em outros lugares */
+.btnGhost {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;border:1px solid var(--card-border);border-radius:8px;background:#fff;
+  color:#111827;font-weight:600; cursor:pointer; transition: background .15s ease, box-shadow .15s ease;
+}
+.btnGhost:hover { background:#f8fafc; box-shadow:0 1px 0 rgba(0,0,0,.04); }
