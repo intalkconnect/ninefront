@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { apiGet } from "../../../shared/apiClient";
 import { toast } from "react-toastify";
 import { ChevronLeft, RefreshCw, Clock, User, MessageCircle, AlertTriangle, Activity, BarChart3, MessageSquare } from "lucide-react";
-import styles from "./styles/JourneyBeholderNew.module.css";
+import styles from "./styles/JourneyBeholder.module.css";
 
 /* utils */
 const fmtTime = (sec = 0) => {
