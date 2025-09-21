@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../../shared/apiClient";
-import styles from "./styles/WhatsappProfile.module.css";
+import styles from "./styles/WhatsAppProfile.module.css";
 
 /* -------- tenant -------- */
 function getTenantFromHost() {
