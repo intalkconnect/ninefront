@@ -10,6 +10,7 @@ import {
   Users,
   DollarSign
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import styles from './styles/BillingExtrato.module.css';
 
 /* ========================= Helpers ========================= */
@@ -110,7 +111,6 @@ export default function BillingExtrato() {
   const debTo = useDebounce(to, 300);
 
   const [loading, setLoading] = useState(false);
-  const [errMsg, setErrMsg] = useState(null);
   const [data, setData] = useState({ rows: [], total_cents: 0, totals_by_channel: [] });
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -159,7 +159,7 @@ export default function BillingExtrato() {
       if (mounted.current) setData({ rows, total_cents, totals_by_channel });
     } catch (e) {
       console.error(e);
-      if (mounted.current) setErrMsg('Falha ao carregar extrato. Verifique o período.');
+      if (mounted.current) toast.error('Falha ao carregar extrato. Verifique o período.');
     } finally {
       if (mounted.current) setLoading(false);
     }
@@ -400,11 +400,6 @@ const handleExport = () => {
           </table>
         </div>
 
-        {errMsg && (
-          <div className={styles.alertErr} role="alert">
-            ⚠️ {errMsg}
-          </div>
-        )}
       </div>
     </div>
   );
