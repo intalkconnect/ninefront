@@ -17,7 +17,7 @@ import { getRelativeTime } from "../../utils/time";
 import ChannelIcon from "./ChannelIcon";
 import PauseModal from "../pauseModal/PauseModal";
 
-import "./Sidebar.css";
+import "./styles/Sidebar.css";
 
 export default function Sidebar() {
   const conversations = useConversationsStore((state) => state.conversations);
