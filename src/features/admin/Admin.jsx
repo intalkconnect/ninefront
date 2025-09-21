@@ -40,7 +40,7 @@ import {
 
 import Builder from "./chatbot/Builder";
 import Dashboard from "./dashboard/Dashboard";
-import LogoutButton from "./components/LogoutButton";
+import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../app/utils/auth";
 import { stringToColor } from "../../app/utils/color";
