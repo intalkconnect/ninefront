@@ -3,6 +3,7 @@ import { ArrowLeft, PlugZap, CheckCircle2, RefreshCw, Copy, Bot, AlertCircle } f
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../../shared/apiClient";
 import styles from "./styles/TelegramConnect.module.css";
+import { toast } from "react-toastify";
 
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
@@ -39,15 +40,12 @@ export default function TelegramConnect() {
   const [token, setToken] = useState("");
   const [secret, setSecret] = useState(genSecretHex());
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState(null);
-  const [ok, setOk] = useState(null);
 
   // Setup instructions visibility
   const [showInstructions, setShowInstructions] = useState(false);
 
   async function loadStatus() {
     setChecking(true);
-    setErr(null);
     try {
       const s = await apiGet(`/telegram/status?subdomain=${tenant}`);
       const isConn = !!s?.connected;
@@ -55,14 +53,18 @@ export default function TelegramConnect() {
       setBotId(s?.bot_id || "");
       setUsername(s?.username || "");
     } catch {
-      setErr("Falha ao consultar status do Telegram.");
+      toast.error("Falha ao consultar status do Telegram.");
     } finally {
       setChecking(false);
     }
   }
 
   useEffect(() => {
-    if (!tenant) { setErr("Tenant não identificado."); setChecking(false); return; }
+    if (!tenant) {
+      toast.error("Tenant não identificado.");
+      setChecking(false);
+      return;
+    }
     loadStatus();
     setSecret(genSecretHex());
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,26 +72,28 @@ export default function TelegramConnect() {
 
   async function handleConnect() {
     if (connected) return;
-    if (!tenant) return setErr("Tenant não identificado.");
-    if (!token) return setErr("Informe o Bot Token.");
+    if (!tenant) return toast.warn("Tenant não identificado.");
+    if (!token.trim()) return toast.warn("Informe o Bot Token.");
 
-    setLoading(true); setErr(null); setOk(null);
+    setLoading(true);
+    const id = toast.loading("Conectando Telegram…");
     try {
-      const j = await apiPost("/telegram/connect", { subdomain: tenant, botToken: token, secret });
+      const j = await apiPost("/telegram/connect", { subdomain: tenant, botToken: token.trim(), secret });
       if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
-      setOk("Telegram conectado com sucesso!");
+      toast.update(id, { render: "Telegram conectado com sucesso!", type: "success", isLoading: false, autoClose: 2500 });
       await loadStatus();
       setToken("");
+      setShowInstructions(false);
     } catch (e) {
-      setErr(String(e?.message || e));
+      toast.update(id, { render: String(e?.message || e) || "Erro ao conectar.", type: "error", isLoading: false, autoClose: 3500 });
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDisconnect() {
-    // Implementar lógica de desconexão se necessário
-    console.log("Desconectar Telegram");
+    // Caso tenha endpoint: await apiPost("/telegram/disconnect", { subdomain: tenant });
+    toast.info("Função de desconexão ainda não implementada.");
   }
 
   const title = connected ? "Telegram — Conectado" : "Telegram — Conectar";
@@ -125,9 +129,6 @@ export default function TelegramConnect() {
           <div className={styles.loading}>Carregando…</div>
         ) : (
           <>
-            {err && <div className={styles.alertErr} style={{ marginBottom: 12 }}>{err}</div>}
-            {ok && <div className={styles.alertOk} style={{ marginBottom: 12 }}>{ok}</div>}
-
             {connected ? (
               <>
                 <div className={styles.statusBar}>
@@ -149,7 +150,14 @@ export default function TelegramConnect() {
                       {botId && (
                         <button
                           className={styles.copyBtn}
-                          onClick={() => navigator.clipboard.writeText(botId)}
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(botId);
+                              toast.success("ID copiado!");
+                            } catch {
+                              toast.error("Não foi possível copiar.");
+                            }
+                          }}
                           title="Copiar ID"
                         >
                           <Copy size={14}/>
@@ -194,13 +202,13 @@ export default function TelegramConnect() {
                       disabled={loading}
                     />
                   </div>
-                  
+
                   <div className={styles.hintRow}>
                     <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
                   </div>
 
                   <div className={styles.instructionsToggle}>
-                    <button 
+                    <button
                       className={styles.instructionsBtn}
                       onClick={() => setShowInstructions(!showInstructions)}
                     >
