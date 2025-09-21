@@ -1,0 +1,56 @@
+.quick-replies-wrapper {
+  width: 300px;
+  max-height: 250px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  font-family: sans-serif;
+}
+
+.quick-replies-search {
+  width: 100%;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.quick-replies-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quick-replies-list li {
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.quick-replies-list li:hover {
+  background-color: #f0f0f0;
+}
+
+.quick-replies-list li strong {
+  display: block;
+  font-size: 14px;
+  color: #333;
+}
+
+.quick-replies-list li p {
+  font-size: 13px;
+  color: #666;
+  margin: 4px 0 0;
+}
+
+.no-results {
+  color: #999;
+  text-align: center;
+  padding: 12px;
+  font-style: italic;
+}

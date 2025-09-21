@@ -1,0 +1,338 @@
+/* =================================================
+   1) Container geral do formulário: sem padding vertical,
+      só padding lateral
+================================================= */
+.send-message-form {
+  width: 100%;
+  background-color: #ffffff;
+  padding: 0 16px;
+  box-sizing: border-box;
+  position: relative; /* ← necessário para posicionamento absoluto dos filhos */
+}
+
+.Toastify__toast-container {
+  z-index: 9999 !important;
+}
+
+/* =================================================
+   2) Textarea: altura fixa maior e linha inferior
+================================================= */
+.send-message-textarea {
+  width: 100%;
+  height: 80px;                     /* altura fixa de 80px */
+  border: none;
+  border-bottom: 1px solid #e0e0e0; /* linha verde clara embaixo */
+  background-color: #f9f9f9;        /* cinza suave de fundo */
+  font-size: 1rem;
+  line-height: 1.4;
+  padding: 12px 0;                  /* centraliza verticalmente o texto */
+  resize: none;                     /* impede redimensionar pelo usuário */
+  outline: none;                    /* remove outline azul no foco */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.send-message-textarea:focus {
+  border-bottom-color: var(--primary, #25d366); /* muda só a cor do bottom quando em foco */
+  background-color: #ffffff;                    /* opcional: textarea branco ao focar */
+}
+
+/* =================================================
+   3) Grupo de botões e preview (emoji / anexo / imagem / preview / enviar)
+      • Exibe tudo em linha, centralizado verticalmente.
+      • Insere um gap de 8px entre cada item.
+================================================= */
+.send-button-group {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;  /* espaço entre textarea e botões */
+  gap: 8px;         /* distância uniforme entre cada item */
+}
+
+/* Ícones (emoji / clipe / imagem) */
+.btn-attachment {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.btn-attachment:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.btn-attachment:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* =================================================
+   4) Preview de arquivo/áudio:
+      • Fica entre os ícones e o botão enviar, sem margin-top.
+      • Leve fundo e borda arredondada são opcionais.
+================================================= */
+.send-form-preview {
+  display: flex;
+  align-items: center;
+  gap: 4px;               /* espaço entre o texto e o “×” */
+  padding: 4px 8px;       /* buffer interno para destacar */
+  background-color: rgba(0, 0, 0, 0.03); /* leve fundo, opcional */
+  border-radius: 8px;     /* cantos arredondados, opcional */
+  font-size: 0.9rem;
+  color: #444;
+}
+
+/* Botão “×” dentro do preview */
+.send-form-preview button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #e3342f;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.send-form-preview button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* =================================================
+   5) Botão de enviar / gravar áudio:
+      • Com margin-left: auto, empurra-se para a direita.
+================================================= */
+/* ---------------------------------------------------
+   Botão de enviar / gravar áudio (agora redondo)
+--------------------------------------------------- */
+.btn-send {
+  width: 48px;           /* faz o botão ser quadrado */
+  height: 48px;          /* igual à largura para virar círculo */
+  padding: 0;            /* remove padding interno */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;     /* empurra para a borda direita */
+  background-color: var(--primary, #25d366);
+  color: #fff;
+  border: none;
+  border-radius: 50%;    /* 50% transforma em círculo */
+  cursor: pointer;
+  transition: background-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btn-send:hover {
+  /* Tom ligeiramente mais escuro no hover */
+  background-color: #3b5d88;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-send:disabled {
+  /* Estado desabilitado */
+  background-color: #a0a0a0;
+  cursor: default;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+/* Caso queira reduzir o tamanho do SVG, pode usar: */
+.btn-send svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* SendMessageForm.css */
+
+/* =========================================
+   1) Posicionamento e estilo do container 
+      que envolve o <emoji-picker>
+========================================= */
+/* ────────────────────────────────────────────────────────────
+   Este bloco DEVE vir depois de `import 'emoji-mart/css/emoji-mart.css'`
+──────────────────────────────────────────────────────────── */
+
+/* Container do picker para posicionar */
+.emoji-picker-container {
+  position: absolute;
+  bottom: 60px; /* ← distancia do input */
+  left: 0px;    /* ← alinhar com o começo do campo */
+  z-index: 1000;
+}
+
+
+/* Força a largura fixa e fundo branco geral */
+.emoji-picker-container .emoji-mart {
+  width: 350px !important;
+  max-width: 350px !important;
+  background-color: #ffffff !important;
+  border: none !important;
+}
+
+/* Sobrepõe a barra de tabs (Categorias) */
+.emoji-picker-container .emoji-mart-bar {
+  background-color: #ffffff !important;
+}
+
+/* Sobrepõe o campo de busca */
+.emoji-picker-container .emoji-mart-search input {
+  background-color: #f9f9f9 !important;
+}
+
+/* Sobrepõe o header (cabeçalho) */
+.emoji-picker-container .emoji-mart-header {
+  background-color: #ffffff !important;
+}
+
+/* Sobrepõe o preview (barra inferior com emoji + nome) */
+.emoji-picker-container .emoji-mart-preview {
+  background-color: #ffffff !important;
+}
+
+/* Força cor clara nos ícones inativos */
+.emoji-picker-container .emoji-mart-anchor {
+  color: #444 !important;
+}
+
+/* (Opcional) Remover sombras exageradas */
+.emoji-picker-container .emoji-mart-scroll {
+  box-shadow: none !important;
+}
+
+.reply-preview .text-message {
+  color: #333 !important;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+.reply-close-btn {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #777;
+  cursor: pointer;
+}
+
+/* wrapper do campo de mensagem: posiciona o # */
+.message-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* ícone # dentro do input */
+.quick-reply-hash {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #888;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* afasta o texto do # */
+.send-message-textarea {
+  padding-left: 24px !important;
+}
+
+/* container do dropdown (posicionado logo acima do form) */
+.quick-replies-container {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* botão QR que fica na barra de botões */
+.btn-attachment .qr-btn {
+  font-size: 18px;
+  font-weight: bold;
+  color: #555;
+}
+
+.recording-timer {
+  font-size: 0.9rem;
+  color: #e3342f; /* vermelho suave */
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reply-preview {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0f0f0;
+  border-left: 4px solid #0b93f6;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  border-radius: 5px;
+}
+
+.reply-content {
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.reply-author {
+  font-weight: bold;
+  font-size: 12px;
+  color: #555;
+}
+
+.reply-text {
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reply-cancel {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding-left: 8px;
+}
+
+/* placeholder padrão */
+.send-message-textarea::placeholder {
+  color: #667781;
+  opacity: 1; /* Safari */
+}
+
+/* quando gravando, deixa o placeholder vermelho */
+.send-message-textarea.is-recording::placeholder {
+  color: #d32f2f;
+  font-weight: 600; /* opcional */
+}
+
+/* importante: alguns navegadores mudam a cor no disabled */
+.send-message-textarea.is-recording:disabled::placeholder {
+  color: #d32f2f;
+}
+
+/* prefixes para compatibilidade ampla */
+.send-message-textarea.is-recording::-webkit-input-placeholder { color: #d32f2f; }
+.send-message-textarea.is-recording:-ms-input-placeholder { color: #d32f2f; }
+
