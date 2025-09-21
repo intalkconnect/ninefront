@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
-import styles from './Preferences.module.css';
+import styles from './styles/Settings.module.css';
 
 /* ---------- mapa amigável ---------- */
 const FRIENDLY = {
