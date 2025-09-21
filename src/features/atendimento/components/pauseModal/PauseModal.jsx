@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Pause, Clock, X, AlertTriangle } from 'lucide-react';
 import { apiGet, apiPost, apiPatch } from '../../../../shared/apiClient';
-import './PauseModal.css';
+import './styles/Pause.css';
 
 export default function PauseModal({ email, open, onClose, onPaused, onResumed }) {
   const [motivos, setMotivos] = useState([]);
