@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiGet } from "../../../../shared/apiClient";
 import { RefreshCcw, CalendarRange, Smile, MessageSquare } from "lucide-react";
+import { toast } from 'react-toastify';
+
 // Reaproveita o visual do Dashboard (cards, tabelas, charts)
 import styles from "./styles/Quality.module.css";
 
@@ -155,7 +157,6 @@ export default function Quality() {
   // respostas individuais
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const mounted = useRef(true);
@@ -234,7 +235,7 @@ export default function Quality() {
       if (mounted.current) setFeedback(fb.sort((a,b) => (+new Date(b.ts||0)) - (+new Date(a.ts||0))));
     } catch (e) {
       console.error(e);
-      if (mounted.current) setErr("Falha ao carregar qualidade. Verifique o período.");
+      if (mounted.current) toast.error("Falha ao carregar qualidade. Verifique o período.");
     } finally {
       if (mounted.current) setLoading(false);
     }
@@ -349,7 +350,6 @@ export default function Quality() {
             </tbody>
           </table>
         </div>
-        {err && <div className={styles.alertErr} role="alert">⚠️ {err}</div>}
       </Card>
     </div>
   );
