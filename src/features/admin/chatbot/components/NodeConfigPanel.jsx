@@ -637,7 +637,10 @@ export default function NodeConfigPanel({
 
       const handleAddButton = () => {
         const current = deepClone(content.action?.buttons || []);
-        if (current.length >= 3) return alert("Máximo de 3 botões atingido.");
+                if (current.length >= 3) {
+          toast.warn("Máximo de 3 botões atingido.");
+          return;
+        }
         const newBtn = {
           type: "reply",
           reply: { id: "Novo botão", title: "Novo botão" },
@@ -664,7 +667,10 @@ export default function NodeConfigPanel({
       const handleAddListItem = () => {
         const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
         const rows = sections[0]?.rows || [];
-        if (rows.length >= 10) return alert("Máximo de 10 itens atingido.");
+                if (rows.length >= 10) {
+          toast.warn("Máximo de 10 itens atingido.");
+          return;
+        }
         const n = rows.length + 1;
         const title = `Item ${n}`;
         const newItem = { id: makeIdFromTitle(title, 24), title, description: "" };
@@ -1257,4 +1263,5 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
 
