@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { connectSocket, getSocket } from "../../services/socket";
-import { apiGet } from "../../../../shared/apiClient";
+import { apiGet } from "../../../../../shared/apiClient";
 import useConversationsStore from "../../store/useConversationsStore";
 import { marcarMensagensAntesDoTicketComoLidas } from "../../hooks/useSendMessage";
 
