@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import { Trash2, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import { toast } from "react-toastify";
 import styles from "./styles/NodeConfigPanel.module.css";
 
 export default function NodeConfigPanel({
@@ -1263,5 +1264,6 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
 
 
