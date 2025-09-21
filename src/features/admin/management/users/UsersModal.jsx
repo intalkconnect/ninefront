@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { X, Save, UserPlus, UserCircle2 } from 'lucide-react';
 import { apiPost, apiPut } from '../../../../shared/apiClient';
+import { toast } from 'react-toastify';
 import m from './styles/UsersModal.module.css';
 
 function normalizeQueues(queues) {
@@ -84,7 +85,9 @@ export default function UsersModal({
 
     // BLOQUEIO: se não pode criar/definir admin e o perfil selecionado é admin, impede salvar
     if (isTryingToSaveAsAdmin) {
-      setErr('Seu perfil não permite definir o perfil "Admin". Selecione outro perfil.');
+       const msg = 'Seu perfil não permite definir o perfil "Admin". Selecione outro perfil.';
+      setErr(msg);
+      toast.warn(msg);
       return;
     }
 
@@ -104,8 +107,9 @@ export default function UsersModal({
       }
       onSaved?.();
     } catch (e2) {
-      console.error(e2);
-      setErr('Não foi possível salvar. Verifique os dados e tente novamente.');
+      const msg = 'Não foi possível salvar. Verifique os dados e tente novamente.';
+      setErr(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -162,6 +166,7 @@ export default function UsersModal({
               className={m.input}
               type="email"
               value={form.email}
+              aria-invalid={!form.email.trim() ? 'true' : 'false'}
               onChange={e => setForm({ ...form, email: e.target.value })}
             />
           </div>
