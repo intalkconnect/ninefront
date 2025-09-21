@@ -63,24 +63,18 @@
 /* cada bloco + seta */
 .blockWrap{position:relative;flex:0 0 256px}
 
-/* --------- bloco --------- */
+/* --------- bloco (clique abre modal) --------- */
 .block{
-  width:100%;
-  min-height:128px;background:var(--bg-block);border:2px solid var(--c-neutral);
+  min-height:110px;background:var(--bg-block);border:2px solid var(--c-neutral);
   border-radius:14px;padding:14px 16px;transition:box-shadow .15s ease, transform .15s ease;
   cursor:pointer;text-align:left
 }
 .block:hover{box-shadow:0 6px 14px rgba(15,23,42,.08);transform:translateY(-1px)}
-
 .blockTop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
 .typeLeft{display:inline-flex;align-items:center;gap:6px}
 .duration{font-size:12px;color:#6b7280;font-weight:600}
 .blockTitle{font-size:14px;font-weight:700;color:var(--t-900);line-height:1.2;margin:6px 0 2px}
-
 .metaRow{display:flex;align-items:center;gap:10px;margin-top:6px;color:var(--t-500);font-size:12px}
-.previewMini{margin-top:8px;font-size:12px;color:#4b5563}
-.pvLine{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pvLabel{font-weight:600;color:#374151;margin-right:4px}
 
 /* bordas por tipo */
 .bText{border-color:var(--c-text)!important}
@@ -108,7 +102,6 @@
 .badge{
   display:inline-flex;align-items:center;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700;border:1px solid
 }
-.badgeVisits{background:#ffedd5;color:#9a3412;border-color:#fdba74}
 .badgeError{background:#fef2f2;color:#991b1b;border-color:#fecaca}
 
 /* --------- dwell/resumo --------- */
@@ -124,75 +117,56 @@
 .dv{display:block;font-size:16px;font-weight:700;color:#0f172a}
 .span2{grid-column:span 2}
 
-/* --------- MODAL --------- */
+/* --------- modal --------- */
 .modalOverlay{
-  position:fixed;inset:0;background:rgba(2,6,23,.45);
-  display:flex;align-items:center;justify-content:center;z-index:50
+  position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;
+  align-items:center;justify-content:center;padding:24px;z-index:60
 }
 .modal{
-  width:min(1040px, calc(100vw - 40px));
-  height:min(680px, calc(100vh - 40px));
-  background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 20px 40px rgba(2,6,23,.25);
-  display:flex;flex-direction:column;overflow:hidden
+  width:720px;max-width:95vw;max-height:80vh;background:#fff;border-radius:12px;
+  border:1px solid #e5e7eb;box-shadow:0 20px 50px rgba(2,6,23,.25);display:flex;flex-direction:column
 }
-.modalHeader{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 16px;border-bottom:1px solid #e5e7eb;background:#f8fafc
+.modalHead{
+  display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb;padding:14px 16px
 }
-.modalTitle{display:flex;flex-direction:column}
-.modalStage{font-weight:800;color:#0f172a}
-.modalMeta{font-size:12px;color:#64748b}
+.modalTitle{display:flex;align-items:center;gap:8px;font-weight:800;color:#0f172a}
+.modalSub{font-size:12px;color:#6b7280;margin-top:2px}
 .modalClose{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:32px;height:32px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer
+  border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:6px;cursor:pointer
 }
-.modalClose:hover{background:#f9fafb}
+.modalClose:hover{background:#f8fafc}
+.modalTabs{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid #eef2f7}
+.tabBtn{
+  padding:6px 10px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;font-weight:700;
+  font-size:12px;color:#334155;cursor:pointer
+}
+.tabBtn:hover{background:#f8fafc}
+.tabActive{background:#ecf3ff;border-color:#bfdbfe;color:#1e40af}
+.modalBody{padding:12px 14px;overflow:auto} /* rolagem interna fixa */
 
-/* Tabs */
-.tabs{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid #e5e7eb}
-.tab{
-  padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;color:#374151;font-weight:700;font-size:12px;cursor:pointer
+/* --------- variáveis --------- */
+.varsGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.varsCard{border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fff}
+.varsHead{padding:10px 12px;border-bottom:1px solid #eef2f7;font-weight:700;color:#0f172a}
+.varsScroll{max-height:48vh;overflow:auto;padding:10px 12px}
+.kvTable{width:100%;border-collapse:collapse}
+.kvTable tr{border-bottom:1px dashed #eef2f7}
+.kCell{width:32%;vertical-align:top;font-weight:700;color:#334155;padding:6px 8px}
+.vCell{width:68%;padding:6px 8px;color:#0f172a}
+.code{
+  white-space:pre-wrap;word-break:break-word;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;
+  padding:6px 8px;font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12.5px;line-height:1.35;color:#0f172a
 }
-.tabActive{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+.emptySmall{color:#6b7280;font-size:13px}
 
-/* Conteúdo das abas */
-.tabContent{padding:12px;display:flex;flex-direction:column;gap:10px;flex:1;overflow:hidden}
-
-/* LOGS (altura fixa + scroll) */
-.logsBox{display:flex;flex-direction:column;gap:10px}
-.logPreview{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px}
-.previewRow{font-size:13px;color:#334155}
-.pvText{margin-left:6px;color:#0f172a}
-.pvLabel{font-weight:700;color:#1f2937}
-
-.logsScroll{
-  border:1px solid #e5e7eb;border-radius:10px;background:#fff;
-  height:300px; /* FIXO: ajusta aqui se quiser maior/menor */
-  overflow:auto;padding:8px
+/* --------- prévia --------- */
+.previewWrap{display:flex;flex-direction:column;gap:12px}
+.pLine{display:flex;flex-direction:column;gap:6px}
+.pLabel{font-size:12px;font-weight:800;color:#334155}
+.pCode{
+  max-height:32vh;overflow:auto;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;
+  white-space:pre-wrap;word-break:break-word;font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12.5px;line-height:1.35;color:#0f172a
 }
-.logsEmpty{color:#6b7280;font-size:13px;padding:8px}
-.logsList{list-style:none;margin:0;padding:0}
-.logRow{padding:8px 6px;border-top:1px solid #f1f5f9}
-.logRow:first-child{border-top:0}
-.logHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.dirIn{font-weight:800;color:#111827}
-.dirOut{font-weight:800;color:#374151}
-.dirSys{font-weight:800;color:#6b7280}
-.logTs{color:#9ca3af;font-size:12px}
-.logBody{
-  margin:0;white-space:pre-wrap;word-break:break-word;
-  font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-  font-size:12.5px;line-height:1.35;color:#0f172a;background:#fafafa;border:1px dashed #e5e7eb;border-radius:6px;padding:6px 8px
-}
-.isError{color:#b91c1c;background:#fff5f5;border-color:#fecaca}
-
-/* VARS (altura fixa + scroll) */
-.varsBox{
-  border:1px solid #e5e7eb;border-radius:10px;background:#fff;
-  height:300px; /* FIXO: mesmo tamanho dos logs p/ consistência */
-  overflow:auto;padding:10px
-}
-.varsPre{
-  margin:0;font-size:12.5px;line-height:1.45;color:#0f172a;
-  font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
-}
+.pHint{font-size:12px;color:#6b7280}
