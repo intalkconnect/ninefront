@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Share2, CheckCircle } from 'lucide-react';
-import useConversationsStore from '../../store/useConversationsStore';
+import useConversationsStore from '../../../store/useConversationsStore';
 import { apiPut } from '../../../../shared/apiClient';
 import { getSocket } from '../../services/socket';        // ⬅️ importa o socket
 import TransferModal from './modals/TransferModal';
@@ -87,3 +87,4 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
