@@ -1,28 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
-import styles from './styles/Settings.module.css';
 import { toast } from 'react-toastify';
+import styles from './Preferences.module.css';
 
 /* ---------- mapa amigável ---------- */
 const FRIENDLY = {
   permitir_transferencia_fila: {
     label: 'Permitir transferência entre filas',
-    help: 'Habilita mover um ticket para outra fila. Útil para realocar demandas entre times.',
+    help: 'Permite mover um ticket para outra fila durante o atendimento.',
     type: 'boolean', onText: 'Ativado', offText: 'Desativado',
   },
   permitir_transferencia_atendente: {
     label: 'Permitir transferência entre atendentes',
-    help: 'Autoriza passar o ticket para outro atendente dentro da mesma fila.',
+    help: 'Permite passar o ticket para outro atendente na mesma fila.',
     type: 'boolean', onText: 'Ativado', offText: 'Desativado',
   },
   enable_signature: {
     label: 'Assinatura em mensagens',
-    help: 'Inclui automaticamente a assinatura padrão em respostas enviadas pelo atendente.',
+    help: 'Inclui automaticamente a assinatura do atendente nas respostas.',
     type: 'boolean', onText: 'Ativado', offText: 'Desativado',
   },
   distribuicao_tickets: {
     label: 'Distribuição de tickets',
-    help: 'Define como novos tickets são atribuídos: manualmente ou automática preditiva.',
+    help: 'Define como novos tickets são atribuídos.',
     type: 'enum',
     options: [
       { value: 'manual',    label: 'Manual' },
@@ -31,12 +31,12 @@ const FRIENDLY = {
   },
   habilitar_alertas_atendimento: {
     label: 'Habilitar alertas de atendimento',
-    help: 'Ativa cores/avisos no monitor com base nos limites por prioridade.',
+    help: 'Ativa cores/avisos no monitor com base em limites por prioridade.',
     type: 'boolean', onText: 'Ativado', offText: 'Desativado',
   },
   overrides_por_prioridade_json: {
     label: 'Alertas por prioridade',
-    help: 'Defina, em minutos, os limites por prioridade para “aguardando” e “durante o atendimento”.',
+    help: 'Limites (min) para “aguardando” e “durante o atendimento”.',
     type: 'overrides_form',
   },
 };
@@ -62,7 +62,7 @@ const coerceType = (v) => {
   return s;
 };
 
-/* ---------- modelo dos overrides ---------- */
+/* ---------- overrides ---------- */
 const DEFAULT_OVERRIDES = {
   alta:  { espera_inicial: 5,  demora_durante: 10 },
   media: { espera_inicial: 15, demora_durante: 20 },
@@ -86,20 +86,28 @@ const parseOverrides = (raw) => {
 };
 const isBad = (n) => !Number.isFinite(n) || n < 0;
 
+/* ---------- UI: Toggle ---------- */
+const Toggle = ({ checked, onChange, label }) => (
+  <button
+    type="button"
+    onClick={onChange}
+    aria-pressed={checked}
+    className={`${styles.toggle} ${checked ? styles.toggleOn : ''}`}
+    title={label}
+  >
+    <span className={styles.knob} />
+    <span className={styles.toggleText}>{checked ? 'Ativado' : 'Desativado'}</span>
+  </button>
+);
+
+/* ---------- componente ---------- */
 export default function Preferences() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [editingKey, setEditingKey] = useState(null);
-  const [editValue, setEditValue] = useState('');
-
-  // editor visual de overrides
+  const [editingOv, setEditingOv] = useState(false);
   const [ovDraft, setOvDraft] = useState(DEFAULT_OVERRIDES);
   const [ovErr, setOvErr] = useState({});
-
-  // busca
-  const [q, setQ] = useState('');
-  const normalizedQ = q.trim().toLowerCase();
 
   const load = async () => {
     setLoading(true);
@@ -124,11 +132,11 @@ export default function Preferences() {
   const alertsEnabled = !!coerceType(byKey.get('habilitar_alertas_atendimento')?.value);
 
   useEffect(() => {
-    if (!alertsEnabled && editingKey === 'overrides_por_prioridade_json') {
-      setEditingKey(null);
+    if (!alertsEnabled && editingOv) {
+      setEditingOv(false);
       setOvErr({});
     }
-  }, [alertsEnabled, editingKey]);
+  }, [alertsEnabled, editingOv]);
 
   const saveSetting = async (key, value, description = null) => {
     const tid = toast.loading('Salvando…');
@@ -159,161 +167,6 @@ export default function Preferences() {
     await saveSetting(key, newValue, row?.description ?? null);
   };
 
-  const startEdit = (key) => {
-    setEditingKey(key);
-    const row = byKey.get(key);
-    const raw = row?.value;
-
-    if (FRIENDLY[key]?.type === 'overrides_form') {
-      setOvDraft(parseOverrides(raw));
-      setOvErr({});
-      return;
-    }
-    const v = row?.value;
-    setEditValue(v !== null && typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v ?? ''));
-  };
-
-  const cancelEdit = () => { setEditingKey(null); setEditValue(''); setOvErr({}); };
-
-  const submitGeneric = async () => {
-    if (!editingKey) return;
-    const row = byKey.get(editingKey);
-    let val = editValue;
-    const orig = row?.value;
-    if (typeof orig === 'boolean') val = /^true$/i.test(String(editValue).trim());
-    else if (typeof orig === 'number') val = Number(editValue);
-    else if (orig !== null && typeof orig === 'object') { try { val = JSON.parse(editValue); } catch { toast.error('JSON inválido.'); return; } }
-    else { val = coerceType(editValue); }
-    await saveSetting(editingKey, val, row?.description ?? null);
-    cancelEdit();
-  };
-
-  /* ----- valida/salva overrides ----- */
-  const validateOv = (d) => {
-    const e = {};
-    if (isBad(Number(d.alta.espera_inicial)))  e['alta.espera_inicial']  = 'Informe um número ≥ 0';
-    if (isBad(Number(d.alta.demora_durante)))  e['alta.demora_durante']  = 'Informe um número ≥ 0';
-    if (isBad(Number(d.media.espera_inicial))) e['media.espera_inicial'] = 'Informe um número ≥ 0';
-    if (isBad(Number(d.media.demora_durante))) e['media.demora_durante'] = 'Informe um número ≥ 0';
-    return e;
-  };
-
-  const saveOv = async () => {
-    const errs = validateOv(ovDraft);
-    setOvErr(errs);
-    if (Object.keys(errs).length) { toast.warn('Revise os campos destacados.'); return; }
-    await saveSetting('overrides_por_prioridade_json', {
-      alta:  { espera_inicial: Number(ovDraft.alta.espera_inicial),  demora_durante: Number(ovDraft.alta.demora_durante) },
-      media: { espera_inicial: Number(ovDraft.media.espera_inicial), demora_durante: Number(ovDraft.media.demora_durante) },
-    }, byKey.get('overrides_por_prioridade_json')?.description ?? null);
-    setEditingKey(null);
-  };
-
-  /* ---------- UI dos overrides ---------- */
-  const NumInput = ({ value, onChange, error }) => (
-    <div className={styles.numWrap}>
-      <input
-        type="number"
-        min="0"
-        step="1"
-        className={`${styles.input} ${styles.inputXs} ${error ? styles.inputErr : ''}`}
-        value={value}
-        onChange={(e)=>onChange(e.target.value)}
-      />
-      <span className={styles.numSuffix}>min</span>
-      {error && <div className={styles.fieldErr}>{error}</div>}
-    </div>
-  );
-
-  const OverridesRead = ({ raw }) => {
-    const v = parseOverrides(raw);
-    return (
-      <div className={`${styles.miniCard} ${!alertsEnabled ? styles.isDisabled : ''}`}>
-        <table className={styles.miniTable} aria-label="Limites por prioridade">
-          <thead>
-            <tr>
-              <th className={styles.tCenter}>Prioridade</th>
-              <th>Aguardando</th>
-              <th>Durante o atendimento (silêncio)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className={`${styles.tCenter} ${styles.bold}`}>Alta</td>
-              <td>{v.alta.espera_inicial} min</td>
-              <td>{v.alta.demora_durante} min</td>
-            </tr>
-            <tr>
-              <td className={`${styles.tCenter} ${styles.bold}`}>Média</td>
-              <td>{v.media.espera_inicial} min</td>
-              <td>{v.media.demora_durante} min</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div className={styles.miniActions}>
-          <button
-            className={styles.btnTiny}
-            onClick={() => alertsEnabled && startEdit('overrides_por_prioridade_json')}
-            disabled={!alertsEnabled}
-            title={!alertsEnabled ? 'Ative os alertas para editar' : 'Editar limites'}
-          >
-            Editar
-          </button>
-          {!alertsEnabled && <span className={styles.mutedNote}>Ative os alertas para editar.</span>}
-        </div>
-      </div>
-    );
-  };
-
-  const OverridesEdit = () => (
-    <div className={styles.ovBlock}>
-      <div className={styles.ovGrid}>
-        <div className={`${styles.ovHead} ${styles.tCenter}`}>Prioridade</div>
-        <div className={styles.ovHead}>Aguardando</div>
-        <div className={styles.ovHead}>Durante o atendimento</div>
-
-        <div className={`${styles.ovCell} ${styles.tCenter} ${styles.bold}`}>Alta</div>
-        <div className={styles.ovCell}>
-          <NumInput
-            value={ovDraft.alta.espera_inicial}
-            onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, espera_inicial: v } }))}
-            error={ovErr['alta.espera_inicial']}
-          />
-        </div>
-        <div className={styles.ovCell}>
-          <NumInput
-            value={ovDraft.alta.demora_durante}
-            onChange={(v)=>setOvDraft(d=>({ ...d, alta:{ ...d.alta, demora_durante: v } }))}
-            error={ovErr['alta.demora_durante']}
-          />
-        </div>
-
-        <div className={`${styles.ovCell} ${styles.tCenter} ${styles.bold}`}>Média</div>
-        <div className={styles.ovCell}>
-          <NumInput
-            value={ovDraft.media.espera_inicial}
-            onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, espera_inicial: v } }))}
-            error={ovErr['media.espera_inicial']}
-          />
-        </div>
-        <div className={styles.ovCell}>
-          <NumInput
-            value={ovDraft.media.demora_durante}
-            onChange={(v)=>setOvDraft(d=>({ ...d, media:{ ...d.media, demora_durante: v } }))}
-            error={ovErr['media.demora_durante']}
-          />
-        </div>
-      </div>
-
-      <div className={styles.formActions}>
-        <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
-        <button className={styles.btnPrimary} onClick={saveOv}>Salvar</button>
-      </div>
-    </div>
-  );
-
-  /* ---------- ordenação + filtro ---------- */
   const ordered = useMemo(() => {
     const known = Object.keys(FRIENDLY);
     const score = (k) => { const i = known.indexOf(k); return i === -1 ? 999 : i; };
@@ -325,168 +178,189 @@ export default function Preferences() {
     });
   }, [items]);
 
-  const filtered = useMemo(() => {
-    if (!normalizedQ) return ordered;
-    return ordered.filter(r => {
-      const key = r.key ?? r['key'];
-      const spec = FRIENDLY[key];
-      const hay = [
-        key,
-        spec?.label,
-        spec?.help,
-        String(r.description || ''),
-        String(r.value || '')
-      ].join(' ').toLowerCase();
-      return hay.includes(normalizedQ);
-    });
-  }, [ordered, normalizedQ]);
+  /* ---------- Overrides ---------- */
+  const validateOv = (d) => {
+    const e = {};
+    if (isBad(Number(d.alta.espera_inicial)))  e['alta.espera_inicial']  = '≥ 0';
+    if (isBad(Number(d.alta.demora_durante)))  e['alta.demora_durante']  = '≥ 0';
+    if (isBad(Number(d.media.espera_inicial))) e['media.espera_inicial'] = '≥ 0';
+    if (isBad(Number(d.media.demora_durante))) e['media.demora_durante'] = '≥ 0';
+    return e;
+  };
 
-  /* ---------- render ---------- */
+  const saveOv = async () => {
+    const errs = validateOv(ovDraft);
+    setOvErr(errs);
+    if (Object.keys(errs).length) { toast.warn('Revise os campos destacados.'); return; }
+    await saveSetting('overrides_por_prioridade_json', {
+      alta:  { espera_inicial: Number(ovDraft.alta.espera_inicial),  demora_durante: Number(ovDraft.alta.demora_durante) },
+      media: { espera_inicial: Number(ovDraft.media.espera_inicial), demora_durante: Number(ovDraft.media.demora_durante) },
+    }, byKey.get('overrides_por_prioridade_json')?.description ?? null);
+    setEditingOv(false);
+  };
+
+  const renderValueCell = (key, raw) => {
+    const spec = FRIENDLY[key];
+
+    if (spec?.type === 'boolean' || typeof raw === 'boolean') {
+      return (
+        <div className={styles.valueInline}>
+          <Toggle
+            checked={!!coerceType(raw)}
+            onChange={() => toggleBoolean(key)}
+            label={valueLabelFor(key, raw)}
+          />
+          <span className={styles.valueText}>{valueLabelFor(key, raw)}</span>
+        </div>
+      );
+    }
+
+    if (spec?.type === 'enum') {
+      return (
+        <select
+          value={String(raw ?? '')}
+          onChange={(e) => changeEnum(key, e.target.value)}
+          className={styles.select}
+        >
+          {spec.options.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      );
+    }
+
+    if (spec?.type === 'overrides_form') {
+      const v = parseOverrides(raw);
+
+      if (!editingOv) {
+        return (
+          <div className={styles.ovCompact}>
+            <div className={styles.ovPill}>
+              <span className={styles.ovTag}>Alta</span>
+              <span className={styles.ovText}>
+                {v.alta.espera_inicial} min aguardo · {v.alta.demora_durante} min durante
+              </span>
+            </div>
+            <div className={styles.ovPill}>
+              <span className={styles.ovTag}>Média</span>
+              <span className={styles.ovText}>
+                {v.media.espera_inicial} min aguardo · {v.media.demora_durante} min durante
+              </span>
+            </div>
+            <button
+              className={styles.btnTiny}
+              onClick={() => {
+                if (!alertsEnabled) return;
+                setEditingOv(true);
+                setOvDraft(v);
+              }}
+              disabled={!alertsEnabled}
+              title={!alertsEnabled ? 'Ative os alertas para editar' : 'Editar limites'}
+            >
+              Editar
+            </button>
+          </div>
+        );
+      }
+
+      return (
+        <div className={styles.ovEditor}>
+          {['alta','media'].map(pr => (
+            <div key={pr} className={styles.ovEditorRow}>
+              <span className={styles.ovEditorLabel}>{pr}</span>
+              <label className={styles.ovEditorField}>
+                Aguardo
+                <input
+                  type="number" min="0"
+                  className={`${styles.num} ${ovErr[`${pr}.espera_inicial`] ? styles.numErr : ''}`}
+                  value={ovDraft[pr].espera_inicial}
+                  onChange={(e)=>setOvDraft(d=>({ ...d, [pr]: { ...d[pr], espera_inicial: e.target.value } }))}
+                />
+                <span className={styles.numSuffix}>min</span>
+              </label>
+              <label className={styles.ovEditorField}>
+                Durante
+                <input
+                  type="number" min="0"
+                  className={`${styles.num} ${ovErr[`${pr}.demora_durante`] ? styles.numErr : ''}`}
+                  value={ovDraft[pr].demora_durante}
+                  onChange={(e)=>setOvDraft(d=>({ ...d, [pr]: { ...d[pr], demora_durante: e.target.value } }))}
+                />
+                <span className={styles.numSuffix}>min</span>
+              </label>
+            </div>
+          ))}
+          <div className={styles.formActions}>
+            <button className={styles.btnGhost} onClick={()=>{ setEditingOv(false); setOvErr({}); }}>Cancelar</button>
+            <button className={styles.btnPrimary} onClick={saveOv}>Salvar</button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <pre className={styles.freeValue}>
+        {String(raw ?? '')}
+      </pre>
+    );
+  };
+
   return (
     <div className={styles.container}>
+      {/* Header */}
       <div className={styles.header}>
-        <div>
-          <p className={styles.subtitle}>
-            As mudanças são salvas automaticamente e afetam todo o workspace.
-          </p>
+        <div className={styles.note}>
+          As mudanças são salvas automaticamente e afetam todo o workspace.
         </div>
-        <div className={styles.searchBox}>
-          <input
-            className={styles.searchInput}
-            type="search"
-            placeholder="Buscar preferências…"
-            value={q}
-            onChange={(e)=>setQ(e.target.value)}
-          />
+
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>Preferências do sistema</h1>
+        </div>
+
+        {/* Cabeçalho da “tabela” */}
+        <div className={styles.headRow}>
+          <div className={styles.headOption}>OPÇÃO</div>
+          <div className={styles.headValue}>VALOR</div>
+          <div className={styles.headUpdated}>ATUALIZADO</div>
         </div>
       </div>
 
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Preferências do sistema</div>
-        </div>
+      {/* Lista */}
+      <div className={styles.list}>
+        {loading && (
+          <div className={styles.loading}>Carregando…</div>
+        )}
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <colgroup>
-              <col className={styles.colOpt} />
-              <col className={styles.colVal} />
-              <col className={styles.colDesc} />
-              <col className={styles.colUpd} />
-            </colgroup>
+        {!loading && ordered.map((row) => {
+          const key = row.key ?? row['key'];
+          const spec = FRIENDLY[key];
+          const raw = row.value;
 
-            <thead>
-              <tr>
-                <th>Opção</th>
-                <th>Valor</th>
-                <th>Descrição</th>
-                <th>Atualizado</th>
-              </tr>
-            </thead>
+          return (
+            <div className={styles.row} key={key}>
+              {/* OPÇÃO */}
+              <div className={styles.colOption}>
+                <div className={styles.optionTitle}>{spec?.label ?? key}</div>
+                {spec?.help && <div className={styles.optionHelp}>{spec.help}</div>}
+                {row.description && <div className={styles.optionDesc}>{row.description}</div>}
+              </div>
 
-            <tbody>
-              {!loading && filtered.map((row) => {
-                const key = row.key ?? row['key'];
-                const spec = FRIENDLY[key];
-                const raw = row.value;
-                const nice = valueLabelFor(key, raw);
-                const isEditing = editingKey === key;
-                const typeChip =
-                  spec?.type === 'boolean' ? 'Boolean'
-                  : spec?.type === 'enum' ? 'Enum'
-                  : spec?.type === 'overrides_form' ? 'Avançado'
-                  : 'Outro';
+              {/* VALOR */}
+              <div className={styles.colValue}>
+                {renderValueCell(key, raw)}
+              </div>
 
-                return (
-                  <tr key={key} className={styles.row}>
-                    <td className={styles.cellKey}>
-                      <div className={styles.keyTitleWrap}>
-                        <span className={`${styles.typeChip} ${styles['chip_'+(spec?.type || 'other')]}`}>
-                          {typeChip}
-                        </span>
-                        <div className={styles.keyTitle} title={spec?.label ?? key}>{spec?.label ?? key}</div>
-                      </div>
-                      <div className={styles.keySub}>({key})</div>
-                    </td>
+              {/* ATUALIZADO */}
+              <div className={styles.colUpdated}>
+                {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
+              </div>
+            </div>
+          );
+        })}
 
-                    <td className={styles.tdVal}>
-                      {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
-                        <button
-                          className={`${styles.switch} ${!!coerceType(raw) ? styles.switchOn : ''}`}
-                          onClick={() => toggleBoolean(key)}
-                          aria-pressed={!!coerceType(raw)}
-                          aria-label={`${spec?.label ?? key}: ${nice}`}
-                          title={nice}
-                        >
-                          <span className={styles.knob} />
-                          <span className={styles.switchText}>{nice}</span>
-                        </button>
-                      ) : spec?.type === 'enum' ? (
-                        <select
-                          className={styles.select}
-                          value={String(raw ?? '')}
-                          onChange={(e) => changeEnum(key, e.target.value)}
-                          aria-label={spec?.label ?? key}
-                        >
-                          {spec.options.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      ) : spec?.type === 'overrides_form' ? (
-                        isEditing ? <OverridesEdit /> : <OverridesRead raw={raw} />
-                      ) : !isEditing ? (
-                        <>
-                          <pre className={styles.code} title={String(raw ?? '')}>
-                            {String(raw ?? '')}
-                          </pre>
-                          <div className={styles.cellActions}>
-                            <button className={styles.btnTiny} onClick={() => startEdit(key)}>Editar</button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <textarea
-                            className={styles.textarea}
-                            rows={4}
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                          />
-                          <div className={styles.formActions}>
-                            <button className={styles.btnGhost} onClick={cancelEdit}>Cancelar</button>
-                            <button className={styles.btnPrimary} onClick={submitGeneric}>Salvar</button>
-                          </div>
-                        </>
-                      )}
-                    </td>
-
-                    <td className={styles.cellDesc}>
-                      {spec?.help ? (
-                        <details className={styles.descClamp}>
-                          <summary>{spec.label || key}</summary>
-                          <div className={styles.helpMain}>{spec.help}</div>
-                          {row.description ? <div className={styles.helpNote}>{row.description}</div> : null}
-                        </details>
-                      ) : (
-                        row.description ? <div className={styles.helpNote}>{row.description}</div> : '—'
-                      )}
-                    </td>
-
-                    <td className={styles.cellDate}>
-                      {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {!loading && filtered.length === 0 && (
-                <tr><td colSpan={4} className={styles.empty}>Nada encontrado para “{q}”.</td></tr>
-              )}
-              {loading && (
-                <tr><td colSpan={4} className={styles.loading}>Carregando…</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {!loading && ordered.length === 0 && (
+          <div className={styles.empty}>Nenhuma preferência encontrada.</div>
+        )}
       </div>
     </div>
   );
