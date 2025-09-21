@@ -13,7 +13,7 @@ import SocketDisconnectedModal from "./components/SocketDisconnectedModal";
 import useConversationsStore from "./store/useConversationsStore";
 import notificationSound from "./assets/notification.mp3";
 import "./styles/Atendimento.css";
-import { parseJwt } from "../../utils/auth";
+import { parseJwt } from "../../app/utils/auth";
 
 /** Converte diferentes formatos de content para texto */
 function contentToText(content) {
