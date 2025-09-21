@@ -177,41 +177,59 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
         {/* Diagnóstico atual */}
         {detail?.dwell && (
           <section className={styles.dwellCard}>
-            <div className={styles.dwellHead}>Diagnóstico da etapa atual</div>
-            <div className={styles.dwellGrid}>
-              <div>
-                <span className={styles.dt}>Etapa</span>
-                <span className={styles.dv}>{labelize(detail?.dwell?.block || "")}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Desde</span>
-                <span className={styles.dv}>
-                  {detail?.dwell?.entered_at
-                    ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR")
-                    : "—"}
-                </span>
-              </div>
-              <div>
-                <span className={styles.dt}>Duração</span>
-                <span className={styles.dv}>{fmtTime(detail?.dwell?.duration_sec)}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Msgs Usuário</span>
-                <span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Msgs Bot</span>
-                <span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Falhas Validação</span>
-                <span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span>
-              </div>
-              <div>
-                <span className={styles.dt}>Maior gap (usuário)</span>
-                <span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span>
-              </div>
-            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+  <div>
+    <label className="block text-sm font-medium text-gray-500 mb-1">Etapa</label>
+    <div className="text-lg font-semibold text-gray-900">
+      {detail?.dwell?.block ?? '—'}
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-500 mb-1">Desde</label>
+    <div className="text-lg font-semibold text-gray-900">
+      {detail?.dwell?.entered_at
+        ? new Date(detail.dwell.entered_at).toLocaleString('pt-BR')
+        : '—'}
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-500 mb-1">Duração</label>
+    <div className="text-lg font-semibold text-gray-900">
+      {fmtTime(detail?.dwell?.duration_sec ?? 0)}
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-500 mb-1">Msgs Bot</label>
+    <div className="text-lg font-semibold text-gray-900">
+      {detail?.dwell?.bot_msgs ?? 0}
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-500 mb-1">Msgs Usuário</label>
+    <div className="text-lg font-semibold text-gray-900">
+      {detail?.dwell?.user_msgs ?? 0}
+    </div>
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-500 mb-1">Falhas Validação</label>
+    <div className="text-lg font-semibold text-gray-900">
+      {detail?.dwell?.validation_fails ?? 0}
+    </div>
+  </div>
+
+  <div className="lg:col-span-2">
+    <label className="block text-sm font-medium text-gray-500 mb-1">Maior gap (usuário)</label>
+    <div className="text-lg font-semibold text-gray-900">
+      {fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}
+    </div>
+  </div>
+</div>
+
           </section>
         )}
       </div>
