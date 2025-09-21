@@ -107,11 +107,11 @@ export default function Campaigns() {
         <div className={styles.leftGroup} />
         <div className={styles.headerActions}>
           <button
-+   className={styles.btn}
-+   onClick={async () => { await load(); toast.success('Lista atualizada!'); }}
-+ >
-+   <RefreshCw size={16}/> Atualizar
-+ </button>
+   className={styles.btn}
+   onClick={async () => { await load(); toast.success('Lista atualizada!'); }}
+ >
+   <RefreshCw size={16}/> Atualizar
+ </button>
           <button
             className={styles.btnPrimary} 
             onClick={() => setCreateOpen(true)}
