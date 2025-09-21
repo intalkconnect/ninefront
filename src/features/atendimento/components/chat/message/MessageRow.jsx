@@ -8,7 +8,7 @@ import VideoMessage from './messageTypes/VideoMessage';
 import AudioMessage from './messageTypes/AudioMessage';
 import ContactsMessage from './messageTypes/ContactsMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
-import './MessageRow.css';
+import './styles/MessageRow.css';
 import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from 'lucide-react';
 
 // -------- helpers para o cabeçalho de resposta --------
