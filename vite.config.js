@@ -25,6 +25,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         waCallback: resolve(__dirname, 'wa-callback.html'),
+        main: './src/app/main.jsx'
       },
     },
     commonjsOptions: { include: [/node_modules/] },
