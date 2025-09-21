@@ -86,17 +86,20 @@ const parseOverrides = (raw) => {
 };
 const isBad = (n) => !Number.isFinite(n) || n < 0;
 
-/* ---------- componente ---------- */
 export default function Preferences() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [editingKey, setEditingKey] = useState(null); // inclusive overrides
+  const [editingKey, setEditingKey] = useState(null);
   const [editValue, setEditValue] = useState('');
 
   // editor visual de overrides
   const [ovDraft, setOvDraft] = useState(DEFAULT_OVERRIDES);
   const [ovErr, setOvErr] = useState({});
+
+  // busca
+  const [q, setQ] = useState('');
+  const normalizedQ = q.trim().toLowerCase();
 
   const load = async () => {
     setLoading(true);
@@ -120,7 +123,6 @@ export default function Preferences() {
 
   const alertsEnabled = !!coerceType(byKey.get('habilitar_alertas_atendimento')?.value);
 
-  // se desabilitar os alertas enquanto edita overrides, fecha a edição
   useEffect(() => {
     if (!alertsEnabled && editingKey === 'overrides_por_prioridade_json') {
       setEditingKey(null);
@@ -311,7 +313,7 @@ export default function Preferences() {
     </div>
   );
 
-  /* ---------- ordenação ---------- */
+  /* ---------- ordenação + filtro ---------- */
   const ordered = useMemo(() => {
     const known = Object.keys(FRIENDLY);
     const score = (k) => { const i = known.indexOf(k); return i === -1 ? 999 : i; };
@@ -323,6 +325,22 @@ export default function Preferences() {
     });
   }, [items]);
 
+  const filtered = useMemo(() => {
+    if (!normalizedQ) return ordered;
+    return ordered.filter(r => {
+      const key = r.key ?? r['key'];
+      const spec = FRIENDLY[key];
+      const hay = [
+        key,
+        spec?.label,
+        spec?.help,
+        String(r.description || ''),
+        String(r.value || '')
+      ].join(' ').toLowerCase();
+      return hay.includes(normalizedQ);
+    });
+  }, [ordered, normalizedQ]);
+
   /* ---------- render ---------- */
   return (
     <div className={styles.container}>
@@ -331,7 +349,15 @@ export default function Preferences() {
           <p className={styles.subtitle}>
             As mudanças são salvas automaticamente e afetam todo o workspace.
           </p>
-          {/* sem mensagens inline — apenas toasts */}
+        </div>
+        <div className={styles.searchBox}>
+          <input
+            className={styles.searchInput}
+            type="search"
+            placeholder="Buscar preferências…"
+            value={q}
+            onChange={(e)=>setQ(e.target.value)}
+          />
         </div>
       </div>
 
@@ -342,7 +368,6 @@ export default function Preferences() {
 
         <div className={styles.tableWrap}>
           <table className={styles.table}>
-            {/* <- Congela as larguras das colunas */}
             <colgroup>
               <col className={styles.colOpt} />
               <col className={styles.colVal} />
@@ -360,21 +385,30 @@ export default function Preferences() {
             </thead>
 
             <tbody>
-              {ordered.map((row) => {
+              {!loading && filtered.map((row) => {
                 const key = row.key ?? row['key'];
                 const spec = FRIENDLY[key];
                 const raw = row.value;
                 const nice = valueLabelFor(key, raw);
                 const isEditing = editingKey === key;
+                const typeChip =
+                  spec?.type === 'boolean' ? 'Boolean'
+                  : spec?.type === 'enum' ? 'Enum'
+                  : spec?.type === 'overrides_form' ? 'Avançado'
+                  : 'Outro';
 
                 return (
-                  <tr key={key}>
+                  <tr key={key} className={styles.row}>
                     <td className={styles.cellKey}>
-                      <div className={styles.keyTitle}>{spec?.label ?? key}</div>
+                      <div className={styles.keyTitleWrap}>
+                        <span className={`${styles.typeChip} ${styles['chip_'+(spec?.type || 'other')]}`}>
+                          {typeChip}
+                        </span>
+                        <div className={styles.keyTitle} title={spec?.label ?? key}>{spec?.label ?? key}</div>
+                      </div>
                       <div className={styles.keySub}>({key})</div>
                     </td>
 
-                    {/* Coluna VALOR com largura fixa */}
                     <td className={styles.tdVal}>
                       {(spec?.type === 'boolean' || typeof raw === 'boolean') ? (
                         <button
@@ -426,20 +460,26 @@ export default function Preferences() {
                     </td>
 
                     <td className={styles.cellDesc}>
-                      {spec?.help ? <div className={styles.helpMain}>{spec.help}</div> : null}
-                      {row.description
-                        ? <div className={styles.helpNote}>{row.description}</div>
-                        : (!spec?.help ? '—' : null)
-                      }
+                      {spec?.help ? (
+                        <details className={styles.descClamp}>
+                          <summary>{spec.label || key}</summary>
+                          <div className={styles.helpMain}>{spec.help}</div>
+                          {row.description ? <div className={styles.helpNote}>{row.description}</div> : null}
+                        </details>
+                      ) : (
+                        row.description ? <div className={styles.helpNote}>{row.description}</div> : '—'
+                      )}
                     </td>
 
-                    <td>{row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}</td>
+                    <td className={styles.cellDate}>
+                      {row.updated_at ? new Date(row.updated_at).toLocaleString('pt-BR') : '—'}
+                    </td>
                   </tr>
                 );
               })}
 
-              {!loading && ordered.length === 0 && (
-                <tr><td colSpan={4} className={styles.empty}>Nenhuma preferência encontrada.</td></tr>
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={4} className={styles.empty}>Nada encontrado para “{q}”.</td></tr>
               )}
               {loading && (
                 <tr><td colSpan={4} className={styles.loading}>Carregando…</td></tr>
