@@ -1,3 +1,4 @@
+// File: JourneyBeholder.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -8,7 +9,7 @@ import {
 import { apiGet } from "../../../shared/apiClient";
 import styles from "./styles/JourneyBeholder.module.css";
 
-/* ---------- helpers ---------- */
+/* helpers */
 const fmtTime = (sec = 0) => {
   const s = Math.max(0, Math.floor(Number(sec) || 0));
   const m = Math.floor(s / 60);
@@ -17,9 +18,11 @@ const fmtTime = (sec = 0) => {
 };
 const labelize = (s = "") =>
   String(s || "").replace(/_/g, " ").replace(/^\w/u, (c) => c.toUpperCase());
-const splitEvery10 = (arr) => { const out=[]; for (let i=0;i<arr.length;i+=10) out.push(arr.slice(i,i+10)); return out; };
-
-/* classes por tipo */
+const splitEvery10 = (arr) => {
+  const out = [];
+  for (let i = 0; i < arr.length; i += 10) out.push(arr.slice(i, i + 10));
+  return out;
+};
 const typeClass = (type) => {
   const t = String(type || "").toLowerCase();
   if (t === "text") return styles.bText;
@@ -47,7 +50,17 @@ const typeIcon = (type) => {
   return <Clock size={16} />;
 };
 
-/* ---------- page ---------- */
+// tenta pretty-print se for JSON válido
+const prettyMaybeJson = (text) => {
+  if (typeof text !== "string") return text;
+  try {
+    const obj = JSON.parse(text);
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return text;
+  }
+};
+
 export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const { userId: routeUserId } = useParams();
   const userId = propUserId ?? routeUserId;
@@ -63,11 +76,11 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const [modalData, setModalData] = useState({
     stage: null,
     entered_at: null,
-    left_at: null,
+    type: null,
+    last_incoming: null,
+    last_outgoing: null,
     vars_stage: null,
     vars_session: null,
-    logsLoading: false,
-    logs: [],
   });
 
   const fetchDetail = useCallback(async () => {
@@ -107,42 +120,19 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
 
   const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
 
-  // Abre o modal e busca logs por intervalo
-  const openModalForStage = async (st) => {
+  // Abre modal sem buscar nada extra (usa somente o payload da jornada)
+  const openModalForStage = (st) => {
     setActiveTab("logs");
     setModalData({
       stage: st.stage,
       entered_at: st.entered_at,
-      left_at: st.left_at ?? null,
+      type: st.type || null,
+      last_incoming: st.last_incoming || null,
+      last_outgoing: st.last_outgoing || null,
       vars_stage: st.vars ?? null,
       vars_session: detail?.session_vars ?? null,
-      logsLoading: true,
-      logs: [],
     });
     setModalOpen(true);
-
-    // --- BUSCA LOGS (intervalo da etapa) ---
-    try {
-      // ajuste o path se o seu backend expuser outro endpoint
-      const qs = new URLSearchParams({
-        from: st.entered_at,
-        to: st.left_at || st.entered_at, // se não tiver left_at, usa entered_at pra não quebrar
-        limit: "300",
-      });
-      const res = await apiGet(
-        `/tracert/customers/${encodeURIComponent(detail.user_id)}/stage-log?${qs.toString()}`
-      );
-      const items = res?.data ?? res;
-      setModalData((prev) => ({
-        ...prev,
-        logsLoading: false,
-        logs: Array.isArray(items) ? items : [],
-      }));
-    } catch (e) {
-      console.error(e);
-      toast.error("Falha ao carregar logs do intervalo");
-      setModalData((prev) => ({ ...prev, logsLoading: false, logs: [] }));
-    }
   };
 
   return (
@@ -186,7 +176,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
                       type="button"
                       className={[styles.block, typeClass(st.type)].join(" ")}
                       onClick={() => openModalForStage(st)}
-                      title="Clique para ver logs e variáveis"
+                      title="Clique para ver detalhes"
                     >
                       <div className={styles.blockTop}>
                         <div className={styles.typeLeft}>
@@ -214,6 +204,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
                             : "—"}
                         </span>
                       </div>
+                      {/* Sem prévia inline de mensagens, conforme pedido */}
                     </button>
 
                     {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
@@ -262,7 +253,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
                 className={`${styles.tab} ${activeTab === "logs" ? styles.tabActive : ""}`}
                 onClick={() => setActiveTab("logs")}
               >
-                Logs
+                Logs (prévia)
               </button>
               <button
                 className={`${styles.tab} ${activeTab === "vars_stage" ? styles.tabActive : ""}`}
@@ -282,28 +273,32 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
             <div className={styles.tabContent}>
               {activeTab === "logs" && (
                 <div className={styles.logsScroll}>
-                  {modalData.logsLoading ? (
-                    <div className={styles.logsEmpty}>Carregando…</div>
-                  ) : modalData.logs.length === 0 ? (
-                    <div className={styles.logsEmpty}>Sem mensagens neste intervalo.</div>
+                  {!modalData.last_incoming && !modalData.last_outgoing ? (
+                    <div className={styles.logsEmpty}>Sem prévia de mensagens para esta etapa.</div>
                   ) : (
                     <ul className={styles.logsList}>
-                      {modalData.logs.map((lg, i) => (
-                        <li key={i} className="logRow">
+                      {modalData.last_incoming && (
+                        <li className={styles.logRow}>
                           <div className={styles.logHead}>
-                            <span className={
-                              lg.direction === "incoming" ? styles.dirIn :
-                              lg.direction === "outgoing" ? styles.dirOut : styles.dirSys
-                            }>
-                              {lg.direction === "incoming" ? "Usuário" : lg.direction === "outgoing" ? "Bot" : "Sistema"}
+                            <span className={styles.dirIn}>Usuário</span>
+                            <span className={styles.logTs}>
+                              {modalData.entered_at ? new Date(modalData.entered_at).toLocaleString("pt-BR") : ""}
                             </span>
-                            <span className={styles.logTs}>{new Date(lg.ts).toLocaleString("pt-BR")}</span>
                           </div>
-                          <pre className={`${styles.logBody} ${lg.is_error ? styles.isError : ""}`}>
-{String(lg.content ?? "").trim()}
-                          </pre>
+                          <pre className={styles.logBody}>{prettyMaybeJson(String(modalData.last_incoming).trim())}</pre>
                         </li>
-                      ))}
+                      )}
+                      {modalData.last_outgoing && (
+                        <li className={styles.logRow}>
+                          <div className={styles.logHead}>
+                            <span className={styles.dirOut}>Bot</span>
+                            <span className={styles.logTs}>
+                              {modalData.entered_at ? new Date(modalData.entered_at).toLocaleString("pt-BR") : ""}
+                            </span>
+                          </div>
+                          <pre className={styles.logBody}>{prettyMaybeJson(String(modalData.last_outgoing).trim())}</pre>
+                        </li>
+                      )}
                     </ul>
                   )}
                 </div>
