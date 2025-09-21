@@ -73,28 +73,35 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
 
   /* ====== ÚNICA MUDANÇA: mapeamento de cores por tipo ====== */
-  const toneClass = (stage, rawType) => {
-    const name = String(stage || "").toLowerCase();
-    const type = String(rawType || "").toLowerCase();
+// mapeia o type vindo do backend para a classe CSS correta
+const toneClass = (stage, rawType) => {
+  const name = String(stage || "").toLowerCase();
+  const type = String(rawType || "").toLowerCase().trim();
 
-    if (type === "text")       return styles.bText;
-    if (type === "media")      return styles.bMedia;
-    if (type === "location")   return styles.bLocation;
-    if (type === "interactive")return styles.bInteractive;      // padrão
-    if (type === "human")      return styles.bHuman;
-    if (type === "api_call")   return styles.bApiCall;
-    if (type === "document")   return styles.bDocument;
-    if (type === "end")        return styles.bEnd;
-    if (type === "script")     return styles.bScript;
+  // mapeamento direto pelos tipos do backend
+  switch (type) {
+    case "text":         return styles.bText;        // #607D8B
+    case "media":        return styles.bMedia;       // #0097A7
+    case "location":     return styles.bLocation;    // #0288D1
+    case "interactive":  return styles.bInteractive; // #388E3C (ou #00796B se quiser a variação)
+    case "human":        return styles.bHuman;       // #8E24AA
+    case "api_call":     return styles.bApiCall;     // #7B1FA2
+    case "document":     return styles.bDocument;    // #6A1B9A
+    case "end":          return styles.bEnd;         // #E53935
+    case "script":       return styles.bScript;      // #F57C00
+    case "system_reset": return styles.bSystem;      // cinza/“sistema”
+    default:
+      break;
+  }
 
-    // heurísticas extras (caso o backend não mande type “limpo”)
-    if (name.includes("atendimento"))  return styles.bHuman;
-    if (name.includes("menu") || name.includes("opcao"))
-      return styles.bInteractive;
-    if (name.includes("webhook"))      return styles.bApiCall;
+  // heurísticas de segurança caso o type venha diferente
+  if (name.includes("atendimento")) return styles.bHuman;
+  if (name.includes("menu") || name.includes("opcao")) return styles.bInteractive;
+  if (name.includes("webhook")) return styles.bApiCall;
 
-    return styles.bNeutral;
-  };
+  return styles.bNeutral;
+};
+
 
   return (
     <div className={styles.page}>
