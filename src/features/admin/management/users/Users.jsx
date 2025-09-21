@@ -6,7 +6,7 @@ import {
 import { apiGet, apiDelete } from '../../../../shared/apiClient.js';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
-import { useConfirm } from '../../../components/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 
 const PERFIL_ICONS = {
   admin:      <UserRoundCog size={14} />,
