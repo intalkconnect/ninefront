@@ -36,7 +36,6 @@ html, body {
 .header::after{
   content:'';
   position:absolute; left:0; right:0; bottom:-12px; height:2px;
-  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
 }
 .hLeft{ display:flex; align-items:center; gap:10px; }
 .hLeft h1{ margin:0; font-size:20px; font-weight:700; }
