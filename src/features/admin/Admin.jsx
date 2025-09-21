@@ -55,7 +55,7 @@ import JourneyBeholder from "./monitoring/journeyTracker/JourneyBeholder";
 import Queues from "./management/queue/Queues";
 import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
-import UsersPage from "./management/Users";
+import UsersPage from "./management/users/Users";
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campaigns/campaign/Campaigns";
