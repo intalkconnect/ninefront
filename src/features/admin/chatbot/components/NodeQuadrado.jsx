@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
 import PropTypes from 'prop-types';
-import styles from '../styles/Nodes.module.css';
+import styles from './styles/Nodes.module.css';
 
 const NodeQuadrado = React.memo(({ data = {}, selected }) => {
   const {
@@ -57,3 +57,4 @@ const NodeQuadrado = React.memo(({ data = {}, selected }) => {
 });
 
 export default NodeQuadrado;
+
