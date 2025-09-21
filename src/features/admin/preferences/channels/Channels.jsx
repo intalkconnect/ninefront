@@ -4,6 +4,7 @@ import { apiGet } from '../../../../shared/apiClient';
 import styles from "./styles/Channels.module.css";
 import WhatsAppEmbeddedSignupButton from "../../components/WhatsAppEmbeddedSignupButton";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 
 /* ================= utils ================= */
 function getTenantFromHost() {
@@ -37,8 +38,6 @@ export default function Channels() {
     connected: false,
     phoneId: "",
     phone: null, // payload completo de phone (quality_rating, verified_name, etc.)
-    okMsg: null,
-    errMsg: null,
     stabilizing: false // evita "piscada" durante transição do popup
   });
 
@@ -48,9 +47,7 @@ export default function Channels() {
     connected: false,
     botId: "",
     username: "",
-    webhookUrl: "",
-    okMsg: null,
-    errMsg: null
+    webhookUrl: ""
   });
 
   // ✅ Carrega status individuais
@@ -67,8 +64,7 @@ export default function Channels() {
             loading: false,
             connected: true,
             phoneId: ws.phone.id || "",
-            phone: ws.phone,
-            errMsg: null
+            phone: ws.phone
           }));
         } else {
           setWa((prev) => ({
@@ -85,9 +81,9 @@ export default function Channels() {
           loading: false,
           connected: false,
           phoneId: "",
-          phone: null,
-          errMsg: "Não foi possível obter o status do WhatsApp."
+          phone: null
         }));
+        toast.error("Não foi possível obter o status do WhatsApp.");
       }
     })();
 
@@ -102,8 +98,7 @@ export default function Channels() {
             connected: true,
             botId: ts.bot_id || "",
             username: ts.username || "",
-            webhookUrl: ts.webhook_url || "",
-            errMsg: null
+            webhookUrl: ts.webhook_url || ""
           }));
         } else {
           setTg((prev) => ({ ...prev, loading: false, connected: false }));
@@ -112,16 +107,17 @@ export default function Channels() {
         setTg((prev) => ({
           ...prev,
           loading: false,
-          connected: false,
-          errMsg: "Não foi possível obter o status do Telegram."
+          connected: false
         }));
+        toast.error("Não foi possível obter o status do Telegram.");
       }
     })();
   }, [tenant]);
 
-  // WhatsApp Embedded Signup → mensagens do popup
+  // WhatsApp Embedded Signup → mensagens do popup (toasts)
   useEffect(() => {
     const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seudominio.com
+    const WA_TOAST_ID = "wa-embedded-connecting";
 
     function onMsg(e) {
       if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return;
@@ -132,10 +128,10 @@ export default function Channels() {
 
       if (type === "wa:connecting") {
         setWa((s) => ({ ...s, stabilizing: true }));
+        toast.loading("Conectando ao WhatsApp…", { toastId: WA_TOAST_ID });
       }
 
       if (type === "wa:connected") {
-        // payload pode vir de formas distintas; tentamos normalizar
         const phone =
           (payload && payload.phone) ||
           (payload && payload.number) ||
@@ -148,19 +144,34 @@ export default function Channels() {
           stabilizing: false,
           connected: true,
           phoneId: (phone && (phone.id || phone.phone_id)) || s.phoneId || "",
-          phone: phone || s.phone,
-          okMsg: "WhatsApp conectado com sucesso.",
-          errMsg: null
+          phone: phone || s.phone
         }));
 
-        // limpa a mensagem de OK
-        setTimeout(() => {
-          setWa((st) => ({ ...st, okMsg: null }));
-        }, 2000);
+        if (toast.isActive(WA_TOAST_ID)) {
+          toast.update(WA_TOAST_ID, {
+            render: "WhatsApp conectado com sucesso.",
+            type: "success",
+            isLoading: false,
+            autoClose: 2500,
+            closeOnClick: true
+          });
+        } else {
+          toast.success("WhatsApp conectado com sucesso.");
+        }
       }
 
       if (type === "wa:error") {
-        setWa((s) => ({ ...s, stabilizing: false, errMsg: error || "Falha ao conectar." }));
+        setWa((s) => ({ ...s, stabilizing: false }));
+        if (toast.isActive(WA_TOAST_ID)) {
+          toast.update(WA_TOAST_ID, {
+            render: error || "Falha ao conectar.",
+            type: "error",
+            isLoading: false,
+            autoClose: 4000
+          });
+        } else {
+          toast.error(error || "Falha ao conectar.");
+        }
       }
     }
 
@@ -184,10 +195,7 @@ export default function Channels() {
       <div className={styles.header}>
         <div>
           <p className={styles.subtitle}>Conecte seus canais de atendimento.</p>
-          {wa.errMsg && <div className={styles.alertErr}>{wa.errMsg}</div>}
-          {wa.okMsg && <div className={styles.alertOk}>{wa.okMsg}</div>}
-          {tg.errMsg && <div className={styles.alertErr}>{tg.errMsg}</div>}
-          {tg.okMsg && <div className={styles.alertOk}>{tg.okMsg}</div>}
+          {/* (sem mensagens inline — apenas toasts) */}
         </div>
         <div className={styles.tenantBadge}>
           {tenant ? <>id: <strong>{tenant}</strong></> : <span className={styles.subtle}>defina o tenant</span>}
@@ -216,11 +224,10 @@ export default function Channels() {
                 <p className={styles.cardDesc}>
                   Conecte via <strong>Meta Embedded Signup</strong> e selecione o número quando conectado.
                 </p>
-<div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
-  <WhatsAppEmbeddedSignupButton tenant={tenant} label="Conectar" />
-  <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
-</div>
-
+                <div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
+                  <WhatsAppEmbeddedSignupButton tenant={tenant} label="Conectar" />
+                  <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
+                </div>
               </>
             ) : (
               <>
@@ -229,14 +236,12 @@ export default function Channels() {
                     <span className={styles.k}>Número WABA</span>
                     <span className={styles.v}>{waDisplayNumber}</span>
                   </div>
-                  {/* Campos opcionais (exibidos se vierem na API) */}
                   {wa.phone && wa.phone.verified_name && (
                     <div className={styles.kv}>
                       <span className={styles.k}>Nome verificado</span>
                       <span className={styles.v}>{wa.phone.verified_name}</span>
                     </div>
                   )}
-                  
                 </div>
                 <div className={styles.cardActions}>
                   <button className={styles.btnSecondary} onClick={goToWaProfile}>
