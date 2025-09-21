@@ -10,21 +10,22 @@ import ContactsMessage from './messageTypes/ContactsMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import './styles/MessageRow.css';
 import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 // -------- helpers para o cabeçalho de resposta --------
 function pickSnippet(c) {
   if (!c) return '';
   if (typeof c === 'string') {
-  if (/BEGIN:VCARD/i.test(c)) return 'Contato';
+    if (/BEGIN:VCARD/i.test(c)) return 'Contato';
     return c;
   }
 
   if (typeof c === 'object') {
-  if (c.type === 'contacts' || Array.isArray(c.contacts) || Array.isArray(c.vcards)) {
-  const n = Array.isArray(c.contacts) ? c.contacts.length
-  : Array.isArray(c.vcards)   ? c.vcards.length
-  : 1;
-  return n > 1 ? `${n} contatos` : 'Contato';
+    if (c.type === 'contacts' || Array.isArray(c.contacts) || Array.isArray(c.vcards)) {
+      const n = Array.isArray(c.contacts) ? c.contacts.length
+        : Array.isArray(c.vcards)   ? c.vcards.length
+        : 1;
+      return n > 1 ? `${n} contatos` : 'Contato';
     }
     if (typeof c.body === 'string' && c.body.trim()) return c.body;
     if (typeof c.text === 'string' && c.text.trim()) return c.text;
@@ -157,91 +158,109 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   }
 
   if (!messageContent) {
-  if (typeof content === 'string' && /^\d+$/.test(content)) {
-    messageContent = <TextMessage content={content} />;
-  } else if (typeof content === 'number' || typeof content === 'boolean') {
-    messageContent = <TextMessage content={String(content)} />;
-  } else if (isAudio) {
-    messageContent = <AudioMessage url={content?.url || msg.url || ''} />;
-  } else if (isImage) {
-    messageContent = (
-      <ImageMessage
-        url={content?.url}
-        caption={content?.caption}
-        onClick={() => onImageClick?.(content?.url)}
-      />
-    );
-  } else if (isContacts) {
-    // Mesmo que chegue string placeholder, o componente mostra fallback amigável
-    messageContent = <ContactsMessage data={content} />;
-  } else if (isVideo) {
-    // heurística “sticker de vídeo”: mp4/webm sem filename OU backend sinaliza
-    const isLikelySticker =
-      !!content?.is_sticker ||
-      (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
+    if (typeof content === 'string' && /^\d+$/.test(content)) {
+      messageContent = <TextMessage content={content} />;
+    } else if (typeof content === 'number' || typeof content === 'boolean') {
+      messageContent = <TextMessage content={String(content)} />;
+    } else if (isAudio) {
+      messageContent = <AudioMessage url={content?.url || msg.url || ''} />;
+    } else if (isImage) {
+      messageContent = (
+        <ImageMessage
+          url={content?.url}
+          caption={content?.caption}
+          onClick={() => onImageClick?.(content?.url)}
+        />
+      );
+    } else if (isContacts) {
+      // Mesmo que chegue string placeholder, o componente mostra fallback amigável
+      messageContent = <ContactsMessage data={content} />;
+    } else if (isVideo) {
+      // heurística “sticker de vídeo”: mp4/webm sem filename OU backend sinaliza
+      const isLikelySticker =
+        !!content?.is_sticker ||
+        (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
 
-    messageContent = (
-      <VideoMessage
-        url={content?.url || msg.url || ''}
-        caption={content?.caption}
-        small={isLikelySticker}
-        autoPlay={isLikelySticker}
-        loop={isLikelySticker}
-        muted={true}
-        controls={!isLikelySticker}
-        // opcional: ajuda Safari/Chrome a escolher o demuxer certo
-        mimeType={content?.mime_type || (urlLower.endsWith('.webm') ? 'video/webm' : 'video/mp4')}
-      />
-    );
-  } else if (isPdf) {
-    messageContent = (
-      <DocumentMessage
-        filename={content?.filename}
-        url={content?.url}
-        caption={content?.caption}
-        onClick={() => onPdfClick?.(content?.url)}
-      />
-    );
-  } else if (isList) {
-    const listData = content?.type === 'list' ? content : content.body;
-    messageContent = <ListMessage listData={listData} />;
-  } else if (isQuickReply) {
-    messageContent = <QuickReplyMessage data={content} />;
-  } else if (typeof content === 'string') {
-    messageContent = <TextMessage content={content} />;
-  } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
-    messageContent = <TextMessage content={content.body || content.text || content.caption} />;
-  } else {
-    messageContent = <UnknownMessage />;
-  }
-}
-
-  const handleCopy = () => {
-    if (typeof content === 'string') {
-      navigator.clipboard.writeText(content);
+      messageContent = (
+        <VideoMessage
+          url={content?.url || msg.url || ''}
+          caption={content?.caption}
+          small={isLikelySticker}
+          autoPlay={isLikelySticker}
+          loop={isLikelySticker}
+          muted={true}
+          controls={!isLikelySticker}
+          // opcional: ajuda Safari/Chrome a escolher o demuxer certo
+          mimeType={content?.mime_type || (urlLower.endsWith('.webm') ? 'video/webm' : 'video/mp4')}
+        />
+      );
+    } else if (isPdf) {
+      messageContent = (
+        <DocumentMessage
+          filename={content?.filename}
+          url={content?.url}
+          caption={content?.caption}
+          onClick={() => onPdfClick?.(content?.url)}
+        />
+      );
+    } else if (isList) {
+      const listData = content?.type === 'list' ? content : content.body;
+      messageContent = <ListMessage listData={listData} />;
+    } else if (isQuickReply) {
+      messageContent = <QuickReplyMessage data={content} />;
+    } else if (typeof content === 'string') {
+      messageContent = <TextMessage content={content} />;
     } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
-      navigator.clipboard.writeText(content.body || content.text || content.caption);
+      messageContent = <TextMessage content={content.body || content.text || content.caption} />;
+    } else {
+      messageContent = <UnknownMessage />;
     }
-    setMenuOpen(false);
+  }
+
+  const handleCopy = async () => {
+    try {
+      if (typeof content === 'string') {
+        await navigator.clipboard.writeText(content);
+      } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
+        await navigator.clipboard.writeText(content.body || content.text || content.caption);
+      } else {
+        throw new Error('Nada para copiar');
+      }
+      toast.success('Copiado!');
+    } catch (e) {
+      toast.error('Não foi possível copiar');
+      console.error(e);
+    } finally {
+      setMenuOpen(false);
+    }
+  };
+
+  const doDownload = async () => {
+    const fileUrl = content?.url;
+    const filename = content?.filename || 'arquivo';
+    if (!fileUrl) throw new Error('URL ausente');
+
+    const response = await fetch(fileUrl);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(blobUrl);
   };
 
   const handleDownload = async () => {
-    const fileUrl = content?.url;
-    const filename = content?.filename || 'arquivo';
-    if (!fileUrl) return;
+    setMenuOpen(false);
+    const id = toast.loading('Baixando...');
     try {
-      const response = await fetch(fileUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
-      setMenuOpen(false);
+      await doDownload();
+      toast.update(id, { render: 'Download concluído', type: 'success', isLoading: false, autoClose: 3000 });
     } catch (err) {
+      toast.update(id, { render: 'Falha no download', type: 'error', isLoading: false, autoClose: 3000 });
       console.error('Erro ao baixar arquivo:', err);
     }
   };
@@ -278,7 +297,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
               {menuOpen && (
                 <div className={`menu-dropdown ${isOutgoing ? 'right' : 'left'}`}>
                   {onReply && (
-                    <button onClick={() => { onReply(msg); setMenuOpen(false); }}>
+                    <button onClick={() => { onReply(msg); toast.info('Respondendo…'); setMenuOpen(false); }}>
                       <CornerDownLeft size={14} /> Responder
                     </button>
                   )}
