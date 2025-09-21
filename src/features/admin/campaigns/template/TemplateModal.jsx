@@ -1,6 +1,7 @@
 // TemplateModal.jsx — criação de template (drawer à direita, botão fixo)
 import React, { useMemo, useState } from 'react';
 import { apiPost } from '../../../../shared/apiClient';
+import { toast } from 'react-toastify';
 import styles from './styles/TemplateCreate.module.css';
 import { X as XIcon, Save as SaveIcon } from 'lucide-react';
 
@@ -114,10 +115,13 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
     await apiPost(`/templates/${created.id}/sync`, {});
 
     onCreated?.(); // fecha e recarrega lista
+    toast.success('Template enviado para avaliação!');
   } catch (e2) {
     console.error('Erro ao enviar template:', e2);
     // Se falhar na submissão/sync, o rascunho já ficou salvo.
-    setErr(e2?.message || 'Falha ao enviar template para avaliação.');
+    const msg = e2?.message || 'Falha ao enviar template para avaliação.';
+    setErr(msg);
+    toast.error(msg);
   } finally {
     setSaving(false);
   }
@@ -148,7 +152,6 @@ export default function TemplateModal({ isOpen, onClose, onCreated }) {
         {/* Área rolável */}
         <main className={styles.tcScroll}>
           <form id="tpl-create-form" className={styles.tcForm} onSubmit={handleSave} noValidate>
-            {err && <div className={styles.alertErr}>{err}</div>}
 
             {/* Categoria */}
             <div className={styles.tcGroup}>
