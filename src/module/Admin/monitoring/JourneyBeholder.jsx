@@ -1,8 +1,10 @@
-// File: JourneyBeholder.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { ChevronLeft, Clock, User, MessageCircle, AlertTriangle, Activity, RefreshCw, BarChart3, MapPin, FileText } from "lucide-react";
+import {
+  ChevronLeft, Clock, User, MessageCircle, AlertTriangle,
+  Activity, RefreshCw, BarChart3, MapPin, FileText, X
+} from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
 import styles from "./styles/JourneyBeholder.module.css";
 
@@ -22,19 +24,19 @@ const splitEvery10 = (arr) => {
   return out;
 };
 
-// CSS Module: retorna a classe de borda pelo tipo
-const toneClass = (rawType) => {
-  const t = String(rawType || "").toLowerCase();
-  if (t === "text")         return styles.bText;
-  if (t === "media")        return styles.bMedia;
-  if (t === "location")     return styles.bLocation;
-  if (t === "interactive")  return styles.bInteractive;
-  if (t === "human")        return styles.bHuman;
-  if (t === "api_call")     return styles.bApiCall;
-  if (t === "document")     return styles.bDocument;
-  if (t === "end")          return styles.bEnd;
-  if (t === "script")       return styles.bScript;
-  if (t === "system_reset") return styles.bSystemReset;
+/* borda por tipo; fundo é fixo (azul claro) */
+const typeClass = (type) => {
+  const t = String(type || "").toLowerCase();
+  if (t === "text")        return styles.bText;
+  if (t === "media")       return styles.bMedia;
+  if (t === "location")    return styles.bLocation;
+  if (t === "interactive") return styles.bInteractive;
+  if (t === "human")       return styles.bHuman;
+  if (t === "api_call")    return styles.bApiCall;
+  if (t === "document")    return styles.bDocument;
+  if (t === "end")         return styles.bEnd;
+  if (t === "script")      return styles.bScript;
+  if (t === "system_reset")return styles.bSystemReset;
   return styles.bNeutral;
 };
 
@@ -61,7 +63,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // expansão de logs por etapa
+  // flyout: 1 por vez
   const [expandedKey, setExpandedKey] = useState(null);
   const [logsByKey, setLogsByKey] = useState({}); // { key: { loading, items } }
 
@@ -123,6 +125,18 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     }
   }, [detail?.user_id, logsByKey]);
 
+  // fechar flyout ao clicar fora
+  useEffect(() => {
+    const onDocClick = (e) => {
+      // fecha se clicar em algo que não esteja no flyout
+      if (!e.target.closest?.(`.${styles.flyout}`) && !e.target.closest?.(`.${styles.expBtn}`)) {
+        setExpandedKey(null);
+      }
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -137,7 +151,11 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
 
         <div className={styles.actions}>
           {refreshing && <span className={styles.dot} aria-label="Atualizando" />}
-          <button type="button" className={styles.backBtn} onClick={() => (onBack ? onBack() : navigate(-1))}>
+          <button
+            type="button"
+            className={styles.backBtn}
+            onClick={() => (onBack ? onBack() : navigate(-1))}
+          >
             <ChevronLeft size={18} />
             Voltar
           </button>
@@ -156,78 +174,114 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
               <div className={styles.flow}>
                 {lane.map((st, i) => {
                   const key = `${st.stage}|${st.entered_at}`;
+                  const isOpen = expandedKey === key;
                   return (
                     <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
-                      {/* Card da etapa */}
-                      <div className={[styles.block, toneClass(st.type)].join(" ")}> 
-                        <div className={styles.topRow}>
-                          <div className={styles.leftBadges}>
-                            <span className={styles.icon}>{typeIcon(st.type)}</span>
+                      <div className={[styles.block, typeClass(st.type)].join(" ")}>
+                        <div className={styles.blockTop}>
+                          <div className={styles.typeLeft}>
+                            {typeIcon(st.type)}
                             {Number(st.visits ?? 1) > 1 && (
-                              <span className={[styles.badge, styles.badgeVisits].join(" ")}>{st.visits}x</span>
+                              <span className={`${styles.badge} ${styles.badgeVisits}`}>{st.visits}x</span>
                             )}
                             {st?.has_error && (
-                              <span className={[styles.badge, styles.badgeError].join(" ")}>Erro</span>
+                              <span className={`${styles.badge} ${styles.badgeError}`} title="Erro detectado">
+                                Erro
+                              </span>
                             )}
                           </div>
-                          <span className={styles.time}>{fmtTime(st.duration_sec)}</span>
+                          <span className={styles.duration}>{fmtTime(st.duration_sec)}</span>
                         </div>
 
                         <div className={styles.blockTitle}>{labelize(st.stage)}</div>
-                        <div className={styles.started}>
-                          {st.entered_at ? new Date(st.entered_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—"}
+
+                        <div className={styles.metaRow}>
+                          <span className={styles.started}>
+                            {st.entered_at
+                              ? new Date(st.entered_at).toLocaleTimeString("pt-BR", {
+                                  hour: "2-digit", minute: "2-digit", second: "2-digit",
+                                })
+                              : "—"}
+                          </span>
                         </div>
 
-                        {/* Preview (últimas mensagens no intervalo) */}
-                        <div className={styles.preview}>
-                          {st.last_incoming && (
-                            <span className={styles.pvItem}><span className={styles.pvLabel}>Usuário:</span> {st.last_incoming}</span>
-                          )}
-                          {st.last_outgoing && (
-                            <span className={styles.pvItem}><span className={styles.pvLabel}>Bot:</span> {st.last_outgoing}</span>
-                          )}
-                        </div>
-
-                        {/* Toggle logs */}
                         <button
+                          type="button"
                           className={styles.expBtn}
-                          onClick={async () => {
-                            const willExpand = expandedKey !== key;
-                            setExpandedKey(willExpand ? key : null);
-                            if (willExpand) await fetchStageLog(key, st);
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const willOpen = !isOpen;
+                            setExpandedKey(willOpen ? key : null);
+                            if (willOpen) await fetchStageLog(key, st);
                           }}
                         >
-                          {expandedKey === key ? "Ocultar logs" : "Ver logs"}
+                          {isOpen ? "Ocultar logs" : "Ver logs"}
                         </button>
+                      </div>
 
-                        {expandedKey === key && (
-                          <div className={styles.logsPanel}>
+                      {/* seta entre cartões */}
+                      {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
+
+                      {/* FLYOUT: não altera o tamanho do bloco */}
+                      {isOpen && (
+                        <div className={styles.flyout} onClick={(e) => e.stopPropagation()}>
+                          <div className={styles.flyoutHead}>
+                            <div className={styles.flyoutTitle}>
+                              Logs — {labelize(st.stage)}{" "}
+                              <span className={styles.flyoutTime}>
+                                {new Date(st.entered_at).toLocaleString("pt-BR")}
+                              </span>
+                            </div>
+                            <button
+                              className={styles.flyoutClose}
+                              onClick={() => setExpandedKey(null)}
+                              aria-label="Fechar"
+                              title="Fechar"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+
+                          <div className={styles.flyoutBody}>
                             {logsByKey[key]?.loading ? (
-                              <div className={styles.logItem}>Carregando…</div>
-                            ) : logsByKey[key]?.items?.length ? (
-                              <ul>
-                                {logsByKey[key].items.map((lg, idx2) => (
-                                  <li key={idx2} className={styles.logItem}>
+                              <div className={styles.flyoutEmpty}>Carregando…</div>
+                            ) : (logsByKey[key]?.items?.length || 0) === 0 ? (
+                              <div className={styles.flyoutEmpty}>Sem mensagens neste intervalo.</div>
+                            ) : (
+                              <ul className={styles.logList}>
+                                {logsByKey[key].items.map((lg, j) => (
+                                  <li key={j} className={styles.logItem}>
                                     <div className={styles.logHead}>
-                                      <span>
-                                        {lg.direction === "incoming" ? "Usuário" : lg.direction === "outgoing" ? "Bot" : "Sistema"}
+                                      <span
+                                        className={
+                                          lg.direction === "incoming"
+                                            ? styles.dirIn
+                                            : lg.direction === "outgoing"
+                                            ? styles.dirOut
+                                            : styles.dirSys
+                                        }
+                                      >
+                                        {lg.direction === "incoming"
+                                          ? "Usuário"
+                                          : lg.direction === "outgoing"
+                                          ? "Bot"
+                                          : "Sistema"}
                                       </span>
-                                      <span className={styles.logTs}>{new Date(lg.ts).toLocaleTimeString("pt-BR")}</span>
+                                      <span className={styles.logTs}>
+                                        {new Date(lg.ts).toLocaleTimeString("pt-BR")}
+                                      </span>
                                     </div>
-                                    <div className={`${styles.logBody} ${lg.is_error ? styles.logBodyError : ""}`}>{lg.content}</div>
-                                    {lg.is_error && <div className={styles.logErr}>erro detectado</div>}
+                                    <div className={styles.logBody}>
+                                      {lg.content}
+                                    </div>
+                                    {lg.is_error && <span className={styles.logErr}>erro detectado</span>}
                                   </li>
                                 ))}
                               </ul>
-                            ) : (
-                              <div className={styles.logItem}>Sem mensagens neste intervalo.</div>
                             )}
                           </div>
-                        )}
-                      </div>
-
-                      {/* Seta descolada */}
-                      {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -236,7 +290,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           ))
         )}
 
-        {/* Resumo da etapa atual */}
+        {/* Card-resumo opcional da etapa atual */}
         {detail?.dwell && (
           <section className={styles.dwellCard}>
             <div className={styles.dwellHead}>Visão da etapa atual</div>
@@ -247,7 +301,9 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
               </div>
               <div>
                 <span className={styles.dt}>Desde</span>
-                <span className={styles.dv}>{detail.dwell.entered_at ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR") : "—"}</span>
+                <span className={styles.dv}>
+                  {detail.dwell.entered_at ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR") : "—"}
+                </span>
               </div>
               <div>
                 <span className={styles.dt}>Duração</span>
@@ -255,19 +311,19 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
               </div>
               <div>
                 <span className={styles.dt}>Msgs Bot</span>
-                <span className={styles.dv}>{detail.dwell.bot_msgs ?? 0}</span>
+                <span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span>
               </div>
               <div>
                 <span className={styles.dt}>Msgs Usuário</span>
-                <span className={styles.dv}>{detail.dwell.user_msgs ?? 0}</span>
+                <span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span>
               </div>
               <div>
                 <span className={styles.dt}>Falhas Validação</span>
-                <span className={styles.dv}>{detail.dwell.validation_fails ?? 0}</span>
+                <span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span>
               </div>
-              <div>
+              <div className={styles.span2}>
                 <span className={styles.dt}>Maior gap (usuário)</span>
-                <span className={styles.dv}>{fmtTime(detail.dwell.max_user_response_gap_sec ?? 0)}</span>
+                <span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span>
               </div>
             </div>
           </section>
