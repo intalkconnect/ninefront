@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { apiGet, apiDelete, apiPut } from '../../../../shared/apiClient.js';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
+import { toast } from 'react-toastify';
 import styles from './styles/QuickReplies.module.css';
 import {
   MessageSquare,
@@ -46,8 +47,8 @@ const QuickReplies = () => {
       const data = await apiGet('/quick-replies');
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
-      console.error('Erro ao carregar:', e);
       setError('Falha ao carregar respostas rápidas. Verifique sua conexão.');
+      toast.error('Falha ao carregar respostas rápidas. Verifique sua conexão.');
     } finally {
       setLoading(false);
     }
@@ -77,6 +78,7 @@ const QuickReplies = () => {
   const saveEdit = async (id) => {
     if (!editTitle.trim() || !editContent.trim()) {
       setError('Título e conteúdo são obrigatórios.');
+      toast.warn('Título e conteúdo são obrigatórios.');
       return;
     }
     setSavingId(id);
@@ -90,10 +92,11 @@ const QuickReplies = () => {
       setEditingId(null);
       setEditTitle('');
       setEditContent('');
-      showSuccess('Resposta atualizada.');
+      toast.success('Resposta atualizada.');
     } catch (e) {
-      console.error('Erro ao salvar:', e);
+      
       setError('Erro ao salvar alterações. Tente novamente.');
+      toast.error('Erro ao salvar alterações. Tente novamente.');
     } finally {
       setSavingId(null);
     }
@@ -105,7 +108,7 @@ const QuickReplies = () => {
     setError(null);
     try {
       const ok = await confirm({
-      title: 'Excluir usuário?',
+      title: 'Excluir resposta?',
       description: `Tem certeza que deseja excluir essa resposta rápida? Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       cancelText: 'Cancelar',
@@ -114,10 +117,11 @@ const QuickReplies = () => {
       if (!ok) return;
       await apiDelete(`/quick-replies/${id}`);
       setItems(prev => prev.filter(r => r.id !== id));
-      showSuccess('Resposta removida.');
+      toast.success('Resposta removida.');
     } catch (e) {
-      console.error('Erro ao excluir:', e);
+      
       setError('Erro ao excluir resposta. Tente novamente.');
+      toast.error('Erro ao excluir resposta. Tente novamente.');
     } finally {
       setDeletingId(null);
     }
