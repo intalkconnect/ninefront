@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ChevronLeft, Clock, User, MessageCircle, AlertTriangle,
-  Activity, RefreshCw, BarChart3, MapPin, FileText, X
+  Activity, RefreshCw, BarChart3, MapPin, FileText
 } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
 import styles from "./styles/JourneyBeholder.module.css";
@@ -63,7 +63,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // flyout: 1 por vez
+  // expansão inline por etapa (um por vez)
   const [expandedKey, setExpandedKey] = useState(null);
   const [logsByKey, setLogsByKey] = useState({}); // { key: { loading, items } }
 
@@ -125,18 +125,6 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     }
   }, [detail?.user_id, logsByKey]);
 
-  // fechar flyout ao clicar fora
-  useEffect(() => {
-    const onDocClick = (e) => {
-      // fecha se clicar em algo que não esteja no flyout
-      if (!e.target.closest?.(`.${styles.flyout}`) && !e.target.closest?.(`.${styles.expBtn}`)) {
-        setExpandedKey(null);
-      }
-    };
-    document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, []);
-
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -177,7 +165,11 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
                   const isOpen = expandedKey === key;
                   return (
                     <div className={styles.blockWrap} key={`${st.stage}-${idx}-${i}`}>
-                      <div className={[styles.block, typeClass(st.type)].join(" ")}>
+                      <div className={[
+                        styles.block,
+                        typeClass(st.type),
+                        isOpen ? styles.blockExpanded : ""
+                      ].join(" ")}>
                         <div className={styles.blockTop}>
                           <div className={styles.typeLeft}>
                             {typeIcon(st.type)}
@@ -205,83 +197,62 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
                           </span>
                         </div>
 
-                        <button
-                          type="button"
-                          className={styles.expBtn}
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            const willOpen = !isOpen;
-                            setExpandedKey(willOpen ? key : null);
-                            if (willOpen) await fetchStageLog(key, st);
-                          }}
-                        >
-                          {isOpen ? "Ocultar logs" : "Ver logs"}
-                        </button>
-                      </div>
+                        <div className={styles.controlsRow}>
+                          <button
+                            type="button"
+                            className={styles.expBtn}
+                            onClick={async () => {
+                              const willOpen = !isOpen;
+                              setExpandedKey(willOpen ? key : null);
+                              if (willOpen) await fetchStageLog(key, st);
+                            }}
+                          >
+                            {isOpen ? "Ocultar logs" : "Ver logs"}
+                          </button>
+                        </div>
 
-                      {/* seta entre cartões */}
-                      {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
-
-                      {/* FLYOUT: não altera o tamanho do bloco */}
-                      {isOpen && (
-                        <div className={styles.flyout} onClick={(e) => e.stopPropagation()}>
-                          <div className={styles.flyoutHead}>
-                            <div className={styles.flyoutTitle}>
-                              Logs — {labelize(st.stage)}{" "}
-                              <span className={styles.flyoutTime}>
-                                {new Date(st.entered_at).toLocaleString("pt-BR")}
-                              </span>
-                            </div>
-                            <button
-                              className={styles.flyoutClose}
-                              onClick={() => setExpandedKey(null)}
-                              aria-label="Fechar"
-                              title="Fechar"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-
-                          <div className={styles.flyoutBody}>
+                        {/* LOGS INLINE (texto simples, sem bolhas e sem scroll interno) */}
+                        {isOpen && (
+                          <div className={styles.inlineLogs}>
                             {logsByKey[key]?.loading ? (
-                              <div className={styles.flyoutEmpty}>Carregando…</div>
+                              <div className={styles.inlineEmpty}>Carregando…</div>
                             ) : (logsByKey[key]?.items?.length || 0) === 0 ? (
-                              <div className={styles.flyoutEmpty}>Sem mensagens neste intervalo.</div>
+                              <div className={styles.inlineEmpty}>Sem mensagens neste intervalo.</div>
                             ) : (
-                              <ul className={styles.logList}>
-                                {logsByKey[key].items.map((lg, j) => (
-                                  <li key={j} className={styles.logItem}>
-                                    <div className={styles.logHead}>
-                                      <span
-                                        className={
-                                          lg.direction === "incoming"
-                                            ? styles.dirIn
-                                            : lg.direction === "outgoing"
-                                            ? styles.dirOut
-                                            : styles.dirSys
-                                        }
-                                      >
+                              <ul className={styles.inlineList}>
+                                {logsByKey[key].items.slice(0, 20).map((lg, j) => (
+                                  <li key={j} className={styles.inlineItem}>
+                                    <div className={styles.inlineHead}>
+                                      <span className={
+                                        lg.direction === "incoming"
+                                          ? styles.dirIn
+                                          : lg.direction === "outgoing"
+                                          ? styles.dirOut
+                                          : styles.dirSys
+                                      }>
                                         {lg.direction === "incoming"
                                           ? "Usuário"
                                           : lg.direction === "outgoing"
                                           ? "Bot"
                                           : "Sistema"}
                                       </span>
-                                      <span className={styles.logTs}>
+                                      <span className={styles.inlineTs}>
                                         {new Date(lg.ts).toLocaleTimeString("pt-BR")}
                                       </span>
                                     </div>
-                                    <div className={styles.logBody}>
-                                      {lg.content}
-                                    </div>
-                                    {lg.is_error && <span className={styles.logErr}>erro detectado</span>}
+                                    <pre className={`${styles.inlineBody} ${lg.is_error ? styles.isError : ""}`}>
+{String(lg.content || "").trim()}
+                                    </pre>
                                   </li>
                                 ))}
                               </ul>
                             )}
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+
+                      {/* seta entre cartões */}
+                      {i < lane.length - 1 && <span className={styles.arrow} aria-hidden="true" />}
                     </div>
                   );
                 })}
@@ -290,7 +261,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           ))
         )}
 
-        {/* Card-resumo opcional da etapa atual */}
+        {/* resumo opcional */}
         {detail?.dwell && (
           <section className={styles.dwellCard}>
             <div className={styles.dwellHead}>Visão da etapa atual</div>
