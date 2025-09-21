@@ -70,7 +70,7 @@
 }
 
 /* Blocos */
-.blockWrap{position:relative; display:grid; gap:6px; align-content:start}
+.blockWrap{position:relative; display:grid; gap:6px; align-content:start;padding-right:34px;}
 .block{
   min-height:64px; border-radius:12px; border:1px solid #e5e7eb; background:#f8fafc;
   box-shadow:0 2px 6px rgba(0,0,0,.04);
@@ -94,13 +94,21 @@
 
 /* Setas entre blocos */
 .arrow{
-  position:absolute; right:-14px; top:32px;
-  width:24px; height:2px; background:#cbd5e1;
+  position:absolute;
+  /* começa depois do bloco (6px à direita do cartão) */
+  left: calc(100% + 6px);
+  top: 32px;
+  width:24px;
+  height:2px;
+  background:#cbd5e1;
 }
 .arrow::after{
-  content:""; position:absolute; right:-5px; top:-3px;
+  content:"";
+  position:absolute;
+  right:-5px; top:-3px;
   border-left:6px solid #cbd5e1;
-  border-top:4px solid transparent; border-bottom:4px solid transparent;
+  border-top:4px solid transparent;
+  border-bottom:4px solid transparent;
 }
 
 /* Diagnóstico */
