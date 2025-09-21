@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { apiGet, apiDelete, apiPut } from '../../../../shared/apiClient.js';
-import { useConfirm } from '../../../components/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import styles from './styles/QuickReplies.module.css';
 import {
   MessageSquare,
