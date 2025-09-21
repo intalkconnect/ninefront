@@ -6,6 +6,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../../shared/apiClient";
 import styles from "./styles/WhatsAppProfile.module.css";
+import { toast } from "react-toastify";
 
 /* -------- tenant -------- */
 function getTenantFromHost() {
@@ -86,8 +87,6 @@ export default function WhatsAppProfile() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState(null);
-  const [ok, setOk] = useState(null);
 
   // número
   const [phone, setPhone] = useState(null);
@@ -114,7 +113,7 @@ export default function WhatsAppProfile() {
 
   async function loadAll() {
     if (!tenant) return;
-    setLoading(true); setErr(null); setOk(null);
+    setLoading(true);
     try {
       const num = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
       if (num?.ok) setPhone(num.phone || null);
@@ -132,8 +131,7 @@ export default function WhatsAppProfile() {
         setProfilePic(p.profile_picture_url || "");
       }
     } catch (e) {
-      console.error(e);
-      setErr("Falha ao carregar perfil.");
+      toast.error("Falha ao carregar perfil.");
     } finally {
       setLoading(false);
     }
@@ -141,16 +139,16 @@ export default function WhatsAppProfile() {
   useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, [tenant]);
 
   async function handleSave() {
-    setSaving(true); setErr(null); setOk(null);
+    setSaving(true);
+    const toastId = toast.loading("Salvando perfil…");
     try {
       const websites = [web1, web2].filter(Boolean);
       await apiPost("/whatsapp/profile", {
         subdomain: tenant, about, description, address, email, vertical, websites,
       });
-      setOk("Perfil atualizado com sucesso.");
+      toast.update(toastId, { render: "Perfil atualizado com sucesso.", type: "success", isLoading: false, autoClose: 2500 });
     } catch (e) {
-      console.error(e);
-      setErr("Não foi possível salvar o perfil.");
+      toast.update(toastId, { render: "Não foi possível salvar o perfil.", type: "error", isLoading: false, autoClose: 3500 });
     } finally {
       setSaving(false);
     }
@@ -158,29 +156,29 @@ export default function WhatsAppProfile() {
 
   async function applyPhoto() {
     if (!photoUrl.trim()) return;
-    setErr(null); setOk(null);
+    const url = photoUrl.trim();
+    const toastId = toast.loading("Aplicando foto…");
     try {
-      setProfilePic(photoUrl.trim()); // preview otimista
-      await apiPost("/whatsapp/photo-from-url", { subdomain: tenant, file_url: photoUrl.trim() });
-      setOk("Foto aplicada.");
+      setProfilePic(url); // preview otimista
+      await apiPost("/whatsapp/photo-from-url", { subdomain: tenant, file_url: url });
+      toast.update(toastId, { render: "Foto aplicada.", type: "success", isLoading: false, autoClose: 2000 });
       setPhotoUrl("");
       await loadAll();
     } catch (e) {
-      console.error(e);
-      setErr("Falha ao aplicar foto.");
+      toast.update(toastId, { render: "Falha ao aplicar foto.", type: "error", isLoading: false, autoClose: 3000 });
+      // rollback opcional: manteríamos a preview, mas pode reverter se quiser
     }
   }
 
   async function removePhoto() {
-    setErr(null); setOk(null);
+    const toastId = toast.loading("Removendo foto…");
     try {
       await apiPost("/whatsapp/photo", { _method: "DELETE", subdomain: tenant });
-      setOk("Foto removida.");
       setProfilePic("");
       await loadAll();
+      toast.update(toastId, { render: "Foto removida.", type: "success", isLoading: false, autoClose: 2000 });
     } catch (e) {
-      console.error(e);
-      setErr("Falha ao remover foto.");
+      toast.update(toastId, { render: "Falha ao remover foto.", type: "error", isLoading: false, autoClose: 3000 });
     }
   }
 
@@ -223,51 +221,47 @@ export default function WhatsAppProfile() {
         </div>
       </div>
 
-      {err && <div className={styles.alertErr} style={{marginBottom:12}}>{err}</div>}
-      {ok &&  <div className={styles.alertOk}  style={{marginBottom:12}}>{ok}</div>}
-
       <div className={styles.grid}>
         {/* ===== esquerda ===== */}
         <section className={styles.left}>
           {/* === META DADOS EM GRADE (título em cima) === */}
-<section className={styles.kpiGrid}>
-  <div className={styles.kvCard}>
-    <div className={styles.kvTitle}>Phone ID</div>
-    <div className={`${styles.kvValue} ${styles.mono}`}>{phone?.id || "—"}</div>
-  </div>
+          <section className={styles.kpiGrid}>
+            <div className={styles.kvCard}>
+              <div className={styles.kvTitle}>Phone ID</div>
+              <div className={`${styles.kvValue} ${styles.mono}`}>{phone?.id || "—"}</div>
+            </div>
 
-  <div className={styles.kvCard}>
-    <div className={styles.kvTitle}>Número</div>
-    <div className={styles.kvValue}>{displayNumber || "—"}</div>
-  </div>
+            <div className={styles.kvCard}>
+              <div className={styles.kvTitle}>Número</div>
+              <div className={styles.kvValue}>{displayNumber || "—"}</div>
+            </div>
 
-  <div className={styles.kvCard}>
-    <div className={styles.kvTitle}>Nome verificado</div>
-    <div className={styles.kvValue}>{verifiedName || "—"}</div>
-  </div>
+            <div className={styles.kvCard}>
+              <div className={styles.kvTitle}>Nome verificado</div>
+              <div className={styles.kvValue}>{verifiedName || "—"}</div>
+            </div>
 
-  <div className={styles.kvCard}>
-    <div className={styles.kvTitle}>Qualidade</div>
-    <div className={styles.kvValue}>{qualityBadge(quality)}</div>
-  </div>
+            <div className={styles.kvCard}>
+              <div className={styles.kvTitle}>Qualidade</div>
+              <div className={styles.kvValue}>{qualityBadge(quality)}</div>
+            </div>
 
-  <div className={styles.kvCard}>
-    <div className={styles.kvTitle}>Conta oficial</div>
-    <div className={styles.kvValue}>
-      {oba ? (
-        <span className={`${styles.chip} ${styles.chipOk}`}>Sim</span>
-      ) : (
-        <span className={`${styles.chip} ${styles.chipOff}`}>Não</span>
-      )}
-    </div>
-  </div>
+            <div className={styles.kvCard}>
+              <div className={styles.kvTitle}>Conta oficial</div>
+              <div className={styles.kvValue}>
+                {oba ? (
+                  <span className={`${styles.chip} ${styles.chipOk}`}>Sim</span>
+                ) : (
+                  <span className={`${styles.chip} ${styles.chipOff}`}>Não</span>
+                )}
+              </div>
+            </div>
 
-  <div className={styles.kvCard}>
-    <div className={styles.kvTitle}>Verificação</div>
-    <div className={styles.kvValue}>{verifyChip(verifyStatus)}</div>
-  </div>
-</section>
-
+            <div className={styles.kvCard}>
+              <div className={styles.kvTitle}>Verificação</div>
+              <div className={styles.kvValue}>{verifyChip(verifyStatus)}</div>
+            </div>
+          </section>
 
           {/* Foto por URL */}
           <div className={styles.section}>
