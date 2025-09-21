@@ -110,7 +110,6 @@ export default function TicketDetail() {
       {/* header: título à esquerda, ações à direita (Voltar / Exportar PDF) */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
-          <h1 className={styles.title}>Ticket #{titleNum}</h1>
           <div className={styles.metaRow}>Criado em {fmtDT(data?.created_at)}</div>
         </div>
 
