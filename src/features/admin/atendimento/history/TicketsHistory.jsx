@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, X as XIcon } from 'lucide-react';
 import styles from './styles/TicketsHistory.module.css';
+import { toast } from 'react-toastify';
 import { apiGet } from '../../../../shared/apiClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -60,7 +61,7 @@ export default function TicketsHistory() {
       setPage(Number(page) || 1);
     } catch (e) {
       console.error(e);
-      setError('Falha ao carregar histórico de tickets.');
+      toast.error('Falha ao carregar histórico de tickets.');
     } finally {
       setLoading(false);
     }
@@ -140,10 +141,6 @@ export default function TicketsHistory() {
             <tbody>
               {loading && (
                 <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>
-              )}
-
-              {!loading && error && (
-                <tr><td colSpan={5} className={styles.empty}>{error}</td></tr>
               )}
 
               {!loading && !error && items.length === 0 && (
