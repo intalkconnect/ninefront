@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { ChevronLeft, Clock, User, MessageCircle, AlertTriangle, Activity, RefreshCw, BarChart3, Timer, MessageSquare, MapPin, FileText } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
+import styles from "./styles/JourneyBeholder.module.css";
 
 /* ---------- helpers ---------- */
 const fmtTime = (sec = 0) => {
