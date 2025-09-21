@@ -8,6 +8,7 @@ import ReactFlow, {
   useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 
 import { nodeTemplates } from "./components/NodeTemplates";
@@ -579,9 +580,9 @@ function handler(context) {
       const startNode = nodes.find((n) => n.data.nodeType === "start");
       const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
       await apiPost("/flows/publish", { data: flowData });
-      alert("Fluxo publicado com sucesso!");
+      toast.success("Fluxo publicado com sucesso!");
     } catch (err) {
-      alert("Erro de conexão: " + err.message);
+      toast.error(`Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`);
     } finally {
       setIsPublishing(false);
     }
