@@ -1,6 +1,6 @@
 import React, { useState, useEffect, forwardRef, useRef } from 'react';
-import { apiGet } from '../../../../shared/apiClient';
-import './QuickReplies.css';
+import { apiGet } from "../../../../shared/apiClient";
+import './styles/QuickReplies.css';
 
 /**
  * Dropdown de respostas rápidas.
