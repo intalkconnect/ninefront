@@ -1,0 +1,59 @@
+:root{
+  --border:#e5e7eb;
+  --border2:#eef2f7;
+  --text:#0f172a;
+  --text2:#374151;
+  --muted:#6b7280;
+  --primary:#8B5CF6;
+  --primary-600:#7C3AED;
+  --primary-100:rgba(139,92,246,.18);
+}
+
+/* Overlay/caixa */
+.overlay{position:fixed;inset:0;background:rgba(17,24,39,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
+.modal{
+  width:100%;max-width:640px;max-height:88vh;display:flex;flex-direction:column;background:#fff;
+  border:1px solid var(--border2);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.16);overflow:hidden
+}
+
+/* Cabeçalho */
+.header{
+  display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border2);
+  background:linear-gradient(180deg,#f7f8fa 0%, #fff 100%)
+}
+.title{display:flex;gap:8px;align-items:center;margin:0;font-size:18px;font-weight:700;color:var(--text)}
+.iconBtn{width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:#fff;display:grid;place-items:center;cursor:pointer}
+.iconBtn:hover{background:#f1f5f9}
+
+/* Corpo */
+.body{padding:14px 18px;overflow:auto}
+.alert{margin-bottom:10px;background:#fee2e2;border:1px solid #fecaca;color:#991b1b;padding:10px 12px;border-radius:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+.group{display:flex;flex-direction:column;gap:6px}
+.label{font-size:14px;font-weight:700;color:var(--text2)}
+.input,.select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:#fff;outline:none;font-size:14px}
+.input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-100)}
+
+/* Filas (chips) */
+.chipsBox{display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1e3a8a;border:1px solid #c7d2fe;padding:6px 10px;border-radius:999px;font-weight:700}
+.chipX{appearance:none;border:0;background:transparent;color:#6b7280;cursor:pointer;line-height:1;font-size:14px;padding:0 2px}
+.chipX:hover{color:#111827}
+.selectInline{appearance:auto;height:36px;border:1px solid var(--border);border-radius:10px;padding:0 10px;background:#fff;font-weight:700;color:var(--text2)}
+.muted{color:var(--muted)}
+
+/* Rodapé */
+.footer{display:flex;justify-content:flex-end;gap:10px;padding:12px 18px;border-top:1px solid var(--border2);background:linear-gradient(180deg,#fff 0%, #f7f8fa 100%)}
+.btn{appearance:none;border:1px solid var(--border);background:#fff;color:var(--text2);border-radius:10px;padding:10px 14px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.btn:hover{background:#f1f5f9}
+
+.btnPrimary{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color:#ffffff;border:none;border-radius:10px;font-weight:700;font-size:14px;
+  cursor:pointer;transition: all 0.2s ease;box-shadow:0 2px 8px rgba(59,130,246,0.2);
+}
+.btnPrimary:hover{background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);box-shadow:0 4px 12px rgba(59,130,246,0.3);transform: translateY(-1px)}
+

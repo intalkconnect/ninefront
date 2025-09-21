@@ -1,0 +1,198 @@
+:root{
+  --bg:#f6f7fb;
+  --surface:#fff;
+  --muted:#6b7280;
+  --text:#0f172a;
+  --border:#e5e7eb;
+  --border2:#eef2f7;
+  --primary:#2563eb;
+  --primary-100:rgba(37,99,235,.15);
+}
+
+.page{  
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background:var(--bg);
+}
+.breadcrumbs{ color:#64748b; margin-bottom:8px; }
+.bcLink{ color:#2563eb; cursor:pointer; } .bcLink:hover{ text-decoration:underline; }
+.bcSep{ margin:0 6px; }
+
+.pageHeader{ display:flex; justify-content:space-between; align-items:center; padding:10px 0 14px; position:relative; margin-bottom:10px; }
+.pageHeader::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:linear-gradient(90deg,#2563eb, rgba(37,99,235,.18) 55%, transparent); }
+.titleWrap{ display:flex; flex-direction:column; gap:2px; }
+.title{ margin:0; font-size:22px; font-weight:800; color:var(--text); }
+.metaRow{ color:var(--muted); }
+
+.headerActions{ display:flex; gap:8px; }
+.backBtn, .btnGhost, .btnPrimary, .btnBlue{
+  border:1px solid var(--border); background:#fff; color:#111827; border-radius:10px;
+  padding:8px 12px; display:inline-flex; align-items:center; font-weight:600; cursor:pointer;
+}
+.btnGhost:hover{ background:#f8fafc; }
+.btnPrimary{ background:#2563eb; border-color:#2563eb; color:#fff; }
+.btnPrimary:disabled{ opacity:.6; cursor:not-allowed; }
+.btnBlue{ background:#3b82f6; border-color:#3b82f6; color:#fff; }
+
+.alertErr, .alertOk{ display:inline-block; padding:8px 10px; border-radius:8px; border:1px solid; }
+.alertErr{ background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.alertOk { background:#ecfdf5; color:#065f46; border-color:#a7f3d0; }
+
+/* grid */
+.grid{ display:grid; grid-template-columns: 1.2fr 0.8fr; gap:18px; align-items:flex-start; }
+@media (max-width: 1080px){ .grid{ grid-template-columns: 1fr; } }
+
+.left{ background:var(--surface); border:1px solid var(--border2); border-radius:14px; box-shadow:0 1px 2px rgba(0,0,0,.04); padding:14px; }
+
+/* info table */
+.infoTable{ display:grid; grid-template-columns: 180px 1fr; row-gap:8px; column-gap:12px; margin-bottom:8px; }
+.k{ color:#64748b; font-weight:600; }
+.v{ color:#111827; word-break:break-word; }
+.row{ display:contents; }
+
+/* semáforo qualidade */
+.qBadge{ display:inline-flex; align-items:center; gap:8px; padding:4px 10px; border-radius:999px; border:1px solid var(--border); font-size:12px; font-weight:700; letter-spacing:.02em; }
+.qBadge i{ width:8px; height:8px; border-radius:999px; display:inline-block; }
+.qGreen{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; } .qGreen i{ background:#16a34a; }
+.qYellow{ background:#fffbeb; border-color:#fde68a; color:#92400e; } .qYellow i{ background:#f59e0b; }
+.qRed{ background:#fef2f2; border-color:#fecaca; color:#991b1b; } .qRed i{ background:#ef4444; }
+.qGrey{ background:#f3f4f6; border-color:#e5e7eb; color:#374151; } .qGrey i{ background:#9ca3af; }
+
+/* chips */
+.chip{ display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--border); font-size:12px; font-weight:700; }
+.chipOk{ background:#ecfdf5; border-color:#a7f3d0; color:#065f46; }
+.chipWarn{ background:#fffbeb; border-color:#fde68a; color:#92400e; }
+.chipOff{ background:#f3f4f6; border-color:#e5e7eb; color:#374151; }
+
+/* forms */
+.section{ margin-top:12px; }
+.labelStrong{ font-weight:700; margin-bottom:6px; display:block; color:#111827; }
+.input, .select, .textarea{
+  width:100%; border:1px solid var(--border); border-radius:10px; background:#fff; color:#111827;
+  padding:10px 12px; outline:none;
+}
+.input:focus, .textarea:focus, .select:focus{ border-color:#2563eb; box-shadow:0 0 0 3px var(--primary-100); }
+.textarea{ resize:vertical; min-height:96px; line-height:1.4; }
+.selectWrap{ position:relative; }
+.counter{ color:var(--muted); font-size:12px; margin-top:4px; text-align:right; }
+.inlinePhoto{ display:flex; gap:8px; align-items:center; }
+
+/* preview */
+.preview{ position:sticky; top:16px; }
+.previewCard{ background:#fff; border:1px solid var(--border2); border-radius:14px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+.prevHeader{ display:grid; place-items:center; gap:6px; padding:16px 12px 12px; border-bottom:1px solid var(--border2); }
+.prevAvatar{ width:84px; height:84px; border-radius:999px; background:#f3f4f6; border:1px solid var(--border); display:grid; place-items:center; overflow:hidden; }
+.prevAvatar img{ width:100%; height:100%; object-fit:cover; }
+.prevAvatar span{ font-weight:800; color:#2563eb; }
+
+.nameRow{ display:flex; align-items:center; gap:6px; }
+.prevName{ font-size:18px; font-weight:800; color:#111827; }
+.obaBadge{ display:inline-grid; place-items:center; width:18px; height:18px; border-radius:999px; border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.06); }
+
+.prevPhone{ color:#6b7280; }
+.shareBtn{ margin-top:6px; border:1px solid var(--border); background:#fff; border-radius:8px; padding:6px 10px; font-weight:600; }
+
+/* --- LISTA EM GRADE COM ÍCONES --- */
+.prevBody{ padding:12px; }
+.prevList{
+  display:grid;
+  grid-template-columns: 24px 1fr;   /* coluna de ícones + coluna de conteúdo */
+  column-gap:10px;
+  row-gap:10px;
+  align-items:flex-start;
+}
+.prevItem{ display:contents; }       /* cada item preenche as duas colunas */
+.prevIcon{
+  width:24px; height:24px; display:grid; place-items:center;
+  color:#0f172a; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px;
+}
+.prevText{ color:#111827; line-height:1.35; word-break:break-word; }
+.link{ color:#2563eb; text-decoration:none; } .link:hover{ text-decoration:underline; }
+
+.prevFoot{ padding:10px 12px; color:#6b7280; font-size:12px; border-top:1px solid var(--border2); }
+
+          /* ====== Grid de metadados (cards) ====== */
+.kpiGrid{
+  display:grid;
+  gap:12px;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  margin-bottom:12px;
+}
+
+@media (max-width: 1200px){
+  .kpiGrid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 720px){
+  .kpiGrid{ grid-template-columns: 1fr; }
+}
+
+.kvCard{
+  background:#f8fafc;
+  border:1px solid var(--border2);
+  border-radius:12px;
+  padding:10px 12px;
+  min-height:72px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  box-shadow:0 1px 2px rgba(0,0,0,.03);
+}
+
+.kvTitle{
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#6b7280;
+  margin-bottom:6px;
+}
+
+.kvValue{
+  color:#0f172a;
+  font-weight:700;
+  line-height:1.25;
+  word-break:break-word;
+}
+
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* (opcional) deixa os chips dentro dos cards mais "grudadinhos" ao texto */
+.kvValue .chip{ transform: translateY(-1px); }
+
+/* barra de status “Conectado” */
+.statusBar{
+  display:flex; align-items:center; gap:8px; margin-bottom:10px;
+}
+.statusChipOk{
+  display:inline-flex; align-items:center; gap:6px;
+  background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;
+  padding:6px 10px; border-radius:999px; font-weight:600; font-size:13px;
+}
+
+/* grid dos cards (reaproveita o visual da página) */
+.kpiGrid{
+  display:grid;
+  gap:12px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.kvCard{
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:12px 14px;
+}
+.kvTitle{
+  font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:#64748b; margin-bottom:6px;
+}
+.kvValue{ font-weight:700; color:#0f172a; }
+.kvValueRow{ display:flex; align-items:center; gap:8px; }
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+/* botão copiar */
+.copyBtn{
+  border:1px solid #e5e7eb; background:#fff; border-radius:8px; padding:6px;
+  cursor:pointer;
+}
+.copyBtn:hover{ background:#f3f4f6; }
