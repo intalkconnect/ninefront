@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { connectSocket, getSocket } from "../../../services/socket";
 import { apiGet } from "../../../../../shared/apiClient";
-import useConversationsStore from "../../store/useConversationsStore";
-import { marcarMensagensAntesDoTicketComoLidas } from "../../hooks/useSendMessage";
+import useConversationsStore from "../../../store/useConversationsStore";
+import { marcarMensagensAntesDoTicketComoLidas } from "../../../hooks/useSendMessage";
 
-import SendMessageForm from "../SendMessageForm/SendMessageForm";
-import MessageList from "./MessageList";
-import ImageModal from "./modals/ImageModal";
-import PdfModal from "./modals/PdfModal";
-import ChatHeader from "./ChatHeader";
+import SendMessageForm from "../../sendMessageForm/SendMessageForm";
+import MessageList from "../message/MessageList";
+import ImageModal from "../modals/image/Image";
+import PdfModal from "../modals/pdf/pdf";
+import ChatHeader from "../chatHeader/ChatHeader";
 
 import "./styles/ChatWindow.css";
 
