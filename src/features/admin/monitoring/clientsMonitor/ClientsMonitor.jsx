@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { apiGet } from '../../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer,
   Headset, RefreshCw, Eye, ArrowLeftRight
 } from 'lucide-react';
 import { FaWhatsapp, FaTelegramPlane, FaGlobe, FaInstagram, FaFacebookF } from 'react-icons/fa';
+import { toast } from 'react-toastify'; // NEW
 
 import MiniChatDrawer from './MiniChatDrawer';
 import TransferModal from './TransferModal';
@@ -17,7 +18,6 @@ const getAuthInfo = () => {
     if (!t) return { email: '', role: '' };
     let b64 = t.split('.')[1] || '';
     b64 = b64.replace(/-/g, '+').replace(/_/g, '/');
-    // padding
     while (b64.length % 4) b64 += '=';
     const json = atob(b64);
     const payload = JSON.parse(json);
@@ -29,8 +29,6 @@ const getAuthInfo = () => {
   }
 };
 
-
-
 /* Utils ---------------------------------------------------- */
 const slugify = (str = '') =>
   String(str)
@@ -40,7 +38,6 @@ const slugify = (str = '') =>
 
 const canais = ['Whatsapp', 'Telegram', 'Webchat', 'Instagram', 'Facebook'];
 
-/* Tiny helpers */
 const cap = (s='') => String(s).replace('_', ' ')
   .replace(/^\w/u, c => c.toUpperCase());
 
@@ -64,11 +61,11 @@ const channelIcon = (canal) => {
   }
 };
 
-
 /* Component ------------------------------------------------ */
 export default function ClientsMonitor() {
+  const unmountedRef = useRef(false); // NEW
+
   // settings vindos da API (null até carregar)
-  // { habilitar: boolean, overrides: { media?: {espera_inicial,demora_durante}, alta?: {...} } }
   const [settings, setSettings] = useState(null);
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -79,30 +76,31 @@ export default function ClientsMonitor() {
   const [erro, setErro] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [preview, setPreview] = useState(null);
-  const [transfer, setTransfer] = useState(null); // { userId } | null
+  const [transfer, setTransfer] = useState(null); // { userId, currentFila, currentAssigned }
+
   const onOpenTransfer = useCallback((a) => {
-   setTransfer({
-     userId: a.user_id,
-     currentFila: a.fila || '',                                  // nome da fila atual
-     currentAssigned: a.assigned_to || a.agente_email || '',      // e-mail do responsável atual
-   });
- }, []);
+    setTransfer({
+      userId: a.user_id,
+      currentFila: a.fila || '',
+      currentAssigned: a.assigned_to || a.agente_email || '',
+    });
+  }, []);
+
   const { email: currentUserEmail, role: currentUserRole } = useMemo(getAuthInfo, []);
-
-
 
   // Paginação
   const PAGE_SIZE = 30;
   const [page, setPage] = useState(1);
 
-  const fetchAll = useCallback(async () => {
-    setRefreshing(true);
+  const fetchAll = useCallback(async ({ fromButton = false } = {}) => {
     try {
+      setRefreshing(true);
       const [rt, fs, st] = await Promise.all([
         apiGet('/analytics/realtime'),
         apiGet('/queues'),
         apiGet('/settings'),
       ]);
+      if (unmountedRef.current) return; // NEW
 
       // realtime
       const rtArray = Array.isArray(rt) ? rt : (Array.isArray(rt?.data) ? rt.data : []);
@@ -142,34 +140,58 @@ export default function ClientsMonitor() {
         overrides = null;
       }
       const habilitar = kv.habilitar_alertas_atendimento === 'true';
-      setSettings({ habilitar, overrides });
 
+      setSettings({ habilitar, overrides });
       setAtendimentos(formatados);
       setFilas(filasNorm);
       setErro(null);
       setCurrentTime(new Date());
+      if (fromButton) toast.success('Atualizado com sucesso'); // NEW
     } catch (e) {
-      console.error('Erro ao buscar dados:', e);
       setErro('Falha ao atualizar. Tentaremos novamente em 10s.');
+      if (fromButton) toast.error('Não foi possível atualizar agora'); // NEW
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!unmountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-    const onCloseTransfer = useCallback(() => {
+  const onCloseTransfer = useCallback(() => {
     setTransfer(null);
-    // Após transferir, o modal chama onClose; aqui recarregamos a lista
     fetchAll();
   }, [fetchAll]);
 
+  // polling a cada 10s + pausa quando aba oculta
   useEffect(() => {
-    let mounted = true;
-    const run = async () => { if (!mounted) return; await fetchAll(); };
+    unmountedRef.current = false;
+    const run = () => fetchAll();
     run();
-    const interval = setInterval(run, 10000);
-    return () => { mounted = false; clearInterval(interval); };
+    let it = setInterval(run, 10000);
+
+    const onVis = () => {
+      if (document.hidden) {
+        clearInterval(it);
+      } else {
+        run();
+        it = setInterval(run, 10000);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+
+    return () => {
+      unmountedRef.current = true;
+      clearInterval(it);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [fetchAll]);
+
+  // “relógio” leve
+  useEffect(() => {
+    const t = setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   /* Filtros ------------------------------------------------ */
   const filasParaFiltro = filas.length
@@ -189,7 +211,6 @@ export default function ClientsMonitor() {
     });
   }, [atendimentos, selectedFilter, filasParaFiltro]);
 
-  // resetar página sempre que filtro ou dados mudarem
   useEffect(() => { setPage(1); }, [selectedFilter, atendimentos]);
 
   /* KPIs --------------------------------------------------- */
@@ -263,10 +284,11 @@ export default function ClientsMonitor() {
       <div className={styles.header}>
         <div className={styles.headerInfo}>
           <div className={styles.kpillBlue}>Última atualização: {currentTime.toLocaleTimeString('pt-BR')}</div>
+          {erro && <div className={styles.kpillAmber}>{erro}</div>}
         </div>
         <button
           className={styles.refreshBtn}
-          onClick={fetchAll}
+          onClick={() => fetchAll({ fromButton: true })} // NEW
           disabled={refreshing}
           title="Atualizar agora"
         >
@@ -389,22 +411,21 @@ export default function ClientsMonitor() {
                     </div>
                   </td>
                   <td><span className={styles.queuePill}>{a.fila || '—'}</span></td>
-<td>
-  {(() => {
-    const canalSlug = String(a.canal || 'default').toLowerCase();
-    return (
-      <span
-        className={`${styles.channelPill} ${styles[`ch_${canalSlug}`]}`}
-        title={cap(a.canal || '—')}
-        aria-label={cap(a.canal || '—')}
-      >
-        {channelIcon(a.canal)}
-        <span className={styles.srOnly}>{cap(a.canal || '—')}</span>
-      </span>
-    );
-  })()}
-</td>
-
+                  <td>
+                    {(() => {
+                      const canalSlug = String(a.canal || 'default').toLowerCase();
+                      return (
+                        <span
+                          className={`${styles.channelPill} ${styles[`ch_${canalSlug}`]}`}
+                          title={cap(a.canal || '—')}
+                          aria-label={cap(a.canal || '—')}
+                        >
+                          {channelIcon(a.canal)}
+                          <span className={styles.srOnly}>{cap(a.canal || '—')}</span>
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td>{a.agente ? a.agente : <em className={styles.muted}>Não atribuído</em>}</td>
                   <td>
                     <span className={`${styles.status} ${
@@ -480,19 +501,19 @@ export default function ClientsMonitor() {
           </button>
         </div>
       </section>
-       {/* Modal de Transferência */}
-{transfer && (
-  <TransferModal
-    userId={transfer.userId}
-    currentFila={transfer.currentFila}
-    currentAssigned={transfer.currentAssigned}
-    userEmail={currentUserEmail}                 // << usado em transferido_por
-    userRole={currentUserRole}                   // << fallback: "perfil:<role>"
-    // permiteAtendente={settings?.permitir_transferencia_atendente === 'true'} // se quiser controlar via settings
-    onClose={onCloseTransfer}
-    onDone={fetchAll}
-  />
-)}
+
+      {/* Modal de Transferência */}
+      {transfer && (
+        <TransferModal
+          userId={transfer.userId}
+          currentFila={transfer.currentFila}
+          currentAssigned={transfer.currentAssigned}
+          userEmail={currentUserEmail}
+          userRole={currentUserRole}
+          onClose={onCloseTransfer}
+          onDone={fetchAll}
+        />
+      )}
 
       {/* Drawer do mini-chat */}
       <MiniChatDrawer
