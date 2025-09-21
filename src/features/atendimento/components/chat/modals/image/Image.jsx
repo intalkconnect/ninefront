@@ -1,7 +1,7 @@
 
 // src/components/ChatWindow/modals/ImageModal.jsx
 import React from 'react';
-import './ImageModal.css';
+import './styles/Image.css';
 
 export default function ImageModal({ url, onClose }) {
   return (
