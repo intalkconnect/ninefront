@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Smile, Paperclip, Image, Slash } from "lucide-react";
 import { toast } from "react-toastify";
-import "./SendMessageForm.css";
+import "./styles/SendMessageForm.css";
 
 import useConversationsStore from "../../store/useConversationsStore";
 import { useSendMessage } from "../../hooks/useSendMessage";
@@ -314,5 +314,6 @@ export default function SendMessageForm({
     </>
   );
 }
+
 
 
