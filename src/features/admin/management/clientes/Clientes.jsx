@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Users as UsersIcon, ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
 import { apiGet } from '../../../../shared/apiClient';
+import { toast } from 'react-toastify';
 import styles from './styles/Clientes.module.css';
 
 const CHANNELS = [
@@ -49,11 +50,14 @@ export default function Clientes() {
       setItems(data);
       setPage(resp?.page || nextPage);
       setPageSize(resp?.page_size || nextPageSize);
-      setTotal(Number(resp?.total || data.length || 0));
+      const totalFound = Number(resp?.total || data.length || 0);
+      setTotal(totalFound);
+      return { data, total: totalFound };
     } catch (e) {
-      console.error('Falha ao carregar clientes:', e);
+      toast.error('Falha ao carregar clientes.');
       setItems([]);
       setTotal(0);
+      return { data: [], total: 0 };
     } finally {
       setLoading(false);
     }
@@ -75,7 +79,10 @@ export default function Clientes() {
   const onSearch = async (e) => {
     e?.preventDefault?.();
     setPage(1);
-    await load({ page: 1, q });
+    const res = await load({ page: 1, q });
+    if (res?.total === 0) {
+      toast.info('Nenhum cliente encontrado para a busca.');
+    }
   };
 
   const phoneFor = (row) => {
