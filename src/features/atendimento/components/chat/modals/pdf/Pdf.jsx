@@ -1,7 +1,7 @@
 
 // src/components/ChatWindow/modals/PdfModal.jsx
 import React from 'react';
-import './PdfModal.css';
+import './styles/Pdf.css';
 
 export default function PdfModal({ url, onClose }) {
   return (
