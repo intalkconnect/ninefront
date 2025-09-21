@@ -1,6 +1,6 @@
 // src/components/ChatWindow/messageTypes/TextMessage.jsx
 import React from 'react';
-import './TextMessage.css';
+import './styles/TextMessage.css';
 
 // normaliza para string (sem trim — preserva \n e espaços)
 function contentToString(content) {
