@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
 import styles from './styles/Settings.module.css';
+import { toast } from 'react-toastify';
 
 /* ---------- mapa amigável ---------- */
 const FRIENDLY = {
@@ -89,8 +90,6 @@ const isBad = (n) => !Number.isFinite(n) || n < 0;
 export default function Preferences() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState(null);
-  const [okMsg, setOkMsg] = useState(null);
 
   const [editingKey, setEditingKey] = useState(null); // inclusive overrides
   const [editValue, setEditValue] = useState('');
@@ -100,13 +99,13 @@ export default function Preferences() {
   const [ovErr, setOvErr] = useState({});
 
   const load = async () => {
-    setLoading(true); setErro(null);
+    setLoading(true);
     try {
       const data = await apiGet('/settings');
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      setErro('Falha ao carregar preferências.');
+      toast.error('Falha ao carregar preferências.');
     } finally {
       setLoading(false);
     }
@@ -129,10 +128,8 @@ export default function Preferences() {
     }
   }, [alertsEnabled, editingKey]);
 
-  const toastOK = (msg) => { setOkMsg(msg); setTimeout(() => setOkMsg(null), 1800); };
-
   const saveSetting = async (key, value, description = null) => {
-    setErro(null);
+    const tid = toast.loading('Salvando…');
     try {
       const saved = await apiPost('/settings', { key, value, description });
       setItems(prev =>
@@ -141,10 +138,10 @@ export default function Preferences() {
           : r
         )
       );
-      toastOK(`Preferência “${FRIENDLY[key]?.label || key}” salva.`);
+      toast.update(tid, { render: `Preferência “${FRIENDLY[key]?.label || key}” salva.`, type: 'success', isLoading: false, autoClose: 2200 });
     } catch (e) {
       console.error(e);
-      setErro('Erro ao salvar. Tente novamente.');
+      toast.update(tid, { render: 'Erro ao salvar. Tente novamente.', type: 'error', isLoading: false, autoClose: 3200 });
       await load();
     }
   };
@@ -183,7 +180,7 @@ export default function Preferences() {
     const orig = row?.value;
     if (typeof orig === 'boolean') val = /^true$/i.test(String(editValue).trim());
     else if (typeof orig === 'number') val = Number(editValue);
-    else if (orig !== null && typeof orig === 'object') { try { val = JSON.parse(editValue); } catch { setErro('JSON inválido.'); return; } }
+    else if (orig !== null && typeof orig === 'object') { try { val = JSON.parse(editValue); } catch { toast.error('JSON inválido.'); return; } }
     else { val = coerceType(editValue); }
     await saveSetting(editingKey, val, row?.description ?? null);
     cancelEdit();
@@ -202,7 +199,7 @@ export default function Preferences() {
   const saveOv = async () => {
     const errs = validateOv(ovDraft);
     setOvErr(errs);
-    if (Object.keys(errs).length) { setErro('Revise os campos destacados.'); return; }
+    if (Object.keys(errs).length) { toast.warn('Revise os campos destacados.'); return; }
     await saveSetting('overrides_por_prioridade_json', {
       alta:  { espera_inicial: Number(ovDraft.alta.espera_inicial),  demora_durante: Number(ovDraft.alta.demora_durante) },
       media: { espera_inicial: Number(ovDraft.media.espera_inicial), demora_durante: Number(ovDraft.media.demora_durante) },
@@ -334,8 +331,7 @@ export default function Preferences() {
           <p className={styles.subtitle}>
             As mudanças são salvas automaticamente e afetam todo o workspace.
           </p>
-          {erro ? <div className={styles.alertErr}>{erro}</div> : null}
-          {okMsg ? <div className={styles.alertOk}>{okMsg}</div> : null}
+          {/* sem mensagens inline — apenas toasts */}
         </div>
       </div>
 
