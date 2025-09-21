@@ -13,12 +13,14 @@ const fmtTime = (sec = 0) => {
   const r = s % 60;
   return m > 0 ? `${m}m ${String(r).padStart(2, "0")}s` : `${r}s`;
 };
+
 const labelize = (s = "") =>
   String(s || "").replace(/_/g, " ").replace(/^\w/u, (c) => c.toUpperCase());
 
 const normalizeJourney = (det) =>
   (Array.isArray(det?.journey) ? det.journey : []).map((it) => ({
     stage: it.stage,
+    // normaliza o type vindo do backend
     type: String(it?.type || it?.stage_type || "").toLowerCase(),
     entered_at: it.entered_at,
     duration_sec: it.duration_sec,
@@ -29,6 +31,24 @@ const splitEvery10 = (arr) => {
   const out = [];
   for (let i = 0; i < arr.length; i += 10) out.push(arr.slice(i, i + 10));
   return out;
+};
+
+// mapeamento de type -> classe de cor
+const TYPE_CLASS = {
+  text: "bText",
+  media: "bMedia",
+  location: "bLocation",
+  interactive: "bInteractive",        // padrão para interactive
+  human: "bHuman",
+  "api_call": "bApiCall",
+  document: "bDocument",
+  end: "bEnd",
+  script: "bScript",
+  // variações/aliases:
+  menu: "bInteractive",
+  option: "bInteractive",
+  webhook: "bApiCall",
+  input: "bInteractiveAlt",           // se quiser destacar "input" diferente
 };
 
 /* ---------- page ---------- */
@@ -72,20 +92,27 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
 
   const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
 
-  const toneClass = (stage, type) => {
+  // resolve a classe de tom com base no type + pistas do nome
+  const toneClass = (stage, rawType) => {
     const name = String(stage || "").toLowerCase();
-    const t = String(type || "");
-    if (t.includes("human") || name.includes("atendimento")) return styles.bHuman;
-    if (t.includes("interactive") || name.includes("menu") || name.includes("opcao")) return styles.bInteractive;
-    if (t.includes("script") || t.includes("api") || name.includes("webhook")) return styles.bScript;
-    if (t.includes("condition") || name.includes("condi") || name.includes("valida")) return styles.bCondition;
-    if (t.includes("input") || name.includes("entrada")) return styles.bInput;
+    const type = String(rawType || "").toLowerCase();
+
+    // tenta por type direto
+    if (TYPE_CLASS[type]) return styles[TYPE_CLASS[type]];
+
+    // heurísticas por nome/type
+    if (type.includes("human") || name.includes("atendimento")) return styles.bHuman;
+    if (type.includes("interactive") || name.includes("menu") || name.includes("opcao")) return styles.bInteractive;
+    if (type.includes("api") || name.includes("webhook")) return styles.bApiCall;
+    if (type.includes("condition") || name.includes("valida")) return styles.bInteractiveAlt;
+    if (type.includes("input") || name.includes("entrada")) return styles.bInteractiveAlt;
+
     return styles.bNeutral;
   };
 
   return (
     <div className={styles.page}>
-      {/* Header: breadcrumb Journey + título; botão Voltar à direita */}
+      {/* Header: breadcrumb Journey + voltar */}
       <div className={styles.header}>
         <div className={styles.heading}>
           <div className={styles.breadcrumbs}>
@@ -97,6 +124,10 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
             </span>
             <span className={styles.bcSep}>/</span>
             <span>{detail?.user_id || userId || "—"}</span>
+          </div>
+          <div className={styles.titleBlock}>
+            <div className={styles.titleName}>{detail?.name || "—"}</div>
+            <div className={styles.titleSub}>{detail?.user_id || userId || "—"}</div>
           </div>
         </div>
 
