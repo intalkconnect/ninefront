@@ -6,7 +6,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import Sidebar from "./components/sidebar/Sidebar";
-import ChatWindow from "./components/chatWindow/ChatWindow";
+import ChatWindow from "./components/chatWindow/ChatWindow/ChatWindow";
 import DetailsPanel from "./components/detailsPanel/DetailsPanel";
 import SocketDisconnectedModal from "./components/SocketDisconnectedModal";
 
