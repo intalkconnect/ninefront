@@ -1,7 +1,7 @@
 
 // src/components/ChatWindow/messageTypes/ListMessage.jsx
 import React from 'react';
-import './ListMessage.css';
+import './styles/ListMessage.css';
 
 export default function ListMessage({ listData, small }) {
   if (small) {
