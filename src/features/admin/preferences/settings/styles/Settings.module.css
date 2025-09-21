@@ -1,12 +1,24 @@
-/* Container & header */
+/* Container */
 .container{ max-width:1120px; margin:0 auto; padding:24px; background:#fff; }
-.header{ margin-bottom:16px; }
-.note{ font-size:13px; color:#6b7280; margin-bottom:16px; }
-.titleRow{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.title{ font-size:20px; font-weight:700; color:#111827; }
+
+/* Header sem título + linha azul como no print */
+.header{ margin-bottom:12px; }
+.subtitle{ font-size:14px; color:#6b7280; margin-bottom:8px; }
+.ruleWrap{ position:relative; height:14px; }
+.ruleTop{
+  height:2px;
+  background: linear-gradient(90deg,#2563eb 0%, rgba(37,99,235,.45) 55%, rgba(37,99,235,0) 100%);
+  border-radius:2px;
+}
+.ruleGlow{
+  position:absolute; left:0; right:0; top:6px; height:8px;
+  background: linear-gradient(180deg, rgba(37,99,235,.18) 0%, rgba(37,99,235,.10) 40%, rgba(37,99,235,0) 100%);
+  border-radius:10px;
+  filter: blur(0.2px);
+}
 
 /* Head row (OPÇÃO / VALOR / ATUALIZADO) */
-.headRow{ display:flex; align-items:center; gap:12px; padding-bottom:10px; border-bottom:2px solid #3b82f6; font-weight:600; color:#374151; }
+.headRow{ display:flex; align-items:center; gap:12px; padding:10px 0 0; margin-bottom:6px; font-weight:700; color:#374151; }
 .headOption{ flex:1 1 auto; }
 .headValue{ width:28vw; min-width:280px; max-width:420px; }
 .headUpdated{ width:144px; }
@@ -16,28 +28,27 @@
 .loading,.empty{ text-align:center; color:#9ca3af; padding:28px 8px; font-style:italic; }
 .row{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 0; border-bottom:1px solid #f1f5f9; }
 .colOption{ flex:1 1 auto; padding-right:12px; }
-.colValue{ width:28vw; min-width:280px; max-width:420px; }
+.colValue{ width:28vw; min-width:280px; max-width:420px; display:flex; align-items:center; }
 .colUpdated{ width:144px; font-size:12px; color:#9ca3af; }
 
-.optionTitle{ font-weight:600; color:#111827; }
+.optionTitle{ font-weight:700; color:#0f172a; }
 .optionHelp{ margin-top:4px; font-size:12px; color:#6b7280; }
 .optionDesc{ margin-top:4px; font-size:12px; color:#94a3b8; }
 
-/* Toggle compacto */
+/* Toggle compacto (sem texto visível) */
 .toggle{ position:relative; display:inline-flex; align-items:center; width:44px; height:22px; background:#d1d5db; border-radius:999px; border:none; cursor:pointer; transition:.2s; padding:0; }
 .toggle:hover{ background:#bfc5cd; }
 .toggleOn{ background:#10b981; }
 .toggleOn:hover{ background:#0ea371; }
 .knob{ position:absolute; left:3px; width:18px; height:18px; background:#fff; border-radius:999px; box-shadow:0 1px 2px rgba(0,0,0,.2); transform:translateX(0); transition:transform .2s; }
 .toggleOn .knob{ transform:translateX(22px); }
-.toggleText{ margin-left:8px; font-size:13px; color:#374151; }
+.toggleText{ display:none; }
 
-/* Valor inline (switch + label) */
 .valueInline{ display:flex; align-items:center; gap:8px; }
 .valueText{ font-size:13px; color:#374151; }
 
 /* Select compacto */
-.select{ min-width:140px; padding:6px 10px; border:1px solid #d1d5db; border-radius:8px; background:#fff; color:#374151; font-size:14px; }
+.select{ min-width:140px; height:32px; line-height:32px; padding:0 10px; border:1px solid #d1d5db; border-radius:8px; background:#fff; color:#374151; font-size:14px; }
 .select:focus{ outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
 
 /* Free value box */
