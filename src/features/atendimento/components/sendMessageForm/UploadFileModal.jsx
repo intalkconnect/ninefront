@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import './UploadFileModal.css';
+import './styles/UploadFileModal.css';
 
 export default function UploadFileModal({ file, onClose, onSubmit }) {
   const [caption, setCaption] = useState('');
