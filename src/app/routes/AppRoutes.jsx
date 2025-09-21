@@ -2,8 +2,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ReactFlowProvider } from 'reactflow';
-import Atendimento from '../features/atendimento/Atendimento';
-import Admin from '../features/admin/Admin';
+import Atendimento from '../../features/atendimento/Atendimento';
+import Admin from '../../features/admin/Admin';
 import { parseJwt } from '../utils/auth';
 
 /** Lê token e resolve o perfil ANTES do primeiro render */
