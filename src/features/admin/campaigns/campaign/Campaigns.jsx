@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Plus, X as XIcon } from 'lucide-react';
 import { apiGet } from '../../../../shared/apiClient';
 import styles from './styles/Campaigns.module.css';
+import { toast } from 'react-toastify';
 import CampaignCreateModal from './CampaignCreateModal';
 
 /** Radios (options) do topo */
@@ -56,14 +57,8 @@ export default function Campaigns() {
   const [filter, setFilter] = useState('all');
   const [query, setQuery]   = useState('');
   const [loading, setLoading] = useState(false);
-  const [okMsg, setOkMsg]   = useState(null);
   const [error, setError]   = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
-
-  const toastOK = useCallback((msg) => {
-    setOkMsg(msg);
-    setTimeout(() => setOkMsg(null), 2200);
-  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +69,7 @@ export default function Campaigns() {
     } catch (e) {
       console.error(e);
       setError('Falha ao carregar campanhas.');
+      toast.error('Falha ao carregar campanhas.');
     } finally {
       setLoading(false);
     }
@@ -110,7 +106,12 @@ export default function Campaigns() {
       <div className={styles.toolbar}>
         <div className={styles.leftGroup} />
         <div className={styles.headerActions}>
-          <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
+          <button
++   className={styles.btn}
++   onClick={async () => { await load(); toast.success('Lista atualizada!'); }}
++ >
++   <RefreshCw size={16}/> Atualizar
++ </button>
           <button
             className={styles.btnPrimary} 
             onClick={() => setCreateOpen(true)}
@@ -241,13 +242,11 @@ export default function Campaigns() {
           </table>
         </div>
 
-        {error && <div className={styles.alertErr} role="alert">⚠️ {error}</div>}
-        {okMsg && <div className={styles.alertOk} role="status">✅ {okMsg}</div>}
-      </div>
+     </div>
       <CampaignCreateModal
   isOpen={createOpen}
   onClose={() => setCreateOpen(false)}
-  onCreated={() => { setCreateOpen(false); /* recarrega lista */ load(); }}
+  onCreated={() => { setCreateOpen(false); /* recarrega lista */ load(); toast.success('Campanha criada com sucesso!'); }}
 />
     </div>
   );
