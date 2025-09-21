@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { connectSocket, getSocket } from "../../services/socket";
+import { connectSocket, getSocket } from "../../../services/socket";
 import { apiGet } from "../../../../../shared/apiClient";
 import useConversationsStore from "../../store/useConversationsStore";
 import { marcarMensagensAntesDoTicketComoLidas } from "../../hooks/useSendMessage";
@@ -10,7 +10,7 @@ import ImageModal from "./modals/ImageModal";
 import PdfModal from "./modals/PdfModal";
 import ChatHeader from "./ChatHeader";
 
-import "./ChatWindow.css";
+import "./styles/ChatWindow.css";
 
 const PAGE_LIMIT = 100;
 
