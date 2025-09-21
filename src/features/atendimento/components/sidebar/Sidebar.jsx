@@ -11,7 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import useConversationsStore from "../../store/useConversationsStore";
-import LogoutButton from "../../components/Logout/LogoutButton";
+import LogoutButton from "../../../../components/common/LogoutButton";
 import { stringToColor } from "../../utils/color";
 import { getRelativeTime } from "../../utils/time";
 import ChannelIcon from "./ChannelIcon";
