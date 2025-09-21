@@ -133,72 +133,67 @@
 }
 
 /* Cores por tipo — fundo pastel + borda no tom do HEX informado */
+/* ===== Cores por tipo (novas) ===== */
+.bText{
+  background:#607D8B;         /* azul-acinzentado */
+  color:#fff;
+  border-color:#607D8B;
+}
+.bMedia{
+  background:#0097A7;         /* teal forte */
+  color:#fff;
+  border-color:#0097A7;
+}
+.bLocation{
+  background:#0288D1;         /* azul mapa */
+  color:#fff;
+  border-color:#0288D1;
+}
+.bInteractive{
+  background:#388E3C;         /* verde */
+  color:#fff;
+  border-color:#388E3C;
+}
+/* opcional: variação de interactive, se quiser usar */
+.bInteractiveAlt{
+  background:#00796B;         /* teal escuro */
+  color:#fff;
+  border-color:#00796B;
+}
+.bHuman{
+  background:#8E24AA;         /* roxo atendimento humano */
+  color:#fff;
+  border-color:#8E24AA;
+}
+.bApiCall{
+  background:#7B1FA2;         /* roxo api_call */
+  color:#fff;
+  border-color:#7B1FA2;
+}
+.bDocument{
+  background:#6A1B9A;         /* roxo documento */
+  color:#fff;
+  border-color:#6A1B9A;
+}
+.bEnd{
+  background:#E53935;         /* vermelho fim */
+  color:#fff;
+  border-color:#E53935;
+}
+.bScript{
+  background:#F57C00;         /* laranja script */
+  color:#fff;
+  border-color:#F57C00;
+}
+.bSystem{
+  background:#9CA3AF;         /* cinza para eventos de sistema (ex.: system_reset) */
+  color:#111827;
+  border-color:#9CA3AF;
+}
 
-/* fallback */
+/* mantém o neutro para desconhecidos */
 .bNeutral{
   background:#f3f4f6;
+  color:#111827;
   border-color:#e5e7eb;
-}
-
-/* text -> #607D8B */
-.bText{
-  background: rgba(96,125,139,.12);
-  border-color: rgba(96,125,139,.45);
-  color:#2b3b43;
-}
-
-/* media -> #0097A7 */
-.bMedia{
-  background: rgba(0,151,167,.12);
-  border-color: rgba(0,151,167,.45);
-  color:#065963;
-}
-
-/* location -> #0288D1 */
-.bLocation{
-  background: rgba(2,136,209,.12);
-  border-color: rgba(2,136,209,.45);
-  color:#0b4f7a;
-}
-
-/* interactive (padrão) -> #388E3C */
-.bInteractive{
-  background: rgba(56,142,60,.12);
-  border-color: rgba(56,142,60,.45);
-  color:#275a2a;
-}
-
-/* human -> #8E24AA */
-.bHuman{
-  background: rgba(142,36,170,.12);
-  border-color: rgba(142,36,170,.45);
-  color:#5c1a6e;
-}
-
-/* api_call / webhook -> #7B1FA2 */
-.bApiCall{
-  background: rgba(123,31,162,.12);
-  border-color: rgba(123,31,162,.45);
-  color:#4b1761;
-}
-
-/* document -> #6A1B9A */
-.bDocument{
-  background: rgba(106,27,154,.12);
-  border-color: rgba(106,27,154,.45);
-  color:#3d1157;
-}
-
-/* end -> #E53935 */
-.bEnd{
-  background: rgba(229,57,53,.12);
-  border-color: rgba(229,57,53,.45);
-  color:#7b1b19;
-}
-
-/* script -> #F57C00 */
-.bScript{
-  background: rgba(245,124,0,.12);
-  border-color: rgba(245,124,0,.45);
-  color:#7b4200;
 }
