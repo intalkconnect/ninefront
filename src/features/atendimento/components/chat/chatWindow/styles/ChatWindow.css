@@ -1,0 +1,416 @@
+/* ===================================================================
+   WRAPPERS PARA FLEX E SCROLL FUNCIONAR
+=================================================================== */
+.app-container,
+.section-wrapper,
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+/* ===================================================================
+   CHAT WINDOW - MAIN STRUCTURE
+=================================================================== */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  background-color: var(--color-background);
+  position: relative;
+}
+
+/* ===================================================================
+   1. EMPTY STATE (no conversation selected)
+=================================================================== */
+.chat-window.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background);
+  padding: 20px;
+}
+
+.chat-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.chat-icon {
+  width: 80px;
+  height: 80px;
+  opacity: 0.5;
+}
+
+.placeholder-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.placeholder-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  max-width: 260px;
+  line-height: 1.4;
+}
+
+/* ===================================================================
+   2. LOADING STATE
+=================================================================== */
+.chat-window.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-background);
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+}
+
+/* ===================================================================
+   3. ACTIVE CHAT WINDOW
+=================================================================== */
+
+/* 3.1 Chat Header */
+.chat-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.chat-header h2 {
+  font-size: 1.1rem;
+  color: var(--color-text-default);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 3.2 Messages List */
+.messages-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-behavior: auto;
+}
+
+/* Custom scrollbar */
+.messages-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-list::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.messages-list::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.chat-scroll-container {
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  gap: 8px;
+  scroll-behavior: auto;
+}
+
+
+/* 3.3 Input Area */
+.chat-input {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--color-surface);
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  z-index: 10;
+}
+
+/* ===================================================================
+   4. MEDIA ATTACHMENTS
+=================================================================== */
+/* ... mantém o restante da sua definição existente ... */
+
+/* 4.1 Images */
+.image-container {
+  max-width: min(100%, 300px);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  background-color: #eeeeee;
+  transition: transform 0.2s ease;
+}
+
+.image-container:hover {
+  transform: scale(1.02);
+}
+
+.image-container img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* 4.2 Documents */
+.document-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--color-surface-variant);
+  border-radius: var(--border-radius);
+  padding: 10px 12px;
+  cursor: pointer;
+  max-width: 300px;
+  transition: background-color 0.2s ease;
+}
+
+.document-container:hover {
+  background-color: var(--color-surface-variant-hover);
+}
+
+.document-container img {
+  width: 36px;
+  height: 36px;
+}
+
+.document-details {
+  flex: 1;
+  overflow: hidden;
+}
+
+.document-details strong {
+  font-size: 0.95rem;
+  display: block;
+  color: var(--color-text-default);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.document-details span {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/*  4.3 Lists 
+.list-container {
+  padding: 12px;
+  background-color: var(--color-surface-variant);
+  border-radius: var(--border-radius);
+  max-width: 300px;
+}
+
+.list-container h4 {
+  margin: 0 0 6px 0;
+  font-size: 1rem;
+  color: var(--color-text-default);
+}
+
+.list-body-text {
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.list-section {
+  margin-bottom: 12px;
+}
+
+.list-section-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--color-text-default);
+  margin-bottom: 6px;
+}
+
+.list-row {
+  padding: 8px;
+  margin-top: 6px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.list-row:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.list-row-title {
+  font-size: 0.95rem;
+  color: var(--color-text-default);
+  margin-bottom: 2px;
+}
+
+.list-row-description {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+.list-footer {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+} */
+
+/* ===================================================================
+   5. MODALS
+=================================================================== */
+
+/* 5.1 Image Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: zoom-out;
+}
+
+.modal-image {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  object-fit: contain;
+}
+
+/* 5.2 PDF Modal */
+.pdf-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.pdf-modal-content {
+  width: 90%;
+  height: 90%;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+/* ===================================================================
+   6. RESPONSIVE ADJUSTMENTS
+=================================================================== */
+
+@media (max-width: 768px) {
+  .chat-header {
+    padding: 10px 12px;
+  }
+  
+  .messages-list {
+    padding: 8px 12px;
+  }
+  
+  .chat-input {
+    padding: 10px 12px;
+  }
+  
+  .image-container {
+    max-width: 220px;
+  }
+  
+  .pdf-modal-content {
+    width: 95%;
+    height: 85%;
+  }
+}
+
+html, body, #root {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+#root > * {
+/*   flex: 1; */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ticket-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 16px 0;
+  position: relative;
+  text-align: center;
+}
+
+.ticket-divider::before,
+.ticket-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 12px;
+}
