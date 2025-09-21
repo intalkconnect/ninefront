@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
 import './styles/TransferModal.css';
+import { toast } from 'react-toastify';
 
 export default function TransferModal({
   userId,
@@ -43,9 +44,8 @@ export default function TransferModal({
         const list = Array.isArray(data) ? data : (Array.isArray(data?.rows) ? data.rows : []);
         setFilas(list);
       } catch (err) {
-        console.error('Erro ao buscar filas:', err);
-        alert('Erro ao carregar filas disponíveis.');
-        onClose();
+        toast.error('Erro ao carregar filas disponíveis.');
+        onClose?.();
       }
     })();
     return () => { alive = false; };
@@ -64,8 +64,9 @@ export default function TransferModal({
         setAtendentes(lista);
         setAtendentesMsg(typeof resp?.message === 'string' ? resp.message : '');
       } catch (err) {
-        console.error('Erro ao buscar atendentes online:', err);
-        setAtendentes([]); setAtendentesMsg('Erro ao buscar atendentes desta fila.');
+        setAtendentes([]);
+        setAtendentesMsg('Erro ao buscar atendentes desta fila.');
+        toast.error('Falha ao buscar atendentes desta fila.');
       } finally {
         setLoadingAgents(false);
       }
@@ -74,15 +75,20 @@ export default function TransferModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permiteAtendente, filaAlvoEfetiva]);
 
-  const confirmarTransferencia = async () => {
+  const validar = () => {
     if (!filaAlvoEfetiva) {
-      alert('Defina a fila de destino (ou mantenha a atual).');
-      return;
+      toast.warn('Defina a fila de destino (ou mantenha a atual).');
+      return false;
     }
     if (!mudouAlgo) {
-      alert('Selecione ao menos uma mudança (fila e/ou atendente).');
-      return;
+      toast.info('Selecione ao menos uma mudança (fila e/ou atendente).');
+      return false;
     }
+    return true;
+  };
+
+  const confirmarTransferencia = async () => {
+    if (!validar()) return;
 
     // sempre enviar transferido_por:
     const transferidoPor =
@@ -96,15 +102,16 @@ export default function TransferModal({
       transferido_por: transferidoPor,     // sempre presente
     };
 
+    const id = toast.loading('Transferindo…');
     try {
       setLoading(true);
       await apiPost('/tickets/next', body);
+      toast.update(id, { render: 'Transferência concluída', type: 'success', isLoading: false, autoClose: 3000 });
       onDone?.();
-      onClose();
+      onClose?.();
     } catch (err) {
-      console.error('Erro ao transferir atendimento:', err);
       const msg = err?.response?.data?.error || 'Erro ao transferir atendimento.';
-      alert(msg);
+      toast.update(id, { render: msg, type: 'error', isLoading: false, autoClose: 4000 });
     } finally {
       setLoading(false);
     }
