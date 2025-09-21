@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Save as SaveIcon, Palette, RefreshCw, X as XIcon, AlertCircle } from 'lucide-react';
 import { apiPost } from '../../../../shared/apiClient';
+import { toast } from 'react-toastify';
 import styles from './styles/Queues.module.css';
 
 export default function QueueModal({ isOpen, onClose, onCreated }) {
@@ -65,14 +66,25 @@ export default function QueueModal({ isOpen, onClose, onCreated }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!nome.trim() || saving) return;
+      if (saving) return;
+    if (!nome.trim()) {
+      setErro('Informe o nome da fila.');
+      toast.warn('Informe o nome da fila.');
+      return;
+    }
     setErro(null);
     try {
       setSaving(true);
       const payload = { nome: nome.trim() };
       const d = descricao.trim();
       if (d) payload.descricao = d;
-      const norm = normalizeHexColor(color);
+const norm = normalizeHexColor(color);
+      if (color && !norm) {
+        setErro('Cor inválida. Use o formato #RRGGBB.');
+        toast.warn('Cor inválida. Use o formato #RRGGBB.');
+        setSaving(false);
+        return;
+      }
       if (norm) payload.color = norm;
 
       await apiPost('/queues', payload);
@@ -81,6 +93,7 @@ export default function QueueModal({ isOpen, onClose, onCreated }) {
     } catch (err) {
       console.error(err);
       setErro('Erro ao criar fila.');
+      toast.error('Erro ao criar fila.');
     } finally {
       setSaving(false);
     }
