@@ -7,7 +7,7 @@ import { marcarMensagensAntesDoTicketComoLidas } from "../../../hooks/useSendMes
 import SendMessageForm from "../../sendMessageForm/SendMessageForm";
 import MessageList from "../message/MessageList";
 import ImageModal from "../modals/image/Image";
-import PdfModal from "../modals/pdf/pdf";
+import PdfModal from "../modals/pdf/Pdf";
 import ChatHeader from "../chatHeader/ChatHeader";
 
 import "./styles/ChatWindow.css";
