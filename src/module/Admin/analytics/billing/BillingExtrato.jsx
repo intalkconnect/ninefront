@@ -222,7 +222,6 @@ const handleExport = () => {
       <div className={styles.header}>
         <div className={styles.headerRule} />
         <div>
-        <Receipt size={14} className={styles.titleIcon} />
           <p className={styles.subtitle}>Análise detalhada do faturamento por sessões e usuários</p>
         </div>
 
