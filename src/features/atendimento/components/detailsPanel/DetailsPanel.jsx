@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
-import './DetailsPanel.css';
+import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../../../shared/apiClient'; // ajuste o path conforme seu projeto
 
