@@ -242,7 +242,7 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
           <h2 className={styles.tableTitle}>
-            Clientes no Fluxo <span className={styles.kpill}>{totalRows}</span>
+            Jornadas
           </h2>
         </div>
 
