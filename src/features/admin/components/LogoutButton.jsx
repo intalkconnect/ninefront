@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useConfirm } from '../../app/provider/ConfirmProvider';
+import { useConfirm } from '../../../app/provider/ConfirmProvider';
 
 function normalizeOrigin(s) {
   return String(s || '').replace(/\/+$/, '');
