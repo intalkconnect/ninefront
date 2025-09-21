@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiGet, apiPost } from '../../../../../shared/apiClient';
-import './TransferModal.css';
+import './styles/Transfer.css';
 import useConversationsStore from '../../../store/useConversationsStore';
 
 export default function TransferModal({ userId, onClose }) {
