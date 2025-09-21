@@ -4,6 +4,7 @@ import {
   AlertCircle, CheckCircle2, Shield, UserRoundCog, Headset
 } from 'lucide-react';
 import { apiGet, apiDelete } from '../../../../shared/apiClient.js';
+import { toast } from 'react-toastify';
 import styles from './styles/Users.module.css';
 import UsersModal from './UsersModal';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
@@ -44,7 +45,9 @@ export default function Users({ canCreateAdmin = false }) {
   const confirm = useConfirm();
 
   const toastOK = useCallback((msg) => {
+    // mantém estado se você quiser exibir banner local, mas prioriza toast
     setOkMsg(msg);
+    toast.success(msg);
     clearTimeout((toastOK)._t);
     (toastOK)._t = setTimeout(() => setOkMsg(null), 2200);
   }, []);
@@ -61,8 +64,9 @@ export default function Users({ canCreateAdmin = false }) {
       setItems(Array.isArray(usersResp) ? usersResp : []);
       setQueues(Array.isArray(filasResp) ? filasResp : []);
     } catch (e) {
-      console.error(e);
-      setError('Falha ao carregar usuários.');
+           const msg = 'Falha ao carregar usuários.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,7 +105,9 @@ export default function Users({ canCreateAdmin = false }) {
     setError(null);
     const hasFilas = Array.isArray(u.filas) && u.filas.length > 0;
     if (hasFilas) {
-      setError('Não é possível excluir: o usuário possui filas vinculadas. Remova as filas antes de excluir.');
+      const msg = 'Não é possível excluir: o usuário possui filas vinculadas. Remova as filas antes de excluir.';
+      setError(msg);
+      toast.warn(msg);
       return;
     }
     try {
@@ -115,10 +121,12 @@ export default function Users({ canCreateAdmin = false }) {
       if (!ok) return;
       await apiDelete(`/users/${u.id}`);
       toastOK('Usuário excluído.');
+      toast.success('Usuário excluído.');
       load();
     } catch (e) {
-      console.error(e);
-      setError('Falha ao excluir usuário.');
+      const msg = 'Falha ao excluir usuário.';
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -251,7 +259,7 @@ export default function Users({ canCreateAdmin = false }) {
           onSaved={() => {
             setOpenModal(false);
             load();
-            toastOK(editing ? 'Usuário atualizado.' : 'Usuário criado.');
+            toast.success(editing ? 'Usuário atualizado.' : 'Usuário criado.');
           }}
           editing={editing}
           queues={queues}
