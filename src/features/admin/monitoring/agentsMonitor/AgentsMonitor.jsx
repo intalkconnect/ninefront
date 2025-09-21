@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useCallback, useState } from "react";
+import React, { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { apiGet } from "../../../../shared/apiClient";
 import { RefreshCw, ToggleLeft, PauseCircle, Power, Clock } from "lucide-react";
+import { toast } from "react-toastify"; // NEW
 import styles from "./styles/AgentsMonitor.module.css";
 
 /* ---------- helpers ---------- */
@@ -18,7 +19,9 @@ const fmtRel = (iso) => {
   const m = Math.floor(s / 60);
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+  if (h < 24) return `${h}h ${m % 60}m`;
+  const days = Math.floor(h / 24);
+  return `${days}d ${h % 24}h`;
 };
 const uniq = (arr) => Array.from(new Set(arr));
 
@@ -29,12 +32,13 @@ export default function AgentsRealtime() {
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState(null);
   const [now, setNow] = useState(new Date());
+  const unmountedRef = useRef(false); // NEW
 
   // limites de pausa vindos de /pause
   const [pauseCfg, setPauseCfg] = useState({ map: new Map(), def: 15 });
 
   // filtros
-  const [filterStatus, setFilterStatus] = useState("todos"); // todos|online|pause|offline|inativo
+  const [filterStatus, setFilterStatus] = useState("todos");
   const [filterText, setFilterText] = useState("");
   const [filterFila, setFilterFila] = useState("todas");
 
@@ -43,13 +47,15 @@ export default function AgentsRealtime() {
   const [page, setPage] = useState(1);
 
   /* ----- carrega dados ----- */
-  const fetchAll = useCallback(async () => {
-    setRefreshing(true);
+  const fetchAll = useCallback(async ({ fromButton = false } = {}) => {
     try {
+      setRefreshing(true);
       const [ags, pauses] = await Promise.all([
         apiGet("/analytics/agents/realtime"),
         apiGet("/breaks?active=true"),
       ]);
+
+      if (unmountedRef.current) return; // NEW
 
       const list = Array.isArray(ags) ? ags : (Array.isArray(ags?.data) ? ags.data : []);
       setAgents(list);
@@ -71,21 +77,42 @@ export default function AgentsRealtime() {
 
       setErro(null);
       setNow(new Date());
+      if (fromButton) toast.success("Atualizado com sucesso"); // NEW
     } catch (e) {
       console.error(e);
       setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
+      if (fromButton) toast.error("Não foi possível atualizar agora"); // NEW
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!unmountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
+  // polling com pausa quando a aba está oculta
   useEffect(() => {
-    let mounted = true;
-    const run = async () => { if (!mounted) return; await fetchAll(); };
+    unmountedRef.current = false;
+    const run = () => fetchAll();
     run();
-    const it = setInterval(run, 10000);
-    return () => { mounted = false; clearInterval(it); };
+
+    let it = setInterval(run, 10000);
+
+    const onVis = () => {
+      if (document.hidden) {
+        clearInterval(it);
+      } else {
+        run();
+        it = setInterval(run, 10000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    return () => {
+      unmountedRef.current = true;
+      clearInterval(it);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [fetchAll]);
 
   // “relógio” leve pra contagem visual
@@ -147,8 +174,10 @@ export default function AgentsRealtime() {
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageSafe = Math.min(page, totalPages);
-  const start = (pageSafe - 1) * PAGE_SIZE;
+  const [pageSafe, start] = useMemo(() => {
+    const p = Math.min(page, totalPages);
+    return [p, (p - 1) * PAGE_SIZE];
+  }, [page, totalPages]);
   const pageData = useMemo(() => filtered.slice(start, start + PAGE_SIZE), [filtered, start]);
 
   useEffect(() => { setPage(1); }, [filterStatus, filterFila, filterText, agents]);
@@ -188,7 +217,7 @@ export default function AgentsRealtime() {
 
   const rowClass = (a) => `${styles.row} ${styles["tone_"+rowTone(a)]}`;
 
-  /* ---------- Cards (padrão do Monitor de Clientes) ---------- */
+  /* ---------- Cards ---------- */
   function KpiCard({ icon, label, value, tone = 'blue' }) {
     return (
       <div className={styles.card}>
@@ -233,7 +262,7 @@ export default function AgentsRealtime() {
 
         <button
           className={styles.refreshBtn}
-          onClick={fetchAll}
+          onClick={() => fetchAll({ fromButton: true })} // NEW
           disabled={refreshing}
           title="Atualizar agora"
         >
@@ -241,12 +270,14 @@ export default function AgentsRealtime() {
           Atualizar
         </button>
       </div>
-              <div className={styles.subHeader}>
+
+      <div className={styles.subHeader}>
         <div>
           <p className={styles.subtitle}>Agentes em tempo real: o status do seu agente acompanhado de perto.</p>
         </div>
       </div>
-      {/* KPIs (padrão unificado) */}
+
+      {/* KPIs */}
       <section className={styles.cardGroup}>
         {loading ? (
           <>
