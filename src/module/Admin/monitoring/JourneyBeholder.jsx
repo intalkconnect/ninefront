@@ -13,14 +13,12 @@ const fmtTime = (sec = 0) => {
   const r = s % 60;
   return m > 0 ? `${m}m ${String(r).padStart(2, "0")}s` : `${r}s`;
 };
-
 const labelize = (s = "") =>
   String(s || "").replace(/_/g, " ").replace(/^\w/u, (c) => c.toUpperCase());
 
 const normalizeJourney = (det) =>
   (Array.isArray(det?.journey) ? det.journey : []).map((it) => ({
     stage: it.stage,
-    // normaliza o type vindo do backend
     type: String(it?.type || it?.stage_type || "").toLowerCase(),
     entered_at: it.entered_at,
     duration_sec: it.duration_sec,
@@ -31,24 +29,6 @@ const splitEvery10 = (arr) => {
   const out = [];
   for (let i = 0; i < arr.length; i += 10) out.push(arr.slice(i, i + 10));
   return out;
-};
-
-// mapeamento de type -> classe de cor
-const TYPE_CLASS = {
-  text: "bText",
-  media: "bMedia",
-  location: "bLocation",
-  interactive: "bInteractive",        // padrão para interactive
-  human: "bHuman",
-  "api_call": "bApiCall",
-  document: "bDocument",
-  end: "bEnd",
-  script: "bScript",
-  // variações/aliases:
-  menu: "bInteractive",
-  option: "bInteractive",
-  webhook: "bApiCall",
-  input: "bInteractiveAlt",           // se quiser destacar "input" diferente
 };
 
 /* ---------- page ---------- */
@@ -92,27 +72,33 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
 
   const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
 
-  // resolve a classe de tom com base no type + pistas do nome
+  /* ====== ÚNICA MUDANÇA: mapeamento de cores por tipo ====== */
   const toneClass = (stage, rawType) => {
     const name = String(stage || "").toLowerCase();
     const type = String(rawType || "").toLowerCase();
 
-    // tenta por type direto
-    if (TYPE_CLASS[type]) return styles[TYPE_CLASS[type]];
+    if (type === "text")       return styles.bText;
+    if (type === "media")      return styles.bMedia;
+    if (type === "location")   return styles.bLocation;
+    if (type === "interactive")return styles.bInteractive;      // padrão
+    if (type === "human")      return styles.bHuman;
+    if (type === "api_call")   return styles.bApiCall;
+    if (type === "document")   return styles.bDocument;
+    if (type === "end")        return styles.bEnd;
+    if (type === "script")     return styles.bScript;
 
-    // heurísticas por nome/type
-    if (type.includes("human") || name.includes("atendimento")) return styles.bHuman;
-    if (type.includes("interactive") || name.includes("menu") || name.includes("opcao")) return styles.bInteractive;
-    if (type.includes("api") || name.includes("webhook")) return styles.bApiCall;
-    if (type.includes("condition") || name.includes("valida")) return styles.bInteractiveAlt;
-    if (type.includes("input") || name.includes("entrada")) return styles.bInteractiveAlt;
+    // heurísticas extras (caso o backend não mande type “limpo”)
+    if (name.includes("atendimento"))  return styles.bHuman;
+    if (name.includes("menu") || name.includes("opcao"))
+      return styles.bInteractive;
+    if (name.includes("webhook"))      return styles.bApiCall;
 
     return styles.bNeutral;
   };
 
   return (
     <div className={styles.page}>
-      {/* Header: breadcrumb Journey + voltar */}
+      {/* Header: breadcrumb Journey + título; botão Voltar à direita */}
       <div className={styles.header}>
         <div className={styles.heading}>
           <div className={styles.breadcrumbs}>
@@ -124,10 +110,6 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
             </span>
             <span className={styles.bcSep}>/</span>
             <span>{detail?.user_id || userId || "—"}</span>
-          </div>
-          <div className={styles.titleBlock}>
-            <div className={styles.titleName}>{detail?.name || "—"}</div>
-            <div className={styles.titleSub}>{detail?.user_id || userId || "—"}</div>
           </div>
         </div>
 
