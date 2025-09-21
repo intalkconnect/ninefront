@@ -1,8 +1,8 @@
 // File: dashboard/Dashboard.jsx
-import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiGet } from '../../../shared/apiClient';
 import {
-  Info, TrendingUp, Clock, Users, BarChart2,
+  TrendingUp, Clock, Users, BarChart2,
   LineChart as LineIcon, Activity, AlertTriangle, Gauge, Smile, LayoutDashboard,
   RefreshCcw
 } from 'lucide-react';
@@ -866,6 +866,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
