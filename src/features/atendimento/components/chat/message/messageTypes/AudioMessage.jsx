@@ -1,6 +1,6 @@
 // src/components/ChatWindow/messageTypes/AudioMessage.jsx
 import React from 'react';
-import './AudioMessage.css'; // importa as regras que acabamos de definir
+import './styles/AudioMessage.css'; // importa as regras que acabamos de definir
 
 export default function AudioMessage({ url, small }) {
   const containerClass = small ? 'audio-container audio-small' : 'audio-container';
