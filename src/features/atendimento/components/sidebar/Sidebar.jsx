@@ -15,7 +15,7 @@ import LogoutButton from "../../../../components/common/LogoutButton";
 import { stringToColor } from "../../utils/color";
 import { getRelativeTime } from "../../utils/time";
 import ChannelIcon from "./ChannelIcon";
-import PauseModal from "../PauseModal/PauseModal";
+import PauseModal from "../pauseModal/PauseModal";
 
 import "./Sidebar.css";
 
