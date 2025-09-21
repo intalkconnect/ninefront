@@ -75,7 +75,6 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       setRows(Array.isArray(data?.rows) ? data.rows : []);
       setTotalRows(Number(data?.total || 0));
     } catch (e) {
-      console.error(e);
       toast.error('Falha ao carregar lista do tracert');
       setRows([]); setTotalRows(0);
     } finally {
@@ -106,7 +105,7 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       toast.success('Sessão resetada');
       fetchList();
     } catch (e) {
-      console.error(e);
+
       toast.error('Falha ao resetar sessão');
     }
   };
@@ -124,7 +123,7 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       toast.success('Ticket criado com sucesso');
       fetchList();
     } catch (e) {
-      console.error(e);
+
       toast.error('Falha ao criar ticket');
     }
   };
