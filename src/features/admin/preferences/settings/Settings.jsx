@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
-import styles from './styles/Preferences.module.css';
+import styles from './styles/Settings.module.css';
 
 /* ---------- mapa amigável ---------- */
 const FRIENDLY = {
