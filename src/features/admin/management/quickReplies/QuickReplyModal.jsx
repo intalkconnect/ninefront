@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Save as SaveIcon, X as XIcon, AlertCircle } from 'lucide-react';
 import { apiPost } from '../../../../shared/apiClient';
+import { toast } from 'react-toastify';
 import styles from './styles/QuickReplyModal.module.css';
 
 export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
@@ -24,8 +25,16 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
   const submit = async (e) => {
     e.preventDefault();
     const t = title.trim(), c = content.trim();
-    if (!t || !c) { setError('Por favor, preencha o título e o conteúdo.'); return; }
-    if (t.length > 100) { setError('O título deve ter no máximo 100 caracteres.'); return; }
+    if (!t || !c) {
+      setError('Por favor, preencha o título e o conteúdo.');
+      toast.warn('Preencha título e conteúdo.');
+      return;
+    }
+    if (t.length > 100) {
+      setError('O título deve ter no máximo 100 caracteres.');
+      toast.warn('O título deve ter no máximo 100 caracteres.');
+      return;
+    }
 
     setSaving(true); setError(null);
     try {
@@ -33,8 +42,9 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated }) {
       onCreated?.();
       onClose?.();
     } catch (err) {
-      console.error(err);
+
       setError('Erro ao criar resposta. Tente novamente.');
+      toast.error('Erro ao criar resposta. Tente novamente.');
     } finally { setSaving(false); }
   };
 
