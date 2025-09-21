@@ -15,7 +15,7 @@
   --c-text:#93c5fd;
   --c-media:#67e8f9;
   --c-location:#7dd3fc;
-  --c-interactive:#34d399;  /* green-400 */
+  --c-interactive:#34d399;
   --c-human:#c4b5fd;
   --c-api:#c4b5fd;
   --c-document:#a5b4fc;
@@ -65,11 +65,13 @@
 
 /* --------- bloco --------- */
 .block{
-  min-height:120px;background:var(--bg-block);border:2px solid var(--c-neutral);
-  border-radius:14px;padding:14px 16px;transition:box-shadow .15s ease, transform .15s ease;
+  min-height:128px;background:var(--bg-block);border:2px solid var(--c-neutral);
+  border-radius:14px;padding:14px 16px;transition:box-shadow .15s ease, transform .15s ease, min-height .15s ease;
   cursor:default
 }
 .block:hover{box-shadow:0 6px 14px rgba(15,23,42,.08);transform:translateY(-1px)}
+.blockExpanded{min-height:320px} /* aumenta a altura quando aberto */
+
 .blockTop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
 .typeLeft{display:inline-flex;align-items:center;gap:6px}
 .duration{font-size:12px;color:#6b7280;font-weight:600}
@@ -77,8 +79,9 @@
 
 .metaRow{display:flex;align-items:center;gap:10px;margin-top:6px;color:var(--t-500);font-size:12px}
 .started{}
+.controlsRow{margin-top:10px}
 .expBtn{
-  margin-top:10px;font-size:12px;font-weight:700;color:#1d4ed8;background:transparent;border:0;padding:0;cursor:pointer
+  font-size:12px;font-weight:700;color:#1d4ed8;background:transparent;border:0;padding:0;cursor:pointer
 }
 .expBtn:hover{text-decoration:underline}
 
@@ -111,38 +114,23 @@
 .badgeVisits{background:#ffedd5;color:#9a3412;border-color:#fdba74}
 .badgeError{background:#fef2f2;color:#991b1b;border-color:#fecaca}
 
-/* --------- FLYOUT (overlay ancorado no bloco, não altera tamanho) --------- */
-.flyout{
-  position:absolute;left:0;top:100%;margin-top:10px;min-width:320px;max-width:480px;
-  background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 10px 26px rgba(2,6,23,.15);
-  z-index:30;display:flex;flex-direction:column;max-height:380px
-}
-.flyoutHead{
-  display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #f1f5f9
-}
-.flyoutTitle{font-weight:700;color:#0f172a}
-.flyoutTime{margin-left:8px;font-size:12px;color:#64748b;font-weight:600}
-.flyoutClose{
-  background:transparent;border:0;padding:6px;border-radius:8px;cursor:pointer;color:#475569
-}
-.flyoutClose:hover{background:#f8fafc}
-.flyoutBody{padding:8px 0;overflow:auto}
-.flyoutEmpty{padding:12px;color:#6b7280;font-size:13px}
-
-/* lista de logs */
-.logList{list-style:none;margin:0;padding:0}
-.logItem{padding:10px 12px;border-top:1px solid #f1f5f9}
-.logItem:first-child{border-top:0}
-.logHead{display:flex;align-items:center;justify-content:space-between}
+/* --------- LOGS INLINE (texto puro) --------- */
+.inlineLogs{margin-top:12px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px}
+.inlineEmpty{color:#6b7280;font-size:13px}
+.inlineList{list-style:none;margin:0;padding:0}
+.inlineItem{padding:8px 0;border-top:1px solid #f1f5f9}
+.inlineItem:first-child{border-top:0}
+.inlineHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .dirIn{font-weight:700;color:#111827}
 .dirOut{font-weight:700;color:#374151}
 .dirSys{font-weight:700;color:#6b7280}
-.logTs{color:#9ca3af;font-size:12px}
-.logBody{margin-top:4px;color:#111827;font-size:13px;white-space:pre-wrap;word-break:break-word}
-.logErr{
-  display:inline-block;margin-top:6px;padding:2px 6px;border-radius:6px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;
-  font-size:10px;font-weight:800;letter-spacing:.02em;text-transform:uppercase
+.inlineTs{color:#9ca3af;font-size:12px}
+.inlineBody{
+  margin:0;white-space:pre-wrap;word-break:break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12.5px;line-height:1.35;color:#0f172a;background:#fafafa;border:1px dashed #e5e7eb;border-radius:6px;padding:6px 8px
 }
+.isError{color:#b91c1c;background:#fff5f5;border-color:#fecaca}
 
 /* --------- dwell/resumo --------- */
 .dwellCard{
