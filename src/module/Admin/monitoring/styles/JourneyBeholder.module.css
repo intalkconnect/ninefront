@@ -1,125 +1,134 @@
-/* Page */
+/* Página */
 .page{
   min-height:100vh;
-  background:#f9fafb;
+  background:#f6f7fb;
+  color:#111827;
   padding:24px;
   font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  color:#111827;
 }
 
-/* Header card */
-.headerCard{
-  background:#fff;
-  border:1px solid #e5e7eb;
-  border-radius:12px;
-  padding:16px 20px;
-  margin-bottom:24px;
-  box-shadow:0 1px 2px rgba(0,0,0,.04);
-}
-.headerRow{display:flex; align-items:center; justify-content:space-between;}
-.headerLeft{display:flex; flex-direction:column; gap:8px}
-.headerRight{display:flex; align-items:center; gap:12px}
-
-/* Breadcrumbs */
-.breadcrumbs{display:flex; align-items:center; gap:8px; font-size:14px; color:#4b5563}
-.bcLink{color:#4b5563; background:none; border:0; padding:0; cursor:pointer}
-.bcLink:hover{color:#111827; text-decoration:underline}
-.bcSep{color:#9ca3af}
-.bcHere{color:#111827; font-weight:600}
-
-/* Refresh info + voltar */
-.refreshInfo{display:flex; align-items:center; gap:6px; color:#6b7280; font-size:13px}
-.spin{animation:spin 1s linear infinite}
-@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-
-.backBtn{
-  display:inline-flex; align-items:center; gap:8px;
-  background:#fff; color:#374151; border:1px solid #d1d5db;
-  padding:8px 12px; border-radius:8px; font-weight:600; font-size:14px;
-  transition: border-color .15s ease, background .15s ease;
-}
-.backBtn:hover{background:#f9fafb; border-color:#9ca3af}
-
-/* Lanes */
-.lanes{display:grid; gap:24px}
-.laneCard{
+/* Header com breadcrumb e botão voltar à direita */
+.header{
+  display:flex; align-items:center; justify-content:space-between;
   background:#fff; border:1px solid #e5e7eb; border-radius:12px;
-  box-shadow:0 1px 2px rgba(0,0,0,.04); overflow:hidden;
+  padding:14px 16px; margin-bottom:18px; box-shadow:0 1px 2px rgba(0,0,0,.03);
 }
-.laneInner{padding:24px}
-.stageStrip{display:flex; gap:16px; overflow-x:auto; padding-bottom:8px}
+.heading{display:flex; flex-direction:column; gap:6px}
 
-/* Stage */
-.stageWrap{position:relative; flex:0 0 auto; width:224px; padding-right:28px}
-.stageCard{
-  background:#eaf2ff;               /* azul claro padrão */
-  border:2px solid #cbd5e1;         /* é sobrescrito pelas classes de tipo */
-  border-radius:12px; min-height:80px;
-  padding:12px; display:flex; flex-direction:column; gap:6px;
-  transition: box-shadow .15s ease;
-}
-.stageCard:hover{box-shadow:0 3px 10px rgba(0,0,0,.08)}
+/* Breadcrumb no padrão */
+.breadcrumbs{ font-size:12px; color:#6b7280 }
+.bcLink{ color:#6b7280; text-decoration:none; cursor:pointer }
+.bcLink:hover{ color:#111827; text-decoration:underline }
+.bcSep{ margin:0 6px; color:#94a3b8 }
 
-.stageTop{display:flex; align-items:center; justify-content:space-between}
-.stageLeft{display:flex; align-items:center; gap:8px}
-.visitsPill{
-  background:#ffedd5; color:#9a3412; font-size:11px;
-  padding:2px 8px; border-radius:999px; font-weight:700;
+/* Ações */
+.actions{display:flex; align-items:center; gap:10px}
+.dot{
+  width:8px; height:8px; border-radius:999px; background:#2563eb;
+  animation:pulse 1.2s ease-in-out infinite;
 }
-.duration{font-size:12px; color:#6b7280; font-weight:600}
-.stageTitle{margin:0; font-weight:700; font-size:14px; color:#111827}
-.timeText{margin:0; font-size:12px; color:#6b7280}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+.backBtn{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid #e5e7eb; background:#fff; color:#111827;
+  border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer;
+}
+.backBtn:hover{background:#f9fafb}
 
-/* Arrow (descolada) */
-.arrow{
-  position:absolute; top:50%; transform:translateY(-50%);
-  left: calc(100% + 6px);
-  width:24px; height:2px; background:#a3a3a3;
+/* Conteúdo */
+.content{display:grid; gap:16px}
+.empty{color:#6b7280}
+
+/* Linha de blocos */
+.lane{
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+  overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.03);
 }
-.arrow::after{
-  content:""; position:absolute; right:-5px; top:-3px;
-  border-left:6px solid #a3a3a3;
-  border-top:4px solid transparent; border-bottom:4px solid transparent;
+.flow{
+  display:flex; gap:16px; padding:16px; overflow-x:auto; align-items:stretch;
 }
 
-/* Diagnostics card */
+/* Scrollbar discreta */
+.flow::-webkit-scrollbar{height:8px}
+.flow::-webkit-scrollbar-track{background:#f1f5f9; border-radius:999px}
+.flow::-webkit-scrollbar-thumb{background:#cbd5e1; border-radius:999px}
+
+/* Bloco */
+.blockWrap{ position:relative; flex:0 0 260px }
+.block{
+  height:112px; border:2px solid #cbd5e1; border-radius:14px;
+  background:#eef5ff; /* fundo azul claro padrão */
+  padding:12px; position:relative; box-shadow:0 1px 2px rgba(0,0,0,.03);
+  display:flex; flex-direction:column; justify-content:flex-start;
+}
+
+/* canto superior: ícone à esquerda + duração à direita */
+.blockTop{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px }
+.typeIcon{
+  width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:8px; background:#fff; border:2px solid #cbd5e1; color:#475569;
+}
+.duration{ font-size:12px; color:#64748b; font-weight:600 }
+
+.blockTitle{ font-size:14px; font-weight:700; color:#0f172a; line-height:1.1; margin-bottom:4px }
+.blockMeta{ font-size:12px; color:#6b7280 }
+
+/* pílula de visitas (2x, 3x) */
+.visitPill{
+  position:absolute; top:8px; right:8px;
+  background:#fde9d0; color:#9a3412; border:1px solid #fdba74;
+  padding:2px 6px; border-radius:999px; font-size:11px; font-weight:700;
+}
+
+/* Conector (barrinha) separado do bloco */
+.connector{
+  align-self:center; width:28px; height:2px; background:#cbd5e1; border-radius:2px;
+}
+
+/* Paleta: só BORDA e ÍCONE mudam por tipo */
+.tNeutral{ border-color:#cbd5e1 }
+.tText{ border-color:#93c5fd }
+.tMedia{ border-color:#06b6d4 }
+.tLocation{ border-color:#38bdf8 }
+.tInteractive{ border-color:#86efac }
+.tHuman{ border-color:#c084fc }
+.tApiCall{ border-color:#a78bfa }
+.tDocument{ border-color:#818cf8 }
+.tEnd{ border-color:#fca5a5 }
+.tScript{ border-color:#fdba74 }
+.tSystem{ border-color:#d1d5db }
+
+/* deixar o ícone “combinar” com a borda via outline */
+.tText .typeIcon{ border-color:#93c5fd; color:#2563eb }
+.tMedia .typeIcon{ border-color:#06b6d4; color:#0891b2 }
+.tLocation .typeIcon{ border-color:#38bdf8; color:#0284c7 }
+.tInteractive .typeIcon{ border-color:#86efac; color:#16a34a }
+.tHuman .typeIcon{ border-color:#c084fc; color:#9333ea }
+.tApiCall .typeIcon{ border-color:#a78bfa; color:#7c3aed }
+.tDocument .typeIcon{ border-color:#818cf8; color:#4f46e5 }
+.tEnd .typeIcon{ border-color:#fca5a5; color:#dc2626 }
+.tScript .typeIcon{ border-color:#fdba74; color:#ea580c }
+.tSystem .typeIcon{ border-color:#d1d5db; color:#4b5563 }
+
+/* Diagnóstico */
 .dwellCard{
-  margin-top:24px; background:#fff; border:1px solid #e5e7eb;
-  border-radius:12px; box-shadow:0 1px 2px rgba(0,0,0,.04); overflow:hidden;
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden;
 }
-.dwellHead{border-bottom:1px solid #e5e7eb; padding:12px 16px}
-.dwellHead > h3{margin:0; font-size:18px; font-weight:700; color:#111827}
-.dwellBody{padding:16px}
+.dwellHead{
+  padding:12px 14px; border-bottom:1px solid #e5e7eb; font-weight:700; color:#111827;
+}
 .dwellGrid{
-  display:grid; grid-template-columns:repeat(2, minmax(0,1fr));
-  gap:16px;
+  padding:16px; display:grid; gap:14px; grid-template-columns:repeat(3, minmax(0,1fr));
 }
-@media (min-width:1024px){
-  .dwellGrid{grid-template-columns:repeat(4, minmax(0,1fr))}
+.dt{ display:block; font-size:12px; color:#6b7280 }
+.dv{ display:block; font-weight:800; font-size:14px }
+
+/* Responsivo */
+@media (max-width:1200px){
+  .blockWrap{ flex-basis:240px }
+  .dwellGrid{ grid-template-columns:repeat(2, minmax(0,1fr)) }
 }
-.fieldLabel{display:block; color:#6b7280; font-weight:600; font-size:13px; margin-bottom:4px}
-.fieldValue{font-size:16px; font-weight:700; color:#0f172a}
-.span2{grid-column:span 2}
-
-/* Empty */
-.empty{color:#6b7280; padding:16px}
-
-/* ======== Cores de BORDA por tipo (fundo é fixo) ======== */
-.bNeutral{ border-color:#94a3b8; }
-
-.bText{ border-color:#93c5fd; }         /* blue-300 */
-.bTextStrong{ border-color:#60a5fa; }   /* blue-400 */
-
-.bMedia{ border-color:#22d3ee; }        /* cyan-400 */
-.bLocation{ border-color:#38bdf8; }     /* sky-400 */
-
-.bInteractive{ border-color:#86efac; }      /* green-300/400 vibe */
-.bInteractiveStrong{ border-color:#22c55e; } /* green-500 */
-
-.bHuman{ border-color:#a78bfa; }        /* purple-400 */
-.bApiCall{ border-color:#a78bfa; }      /* violet-ish */
-.bDocument{ border-color:#818cf8; }     /* indigo-400 */
-.bEnd{ border-color:#f87171; }          /* red-400 */
-.bScript{ border-color:#fb923c; }       /* orange-400 */
-.bSystem{ border-color:#9ca3af; }       /* gray-400 */
-.bSystemStrong{ border-color:#6b7280; } /* gray-500 */
+@media (max-width:640px){
+  .page{ padding:16px }
+  .blockWrap{ flex-basis:220px }
+}
