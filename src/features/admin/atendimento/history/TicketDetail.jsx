@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Download, Paperclip } from 'lucide-react';
+import { toast } from 'react-toastify';
 import ChatThread from './ChatThread';
 import styles from './styles/TicketDetail.module.css';
 import { apiGet } from '../../../../shared/apiClient';
@@ -46,7 +47,7 @@ export default function TicketDetail() {
         const res = await apiGet(`/tickets/history/${id}?include=messages,attachments&messages_limit=500`);
         if (alive) setData(res);
       } catch (e) {
-        if (alive) setErr('Falha ao carregar o ticket.');
+        if (alive) toast.error('Falha ao carregar o ticket.');
       } finally {
         if (alive) setLoading(false);
       }
@@ -73,9 +74,11 @@ export default function TicketDetail() {
       a.click();
       a.remove();
       URL.revokeObjectURL(a.href);
-    } catch (e) {
-      alert('Não foi possível baixar o arquivo.');
-    }
+      
+      toast.success('Download iniciado!');
+} catch (e) {
+    toast.error('Não foi possível baixar o arquivo.');
+  }
   }
 
   async function handleExportPdf() {
@@ -93,9 +96,10 @@ export default function TicketDetail() {
       a.click();
       a.remove();
       URL.revokeObjectURL(a.href);
-    } catch {
-      alert('Não foi possível exportar o PDF.');
-    }
+      toast.success(`PDF do ticket #${titleNum} gerado!`);
+  } catch {
+    toast.error('Não foi possível exportar o PDF.');
+  }
   }
 
   return (
@@ -210,8 +214,6 @@ export default function TicketDetail() {
             <div className={styles.chatBody}>
               {loading ? (
                 <div className={styles.loading}>Carregando…</div>
-              ) : err ? (
-                <div className={styles.error}>{err}</div>
               ) : activeTab === 'conversation' ? (
                 messages.length ? (
                   <ChatThread messages={messages} />
