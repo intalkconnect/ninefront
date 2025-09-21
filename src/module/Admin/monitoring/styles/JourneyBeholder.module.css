@@ -132,68 +132,30 @@
   .flow{grid-template-columns:repeat(10, 220px);}
 }
 
-/* Cores por tipo — fundo pastel + borda no tom do HEX informado */
-/* ===== Cores por tipo (novas) ===== */
-.bText{
-  background:#607D8B;         /* azul-acinzentado */
-  color:#fff;
-  border-color:#607D8B;
-}
-.bMedia{
-  background:#0097A7;         /* teal forte */
-  color:#fff;
-  border-color:#0097A7;
-}
-.bLocation{
-  background:#0288D1;         /* azul mapa */
-  color:#fff;
-  border-color:#0288D1;
-}
-.bInteractive{
-  background:#388E3C;         /* verde */
-  color:#fff;
-  border-color:#388E3C;
-}
-/* opcional: variação de interactive, se quiser usar */
-.bInteractiveAlt{
-  background:#00796B;         /* teal escuro */
-  color:#fff;
-  border-color:#00796B;
-}
-.bHuman{
-  background:#8E24AA;         /* roxo atendimento humano */
-  color:#fff;
-  border-color:#8E24AA;
-}
-.bApiCall{
-  background:#7B1FA2;         /* roxo api_call */
-  color:#fff;
-  border-color:#7B1FA2;
-}
-.bDocument{
-  background:#6A1B9A;         /* roxo documento */
-  color:#fff;
-  border-color:#6A1B9A;
-}
-.bEnd{
-  background:#E53935;         /* vermelho fim */
-  color:#fff;
-  border-color:#E53935;
-}
-.bScript{
-  background:#F57C00;         /* laranja script */
-  color:#fff;
-  border-color:#F57C00;
-}
-.bSystem{
-  background:#9CA3AF;         /* cinza para eventos de sistema (ex.: system_reset) */
-  color:#111827;
-  border-color:#9CA3AF;
+/* ===== Fundo padrão dos blocos e borda base ===== */
+.block{
+  /* azul claro padrão para todos os blocos */
+  background:#E9F3FF;                 /* bem claro */
+  color:#0f172a;
+  border:2px solid #CFE3FF;           /* base; será sobrescrita pelas classes de tipo */
+  border-radius:12px;
+  min-height:64px;
+  box-shadow:0 2px 6px rgba(0,0,0,.04);
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  padding:10px 12px; font-weight:800;
 }
 
-/* mantém o neutro para desconhecidos */
-.bNeutral{
-  background:#f3f4f6;
-  color:#111827;
-  border-color:#e5e7eb;
-}
+/* ===== Cor por tipo SOMENTE NA BORDA ===== */
+/* Mantém nomes que você já usou no toneClass */
+.bText{        border-color:#607D8B; }   /* text */
+.bMedia{       border-color:#0097A7; }   /* media */
+.bLocation{    border-color:#0288D1; }   /* location */
+.bInteractive{ border-color:#388E3C; }   /* interactive (padrão) */
+.bInteractiveAlt{ border-color:#00796B; }/* opcional: variação interactive */
+.bHuman{       border-color:#8E24AA; }   /* atendimento humano */
+.bApiCall{     border-color:#7B1FA2; }   /* api_call */
+.bDocument{    border-color:#6A1B9A; }   /* document */
+.bEnd{         border-color:#E53935; }   /* end */
+.bScript{      border-color:#F57C00; }   /* script */
+.bSystem{      border-color:#9CA3AF; }   /* system_reset / eventos de sistema */
+.bNeutral{     border-color:#CFE3FF; }   /* fallback neutro combina com o fundo */
