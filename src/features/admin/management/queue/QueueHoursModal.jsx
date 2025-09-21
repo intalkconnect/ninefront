@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { X, Plus, Trash2, Save } from 'lucide-react';
 import { apiGet, apiPut } from '../../../../shared/apiClient';
+import { toast } from 'react-toastify';
 import css from './styles/QueueHoursModal.module.css';
 
 const WDAYS = [
@@ -89,6 +90,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
       } catch (e) {
         console.error(e);
         setErr('Falha ao carregar horários desta fila.');
+        toast.error('Falha ao carregar horários desta fila.');
       } finally {
         setLoading(false);
       }
@@ -135,6 +137,7 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
       if (vErr) {
         setErr(vErr);
         setLoading(false);
+        toast.warn(vErr);
         return;
       }
       await apiPut(`/queue-hours/${encodeURIComponent(filaNome)}/hours`, {
@@ -145,10 +148,12 @@ export default function QueueHoursModal({ filaNome, onClose, onSaved }) {
         windows,               // backend PUT aceita windows OU weekly
         holidays,
       });
+      toast.success('Configurações salvas com sucesso.');
       onSaved?.();
     } catch (e) {
       console.error(e);
       setErr('Erro ao salvar configurações.');
+      toast.error('Erro ao salvar configurações.');
       setLoading(false);
     }
   };
