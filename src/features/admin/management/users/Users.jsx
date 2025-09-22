@@ -111,12 +111,6 @@ export default function Users({ canCreateAdmin = false }) {
   return (
     <div className={styles.container}>
       {/* Breadcrumbs (reaproveitando suas classes) */}
-      <div className={styles.crumbBar}>
-        <span className={styles.crumb}>Admin</span>
-        <span className={styles.bcSep}>/</span>
-        <span className={styles.crumb}>Usuários</span>
-      </div>
-
       <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button
