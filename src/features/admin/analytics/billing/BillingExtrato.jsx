@@ -119,7 +119,6 @@ export default function BillingExtrato() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    setErrMsg(null);
     try {
       const params = { from: toISO(debFrom), to: toISO(debTo) };
       const res = await apiGet(`/billing/statement?${qs(params)}`);
