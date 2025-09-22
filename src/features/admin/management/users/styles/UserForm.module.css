@@ -36,9 +36,20 @@
 .bcCurrent{ color:#0f172a; font-weight:700; }
 
 /* Bloco do título (sem botões no topo) */
-.pageTitleBlock{ margin: 4px 0 14px; }
 .pageTitle{ display:flex; gap:8px; align-items:center; margin:0; font-size:22px; font-weight:800; color:var(--text) }
-.pageSubtitle{ margin:6px 0 0; color:#475569; font-size:14px; }
+.header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:18px; position:relative;
+}
+.header::after{
+  content:'';
+  position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+
+.subtitle{
+  margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400;
+}
 
 /* Cards */
 .card{
