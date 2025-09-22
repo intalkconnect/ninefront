@@ -105,7 +105,7 @@ export default function UserForm() {
         await apiPost('/users', payload);
         toast.success('Usuário criado.');
       }
-      navigate('/admin/management/users');
+     navigate('/management/users');
     } catch (e2) {
       const msg = 'Não foi possível salvar. Verifique os dados e tente novamente.';
       setErr(msg);
@@ -121,7 +121,7 @@ export default function UserForm() {
       <div className={styles.crumbBar}>
         <Link to="/admin" className={styles.crumb}>Admin</Link>
         <span className={styles.bcSep}>/</span>
-        <Link to="/admin/management/users" className={styles.crumb}>Usuários</Link>
+        <Link to="/management/users" className={styles.crumb}>Usuários</Link>
         <span className={styles.bcSep}>/</span>
         <span className={styles.crumb}>{isEdit ? `Editar ${userId}` : 'Novo'}</span>
       </div>
