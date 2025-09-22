@@ -61,6 +61,107 @@ const prettyMaybeJson = (text) => {
   }
 };
 
+/* ---------------- KV VIEWER (chave → valor) ---------------- */
+const isPlainObject = (v) =>
+  Object.prototype.toString.call(v) === "[object Object]";
+
+const humanizeKey = (k = "") =>
+  String(k)
+    .replace(/[_\-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/u, (c) => c.toUpperCase());
+
+const formatPrimitive = (v) => {
+  if (v === null || v === undefined) return { text: "—", cls: styles.kvNull };
+  if (typeof v === "boolean")
+    return { text: v ? "true" : "false", cls: v ? styles.kvBoolTrue : styles.kvBoolFalse };
+  if (typeof v === "number") return { text: String(v), cls: styles.kvNumber };
+  if (v instanceof Date || /^\d{4}-\d{2}-\d{2}T/.test(String(v))) {
+    try {
+      const d = v instanceof Date ? v : new Date(String(v));
+      if (!isNaN(d.getTime())) return { text: d.toLocaleString("pt-BR"), cls: styles.kvDate };
+    } catch {}
+  }
+  return { text: String(v), cls: styles.kvString };
+};
+
+function KVNode({ k, v, depth = 0, path = "", maxEntries = 200 }) {
+  const [open, setOpen] = useState(depth < 1); // abre 1º nível por padrão
+  const keyLabel = k != null ? humanizeKey(k) : null;
+
+  // Primitivo
+  if (!isPlainObject(v) && !Array.isArray(v)) {
+    const { text, cls } = formatPrimitive(v);
+    return (
+      <div className={styles.kvRow}>
+        {keyLabel != null && <div className={styles.kvKey}>{keyLabel}</div>}
+        <div className={`${styles.kvVal} ${cls}`}>{text}</div>
+      </div>
+    );
+  }
+
+  // Coleção (objeto/array)
+  const entries = Array.isArray(v)
+    ? v.map((item, i) => [i, item])
+    : Object.entries(v || {});
+  const overLimit = entries.length > maxEntries;
+  const sliced = overLimit ? entries.slice(0, maxEntries) : entries;
+
+  return (
+    <div className={styles.kvGroup}>
+      {keyLabel != null && (
+        <button
+          type="button"
+          className={styles.kvToggle}
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+        >
+          <span className={styles.kvCaret}>{open ? "▾" : "▸"}</span>
+          <span className={styles.kvKey}>{keyLabel}</span>
+          <span className={styles.kvType}>
+            {Array.isArray(v) ? `Array(${entries.length})` : `Objeto (${entries.length})`}
+          </span>
+        </button>
+      )}
+
+      {open && (
+        <div className={styles.kvChildren} data-depth={depth}>
+          {sliced.length === 0 ? (
+            <div className={styles.kvEmpty}>Vazio</div>
+          ) : (
+            sliced.map(([ck, cv]) => (
+              <KVNode
+                key={`${path}.${ck}`}
+                k={ck}
+                v={cv}
+                depth={depth + 1}
+                path={`${path}.${ck}`}
+              />
+            ))
+          )}
+          {overLimit && (
+            <div className={styles.kvOverflow}>
+              +{entries.length - maxEntries} itens ocultos
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KVViewer({ data }) {
+  if (!data || (isPlainObject(data) && Object.keys(data).length === 0)) {
+    return <div className={styles.logsEmpty}>Sem variáveis.</div>;
+  }
+  return (
+    <div className={styles.kvRoot}>
+      <KVNode v={data} depth={0} path="$" />
+    </div>
+  );
+}
+/* ---------------- FIM KV VIEWER ---------------- */
+
 export default function JourneyBeholder({ userId: propUserId, onBack }) {
   const { userId: routeUserId } = useParams();
   const userId = propUserId ?? routeUserId;
@@ -292,7 +393,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
               {activeTab === "vars_stage" && (
                 <div className={styles.varsBox}>
                   {modalData.vars_stage ? (
-                    <pre className={styles.varsPre}>{JSON.stringify(modalData.vars_stage, null, 2)}</pre>
+                    <KVViewer data={modalData.vars_stage} />
                   ) : (
                     <div className={styles.logsEmpty}>Sem variáveis registradas para esta etapa.</div>
                   )}
@@ -302,7 +403,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
               {activeTab === "vars_session" && (
                 <div className={styles.varsBox}>
                   {modalData.vars_session ? (
-                    <pre className={styles.varsPre}>{JSON.stringify(modalData.vars_session, null, 2)}</pre>
+                    <KVViewer data={modalData.vars_session} />
                   ) : (
                     <div className={styles.logsEmpty}>Sem variáveis na sessão.</div>
                   )}
