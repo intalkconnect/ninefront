@@ -97,7 +97,7 @@ export default function TokensSecurity() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.hLeft}>
-          <Shield size={20} /><h1>Segurança — Tokens de API</h1>
+          Tokens de acesso
         </div>
         <div className={styles.hRight}>
           <button className={styles.btnGhost} onClick={load} disabled={loading} title="Recarregar">
