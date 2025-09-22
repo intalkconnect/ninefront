@@ -33,9 +33,12 @@ html, body {
   display:flex; justify-content:space-between; align-items:center;
   margin-bottom:16px; gap:12px; position:relative;
 }
+/* faixa azul sob o título (igual às demais telas) */
 .header::after{
   content:'';
   position:absolute; left:0; right:0; bottom:-12px; height:2px;
+  background: linear-gradient(90deg,#2563eb 0%, rgba(37,99,235,.45) 55%, rgba(37,99,235,0) 100%);
+  border-radius:2px;
 }
 .hLeft{ display:flex; align-items:center; gap:10px; }
 .hLeft h1{ margin:0; font-size:20px; font-weight:700; }
@@ -151,11 +154,29 @@ html, body {
 .btnPrimary:hover{ filter:brightness(.95); box-shadow:0 2px 6px rgba(37,99,235,.25); }
 .btnPrimary:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
 
+/* botão fantasma com alinhamento perfeito do conteúdo */
 .btnGhost{
-  background:#fff; color:#374151; border:1px solid #d1d5db; padding:.5rem 1rem;
-  border-radius:10px; font-weight:600; cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  line-height:1;
+  height:36px;
+  padding:0 14px;
+  background:#fff;
+  color:#374151;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-weight:600;
+  cursor:pointer;
 }
 .btnGhost:hover{ background:#f9fafb; }
+.btnGhost svg{
+  width:16px; height:16px;
+  flex-shrink:0;
+  display:block;
+  margin-top:-1px; /* micro-ajuste óptico */
+}
 
 .btnTiny{
   background:#fff; color:#374151; border:1px solid #e5e7eb; padding:.38rem .7rem;
