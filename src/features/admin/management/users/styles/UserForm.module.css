@@ -24,12 +24,25 @@
   background: var(--bg);
 }
 
-/* Breadcrumbs amplos */
-.heading{display:flex;flex-direction:column;gap:6px}
-.breadcrumbs{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--t-600)}
-.bcLink{cursor:pointer;transition:color .15s ease}
-.bcLink:hover{color:var(--t-900)}
-.bcSep{color:#94a3b8}
+/* Breadcrumbs simples (sem numeração e sem roxo de visitado) */
+.breadcrumbs{ margin:4px 0 12px; }
+.bcList{
+  list-style:none;            /* remove 1., 2., 3. */
+  margin:0;
+  padding:0;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.bcSep{ color:#94a3b8; }
+.bcLink{
+  text-decoration:none;
+  color:#64748b;
+  font-weight:600;
+}
+.bcLink:hover{ color:#0f172a; text-decoration:underline; }
+.bcLink:visited{ color:#64748b; }   /* evita roxo */
 .bcCurrent{ color:#0f172a; font-weight:700; }
 
 
