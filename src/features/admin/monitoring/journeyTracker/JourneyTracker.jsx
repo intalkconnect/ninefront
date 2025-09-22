@@ -9,7 +9,7 @@ import {
   User, MessageCircle, AlertTriangle, BarChart3, Search,
   Eye, RefreshCw, RefreshCcw, Plus, Headset
 } from 'lucide-react';
-import styles from './styles/CustomerJourneyTracker.module.css';
+import styles from './styles/JourneyTracker.module.css';
 import 'react-toastify/dist/ReactToastify.css';
 
 /* ---------------- helpers ---------------- */
