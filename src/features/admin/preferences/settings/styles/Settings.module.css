@@ -24,6 +24,7 @@
   display:grid;
   grid-template-columns: 1fr 28vw 144px;
   border-bottom:1px solid #e6edf7;
+  background: linear-gradient(180deg,var(--qr-surface) 0%,#fff 100%);
 }
 .th{
   padding:12px 16px;
