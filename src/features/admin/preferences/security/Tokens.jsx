@@ -94,18 +94,18 @@ export default function TokensSecurity() {
     <div className={styles.page}>
       {/* Header — botão no topo e faixa azul colada */}
       <div className={styles.header}>
-        <div className={styles.hLeft}>
-          <Shield size={18} />
-          <h1>Tokens de acesso</h1>
-        </div>
         <div className={styles.hRight}>
           <button className={styles.btnGhost} onClick={load} disabled={loading} title="Recarregar">
             <RefreshCw />
             <span>Recarregar</span>
           </button>
         </div>
+        <div className={styles.hLeft}>
+          <h1>Tokens de acesso</h1>
+        </div>
+        <div className={styles.rule} />
       </div>
-      <div className={styles.rule} />
+      
 
       {/* Criar novo */}
       <div className={styles.card}>
