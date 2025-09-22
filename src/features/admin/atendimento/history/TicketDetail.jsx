@@ -103,11 +103,13 @@ export default function TicketDetail() {
   return (
     <div className={styles.page}>
       {/* breadcrumbs (sem “Management”) */}
-      <div className={styles.breadcrumbs}>
-        <span className={styles.bcLink} onClick={() => nav('/management/history')}>History</span>
-        <span className={styles.bcSep}>/</span>
-        <li><span className={styles.bcCurrent}>Ticket #{titleNum}</span></li>
-      </div>
+            <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
+        <ol className={styles.bcList}>
+          <li><Link to="/management/history" className={styles.bcLink}>History</Link></li>
+          <li className={styles.bcSep}>/</li>
+          <li><span className={styles.bcCurrent}>Ticket #{titleNum}</span></li>
+        </ol>
+      </nav>
 
       {/* header: título à esquerda, ações à direita (Voltar / Exportar PDF) */}
       <div className={styles.pageHeader}>
