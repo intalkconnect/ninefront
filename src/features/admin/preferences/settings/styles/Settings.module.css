@@ -1,6 +1,18 @@
 /* Container & header */
 .container{ max-width:1400px; margin:0 auto; padding:24px; }
-.subtitle{ font-size:15px; color:#6b7280; margin-bottom:8px; }
+.header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:18px; position:relative;
+}
+.header::after{
+  content:'';
+  position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+
+.subtitle{
+  margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400;
+}
 
 /* Linha azul fina (sem glow) */
 .ruleWrap{ position:relative; height:14px; }
@@ -35,8 +47,6 @@
   border-right:1px solid #e6edf7;
 }
 .th:last-child{ border-right:none; }
-
-.tableBody{}
 
 /* Linhas/corpo */
 .row{
