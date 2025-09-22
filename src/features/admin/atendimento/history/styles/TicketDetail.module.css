@@ -22,6 +22,7 @@
 .bcLink{ text-decoration:none; color:#64748b; font-weight:600; }
 .bcLink:hover{ color:#0f172a; text-decoration:underline; }
 .bcLink:visited{ color:#64748b; }
+.bcCurrent{ color:#0f172a; font-weight:700; }
 
 /* ========== Header (título à esquerda, ações à direita) ========== */
 .pageHeader {
