@@ -31,29 +31,54 @@ html, body {
 }
 
 /* ===== Header com faixa azul colada (mesmo espaçamento das outras telas) ===== */
+/* Header */
 .header{
   display:flex;
   justify-content:space-between;
-  align-items:center;
+  align-items:flex-start;     /* antes: center  → sobe os itens */
   gap:12px;
-
-  padding-bottom: 6px;   /* espaço interno para a faixa encostar */
-  margin-bottom: 14px;   /* respiro externo após a faixa */
+  padding-bottom:6px;
+  margin-bottom:14px;
   position:relative;
 }
 .header::after{
   content:'';
   position:absolute;
-  left:0;
-  right:0;
-  bottom:0;
+  left:0; right:0; bottom:0;
   height:2px;
   background: linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.45) 55%, rgba(37,99,235,0) 100%);
   border-radius:2px;
 }
-.hLeft{ display:flex; align-items:center; gap:10px; }
-.hLeft h1{ margin:0; font-size: 15px; font-weight: 500; }
-.hRight{ display:flex; gap:8px; }
+
+.hLeft{ display:flex; align-items:flex-start; gap:10px; } /* sobe o título também */
+.hLeft h1{ margin:0; line-height:1.25; font-size:15px; font-weight:500; }
+
+/* sobe o bloco do botão ainda um pouco */
+.hRight{
+  display:flex;
+  gap:8px;
+  align-self:flex-start;      /* garante topo */
+  margin-top:-2px;            /* micro-ajuste óptico opcional */
+}
+
+/* botão já centralizado internamente */
+.btnGhost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  line-height:1;
+  height:36px;
+  padding:0 14px;
+  background:#fff;
+  color:#374151;
+  border:1px solid #d1d5db;
+  border-radius:10px;
+  font-weight:600;
+  cursor:pointer;
+}
+.btnGhost svg{ width:16px; height:16px; display:block; margin-top:-1px; }
+
 
 /* ===== Cards ===== */
 .card{
@@ -145,14 +170,8 @@ html, body {
 .btnPrimary:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
 
 /* botão fantasma com alinhamento perfeito */
-.btnGhost{
-  display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  line-height:1; height:36px; padding:0 14px;
-  background:#fff; color:#374151; border:1px solid #d1d5db; border-radius:10px;
-  font-weight:600; cursor:pointer;
-}
+
 .btnGhost:hover{ background:#f9fafb; }
-.btnGhost svg{ width:16px; height:16px; flex-shrink:0; display:block; margin-top:-1px; }
 .btnGhost span{ display:inline-block; transform: translateY(-0.5px); } /* micro-ajuste óptico */
 
 .btnTiny{
