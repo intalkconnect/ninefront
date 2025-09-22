@@ -23,7 +23,7 @@ export default function TokensSecurity() {
   const [creating, setCreating] = useState(false);
   const nameRef = useRef(null);
 
-  // aviso de token recém-criado (exibe COMPLETO só aqui)
+  // aviso: exibe token COMPLETO apenas após criar
   const [justCreated, setJustCreated] = useState(null); // { id, token, name? }
 
   const load = async () => {
@@ -61,19 +61,19 @@ export default function TokensSecurity() {
     }
 
     setCreating(true);
-    const id = toast.loading('Criando token…');
+    const tid = toast.loading('Criando token…');
     try {
-      // o backend deve retornar { ok: true, id, token } onde token é o VALOR COMPLETO
+      // backend retorna { ok, id, token } — token é o valor completo
       const j = await apiPost('/security/tokens', { name, is_default: false });
       if (!j?.ok || !j?.token) throw new Error(j?.message || 'Falha ao criar token');
 
       setJustCreated({ id: j.id, token: j.token, name });
       setNewName('');
       await load();
-      toast.update(id, { render: 'Token criado. Copie agora — ele não será mostrado novamente.', type: 'success', isLoading: false, autoClose: 4000 });
+      toast.update(tid, { render: 'Token criado. Copie agora — ele não será mostrado novamente.', type: 'success', isLoading: false, autoClose: 4000 });
     } catch (e2) {
       const msg = e2?.response?.data?.message || e2?.message || 'Falha ao criar token.';
-      toast.update(id, { render: msg, type: 'error', isLoading: false, autoClose: 3500 });
+      toast.update(tid, { render: msg, type: 'error', isLoading: false, autoClose: 3500 });
     } finally {
       setCreating(false);
     }
@@ -95,13 +95,15 @@ export default function TokensSecurity() {
 
   return (
     <div className={styles.page}>
+      {/* header com faixa azul */}
       <div className={styles.header}>
         <div className={styles.hLeft}>
-          Tokens de acesso
+          <Shield size={18} />
+          <h1>Tokens de acesso</h1>
         </div>
         <div className={styles.hRight}>
           <button className={styles.btnGhost} onClick={load} disabled={loading} title="Recarregar">
-            <RefreshCw size={16} /> <span>Recarregar</span>
+            <RefreshCw /> <span>Recarregar</span>
           </button>
         </div>
       </div>
@@ -126,11 +128,10 @@ export default function TokensSecurity() {
               disabled={creating || !newName.trim()}
               title={!newName.trim() ? 'Informe o nome do token' : 'Criar token'}
             >
-              <Plus size={16}/> Criar token
+              <Plus /> Criar token
             </button>
           </form>
 
-          {/* aviso: exibe o token COMPLETO apenas após criar */}
           {justCreated?.token && (
             <div className={styles.notice} role="status" aria-live="polite">
               <div className={styles.noticeTitle}>
@@ -187,7 +188,6 @@ export default function TokensSecurity() {
                   </td>
                   <td>{r.created_at ? new Date(r.created_at).toLocaleString('pt-BR') : '—'}</td>
                   <td className={styles.actions}>
-                    {/* Sem copiar aqui — apenas revogar quando não for default */}
                     {r.is_default ? (
                       <span className={styles.muted}>Não alterável</span>
                     ) : r.status !== 'revoked' ? (
