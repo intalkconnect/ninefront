@@ -1,33 +1,24 @@
+// File: src/pages/admin/management/users/Users.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  Users as UsersIcon, Plus, SquarePen, Trash2, X as XIcon, RefreshCw,
-  AlertCircle, CheckCircle2, Shield, UserRoundCog, Headset
+  Users as UsersIcon, Plus, SquarePen, Trash2, X as XIcon
 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiGet, apiDelete } from '../../../../shared/apiClient.js';
 import { toast } from 'react-toastify';
 import styles from './styles/Users.module.css';
-import UsersModal from './UsersModal';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 
 const PERFIL_ICONS = {
-  admin:      <UserRoundCog size={14} />,
-  atendente:  <Headset size={14} />,
-  supervisor: <Shield size={14} />,
+  admin:      <UsersIcon size={14} />,
+  atendente:  <UsersIcon size={14} />,
+  supervisor: <UsersIcon size={14} />,
 };
-
 const iconForPerfil = (perfil) => {
   const k = String(perfil || '').toLowerCase();
   return PERFIL_ICONS[k] ?? <UsersIcon size={14} />;
 };
 
-const PERFIS = [
-  { key: '',           label: 'Todos',      icon: <UsersIcon size={14}/> },
-  { key: 'admin',      label: 'Admin',      icon: PERFIL_ICONS.admin },
-  { key: 'supervisor', label: 'Supervisor', icon: PERFIL_ICONS.supervisor },
-  { key: 'atendente',  label: 'Atendente',  icon: PERFIL_ICONS.atendente },
-];
-
-// ⬇️ RECEBE do pai (Admin.jsx) — admin pode criar admin; supervisor não
 export default function Users({ canCreateAdmin = false }) {
   const [items, setItems] = useState([]);
   const [queues, setQueues] = useState([]);
@@ -40,12 +31,10 @@ export default function Users({ canCreateAdmin = false }) {
   const [okMsg, setOkMsg] = useState(null);
   const [error, setError] = useState(null);
 
-  const [openModal, setOpenModal] = useState(false);
-  const [editing, setEditing] = useState(null);
   const confirm = useConfirm();
+  const navigate = useNavigate();
 
   const toastOK = useCallback((msg) => {
-    // mantém estado se você quiser exibir banner local, mas prioriza toast
     setOkMsg(msg);
     toast.success(msg);
     clearTimeout((toastOK)._t);
@@ -64,7 +53,7 @@ export default function Users({ canCreateAdmin = false }) {
       setItems(Array.isArray(usersResp) ? usersResp : []);
       setQueues(Array.isArray(filasResp) ? filasResp : []);
     } catch (e) {
-           const msg = 'Falha ao carregar usuários.';
+      const msg = 'Falha ao carregar usuários.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -91,16 +80,6 @@ export default function Users({ canCreateAdmin = false }) {
     return map;
   }, [queues]);
 
-  const perfilCounts = useMemo(() => {
-    const counts = items.reduce((acc, u) => {
-      const k = String(u.perfil || '').toLowerCase();
-      acc[k] = (acc[k] || 0) + 1;
-      return acc;
-    }, {});
-    counts[''] = items.length;
-    return counts;
-  }, [items]);
-
   async function handleDelete(u) {
     setError(null);
     const hasFilas = Array.isArray(u.filas) && u.filas.length > 0;
@@ -121,7 +100,6 @@ export default function Users({ canCreateAdmin = false }) {
       if (!ok) return;
       await apiDelete(`/users/${u.id}`);
       toastOK('Usuário excluído.');
-      toast.success('Usuário excluído.');
       load();
     } catch (e) {
       const msg = 'Falha ao excluir usuário.';
@@ -132,12 +110,18 @@ export default function Users({ canCreateAdmin = false }) {
 
   return (
     <div className={styles.container}>
+      {/* Breadcrumbs (reaproveitando suas classes) */}
+      <div className={styles.crumbBar}>
+        <span className={styles.crumb}>Admin</span>
+        <span className={styles.bcSep}>/</span>
+        <span className={styles.crumb}>Usuários</span>
+      </div>
 
       <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button
             className={styles.btnPrimary}
-            onClick={() => { setEditing(null); setOpenModal(true); }}
+            onClick={() => navigate('/admin/management/users/new', { state: { canCreateAdmin } })}
             title="Novo usuário"
           >
             <Plus size={16}/> Novo usuário
@@ -202,20 +186,14 @@ export default function Users({ canCreateAdmin = false }) {
                     <td data-label="Nome">{nome || '—'}</td>
                     <td data-label="Email">{u.email || '—'}</td>
                     <td data-label="Perfil">
-                      {(() => {
-                        const k = String(u.perfil || '').toLowerCase();
-                        const label = k ? k.charAt(0).toUpperCase() + k.slice(1) : '—';
-                        return (
-                          <span
-                            className={`${styles.tag} ${styles.tagRole}`}
-                            data-role={k}
-                            title={label}
-                            aria-label={label}
-                          >
-                            {iconForPerfil(k)}
-                          </span>
-                        );
-                      })()}
+                      <span
+                        className={`${styles.tag} ${styles.tagRole}`}
+                        data-role={String(u.perfil || '').toLowerCase()}
+                        title={u.perfil}
+                        aria-label={u.perfil}
+                      >
+                        {iconForPerfil(u.perfil)}
+                      </span>
                     </td>
                     <td data-label="Filas">
                       <div className={styles.tagsWrap}>
@@ -228,13 +206,14 @@ export default function Users({ canCreateAdmin = false }) {
                     </td>
                     <td className={styles.actionsCell}>
                       <div className={styles.actions}>
-                        <button
+                        <Link
+                          to={`/admin/management/users/${encodeURIComponent(u.id)}/edit`}
+                          state={{ canCreateAdmin }}
                           className={styles.qrIconBtn}
                           title="Editar"
-                          onClick={() => { setEditing(u); setOpenModal(true); }}
                         >
                           <SquarePen size={16}/>
-                        </button>
+                        </Link>
                         <button
                           className={`${styles.qrIconBtn} ${styles.danger}`}
                           title="Excluir"
@@ -251,22 +230,6 @@ export default function Users({ canCreateAdmin = false }) {
           </table>
         </div>
       </div>
-
-      {openModal && (
-        <UsersModal
-          isOpen={openModal}
-          onClose={() => setOpenModal(false)}
-          onSaved={() => {
-            setOpenModal(false);
-            load();
-            toast.success(editing ? 'Usuário atualizado.' : 'Usuário criado.');
-          }}
-          editing={editing}
-          queues={queues}
-          // ⬇️ repassa a permissão pro modal (supervisor NÃO cria admin)
-          canCreateAdmin={canCreateAdmin}
-        />
-      )}
     </div>
   );
 }
