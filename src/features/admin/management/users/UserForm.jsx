@@ -1,7 +1,6 @@
-// File: src/pages/admin/management/users/UserForm.jsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
-import { Save, ArrowLeft, UserPlus, UserCircle2 } from 'lucide-react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Save, UserPlus, UserCircle2 } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/UserForm.module.css';
@@ -20,7 +19,7 @@ export default function UserForm() {
   const isEdit = Boolean(userId);
   const navigate = useNavigate();
   const location = useLocation();
-  const canCreateAdmin = Boolean(location.state?.canCreateAdmin); // fallback = false
+  const canCreateAdmin = Boolean(location.state?.canCreateAdmin);
 
   const [queues, setQueues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,12 +65,11 @@ export default function UserForm() {
         setOriginalPerfil('');
         setForm({ name: '', lastname: '', email: '', perfil: 'atendente', filas: [] });
       }
-    } catch (e) {
+    } catch {
       setErr('Falha ao carregar dados.');
       toast.error('Falha ao carregar dados.');
     } finally {
       setLoading(false);
-      // sobe pro topo em carregamentos (evita “modal feeling”)
       requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
   }, [isEdit, userId]);
@@ -90,7 +88,7 @@ export default function UserForm() {
   async function handleSave(e) {
     e?.preventDefault?.();
     setErr(null);
-    setTouched({ name: true, email: true }); // força exibir erros
+    setTouched({ name: true, email: true });
 
     if (!canSubmit) {
       toast.warn('Confira os campos obrigatórios.');
@@ -114,7 +112,7 @@ export default function UserForm() {
         toast.success('Usuário criado.');
       }
       navigate('/management/users');
-    } catch (e2) {
+    } catch {
       const msg = 'Não foi possível salvar. Verifique os dados e tente novamente.';
       setErr(msg);
       toast.error(msg);
@@ -125,7 +123,7 @@ export default function UserForm() {
 
   return (
     <div className={styles.page} ref={topRef}>
-      {/* Breadcrumbs amplos */}
+      {/* Breadcrumbs */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
           <li><Link to="/" className={styles.bcLink}>Dashboard</Link></li>
@@ -136,35 +134,15 @@ export default function UserForm() {
         </ol>
       </nav>
 
-      {/* Header “de página”, com ações fixas */}
-      <header className={styles.pageHeader}>
-        <div className={styles.pageTitleWrap}>
-          <button className={styles.backBtn} onClick={() => navigate(-1)}>
-            <ArrowLeft size={16}/> Voltar
-          </button>
-          <h1 className={styles.pageTitle}>
-            {isEdit ? <><UserCircle2 size={20}/> Editar usuário</> : <><UserPlus size={20}/> Novo usuário</>}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            Preencha os dados do usuário e defina o perfil de acesso e as filas vinculadas.
-          </p>
-        </div>
-
-        <div className={styles.pageActions}>
-          <button type="button" className={styles.btnGhost} onClick={() => navigate('/management/users')}>
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className={styles.btnPrimary}
-            onClick={handleSave}
-            disabled={!canSubmit}
-            title={!canSubmit ? 'Preencha os campos obrigatórios para salvar' : undefined}
-          >
-            <Save size={16}/> {saving ? 'Salvando…' : 'Salvar'}
-          </button>
-        </div>
-      </header>
+      {/* Título */}
+      <div className={styles.pageTitleBlock}>
+        <h1 className={styles.pageTitle}>
+          {isEdit ? <><UserCircle2 size={20}/> Editar usuário</> : <><UserPlus size={20}/> Novo usuário</>}
+        </h1>
+        <p className={styles.pageSubtitle}>
+          Preencha os dados do usuário e defina o perfil de acesso e as filas vinculadas.
+        </p>
+      </div>
 
       {/* Conteúdo */}
       {loading ? (
@@ -181,13 +159,13 @@ export default function UserForm() {
             </div>
           )}
 
-          {/* Seção 1: Identificação */}
+          {/* Identificação (3 colunas; nada full-width) */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Identificação</h2>
               <p className={styles.cardDesc}>Informações básicas do usuário.</p>
             </div>
-            <div className={styles.cardBodyGrid2}>
+            <div className={styles.cardBodyGrid3}>
               <div className={styles.group}>
                 <label className={styles.label}>
                   Nome <span className={styles.req}>(obrigatório)</span>
@@ -203,6 +181,7 @@ export default function UserForm() {
                   <span className={styles.errMsg}>Informe o nome.</span>
                 )}
               </div>
+
               <div className={styles.group}>
                 <label className={styles.label}>Sobrenome</label>
                 <input
@@ -213,7 +192,7 @@ export default function UserForm() {
                 />
               </div>
 
-              <div className={styles.groupFull}>
+              <div className={styles.group}>
                 <label className={styles.label}>
                   E-mail <span className={styles.req}>(obrigatório)</span>
                 </label>
@@ -233,14 +212,14 @@ export default function UserForm() {
             </div>
           </section>
 
-          {/* Seção 2: Acesso & Filas */}
+          {/* Acesso & Filas (3 colunas; nada full-width) */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Acesso & Filas</h2>
               <p className={styles.cardDesc}>Defina o perfil de acesso e as filas atendidas.</p>
             </div>
 
-            <div className={styles.cardBodyGrid2}>
+            <div className={styles.cardBodyGrid3}>
               <div className={styles.group}>
                 <label className={styles.label}>Perfil</label>
                 <select
@@ -256,9 +235,7 @@ export default function UserForm() {
                   <option value="atendente">Atendente</option>
                 </select>
                 {!canCreateAdmin && (
-                  <small className={styles.hint}>
-                    Supervisores não podem definir o perfil “Admin”.
-                  </small>
+                  <small className={styles.hint}>Supervisores não podem definir o perfil “Admin”.</small>
                 )}
               </div>
 
@@ -277,37 +254,43 @@ export default function UserForm() {
                 <small className={styles.hint}>Selecione uma fila para adicionar. Você pode adicionar várias.</small>
               </div>
 
-              <div className={styles.groupFull}>
+              <div className={styles.group}>
                 <label className={styles.label}>Filas vinculadas</label>
-                <div className={styles.chips}>
-                  {form.filas.length === 0
-                    ? <span className={styles.muted}>Nenhuma fila selecionada</span>
-                    : form.filas.map(fid => {
-                        const q = qs.find(x => String(x.id) === String(fid));
-                        return (
-                          <span key={fid} className={styles.chip}>
-                            {q?.nome ?? fid}
-                            <button
-                              type="button"
-                              className={styles.chipX}
-                              onClick={() => toggleFila(String(fid))}
-                              aria-label={`Remover fila ${q?.nome ?? fid}`}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        );
-                      })
-                  }
+                <div className={styles.chipsBox}>
+                  <div className={styles.chips}>
+                    {form.filas.length === 0
+                      ? <span className={styles.muted}>Nenhuma fila selecionada</span>
+                      : form.filas.map(fid => {
+                          const q = qs.find(x => String(x.id) === String(fid));
+                          return (
+                            <span key={fid} className={styles.chip}>
+                              {q?.nome ?? fid}
+                              <button
+                                type="button"
+                                className={styles.chipX}
+                                onClick={() => toggleFila(String(fid))}
+                                aria-label={`Remover fila ${q?.nome ?? fid}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })
+                    }
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Rodapé fixo (segunda área de ação) */}
+          {/* Rodapé fixo */}
           <div className={styles.stickyFooter} role="region" aria-label="Ações">
             <div className={styles.stickyInner}>
-              <button type="button" className={styles.btnGhost} onClick={() => navigate('/management/users')}>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={() => navigate('/management/users')}
+              >
                 Cancelar
               </button>
               <button
