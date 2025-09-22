@@ -55,7 +55,11 @@ import JourneyBeholder from "./monitoring/journeyTracker/JourneyBeholder";
 import Queues from "./management/queue/Queues";
 import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
+
+// ⚠️ Alteração: Users agora é a LISTA, e criamos UserForm como subpágina
 import UsersPage from "./management/users/Users";
+import UserForm from "./management/users/UserForm";
+
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campaigns/campaign/Campaigns";
@@ -509,7 +513,7 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* ===== MENUBAR (faixa abaixo, não branca) ===== */}
+      {/* ===== MENUBAR ===== */}
       <div className={styles.menubar}>
         <div className={styles.menubarInner}>
           <nav ref={navRef} className={styles.hnav} aria-label="Menu principal">
@@ -672,6 +676,10 @@ export default function Admin() {
 
           {/* management */}
           <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
+          {/* ✅ novas subpáginas (antes era modal) */}
+          <Route path="management/users/new" element={<UserForm />} />
+          <Route path="management/users/:userId/edit" element={<UserForm />} />
+
           <Route path="management/queues" element={<Queues />} />
           <Route path="management/quick-replies" element={<QuickReplies />} />
           <Route path="management/history" element={<History />} />
@@ -706,11 +714,11 @@ export default function Admin() {
           <Route 
             path="/development/tracker/:userId" 
             element={
-            <RequireRole allow={isAdmin}>
-              <JourneyBeholder />
+              <RequireRole allow={isAdmin}>
+                <JourneyBeholder />
               </RequireRole>
             }
-            />
+          />
 
           {/* settings – admin only */}
           <Route
