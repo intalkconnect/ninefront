@@ -195,3 +195,44 @@
   margin:0;font-size:12.5px;line-height:1.45;color:#0f172a;
   font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 }
+
+/* --------- KV VIEWER --------- */
+.kvRoot{
+  display:block; padding:6px 6px 8px 6px;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  font-size: 13px; color: var(--t-900);
+}
+.kvGroup{border-left:2px solid #e5e7eb; margin-left:6px; padding-left:10px}
+.kvToggle{
+  display:flex; align-items:center; gap:8px;
+  background:#fff; border:1px solid #e5e7eb; border-radius:8px;
+  padding:6px 8px; cursor:pointer; width:100%; text-align:left;
+}
+.kvToggle:hover{background:#f9fafb; border-color:#d1d5db}
+.kvCaret{font-size:12px; color:#64748b; width:14px}
+.kvKey{font-weight:700; color:#111827}
+.kvType{
+  margin-left:auto; font-size:11px; color:#64748b;
+  background:#f1f5f9; border:1px solid #e5e7eb; padding:2px 6px; border-radius:999px
+}
+.kvChildren{margin-top:8px; display:flex; flex-direction:column; gap:4px}
+.kvChildren[data-depth="0"]{margin-left:2px}
+.kvRow{
+  display:grid; grid-template-columns: 240px 1fr; gap:10px;
+  align-items:flex-start; padding:6px 8px; border:1px solid #eef2f7; border-radius:8px; background:#fff;
+}
+.kvRow:hover{border-color:#dbe3ee; background:#fafcff}
+.kvVal{word-break:break-word}
+.kvEmpty{color:#6b7280; font-size:12px; margin-left:4px}
+.kvOverflow{
+  margin-top:6px; color:#6b7280; font-size:12px; background:#f8fafc; border:1px dashed #e5e7eb;
+  border-radius:6px; padding:4px 6px; display:inline-block
+}
+
+/* tipos */
+.kvNull{color:#6b7280}
+.kvBoolTrue{color:#166534; background:#ecfdf5; border:1px solid #bbf7d0; padding:1px 6px; border-radius:999px; display:inline-block}
+.kvBoolFalse{color:#991b1b; background:#fff1f2; border:1px solid #fecdd3; padding:1px 6px; border-radius:999px; display:inline-block}
+.kvNumber{color:#1d4ed8}
+.kvString{color:#0f172a}
+.kvDate{color:#7c3aed}
