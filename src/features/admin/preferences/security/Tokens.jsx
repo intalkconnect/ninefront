@@ -4,7 +4,7 @@ import { apiGet, apiPost } from '../../../../shared/apiClient';
 import styles from './styles/Tokens.module.css';
 import { toast } from 'react-toastify';
 
-// Prévia: 8 primeiros do segredo + bullets até 64 (não exibe ID)
+// Prévia ofuscada: 8 chars do segredo + bullets (sem ID)
 function shortPreview(preview = '') {
   const parts = String(preview).split('.');
   const secretPart = parts.length > 1 ? parts[1] : parts[0] || '';
@@ -18,12 +18,10 @@ export default function TokensSecurity() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // criação
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const nameRef = useRef(null);
 
-  // aviso: exibe token COMPLETO apenas após criar
   const [justCreated, setJustCreated] = useState(null); // { id, token, name? }
 
   const load = async () => {
@@ -32,7 +30,7 @@ export default function TokensSecurity() {
       const j = await apiGet('/security/tokens');
       if (!j?.ok) throw new Error('Fail');
       setItems(j.items || []);
-    } catch (e) {
+    } catch {
       toast.error('Falha ao carregar tokens.');
     } finally {
       setLoading(false);
@@ -50,7 +48,7 @@ export default function TokensSecurity() {
   };
 
   const createToken = async (e) => {
-    if (e?.preventDefault) e.preventDefault();
+    e?.preventDefault?.();
     if (creating) return;
 
     const name = (newName || '').trim();
@@ -63,7 +61,6 @@ export default function TokensSecurity() {
     setCreating(true);
     const tid = toast.loading('Criando token…');
     try {
-      // backend retorna { ok, id, token } — token é o valor completo
       const j = await apiPost('/security/tokens', { name, is_default: false });
       if (!j?.ok || !j?.token) throw new Error(j?.message || 'Falha ao criar token');
 
@@ -95,7 +92,7 @@ export default function TokensSecurity() {
 
   return (
     <div className={styles.page}>
-      {/* header com faixa azul */}
+      {/* Header — botão no topo e faixa azul colada */}
       <div className={styles.header}>
         <div className={styles.hLeft}>
           <Shield size={18} />
@@ -103,12 +100,14 @@ export default function TokensSecurity() {
         </div>
         <div className={styles.hRight}>
           <button className={styles.btnGhost} onClick={load} disabled={loading} title="Recarregar">
-            <RefreshCw /> <span>Recarregar</span>
+            <RefreshCw />
+            <span>Recarregar</span>
           </button>
         </div>
       </div>
+      <div className={styles.rule} />
 
-      {/* criar novo */}
+      {/* Criar novo */}
       <div className={styles.card}>
         <div className={styles.cardBody}>
           <form className={styles.createInline} onSubmit={createToken} noValidate>
@@ -118,7 +117,7 @@ export default function TokensSecurity() {
                 className={styles.input}
                 placeholder="Nome do token"
                 value={newName}
-                onChange={(e)=> setNewName(e.target.value)}
+                onChange={(e) => setNewName(e.target.value)}
                 disabled={creating}
               />
             </div>
@@ -128,7 +127,8 @@ export default function TokensSecurity() {
               disabled={creating || !newName.trim()}
               title={!newName.trim() ? 'Informe o nome do token' : 'Criar token'}
             >
-              <Plus /> Criar token
+              <Plus />
+              Criar token
             </button>
           </form>
 
@@ -142,10 +142,10 @@ export default function TokensSecurity() {
                 <button
                   type="button"
                   className={styles.btnTiny}
-                  onClick={()=>copyToClipboard(justCreated.token)}
+                  onClick={() => copyToClipboard(justCreated.token)}
                   title="Copiar token completo"
                 >
-                  <Copy size={14}/> Copiar
+                  <Copy size={14} /> Copiar
                 </button>
               </div>
               <div className={styles.noticeHelp}>
@@ -156,7 +156,7 @@ export default function TokensSecurity() {
         </div>
       </div>
 
-      {/* lista */}
+      {/* Lista */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardTitle}>Tokens do workspace</div>
@@ -192,7 +192,7 @@ export default function TokensSecurity() {
                       <span className={styles.muted}>Não alterável</span>
                     ) : r.status !== 'revoked' ? (
                       <button className={styles.btnDanger} onClick={() => revoke(r.id)}>
-                        <Trash2 size={14}/> Revogar
+                        <Trash2 size={14} /> Revogar
                       </button>
                     ) : (
                       <span className={styles.muted}>—</span>
