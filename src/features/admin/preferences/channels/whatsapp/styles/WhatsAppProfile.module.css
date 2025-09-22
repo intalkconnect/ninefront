@@ -16,7 +16,7 @@
   background:var(--bg);
 }
 .breadcrumbs{ color:#64748b; margin-bottom:8px; }
-.bcLink{ color:#2563eb; cursor:pointer; } .bcLink:hover{ text-decoration:underline; }
+.bcLink{ cursor:pointer; } .bcLink:hover{ text-decoration:none; }
 .bcSep{ margin:0 6px; }
 
 .pageHeader{ display:flex; justify-content:space-between; align-items:center; padding:10px 0 14px; position:relative; margin-bottom:10px; }
