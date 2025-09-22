@@ -1,6 +1,6 @@
 /* Container & header */
 .container{ max-width:1400px; margin:0 auto; padding:24px; }
-.subtitle{ font-size:14px; color:#6b7280; margin-bottom:8px; }
+.subtitle{ font-size:15px; color:#6b7280; margin-bottom:8px; }
 
 /* Linha azul fina (sem glow) */
 .ruleWrap{ position:relative; height:14px; }
