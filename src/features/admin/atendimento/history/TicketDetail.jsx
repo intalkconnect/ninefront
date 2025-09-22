@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, Download, Paperclip } from 'lucide-react';
 import { toast } from 'react-toastify';
 import ChatThread from './ChatThread';
