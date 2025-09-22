@@ -41,7 +41,7 @@ html, body {
   border-radius:2px;
 }
 .hLeft{ display:flex; align-items:center; gap:10px; }
-.hLeft h1{ margin:0; font-size:20px; font-weight:700; }
+.hLeft h1{ margin:0; font-size:15px; font-weight:400; }
 .hRight{ display:flex; gap:8px; }
 
 /* Alerts */
