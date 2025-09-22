@@ -29,7 +29,7 @@
 .page{min-height:100vh;background:var(--bg-page);padding:24px}
 .header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:20px 24px;margin-bottom:16px;
+  margin-bottom:16px;
 }
 .heading{display:flex;flex-direction:column;gap:6px}
 .breadcrumbs{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--t-600)}
