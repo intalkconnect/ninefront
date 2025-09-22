@@ -106,7 +106,7 @@ export default function TicketDetail() {
       <div className={styles.breadcrumbs}>
         <span className={styles.bcLink} onClick={() => nav('/management/history')}>History</span>
         <span className={styles.bcSep}>/</span>
-        <span>Ticket #{titleNum}</span>
+        <li><span className={styles.bcCurrent}>Ticket #{titleNum}</span></li>
       </div>
 
       {/* header: título à esquerda, ações à direita (Voltar / Exportar PDF) */}
