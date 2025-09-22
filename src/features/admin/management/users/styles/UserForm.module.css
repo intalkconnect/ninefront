@@ -25,12 +25,13 @@
 }
 
 /* Breadcrumbs amplos */
+.heading{display:flex;flex-direction:column;gap:6px}
 .breadcrumbs{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--t-600)}
-.bcList{ list-style:none; margin:0; padding:0; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-.bcLink{ text-decoration:none; color:#475569; font-weight:700; }
-.bcLink:hover{ color:#0f172a; text-decoration:underline; }
-.bcSep{ color:#94a3b8; }
-.bcCurrent{ font-weight:800; color:#0f172a; }
+.bcLink{cursor:pointer;transition:color .15s ease}
+.bcLink:hover{color:var(--t-900)}
+.bcSep{color:#94a3b8}
+.bcCurrent{ color:#0f172a; font-weight:700; }
+
 
 /* Cabeçalho de página */
 .pageHeader{
