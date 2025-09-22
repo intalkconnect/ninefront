@@ -163,7 +163,7 @@ export default function Quality() {
   useEffect(() => () => { mounted.current = false; }, []);
 
   const load = useCallback(async () => {
-    setLoading(true); setErr(null);
+    setLoading(true); 
     try {
       const params = { from: toISO(debFrom), to: toISO(debTo) };
 
@@ -234,7 +234,6 @@ export default function Quality() {
 
       if (mounted.current) setFeedback(fb.sort((a,b) => (+new Date(b.ts||0)) - (+new Date(a.ts||0))));
     } catch (e) {
-      console.error(e);
       if (mounted.current) toast.error("Falha ao carregar qualidade. Verifique o período.");
     } finally {
       if (mounted.current) setLoading(false);
