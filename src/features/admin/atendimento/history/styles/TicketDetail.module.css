@@ -17,17 +17,11 @@
 }
 
 /* Breadcrumbs no topo */
-.breadcrumbs {
-  font-size: 12px;
-  color: var(--muted);
-}
-.bcLink {
-  color: var(--muted);
-  text-decoration: none;
-  cursor: pointer;
-}
-.bcLink:hover { color: #111827; text-decoration: underline; }
-.bcSep { margin: 0 6px; color: #94a3b8; }
+.breadcrumbs{ margin:4px 0 12px; }
+.bcSep{ color:#94a3b8; }
+.bcLink{ text-decoration:none; color:#64748b; font-weight:600; }
+.bcLink:hover{ color:#0f172a; text-decoration:underline; }
+.bcLink:visited{ color:#64748b; }
 
 /* ========== Header (título à esquerda, ações à direita) ========== */
 .pageHeader {
