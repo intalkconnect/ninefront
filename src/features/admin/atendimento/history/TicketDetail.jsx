@@ -84,9 +84,7 @@ export default function TicketDetail() {
   async function handleExportPdf() {
     if (!canExport) return; // proteção extra
     try {
-      const resp = await fetch(`/api/v1/tickets/history/${id}/pdf`, {
-        credentials: 'include'
-      });
+      const resp = await apiGet(`/tickets/history/${id}/pdf`);
       if (!resp.ok) throw new Error('Falha ao gerar PDF');
       const blob = await resp.blob();
       const a = document.createElement('a');
