@@ -121,7 +121,7 @@ export default function Users({ canCreateAdmin = false }) {
         <div className={styles.headerActions}>
           <button
             className={styles.btnPrimary}
-            onClick={() => navigate('/admin/management/users/new', { state: { canCreateAdmin } })}
+            onClick={() => navigate('/management/users/new', { state: { canCreateAdmin } })}
             title="Novo usuário"
           >
             <Plus size={16}/> Novo usuário
@@ -207,7 +207,7 @@ export default function Users({ canCreateAdmin = false }) {
                     <td className={styles.actionsCell}>
                       <div className={styles.actions}>
                         <Link
-                          to={`/admin/management/users/${encodeURIComponent(u.id)}/edit`}
+                          to={`/management/users/${encodeURIComponent(u.id)}/edit`}
                           state={{ canCreateAdmin }}
                           className={styles.qrIconBtn}
                           title="Editar"
