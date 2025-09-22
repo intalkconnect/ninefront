@@ -126,8 +126,6 @@ export default function UserForm() {
       {/* Breadcrumbs */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
-          <li><Link to="/" className={styles.bcLink}>Dashboard</Link></li>
-          <li className={styles.bcSep}>/</li>
           <li><Link to="/management/users" className={styles.bcLink}>Usuários</Link></li>
           <li className={styles.bcSep}>/</li>
           <li><span className={styles.bcCurrent}>{isEdit ? `Editar ${userId}` : 'Novo usuário'}</span></li>
@@ -135,13 +133,10 @@ export default function UserForm() {
       </nav>
 
       {/* Título */}
-      <div className={styles.pageTitleBlock}>
-        <h1 className={styles.pageTitle}>
-          {isEdit ? <><UserCircle2 size={20}/> Editar usuário</> : <><UserPlus size={20}/> Novo usuário</>}
-        </h1>
-        <p className={styles.pageSubtitle}>
-          Preencha os dados do usuário e defina o perfil de acesso e as filas vinculadas.
-        </p>
+            <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Preencha os dados do usuário e defina o perfil de acesso e as filas vinculadas.</p>
+        </div>
       </div>
 
       {/* Conteúdo */}
