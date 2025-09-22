@@ -32,7 +32,7 @@
   padding:20px 24px;margin-bottom:16px;
 }
 .heading{display:flex;flex-direction:column;gap:6px}
-.breadcrumbs{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--t-600)}
+.breadcrumbs{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--t-600)}
 .bcLink{cursor:pointer;transition:color .15s ease}
 .bcLink:hover{color:var(--t-900)}
 .bcSep{color:#94a3b8}
