@@ -29,8 +29,7 @@
 .page{min-height:100vh;background:var(--bg-page);padding:24px}
 .header{
   display:flex;align-items:center;justify-content:space-between;
-  background:var(--bg-card);border:1px solid var(--border-card);
-  border-radius:12px;padding:20px 24px;margin-bottom:16px;box-shadow:var(--shadow)
+  padding:20px 24px;margin-bottom:16px;
 }
 .heading{display:flex;flex-direction:column;gap:6px}
 .breadcrumbs{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--t-600)}
