@@ -97,11 +97,11 @@ export default function TokensSecurity() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.hLeft}>
-          <Shield size={20}/><h1>Segurança — Tokens de API</h1>
+          <Shield size={20} /><h1>Segurança — Tokens de API</h1>
         </div>
         <div className={styles.hRight}>
           <button className={styles.btnGhost} onClick={load} disabled={loading} title="Recarregar">
-            <RefreshCw size={16}/> Recarregar
+            <RefreshCw size={16} /> <span>Recarregar</span>
           </button>
         </div>
       </div>
