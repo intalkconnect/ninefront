@@ -105,7 +105,7 @@ export default function UserForm() {
         filas: form.filas,
       };
       if (isEdit) {
-        await apiPut(`/users/id/${encodeURIComponent(userId)}`, payload);
+        await apiPut(`/users/${encodeURIComponent(userId)}`, payload);
         toast.success('Usuário atualizado.');
       } else {
         await apiPost('/users', payload);
