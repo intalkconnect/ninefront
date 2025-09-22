@@ -214,20 +214,6 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           ))
         )}
 
-        {detail?.dwell && (
-          <section className={styles.dwellCard}>
-            <div className={styles.dwellHead}>Visão da etapa atual</div>
-            <div className={styles.dwellGrid}>
-              <div><span className={styles.dt}>Etapa</span><span className={styles.dv}>{labelize(detail.dwell.block)}</span></div>
-              <div><span className={styles.dt}>Desde</span><span className={styles.dv}>{detail.dwell.entered_at ? new Date(detail.dwell.entered_at).toLocaleString("pt-BR") : "—"}</span></div>
-              <div><span className={styles.dt}>Duração</span><span className={styles.dv}>{fmtTime(detail.dwell.duration_sec)}</span></div>
-              <div><span className={styles.dt}>Msgs Bot</span><span className={styles.dv}>{detail?.dwell?.bot_msgs ?? 0}</span></div>
-              <div><span className={styles.dt}>Msgs Usuário</span><span className={styles.dv}>{detail?.dwell?.user_msgs ?? 0}</span></div>
-              <div><span className={styles.dt}>Falhas Validação</span><span className={styles.dv}>{detail?.dwell?.validation_fails ?? 0}</span></div>
-              <div className={styles.span2}><span className={styles.dt}>Maior gap (usuário)</span><span className={styles.dv}>{fmtTime(detail?.dwell?.max_user_response_gap_sec ?? 0)}</span></div>
-            </div>
-          </section>
-        )}
       </div>
 
       {/* MODAL */}
