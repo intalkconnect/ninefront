@@ -48,7 +48,7 @@ export default function UserForm() {
     try {
       const [filasResp, userResp] = await Promise.all([
         apiGet('/queues'),
-        isEdit ? apiGet(`/users/${encodeURIComponent(userId)}`) : Promise.resolve(null),
+        isEdit ? apiGet(`/users/id/${encodeURIComponent(userId)}`) : Promise.resolve(null),
       ]);
       setQueues(Array.isArray(filasResp) ? filasResp : []);
       if (isEdit) {
@@ -105,7 +105,7 @@ export default function UserForm() {
         filas: form.filas,
       };
       if (isEdit) {
-        await apiPut(`/users/${encodeURIComponent(userId)}`, payload);
+        await apiPut(`/users/id/${encodeURIComponent(userId)}`, payload);
         toast.success('Usuário atualizado.');
       } else {
         await apiPost('/users', payload);
