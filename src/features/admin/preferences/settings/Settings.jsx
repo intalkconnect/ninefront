@@ -308,12 +308,9 @@ export default function Preferences() {
   return (
     <div className={styles.container}>
       {/* topo sem título, sem glow */}
-      <div className={styles.header}>
-        <div className={styles.subtitle}>
-          Envie imediatamente ou agende. Acompanhe progresso e resultados.
-        </div>
-        <div className={styles.ruleWrap}>
-          <div className={styles.ruleTop} />
+            <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Gerencie o workspace ou o atendimento.</p>
         </div>
       </div>
 
