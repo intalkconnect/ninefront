@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Clock3, X as XIcon, SquarePen, Trash2, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiGet, apiDelete } from '../../../../shared/apiClient';
+import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import { toast } from 'react-toastify';
 import styles from './styles/Queues.module.css';
 
@@ -11,6 +12,7 @@ export default function Queues() {
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const confirm = useConfirm();
 
   const normalizeHexColor = (input) => {
     if (!input) return null;
@@ -55,9 +57,15 @@ export default function Queues() {
       toast.warn('ID da fila indisponível.');
       return;
     }
-    const ok = window.confirm(`Excluir a fila "${queue.nome ?? queue.name}"?`);
-    if (!ok) return;
     try {
+          const ok = await confirm({
+      title: 'Excluir fila?',
+      description: `Tem certeza que deseja excluir a fila "${fila.nome ?? fila.name}"? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger',
+    });
+    if (!ok) return;
       await apiDelete(`/queues/${encodeURIComponent(id)}`);
       toast.success('Fila excluída.');
       load();
