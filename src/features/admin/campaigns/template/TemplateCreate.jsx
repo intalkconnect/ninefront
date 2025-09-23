@@ -239,6 +239,7 @@ function LivePreview({
             </div>
           </div>
         </div>
+        </div>
 
       <div className={styles.previewLabel}>Prévia do Template</div>
     </aside>
