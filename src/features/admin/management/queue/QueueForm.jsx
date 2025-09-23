@@ -179,35 +179,34 @@ export default function QueueForm() {
               <div className={styles.group}>
                 <label className={styles.label}>Cor (opcional)</label>
                 <div className={styles.colorRow}>
-                  <input
-                    className={`${styles.input} ${touched.color && colorInvalid ? styles.invalid : ''}`}
-                    placeholder="#RRGGBB"
-                    value={form.color}
-                    onChange={e => setForm({ ...form, color: e.target.value })}
-                    onBlur={() => setTouched(t => ({ ...t, color: true }))}
-                  />
-                  <span className={styles.colorChip} title={colorPreview || 'Aleatória ao salvar (se vazio)'}>
-                    <span className={styles.colorSwatch} style={{ background: colorPreview || '#ffffff' }} />
-                    <Palette size={16}/>
-                    <span className={styles.hex}>{colorPreview || '—'}</span>
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.btn}
-                    onClick={() => setForm(f => ({ ...f, color: randomPastelHex() }))}
-                  >
-                    Sortear
-                  </button>
-                  {!!form.color && (
-                    <button
-                      type="button"
-                      className={styles.btn}
-                      onClick={() => setForm(f => ({ ...f, color: '' }))}
-                    >
-                      Limpar
-                    </button>
-                  )}
-                </div>
+  <input
+    id="color"
+    className={`${styles.input} ${styles.colorField}`}
+    placeholder="#RRGGBB (ex.: #4682B4)"
+    value={color}
+    onChange={(e) => setColor(e.target.value)}
+  />
+
+  <span className={styles.colorChip} title={previewColor || 'Aleatória ao salvar'}>
+    <span className={styles.colorSwatch} style={{ background: previewColor || '#ffffff' }} aria-hidden="true" />
+    <Palette size={16} aria-hidden="true" />
+    <span className={styles.hex}>{previewColor || 'aleatória'}</span>
+  </span>
+
+  {/* ✅ estilos padronizados */}
+  <button type="button" className={styles.btnSecondary} onClick={handleSortearCor}>
+    <RefreshCw size={16} aria-hidden="true" />
+    Sortear
+  </button>
+
+  {color && (
+    <button type="button" className={styles.btn} onClick={handleLimparCor}>
+      <X size={16} aria-hidden="true" />
+      Limpar
+    </button>
+  )}
+</div>
+
                 {touched.color && colorInvalid && (
                   <span className={styles.errMsg}>Cor inválida. Use o formato #RRGGBB.</span>
                 )}
