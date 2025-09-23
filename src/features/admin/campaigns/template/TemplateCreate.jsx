@@ -54,7 +54,7 @@ const nowTime = () => new Date().toLocaleTimeString('pt-BR', {
 /* ---------------- SVG Icons ---------------- */
 const IconReply = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
-    <path d="M10 8V5l-7 7 7 7v-3h4a7 7 0 0 0 7-7V7.5A9.5 9.5 0 0 1 14.5 17H10v-3H6l4-4z" fill="currentColor"/>
+    <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" fill="currentColor"/>
   </svg>
 );
 
@@ -139,11 +139,6 @@ function LivePreview({
         {/* WhatsApp Header */}
         <div className={styles.whatsappHeader}>
           <div className={styles.contactInfo}>
-            <div className={styles.avatar}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.49 1.32 5.04L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm4.52 7.14l-4.93 4.93c-.69.69-1.81.69-2.5 0L6.21 11.14c-.69-.69-.69-1.81 0-2.5s1.81-.69 2.5 0l2.04 2.04L15.06 6.36c.69-.69 1.81-.69 2.5 0s.69 1.81 0 2.5z"/>
-              </svg>
-            </div>
             <div className={styles.contactDetails}>
               <div className={styles.contactName}>{name || 'template_name'}</div>
               <div className={styles.contactStatus}>Template • WhatsApp Business</div>
