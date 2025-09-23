@@ -179,7 +179,7 @@ function LivePreview({
             )}
 
             {/* Message Bubble */}
-            <div className={styles.messageBubble}>
+            <div className={`${styles.messageBubble} ${(ctas.length === 0 && quicks.length === 0) ? styles.standalone : ''}`}>
               {/* Header Text */}
               {headerType === 'TEXT' && headerText?.trim() && (
                 <div className={styles.headerText}>
