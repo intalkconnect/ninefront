@@ -174,67 +174,64 @@ function LivePreview({
             )}
 
             {/* Message Bubble */}
-            <div className={`${styles.messageBubble} ${(ctas.length === 0 && quicks.length === 0) ? styles.standalone : ''}`}>
-              {/* Header Text */}
-              {headerType === 'TEXT' && headerText?.trim() && (
-                <div className={styles.headerText}>
-                  <TokenRenderer text={headerText} />
-                </div>
-              )}
-
-              {/* Body Text */}
-              <div className={styles.bodyText}>
-                {String(bodyText || 'Digite o corpo da mensagem...').split('\n').map((line, i) => (
-                  <div key={i}>
-                    <TokenRenderer text={line} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Footer Text */}
-              {footerText?.trim() && (
-                <div className={styles.footerText}>
-                  <TokenRenderer text={footerText} />
-                </div>
-              )}
-
-              {/* Timestamp */}
-              <div className={styles.timestamp}>{nowTime()}</div>
-            </div>
-
-            {/* Call-to-Action Buttons */}
-            {ctas.length > 0 && (
-              <div className={styles.buttonGroup}>
-                {ctas.map((btn, i) => (
-                  <div key={i} className={styles.ctaButton}>
-                    <div className={styles.btnIcon}>
-                      {btn.type === 'PHONE_NUMBER' ? <IconPhone /> : <IconExternal />}
-                    </div>
-                    <div className={styles.btnText}>
-                      {btn.text || 'Botão de Ação'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Quick Reply Buttons */}
-            {quicks.length > 0 && (
-              <div className={styles.buttonGroup}>
-                {quicks.map((quick, i) => (
-                  <div key={i} className={styles.quickButton}>
-                    <div className={styles.btnIcon}>
-                      <IconReply />
-                    </div>
-                    <div className={styles.btnText}>
-                      {quick.text || 'Resposta Rápida'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            <div className={styles.bubbleBlock}>
+    <div
+      className={`${styles.messageBubble} ${
+        (ctas.length > 0 || quicks.length > 0) ? styles.attachedBubble : styles.standalone
+      }`}
+    >
+      {/* Header Text */}
+      {headerType === 'TEXT' && headerText?.trim() && (
+        <div className={styles.headerText}>
+          <TokenRenderer text={headerText} />
         </div>
+      )}
+
+      {/* Body Text */}
+      <div className={styles.bodyText}>
+        {String(bodyText || 'Digite o corpo da mensagem...').split('\n').map((line, i) => (
+          <div key={i}><TokenRenderer text={line} /></div>
+        ))}
+      </div>
+
+      {/* Footer Text */}
+      {footerText?.trim() && (
+        <div className={styles.footerText}>
+          <TokenRenderer text={footerText} />
+        </div>
+      )}
+
+      {/* Timestamp */}
+      <div className={styles.timestamp}>{nowTime()}</div>
+    </div>
+
+    {/* CTA Buttons */}
+    {ctas.length > 0 && (
+      <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
+        {ctas.map((btn, i) => (
+          <div key={i} className={styles.ctaButton}>
+            <div className={styles.btnIcon}>
+              {btn.type === 'PHONE_NUMBER' ? <IconPhone /> : <IconExternal />}
+            </div>
+            <div className={styles.btnText}>{btn.text || 'Botão de Ação'}</div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* Quick Reply Buttons */}
+    {quicks.length > 0 && (
+      <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
+        {quicks.map((quick, i) => (
+          <div key={i} className={styles.quickButton}>
+            <div className={styles.btnIcon}><IconReply /></div>
+            <div className={styles.btnText}>{quick.text || 'Resposta Rápida'}</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</div>
 
         {/* WhatsApp Input */}
         <div className={styles.inputArea}>
