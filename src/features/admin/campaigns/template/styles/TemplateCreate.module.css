@@ -632,34 +632,31 @@
   font-weight: 600;
 }
 
-/* wrapper que une bubble + botões como 1 item do container */
-.bubbleBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end; /* mantém à direita */
-  gap: 0;               /* sem espaço entre bubble e botões */
-  max-width: 100%;
+/* 1) Wrapper que une bubble + botões como UM item */
+.bubbleBlock{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;  /* mantém à direita */
+  gap:0;                 /* sem espaço entre eles */
+  max-width:100%;
 }
 
-/* quando o bubble tem botões logo abaixo, “aplana” o canto de baixo */
-.attachedBubble {
-  border-radius: 16px 16px 0 16px; /* zera o canto inferior-esquerdo */
-  margin: 0;                       /* garante que não crie espaço extra */
+/* 2) Bubble quando tiver botões embaixo: remove o raio da base e a borda inferior */
+.attachedBubble{
+  border-radius:16px 16px 0 16px; /* base reta */
+  border-bottom:0;                /* evita “linha” entre bubble e botões */
+  margin:0;
 }
 
-/* quando NÃO tem botões (comportamento atual) */
-.standalone {
-  border-radius: 16px 16px 4px 16px; /* igual ao seu .messageBubble original */
+/* 3) Grupo de botões “colado” no bubble */
+.buttonGroupAttached{
+  min-width:280px;               /* igual ao bubble */
+  border-top:0;                  /* sem borda no topo */
+  border-radius:0 0 12px 12px;   /* cantos só embaixo */
+  margin-top:-1px;               /* cola as bordas (sobrepõe 1px) */
+  overflow:hidden;               /* esconde qualquer rebarba */
 }
 
-/* remove a linha entre bubble e bloco de botões e arredonda só embaixo */
-.buttonGroupAttached {
-  min-width: 280px;                 /* mesmo width do bubble */
-  border-top: 0;
-  border-radius: 0 0 12px 12px;
-  margin-top: -1px;                 /* cola as bordas (evita 1px de gap) */
-  overflow: hidden;                 /* esconde qualquer “rebarba” */
-}
 
 
 /* ======================
