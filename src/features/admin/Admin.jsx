@@ -53,6 +53,8 @@ import AgentsMonitor from "./monitoring/agentsMonitor/AgentsMonitor";
 import JourneyTracker from "./monitoring/journeyTracker/JourneyTracker";
 import JourneyBeholder from "./monitoring/journeyTracker/JourneyBeholder";
 import Queues from "./management/queue/Queues";
+import QueueForm from "./management/queue/QueueForm";
+import QueueHours from "./management/queue/QueueHours";
 import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
 
@@ -681,6 +683,9 @@ export default function Admin() {
           <Route path="management/users/:userId/edit" element={<UserForm />} />
 
           <Route path="management/queues" element={<Queues />} />
+          <Route path="management/queues/new" element={<QueueForm />} />
+          <Route path="management/queues/:id" element={<QueueForm />} />
+          <Route path="management/queues/:name/hours" element={<QueueHours />} />
           <Route path="management/quick-replies" element={<QuickReplies />} />
           <Route path="management/history" element={<History />} />
           <Route path="management/history/:id" element={<TicketDetail />} />
