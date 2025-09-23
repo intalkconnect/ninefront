@@ -308,9 +308,14 @@ export default function QueueHours() {
               </button>
             </div>
           ))}
-          <button className={`${css.iconBtn} ${css.add}`} onClick={addHoliday}>
-            <Plus size={16}/> Adicionar feriado
-          </button>
+              <button
+                type="button"
+                className={css.btnSecondary}
+                onClick={addHoliday}
+              >
+                <Plus size={16} aria-hidden="true" />
+                Adicionar feriado
+              </button>
         </div>
       </section>
 
