@@ -5,9 +5,7 @@ import { apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/TemplateCreate.module.css';
 
-/* =========================
-   Constantes / opções
-========================= */
+/* ---------------- Options ---------------- */
 const CATEGORIES = [
   { value: 'UTILITY',        label: 'Utility' },
   { value: 'MARKETING',      label: 'Marketing' },
@@ -31,89 +29,93 @@ const HEADER_TYPES = [
 ];
 const MAX_BTNS = 3;
 
-/* =========================
-   Helpers
-========================= */
-// normaliza: minúsculas, sem acentos; mantém [a-z0-9_]; colapsa múltiplos '_' e remove nas extremidades.
+/* ---------------- Helpers ---------------- */
+// Nome Meta: minúscula + sem acento + apenas [a-z0-9_], colapsa e trunca
 function sanitizeTemplateName(raw) {
   if (!raw) return '';
   let s = String(raw)
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // tira acentos
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, '_')                      // qualquer coisa vira _
-    .replace(/_{2,}/g, '_')                            // __ => _
-    .replace(/^_+|_+$/g, '');                          // trim _
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '');
   if (s.length > 512) s = s.slice(0, 512);
   return s;
 }
 const nowTime = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-/* =========================
-   SVG ícones (azul Meta-like)
-========================= */
+/* ---------------- SVG ícones ---------------- */
 const IconReply = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
+  <svg width="18" height="18" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
     <path d="M10 8V5l-7 7 7 7v-3h4a7 7 0 0 0 7-7V7.5A9.5 9.5 0 0 1 14.5 17H10v-3H6l4-4z" fill="currentColor"/>
   </svg>
 );
 const IconExternal = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
+  <svg width="18" height="18" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
     <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z" fill="currentColor"/>
     <path d="M5 5h6v2H7v10h10v-4h2v6H5z" fill="currentColor"/>
   </svg>
 );
 const IconPhone = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
+  <svg width="18" height="18" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
     <path d="M6.62 10.79a15.053 15.053 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24 11.36 11.36 0 0 0 3.56.57 1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1A17.5 17.5 0 0 1 2.5 5a1 1 0 0 1 1-1H7a1 1 0 0 1 1 1c0 1.21.2 2.41.57 3.56a1 1 0 0 1-.25 1.01l-1.7 1.22z" fill="currentColor"/>
   </svg>
 );
+const IconCamera = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" className={styles.iDark} aria-hidden="true">
+    <path d="M9 3l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2l2-2zM12 8a5 5 0 1 0 .001 10.001A5 5 0 0 0 12 8zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z" fill="currentColor"/>
+  </svg>
+);
+const IconDoc = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" className={styles.iDark} aria-hidden="true">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="currentColor" opacity=".2"/>
+    <path d="M14 2v6h6M8 13h8M8 9h4M8 17h8" fill="none" stroke="currentColor" strokeWidth="1.6"/>
+  </svg>
+);
+const IconVideo = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" className={styles.iDark} aria-hidden="true">
+    <path d="M4 5h12a2 2 0 0 1 2 2v2l3-2v10l-3-2v2a2 2 0 0 1-2 2H4z" fill="currentColor" opacity=".2"/>
+    <path d="M4 7h12v10H4zM18 9l3-2v10l-3-2z" fill="none" stroke="currentColor" strokeWidth="1.6"/>
+  </svg>
+);
 
-/* =========================
-   Prévia (lado direito)
-========================= */
+/* ---------------- Prévia ---------------- */
 function LivePreview({ name, headerType, headerText, headerMediaUrl, bodyText, footerText, ctas, quicks }) {
-  // colore tokens {{...}} de verde
-  const renderWithTokens = (text) => {
-    const parts = String(text || '').split(/(\{\{.*?\}\})/g);
-    return parts.map((part, i) =>
-      /\{\{.*\}\}/.test(part)
-        ? <span key={i} className={styles.token}>{part}</span>
-        : <span key={i}>{part}</span>
+  const renderWithTokens = (txt) => {
+    const parts = String(txt || '').split(/(\{\{.*?\}\})/g);
+    return parts.map((p, i) =>
+      /\{\{.*\}\}/.test(p) ? <span key={i} className={styles.token}>{p}</span> : <span key={i}>{p}</span>
     );
   };
+  const mediaLabel = headerType === 'IMAGE' ? 'Imagem' : headerType === 'DOCUMENT' ? 'Documento' : 'Vídeo';
+  const MediaIcon = headerType === 'IMAGE' ? IconCamera : headerType === 'DOCUMENT' ? IconDoc : IconVideo;
 
   return (
     <aside className={styles.previewWrap} aria-label="Prévia do template">
       <div className={styles.phoneCard}>
         <div className={styles.phoneTop}>Seu modelo</div>
         <div className={styles.phoneScreen}>
-          {/* cabeçalho com mídia (placeholder) */}
-          {headerType !== 'TEXT' && headerType !== 'NONE' && (headerMediaUrl || true) && (
+          {headerType !== 'TEXT' && headerType !== 'NONE' && (
             <div className={styles.mediaBox}>
-              {headerType === 'IMAGE' && '📷 Imagem'}
-              {headerType === 'DOCUMENT' && '📄 Documento'}
-              {headerType === 'VIDEO' && '🎬 Vídeo'}
+              <span className={styles.mediaBadge}>
+                <MediaIcon /> <span>{mediaLabel}</span>
+              </span>
             </div>
           )}
 
-          {/* bolha */}
           <div className={styles.bubble}>
             {headerType === 'TEXT' && headerText?.trim() && (
               <div className={styles.headLine}>{renderWithTokens(headerText)}</div>
             )}
-
             <div className={styles.bodyLines}>
               {String(bodyText || '—').split('\n').map((ln, i) => (
                 <div key={i}>{renderWithTokens(ln)}</div>
               ))}
             </div>
-
             {footerText?.trim() && <div className={styles.footerLine}>{renderWithTokens(footerText)}</div>}
-
             <div className={styles.timeMark}>{nowTime()}</div>
           </div>
 
-          {/* CTA buttons (linhas) */}
           {ctas.length > 0 && (
             <div className={styles.ctaGroup} role="group" aria-label="Ações">
               {ctas.map((b, i) => (
@@ -127,7 +129,6 @@ function LivePreview({ name, headerType, headerText, headerMediaUrl, bodyText, f
             </div>
           )}
 
-          {/* Quick replies */}
           {quicks.length > 0 && (
             <div className={styles.quickGroup} role="group" aria-label="Respostas rápidas">
               {quicks.map((q, i) => (
@@ -139,16 +140,13 @@ function LivePreview({ name, headerType, headerText, headerMediaUrl, bodyText, f
             </div>
           )}
         </div>
-
         <div className={styles.phoneBottom}>{name || 'nome_do_modelo'}</div>
       </div>
     </aside>
   );
 }
 
-/* =========================
-   Página principal
-========================= */
+/* ---------------- Página ---------------- */
 export default function TemplateCreate(){
   const navigate = useNavigate();
   const topRef = useRef(null);
@@ -164,9 +162,9 @@ export default function TemplateCreate(){
   const [bodyText, setBodyText] = useState('');
   const [footerText, setFooterText] = useState('');
 
-  const [buttonMode, setButtonMode] = useState('none'); // 'none' | 'cta' | 'quick'
-  const [ctas, setCtas] = useState([]);     // [{id,type:'URL'|'PHONE_NUMBER',text,url,phone_number}]
-  const [quicks, setQuicks] = useState([]); // [{id,text}]
+  const [buttonMode, setButtonMode] = useState('none');
+  const [ctas, setCtas] = useState([]);
+  const [quicks, setQuicks] = useState([]);
   const [saving, setSaving] = useState(false);
 
   const newId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -226,7 +224,6 @@ export default function TemplateCreate(){
     }
   }, [canSave, saving, name, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
 
-  // Modelo limpo para a prévia
   const previewCtas   = useMemo(() => buttonMode === 'cta'   ? ctas   : [], [buttonMode, ctas]);
   const previewQuicks = useMemo(() => buttonMode === 'quick' ? quicks : [], [buttonMode, quicks]);
 
@@ -252,7 +249,7 @@ export default function TemplateCreate(){
       </header>
 
       <div className={styles.grid}>
-        {/* Coluna esquerda (formulário) */}
+        {/* Coluna esquerda (form) */}
         <div className={styles.colForm}>
 
           {/* Informações */}
@@ -262,7 +259,7 @@ export default function TemplateCreate(){
               <p className={styles.cardDesc}>Categoria, idioma e identificação.</p>
             </div>
 
-            <div className={styles.cardBodyGrid3}>
+            <div className={`${styles.cardBodyGrid3} ${styles.alignTop}`}>
               <div className={styles.group}>
                 <label className={styles.label}>Categoria *</label>
                 <select className={styles.select} value={category} onChange={e=>setCategory(e.target.value)}>
@@ -302,7 +299,8 @@ export default function TemplateCreate(){
               <p className={styles.cardDesc}>Cabeçalho, corpo e rodapé.</p>
             </div>
 
-            <div className={styles.cardBodyGrid3}>
+            {/* linha: segmented + campo do cabeçalho (lado a lado) */}
+            <div className={`${styles.cardBodyGrid3} ${styles.headerRow}`}>
               <div className={styles.group}>
                 <label className={styles.label}>Tipo de cabeçalho</label>
                 <div className={styles.segmented} role="tablist">
@@ -320,7 +318,6 @@ export default function TemplateCreate(){
                 </div>
               </div>
 
-              {/* Campo condicional do cabeçalho */}
               {headerType === 'TEXT' ? (
                 <div className={styles.groupWide}>
                   <label className={styles.label}>Cabeçalho (texto)</label>
@@ -342,7 +339,9 @@ export default function TemplateCreate(){
                   />
                 </div>
               )}
+            </div>
 
+            <div className={styles.cardBodyGrid3}>
               <div className={styles.groupFull}>
                 <label className={styles.label}>Corpo *</label>
                 <textarea
