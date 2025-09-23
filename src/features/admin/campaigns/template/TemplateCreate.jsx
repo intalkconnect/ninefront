@@ -5,15 +5,14 @@ import { apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/TemplateCreate.module.css';
 
-/* ==========================
-   Constantes
-========================== */
+/* =========================
+   Constantes / opções
+========================= */
 const CATEGORIES = [
   { value: 'UTILITY',        label: 'Utility' },
   { value: 'MARKETING',      label: 'Marketing' },
   { value: 'AUTHENTICATION', label: 'Authentication' },
 ];
-
 const LANGS = [
   { value: 'pt_BR', label: 'Português (BR)' },
   { value: 'en_US', label: 'Inglês (US)' },
@@ -24,103 +23,136 @@ const LANGS = [
   { value: 'it_IT', label: 'Italiano (IT)' },
   { value: 'de_DE', label: 'Alemão (DE)' },
 ];
-
 const HEADER_TYPES = [
   { value: 'TEXT',     label: 'Texto' },
   { value: 'IMAGE',    label: 'Imagem' },
   { value: 'DOCUMENT', label: 'Documento' },
   { value: 'VIDEO',    label: 'Vídeo' },
 ];
-
 const MAX_BTNS = 3;
 
-/* ==========================
+/* =========================
    Helpers
-========================== */
-// Regex oficial que a Meta impõe para "name"
-const META_NAME_RE = /^[a-z0-9_]+$/;
-
-// remoção de acentos e normalização para minúsculas + underscore
-function sanitizeTemplateName(raw = '') {
+========================= */
+// normaliza: minúsculas, sem acentos; mantém [a-z0-9_]; colapsa múltiplos '_' e remove nas extremidades.
+function sanitizeTemplateName(raw) {
+  if (!raw) return '';
   let s = String(raw)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')        // remove acentos
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // tira acentos
     .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, '_')           // só a-z 0-9 _
-    .replace(/^_+|_+$/g, '')                // tira _ das pontas
-    .replace(/__+/g, '_');                  // compacta
+    .replace(/[^a-z0-9_]+/g, '_')                      // qualquer coisa vira _
+    .replace(/_{2,}/g, '_')                            // __ => _
+    .replace(/^_+|_+$/g, '');                          // trim _
+  if (s.length > 512) s = s.slice(0, 512);
   return s;
 }
+const nowTime = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-/* ==========================
-   Preview (estilo Meta)
-========================== */
-function Preview({ name, headerType, headerText, bodyText, footerText, buttonMode, ctas, quicks }) {
-  const btns = useMemo(() => {
-    if (buttonMode === 'cta' && ctas?.length) return ctas.map(b => ({ ...b, _kind: 'CTA' }));
-    if (buttonMode === 'quick' && quicks?.length) return quicks.map(q => ({ ...q, _kind: 'REPLY', type: 'QUICK_REPLY' }));
-    return [];
-  }, [buttonMode, ctas, quicks]);
+/* =========================
+   SVG ícones (azul Meta-like)
+========================= */
+const IconReply = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
+    <path d="M10 8V5l-7 7 7 7v-3h4a7 7 0 0 0 7-7V7.5A9.5 9.5 0 0 1 14.5 17H10v-3H6l4-4z" fill="currentColor"/>
+  </svg>
+);
+const IconExternal = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
+    <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z" fill="currentColor"/>
+    <path d="M5 5h6v2H7v10h10v-4h2v6H5z" fill="currentColor"/>
+  </svg>
+);
+const IconPhone = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" className={styles.iBlue} aria-hidden="true">
+    <path d="M6.62 10.79a15.053 15.053 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.01-.24 11.36 11.36 0 0 0 3.56.57 1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1A17.5 17.5 0 0 1 2.5 5a1 1 0 0 1 1-1H7a1 1 0 0 1 1 1c0 1.21.2 2.41.57 3.56a1 1 0 0 1-.25 1.01l-1.7 1.22z" fill="currentColor"/>
+  </svg>
+);
 
-  const highlight = (txt='') =>
-    txt.split(/(\{\{.*?\}\})/g).map((c,i) => /\{\{.*?\}\}/.test(c)
-      ? <span key={i} className={styles.var}>{c}</span>
-      : <span key={i}>{c}</span>
+/* =========================
+   Prévia (lado direito)
+========================= */
+function LivePreview({ name, headerType, headerText, headerMediaUrl, bodyText, footerText, ctas, quicks }) {
+  // colore tokens {{...}} de verde
+  const renderWithTokens = (text) => {
+    const parts = String(text || '').split(/(\{\{.*?\}\})/g);
+    return parts.map((part, i) =>
+      /\{\{.*\}\}/.test(part)
+        ? <span key={i} className={styles.token}>{part}</span>
+        : <span key={i}>{part}</span>
     );
+  };
 
   return (
-    <aside className={styles.previewAside} aria-label="Prévia">
-      <div className={styles.metaCard}>
-        <div className={styles.metaTop}>Seu modelo</div>
+    <aside className={styles.previewWrap} aria-label="Prévia do template">
+      <div className={styles.phoneCard}>
+        <div className={styles.phoneTop}>Seu modelo</div>
+        <div className={styles.phoneScreen}>
+          {/* cabeçalho com mídia (placeholder) */}
+          {headerType !== 'TEXT' && headerType !== 'NONE' && (headerMediaUrl || true) && (
+            <div className={styles.mediaBox}>
+              {headerType === 'IMAGE' && '📷 Imagem'}
+              {headerType === 'DOCUMENT' && '📄 Documento'}
+              {headerType === 'VIDEO' && '🎬 Vídeo'}
+            </div>
+          )}
 
-        <div className={styles.metaScreen}>
-          {/* Balão */}
+          {/* bolha */}
           <div className={styles.bubble}>
             {headerType === 'TEXT' && headerText?.trim() && (
-              <div className={styles.hdr}>{highlight(headerText)}</div>
+              <div className={styles.headLine}>{renderWithTokens(headerText)}</div>
             )}
-            <div className={styles.body}>
-              {(bodyText||'').split('\n').map((l, i) => (
-                <div key={i}>{l ? highlight(l) : <>&nbsp;</>}</div>
+
+            <div className={styles.bodyLines}>
+              {String(bodyText || '—').split('\n').map((ln, i) => (
+                <div key={i}>{renderWithTokens(ln)}</div>
               ))}
             </div>
-            {footerText?.trim() && <div className={styles.ftr}>{highlight(footerText)}</div>}
-            <div className={styles.time}>
-              {new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(new Date())}
-            </div>
+
+            {footerText?.trim() && <div className={styles.footerLine}>{renderWithTokens(footerText)}</div>}
+
+            <div className={styles.timeMark}>{nowTime()}</div>
           </div>
 
-          {/* Painel de ações (linhas) */}
-          {btns.length > 0 && (
-            <div className={styles.actionPanel} role="list">
-              {btns.map((b, i) => {
-                const isReply = (b._kind === 'REPLY' || (b.type||'').toUpperCase()==='QUICK_REPLY');
-                return (
-                  <div key={i} className={styles.actionRow} role="listitem">
-                    <span className={isReply ? styles.iconReply : styles.iconLink} aria-hidden="true" />
-                    <span className={styles.actionText}>{b.text || b.title || 'Botão'}</span>
-                    {!isReply && <span className={styles.chev} aria-hidden="true">›</span>}
-                  </div>
-                );
-              })}
+          {/* CTA buttons (linhas) */}
+          {ctas.length > 0 && (
+            <div className={styles.ctaGroup} role="group" aria-label="Ações">
+              {ctas.map((b, i) => (
+                <div key={i} className={styles.ctaRow}>
+                  <span className={styles.ctaIcon}>
+                    {b.type === 'PHONE_NUMBER' ? <IconPhone /> : <IconExternal />}
+                  </span>
+                  <span className={styles.ctaText}>{b.text || 'Ação'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Quick replies */}
+          {quicks.length > 0 && (
+            <div className={styles.quickGroup} role="group" aria-label="Respostas rápidas">
+              {quicks.map((q, i) => (
+                <div key={i} className={styles.quickRow}>
+                  <span className={styles.quickIcon}><IconReply /></span>
+                  <span className={styles.quickText}>{q.text || 'Resposta'}</span>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        <div className={styles.metaBottom}>{name || 'nome_do_modelo'}</div>
+        <div className={styles.phoneBottom}>{name || 'nome_do_modelo'}</div>
       </div>
     </aside>
   );
 }
 
-/* ==========================
-   Página
-========================== */
+/* =========================
+   Página principal
+========================= */
 export default function TemplateCreate(){
   const navigate = useNavigate();
   const topRef = useRef(null);
 
-  // form
   const [name, setName] = useState('');
   const [language, setLanguage] = useState('pt_BR');
   const [category, setCategory] = useState('MARKETING');
@@ -136,15 +168,11 @@ export default function TemplateCreate(){
   const [ctas, setCtas] = useState([]);     // [{id,type:'URL'|'PHONE_NUMBER',text,url,phone_number}]
   const [quicks, setQuicks] = useState([]); // [{id,text}]
   const [saving, setSaving] = useState(false);
-  const [touched, setTouched] = useState({ name:false });
 
   const newId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-  const nameSanitized = useMemo(() => sanitizeTemplateName(name), [name]);
-  const nameInvalid = !nameSanitized || !META_NAME_RE.test(nameSanitized);
-
   const canSave = useMemo(() => {
-    if (nameInvalid) return false;
+    if (!name.trim()) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
     if (buttonMode === 'cta' && ctas.some(b =>
@@ -152,20 +180,13 @@ export default function TemplateCreate(){
     )) return false;
     if (buttonMode === 'quick' && quicks.some(q => !q.text?.trim())) return false;
     return true;
-  }, [nameInvalid, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
+  }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
 
   const addCta   = () => setCtas(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),type:'URL',text:'',url:'',phone_number:''}]));
   const addQuick = () => setQuicks(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),text:''}]));
 
-  const handleNameChange = (e) => {
-    const raw = e.target.value;
-    const san = sanitizeTemplateName(raw);
-    setName(san);
-  };
-
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.();
-    setTouched(t => ({...t, name:true}));
     if (!canSave || saving) return;
     setSaving(true);
     try {
@@ -181,19 +202,18 @@ export default function TemplateCreate(){
       }
 
       const payload = {
-        name: nameSanitized,
+        name: sanitizeTemplateName(name),
         language_code: language,
         category,
         header_type: headerType || 'NONE',
-        header_text: headerType === 'TEXT' ? headerText.trim() : null,
-        header_media_url: headerType !== 'TEXT' && headerType !== 'NONE' ? (headerMediaUrl.trim() || null) : null,
+        header_text: headerType === 'TEXT' ? (headerText.trim() || null) : null,
+        header_media_url: headerType !== 'TEXT' ? (headerMediaUrl.trim() || null) : null,
         body_text: bodyText.trim(),
         footer_text: footerText.trim() || null,
         buttons,
         example: null,
       };
 
-      // Cria local (draft), envia e sincroniza
       const created = await apiPost('/templates', payload);
       await apiPost(`/templates/${created.id}/submit`, {});
       await apiPost(`/templates/${created.id}/sync`, {});
@@ -204,13 +224,19 @@ export default function TemplateCreate(){
       toast.error('Falha ao enviar template.');
       setSaving(false);
     }
-  }, [canSave, saving, nameSanitized, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
+  }, [canSave, saving, name, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
+
+  // Modelo limpo para a prévia
+  const previewCtas   = useMemo(() => buttonMode === 'cta'   ? ctas   : [], [buttonMode, ctas]);
+  const previewQuicks = useMemo(() => buttonMode === 'quick' ? quicks : [], [buttonMode, quicks]);
 
   return (
     <div className={styles.page} ref={topRef}>
       {/* Breadcrumbs */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
+          <li><Link to="/" className={styles.bcLink}>Dashboard</Link></li>
+          <li className={styles.bcSep}>/</li>
           <li><Link to="/management/templates" className={styles.bcLink}>Templates</Link></li>
           <li className={styles.bcSep}>/</li>
           <li><span className={styles.bcCurrent}>Novo template</span></li>
@@ -226,8 +252,9 @@ export default function TemplateCreate(){
       </header>
 
       <div className={styles.grid}>
-        {/* Coluna Principal */}
-        <div className={styles.mainCol}>
+        {/* Coluna esquerda (formulário) */}
+        <div className={styles.colForm}>
+
           {/* Informações */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
@@ -252,24 +279,18 @@ export default function TemplateCreate(){
 
               <div className={styles.group}>
                 <label className={styles.label}>
-                  Nome * <span className={styles.mono}>[a-z0-9_]</span>
+                  Nome * <span className={styles.helper}>[a-z0-9_], sem acentos ou espaços</span>
                 </label>
                 <input
-                  className={`${styles.input} ${touched.name && nameInvalid ? styles.invalid : ''}`}
+                  className={styles.input}
                   value={name}
-                  onChange={handleNameChange}
-                  onBlur={() => setTouched(t => ({...t, name:true}))}
+                  onChange={e=>setName(sanitizeTemplateName(e.target.value))}
                   placeholder="ex.: account_update_1"
                   inputMode="latin"
-                  autoCapitalize="none"
+                  autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
                 />
-                {touched.name && nameInvalid && (
-                  <span className={styles.errMsg}>
-                    Use somente letras minúsculas, números e underline (sem acentos).
-                  </span>
-                )}
               </div>
             </div>
           </section>
@@ -281,17 +302,17 @@ export default function TemplateCreate(){
               <p className={styles.cardDesc}>Cabeçalho, corpo e rodapé.</p>
             </div>
 
-            {/* Linha com tipo (pílulas) + campo do cabeçalho */}
-            <div className={styles.rowTwoCols}>
+            <div className={styles.cardBodyGrid3}>
               <div className={styles.group}>
                 <label className={styles.label}>Tipo de cabeçalho</label>
-                <div className={styles.segmented}>
+                <div className={styles.segmented} role="tablist">
                   {HEADER_TYPES.map(h => (
                     <button
                       key={h.value}
                       type="button"
                       className={`${styles.segItem} ${headerType===h.value ? styles.segActive : ''}`}
                       onClick={()=>setHeaderType(h.value)}
+                      aria-pressed={headerType===h.value}
                     >
                       {h.label}
                     </button>
@@ -299,8 +320,9 @@ export default function TemplateCreate(){
                 </div>
               </div>
 
+              {/* Campo condicional do cabeçalho */}
               {headerType === 'TEXT' ? (
-                <div className={styles.group}>
+                <div className={styles.groupWide}>
                   <label className={styles.label}>Cabeçalho (texto)</label>
                   <input
                     className={styles.input}
@@ -310,7 +332,7 @@ export default function TemplateCreate(){
                   />
                 </div>
               ) : (
-                <div className={styles.group}>
+                <div className={styles.groupWide}>
                   <label className={styles.label}>Mídia do cabeçalho (URL)</label>
                   <input
                     className={styles.input}
@@ -320,9 +342,7 @@ export default function TemplateCreate(){
                   />
                 </div>
               )}
-            </div>
 
-            <div className={styles.cardBodyGrid3}>
               <div className={styles.groupFull}>
                 <label className={styles.label}>Corpo *</label>
                 <textarea
@@ -356,7 +376,7 @@ export default function TemplateCreate(){
             <div className={styles.cardBodyGrid3}>
               <div className={styles.group}>
                 <label className={styles.label}>Tipo</label>
-                <div className={styles.pills}>
+                <div className={styles.pills} role="tablist">
                   <button type="button" className={`${styles.pill} ${buttonMode==='cta'?styles.pillActive:''}`} onClick={()=>{setButtonMode('cta');setQuicks([]);}}>Ação</button>
                   <button type="button" className={`${styles.pill} ${buttonMode==='quick'?styles.pillActive:''}`} onClick={()=>{setButtonMode('quick');setCtas([]);}}>Resposta rápida</button>
                   <button type="button" className={`${styles.pill} ${buttonMode==='none'?styles.pillActive:''}`} onClick={()=>{setButtonMode('none');setCtas([]);setQuicks([]);}}>Nenhum</button>
@@ -366,22 +386,43 @@ export default function TemplateCreate(){
               {buttonMode === 'cta' && (
                 <div className={styles.groupFull}>
                   {ctas.map(b => (
-                    <div key={b.id} className={styles.ctaRow}>
-                      <select className={styles.select} value={b.type} onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,type:e.target.value}:x))}>
+                    <div key={b.id} className={styles.ctaEditRow}>
+                      <select
+                        className={styles.select}
+                        value={b.type}
+                        onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,type:e.target.value}:x))}
+                      >
                         <option value="URL">Abrir URL</option>
                         <option value="PHONE_NUMBER">Chamar</option>
                       </select>
-                      <input className={styles.input} placeholder="Rótulo" value={b.text} onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,text:e.target.value}:x))}/>
+                      <input
+                        className={styles.input}
+                        placeholder="Rótulo"
+                        value={b.text}
+                        onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,text:e.target.value}:x))}
+                      />
                       {b.type === 'URL' ? (
-                        <input className={styles.input} placeholder="https://exemplo.com/{{1}}" value={b.url} onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,url:e.target.value}:x))}/>
+                        <input
+                          className={styles.input}
+                          placeholder="https://exemplo.com/{{1}}"
+                          value={b.url}
+                          onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,url:e.target.value}:x))}
+                        />
                       ) : (
-                        <input className={styles.input} placeholder="+55XXXXXXXXXXX" value={b.phone_number||''} onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,phone_number:e.target.value}:x))}/>
+                        <input
+                          className={styles.input}
+                          placeholder="+55XXXXXXXXXXX"
+                          value={b.phone_number||''}
+                          onChange={e=>setCtas(p=>p.map(x=>x.id===b.id?{...x,phone_number:e.target.value}:x))}
+                        />
                       )}
                       <button type="button" className={styles.btn} onClick={()=>setCtas(p=>p.filter(x=>x.id!==b.id))}>Remover</button>
                     </div>
                   ))}
                   {ctas.length < MAX_BTNS && (
-                    <button type="button" className={styles.btnSecondary} onClick={addCta}>+ Adicionar botão ({ctas.length}/{MAX_BTNS})</button>
+                    <button type="button" className={styles.btnSecondary} onClick={addCta}>
+                      + Adicionar botão ({ctas.length}/{MAX_BTNS})
+                    </button>
                   )}
                 </div>
               )}
@@ -389,13 +430,20 @@ export default function TemplateCreate(){
               {buttonMode === 'quick' && (
                 <div className={styles.groupFull}>
                   {quicks.map(q => (
-                    <div key={q.id} className={styles.quickRow}>
-                      <input className={styles.input} placeholder="Texto curto" value={q.text} onChange={e=>setQuicks(p=>p.map(x=>x.id===q.id?{...x,text:e.target.value}:x))}/>
+                    <div key={q.id} className={styles.quickEditRow}>
+                      <input
+                        className={styles.input}
+                        placeholder="Texto curto"
+                        value={q.text}
+                        onChange={e=>setQuicks(p=>p.map(x=>x.id===q.id?{...x,text:e.target.value}:x))}
+                      />
                       <button type="button" className={styles.btn} onClick={()=>setQuicks(p=>p.filter(x=>x.id!==q.id))}>Remover</button>
                     </div>
                   ))}
                   {quicks.length < MAX_BTNS && (
-                    <button type="button" className={styles.btnSecondary} onClick={addQuick}>+ Adicionar resposta ({quicks.length}/{MAX_BTNS})</button>
+                    <button type="button" className={styles.btnSecondary} onClick={addQuick}>
+                      + Adicionar resposta ({quicks.length}/{MAX_BTNS})
+                    </button>
                   )}
                 </div>
               )}
@@ -403,19 +451,17 @@ export default function TemplateCreate(){
           </section>
         </div>
 
-        {/* Coluna Preview */}
-        <div className={styles.sideCol}>
-          <Preview
-            name={nameSanitized}
-            headerType={headerType}
-            headerText={headerText}
-            bodyText={bodyText}
-            footerText={footerText}
-            buttonMode={buttonMode}
-            ctas={ctas}
-            quicks={quicks}
-          />
-        </div>
+        {/* Coluna direita (prévia) */}
+        <LivePreview
+          name={sanitizeTemplateName(name)}
+          headerType={headerType}
+          headerText={headerText}
+          headerMediaUrl={headerMediaUrl}
+          bodyText={bodyText}
+          footerText={footerText}
+          ctas={previewCtas}
+          quicks={previewQuicks}
+        />
       </div>
 
       {/* Footer fixo */}
