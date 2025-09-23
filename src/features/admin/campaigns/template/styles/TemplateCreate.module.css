@@ -363,6 +363,9 @@
 /* ======================
    PREVIEW - WhatsApp Style
 ====================== */
+/* ======================
+   PREVIEW - WhatsApp Style
+====================== */
 .previewWrap {
   position: sticky;
   top: 20px;
@@ -389,63 +392,19 @@
   color: white;
 }
 
-.contactInfo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  background: var(--whatsapp-green);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-
-.contactDetails {
-  display: flex;
-  flex-direction: column;
-}
-
-.contactName {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-}
-
-.contactStatus {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.headerActions {
-  display: flex;
-  gap: 8px;
-}
-
-.headerBtn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-}
-
-.headerBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
+.contactInfo { display: flex; align-items: center; gap: 12px; }
+.contactDetails { display: flex; flex-direction: column; }
+.contactName { font-size: 14px; font-weight: 600; color: white; }
+.contactStatus { font-size: 11px; color: rgba(255,255,255,.8); }
+.headerActions { display: flex; gap: 8px; }
+.headerBtn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 4px; border-radius: 4px; }
+.headerBtn:hover { background: rgba(255,255,255,.1); }
 
 /* Chat Area */
 .chatArea {
   padding: 16px;
   min-height: 300px;
-  background: 
+  background:
     radial-gradient(circle at 10px 10px, rgba(0,0,0,.02) 1px, transparent 1px) 0 0/20px 20px,
     linear-gradient(180deg, #e8f4f8 0%, #f0f8ff 100%);
   position: relative;
@@ -455,54 +414,52 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 8px;              /* separa este “bloco” de outras mensagens */
   max-width: 100%;
 }
 
-/* Media Header */
-.mediaHeader {
-  width: 100%;
-  max-width: 280px;
-}
+/* Media Header (acima do bubble) */
+.mediaHeader { width: 100%; max-width: 280px; }
 
 .mediaPlaceholder {
   background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  border: 2px dashed #d1d5db;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 24px 16px;
   text-align: center;
   color: #6b7280;
 }
 
-.mediaIcon {
-  margin-bottom: 8px;
-  opacity: 0.7;
+.mediaIcon { margin-bottom: 8px; opacity: .7; }
+.iMedia { color: #6b7280; }
+.mediaLabel { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.mediaUrl { font-size: 11px; color: #9ca3af; word-break: break-all; }
+
+/* Quando a mídia colar no bubble, a base fica reta */
+.mediaAttached {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: 0;
+  margin-bottom: -1px;  /* junta sem “fissura” */
 }
 
-.iMedia {
-  color: #6b7280;
+/* Bubble + Buttons como um item */
+.bubbleBlock{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:0;                 /* sem espaço entre bubble e botões */
+  max-width:100%;
 }
 
-.mediaLabel {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.mediaUrl {
-  font-size: 11px;
-  color: #9ca3af;
-  word-break: break-all;
-}
-
-/* Message Bubble */
+/* Message Bubble — por padrão é ÚNICO (todos os cantos arredondados) */
 .messageBubble {
   position: relative;
   min-width: 280px;
   background: var(--whatsapp-bubble);
   border: 1px solid #e0f2fe;
-  border-radius: 16px 16px 4px 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+  border-radius: 16px;   /* arredondado em todas as bordas quando único */
+  box-shadow: 0 1px 2px rgba(0,0,0,.1);
   padding: 12px 16px 24px 16px;
   color: var(--whatsapp-text);
   line-height: 1.4;
@@ -522,44 +479,28 @@
   border-bottom: none;
 }
 
-.headerText {
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: var(--text);
-  font-size: 14px;
+/* Colado em algo ACIMA: topo reto e sem borda */
+.bubbleAttachTop{
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: 0;
+  margin-top: -1px;
 }
 
-.bodyText {
-  white-space: pre-wrap;
-  font-size: 14px;
-  line-height: 1.4;
+/* Colado em algo ABAIXO: base reta e sem borda */
+.bubbleAttachBottom{
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: 0;
 }
 
-.footerText {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
-  font-size: 12px;
-  color: var(--muted);
-}
+.headerText { font-weight: 700; margin-bottom: 8px; color: var(--text); font-size: 14px; }
+.bodyText { white-space: pre-wrap; font-size: 14px; line-height: 1.4; }
+.footerText { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f5f9; font-size: 12px; color: var(--muted); }
+.timestamp { position: absolute; right: 8px; bottom: 4px; font-size: 10px; color: #94a3b8; }
 
-.timestamp {
-  position: absolute;
-  right: 8px;
-  bottom: 4px;
-  font-size: 10px;
-  color: #94a3b8;
-}
-
-/* Token Styling */
-.token {
-  background: #dcfce7;
-  color: var(--token);
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 13px;
-}
+/* Token */
+.token { background: #dcfce7; color: var(--token); font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
 
 /* Button Groups */
 .buttonGroup {
@@ -568,7 +509,15 @@
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+
+/* Grupo de botões colado ao bubble */
+.buttonGroupAttached{
+  border-top: 0;                 /* sem borda no topo para unir */
+  border-radius: 0 0 12px 12px;  /* só cantos de baixo */
+  margin-top: -1px;              /* junta sem “fissura” */
+  overflow: hidden;
 }
 
 .ctaButton, .quickButton {
@@ -578,85 +527,22 @@
   padding: 14px 16px;
   border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color .2s ease;
   max-width: 280px;
 }
 
-.ctaButton:last-child, .quickButton:last-child {
-  border-bottom: none;
-}
-
-.ctaButton:hover, .quickButton:hover {
-  background: #f8fafc;
-}
-
-.btnIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btnText {
-  flex: 1;
-  color: var(--blue);
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.iBlue {
-  color: var(--blue);
-}
+.ctaButton:last-child, .quickButton:last-child { border-bottom: none; }
+.ctaButton:hover, .quickButton:hover { background: #f8fafc; }
+.btnIcon { display: flex; align-items: center; justify-content: center; }
+.btnText { flex: 1; color: var(--blue); font-weight: 600; font-size: 14px; }
+.iBlue { color: var(--blue); }
 
 /* Input Area */
-.inputArea {
-  padding: 12px 16px;
-  background: #f0f2f5;
-  border-top: 1px solid #e5e7eb;
-}
-
-.inputPlaceholder {
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  padding: 10px 16px;
-  color: #9ca3af;
-  font-size: 14px;
-}
+.inputArea { padding: 12px 16px; background: #f0f2f5; border-top: 1px solid #e5e7eb; }
+.inputPlaceholder { background: white; border: 1px solid #ddd; border-radius: 20px; padding: 10px 16px; color: #9ca3af; font-size: 14px; }
 
 /* Preview Label */
-.previewLabel {
-  text-align: center;
-  margin-top: 12px;
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-/* 1) Wrapper que une bubble + botões como UM item */
-.bubbleBlock{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-end;  /* mantém à direita */
-  gap:0;                 /* sem espaço entre eles */
-  max-width:100%;
-}
-
-/* 2) Bubble quando tiver botões embaixo: remove o raio da base e a borda inferior */
-.attachedBubble{
-  border-radius:16px 16px 0 16px; /* base reta */
-  border-bottom:0;                /* evita “linha” entre bubble e botões */
-  margin:0;
-}
-
-/* 3) Grupo de botões “colado” no bubble */
-.buttonGroupAttached{
-  min-width:280px;               /* igual ao bubble */
-  border-top:0;                  /* sem borda no topo */
-  border-radius:0 0 12px 12px;   /* cantos só embaixo */
-  margin-top:-1px;               /* cola as bordas (sobrepõe 1px) */
-  overflow:hidden;               /* esconde qualquer rebarba */
-}
-
+.previewLabel { text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted); font-weight: 600; }
 
 
 /* ======================
