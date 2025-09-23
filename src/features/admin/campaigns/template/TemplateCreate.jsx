@@ -5,11 +5,15 @@ import { apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/TemplateCreate.module.css';
 
+/* ==========================
+   Constantes
+========================== */
 const CATEGORIES = [
   { value: 'UTILITY',        label: 'Utility' },
   { value: 'MARKETING',      label: 'Marketing' },
   { value: 'AUTHENTICATION', label: 'Authentication' },
 ];
+
 const LANGS = [
   { value: 'pt_BR', label: 'Português (BR)' },
   { value: 'en_US', label: 'Inglês (US)' },
@@ -20,121 +24,103 @@ const LANGS = [
   { value: 'it_IT', label: 'Italiano (IT)' },
   { value: 'de_DE', label: 'Alemão (DE)' },
 ];
+
 const HEADER_TYPES = [
   { value: 'TEXT',     label: 'Texto' },
   { value: 'IMAGE',    label: 'Imagem' },
   { value: 'DOCUMENT', label: 'Documento' },
   { value: 'VIDEO',    label: 'Vídeo' },
 ];
+
 const MAX_BTNS = 3;
 
-// ————— helpers —————
-const deburr = (s='') =>
-  s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); // remove acentos
-const metaNameSanitize = (raw='') =>
-  deburr(raw)
+/* ==========================
+   Helpers
+========================== */
+// Regex oficial que a Meta impõe para "name"
+const META_NAME_RE = /^[a-z0-9_]+$/;
+
+// remoção de acentos e normalização para minúsculas + underscore
+function sanitizeTemplateName(raw = '') {
+  let s = String(raw)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')        // remove acentos
     .toLowerCase()
-    .replace(/[^a-z0-9_ ]+/g,'')     // só letras, numeros, _, espaço
-    .trim()
-    .replace(/\s+/g,'_');            // espaços -> _
-const isValidMetaName = (s) => /^[a-z0-9_]{3,70}$/.test(s); // meta-like
+    .replace(/[^a-z0-9_]+/g, '_')           // só a-z 0-9 _
+    .replace(/^_+|_+$/g, '')                // tira _ das pontas
+    .replace(/__+/g, '_');                  // compacta
+  return s;
+}
 
-const nowTime = () => {
-  try {
-    return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute:'2-digit' }).format(new Date());
-  } catch { return '18:54'; }
-};
+/* ==========================
+   Preview (estilo Meta)
+========================== */
+function Preview({ name, headerType, headerText, bodyText, footerText, buttonMode, ctas, quicks }) {
+  const btns = useMemo(() => {
+    if (buttonMode === 'cta' && ctas?.length) return ctas.map(b => ({ ...b, _kind: 'CTA' }));
+    if (buttonMode === 'quick' && quicks?.length) return quicks.map(q => ({ ...q, _kind: 'REPLY', type: 'QUICK_REPLY' }));
+    return [];
+  }, [buttonMode, ctas, quicks]);
 
-const toButtons = (mode, ctas, quicks) => {
-  if (mode === 'cta' && ctas?.length) {
-    return ctas.map(b =>
-      b.type === 'URL'
-        ? { type:'URL', text:b.text?.trim(), url: b.url?.trim() }
-        : { type:'PHONE_NUMBER', text:b.text?.trim(), phone_number: b.phone_number?.trim() }
+  const highlight = (txt='') =>
+    txt.split(/(\{\{.*?\}\})/g).map((c,i) => /\{\{.*?\}\}/.test(c)
+      ? <span key={i} className={styles.var}>{c}</span>
+      : <span key={i}>{c}</span>
     );
-  }
-  if (mode === 'quick' && quicks?.length) {
-    return quicks.map(q => ({ type:'QUICK_REPLY', text:q.text?.trim() }));
-  }
-  return null;
-};
-
-// ————— Preview (lateral, estilo Meta) —————
-function TemplatePreviewPane({ name, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks }) {
-  const btns = useMemo(() => toButtons(buttonMode, ctas, quicks) || [], [buttonMode, ctas, quicks]);
-  const showMediaHeader = headerType && headerType !== 'NONE' && headerType !== 'TEXT';
-
-  const highlightVars = (txt='') =>
-    txt.split(/(\{\{.*?\}\})/g).map((chunk, i) => (
-      /\{\{.*?\}\}/.test(chunk)
-        ? <span key={i} className={styles.waVar}>{chunk}</span>
-        : <span key={i}>{chunk}</span>
-    ));
 
   return (
-    <aside className={styles.previewAside} aria-label="Prévia do template">
-      <div className={styles.previewCard}>
-        <div className={styles.previewTop}>Seu modelo</div>
-        <div className={styles.previewScreen}>
-          {showMediaHeader && (
-            <div className={styles.waAttachment}>
-              {headerType === 'IMAGE'    && '📷 Imagem'}
-              {headerType === 'VIDEO'    && '🎬 Vídeo'}
-              {headerType === 'DOCUMENT' && '📄 Documento'}
-            </div>
-          )}
+    <aside className={styles.previewAside} aria-label="Prévia">
+      <div className={styles.metaCard}>
+        <div className={styles.metaTop}>Seu modelo</div>
 
-          <div className={styles.waBubble}>
+        <div className={styles.metaScreen}>
+          {/* Balão */}
+          <div className={styles.bubble}>
             {headerType === 'TEXT' && headerText?.trim() && (
-              <div className={styles.waHeader}>{highlightVars(headerText)}</div>
+              <div className={styles.hdr}>{highlight(headerText)}</div>
             )}
-
-            <div className={styles.waBody}>
-              {(bodyText || '').split('\n').map((line, i) => (
-                <div key={i}>{line ? highlightVars(line) : <>&nbsp;</>}</div>
+            <div className={styles.body}>
+              {(bodyText||'').split('\n').map((l, i) => (
+                <div key={i}>{l ? highlight(l) : <>&nbsp;</>}</div>
               ))}
             </div>
-
-            {footerText?.trim() && (
-              <div className={styles.waFooter}>{highlightVars(footerText)}</div>
-            )}
-
-            <div className={styles.waTime}>{nowTime()}</div>
+            {footerText?.trim() && <div className={styles.ftr}>{highlight(footerText)}</div>}
+            <div className={styles.time}>
+              {new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(new Date())}
+            </div>
           </div>
 
-          {btns?.length > 0 && (
-            <div className={styles.waButtons}>
+          {/* Painel de ações (linhas) */}
+          {btns.length > 0 && (
+            <div className={styles.actionPanel} role="list">
               {btns.map((b, i) => {
-                const type = (b?.type || '').toUpperCase();
-                const isReply = type === 'QUICK_REPLY';
+                const isReply = (b._kind === 'REPLY' || (b.type||'').toUpperCase()==='QUICK_REPLY');
                 return (
-                  <button
-                    key={i}
-                    type="button"
-                    className={isReply ? styles.waBtnReply : styles.waBtnGhost}
-                    title={type || 'BUTTON'}
-                    onClick={(e)=>e.preventDefault()}
-                  >
-                    {b?.text || b?.title || 'Botão'}
-                  </button>
+                  <div key={i} className={styles.actionRow} role="listitem">
+                    <span className={isReply ? styles.iconReply : styles.iconLink} aria-hidden="true" />
+                    <span className={styles.actionText}>{b.text || b.title || 'Botão'}</span>
+                    {!isReply && <span className={styles.chev} aria-hidden="true">›</span>}
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
-      </div>
 
-      <div className={styles.previewCaption} title="Nome do modelo">
-        {name || 'nome_do_modelo'}
+        <div className={styles.metaBottom}>{name || 'nome_do_modelo'}</div>
       </div>
     </aside>
   );
 }
 
+/* ==========================
+   Página
+========================== */
 export default function TemplateCreate(){
   const navigate = useNavigate();
   const topRef = useRef(null);
 
+  // form
   const [name, setName] = useState('');
   const [language, setLanguage] = useState('pt_BR');
   const [category, setCategory] = useState('MARKETING');
@@ -150,19 +136,15 @@ export default function TemplateCreate(){
   const [ctas, setCtas] = useState([]);     // [{id,type:'URL'|'PHONE_NUMBER',text,url,phone_number}]
   const [quicks, setQuicks] = useState([]); // [{id,text}]
   const [saving, setSaving] = useState(false);
-  const [nameTouched, setNameTouched] = useState(false);
+  const [touched, setTouched] = useState({ name:false });
 
   const newId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
-  // — restrição de nome no padrão Meta
-  const onNameChange = (e) => {
-    const sanitized = metaNameSanitize(e.target.value);
-    setName(sanitized);
-  };
-  const nameInvalid = nameTouched && !isValidMetaName(name);
+  const nameSanitized = useMemo(() => sanitizeTemplateName(name), [name]);
+  const nameInvalid = !nameSanitized || !META_NAME_RE.test(nameSanitized);
 
   const canSave = useMemo(() => {
-    if (!isValidMetaName(name)) return false;
+    if (nameInvalid) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
     if (buttonMode === 'cta' && ctas.some(b =>
@@ -170,32 +152,48 @@ export default function TemplateCreate(){
     )) return false;
     if (buttonMode === 'quick' && quicks.some(q => !q.text?.trim())) return false;
     return true;
-  }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
+  }, [nameInvalid, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
 
   const addCta   = () => setCtas(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),type:'URL',text:'',url:'',phone_number:''}]));
   const addQuick = () => setQuicks(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),text:''}]));
 
+  const handleNameChange = (e) => {
+    const raw = e.target.value;
+    const san = sanitizeTemplateName(raw);
+    setName(san);
+  };
+
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.();
-    setNameTouched(true);
+    setTouched(t => ({...t, name:true}));
     if (!canSave || saving) return;
     setSaving(true);
     try {
-      const buttons = toButtons(buttonMode, ctas, quicks);
+      let buttons = null;
+      if (buttonMode === 'cta' && ctas.length) {
+        buttons = ctas.map(b =>
+          b.type === 'URL'
+            ? { type:'URL', text:b.text.trim(), url:b.url.trim() }
+            : { type:'PHONE_NUMBER', text:b.text.trim(), phone_number:b.phone_number.trim() }
+        );
+      } else if (buttonMode === 'quick' && quicks.length) {
+        buttons = quicks.map(q => ({ type:'QUICK_REPLY', text:q.text.trim() }));
+      }
 
       const payload = {
-        name,
+        name: nameSanitized,
         language_code: language,
         category,
         header_type: headerType || 'NONE',
-        header_text: headerType === 'TEXT' ? (headerText.trim() || null) : null,
-        header_media_url: (headerType !== 'TEXT' && headerType !== 'NONE') ? (headerMediaUrl.trim() || null) : null,
+        header_text: headerType === 'TEXT' ? headerText.trim() : null,
+        header_media_url: headerType !== 'TEXT' && headerType !== 'NONE' ? (headerMediaUrl.trim() || null) : null,
         body_text: bodyText.trim(),
         footer_text: footerText.trim() || null,
         buttons,
         example: null,
       };
 
+      // Cria local (draft), envia e sincroniza
       const created = await apiPost('/templates', payload);
       await apiPost(`/templates/${created.id}/submit`, {});
       await apiPost(`/templates/${created.id}/sync`, {});
@@ -206,15 +204,13 @@ export default function TemplateCreate(){
       toast.error('Falha ao enviar template.');
       setSaving(false);
     }
-  }, [canSave, saving, name, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
+  }, [canSave, saving, nameSanitized, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
 
   return (
     <div className={styles.page} ref={topRef}>
       {/* Breadcrumbs */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
-          <li><Link to="/" className={styles.bcLink}>Dashboard</Link></li>
-          <li className={styles.bcSep}>/</li>
           <li><Link to="/management/templates" className={styles.bcLink}>Templates</Link></li>
           <li className={styles.bcSep}>/</li>
           <li><span className={styles.bcCurrent}>Novo template</span></li>
@@ -229,11 +225,10 @@ export default function TemplateCreate(){
         </div>
       </header>
 
-      <div className={styles.mainGrid}>
-        {/* Coluna esquerda: formulário */}
-        <div className={styles.formCol}>
-
-          {/* Card: principais */}
+      <div className={styles.grid}>
+        {/* Coluna Principal */}
+        <div className={styles.mainCol}>
+          {/* Informações */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Informações do modelo</h2>
@@ -257,32 +252,37 @@ export default function TemplateCreate(){
 
               <div className={styles.group}>
                 <label className={styles.label}>
-                  Nome * <span className={styles.hint}>[a-z0-9_]</span>
+                  Nome * <span className={styles.mono}>[a-z0-9_]</span>
                 </label>
                 <input
-                  className={`${styles.input} ${nameInvalid ? styles.invalid : ''}`}
+                  className={`${styles.input} ${touched.name && nameInvalid ? styles.invalid : ''}`}
                   value={name}
-                  onChange={onNameChange}
-                  onBlur={()=>setNameTouched(true)}
+                  onChange={handleNameChange}
+                  onBlur={() => setTouched(t => ({...t, name:true}))}
                   placeholder="ex.: account_update_1"
+                  inputMode="latin"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
-                {nameInvalid && (
+                {touched.name && nameInvalid && (
                   <span className={styles.errMsg}>
-                    Use apenas letras minúsculas, números e underscore. 3–70 caracteres.
+                    Use somente letras minúsculas, números e underline (sem acentos).
                   </span>
                 )}
               </div>
             </div>
           </section>
 
-          {/* Card: conteúdo */}
+          {/* Conteúdo */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Conteúdo</h2>
               <p className={styles.cardDesc}>Cabeçalho, corpo e rodapé.</p>
             </div>
 
-            <div className={styles.cardBodyGrid3}>
+            {/* Linha com tipo (pílulas) + campo do cabeçalho */}
+            <div className={styles.rowTwoCols}>
               <div className={styles.group}>
                 <label className={styles.label}>Tipo de cabeçalho</label>
                 <div className={styles.segmented}>
@@ -300,7 +300,7 @@ export default function TemplateCreate(){
               </div>
 
               {headerType === 'TEXT' ? (
-                <div className={styles.groupWide}>
+                <div className={styles.group}>
                   <label className={styles.label}>Cabeçalho (texto)</label>
                   <input
                     className={styles.input}
@@ -310,8 +310,8 @@ export default function TemplateCreate(){
                   />
                 </div>
               ) : (
-                <div className={styles.groupWide}>
-                  <label className={styles.label}>URL da mídia (imagem/documento/vídeo)</label>
+                <div className={styles.group}>
+                  <label className={styles.label}>Mídia do cabeçalho (URL)</label>
                   <input
                     className={styles.input}
                     value={headerMediaUrl}
@@ -320,7 +320,9 @@ export default function TemplateCreate(){
                   />
                 </div>
               )}
+            </div>
 
+            <div className={styles.cardBodyGrid3}>
               <div className={styles.groupFull}>
                 <label className={styles.label}>Corpo *</label>
                 <textarea
@@ -344,7 +346,7 @@ export default function TemplateCreate(){
             </div>
           </section>
 
-          {/* Card: botões */}
+          {/* Botões */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Botões</h2>
@@ -379,9 +381,7 @@ export default function TemplateCreate(){
                     </div>
                   ))}
                   {ctas.length < MAX_BTNS && (
-                    <button type="button" className={styles.btnSecondary} onClick={()=>setCtas(p=>[...p,{id:newId(),type:'URL',text:'',url:'',phone_number:''}])}>
-                      + Adicionar botão ({ctas.length}/{MAX_BTNS})
-                    </button>
+                    <button type="button" className={styles.btnSecondary} onClick={addCta}>+ Adicionar botão ({ctas.length}/{MAX_BTNS})</button>
                   )}
                 </div>
               )}
@@ -395,9 +395,7 @@ export default function TemplateCreate(){
                     </div>
                   ))}
                   {quicks.length < MAX_BTNS && (
-                    <button type="button" className={styles.btnSecondary} onClick={()=>setQuicks(p=>[...p,{id:newId(),text:''}])}>
-                      + Adicionar resposta ({quicks.length}/{MAX_BTNS})
-                    </button>
+                    <button type="button" className={styles.btnSecondary} onClick={addQuick}>+ Adicionar resposta ({quicks.length}/{MAX_BTNS})</button>
                   )}
                 </div>
               )}
@@ -405,18 +403,19 @@ export default function TemplateCreate(){
           </section>
         </div>
 
-        {/* Coluna direita: preview */}
-        <TemplatePreviewPane
-          name={name}
-          headerType={headerType}
-          headerText={headerText}
-          headerMediaUrl={headerMediaUrl}
-          bodyText={bodyText}
-          footerText={footerText}
-          buttonMode={buttonMode}
-          ctas={ctas}
-          quicks={quicks}
-        />
+        {/* Coluna Preview */}
+        <div className={styles.sideCol}>
+          <Preview
+            name={nameSanitized}
+            headerType={headerType}
+            headerText={headerText}
+            bodyText={bodyText}
+            footerText={footerText}
+            buttonMode={buttonMode}
+            ctas={ctas}
+            quicks={quicks}
+          />
+        </div>
       </div>
 
       {/* Footer fixo */}
