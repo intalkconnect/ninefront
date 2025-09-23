@@ -139,14 +139,21 @@
 /* Grid Layouts */
 .cardBodyGrid3 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   padding: 20px;
 }
 
 .headerRow {
   display: grid;
-  grid-template-columns: 240px 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 16px;
   padding: 20px;
   align-items: flex-start;
