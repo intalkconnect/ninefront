@@ -239,9 +239,16 @@ function LivePreview({
             </div>
           </div>
         </div>
-        </div>
 
-      <div className={styles.previewLabel}>Prévia do Template</div>
+        {/* WhatsApp Input */}
+        <div className={styles.inputArea}>
+          <div className={styles.inputPlaceholder}>
+            <span>Digite uma mensagem</span>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.previewLabel}>📱 Prévia do Template</div>
     </aside>
   );
 }
