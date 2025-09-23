@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Save as SaveIcon } from 'lucide-react';
 import { apiPost } from '../../../../shared/apiClient';
@@ -136,6 +136,9 @@ function LivePreview({
   const hasBelow = ctas.length > 0 || quicks.length > 0;
   const hasAbove = headerType !== 'TEXT' && headerType !== 'NONE';
 
+  const [imgOk, setImgOk] = useState(false);
+  useEffect(() => { setImgOk(false); }, [headerMediaUrl]);
+
   return (
     <aside className={styles.previewWrap} aria-label="Prévia do template">
       <div className={styles.phoneCard}>
@@ -158,21 +161,41 @@ function LivePreview({
           <div className={styles.messageContainer}>
             
             {/* Media Header (acima do bubble) */}
-            {hasAbove && (
-              <div className={styles.mediaHeader}>
-                <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
-                  <div className={styles.mediaIcon}>{getMediaIcon()}</div>
-                  <div className={styles.mediaLabel}>{getMediaLabel()}</div>
-                  {headerMediaUrl && (
-                    <div className={styles.mediaUrl}>
-                      {headerMediaUrl.length > 40 
-                        ? `${headerMediaUrl.slice(0, 40)}...` 
-                        : headerMediaUrl}
-                    </div>
-                  )}
-                </div>
+              {hasAbove && (
+    <div className={styles.mediaHeader}>
+      {headerType === 'IMAGE' && headerMediaUrl ? (
+        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`}>
+          <img
+            src={headerMediaUrl}
+            alt="Header"
+            className={styles.mediaImage}
+            onLoad={() => setImgOk(true)}
+            onError={() => setImgOk(false)}
+          />
+          {!imgOk && (
+            <div className={styles.mediaFallback}>
+              <div className={styles.mediaIcon}>{getMediaIcon()}</div>
+              <div className={styles.mediaLabel}>Imagem</div>
+              <div className={styles.mediaUrl}>
+                {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
               </div>
-            )}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+          <div className={styles.mediaIcon}>{getMediaIcon()}</div>
+          <div className={styles.mediaLabel}>{getMediaLabel()}</div>
+          {headerMediaUrl && (
+            <div className={styles.mediaUrl}>
+              {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )}
+
 
             {/* Bubble + Botões como um bloco único */}
             <div className={styles.bubbleBlock}>
