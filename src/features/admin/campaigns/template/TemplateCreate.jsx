@@ -104,7 +104,6 @@ const TokenRenderer = ({ text }) => {
 };
 
 /* ---------------- Live Preview Component ---------------- */
-/* ---------------- Live Preview Component ---------------- */
 function LivePreview({ 
   name, 
   headerType, 
@@ -240,19 +239,12 @@ function LivePreview({
           </div>
         </div>
 
-        {/* WhatsApp Input */}
-        <div className={styles.inputArea}>
-          <div className={styles.inputPlaceholder}>
-            <span>Digite uma mensagem</span>
-          </div>
-        </div>
       </div>
 
-      <div className={styles.previewLabel}>📱 Prévia do Template</div>
+      <div className={styles.previewLabel}>Prévia do Template</div>
     </aside>
   );
 }
-
 
 /* ---------------- Form Sections ---------------- */
 const TemplateInfoSection = ({ 
