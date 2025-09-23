@@ -498,7 +498,7 @@
 /* Message Bubble */
 .messageBubble {
   position: relative;
-  max-width: 280px;
+  min-width: 280px;
   background: var(--whatsapp-bubble);
   border: 1px solid #e0f2fe;
   border-radius: 16px 16px 4px 16px;
@@ -564,7 +564,7 @@
 /* Button Groups */
 .buttonGroup {
   width: 100%;
-  max-width: 280px;
+  min-width: 280px;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
