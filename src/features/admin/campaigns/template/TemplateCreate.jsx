@@ -232,6 +232,7 @@ function LivePreview({
     )}
   </div>
 </div>
+          </div>
 
         {/* WhatsApp Input */}
         <div className={styles.inputArea}>
