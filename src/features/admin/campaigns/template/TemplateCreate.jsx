@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Save as SaveIcon } from 'lucide-react';
 import { apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
-import styles from './styles/TemplateCreatePage.module.css';
+import styles from './styles/TemplateCreate.module.css';
 
 const CATEGORIES = [
   { value: 'UTILITY',        label: 'Utility' },
