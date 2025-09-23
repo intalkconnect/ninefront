@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { apiGet, apiPut } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
-import css from './styles/QueueHoursPage.module.css';
+import css from './styles/QueueHours.module.css';
 
 const WDAYS = [
   { key: 'mon', label: 'Segunda' },
