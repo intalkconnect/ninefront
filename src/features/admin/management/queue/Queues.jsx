@@ -51,29 +51,30 @@ export default function Queues() {
 
   const clearSearch = () => setQuery('');
 
-  async function handleDelete(queue) {
-    const id = queue.id ?? queue.nome ?? queue.name;
-    if (!id) {
-      toast.warn('ID da fila indisponível.');
-      return;
-    }
-    try {
-          const ok = await confirm({
+async function handleDelete(queue) {
+  const id = queue.id ?? queue.nome ?? queue.name;
+  if (!id) {
+    toast.warn('ID da fila indisponível.');
+    return;
+  }
+  try {
+    const ok = await confirm({
       title: 'Excluir fila?',
-      description: `Tem certeza que deseja excluir a fila "${fila.nome ?? fila.name}"? Esta ação não pode ser desfeita.`,
+      description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       cancelText: 'Cancelar',
       tone: 'danger',
     });
     if (!ok) return;
-      await apiDelete(`/queues/${encodeURIComponent(id)}`);
-      toast.success('Fila excluída.');
-      load();
-    } catch (e) {
-      console.error(e);
-      toast.error('Falha ao excluir fila.');
-    }
+
+    await apiDelete(`/queues/${encodeURIComponent(id)}`);
+    toast.success('Fila excluída.');
+    load();
+  } catch (e) {
+    console.error(e);
+    toast.error('Falha ao excluir fila.');
   }
+}
 
   return (
     <div className={styles.container}>
