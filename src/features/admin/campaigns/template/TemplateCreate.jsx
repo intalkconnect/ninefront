@@ -104,6 +104,7 @@ const TokenRenderer = ({ text }) => {
 };
 
 /* ---------------- Live Preview Component ---------------- */
+/* ---------------- Live Preview Component ---------------- */
 function LivePreview({ 
   name, 
   headerType, 
@@ -132,6 +133,10 @@ function LivePreview({
     }
   };
 
+  // flags para colar o bubble em cima/baixo
+  const hasBelow = ctas.length > 0 || quicks.length > 0;
+  const hasAbove = headerType !== 'TEXT' && headerType !== 'NONE';
+
   return (
     <aside className={styles.previewWrap} aria-label="Prévia do template">
       <div className={styles.phoneCard}>
@@ -153,86 +158,87 @@ function LivePreview({
         <div className={styles.chatArea}>
           <div className={styles.messageContainer}>
             
-            {/* Media Header */}
-            {headerType !== 'TEXT' && headerType !== 'NONE' && (
+            {/* Media Header (acima do bubble) */}
+            {hasAbove && (
               <div className={styles.mediaHeader}>
-                <div className={styles.mediaPlaceholder}>
-                  <div className={styles.mediaIcon}>
-                    {getMediaIcon()}
-                  </div>
+                <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+                  <div className={styles.mediaIcon}>{getMediaIcon()}</div>
                   <div className={styles.mediaLabel}>{getMediaLabel()}</div>
                   {headerMediaUrl && (
                     <div className={styles.mediaUrl}>
                       {headerMediaUrl.length > 40 
                         ? `${headerMediaUrl.slice(0, 40)}...` 
-                        : headerMediaUrl
-                      }
+                        : headerMediaUrl}
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {/* Message Bubble */}
+            {/* Bubble + Botões como um bloco único */}
             <div className={styles.bubbleBlock}>
-    <div
-      className={`${styles.messageBubble} ${
-        (ctas.length > 0 || quicks.length > 0) ? styles.attachedBubble : styles.standalone
-      }`}
-    >
-      {/* Header Text */}
-      {headerType === 'TEXT' && headerText?.trim() && (
-        <div className={styles.headerText}>
-          <TokenRenderer text={headerText} />
-        </div>
-      )}
+              <div
+                className={[
+                  styles.messageBubble,
+                  hasAbove && styles.bubbleAttachTop,
+                  hasBelow && styles.bubbleAttachBottom,
+                ].filter(Boolean).join(' ')}
+              >
+                {/* Header Text */}
+                {headerType === 'TEXT' && headerText?.trim() && (
+                  <div className={styles.headerText}>
+                    <TokenRenderer text={headerText} />
+                  </div>
+                )}
 
-      {/* Body Text */}
-      <div className={styles.bodyText}>
-        {String(bodyText || 'Digite o corpo da mensagem...').split('\n').map((line, i) => (
-          <div key={i}><TokenRenderer text={line} /></div>
-        ))}
-      </div>
+                {/* Body Text */}
+                <div className={styles.bodyText}>
+                  {String(bodyText || 'Digite o corpo da mensagem...')
+                    .split('\n')
+                    .map((line, i) => (
+                      <div key={i}><TokenRenderer text={line} /></div>
+                  ))}
+                </div>
 
-      {/* Footer Text */}
-      {footerText?.trim() && (
-        <div className={styles.footerText}>
-          <TokenRenderer text={footerText} />
-        </div>
-      )}
+                {/* Footer Text */}
+                {footerText?.trim() && (
+                  <div className={styles.footerText}>
+                    <TokenRenderer text={footerText} />
+                  </div>
+                )}
 
-      {/* Timestamp */}
-      <div className={styles.timestamp}>{nowTime()}</div>
-    </div>
+                {/* Timestamp */}
+                <div className={styles.timestamp}>{nowTime()}</div>
+              </div>
 
-    {/* CTA Buttons */}
-    {ctas.length > 0 && (
-      <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
-        {ctas.map((btn, i) => (
-          <div key={i} className={styles.ctaButton}>
-            <div className={styles.btnIcon}>
-              {btn.type === 'PHONE_NUMBER' ? <IconPhone /> : <IconExternal />}
+              {/* CTA Buttons */}
+              {ctas.length > 0 && (
+                <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
+                  {ctas.map((btn, i) => (
+                    <div key={i} className={styles.ctaButton}>
+                      <div className={styles.btnIcon}>
+                        {btn.type === 'PHONE_NUMBER' ? <IconPhone /> : <IconExternal />}
+                      </div>
+                      <div className={styles.btnText}>{btn.text || 'Botão de Ação'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Quick Reply Buttons */}
+              {quicks.length > 0 && (
+                <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
+                  {quicks.map((quick, i) => (
+                    <div key={i} className={styles.quickButton}>
+                      <div className={styles.btnIcon}><IconReply /></div>
+                      <div className={styles.btnText}>{quick.text || 'Resposta Rápida'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className={styles.btnText}>{btn.text || 'Botão de Ação'}</div>
           </div>
-        ))}
-      </div>
-    )}
-
-    {/* Quick Reply Buttons */}
-    {quicks.length > 0 && (
-      <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
-        {quicks.map((quick, i) => (
-          <div key={i} className={styles.quickButton}>
-            <div className={styles.btnIcon}><IconReply /></div>
-            <div className={styles.btnText}>{quick.text || 'Resposta Rápida'}</div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-</div>
-          </div>
+        </div>
 
         {/* WhatsApp Input */}
         <div className={styles.inputArea}>
@@ -242,12 +248,11 @@ function LivePreview({
         </div>
       </div>
 
-      <div className={styles.previewLabel}>
-        📱 Prévia do Template
-      </div>
+      <div className={styles.previewLabel}>📱 Prévia do Template</div>
     </aside>
   );
 }
+
 
 /* ---------------- Form Sections ---------------- */
 const TemplateInfoSection = ({ 
