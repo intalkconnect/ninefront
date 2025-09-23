@@ -1,4 +1,4 @@
-:root {
+essage:root {
   --border: #e5e7eb;
   --border2: #eef2f7;
   --text: #0f172a;
@@ -414,7 +414,6 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;              /* separa este “bloco” de outras mensagens */
   max-width: 100%;
 }
 
