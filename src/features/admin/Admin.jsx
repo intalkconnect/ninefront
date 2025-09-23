@@ -57,6 +57,7 @@ import QueueForm from "./management/queue/QueueForm";
 import QueueHours from "./management/queue/QueueHours";
 import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
+import TemplateCreate from './campaigns/template/TemplateCreate';
 
 // ⚠️ Alteração: Users agora é a LISTA, e criamos UserForm como subpágina
 import UsersPage from "./management/users/Users";
@@ -692,7 +693,8 @@ export default function Admin() {
           <Route path="management/clientes" element={<Clientes />} />
 
           {/* campaigns */}
-          <Route path="campaigns/templates" element={<Templates />} />
+          <Route path="/management/templates" element={<Templates />} />
+          <Route path="/management/templates/new" element={<TemplateCreate />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
 
           {/* channels */}
