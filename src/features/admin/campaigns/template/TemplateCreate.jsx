@@ -28,13 +28,28 @@ const HEADER_TYPES = [
 ];
 const MAX_BTNS = 3;
 
-function fmtTime(d = new Date()) {
-  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-}
+/* ===== Helpers ===== */
+const sanitizeName = (val) => {
+  // remove acentos, troca espaços/hífens por _, mantém só a-z 0-9 _
+  const noDiacritics = val.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return noDiacritics
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 512);
+};
+const isNameValid = (val) => /^[a-z0-9_]{1,512}$/.test(val);
+
+const fmtTime = (d = new Date()) =>
+  d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 export default function TemplateCreate(){
   const navigate = useNavigate();
   const topRef = useRef(null);
+  const headerTextRef = useRef(null);
+  const headerMediaRef = useRef(null);
 
   const [name, setName] = useState('');
   const [language, setLanguage] = useState('pt_BR');
@@ -51,11 +66,12 @@ export default function TemplateCreate(){
   const [ctas, setCtas] = useState([]);     // [{id,type:'URL'|'PHONE_NUMBER',text,url,phone_number}]
   const [quicks, setQuicks] = useState([]); // [{id,text}]
   const [saving, setSaving] = useState(false);
+  const [nameTouched, setNameTouched] = useState(false);
 
   const newId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const canSave = useMemo(() => {
-    if (!name.trim()) return false;
+    if (!isNameValid(name)) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
     if (buttonMode === 'cta' && ctas.some(b =>
@@ -82,6 +98,18 @@ export default function TemplateCreate(){
   const addCta   = () => setCtas(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),type:'URL',text:'',url:'',phone_number:''}]));
   const addQuick = () => setQuicks(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),text:''}]));
 
+  const changeHeaderType = (val) => {
+    setHeaderType(val);
+    if (val === 'TEXT') {
+      setHeaderMediaUrl('');
+      // foca o campo de texto do cabeçalho
+      setTimeout(()=>headerTextRef.current?.focus(), 0);
+    } else {
+      setHeaderText('');
+      setTimeout(()=>headerMediaRef.current?.focus(), 0);
+    }
+  };
+
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.();
     if (!canSave || saving) return;
@@ -99,7 +127,7 @@ export default function TemplateCreate(){
       }
 
       const payload = {
-        name: name.trim(),
+        name,
         language_code: language,
         category,
         header_type: headerType || 'NONE',
@@ -146,7 +174,7 @@ export default function TemplateCreate(){
 
       {/* Layout com preview lateral */}
       <div className={styles.split}>
-        {/* Coluna form (scrolla independente) */}
+        {/* Coluna form */}
         <div className={styles.leftCol}>
           {/* Card: principais */}
           <section className={styles.card}>
@@ -171,8 +199,22 @@ export default function TemplateCreate(){
               </div>
 
               <div className={styles.group}>
-                <label className={styles.label}>Nome *</label>
-                <input className={styles.input} value={name} onChange={e=>setName(e.target.value)} placeholder="ex.: promo_outubro_2025"/>
+                <label className={styles.label}>
+                  Nome * <span className={styles.hint}>apenas minúsculas, números e “_”</span>
+                </label>
+                <input
+                  className={`${styles.input} ${nameTouched && !isNameValid(name) ? styles.invalid : ''}`}
+                  value={name}
+                  onChange={e=>{ const v = sanitizeName(e.target.value); setName(v); }}
+                  onBlur={()=>setNameTouched(true)}
+                  placeholder="ex.: promo_outubro_2025"
+                  inputMode="latin"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                />
+                {nameTouched && !isNameValid(name) && (
+                  <span className={styles.errMsg}>Use apenas letras minúsculas, números e underline.</span>
+                )}
               </div>
             </div>
           </section>
@@ -185,7 +227,7 @@ export default function TemplateCreate(){
             </div>
 
             <div className={styles.cardBodyGrid3}>
-              <div className={styles.group}>
+              <div className={styles.groupFull}>
                 <label className={styles.label}>Tipo de cabeçalho</label>
                 <div className={styles.segmented}>
                   {HEADER_TYPES.map(h => (
@@ -193,7 +235,7 @@ export default function TemplateCreate(){
                       key={h.value}
                       type="button"
                       className={`${styles.segItem} ${headerType===h.value ? styles.segActive : ''}`}
-                      onClick={()=>setHeaderType(h.value)}
+                      onClick={()=>changeHeaderType(h.value)}
                     >
                       {h.label}
                     </button>
@@ -202,14 +244,28 @@ export default function TemplateCreate(){
               </div>
 
               {headerType === 'TEXT' ? (
-                <div className={styles.groupWide}>
+                <div className={styles.groupFull}>
                   <label className={styles.label}>Cabeçalho (texto)</label>
-                  <input className={styles.input} value={headerText} onChange={e=>setHeaderText(e.target.value)} placeholder="Texto do cabeçalho"/>
+                  <input
+                    ref={headerTextRef}
+                    className={styles.input}
+                    value={headerText}
+                    onChange={e=>setHeaderText(e.target.value)}
+                    placeholder="Texto do cabeçalho"
+                  />
                 </div>
               ) : (
-                <div className={styles.groupWide}>
+                <div className={styles.groupFull}>
                   <label className={styles.label}>Mídia do cabeçalho (URL)</label>
-                  <input className={styles.input} value={headerMediaUrl} onChange={e=>setHeaderMediaUrl(e.target.value)} placeholder="https://..."/>
+                  <input
+                    ref={headerMediaRef}
+                    className={styles.input}
+                    value={headerMediaUrl}
+                    onChange={e=>setHeaderMediaUrl(e.target.value)}
+                    placeholder={headerType === 'IMAGE' ? 'https://… (imagem)'
+                      : headerType === 'VIDEO' ? 'https://… (vídeo)'
+                      : 'https://… (documento)'}
+                  />
                 </div>
               )}
 
@@ -224,7 +280,7 @@ export default function TemplateCreate(){
                 />
               </div>
 
-              <div className={styles.groupWide}>
+              <div className={styles.groupFull}>
                 <label className={styles.label}>Rodapé (opcional)</label>
                 <input className={styles.input} value={footerText} onChange={e=>setFooterText(e.target.value)} placeholder="Mensagem do rodapé"/>
               </div>
@@ -239,7 +295,7 @@ export default function TemplateCreate(){
             </div>
 
             <div className={styles.cardBodyGrid3}>
-              <div className={styles.group}>
+              <div className={styles.groupFull}>
                 <label className={styles.label}>Tipo</label>
                 <div className={styles.pills}>
                   <button type="button" className={`${styles.pill} ${buttonMode==='cta'?styles.pillActive:''}`} onClick={()=>{setButtonMode('cta');setQuicks([]);}}>Ação</button>
@@ -295,7 +351,6 @@ export default function TemplateCreate(){
             <div className={styles.waCard}>
               <div className={styles.waTopBar}>{name || 'Seu modelo'}</div>
               <div className={styles.waScreen}>
-                {/* header media/text */}
                 {headerType !== 'NONE' && headerType !== 'TEXT' && (
                   <div className={styles.waAttachment}>
                     {headerType === 'IMAGE'    && (headerMediaUrl ? <img src={headerMediaUrl} alt="Imagem do cabeçalho" /> : '📷 Imagem')}
