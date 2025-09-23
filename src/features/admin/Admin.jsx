@@ -693,8 +693,8 @@ export default function Admin() {
           <Route path="management/clientes" element={<Clientes />} />
 
           {/* campaigns */}
-          <Route path="/management/templates" element={<Templates />} />
-          <Route path="/management/templates/new" element={<TemplateCreate />} />
+          <Route path="campaigns/templates" element={<Templates />} />
+          <Route path="campaigns/templates/new" element={<TemplateCreate />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
 
           {/* channels */}
