@@ -493,110 +493,113 @@ const ButtonsSection = ({
       </div>
     </div>
 
-        {/* CTA Buttons */}
-        {buttonMode === 'cta' && (
-          <div className={styles.groupFull}>
-            {ctas.map(cta => (
-              <div key={cta.id} className={styles.ctaEditRow}>
-                <select
-                  className={styles.select}
-                  value={cta.type}
-                  onChange={e => setCtas(prev => prev.map(c => 
-                    c.id === cta.id ? { ...c, type: e.target.value } : c
-                  ))}
-                >
-                  <option value="URL">Abrir URL</option>
-                  <option value="PHONE_NUMBER">Chamar</option>
-                </select>
-                
+    {/* CTA Buttons */}
+    {buttonMode === 'cta' && (
+      <div className={styles.cardBodyGrid3}>
+        <div className={styles.groupFull}>
+          {ctas.map(cta => (
+            <div key={cta.id} className={styles.ctaEditRow}>
+              <select
+                className={styles.select}
+                value={cta.type}
+                onChange={e => setCtas(prev => prev.map(c => 
+                  c.id === cta.id ? { ...c, type: e.target.value } : c
+                ))}
+              >
+                <option value="URL">Abrir URL</option>
+                <option value="PHONE_NUMBER">Chamar</option>
+              </select>
+              
+              <input
+                className={styles.input}
+                placeholder="Texto do botão"
+                value={cta.text}
+                onChange={e => setCtas(prev => prev.map(c => 
+                  c.id === cta.id ? { ...c, text: e.target.value } : c
+                ))}
+              />
+              
+              {cta.type === 'URL' ? (
                 <input
                   className={styles.input}
-                  placeholder="Texto do botão"
-                  value={cta.text}
+                  placeholder="https://exemplo.com"
+                  value={cta.url}
                   onChange={e => setCtas(prev => prev.map(c => 
-                    c.id === cta.id ? { ...c, text: e.target.value } : c
+                    c.id === cta.id ? { ...c, url: e.target.value } : c
                   ))}
                 />
-                
-                {cta.type === 'URL' ? (
-                  <input
-                    className={styles.input}
-                    placeholder="https://exemplo.com"
-                    value={cta.url}
-                    onChange={e => setCtas(prev => prev.map(c => 
-                      c.id === cta.id ? { ...c, url: e.target.value } : c
-                    ))}
-                  />
-                ) : (
-                  <input
-                    className={styles.input}
-                    placeholder="+5511999999999"
-                    value={cta.phone_number}
-                    onChange={e => setCtas(prev => prev.map(c => 
-                      c.id === cta.id ? { ...c, phone_number: e.target.value } : c
-                    ))}
-                  />
-                )}
-                
-                <button 
-                  type="button" 
-                  className={styles.btn} 
-                  onClick={() => removeCta(cta.id)}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            
-            {ctas.length < MAX_BTNS && (
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={addCta}
-              >
-                + Adicionar botão ({ctas.length}/{MAX_BTNS})
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Quick Reply Buttons */}
-        {buttonMode === 'quick' && (
-          <div className={styles.groupFull}>
-            {quicks.map(quick => (
-              <div key={quick.id} className={styles.quickEditRow}>
+              ) : (
                 <input
                   className={styles.input}
-                  placeholder="Texto da resposta rápida"
-                  value={quick.text}
-                  onChange={e => setQuicks(prev => prev.map(q => 
-                    q.id === quick.id ? { ...q, text: e.target.value } : q
+                  placeholder="+5511999999999"
+                  value={cta.phone_number}
+                  onChange={e => setCtas(prev => prev.map(c => 
+                    c.id === cta.id ? { ...c, phone_number: e.target.value } : c
                   ))}
                 />
-                
-                <button 
-                  type="button" 
-                  className={styles.btn} 
-                  onClick={() => removeQuick(quick.id)}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            
-            {quicks.length < MAX_BTNS && (
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={addQuick}
+              )}
+              
+              <button 
+                type="button" 
+                className={styles.btn} 
+                onClick={() => removeCta(cta.id)}
               >
-                + Adicionar resposta ({quicks.length}/{MAX_BTNS})
+                Remover
               </button>
-            )}
-          </div>
-        )}
+            </div>
+          ))}
+          
+          {ctas.length < MAX_BTNS && (
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={addCta}
+            >
+              + Adicionar botão ({ctas.length}/{MAX_BTNS})
+            </button>
+          )}
+        </div>
       </div>
-    </section>
+    )}
+
+    {/* Quick Reply Buttons */}
+    {buttonMode === 'quick' && (
+      <div className={styles.cardBodyGrid3}>
+        <div className={styles.groupFull}>
+          {quicks.map(quick => (
+            <div key={quick.id} className={styles.quickEditRow}>
+              <input
+                className={styles.input}
+                placeholder="Texto da resposta rápida"
+                value={quick.text}
+                onChange={e => setQuicks(prev => prev.map(q => 
+                  q.id === quick.id ? { ...q, text: e.target.value } : q
+                ))}
+              />
+              
+              <button 
+                type="button" 
+                className={styles.btn} 
+                onClick={() => removeQuick(quick.id)}
+              >
+                Remover
+              </button>
+            </div>
+          ))}
+          
+          {quicks.length < MAX_BTNS && (
+            <button
+              type="button"
+              className={styles.btnSecondary}
+              onClick={addQuick}
+            >
+              + Adicionar resposta ({quicks.length}/{MAX_BTNS})
+            </button>
+          )}
+        </div>
+      </div>
+    )}
+  </section>
   );
 };
 
