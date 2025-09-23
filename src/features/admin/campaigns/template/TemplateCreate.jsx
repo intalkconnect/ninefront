@@ -5,6 +5,14 @@ import { apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/TemplateCreate.module.css';
 
+/* ---------------- Limits (Meta) ---------------- */
+const LIMITS = {
+  HEADER_TEXT: 60,
+  BODY_TEXT: 1024,
+  FOOTER_TEXT: 60,
+  BUTTON_TEXT: 20,
+};
+
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
   { value: 'UTILITY', label: 'Utility' },
@@ -46,10 +54,15 @@ function sanitizeTemplateName(raw) {
   return s;
 }
 
-const nowTime = () => new Date().toLocaleTimeString('pt-BR', { 
-  hour: '2-digit', 
-  minute: '2-digit' 
+const nowTime = () => new Date().toLocaleTimeString('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit'
 });
+
+// extensões permitidas
+const isImage = (u) => /\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(u || '');
+const isPdf   = (u) => /\.pdf(\?.*)?$/i.test(u || '');
+const isMp4   = (u) => /\.mp4(\?.*)?$/i.test(u || '');
 
 /* ---------------- SVG Icons ---------------- */
 const IconReply = () => (
@@ -104,15 +117,15 @@ const TokenRenderer = ({ text }) => {
 };
 
 /* ---------------- Live Preview Component ---------------- */
-function LivePreview({ 
-  name, 
-  headerType, 
-  headerText, 
-  headerMediaUrl, 
-  bodyText, 
-  footerText, 
-  ctas, 
-  quicks 
+function LivePreview({
+  name,
+  headerType,
+  headerText,
+  headerMediaUrl,
+  bodyText,
+  footerText,
+  ctas,
+  quicks
 }) {
   const getMediaIcon = () => {
     switch (headerType) {
@@ -136,13 +149,111 @@ function LivePreview({
   const hasBelow = ctas.length > 0 || quicks.length > 0;
   const hasAbove = headerType !== 'TEXT' && headerType !== 'NONE';
 
+  // estados de pré-carregamento
   const [imgOk, setImgOk] = useState(false);
-  useEffect(() => { setImgOk(false); }, [headerMediaUrl]);
+  const [videoOk, setVideoOk] = useState(false);
+  const [pdfOk, setPdfOk] = useState(false);
+
+  useEffect(() => { setImgOk(false); setVideoOk(false); setPdfOk(false); }, [headerMediaUrl, headerType]);
+
+  const renderMedia = () => {
+    if (!hasAbove) return null;
+
+    if (headerType === 'IMAGE' && headerMediaUrl && isImage(headerMediaUrl)) {
+      return (
+        <div className={styles.mediaHeader}>
+          <div className={`${styles.mediaBox} ${styles.mediaAttached}`}>
+            <img
+              src={headerMediaUrl}
+              alt="Imagem do cabeçalho"
+              className={styles.mediaImage}
+              onLoad={() => setImgOk(true)}
+              onError={() => { setImgOk(false); toast.error('Falha ao carregar a imagem.'); }}
+            />
+            {!imgOk && (
+              <div className={styles.mediaFallback}>
+                <div className={styles.mediaIcon}>{getMediaIcon()}</div>
+                <div className={styles.mediaLabel}>Imagem</div>
+                <div className={styles.mediaUrl}>
+                  {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (headerType === 'VIDEO' && headerMediaUrl && isMp4(headerMediaUrl)) {
+      return (
+        <div className={styles.mediaHeader}>
+          <div className={`${styles.mediaBox} ${styles.mediaAttached}`}>
+            <video
+              className={styles.mediaVideo}
+              src={headerMediaUrl}
+              preload="metadata"
+              controls
+              muted
+              onLoadedData={() => setVideoOk(true)}
+              onError={() => { setVideoOk(false); toast.error('Falha ao carregar o vídeo (mp4).'); }}
+            />
+            {!videoOk && (
+              <div className={styles.mediaFallback}>
+                <div className={styles.mediaIcon}>{getMediaIcon()}</div>
+                <div className={styles.mediaLabel}>Vídeo (mp4)</div>
+                <div className={styles.mediaUrl}>
+                  {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (headerType === 'DOCUMENT' && headerMediaUrl && isPdf(headerMediaUrl)) {
+      return (
+        <div className={styles.mediaHeader}>
+          <div className={`${styles.mediaBox} ${styles.mediaAttached}`}>
+            <iframe
+              className={styles.mediaPdf}
+              src={headerMediaUrl}
+              title="Documento PDF"
+              onLoad={() => setPdfOk(true)}
+            />
+            {!pdfOk && (
+              <div className={styles.mediaFallback}>
+                <div className={styles.mediaIcon}>{getMediaIcon()}</div>
+                <div className={styles.mediaLabel}>Documento (PDF)</div>
+                <div className={styles.mediaUrl}>
+                  {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // placeholder padrão (sem URL ou extensão inválida)
+    return (
+      <div className={styles.mediaHeader}>
+        <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+          <div className={styles.mediaIcon}>{getMediaIcon()}</div>
+          <div className={styles.mediaLabel}>{getMediaLabel()}</div>
+          {headerMediaUrl && (
+            <div className={styles.mediaUrl}>
+              {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <aside className={styles.previewWrap} aria-label="Prévia do template">
       <div className={styles.phoneCard}>
-        
         {/* WhatsApp Header */}
         <div className={styles.whatsappHeader}>
           <div className={styles.contactInfo}>
@@ -159,43 +270,8 @@ function LivePreview({
         {/* Chat Area */}
         <div className={styles.chatArea}>
           <div className={styles.messageContainer}>
-            
-            {/* Media Header (acima do bubble) */}
-              {hasAbove && (
-    <div className={styles.mediaHeader}>
-      {headerType === 'IMAGE' && headerMediaUrl ? (
-        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`}>
-          <img
-            src={headerMediaUrl}
-            alt="Header"
-            className={styles.mediaImage}
-            onLoad={() => setImgOk(true)}
-            onError={() => setImgOk(false)}
-          />
-          {!imgOk && (
-            <div className={styles.mediaFallback}>
-              <div className={styles.mediaIcon}>{getMediaIcon()}</div>
-              <div className={styles.mediaLabel}>Imagem</div>
-              <div className={styles.mediaUrl}>
-                {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
-          <div className={styles.mediaIcon}>{getMediaIcon()}</div>
-          <div className={styles.mediaLabel}>{getMediaLabel()}</div>
-          {headerMediaUrl && (
-            <div className={styles.mediaUrl}>
-              {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )}
 
+            {renderMedia()}
 
             {/* Bubble + Botões como um bloco único */}
             <div className={styles.bubbleBlock}>
@@ -262,6 +338,9 @@ function LivePreview({
           </div>
         </div>
 
+        <div className={styles.inputArea}>
+          <div className={styles.inputPlaceholder}><span>Digite uma mensagem</span></div>
+        </div>
       </div>
 
       <div className={styles.previewLabel}>Prévia do Template</div>
@@ -270,13 +349,13 @@ function LivePreview({
 }
 
 /* ---------------- Form Sections ---------------- */
-const TemplateInfoSection = ({ 
-  name, 
-  setName, 
-  language, 
-  setLanguage, 
-  category, 
-  setCategory 
+const TemplateInfoSection = ({
+  name,
+  setName,
+  language,
+  setLanguage,
+  category,
+  setCategory
 }) => (
   <section className={styles.card}>
     <div className={styles.cardHead}>
@@ -287,9 +366,9 @@ const TemplateInfoSection = ({
     <div className={styles.infoGrid}>
       <div className={styles.group}>
         <label className={styles.label}>Categoria *</label>
-        <select 
-          className={styles.select} 
-          value={category} 
+        <select
+          className={styles.select}
+          value={category}
           onChange={e => setCategory(e.target.value)}
         >
           {CATEGORIES.map(c => (
@@ -300,9 +379,9 @@ const TemplateInfoSection = ({
 
       <div className={styles.group}>
         <label className={styles.label}>Idioma *</label>
-        <select 
-          className={styles.select} 
-          value={language} 
+        <select
+          className={styles.select}
+          value={language}
           onChange={e => setLanguage(e.target.value)}
         >
           {LANGS.map(l => (
@@ -331,110 +410,133 @@ const TemplateInfoSection = ({
   </section>
 );
 
-const ContentSection = ({ 
-  headerType, 
-  setHeaderType, 
-  headerText, 
-  setHeaderText, 
-  headerMediaUrl, 
-  setHeaderMediaUrl, 
-  bodyText, 
-  setBodyText, 
-  footerText, 
-  setFooterText 
-}) => (
-  <section className={styles.card}>
-    <div className={styles.cardHead}>
-      <h2 className={styles.cardTitle}>Conteúdo da Mensagem</h2>
-      <p className={styles.cardDesc}>Configure o cabeçalho, corpo e rodapé da mensagem.</p>
-    </div>
+const ContentSection = ({
+  headerType,
+  setHeaderType,
+  headerText,
+  setHeaderText,
+  headerMediaUrl,
+  setHeaderMediaUrl,
+  bodyText,
+  setBodyText,
+  footerText,
+  setFooterText
+}) => {
+  // avisos rápidos ao trocar tipo/url
+  useEffect(() => {
+    if (headerType === 'IMAGE' && headerMediaUrl && !isImage(headerMediaUrl)) {
+      toast.error('Imagem inválida. Use PNG/JPG/WEBP/GIF.');
+    }
+    if (headerType === 'VIDEO' && headerMediaUrl && !isMp4(headerMediaUrl)) {
+      toast.error('Vídeo inválido. Apenas MP4.');
+    }
+    if (headerType === 'DOCUMENT' && headerMediaUrl && !isPdf(headerMediaUrl)) {
+      toast.error('Documento inválido. Apenas PDF.');
+    }
+  }, [headerType, headerMediaUrl]);
 
-    {/* Header Type Selection */}
-    <div className={styles.cardBodyGrid3}>
-      <div className={styles.groupFull}>
-        <label className={styles.label}>Tipo de Cabeçalho</label>
-        <div className={styles.segmented} role="tablist">
-          {HEADER_TYPES.map(h => (
-            <button
-              key={h.value}
-              type="button"
-              className={`${styles.segItem} ${headerType === h.value ? styles.segActive : ''}`}
-              onClick={() => setHeaderType(h.value)}
-              aria-pressed={headerType === h.value}
-            >
-              {h.label}
-            </button>
-          ))}
-        </div>
+  return (
+    <section className={styles.card}>
+      <div className={styles.cardHead}>
+        <h2 className={styles.cardTitle}>Conteúdo da Mensagem</h2>
+        <p className={styles.cardDesc}>Configure o cabeçalho, corpo e rodapé da mensagem.</p>
       </div>
-    </div>
 
-    {/* Header Content */}
-    {headerType === 'TEXT' && (
+      {/* Header Type Selection */}
       <div className={styles.cardBodyGrid3}>
         <div className={styles.groupFull}>
-          <label className={styles.label}>Texto do Cabeçalho *</label>
-          <input
-            className={styles.input}
-            value={headerText}
-            onChange={e => setHeaderText(e.target.value)}
-            placeholder="Digite o texto do cabeçalho"
-          />
+          <label className={styles.label}>Tipo de Cabeçalho</label>
+          <div className={styles.segmented} role="tablist">
+            {HEADER_TYPES.map(h => (
+              <button
+                key={h.value}
+                type="button"
+                className={`${styles.segItem} ${headerType === h.value ? styles.segActive : ''}`}
+                onClick={() => setHeaderType(h.value)}
+                aria-pressed={headerType === h.value}
+              >
+                {h.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-    )}
 
-    {headerType !== 'TEXT' && headerType !== 'NONE' && (
+      {/* Header Content */}
+      {headerType === 'TEXT' && (
+        <div className={styles.cardBodyGrid3}>
+          <div className={styles.groupFull}>
+            <label className={styles.label}>Texto do Cabeçalho *</label>
+            <input
+              className={styles.input}
+              value={headerText}
+              onChange={e => setHeaderText(e.target.value.slice(0, LIMITS.HEADER_TEXT))}
+              placeholder="Digite o texto do cabeçalho"
+            />
+            <span className={styles.helper}>{headerText.length}/{LIMITS.HEADER_TEXT}</span>
+          </div>
+        </div>
+      )}
+
+      {headerType !== 'TEXT' && headerType !== 'NONE' && (
+        <div className={styles.cardBodyGrid3}>
+          <div className={styles.groupFull}>
+            <label className={styles.label}>URL da Mídia</label>
+            <input
+              className={styles.input}
+              value={headerMediaUrl}
+              onChange={e => setHeaderMediaUrl(e.target.value.trim())}
+              placeholder="https://exemplo.com/arquivo"
+            />
+            <span className={styles.helper}>
+              {headerType === 'IMAGE' && 'Aceito: .png .jpg .jpeg .webp .gif'}
+              {headerType === 'VIDEO' && 'Aceito: .mp4'}
+              {headerType === 'DOCUMENT' && 'Aceito: .pdf'}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className={styles.cardBodyGrid3}>
         <div className={styles.groupFull}>
-          <label className={styles.label}>URL da Mídia</label>
+          <label className={styles.label}>Corpo da Mensagem *</label>
+          <textarea
+            className={styles.textarea}
+            rows={5}
+            value={bodyText}
+            onChange={e => setBodyText(e.target.value.slice(0, LIMITS.BODY_TEXT))}
+            placeholder="Olá {{1}}, sua mensagem aqui..."
+          />
+          <span className={styles.helper}>{bodyText.length}/{LIMITS.BODY_TEXT}</span>
+        </div>
+
+        <div className={styles.groupWide}>
+          <label className={styles.label}>Rodapé (opcional)</label>
           <input
             className={styles.input}
-            value={headerMediaUrl}
-            onChange={e => setHeaderMediaUrl(e.target.value)}
-            placeholder="https://exemplo.com/arquivo"
+            value={footerText}
+            onChange={e => setFooterText(e.target.value.slice(0, LIMITS.FOOTER_TEXT))}
+            placeholder="Texto do rodapé"
           />
+          <span className={styles.helper}>{footerText.length}/{LIMITS.FOOTER_TEXT}</span>
         </div>
       </div>
-    )}
+    </section>
+  );
+};
 
-    <div className={styles.cardBodyGrid3}>
-      <div className={styles.groupFull}>
-        <label className={styles.label}>Corpo da Mensagem *</label>
-        <textarea
-          className={styles.textarea}
-          rows={5}
-          value={bodyText}
-          onChange={e => setBodyText(e.target.value)}
-          placeholder="Olá {{1}}, sua mensagem aqui..."
-        />
-      </div>
-
-      <div className={styles.groupWide}>
-        <label className={styles.label}>Rodapé (opcional)</label>
-        <input
-          className={styles.input}
-          value={footerText}
-          onChange={e => setFooterText(e.target.value)}
-          placeholder="Texto do rodapé"
-        />
-      </div>
-    </div>
-  </section>
-);
-
-const ButtonsSection = ({ 
-  buttonMode, 
-  setButtonMode, 
-  ctas, 
-  setCtas, 
-  quicks, 
-  setQuicks 
+const ButtonsSection = ({
+  buttonMode,
+  setButtonMode,
+  ctas,
+  setCtas,
+  quicks,
+  setQuicks
 }) => {
   const newId = () => Date.now() + '-' + Math.random().toString(36).slice(2);
 
   const addCta = () => {
-    if (ctas.length >= MAX_BTNS) return;
+    if (ctas.length >= MAX_BTNS) { toast.info('Limite de 3 CTAs atingido.'); return; }
     setCtas(prev => [...prev, {
       id: newId(),
       type: 'URL',
@@ -445,7 +547,7 @@ const ButtonsSection = ({
   };
 
   const addQuick = () => {
-    if (quicks.length >= MAX_BTNS) return;
+    if (quicks.length >= MAX_BTNS) { toast.info('Limite de 3 respostas rápidas.'); return; }
     setQuicks(prev => [...prev, {
       id: newId(),
       text: ''
@@ -467,152 +569,141 @@ const ButtonsSection = ({
         <p className={styles.cardDesc}>Adicione botões de ação ou respostas rápidas.</p>
       </div>
 
-    <div className={styles.cardBodyGrid3}>
-      <div className={styles.groupFull}>
-        <label className={styles.label}>Tipo de Botão</label>
-        <div className={styles.pills} role="tablist">
-          <button 
-            type="button" 
-            className={`${styles.pill} ${buttonMode === 'none' ? styles.pillActive : ''}`}
-            onClick={() => {
-              setButtonMode('none');
-              setCtas([]);
-              setQuicks([]);
-            }}
-          >
-            Nenhum
-          </button>
-          <button 
-            type="button" 
-            className={`${styles.pill} ${buttonMode === 'cta' ? styles.pillActive : ''}`}
-            onClick={() => {
-              setButtonMode('cta');
-              setQuicks([]);
-            }}
-          >
-            Call-to-Action
-          </button>
-          <button 
-            type="button" 
-            className={`${styles.pill} ${buttonMode === 'quick' ? styles.pillActive : ''}`}
-            onClick={() => {
-              setButtonMode('quick');
-              setCtas([]);
-            }}
-          >
-            Resposta Rápida
-          </button>
-        </div>
-      </div>
-    </div>
-
-    {/* CTA Buttons */}
-    {buttonMode === 'cta' && (
       <div className={styles.cardBodyGrid3}>
         <div className={styles.groupFull}>
-          {ctas.map(cta => (
-            <div key={cta.id} className={styles.ctaEditRow}>
-              <select
-                className={styles.select}
-                value={cta.type}
-                onChange={e => setCtas(prev => prev.map(c => 
-                  c.id === cta.id ? { ...c, type: e.target.value } : c
-                ))}
-              >
-                <option value="URL">Abrir URL</option>
-                <option value="PHONE_NUMBER">Chamar</option>
-              </select>
-              
-              <input
-                className={styles.input}
-                placeholder="Texto do botão"
-                value={cta.text}
-                onChange={e => setCtas(prev => prev.map(c => 
-                  c.id === cta.id ? { ...c, text: e.target.value } : c
-                ))}
-              />
-              
-              {cta.type === 'URL' ? (
-                <input
-                  className={styles.input}
-                  placeholder="https://exemplo.com"
-                  value={cta.url}
-                  onChange={e => setCtas(prev => prev.map(c => 
-                    c.id === cta.id ? { ...c, url: e.target.value } : c
-                  ))}
-                />
-              ) : (
-                <input
-                  className={styles.input}
-                  placeholder="+5511999999999"
-                  value={cta.phone_number}
-                  onChange={e => setCtas(prev => prev.map(c => 
-                    c.id === cta.id ? { ...c, phone_number: e.target.value } : c
-                  ))}
-                />
-              )}
-              
-              <button 
-                type="button" 
-                className={styles.btn} 
-                onClick={() => removeCta(cta.id)}
-              >
-                Remover
-              </button>
-            </div>
-          ))}
-          
-          {ctas.length < MAX_BTNS && (
+          <label className={styles.label}>Tipo de Botão</label>
+          <div className={styles.pills} role="tablist">
             <button
               type="button"
-              className={styles.btnSecondary}
-              onClick={addCta}
+              className={`${styles.pill} ${buttonMode === 'none' ? styles.pillActive : ''}`}
+              onClick={() => { setButtonMode('none'); setCtas([]); setQuicks([]); }}
             >
-              + Adicionar botão ({ctas.length}/{MAX_BTNS})
+              Nenhum
             </button>
-          )}
+            <button
+              type="button"
+              className={`${styles.pill} ${buttonMode === 'cta' ? styles.pillActive : ''}`}
+              onClick={() => { setButtonMode('cta'); setQuicks([]); }}
+            >
+              Call-to-Action
+            </button>
+            <button
+              type="button"
+              className={`${styles.pill} ${buttonMode === 'quick' ? styles.pillActive : ''}`}
+              onClick={() => { setButtonMode('quick'); setCtas([]); }}
+            >
+              Resposta Rápida
+            </button>
+          </div>
         </div>
       </div>
-    )}
 
-    {/* Quick Reply Buttons */}
-    {buttonMode === 'quick' && (
-      <div className={styles.cardBodyGrid3}>
-        <div className={styles.groupFull}>
-          {quicks.map(quick => (
-            <div key={quick.id} className={styles.quickEditRow}>
-              <input
-                className={styles.input}
-                placeholder="Texto da resposta rápida"
-                value={quick.text}
-                onChange={e => setQuicks(prev => prev.map(q => 
-                  q.id === quick.id ? { ...q, text: e.target.value } : q
-                ))}
-              />
-              
-              <button 
-                type="button" 
-                className={styles.btn} 
-                onClick={() => removeQuick(quick.id)}
+      {/* CTA Buttons */}
+      {buttonMode === 'cta' && (
+        <div className={styles.cardBodyGrid3}>
+          <div className={styles.groupFull}>
+            {ctas.map(cta => (
+              <div key={cta.id} className={styles.ctaEditRow}>
+                <select
+                  className={styles.select}
+                  value={cta.type}
+                  onChange={e => setCtas(prev => prev.map(c =>
+                    c.id === cta.id ? { ...c, type: e.target.value } : c
+                  ))}
+                >
+                  <option value="URL">Abrir URL</option>
+                  <option value="PHONE_NUMBER">Chamar</option>
+                </select>
+
+                <input
+                  className={styles.input}
+                  placeholder="Texto do botão"
+                  value={cta.text}
+                  onChange={e => setCtas(prev => prev.map(c =>
+                    c.id === cta.id ? { ...c, text: e.target.value.slice(0, LIMITS.BUTTON_TEXT) } : c
+                  ))}
+                />
+                {cta.type === 'URL' ? (
+                  <input
+                    className={styles.input}
+                    placeholder="https://exemplo.com"
+                    value={cta.url}
+                    onChange={e => setCtas(prev => prev.map(c =>
+                      c.id === cta.id ? { ...c, url: e.target.value } : c
+                    ))}
+                  />
+                ) : (
+                  <input
+                    className={styles.input}
+                    placeholder="+5511999999999"
+                    value={cta.phone_number}
+                    onChange={e => setCtas(prev => prev.map(c =>
+                      c.id === cta.id ? { ...c, phone_number: e.target.value } : c
+                    ))}
+                  />
+                )}
+
+                <button
+                  type="button"
+                  className={styles.btn}
+                  onClick={() => removeCta(cta.id)}
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+
+            {ctas.length < MAX_BTNS && (
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={addCta}
               >
-                Remover
+                + Adicionar botão ({ctas.length}/{MAX_BTNS})
               </button>
-            </div>
-          ))}
-          
-          {quicks.length < MAX_BTNS && (
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={addQuick}
-            >
-              + Adicionar resposta ({quicks.length}/{MAX_BTNS})
-            </button>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    )}
-  </section>
+      )}
+
+      {/* Quick Reply Buttons */}
+      {buttonMode === 'quick' && (
+        <div className={styles.cardBodyGrid3}>
+          <div className={styles.groupFull}>
+            {quicks.map(quick => (
+              <div key={quick.id} className={styles.quickEditRow}>
+                <input
+                  className={styles.input}
+                  placeholder="Texto da resposta rápida"
+                  value={quick.text}
+                  onChange={e => setQuicks(prev => prev.map(q =>
+                    q.id === quick.id ? { ...q, text: e.target.value.slice(0, LIMITS.BUTTON_TEXT) } : q
+                  ))}
+                />
+
+                <button
+                  type="button"
+                  className={styles.btn}
+                  onClick={() => removeQuick(quick.id)}
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+
+            {quicks.length < MAX_BTNS && (
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={addQuick}
+              >
+                + Adicionar resposta ({quicks.length}/{MAX_BTNS})
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 };
 
@@ -637,23 +728,46 @@ export default function TemplateCreate() {
   const [quicks, setQuicks] = useState([]);
   const [saving, setSaving] = useState(false);
 
+  // validações adicionais para mídia (usadas pelo canSave e para toasts)
+  const isValidMediaForType = (type, url) => {
+    if (!url?.trim()) return false;
+    if (type === 'IMAGE') return isImage(url);
+    if (type === 'VIDEO') return isMp4(url);
+    if (type === 'DOCUMENT') return isPdf(url);
+    return true;
+  };
+
   const canSave = useMemo(() => {
     if (!name.trim()) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
+
+    if (headerType !== 'TEXT' && headerType !== 'NONE') {
+      if (!isValidMediaForType(headerType, headerMediaUrl)) return false;
+    }
+
     if (buttonMode === 'cta' && ctas.some(b =>
-      !b.text?.trim() || 
-      (b.type === 'URL' && !b.url?.trim()) || 
+      !b.text?.trim() ||
+      (b.type === 'URL' && !b.url?.trim()) ||
       (b.type === 'PHONE_NUMBER' && !b.phone_number?.trim())
     )) return false;
     if (buttonMode === 'quick' && quicks.some(q => !q.text?.trim())) return false;
+
+    // limites de tamanho
+    if (headerType === 'TEXT' && headerText.trim().length > LIMITS.HEADER_TEXT) return false;
+    if (bodyText.trim().length > LIMITS.BODY_TEXT) return false;
+    if (footerText.trim().length > LIMITS.FOOTER_TEXT) return false;
+
     return true;
-  }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
+  }, [name, bodyText, headerType, headerText, headerMediaUrl, footerText, buttonMode, ctas, quicks]);
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.();
-    if (!canSave || saving) return;
-    
+    if (!canSave || saving) {
+      toast.warn('Confira os campos obrigatórios e formatos da mídia.');
+      return;
+    }
+
     setSaving(true);
     try {
       let buttons = null;
@@ -683,7 +797,6 @@ export default function TemplateCreate() {
       const created = await apiPost('/templates', payload);
       await apiPost(`/templates/${created.id}/submit`, {});
       await apiPost(`/templates/${created.id}/sync`, {});
-      
       toast.success('Template enviado para avaliação!');
       navigate('/management/templates');
     } catch (err) {
@@ -694,13 +807,13 @@ export default function TemplateCreate() {
     }
   }, [canSave, saving, name, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
 
-  const previewCtas = useMemo(() => 
-    buttonMode === 'cta' ? ctas : [], 
+  const previewCtas = useMemo(() =>
+    buttonMode === 'cta' ? ctas : [],
     [buttonMode, ctas]
   );
-  
-  const previewQuicks = useMemo(() => 
-    buttonMode === 'quick' ? quicks : [], 
+
+  const previewQuicks = useMemo(() =>
+    buttonMode === 'quick' ? quicks : [],
     [buttonMode, quicks]
   );
 
@@ -736,7 +849,7 @@ export default function TemplateCreate() {
             category={category}
             setCategory={setCategory}
           />
-          
+
           <ContentSection
             headerType={headerType}
             setHeaderType={setHeaderType}
@@ -749,7 +862,7 @@ export default function TemplateCreate() {
             footerText={footerText}
             setFooterText={setFooterText}
           />
-          
+
           <ButtonsSection
             buttonMode={buttonMode}
             setButtonMode={setButtonMode}
@@ -776,21 +889,21 @@ export default function TemplateCreate() {
       {/* Fixed Footer */}
       <div className={styles.stickyFooter}>
         <div className={styles.stickyInner}>
-          <button 
-            type="button" 
-            className={styles.btn} 
+          <button
+            type="button"
+            className={styles.btn}
             onClick={() => navigate('/management/templates')}
           >
             Cancelar
           </button>
-          
-          <button 
-            type="button" 
-            className={styles.btnPrimary} 
-            onClick={handleSubmit} 
+
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={handleSubmit}
             disabled={!canSave || saving}
           >
-            <SaveIcon size={16} /> 
+            <SaveIcon size={16} />
             {saving ? 'Enviando…' : 'Enviar para Avaliação'}
           </button>
         </div>
