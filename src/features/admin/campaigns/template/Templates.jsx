@@ -6,7 +6,7 @@ import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import { toast } from 'react-toastify';
 
-import TemplatePreviewModal from './TemplatePreview';
+import TemplatePreview from './TemplatePreview';
 import styles from './styles/Templates.module.css';
 
 const STATUS_OPTIONS = [
@@ -149,7 +149,7 @@ export default function Templates() {
           <button
             className={styles.btnPrimary}
             type="button"
-            onClick={() => navigate('/management/templates/new')}
+            onClick={() => navigate('/campaigns/templates/new')}
           >
             <Plus size={16} /> Criar Template
           </button>
@@ -260,7 +260,7 @@ export default function Templates() {
       </div>
 
       {/* Preview em modal */}
-      <TemplatePreviewModal isOpen={previewOpen} template={previewItem} onClose={closePreview}/>
+      <TemplatePreview isOpen={previewOpen} template={previewItem} onClose={closePreview}/>
     </div>
   );
 }
