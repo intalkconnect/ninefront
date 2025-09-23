@@ -6,7 +6,7 @@ import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import { toast } from 'react-toastify';
 
-import TemplatePreviewModal from './TemplatePreviewModal';
+import TemplatePreviewModal from './TemplatePreview';
 import styles from './styles/Templates.module.css';
 
 const STATUS_OPTIONS = [
