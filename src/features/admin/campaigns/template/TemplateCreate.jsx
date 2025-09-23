@@ -28,28 +28,112 @@ const HEADER_TYPES = [
 ];
 const MAX_BTNS = 3;
 
-/* ===== Helpers ===== */
-const sanitizeName = (val) => {
-  // remove acentos, troca espaços/hífens por _, mantém só a-z 0-9 _
-  const noDiacritics = val.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return noDiacritics
+// ————— helpers —————
+const deburr = (s='') =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); // remove acentos
+const metaNameSanitize = (raw='') =>
+  deburr(raw)
     .toLowerCase()
-    .replace(/[\s-]+/g, '_')
-    .replace(/[^a-z0-9_]/g, '_')
-    .replace(/_{2,}/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 512);
-};
-const isNameValid = (val) => /^[a-z0-9_]{1,512}$/.test(val);
+    .replace(/[^a-z0-9_ ]+/g,'')     // só letras, numeros, _, espaço
+    .trim()
+    .replace(/\s+/g,'_');            // espaços -> _
+const isValidMetaName = (s) => /^[a-z0-9_]{3,70}$/.test(s); // meta-like
 
-const fmtTime = (d = new Date()) =>
-  d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+const nowTime = () => {
+  try {
+    return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute:'2-digit' }).format(new Date());
+  } catch { return '18:54'; }
+};
+
+const toButtons = (mode, ctas, quicks) => {
+  if (mode === 'cta' && ctas?.length) {
+    return ctas.map(b =>
+      b.type === 'URL'
+        ? { type:'URL', text:b.text?.trim(), url: b.url?.trim() }
+        : { type:'PHONE_NUMBER', text:b.text?.trim(), phone_number: b.phone_number?.trim() }
+    );
+  }
+  if (mode === 'quick' && quicks?.length) {
+    return quicks.map(q => ({ type:'QUICK_REPLY', text:q.text?.trim() }));
+  }
+  return null;
+};
+
+// ————— Preview (lateral, estilo Meta) —————
+function TemplatePreviewPane({ name, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks }) {
+  const btns = useMemo(() => toButtons(buttonMode, ctas, quicks) || [], [buttonMode, ctas, quicks]);
+  const showMediaHeader = headerType && headerType !== 'NONE' && headerType !== 'TEXT';
+
+  const highlightVars = (txt='') =>
+    txt.split(/(\{\{.*?\}\})/g).map((chunk, i) => (
+      /\{\{.*?\}\}/.test(chunk)
+        ? <span key={i} className={styles.waVar}>{chunk}</span>
+        : <span key={i}>{chunk}</span>
+    ));
+
+  return (
+    <aside className={styles.previewAside} aria-label="Prévia do template">
+      <div className={styles.previewCard}>
+        <div className={styles.previewTop}>Seu modelo</div>
+        <div className={styles.previewScreen}>
+          {showMediaHeader && (
+            <div className={styles.waAttachment}>
+              {headerType === 'IMAGE'    && '📷 Imagem'}
+              {headerType === 'VIDEO'    && '🎬 Vídeo'}
+              {headerType === 'DOCUMENT' && '📄 Documento'}
+            </div>
+          )}
+
+          <div className={styles.waBubble}>
+            {headerType === 'TEXT' && headerText?.trim() && (
+              <div className={styles.waHeader}>{highlightVars(headerText)}</div>
+            )}
+
+            <div className={styles.waBody}>
+              {(bodyText || '').split('\n').map((line, i) => (
+                <div key={i}>{line ? highlightVars(line) : <>&nbsp;</>}</div>
+              ))}
+            </div>
+
+            {footerText?.trim() && (
+              <div className={styles.waFooter}>{highlightVars(footerText)}</div>
+            )}
+
+            <div className={styles.waTime}>{nowTime()}</div>
+          </div>
+
+          {btns?.length > 0 && (
+            <div className={styles.waButtons}>
+              {btns.map((b, i) => {
+                const type = (b?.type || '').toUpperCase();
+                const isReply = type === 'QUICK_REPLY';
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={isReply ? styles.waBtnReply : styles.waBtnGhost}
+                    title={type || 'BUTTON'}
+                    onClick={(e)=>e.preventDefault()}
+                  >
+                    {b?.text || b?.title || 'Botão'}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.previewCaption} title="Nome do modelo">
+        {name || 'nome_do_modelo'}
+      </div>
+    </aside>
+  );
+}
 
 export default function TemplateCreate(){
   const navigate = useNavigate();
   const topRef = useRef(null);
-  const headerTextRef = useRef(null);
-  const headerMediaRef = useRef(null);
 
   const [name, setName] = useState('');
   const [language, setLanguage] = useState('pt_BR');
@@ -70,69 +154,42 @@ export default function TemplateCreate(){
 
   const newId = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
+  // — restrição de nome no padrão Meta
+  const onNameChange = (e) => {
+    const sanitized = metaNameSanitize(e.target.value);
+    setName(sanitized);
+  };
+  const nameInvalid = nameTouched && !isValidMetaName(name);
+
   const canSave = useMemo(() => {
-    if (!isNameValid(name)) return false;
+    if (!isValidMetaName(name)) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
     if (buttonMode === 'cta' && ctas.some(b =>
-      !b.text.trim() || (b.type === 'URL' && !b.url.trim()) || (b.type === 'PHONE_NUMBER' && !b.phone_number.trim())
+      !b.text?.trim() || (b.type === 'URL' && !b.url?.trim()) || (b.type === 'PHONE_NUMBER' && !b.phone_number?.trim())
     )) return false;
-    if (buttonMode === 'quick' && quicks.some(q => !q.text.trim())) return false;
+    if (buttonMode === 'quick' && quicks.some(q => !q.text?.trim())) return false;
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
-
-  const previewButtons = useMemo(() => {
-    if (buttonMode === 'cta') {
-      return ctas.map(b =>
-        b.type === 'URL'
-          ? { type:'URL', text:b.text || 'Abrir', url:b.url || '' }
-          : { type:'PHONE_NUMBER', text:b.text || 'Ligar', phone_number:b.phone_number || '' }
-      );
-    }
-    if (buttonMode === 'quick') {
-      return quicks.map(q => ({ type:'QUICK_REPLY', text:q.text || 'Responder' }));
-    }
-    return [];
-  }, [buttonMode, ctas, quicks]);
 
   const addCta   = () => setCtas(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),type:'URL',text:'',url:'',phone_number:''}]));
   const addQuick = () => setQuicks(p => (p.length>=MAX_BTNS?p:[...p,{id:newId(),text:''}]));
 
-  const changeHeaderType = (val) => {
-    setHeaderType(val);
-    if (val === 'TEXT') {
-      setHeaderMediaUrl('');
-      // foca o campo de texto do cabeçalho
-      setTimeout(()=>headerTextRef.current?.focus(), 0);
-    } else {
-      setHeaderText('');
-      setTimeout(()=>headerMediaRef.current?.focus(), 0);
-    }
-  };
-
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.();
+    setNameTouched(true);
     if (!canSave || saving) return;
     setSaving(true);
     try {
-      let buttons = null;
-      if (buttonMode === 'cta' && ctas.length) {
-        buttons = ctas.map(b =>
-          b.type === 'URL'
-            ? { type:'URL', text:b.text.trim(), url:b.url.trim() }
-            : { type:'PHONE_NUMBER', text:b.text.trim(), phone_number:b.phone_number.trim() }
-        );
-      } else if (buttonMode === 'quick' && quicks.length) {
-        buttons = quicks.map(q => ({ type:'QUICK_REPLY', text:q.text.trim() }));
-      }
+      const buttons = toButtons(buttonMode, ctas, quicks);
 
       const payload = {
         name,
         language_code: language,
         category,
         header_type: headerType || 'NONE',
-        header_text: headerType === 'TEXT' ? headerText.trim() : null,
-        header_media_url: headerType !== 'TEXT' && headerType !== 'NONE' ? (headerMediaUrl.trim() || null) : null,
+        header_text: headerType === 'TEXT' ? (headerText.trim() || null) : null,
+        header_media_url: (headerType !== 'TEXT' && headerType !== 'NONE') ? (headerMediaUrl.trim() || null) : null,
         body_text: bodyText.trim(),
         footer_text: footerText.trim() || null,
         buttons,
@@ -168,14 +225,14 @@ export default function TemplateCreate(){
       <header className={styles.pageHeader}>
         <div className={styles.pageTitleWrap}>
           <h1 className={styles.pageTitle}>Novo template</h1>
-          <p className={styles.pageSubtitle}>Preencha os campos e visualize à direita como ficará no WhatsApp.</p>
+          <p className={styles.pageSubtitle}>Preencha os campos e veja a prévia ao lado.</p>
         </div>
       </header>
 
-      {/* Layout com preview lateral */}
-      <div className={styles.split}>
-        {/* Coluna form */}
-        <div className={styles.leftCol}>
+      <div className={styles.mainGrid}>
+        {/* Coluna esquerda: formulário */}
+        <div className={styles.formCol}>
+
           {/* Card: principais */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
@@ -200,20 +257,19 @@ export default function TemplateCreate(){
 
               <div className={styles.group}>
                 <label className={styles.label}>
-                  Nome * <span className={styles.hint}>apenas minúsculas, números e “_”</span>
+                  Nome * <span className={styles.hint}>[a-z0-9_]</span>
                 </label>
                 <input
-                  className={`${styles.input} ${nameTouched && !isNameValid(name) ? styles.invalid : ''}`}
+                  className={`${styles.input} ${nameInvalid ? styles.invalid : ''}`}
                   value={name}
-                  onChange={e=>{ const v = sanitizeName(e.target.value); setName(v); }}
+                  onChange={onNameChange}
                   onBlur={()=>setNameTouched(true)}
-                  placeholder="ex.: promo_outubro_2025"
-                  inputMode="latin"
-                  autoCapitalize="off"
-                  spellCheck="false"
+                  placeholder="ex.: account_update_1"
                 />
-                {nameTouched && !isNameValid(name) && (
-                  <span className={styles.errMsg}>Use apenas letras minúsculas, números e underline.</span>
+                {nameInvalid && (
+                  <span className={styles.errMsg}>
+                    Use apenas letras minúsculas, números e underscore. 3–70 caracteres.
+                  </span>
                 )}
               </div>
             </div>
@@ -227,7 +283,7 @@ export default function TemplateCreate(){
             </div>
 
             <div className={styles.cardBodyGrid3}>
-              <div className={styles.groupFull}>
+              <div className={styles.group}>
                 <label className={styles.label}>Tipo de cabeçalho</label>
                 <div className={styles.segmented}>
                   {HEADER_TYPES.map(h => (
@@ -235,7 +291,7 @@ export default function TemplateCreate(){
                       key={h.value}
                       type="button"
                       className={`${styles.segItem} ${headerType===h.value ? styles.segActive : ''}`}
-                      onClick={()=>changeHeaderType(h.value)}
+                      onClick={()=>setHeaderType(h.value)}
                     >
                       {h.label}
                     </button>
@@ -244,10 +300,9 @@ export default function TemplateCreate(){
               </div>
 
               {headerType === 'TEXT' ? (
-                <div className={styles.groupFull}>
+                <div className={styles.groupWide}>
                   <label className={styles.label}>Cabeçalho (texto)</label>
                   <input
-                    ref={headerTextRef}
                     className={styles.input}
                     value={headerText}
                     onChange={e=>setHeaderText(e.target.value)}
@@ -255,16 +310,13 @@ export default function TemplateCreate(){
                   />
                 </div>
               ) : (
-                <div className={styles.groupFull}>
-                  <label className={styles.label}>Mídia do cabeçalho (URL)</label>
+                <div className={styles.groupWide}>
+                  <label className={styles.label}>URL da mídia (imagem/documento/vídeo)</label>
                   <input
-                    ref={headerMediaRef}
                     className={styles.input}
                     value={headerMediaUrl}
                     onChange={e=>setHeaderMediaUrl(e.target.value)}
-                    placeholder={headerType === 'IMAGE' ? 'https://… (imagem)'
-                      : headerType === 'VIDEO' ? 'https://… (vídeo)'
-                      : 'https://… (documento)'}
+                    placeholder="https://..."
                   />
                 </div>
               )}
@@ -273,16 +325,21 @@ export default function TemplateCreate(){
                 <label className={styles.label}>Corpo *</label>
                 <textarea
                   className={styles.textarea}
-                  rows={6}
+                  rows={5}
                   value={bodyText}
                   onChange={e=>setBodyText(e.target.value)}
                   placeholder="Olá {{1}}, seu pedido {{2}} foi enviado…"
                 />
               </div>
 
-              <div className={styles.groupFull}>
+              <div className={styles.groupWide}>
                 <label className={styles.label}>Rodapé (opcional)</label>
-                <input className={styles.input} value={footerText} onChange={e=>setFooterText(e.target.value)} placeholder="Mensagem do rodapé"/>
+                <input
+                  className={styles.input}
+                  value={footerText}
+                  onChange={e=>setFooterText(e.target.value)}
+                  placeholder="Mensagem do rodapé"
+                />
               </div>
             </div>
           </section>
@@ -295,7 +352,7 @@ export default function TemplateCreate(){
             </div>
 
             <div className={styles.cardBodyGrid3}>
-              <div className={styles.groupFull}>
+              <div className={styles.group}>
                 <label className={styles.label}>Tipo</label>
                 <div className={styles.pills}>
                   <button type="button" className={`${styles.pill} ${buttonMode==='cta'?styles.pillActive:''}`} onClick={()=>{setButtonMode('cta');setQuicks([]);}}>Ação</button>
@@ -322,7 +379,9 @@ export default function TemplateCreate(){
                     </div>
                   ))}
                   {ctas.length < MAX_BTNS && (
-                    <button type="button" className={styles.btnSecondary} onClick={addCta}>+ Adicionar botão ({ctas.length}/{MAX_BTNS})</button>
+                    <button type="button" className={styles.btnSecondary} onClick={()=>setCtas(p=>[...p,{id:newId(),type:'URL',text:'',url:'',phone_number:''}])}>
+                      + Adicionar botão ({ctas.length}/{MAX_BTNS})
+                    </button>
                   )}
                 </div>
               )}
@@ -336,7 +395,9 @@ export default function TemplateCreate(){
                     </div>
                   ))}
                   {quicks.length < MAX_BTNS && (
-                    <button type="button" className={styles.btnSecondary} onClick={addQuick}>+ Adicionar resposta ({quicks.length}/{MAX_BTNS})</button>
+                    <button type="button" className={styles.btnSecondary} onClick={()=>setQuicks(p=>[...p,{id:newId(),text:''}])}>
+                      + Adicionar resposta ({quicks.length}/{MAX_BTNS})
+                    </button>
                   )}
                 </div>
               )}
@@ -344,57 +405,18 @@ export default function TemplateCreate(){
           </section>
         </div>
 
-        {/* Coluna preview (sticky) */}
-        <aside className={styles.rightCol} aria-label="Pré-visualização">
-          <div className={styles.previewCard}>
-            <div className={styles.previewTitle}>Prévia</div>
-            <div className={styles.waCard}>
-              <div className={styles.waTopBar}>{name || 'Seu modelo'}</div>
-              <div className={styles.waScreen}>
-                {headerType !== 'NONE' && headerType !== 'TEXT' && (
-                  <div className={styles.waAttachment}>
-                    {headerType === 'IMAGE'    && (headerMediaUrl ? <img src={headerMediaUrl} alt="Imagem do cabeçalho" /> : '📷 Imagem')}
-                    {headerType === 'VIDEO'    && (headerMediaUrl ? <video src={headerMediaUrl} controls /> : '🎬 Vídeo')}
-                    {headerType === 'DOCUMENT' && '📄 Documento'}
-                  </div>
-                )}
-
-                <div className={styles.waBubble}>
-                  {headerType === 'TEXT' && headerText && <div className={styles.waHeader}>{headerText}</div>}
-                  <div className={styles.waBody}>
-                    {(bodyText || '—').split('\n').map((line, i) => (
-                      <div key={i}>{line || <>&nbsp;</>}</div>
-                    ))}
-                  </div>
-                  {footerText && <div className={styles.waFooter}>{footerText}</div>}
-                  <div className={styles.waTime}>{fmtTime()}</div>
-                </div>
-
-                {previewButtons.length > 0 && (
-                  <div className={styles.waButtons}>
-                    {previewButtons.map((b, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        className={(b?.type || '').toUpperCase() === 'QUICK_REPLY'
-                          ? styles.waBtnReply
-                          : styles.waBtnCta}
-                        title={b?.type || 'BUTTON'}
-                      >
-                        {b?.text || 'Botão'}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.previewHints}>
-              <span><strong>Idioma:</strong> {LANGS.find(l=>l.value===language)?.label || language}</span>
-              <span><strong>Categoria:</strong> {CATEGORIES.find(c=>c.value===category)?.label || category}</span>
-            </div>
-          </div>
-        </aside>
+        {/* Coluna direita: preview */}
+        <TemplatePreviewPane
+          name={name}
+          headerType={headerType}
+          headerText={headerText}
+          headerMediaUrl={headerMediaUrl}
+          bodyText={bodyText}
+          footerText={footerText}
+          buttonMode={buttonMode}
+          ctas={ctas}
+          quicks={quicks}
+        />
       </div>
 
       {/* Footer fixo */}
