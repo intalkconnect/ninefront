@@ -632,6 +632,36 @@
   font-weight: 600;
 }
 
+/* wrapper que une bubble + botões como 1 item do container */
+.bubbleBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* mantém à direita */
+  gap: 0;               /* sem espaço entre bubble e botões */
+  max-width: 100%;
+}
+
+/* quando o bubble tem botões logo abaixo, “aplana” o canto de baixo */
+.attachedBubble {
+  border-radius: 16px 16px 0 16px; /* zera o canto inferior-esquerdo */
+  margin: 0;                       /* garante que não crie espaço extra */
+}
+
+/* quando NÃO tem botões (comportamento atual) */
+.standalone {
+  border-radius: 16px 16px 4px 16px; /* igual ao seu .messageBubble original */
+}
+
+/* remove a linha entre bubble e bloco de botões e arredonda só embaixo */
+.buttonGroupAttached {
+  min-width: 280px;                 /* mesmo width do bubble */
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  margin-top: -1px;                 /* cola as bordas (evita 1px de gap) */
+  overflow: hidden;                 /* esconde qualquer “rebarba” */
+}
+
+
 /* ======================
    RESPONSIVE DESIGN
 ====================== */
