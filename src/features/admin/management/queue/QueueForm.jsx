@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Save, Palette } from 'lucide-react';
+import { Save, Palette, RefreshCw, X } from 'lucide-react';
 import { apiGet, apiPost, apiPut } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/QueueForm.module.css';
@@ -10,9 +10,7 @@ const normalizeHexColor = (input) => {
   let c = String(input).trim();
   if (!c) return null;
   if (!c.startsWith('#')) c = `#${c}`;
-  if (/^#([0-9a-fA-F]{3})$/.test(c)) {
-    c = '#' + c.slice(1).split('').map(ch => ch + ch).join('');
-  }
+  if (/^#([0-9a-fA-F]{3})$/.test(c)) c = '#' + c.slice(1).split('').map(ch => ch + ch).join('');
   return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
 };
 
@@ -32,7 +30,7 @@ const randomPastelHex = () => {
 };
 
 export default function QueueForm() {
-  const { id } = useParams(); // se houver, é edição
+  const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const topRef = useRef(null);
@@ -41,16 +39,12 @@ export default function QueueForm() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
-  const [form, setForm] = useState({
-    nome: '', descricao: '', color: ''
-  });
-
+  const [form, setForm] = useState({ nome: '', descricao: '', color: '' });
   const [touched, setTouched] = useState({ nome: false, color: false });
 
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
   const nameInvalid = !form.nome.trim();
   const colorInvalid = form.color ? !colorPreview : false;
-
   const canSubmit = !saving && !nameInvalid && !colorInvalid;
 
   const load = useCallback(async () => {
@@ -78,6 +72,9 @@ export default function QueueForm() {
   }, [isEdit, id]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
+  const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
 
   async function handleSave() {
     setTouched({ nome: true, color: true });
@@ -111,7 +108,6 @@ export default function QueueForm() {
 
   return (
     <div className={styles.page} ref={topRef}>
-      {/* Breadcrumbs */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
           <li><Link to="/" className={styles.bcLink}>Dashboard</Link></li>
@@ -122,15 +118,10 @@ export default function QueueForm() {
         </ol>
       </nav>
 
-      {/* Header compacto (ações ficam no sticky footer) */}
       <header className={styles.pageHeader}>
         <div className={styles.pageTitleWrap}>
-          <h1 className={styles.pageTitle}>
-            {isEdit ? 'Editar fila' : 'Nova fila'}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            Defina o nome da fila, uma descrição e (opcionalmente) uma cor de identificação.
-          </p>
+          <h1 className={styles.pageTitle}>{isEdit ? 'Editar fila' : 'Nova fila'}</h1>
+          <p className={styles.pageSubtitle}>Defina o nome da fila, uma descrição e (opcionalmente) uma cor de identificação.</p>
         </div>
       </header>
 
@@ -143,12 +134,12 @@ export default function QueueForm() {
         <>
           {err && <div className={styles.alert}>{err}</div>}
 
-          {/* Identificação */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Identificação</h2>
               <p className={styles.cardDesc}>Informações básicas da fila.</p>
             </div>
+
             <div className={styles.cardBodyGrid3}>
               <div className={styles.group}>
                 <label className={styles.label}>
@@ -161,9 +152,7 @@ export default function QueueForm() {
                   onBlur={() => setTouched(t => ({ ...t, nome: true }))}
                   placeholder="Ex.: Suporte, Comercial, Financeiro…"
                 />
-                {touched.nome && nameInvalid && (
-                  <span className={styles.errMsg}>Informe o nome da fila.</span>
-                )}
+                {touched.nome && nameInvalid && <span className={styles.errMsg}>Informe o nome da fila.</span>}
               </div>
 
               <div className={styles.groupWide}>
@@ -179,33 +168,32 @@ export default function QueueForm() {
               <div className={styles.group}>
                 <label className={styles.label}>Cor (opcional)</label>
                 <div className={styles.colorRow}>
-  <input
-    id="color"
-    className={`${styles.input} ${styles.colorField}`}
-    placeholder="#RRGGBB (ex.: #4682B4)"
-    value={color}
-    onChange={(e) => setColor(e.target.value)}
-  />
+                  <input
+                    id="color"
+                    className={`${styles.input} ${styles.colorField}`}
+                    placeholder="#RRGGBB (ex.: #4682B4)"
+                    value={form.color}
+                    onChange={(e) => setForm({ ...form, color: e.target.value })}
+                  />
 
-  <span className={styles.colorChip} title={previewColor || 'Aleatória ao salvar'}>
-    <span className={styles.colorSwatch} style={{ background: previewColor || '#ffffff' }} aria-hidden="true" />
-    <Palette size={16} aria-hidden="true" />
-    <span className={styles.hex}>{previewColor || 'aleatória'}</span>
-  </span>
+                  <span className={styles.colorChip} title={colorPreview || 'Aleatória ao salvar'}>
+                    <span className={styles.colorSwatch} style={{ background: colorPreview || '#ffffff' }} aria-hidden="true" />
+                    <Palette size={16} aria-hidden="true" />
+                    <span className={styles.hex}>{colorPreview || 'aleatória'}</span>
+                  </span>
 
-  {/* ✅ estilos padronizados */}
-  <button type="button" className={styles.btnSecondary} onClick={handleSortearCor}>
-    <RefreshCw size={16} aria-hidden="true" />
-    Sortear
-  </button>
+                  <button type="button" className={styles.btnSecondary} onClick={handleSortearCor}>
+                    <RefreshCw size={16} aria-hidden="true" />
+                    Sortear
+                  </button>
 
-  {color && (
-    <button type="button" className={styles.btn} onClick={handleLimparCor}>
-      <X size={16} aria-hidden="true" />
-      Limpar
-    </button>
-  )}
-</div>
+                  {!!form.color && (
+                    <button type="button" className={styles.btn} onClick={handleLimparCor}>
+                      <X size={16} aria-hidden="true" />
+                      Limpar
+                    </button>
+                  )}
+                </div>
 
                 {touched.color && colorInvalid && (
                   <span className={styles.errMsg}>Cor inválida. Use o formato #RRGGBB.</span>
@@ -214,7 +202,6 @@ export default function QueueForm() {
             </div>
           </section>
 
-          {/* Rodapé fixo */}
           <div className={styles.stickyFooter} role="region" aria-label="Ações">
             <div className={styles.stickyInner}>
               <button type="button" className={styles.btnGhost} onClick={() => navigate('/management/queues')}>
