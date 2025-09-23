@@ -271,7 +271,7 @@ const TemplateInfoSection = ({
       <p className={styles.cardDesc}>Configure a categoria, idioma e identificação do template.</p>
     </div>
 
-    <div className={styles.cardBodyGrid3}>
+    <div className={styles.infoGrid}>
       <div className={styles.group}>
         <label className={styles.label}>Categoria *</label>
         <select 
@@ -336,8 +336,9 @@ const ContentSection = ({
       <p className={styles.cardDesc}>Configure o cabeçalho, corpo e rodapé da mensagem.</p>
     </div>
 
-    <div className={styles.headerRow}>
-      <div className={styles.group}>
+    {/* Header Type Selection */}
+    <div className={styles.cardBodyGrid3}>
+      <div className={styles.groupFull}>
         <label className={styles.label}>Tipo de Cabeçalho</label>
         <div className={styles.segmented} role="tablist">
           {HEADER_TYPES.map(h => (
@@ -353,9 +354,12 @@ const ContentSection = ({
           ))}
         </div>
       </div>
+    </div>
 
-      {headerType === 'TEXT' ? (
-        <div className={styles.groupWide}>
+    {/* Header Content */}
+    {headerType === 'TEXT' && (
+      <div className={styles.cardBodyGrid3}>
+        <div className={styles.groupFull}>
           <label className={styles.label}>Texto do Cabeçalho *</label>
           <input
             className={styles.input}
@@ -364,8 +368,12 @@ const ContentSection = ({
             placeholder="Digite o texto do cabeçalho"
           />
         </div>
-      ) : headerType !== 'NONE' ? (
-        <div className={styles.groupWide}>
+      </div>
+    )}
+
+    {headerType !== 'TEXT' && headerType !== 'NONE' && (
+      <div className={styles.cardBodyGrid3}>
+        <div className={styles.groupFull}>
           <label className={styles.label}>URL da Mídia</label>
           <input
             className={styles.input}
@@ -374,10 +382,8 @@ const ContentSection = ({
             placeholder="https://exemplo.com/arquivo"
           />
         </div>
-      ) : (
-        <div className={styles.groupWide}></div>
-      )}
-    </div>
+      </div>
+    )}
 
     <div className={styles.cardBodyGrid3}>
       <div className={styles.groupFull}>
@@ -448,43 +454,44 @@ const ButtonsSection = ({
         <p className={styles.cardDesc}>Adicione botões de ação ou respostas rápidas.</p>
       </div>
 
-      <div className={styles.cardBodyGrid3}>
-        <div className={styles.group}>
-          <label className={styles.label}>Tipo de Botão</label>
-          <div className={styles.pills} role="tablist">
-            <button 
-              type="button" 
-              className={`${styles.pill} ${buttonMode === 'none' ? styles.pillActive : ''}`}
-              onClick={() => {
-                setButtonMode('none');
-                setCtas([]);
-                setQuicks([]);
-              }}
-            >
-              Nenhum
-            </button>
-            <button 
-              type="button" 
-              className={`${styles.pill} ${buttonMode === 'cta' ? styles.pillActive : ''}`}
-              onClick={() => {
-                setButtonMode('cta');
-                setQuicks([]);
-              }}
-            >
-              Call-to-Action
-            </button>
-            <button 
-              type="button" 
-              className={`${styles.pill} ${buttonMode === 'quick' ? styles.pillActive : ''}`}
-              onClick={() => {
-                setButtonMode('quick');
-                setCtas([]);
-              }}
-            >
-              Resposta Rápida
-            </button>
-          </div>
+    <div className={styles.cardBodyGrid3}>
+      <div className={styles.groupFull}>
+        <label className={styles.label}>Tipo de Botão</label>
+        <div className={styles.pills} role="tablist">
+          <button 
+            type="button" 
+            className={`${styles.pill} ${buttonMode === 'none' ? styles.pillActive : ''}`}
+            onClick={() => {
+              setButtonMode('none');
+              setCtas([]);
+              setQuicks([]);
+            }}
+          >
+            Nenhum
+          </button>
+          <button 
+            type="button" 
+            className={`${styles.pill} ${buttonMode === 'cta' ? styles.pillActive : ''}`}
+            onClick={() => {
+              setButtonMode('cta');
+              setQuicks([]);
+            }}
+          >
+            Call-to-Action
+          </button>
+          <button 
+            type="button" 
+            className={`${styles.pill} ${buttonMode === 'quick' ? styles.pillActive : ''}`}
+            onClick={() => {
+              setButtonMode('quick');
+              setCtas([]);
+            }}
+          >
+            Resposta Rápida
+          </button>
         </div>
+      </div>
+    </div>
 
         {/* CTA Buttons */}
         {buttonMode === 'cta' && (
