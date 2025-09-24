@@ -644,9 +644,9 @@ const ButtonsSection = ({
                       value={cta.text}
                       onChange={e => setCtas(prev => prev.map(c => c.id === cta.id ? { ...c, text: clampCtaText(e.target.value) } : c))}
                     />
-                    <small className={styles.helper}>
+                    {/* <small className={styles.helper}>
                       {left} restantes (máx. {LIMITS.ctaText})
-                    </small>
+                    </small> */}
                   </div>
 
                   {cta.type === 'URL' ? (
