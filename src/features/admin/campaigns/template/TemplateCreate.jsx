@@ -750,7 +750,6 @@ export default function TemplateCreate() {
     setHeaderType(nextType);
     setHeaderText('');
     setHeaderMediaUrl('');
-    toast.info('Tipo de cabeçalho alterado. Campos limpos.');
   }, [headerType]);
 
   // validações adicionais antes do submit
