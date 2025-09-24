@@ -1,13 +1,22 @@
 import { getRuntimeConfig } from "./runtimeConfig";
 
-const { apiBaseUrl } = getRuntimeConfig();
+const { apiBaseUrl, tenant } = getRuntimeConfig();
 
-// === helpers com fetch (sem header X-Tenant) ===
-// Obs: como é mesma origem, normalmente não precisa credentials: "include".
-// Se seu backend usa cookie de sessão, pode adicionar { credentials: "include" }.
+// helper p/ juntar headers e garantir X-Tenant
+function withTenantHeaders(extra = {}) {
+  return {
+    "X-Tenant": tenant,
+    ...extra,
+  };
+}
+
+// === helpers com fetch (agora COM X-Tenant) ===
+// se usa cookie de sessão, adicione { credentials: "include" } onde precisar
 
 export async function apiGet(path) {
-  const res = await fetch(`${apiBaseUrl}${path}`);
+  const res = await fetch(`${apiBaseUrl}${path}`, {
+    headers: withTenantHeaders(),
+  });
   if (!res.ok) throw new Error(`GET ${path} failed`);
   return res.json();
 }
@@ -15,7 +24,7 @@ export async function apiGet(path) {
 export async function apiPost(path, data) {
   const res = await fetch(`${apiBaseUrl}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: withTenantHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(`POST ${path} failed`);
@@ -25,7 +34,7 @@ export async function apiPost(path, data) {
 export async function apiPut(path, data) {
   const res = await fetch(`${apiBaseUrl}${path}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: withTenantHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(`PUT ${path} failed`);
@@ -35,7 +44,7 @@ export async function apiPut(path, data) {
 export async function apiPatch(path, data) {
   const res = await fetch(`${apiBaseUrl}${path}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: withTenantHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(`PATCH ${path} failed`);
@@ -43,7 +52,10 @@ export async function apiPatch(path, data) {
 }
 
 export async function apiDelete(path) {
-  const res = await fetch(`${apiBaseUrl}${path}`, { method: "DELETE" });
+  const res = await fetch(`${apiBaseUrl}${path}`, {
+    method: "DELETE",
+    headers: withTenantHeaders(),
+  });
   if (!res.ok) throw new Error(`DELETE ${path} failed`);
   return res.json();
 }
