@@ -930,7 +930,7 @@ export default function TemplateCreate() {
           <button
             type="button"
             className={styles.btn}
-            onClick={() => navigate('/management/templates')}
+            onClick={() => navigate('/campaigns/templates')}
           >
             Cancelar
           </button>
