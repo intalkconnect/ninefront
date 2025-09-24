@@ -381,8 +381,7 @@ const TemplateInfoSection = ({
 }) => (
   <section className={styles.card}>
     <div className={styles.cardHead}>
-      <h2 className={styles.cardTitle}>Informações do Template</h2>
-      <p className={styles.cardDesc}>Configure a categoria, idioma e identificação do template.</p>
+      <p className={styles.cardDesc}>Defina a categoria, idioma e identificação do template.</p>
     </div>
 
     <div className={styles.infoGrid}>
