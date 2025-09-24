@@ -873,8 +873,7 @@ export default function TemplateCreate() {
       {/* Header */}
       <header className={styles.pageHeader}>
         <div className={styles.pageTitleWrap}>
-          <h1 className={styles.pageTitle}>Criar Template</h1>
-          <p className={styles.pageSubtitle}>Configure seu template de mensagem do WhatsApp Business.</p>
+          <p className={styles.pageSubtitle}>Crie o seu template de mensagem do WhatsApp Business e aguarda aprovação da Meta.</p>
         </div>
       </header>
 
