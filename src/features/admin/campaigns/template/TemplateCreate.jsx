@@ -169,109 +169,132 @@ function LivePreview({
   }, [headerMediaUrl, headerType]);
 
   const mediaPreview = () => {
-    if (!hasMediaAbove) return null;
+  if (!hasMediaAbove) return null;
 
-    const ext = getUrlExt(headerMediaUrl);
-    const isUrl = isValidHttpUrl(headerMediaUrl);
+  const url = (headerMediaUrl || '').trim();
+  const hasUrl = url.length > 0;                 // <— tem algo digitado?
+  const isUrl = hasUrl && isValidHttpUrl(url);   // <— só valida se tiver
+  const ext = hasUrl ? getUrlExt(url) : '';
 
-    if (!isUrl) {
+  // Placeholder padrão (sem erro)
+  const DefaultPlaceholder = (
+    <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+      <div className={styles.mediaIcon}>
+        {headerType === 'IMAGE' && <IconCamera />}
+        {headerType === 'DOCUMENT' && <IconDoc />}
+        {headerType === 'VIDEO' && <IconVideo />}
+      </div>
+      <div className={styles.mediaLabel}>
+        {headerType === 'IMAGE' ? 'Imagem' : headerType === 'DOCUMENT' ? 'Documento' : 'Vídeo'}
+      </div>
+      {hasUrl && (
+        <div className={styles.mediaUrl}>
+          {url.length > 40 ? `${url.slice(0, 40)}…` : url}
+        </div>
+      )}
+    </div>
+  );
+
+  // 1) Campo vazio → só o placeholder, sem erro
+  if (!hasUrl) return DefaultPlaceholder;
+
+  // 2) Tem algo digitado mas não é http/https → erro
+  if (!isUrl) {
+    return (
+      <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+        <div className={styles.mediaIcon}>
+          {headerType === 'IMAGE' && <IconCamera />}
+          {headerType === 'DOCUMENT' && <IconDoc />}
+          {headerType === 'VIDEO' && <IconVideo />}
+        </div>
+        <div className={styles.mediaLabel}>URL inválida</div>
+        <div className={styles.mediaUrl}>{url}</div>
+      </div>
+    );
+  }
+
+  // 3) Tipos específicos
+  if (headerType === 'IMAGE') {
+    return (
+      <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`}>
+        <img
+          src={url}
+          alt="Imagem do Cabeçalho"
+          className={styles.mediaImage}
+          onLoad={() => { setImgOk(true); setMediaOk(true); }}
+          onError={() => { setImgOk(false); setMediaOk(false); }}
+        />
+        {!imgOk && (
+          <div className={styles.mediaFallback}>
+            <div className={styles.mediaIcon}><IconCamera /></div>
+            <div className={styles.mediaLabel}>Carregando imagem…</div>
+            <div className={styles.mediaUrl}>{url.length > 40 ? `${url.slice(0, 40)}…` : url}</div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (headerType === 'DOCUMENT') {
+    if (!PDF_EXT.includes(ext)) {
       return (
         <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
-          <div className={styles.mediaIcon}>
-            {headerType === 'IMAGE' && <IconCamera />}
-            {headerType === 'DOCUMENT' && <IconDoc />}
-            {headerType === 'VIDEO' && <IconVideo />}
-          </div>
-          <div className={styles.mediaLabel}>URL inválida</div>
-          {headerMediaUrl ? <div className={styles.mediaUrl}>{headerMediaUrl}</div> : null}
+          <div className={styles.mediaIcon}><IconDoc /></div>
+          <div className={styles.mediaLabel}>Apenas PDF é suportado</div>
+          <div className={styles.mediaUrl}>{url}</div>
         </div>
       );
     }
-
-    if (headerType === 'IMAGE') {
-      return (
-        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`}>
-          <img
-            src={headerMediaUrl}
-            alt="Imagem do Cabeçalho"
-            className={styles.mediaImage}
-            onLoad={() => { setImgOk(true); setMediaOk(true); }}
-            onError={() => { setImgOk(false); setMediaOk(false); }}
-          />
-          {!imgOk && (
-            <div className={styles.mediaFallback}>
-              <div className={styles.mediaIcon}><IconCamera /></div>
-              <div className={styles.mediaLabel}>Carregando imagem…</div>
-              <div className={styles.mediaUrl}>
-                {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    if (headerType === 'DOCUMENT') {
-      // PDF somente
-      if (!PDF_EXT.includes(ext)) {
-        return (
-          <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+    return (
+      <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`} style={{ height: 220 }}>
+        <iframe
+          title="PDF"
+          src={url}
+          className={styles.mediaIframe}
+          onLoad={() => setMediaOk(true)}
+        />
+        {!mediaOk && (
+          <div className={styles.mediaFallback}>
             <div className={styles.mediaIcon}><IconDoc /></div>
-            <div className={styles.mediaLabel}>Apenas PDF é suportado</div>
-            <div className={styles.mediaUrl}>{headerMediaUrl}</div>
+            <div className={styles.mediaLabel}>Carregando PDF…</div>
           </div>
-        );
-      }
+        )}
+      </div>
+    );
+  }
+
+  if (headerType === 'VIDEO') {
+    if (!MP4_EXT.includes(ext)) {
       return (
-        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`} style={{ height: 220 }}>
-          <iframe
-            title="PDF"
-            src={headerMediaUrl}
-            className={styles.mediaIframe}
-            onLoad={() => setMediaOk(true)}
-          />
-          {!mediaOk && (
-            <div className={styles.mediaFallback}>
-              <div className={styles.mediaIcon}><IconDoc /></div>
-              <div className={styles.mediaLabel}>Carregando PDF…</div>
-            </div>
-          )}
+        <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+          <div className={styles.mediaIcon}><IconVideo /></div>
+          <div className={styles.mediaLabel}>Apenas MP4 é suportado</div>
+          <div className={styles.mediaUrl}>{url}</div>
         </div>
       );
     }
-
-    if (headerType === 'VIDEO') {
-      // MP4 somente
-      if (!MP4_EXT.includes(ext)) {
-        return (
-          <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+    return (
+      <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`} style={{ height: 220 }}>
+        <video
+          className={styles.mediaVideo}
+          src={url}
+          controls
+          onCanPlay={() => setMediaOk(true)}
+          onError={() => setMediaOk(false)}
+        />
+        {!mediaOk && (
+          <div className={styles.mediaFallback}>
             <div className={styles.mediaIcon}><IconVideo /></div>
-            <div className={styles.mediaLabel}>Apenas MP4 é suportado</div>
-            <div className={styles.mediaUrl}>{headerMediaUrl}</div>
+            <div className={styles.mediaLabel}>Carregando vídeo…</div>
           </div>
-        );
-      }
-      return (
-        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`} style={{ height: 220 }}>
-          <video
-            className={styles.mediaVideo}
-            src={headerMediaUrl}
-            controls
-            onCanPlay={() => setMediaOk(true)}
-            onError={() => setMediaOk(false)}
-          />
-          {!mediaOk && (
-            <div className={styles.mediaFallback}>
-              <div className={styles.mediaIcon}><IconVideo /></div>
-              <div className={styles.mediaLabel}>Carregando vídeo…</div>
-            </div>
-          )}
-        </div>
-      );
-    }
+        )}
+      </div>
+    );
+  }
 
-    return null;
-  };
+  return null;
+};
+
 
   return (
     <aside className={styles.previewWrap} aria-label="Prévia do template">
