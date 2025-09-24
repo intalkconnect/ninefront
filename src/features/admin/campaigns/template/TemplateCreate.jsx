@@ -5,14 +5,6 @@ import { apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/TemplateCreate.module.css';
 
-/* ---------------- Limits (Meta) ---------------- */
-const LIMITS = {
-  HEADER_TEXT: 60,
-  BODY_TEXT: 1024,
-  FOOTER_TEXT: 60,
-  BUTTON_TEXT: 20,
-};
-
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
   { value: 'UTILITY', label: 'Utility' },
@@ -41,6 +33,20 @@ const HEADER_TYPES = [
 
 const MAX_BTNS = 3;
 
+/* ---------------- Meta character limits ---------------- */
+const LIMITS = {
+  headerText: 60,
+  bodyText: 1024,
+  footerText: 60,
+  ctaText: 20,
+  quickText: 25,
+};
+
+/* ---------------- Media rules ---------------- */
+const IMG_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+const PDF_EXT = ['pdf'];
+const MP4_EXT = ['mp4'];
+
 /* ---------------- Helpers ---------------- */
 function sanitizeTemplateName(raw) {
   if (!raw) return '';
@@ -54,15 +60,39 @@ function sanitizeTemplateName(raw) {
   return s;
 }
 
-const nowTime = () => new Date().toLocaleTimeString('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit'
-});
+const nowTime = () =>
+  new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-// extensões permitidas
-const isImage = (u) => /\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(u || '');
-const isPdf   = (u) => /\.pdf(\?.*)?$/i.test(u || '');
-const isMp4   = (u) => /\.mp4(\?.*)?$/i.test(u || '');
+const clamp = (s, max) => (s?.length > max ? s.slice(0, max) : s || '');
+
+const getUrlExt = (url = '') => {
+  try {
+    const u = new URL(url);
+    const pathname = u.pathname || '';
+    const last = pathname.split('/').pop() || '';
+    const clean = last.split('?')[0].split('#')[0];
+    const ext = (clean.split('.').pop() || '').toLowerCase();
+    return ext;
+  } catch {
+    return '';
+  }
+};
+
+const isValidHttpUrl = (value = '') => {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const fitsTypeByExt = (type, ext) => {
+  if (type === 'IMAGE') return IMG_EXT.includes(ext);
+  if (type === 'DOCUMENT') return PDF_EXT.includes(ext);
+  if (type === 'VIDEO') return MP4_EXT.includes(ext);
+  return true;
+};
 
 /* ---------------- SVG Icons ---------------- */
 const IconReply = () => (
@@ -125,130 +155,122 @@ function LivePreview({
   bodyText,
   footerText,
   ctas,
-  quicks
+  quicks,
 }) {
-  const getMediaIcon = () => {
-    switch (headerType) {
-      case 'IMAGE': return <IconCamera />;
-      case 'DOCUMENT': return <IconDoc />;
-      case 'VIDEO': return <IconVideo />;
-      default: return null;
-    }
-  };
+  const hasButtons = (ctas?.length || 0) > 0 || (quicks?.length || 0) > 0;
+  const hasMediaAbove = headerType !== 'TEXT' && headerType !== 'NONE';
 
-  const getMediaLabel = () => {
-    switch (headerType) {
-      case 'IMAGE': return 'Imagem';
-      case 'DOCUMENT': return 'Documento';
-      case 'VIDEO': return 'Vídeo';
-      default: return 'Mídia';
-    }
-  };
-
-  // flags para colar o bubble em cima/baixo
-  const hasBelow = ctas.length > 0 || quicks.length > 0;
-  const hasAbove = headerType !== 'TEXT' && headerType !== 'NONE';
-
-  // estados de pré-carregamento
   const [imgOk, setImgOk] = useState(false);
-  const [videoOk, setVideoOk] = useState(false);
-  const [pdfOk, setPdfOk] = useState(false);
+  const [mediaOk, setMediaOk] = useState(false);
 
-  useEffect(() => { setImgOk(false); setVideoOk(false); setPdfOk(false); }, [headerMediaUrl, headerType]);
+  useEffect(() => {
+    setImgOk(false);
+    setMediaOk(false);
+  }, [headerMediaUrl, headerType]);
 
-  const renderMedia = () => {
-    if (!hasAbove) return null;
+  const mediaPreview = () => {
+    if (!hasMediaAbove) return null;
 
-    if (headerType === 'IMAGE' && headerMediaUrl && isImage(headerMediaUrl)) {
+    const ext = getUrlExt(headerMediaUrl);
+    const isUrl = isValidHttpUrl(headerMediaUrl);
+
+    if (!isUrl) {
       return (
-        <div className={styles.mediaHeader}>
-          <div className={`${styles.mediaBox} ${styles.mediaAttached}`}>
-            <img
-              src={headerMediaUrl}
-              alt="Imagem do cabeçalho"
-              className={styles.mediaImage}
-              onLoad={() => setImgOk(true)}
-              onError={() => { setImgOk(false); toast.error('Falha ao carregar a imagem.'); }}
-            />
-            {!imgOk && (
-              <div className={styles.mediaFallback}>
-                <div className={styles.mediaIcon}>{getMediaIcon()}</div>
-                <div className={styles.mediaLabel}>Imagem</div>
-                <div className={styles.mediaUrl}>
-                  {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (headerType === 'VIDEO' && headerMediaUrl && isMp4(headerMediaUrl)) {
-      return (
-        <div className={styles.mediaHeader}>
-          <div className={`${styles.mediaBox} ${styles.mediaAttached}`}>
-            <video
-              className={styles.mediaVideo}
-              src={headerMediaUrl}
-              preload="metadata"
-              controls
-              muted
-              onLoadedData={() => setVideoOk(true)}
-              onError={() => { setVideoOk(false); toast.error('Falha ao carregar o vídeo (mp4).'); }}
-            />
-            {!videoOk && (
-              <div className={styles.mediaFallback}>
-                <div className={styles.mediaIcon}>{getMediaIcon()}</div>
-                <div className={styles.mediaLabel}>Vídeo (mp4)</div>
-                <div className={styles.mediaUrl}>
-                  {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (headerType === 'DOCUMENT' && headerMediaUrl && isPdf(headerMediaUrl)) {
-      return (
-        <div className={styles.mediaHeader}>
-          <div className={`${styles.mediaBox} ${styles.mediaAttached}`}>
-            <iframe
-              className={styles.mediaPdf}
-              src={headerMediaUrl}
-              title="Documento PDF"
-              onLoad={() => setPdfOk(true)}
-            />
-            {!pdfOk && (
-              <div className={styles.mediaFallback}>
-                <div className={styles.mediaIcon}>{getMediaIcon()}</div>
-                <div className={styles.mediaLabel}>Documento (PDF)</div>
-                <div className={styles.mediaUrl}>
-                  {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // placeholder padrão (sem URL ou extensão inválida)
-    return (
-      <div className={styles.mediaHeader}>
         <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
-          <div className={styles.mediaIcon}>{getMediaIcon()}</div>
-          <div className={styles.mediaLabel}>{getMediaLabel()}</div>
-          {headerMediaUrl && (
-            <div className={styles.mediaUrl}>
-              {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
+          <div className={styles.mediaIcon}>
+            {headerType === 'IMAGE' && <IconCamera />}
+            {headerType === 'DOCUMENT' && <IconDoc />}
+            {headerType === 'VIDEO' && <IconVideo />}
+          </div>
+          <div className={styles.mediaLabel}>URL inválida</div>
+          {headerMediaUrl ? <div className={styles.mediaUrl}>{headerMediaUrl}</div> : null}
+        </div>
+      );
+    }
+
+    if (headerType === 'IMAGE') {
+      return (
+        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`}>
+          <img
+            src={headerMediaUrl}
+            alt="Imagem do Cabeçalho"
+            className={styles.mediaImage}
+            onLoad={() => { setImgOk(true); setMediaOk(true); }}
+            onError={() => { setImgOk(false); setMediaOk(false); }}
+          />
+          {!imgOk && (
+            <div className={styles.mediaFallback}>
+              <div className={styles.mediaIcon}><IconCamera /></div>
+              <div className={styles.mediaLabel}>Carregando imagem…</div>
+              <div className={styles.mediaUrl}>
+                {headerMediaUrl.length > 40 ? `${headerMediaUrl.slice(0, 40)}…` : headerMediaUrl}
+              </div>
             </div>
           )}
         </div>
-      </div>
-    );
+      );
+    }
+
+    if (headerType === 'DOCUMENT') {
+      // PDF somente
+      if (!PDF_EXT.includes(ext)) {
+        return (
+          <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+            <div className={styles.mediaIcon}><IconDoc /></div>
+            <div className={styles.mediaLabel}>Apenas PDF é suportado</div>
+            <div className={styles.mediaUrl}>{headerMediaUrl}</div>
+          </div>
+        );
+      }
+      return (
+        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`} style={{ height: 220 }}>
+          <iframe
+            title="PDF"
+            src={headerMediaUrl}
+            className={styles.mediaIframe}
+            onLoad={() => setMediaOk(true)}
+          />
+          {!mediaOk && (
+            <div className={styles.mediaFallback}>
+              <div className={styles.mediaIcon}><IconDoc /></div>
+              <div className={styles.mediaLabel}>Carregando PDF…</div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (headerType === 'VIDEO') {
+      // MP4 somente
+      if (!MP4_EXT.includes(ext)) {
+        return (
+          <div className={`${styles.mediaPlaceholder} ${styles.mediaAttached}`}>
+            <div className={styles.mediaIcon}><IconVideo /></div>
+            <div className={styles.mediaLabel}>Apenas MP4 é suportado</div>
+            <div className={styles.mediaUrl}>{headerMediaUrl}</div>
+          </div>
+        );
+      }
+      return (
+        <div className={`${styles.mediaImgWrap} ${styles.mediaAttached}`} style={{ height: 220 }}>
+          <video
+            className={styles.mediaVideo}
+            src={headerMediaUrl}
+            controls
+            onCanPlay={() => setMediaOk(true)}
+            onError={() => setMediaOk(false)}
+          />
+          {!mediaOk && (
+            <div className={styles.mediaFallback}>
+              <div className={styles.mediaIcon}><IconVideo /></div>
+              <div className={styles.mediaLabel}>Carregando vídeo…</div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -270,16 +292,20 @@ function LivePreview({
         {/* Chat Area */}
         <div className={styles.chatArea}>
           <div className={styles.messageContainer}>
+            {/* Media Header */}
+            {hasMediaAbove && (
+              <div className={styles.mediaHeader}>
+                {mediaPreview()}
+              </div>
+            )}
 
-            {renderMedia()}
-
-            {/* Bubble + Botões como um bloco único */}
+            {/* Message Bubble + Buttons */}
             <div className={styles.bubbleBlock}>
               <div
                 className={[
                   styles.messageBubble,
-                  hasAbove && styles.bubbleAttachTop,
-                  hasBelow && styles.bubbleAttachBottom,
+                  hasMediaAbove && styles.bubbleAttachTop,
+                  hasButtons && styles.bubbleAttachBottom,
                 ].filter(Boolean).join(' ')}
               >
                 {/* Header Text */}
@@ -295,7 +321,7 @@ function LivePreview({
                     .split('\n')
                     .map((line, i) => (
                       <div key={i}><TokenRenderer text={line} /></div>
-                  ))}
+                    ))}
                 </div>
 
                 {/* Footer Text */}
@@ -310,7 +336,7 @@ function LivePreview({
               </div>
 
               {/* CTA Buttons */}
-              {ctas.length > 0 && (
+              {(ctas?.length || 0) > 0 && (
                 <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
                   {ctas.map((btn, i) => (
                     <div key={i} className={styles.ctaButton}>
@@ -324,7 +350,7 @@ function LivePreview({
               )}
 
               {/* Quick Reply Buttons */}
-              {quicks.length > 0 && (
+              {(quicks?.length || 0) > 0 && (
                 <div className={`${styles.buttonGroup} ${styles.buttonGroupAttached}`}>
                   {quicks.map((quick, i) => (
                     <div key={i} className={styles.quickButton}>
@@ -336,10 +362,6 @@ function LivePreview({
               )}
             </div>
           </div>
-        </div>
-
-        <div className={styles.inputArea}>
-          <div className={styles.inputPlaceholder}><span>Digite uma mensagem</span></div>
         </div>
       </div>
 
@@ -355,7 +377,7 @@ const TemplateInfoSection = ({
   language,
   setLanguage,
   category,
-  setCategory
+  setCategory,
 }) => (
   <section className={styles.card}>
     <div className={styles.cardHead}>
@@ -412,7 +434,7 @@ const TemplateInfoSection = ({
 
 const ContentSection = ({
   headerType,
-  setHeaderType,
+  onChangeHeaderType,
   headerText,
   setHeaderText,
   headerMediaUrl,
@@ -420,20 +442,28 @@ const ContentSection = ({
   bodyText,
   setBodyText,
   footerText,
-  setFooterText
+  setFooterText,
 }) => {
-  // avisos rápidos ao trocar tipo/url
-  useEffect(() => {
-    if (headerType === 'IMAGE' && headerMediaUrl && !isImage(headerMediaUrl)) {
-      toast.error('Imagem inválida. Use PNG/JPG/WEBP/GIF.');
+  const headerTextLeft = LIMITS.headerText - (headerText?.length || 0);
+  const bodyTextLeft = LIMITS.bodyText - (bodyText?.length || 0);
+  const footerTextLeft = LIMITS.footerText - (footerText?.length || 0);
+
+  const safeSetHeaderText = (val) => setHeaderText(clamp(val, LIMITS.headerText));
+  const safeSetBodyText = (val) => setBodyText(clamp(val, LIMITS.bodyText));
+  const safeSetFooterText = (val) => setFooterText(clamp(val, LIMITS.footerText));
+
+  // valida ao digitar URL
+  const onMediaUrlChange = (val) => {
+    setHeaderMediaUrl(val);
+    if (!val) return;
+    if (!isValidHttpUrl(val)) return; // deixa o preview avisar
+    const ext = getUrlExt(val);
+    if (!fitsTypeByExt(headerType, ext)) {
+      if (headerType === 'DOCUMENT') toast.error('Documento: apenas PDF é aceito (.pdf).');
+      if (headerType === 'VIDEO') toast.error('Vídeo: apenas MP4 é aceito (.mp4).');
+      if (headerType === 'IMAGE') toast.error('Imagem: use jpg, jpeg, png, webp ou gif.');
     }
-    if (headerType === 'VIDEO' && headerMediaUrl && !isMp4(headerMediaUrl)) {
-      toast.error('Vídeo inválido. Apenas MP4.');
-    }
-    if (headerType === 'DOCUMENT' && headerMediaUrl && !isPdf(headerMediaUrl)) {
-      toast.error('Documento inválido. Apenas PDF.');
-    }
-  }, [headerType, headerMediaUrl]);
+  };
 
   return (
     <section className={styles.card}>
@@ -452,7 +482,7 @@ const ContentSection = ({
                 key={h.value}
                 type="button"
                 className={`${styles.segItem} ${headerType === h.value ? styles.segActive : ''}`}
-                onClick={() => setHeaderType(h.value)}
+                onClick={() => onChangeHeaderType(h.value)}
                 aria-pressed={headerType === h.value}
               >
                 {h.label}
@@ -470,10 +500,12 @@ const ContentSection = ({
             <input
               className={styles.input}
               value={headerText}
-              onChange={e => setHeaderText(e.target.value.slice(0, LIMITS.HEADER_TEXT))}
+              onChange={e => safeSetHeaderText(e.target.value)}
               placeholder="Digite o texto do cabeçalho"
             />
-            <span className={styles.helper}>{headerText.length}/{LIMITS.HEADER_TEXT}</span>
+            <small className={styles.helper}>
+              {headerTextLeft} caracteres restantes (máx. {LIMITS.headerText})
+            </small>
           </div>
         </div>
       )}
@@ -481,22 +513,20 @@ const ContentSection = ({
       {headerType !== 'TEXT' && headerType !== 'NONE' && (
         <div className={styles.cardBodyGrid3}>
           <div className={styles.groupFull}>
-            <label className={styles.label}>URL da Mídia</label>
+            <label className={styles.label}>
+              URL da Mídia {headerType === 'IMAGE' ? '(jpg, jpeg, png, webp, gif)' : headerType === 'DOCUMENT' ? '(apenas .pdf)' : '(apenas .mp4)'}
+            </label>
             <input
               className={styles.input}
               value={headerMediaUrl}
-              onChange={e => setHeaderMediaUrl(e.target.value.trim())}
-              placeholder="https://exemplo.com/arquivo"
+              onChange={e => onMediaUrlChange(e.target.value)}
+              placeholder={headerType === 'IMAGE' ? 'https://exemplo.com/arquivo.jpg' : headerType === 'DOCUMENT' ? 'https://exemplo.com/arquivo.pdf' : 'https://exemplo.com/video.mp4'}
             />
-            <span className={styles.helper}>
-              {headerType === 'IMAGE' && 'Aceito: .png .jpg .jpeg .webp .gif'}
-              {headerType === 'VIDEO' && 'Aceito: .mp4'}
-              {headerType === 'DOCUMENT' && 'Aceito: .pdf'}
-            </span>
           </div>
         </div>
       )}
 
+      {/* Body & Footer */}
       <div className={styles.cardBodyGrid3}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Corpo da Mensagem *</label>
@@ -504,10 +534,12 @@ const ContentSection = ({
             className={styles.textarea}
             rows={5}
             value={bodyText}
-            onChange={e => setBodyText(e.target.value.slice(0, LIMITS.BODY_TEXT))}
+            onChange={e => safeSetBodyText(e.target.value)}
             placeholder="Olá {{1}}, sua mensagem aqui..."
           />
-          <span className={styles.helper}>{bodyText.length}/{LIMITS.BODY_TEXT}</span>
+          <small className={styles.helper}>
+            {bodyTextLeft} caracteres restantes (máx. {LIMITS.bodyText})
+          </small>
         </div>
 
         <div className={styles.groupWide}>
@@ -515,10 +547,12 @@ const ContentSection = ({
           <input
             className={styles.input}
             value={footerText}
-            onChange={e => setFooterText(e.target.value.slice(0, LIMITS.FOOTER_TEXT))}
+            onChange={e => safeSetFooterText(e.target.value)}
             placeholder="Texto do rodapé"
           />
-          <span className={styles.helper}>{footerText.length}/{LIMITS.FOOTER_TEXT}</span>
+          <small className={styles.helper}>
+            {footerTextLeft} caracteres restantes (máx. {LIMITS.footerText})
+          </small>
         </div>
       </div>
     </section>
@@ -531,36 +565,25 @@ const ButtonsSection = ({
   ctas,
   setCtas,
   quicks,
-  setQuicks
+  setQuicks,
 }) => {
   const newId = () => Date.now() + '-' + Math.random().toString(36).slice(2);
 
+  const clampCtaText = (s) => clamp(s, LIMITS.ctaText);
+  const clampQuickText = (s) => clamp(s, LIMITS.quickText);
+
   const addCta = () => {
-    if (ctas.length >= MAX_BTNS) { toast.info('Limite de 3 CTAs atingido.'); return; }
-    setCtas(prev => [...prev, {
-      id: newId(),
-      type: 'URL',
-      text: '',
-      url: '',
-      phone_number: ''
-    }]);
+    if (ctas.length >= MAX_BTNS) return;
+    setCtas(prev => [...prev, { id: newId(), type: 'URL', text: '', url: '', phone_number: '' }]);
   };
 
   const addQuick = () => {
-    if (quicks.length >= MAX_BTNS) { toast.info('Limite de 3 respostas rápidas.'); return; }
-    setQuicks(prev => [...prev, {
-      id: newId(),
-      text: ''
-    }]);
+    if (quicks.length >= MAX_BTNS) return;
+    setQuicks(prev => [...prev, { id: newId(), text: '' }]);
   };
 
-  const removeCta = (id) => {
-    setCtas(prev => prev.filter(cta => cta.id !== id));
-  };
-
-  const removeQuick = (id) => {
-    setQuicks(prev => prev.filter(quick => quick.id !== id));
-  };
+  const removeCta = (id) => setCtas(prev => prev.filter(cta => cta.id !== id));
+  const removeQuick = (id) => setQuicks(prev => prev.filter(quick => quick.id !== id));
 
   return (
     <section className={styles.card}>
@@ -598,67 +621,59 @@ const ButtonsSection = ({
         </div>
       </div>
 
-      {/* CTA Buttons */}
       {buttonMode === 'cta' && (
         <div className={styles.cardBodyGrid3}>
           <div className={styles.groupFull}>
-            {ctas.map(cta => (
-              <div key={cta.id} className={styles.ctaEditRow}>
-                <select
-                  className={styles.select}
-                  value={cta.type}
-                  onChange={e => setCtas(prev => prev.map(c =>
-                    c.id === cta.id ? { ...c, type: e.target.value } : c
-                  ))}
-                >
-                  <option value="URL">Abrir URL</option>
-                  <option value="PHONE_NUMBER">Chamar</option>
-                </select>
+            {ctas.map(cta => {
+              const left = LIMITS.ctaText - (cta.text?.length || 0);
+              return (
+                <div key={cta.id} className={styles.ctaEditRow}>
+                  <select
+                    className={styles.select}
+                    value={cta.type}
+                    onChange={e => setCtas(prev => prev.map(c => c.id === cta.id ? { ...c, type: e.target.value } : c))}
+                  >
+                    <option value="URL">Abrir URL</option>
+                    <option value="PHONE_NUMBER">Chamar</option>
+                  </select>
 
-                <input
-                  className={styles.input}
-                  placeholder="Texto do botão"
-                  value={cta.text}
-                  onChange={e => setCtas(prev => prev.map(c =>
-                    c.id === cta.id ? { ...c, text: e.target.value.slice(0, LIMITS.BUTTON_TEXT) } : c
-                  ))}
-                />
-                {cta.type === 'URL' ? (
-                  <input
-                    className={styles.input}
-                    placeholder="https://exemplo.com"
-                    value={cta.url}
-                    onChange={e => setCtas(prev => prev.map(c =>
-                      c.id === cta.id ? { ...c, url: e.target.value } : c
-                    ))}
-                  />
-                ) : (
-                  <input
-                    className={styles.input}
-                    placeholder="+5511999999999"
-                    value={cta.phone_number}
-                    onChange={e => setCtas(prev => prev.map(c =>
-                      c.id === cta.id ? { ...c, phone_number: e.target.value } : c
-                    ))}
-                  />
-                )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <input
+                      className={styles.input}
+                      placeholder="Texto do botão"
+                      value={cta.text}
+                      onChange={e => setCtas(prev => prev.map(c => c.id === cta.id ? { ...c, text: clampCtaText(e.target.value) } : c))}
+                    />
+                    <small className={styles.helper}>
+                      {left} restantes (máx. {LIMITS.ctaText})
+                    </small>
+                  </div>
 
-                <button
-                  type="button"
-                  className={styles.btn}
-                  onClick={() => removeCta(cta.id)}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
+                  {cta.type === 'URL' ? (
+                    <input
+                      className={styles.input}
+                      placeholder="https://exemplo.com"
+                      value={cta.url}
+                      onChange={e => setCtas(prev => prev.map(c => c.id === cta.id ? { ...c, url: e.target.value } : c))}
+                    />
+                  ) : (
+                    <input
+                      className={styles.input}
+                      placeholder="+5511999999999"
+                      value={cta.phone_number}
+                      onChange={e => setCtas(prev => prev.map(c => c.id === cta.id ? { ...c, phone_number: e.target.value } : c))}
+                    />
+                  )}
+
+                  <button type="button" className={styles.btn} onClick={() => removeCta(cta.id)}>
+                    Remover
+                  </button>
+                </div>
+              );
+            })}
 
             {ctas.length < MAX_BTNS && (
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={addCta}
-              >
+              <button type="button" className={styles.btnSecondary} onClick={addCta}>
                 + Adicionar botão ({ctas.length}/{MAX_BTNS})
               </button>
             )}
@@ -666,37 +681,38 @@ const ButtonsSection = ({
         </div>
       )}
 
-      {/* Quick Reply Buttons */}
       {buttonMode === 'quick' && (
         <div className={styles.cardBodyGrid3}>
           <div className={styles.groupFull}>
-            {quicks.map(quick => (
-              <div key={quick.id} className={styles.quickEditRow}>
-                <input
-                  className={styles.input}
-                  placeholder="Texto da resposta rápida"
-                  value={quick.text}
-                  onChange={e => setQuicks(prev => prev.map(q =>
-                    q.id === quick.id ? { ...q, text: e.target.value.slice(0, LIMITS.BUTTON_TEXT) } : q
-                  ))}
-                />
+            {quicks.map(quick => {
+              const left = LIMITS.quickText - (quick.text?.length || 0);
+              return (
+                <div key={quick.id} className={styles.quickEditRow}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+                    <input
+                      className={styles.input}
+                      placeholder="Texto da resposta rápida"
+                      value={quick.text}
+                      onChange={e =>
+                        setQuicks(prev => prev.map(q =>
+                          q.id === quick.id ? { ...q, text: clampQuickText(e.target.value) } : q
+                        ))
+                      }
+                    />
+                    <small className={styles.helper}>
+                      {left} restantes (máx. {LIMITS.quickText})
+                    </small>
+                  </div>
 
-                <button
-                  type="button"
-                  className={styles.btn}
-                  onClick={() => removeQuick(quick.id)}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
+                  <button type="button" className={styles.btn} onClick={() => removeQuick(quick.id)}>
+                    Remover
+                  </button>
+                </div>
+              );
+            })}
 
             {quicks.length < MAX_BTNS && (
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={addQuick}
-              >
+              <button type="button" className={styles.btnSecondary} onClick={addQuick}>
                 + Adicionar resposta ({quicks.length}/{MAX_BTNS})
               </button>
             )}
@@ -728,12 +744,56 @@ export default function TemplateCreate() {
   const [quicks, setQuicks] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  // validações adicionais para mídia (usadas pelo canSave e para toasts)
-  const isValidMediaForType = (type, url) => {
-    if (!url?.trim()) return false;
-    if (type === 'IMAGE') return isImage(url);
-    if (type === 'VIDEO') return isMp4(url);
-    if (type === 'DOCUMENT') return isPdf(url);
+  // trocar tipo de cabeçalho + limpar campos
+  const handleChangeHeaderType = useCallback((nextType) => {
+    if (nextType === headerType) return;
+    setHeaderType(nextType);
+    setHeaderText('');
+    setHeaderMediaUrl('');
+    toast.info('Tipo de cabeçalho alterado. Campos limpos.');
+  }, [headerType]);
+
+  // validações adicionais antes do submit
+  const validateBeforeSubmit = () => {
+    if (!name.trim()) { toast.error('Informe o nome do template.'); return false; }
+    if (!bodyText.trim()) { toast.error('O corpo da mensagem é obrigatório.'); return false; }
+    if (headerType === 'TEXT' && !headerText.trim()) { toast.error('O texto do cabeçalho é obrigatório.'); return false; }
+
+    if (headerType !== 'TEXT' && headerType !== 'NONE') {
+      if (!headerMediaUrl?.trim()) { toast.error('Informe a URL da mídia do cabeçalho.'); return false; }
+      if (!isValidHttpUrl(headerMediaUrl)) { toast.error('URL de mídia inválida.'); return false; }
+      const ext = getUrlExt(headerMediaUrl);
+      if (!fitsTypeByExt(headerType, ext)) {
+        toast.error(headerType === 'IMAGE'
+          ? 'Imagem inválida. Use jpg, jpeg, png, webp ou gif.'
+          : headerType === 'DOCUMENT'
+          ? 'Documento inválido. Use apenas PDF (.pdf).'
+          : 'Vídeo inválido. Use apenas MP4 (.mp4).'
+        );
+        return false;
+      }
+    }
+
+    // checa limites (defensivo, já clampamos no input)
+    if (headerText.length > LIMITS.headerText) { toast.error('Cabeçalho excede o limite.'); return false; }
+    if (bodyText.length > LIMITS.bodyText) { toast.error('Corpo excede o limite.'); return false; }
+    if (footerText.length > LIMITS.footerText) { toast.error('Rodapé excede o limite.'); return false; }
+
+    if (buttonMode === 'cta') {
+      for (const b of ctas) {
+        if (!b.text?.trim()) { toast.error('Texto do botão CTA é obrigatório.'); return false; }
+        if (b.text.length > LIMITS.ctaText) { toast.error('Texto do CTA excede o limite.'); return false; }
+        if (b.type === 'URL' && !b.url?.trim()) { toast.error('URL do CTA é obrigatória.'); return false; }
+        if (b.type === 'URL' && !isValidHttpUrl(b.url)) { toast.error('URL do CTA inválida.'); return false; }
+        if (b.type === 'PHONE_NUMBER' && !b.phone_number?.trim()) { toast.error('Telefone do CTA é obrigatório.'); return false; }
+      }
+    }
+    if (buttonMode === 'quick') {
+      for (const q of quicks) {
+        if (!q.text?.trim()) { toast.error('Texto da resposta rápida é obrigatório.'); return false; }
+        if (q.text.length > LIMITS.quickText) { toast.error('Resposta rápida excede o limite.'); return false; }
+      }
+    }
     return true;
   };
 
@@ -741,32 +801,19 @@ export default function TemplateCreate() {
     if (!name.trim()) return false;
     if (!bodyText.trim()) return false;
     if (headerType === 'TEXT' && !headerText.trim()) return false;
-
-    if (headerType !== 'TEXT' && headerType !== 'NONE') {
-      if (!isValidMediaForType(headerType, headerMediaUrl)) return false;
-    }
-
     if (buttonMode === 'cta' && ctas.some(b =>
       !b.text?.trim() ||
       (b.type === 'URL' && !b.url?.trim()) ||
       (b.type === 'PHONE_NUMBER' && !b.phone_number?.trim())
     )) return false;
     if (buttonMode === 'quick' && quicks.some(q => !q.text?.trim())) return false;
-
-    // limites de tamanho
-    if (headerType === 'TEXT' && headerText.trim().length > LIMITS.HEADER_TEXT) return false;
-    if (bodyText.trim().length > LIMITS.BODY_TEXT) return false;
-    if (footerText.trim().length > LIMITS.FOOTER_TEXT) return false;
-
     return true;
-  }, [name, bodyText, headerType, headerText, headerMediaUrl, footerText, buttonMode, ctas, quicks]);
+  }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault?.();
-    if (!canSave || saving) {
-      toast.warn('Confira os campos obrigatórios e formatos da mídia.');
-      return;
-    }
+    if (saving) return;
+    if (!validateBeforeSubmit()) return;
 
     setSaving(true);
     try {
@@ -797,6 +844,7 @@ export default function TemplateCreate() {
       const created = await apiPost('/templates', payload);
       await apiPost(`/templates/${created.id}/submit`, {});
       await apiPost(`/templates/${created.id}/sync`, {});
+
       toast.success('Template enviado para avaliação!');
       navigate('/management/templates');
     } catch (err) {
@@ -805,17 +853,10 @@ export default function TemplateCreate() {
     } finally {
       setSaving(false);
     }
-  }, [canSave, saving, name, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
+  }, [saving, name, language, category, headerType, headerText, headerMediaUrl, bodyText, footerText, buttonMode, ctas, quicks, navigate]);
 
-  const previewCtas = useMemo(() =>
-    buttonMode === 'cta' ? ctas : [],
-    [buttonMode, ctas]
-  );
-
-  const previewQuicks = useMemo(() =>
-    buttonMode === 'quick' ? quicks : [],
-    [buttonMode, quicks]
-  );
+  const previewCtas = useMemo(() => buttonMode === 'cta' ? ctas : [], [buttonMode, ctas]);
+  const previewQuicks = useMemo(() => buttonMode === 'quick' ? quicks : [], [buttonMode, quicks]);
 
   return (
     <div className={styles.page} ref={topRef}>
@@ -852,7 +893,7 @@ export default function TemplateCreate() {
 
           <ContentSection
             headerType={headerType}
-            setHeaderType={setHeaderType}
+            onChangeHeaderType={handleChangeHeaderType}
             headerText={headerText}
             setHeaderText={setHeaderText}
             headerMediaUrl={headerMediaUrl}
