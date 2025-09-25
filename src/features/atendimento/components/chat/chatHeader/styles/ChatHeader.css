@@ -1,7 +1,6 @@
 /* ChatHeader.css */
-/* ChatHeader.css */
 .chat-header {
-  display: flex;                 /* antes: grid */
+  display: flex;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
@@ -17,24 +16,16 @@
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  min-width: 0;                  /* permite ellipsis funcionar */
-  flex: 1 1 auto;                /* ocupa o espaço disponível */
+  min-width: 0;        /* permite ellipsis funcionar */
+  flex: 1 1 auto;      /* ocupa o espaço disponível */
 }
 
-
-.chat-header-phone {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* coloca o número abaixo do título, alinhado à esquerda */
+/* bloco com título e número embaixo, alinhados à esquerda */
 .nome-e-telefone {
   display: flex;
-  flex-direction: column;   /* empilha */
-  align-items: flex-start;  /* alinha à esquerda */
-  gap: 4px;                 /* espaço entre título e # */
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -48,6 +39,14 @@
   text-overflow: ellipsis;
 }
 
+.chat-header-phone {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ticket-numero {
   font-size: 0.95rem;
   font-weight: 500;
@@ -55,19 +54,19 @@
   background-color: var(--color-primary-bg);
   padding: 4px 10px;
   border-radius: 6px;
-  align-self: flex-start;   /* garante esquerda mesmo se herdado */
-  width: max-content;       /* não estica */
+  align-self: flex-start;
+  width: max-content;
   white-space: nowrap;
 }
 
-
+/* botões à direita */
 .chat-header-right {
   display: flex;
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
-  margin-left: auto;             /* joga os botões para a direita */
-  white-space: nowrap;           /* evita quebra estranha dos botões */
+  margin-left: auto;   /* empurra para a direita */
+  white-space: nowrap;
 }
 
 .chat-header-right button {
@@ -96,68 +95,12 @@
 
 .btn-finalizar {
   background-color: var(--color-success);
-  color: white;
+  color: #fff;
   border: none;
 }
 .btn-finalizar:hover {
   background-color: #148f50;
-  color: white !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-
-
-
-.ticket-numero {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  background-color: var(--color-primary-bg);
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-
-.chat-header-right {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.chat-header-right button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: max-content;
-}
-
-.btn-transferir {
-  background-color: var(--color-surface-variant);
-  color: var(--color-text-default);
-  border: 1px solid var(--color-border);
-}
-
-.btn-transferir:hover {
-  background-color: var(--color-surface-variant-hover);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.btn-finalizar {
-  background-color: var(--color-success);
-  color: white;
-  border: none;
-}
-
-.btn-finalizar:hover {
-  background-color: #148f50; /* tom de verde escuro visível */
-  color: white !important;   /* mantém o texto branco */
+  color: #fff !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -175,6 +118,3 @@
     flex: 1;
   }
 }
-
-
-
