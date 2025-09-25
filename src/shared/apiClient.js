@@ -1,11 +1,12 @@
 import { getRuntimeConfig } from "./runtimeConfig";
 
-const { apiBaseUrl, tenant } = getRuntimeConfig();
+const { apiBaseUrl, tenant, currentUserId } = getRuntimeConfig();
 
-// helper p/ juntar headers e garantir X-Tenant
+// helper p/ juntar headers e garantir X-Tenant-Id + X-User-Id
 function withTenantHeaders(extra = {}) {
   return {
     "X-Tenant": tenant,
+    ...(currentUserId ? { "X-User-Id": currentUserId } : {}),
     ...extra,
   };
 }
@@ -59,3 +60,4 @@ export async function apiDelete(path) {
   if (!res.ok) throw new Error(`DELETE ${path} failed`);
   return res.json();
 }
+
