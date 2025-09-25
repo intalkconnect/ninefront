@@ -1,5 +1,11 @@
 // src/app/services/socket.js
-// Adaptador Centrifugo compatível com a API do app (join_room/leave_room, on/off, socket.id)
+// Adaptador Centrifugo compatível com a API do app:
+// - connectSocket(), getSocket()
+// - socket.on/off("new_message" | "update_message" | "queue_push" | "queue_pop" | "queue_count" | "ticket_created" | "ticket_closed")
+// - socket.emit("join_room", room)  -> assina canal
+// - socket.emit("leave_room", room) -> desassina canal
+// - socket.id                       -> clientId do Centrifugo
+
 import { Centrifuge } from "centrifuge";
 import { apiGet } from "../../../shared/apiClient";
 
@@ -7,17 +13,20 @@ let centrifuge = null;
 let connectPromise = null;
 let isConnected = false;
 
-// rooms que o app QUER manter ativas (para re-subscribe automático)
+// Rooms que o app deseja manter ativas (para re-subscribe após reconnect)
 const desiredRooms = new Set();
 // room -> Subscription
 const subs = new Map();
 // event -> Set<fn>
 const listeners = new Map();
 
+// ---------------- utils ----------------
 function emitLocal(evt, payload) {
   const set = listeners.get(evt);
   if (!set) return;
-  for (const fn of set) { try { fn(payload); } catch {} }
+  for (const fn of set) {
+    try { fn(payload); } catch {}
+  }
 }
 
 function normalizeWsUrl(raw) {
@@ -28,13 +37,14 @@ function normalizeWsUrl(raw) {
 }
 
 async function fetchToken() {
-  const { token } = await apiGet("/realtime/token");
+  const { token } = await apiGet("/realtime/token"); // seu backend deve retornar { token }
   if (!token) throw new Error("token ausente");
   return token;
 }
 
-// ---------- CONEXÃO (singleton) ----------
+// ---------------- conexão (singleton) ----------------
 export function connectSocket() {
+  // se já tem cliente e já está conectando/conectado, reutiliza
   if (centrifuge && (isConnected || connectPromise)) {
     return connectPromise ?? Promise.resolve(centrifuge);
   }
@@ -66,22 +76,31 @@ export function connectSocket() {
 
     centrifuge.on("connected", (ctx) => {
       isConnected = true;
-      centrifuge.id = ctx.client; // compat socket.id
+      centrifuge.id = ctx.client; // compat com socket.io
       console.log("[realtime] connected -> client:", ctx.client, "transport:", ctx.transport);
 
-      // 🔁 re-assina tudo que o app marcou como desejado
+      // 🔁 re-ativa todas as rooms desejadas sem criar duplicatas
       for (const room of desiredRooms) {
         const sub = subs.get(room);
-        if (!sub || sub.state !== "subscribed") {
-          try { subscribeRoom(room); } catch {}
+        if (!sub) {
+          // nunca criamos sub para esse room ainda (primeira conexão)
+          subscribeRoom(room);
+          continue;
         }
+        // se já existe, apenas garante que esteja assinada
+        if (sub.state === "unsubscribed") {
+          try { sub.subscribe(); } catch (e) {
+            console.warn("[realtime] resubscribe fail:", room, e);
+          }
+        }
+        // estados "subscribing" ou "subscribed": não fazer nada
       }
     });
 
     centrifuge.on("disconnected", (ctx) => {
       isConnected = false;
       console.warn("[realtime] disconnected ->", ctx.reason);
-      // NÃO chamar unsubscribe aqui; Centrifuge fará recover.
+      // não dá unsubscribe aqui; o Centrifuge fará recover/handshake.
     });
 
     centrifuge.on("error", (err) => {
@@ -95,7 +114,7 @@ export function connectSocket() {
   return connectPromise.finally(() => { connectPromise = null; });
 }
 
-// “socket compatível” para o resto do app
+// ---------------- API compatível ----------------
 export function getSocket() {
   return {
     get connected() { return isConnected; },
@@ -115,29 +134,42 @@ export function getSocket() {
     emit(name, payload) {
       if (name === "join_room")  return subscribeRoom(String(payload));
       if (name === "leave_room") return unsubscribeRoom(String(payload));
-      if (name === "identify")   return;
+      if (name === "identify")   return; // no-op no Centrifugo
+      // outros emits: publicações devem vir do back via HTTP /api (publish)
     },
 
     connect() { centrifuge?.connect(); },
-    // NÃO chame disconnect() em unmount normais – isso derruba as rooms.
-    // Deixe o Centrifuge reconectar sozinho.
+    // não usar disconnect() em unmount comuns — isso derruba as rooms
+    // deixe o Centrifuge reconectar sozinho
+
+    // util de depuração
     _debug() {
-      console.table([...subs.entries()].map(([room, sub]) => ({ room, state: sub.state })));
+      console.table([...subs.entries()].map(([room, sub]) => ({
+        room, state: sub.state
+      })));
       console.log("desired:", [...desiredRooms]);
     }
   };
 }
 
-// ---------- SUBSCRIÇÕES ----------
+// ---------------- subscriptions ----------------
 async function subscribeRoom(room) {
   desiredRooms.add(room);
 
+  // se já temos sub criada para o room, apenas garante que esteja ativa
   const existing = subs.get(room);
-  if (existing && existing.state === "subscribed") return existing;
+  if (existing) {
+    if (existing.state === "unsubscribed") {
+      try { existing.subscribe(); } catch (e) {
+        console.warn("[realtime] subscribe fail:", room, e);
+      }
+    }
+    return existing;
+  }
 
   if (!centrifuge) await connectSocket();
 
-  // se ainda não conectou, tenta de novo quando conectar
+  // se ainda não conectou, agenda subscribe após conectar
   if (!isConnected) {
     const t = setInterval(() => {
       if (isConnected) { clearInterval(t); subscribeRoom(room); }
@@ -148,6 +180,7 @@ async function subscribeRoom(room) {
   const sub = centrifuge.newSubscription(room);
 
   sub.on("publication", (ctx) => {
+    // O worker publica como: { event: "new_message", payload: {...} }
     const data = ctx.data || {};
     const evt = data.event || data.type || null;
     const payload = data.payload ?? data;
@@ -163,8 +196,9 @@ async function subscribeRoom(room) {
     console.warn("[realtime] sub error:", room, err);
   });
 
-  sub.subscribe();
+  // registra ANTES de assinar para evitar duplicatas em reconnect
   subs.set(room, sub);
+  sub.subscribe();
   return sub;
 }
 
