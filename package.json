@@ -14,6 +14,7 @@
     "classnames": "^2.5.1",
     "immer": "^10.1.1",
     "jwt-decode": "^4.0.0",
+    "centrifuge": "^5.4.0",
     "lamejs": "^1.2.1",
     "lucide-react": "^0.512.0",
     "minio": "^8.0.5",
