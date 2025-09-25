@@ -23,12 +23,27 @@ function findReplyTarget(messages, refId) {
   );
 }
 
+function isNearBottom(el, threshold = 80) {
+  if (!el) return true;
+  const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+  return dist <= threshold;
+}
+
 /**
  * MessageList (puro, sem paginação interna; usa um sentinel no topo para carregar mais)
  */
-
 const MessageList = forwardRef(
-  ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
+  (
+    {
+      messages,
+      onImageClick,
+      onPdfClick,
+      onReply,
+      loaderRef = null,
+      autoScrollMode = 'ifAtBottom', // 'always' | 'ifAtBottom' | 'off'
+    },
+    ref
+  ) => {
     const containerRef = useRef(null);
 
     useImperativeHandle(ref, () => ({
@@ -43,27 +58,33 @@ const MessageList = forwardRef(
       getContainer: () => containerRef.current,
     }));
 
-    // sempre desce pro fim quando a lista muda
+    // auto-scroll controlado quando a lista muda
     useEffect(() => {
-      if (containerRef.current) {
-        containerRef.current.scrollTop = containerRef.current.scrollHeight;
-      }
-    }, [messages]);
+      const el = containerRef.current;
+      if (!el) return;
 
-    // ao voltar o foco pra aba, garante que está no fim
+      if (autoScrollMode === 'always' || (autoScrollMode === 'ifAtBottom' && isNearBottom(el))) {
+        el.scrollTop = el.scrollHeight;
+      }
+    }, [messages, autoScrollMode]);
+
+    // ao voltar o foco pra aba, só desce se permitido
     useEffect(() => {
       const handleVisibility = () => {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState !== 'visible') return;
+        const el = containerRef.current;
+        if (!el) return;
+        if (autoScrollMode === 'off') return;
+        // Mantém o mesmo critério do efeito principal
+        if (autoScrollMode === 'always' || (autoScrollMode === 'ifAtBottom' && isNearBottom(el))) {
           setTimeout(() => {
-            if (containerRef.current) {
-              containerRef.current.scrollTop = containerRef.current.scrollHeight;
-            }
+            el.scrollTop = el.scrollHeight;
           }, 50);
         }
       };
       document.addEventListener('visibilitychange', handleVisibility);
       return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }, []);
+    }, [autoScrollMode]);
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
