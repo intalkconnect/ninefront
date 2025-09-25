@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { connectSocket, getSocket } from "../../../services/socket";
 import { apiGet } from "../../../../../shared/apiClient";
 import useConversationsStore from "../../../store/useConversationsStore";
+import useTicketNavStore from "../../../store/useTicketNavStore";
 import { marcarMensagensAntesDoTicketComoLidas } from "../../../hooks/useSendMessage";
 
 import SendMessageForm from "../../sendMessageForm/SendMessageForm";
@@ -20,18 +21,11 @@ function extractText(c) {
   if (typeof c === "string") {
     const s = c.trim();
     if (s.startsWith("{") || s.startsWith("[")) {
-      try {
-        const j = JSON.parse(s);
-        return extractText(j);
-      } catch {
-        return s;
-      }
+      try { const j = JSON.parse(s); return extractText(j); } catch { return s; }
     }
     return s;
   }
-  if (typeof c === "object") {
-    return String(c.text || c.caption || c.body || "").trim();
-  }
+  if (typeof c === "object") return String(c.text || c.caption || c.body || "").trim();
   return String(c).trim();
 }
 function extractUrlOrFilename(c) {
@@ -39,17 +33,14 @@ function extractUrlOrFilename(c) {
   if (typeof c === "string") {
     try { const j = JSON.parse(c); return extractUrlOrFilename(j); } catch { return ""; }
   }
-  if (typeof c === "object") {
-    return String(c.url || c.filename || "").trim().toLowerCase();
-  }
+  if (typeof c === "object") return String(c.url || c.filename || "").trim().toLowerCase();
   return "";
 }
 function contentToText(content) {
   const t = extractText(content);
   if (t) return t;
   const uf = extractUrlOrFilename(content);
-  if (uf) return "[arquivo]";
-  return "[mensagem]";
+  return uf ? "[arquivo]" : "[mensagem]";
 }
 const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, error: 1, undefined: 0, null: 0 };
 function rankStatus(s) { return STATUS_RANK[s] ?? 0; }
@@ -122,6 +113,9 @@ export default function ChatWindow({ userIdSelecionado }) {
   const setClienteAtivo   = useConversationsStore((state) => state.setClienteAtivo);
   const userEmail         = useConversationsStore((state) => state.userEmail);
   const userFilas         = useConversationsStore((state) => state.userFilas);
+
+  const ticketNavTarget   = useTicketNavStore((s) => s.target);
+  const clearTicketTarget = useTicketNavStore((s) => s.clearTarget);
 
   const [allMessages, setAllMessages] = useState([]);
   const [modalImage, setModalImage] = useState(null);
@@ -218,9 +212,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       joinedRoomsRef.current.add(userIdSelecionado);
     }
     const onConnect = () => {
-      for (const room of joinedRoomsRef.current) {
-        socket.emit("join_room", room);
-      }
+      for (const room of joinedRoomsRef.current) socket.emit("join_room", room);
     };
     socket.on("connect", onConnect);
     return () => { socket.off("connect", onConnect); };
@@ -317,27 +309,25 @@ export default function ChatWindow({ userIdSelecionado }) {
         const qs = new URLSearchParams({
           limit: String(PAGE_LIMIT),
           before_ts: String(oldestTsRef.current),
-          sort: "desc", // mais rápido no servidor
+          sort: "desc",
         });
         const older = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
         const arr = Array.isArray(older) ? older : (older?.data || []);
-        arr.reverse(); // volta para ASC no cliente
+        arr.reverse();
 
         if (arr.length) {
           setAllMessages((prev) => {
-            const next = [...arr, ...prev]; // preprende
+            const next = [...arr, ...prev];
             messageCacheRef.current.set(userIdSelecionado, next);
             return next;
           });
           oldestTsRef.current = arr[0].timestamp || arr[0].created_at;
 
-          // mantém posição na tela após preprender
           requestAnimationFrame(() => {
             const newHeight = container?.scrollHeight || 0;
             if (container) container.scrollTop = newHeight - prevHeight;
           });
         } else {
-          // acabou
           oldestTsRef.current = null;
         }
       } catch (e) {
@@ -357,7 +347,6 @@ export default function ChatWindow({ userIdSelecionado }) {
       if (document.visibilityState !== "visible" || !userIdSelecionado) return;
       const socket = getSocket();
       if (socket && !socket.connected) socket.connect();
-      // opcional: se quiser, busque apenas os últimos N novamente (mantive simples)
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -393,6 +382,69 @@ export default function ChatWindow({ userIdSelecionado }) {
     setReplyTo(null);
     setTimeout(scrollToBottom, 0);
   }, [mergeConversation, userIdSelecionado, scrollToBottom]);
+
+  /* ------ scroll até âncora de ticket (com paginação on-demand) ------ */
+  const scrollToTicketAnchor = useCallback(async (ticketNumber) => {
+    const container = messageListRef.current?.getContainer?.();
+    if (!container) return;
+
+    const findAnchor = () =>
+      container.querySelector(`[data-ticket="${CSS.escape(String(ticketNumber))}"]`);
+
+    // tenta já disponível
+    let anchor = findAnchor();
+
+    // se não houver, pagina para trás até achar (ou acabar)
+    while (!anchor && oldestTsRef.current) {
+      try {
+        const prevHeight = container.scrollHeight;
+        const qs = new URLSearchParams({
+          limit: String(PAGE_LIMIT),
+          before_ts: String(oldestTsRef.current),
+          sort: "desc",
+        });
+        const older = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
+        const arr = Array.isArray(older) ? older : (older?.data || []);
+        arr.reverse();
+
+        if (arr.length) {
+          setAllMessages(prev => {
+            const next = [...arr, ...prev];
+            messageCacheRef.current.set(userIdSelecionado, next);
+            return next;
+          });
+          oldestTsRef.current = arr[0].timestamp || arr[0].created_at;
+
+          await new Promise(r => requestAnimationFrame(r));
+          const newHeight = container.scrollHeight;
+          container.scrollTop = newHeight - prevHeight;
+
+          anchor = findAnchor();
+        } else {
+          oldestTsRef.current = null;
+        }
+      } catch (e) {
+        console.error("Erro ao paginar buscando âncora do ticket:", e);
+        break;
+      }
+    }
+
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [userIdSelecionado]);
+
+  /* ------ reage ao alvo vindo do DetailsPanel via Zustand ------ */
+  useEffect(() => {
+    const t = ticketNavTarget;
+    if (!t || String(t.userId) !== String(userIdSelecionado)) return;
+    if (!t.ticket_number) return;
+
+    scrollToTicketAnchor(t.ticket_number).finally(() => {
+      // limpa o alvo para futuros cliques funcionarem (e evitar loops)
+      clearTicketTarget();
+    });
+  }, [ticketNavTarget, userIdSelecionado, scrollToTicketAnchor, clearTicketTarget]);
 
   /* ------ render ------ */
   if (!userIdSelecionado) {
