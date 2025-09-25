@@ -56,14 +56,8 @@ export default function ChatHeader({ userIdSelecionado }) {
         <div className="chat-header-left">
           <div className="nome-e-telefone">
             <span className="chat-header-nome">{name}</span>
-            {clienteAtivo?.phone && (
-              <span className="chat-header-phone">{clienteAtivo.phone}</span>
-            )}
+            <span className="ticket-numero">#{ticket_number}</span>
           </div>
-        </div>
-
-        <div className="chat-header-center">
-          <span className="ticket-numero">#{ticket_number}</span>
         </div>
 
         <div className="chat-header-right">
@@ -87,6 +81,7 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
 
 
 
