@@ -103,7 +103,13 @@ const MessageList = forwardRef(
           return (
             <React.Fragment key={msg.id || msg.message_id || index}>
               {showTicketDivider && (
-                <div className="ticket-divider">Ticket #{msg.ticket_number}</div>
+                <div
+                  className="ticket-divider"
+                  data-ticket={msg.ticket_number}
+                  id={`ticket-${msg.ticket_number}`}
+                >
+                  Ticket #{msg.ticket_number}
+                </div>
               )}
               <MessageRow
                 msg={{ ...msg, replyTo: replyToMessage }}
