@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
-import { apiGet } from '../../../../shared/apiClient'; // ajuste o path conforme seu projeto
+import { apiGet } from '../../../../shared/apiClient'; // ajuste se preciso
+import useTicketNavStore from '../../../store/useTicketNavStore';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [historico, setHistorico] = useState([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
+  const goToTicket = useTicketNavStore((s) => s.goToTicket);
 
   useEffect(() => {
     if (!userIdSelecionado) return;
@@ -16,9 +18,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       .then(res => {
         setHistorico(res?.tickets || []);
       })
-      .catch(() => {
-        setHistorico([]);
-      })
+      .catch(() => setHistorico([]))
       .finally(() => setLoadingHistorico(false));
   }, [userIdSelecionado]);
 
@@ -80,21 +80,23 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           ) : historico.length === 0 ? (
             <p className="sem-historico">Sem histórico encontrado</p>
           ) : (
-<ul className="historico-list">
-  {historico.map((ticket) => (
-    <li key={ticket.id} className="ticket-item">
-      <div className="ticket-card">
-        <div className="ticket-title">Ticket: {ticket.ticket_number}</div>
-        <div className="ticket-date">
-          {new Date(ticket.created_at).toLocaleString('pt-BR')}
-        </div>
-      </div>
-    </li>
-  ))}
-</ul>
-
-
-
+            <ul className="historico-list">
+              {historico.map((ticket) => (
+                <li key={ticket.id} className="ticket-item">
+                  <button
+                    type="button"
+                    className="ticket-card"
+                    onClick={() => goToTicket(userIdSelecionado, ticket.ticket_number)}
+                    style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, cursor: 'pointer' }}
+                  >
+                    <div className="ticket-title">Ticket: {ticket.ticket_number}</div>
+                    <div className="ticket-date">
+                      {new Date(ticket.created_at).toLocaleString('pt-BR')}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
