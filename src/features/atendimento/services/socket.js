@@ -7,7 +7,7 @@
 // - socket.id                       -> clientId do Centrifugo
 
 import { Centrifuge } from "centrifuge";
-import { apiGet } from "../../../shared/apiClient";
+import { apiGet, apiPost } from "../../../shared/apiClient";
 
 let centrifuge = null;
 let connectPromise = null;
@@ -37,7 +37,8 @@ function normalizeWsUrl(raw) {
 }
 
 async function fetchToken() {
-  const { token } = await apiGet("/realtime/token"); // seu backend deve retornar { token }
+  // usa apiClient (já injeta headers padronizados)
+  const { token } = await apiGet("/realtime/token");
   if (!token) throw new Error("token ausente");
   return token;
 }
@@ -139,8 +140,6 @@ export function getSocket() {
     },
 
     connect() { centrifuge?.connect(); },
-    // não usar disconnect() em unmount comuns — isso derruba as rooms
-    // deixe o Centrifuge reconectar sozinho
 
     // util de depuração
     _debug() {
@@ -152,7 +151,6 @@ export function getSocket() {
   };
 }
 
-// ---------------- subscriptions ----------------
 // ---------------- subscriptions ----------------
 async function subscribeRoom(room) {
   desiredRooms.add(room);
@@ -178,20 +176,25 @@ async function subscribeRoom(room) {
     return;
   }
 
-  // ✅ NOVO: canais conv:* usam subscribe token
+  // canais conv:* usam subscribe token
   const needsSubToken = room.startsWith("conv:");
 
-  const sub = centrifuge.newSubscription(room, needsSubToken ? {
-    getToken: async () => {
-      const r = await fetch("/centrifugo/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: room, client: centrifuge.state.client })
-      });
-      const { token } = await r.json();
-      return token;
-    }
-  } : undefined);
+  const sub = centrifuge.newSubscription(
+    room,
+    needsSubToken
+      ? {
+          getToken: async () => {
+            // 👉 usa apiClient (envia headers padronizados + baseUrl)
+            const { token } = await apiPost("/centrifugo/subscribe", {
+              channel: room,
+              client: centrifuge.state.client,
+            });
+            if (!token) throw new Error("subscribe token ausente");
+            return token;
+          },
+        }
+      : undefined
+  );
 
   sub.on("publication", (ctx) => {
     // O worker publica como: { event: "new_message", payload: {...} }
@@ -216,7 +219,6 @@ async function subscribeRoom(room) {
   return sub;
 }
 
-
 function unsubscribeRoom(room) {
   desiredRooms.delete(room);
   const sub = subs.get(room);
@@ -224,4 +226,3 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
-
