@@ -3,7 +3,7 @@ import { Mail, Phone, IdCard, IdCardLanyard } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../../../shared/apiClient'; // ajuste se preciso
-import useTicketNavStore from '../../../store/useTicketNavStore';
+import useTicketNavStore from '../../store/useTicketNavStore';
 
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [historico, setHistorico] = useState([]);
