@@ -26,6 +26,7 @@ function findReplyTarget(messages, refId) {
 /**
  * MessageList (puro, sem paginação interna; usa um sentinel no topo para carregar mais)
  */
+
 const MessageList = forwardRef(
   ({ messages, onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
