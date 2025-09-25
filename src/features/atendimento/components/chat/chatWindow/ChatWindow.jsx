@@ -15,7 +15,7 @@ import "./styles/ChatWindow.css";
 
 const PAGE_LIMIT = 100;
 
-/* -------------------- helpers -------------------- */
+/* -------------------- helpers --------------------- */
 function extractText(c) {
   if (c == null) return "";
   if (typeof c === "string") {
