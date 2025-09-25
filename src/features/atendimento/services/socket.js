@@ -1,5 +1,5 @@
-// src/app/services/socket.js
-// Adaptador Centrifugo que preserva a API usada pelo app:
+// Adaptador Centrifugo mantendo API compatível com o app:
+//
 // - connectSocket(), getSocket()
 // - socket.on/off("new_message" | "update_message" | "queue_push" | "queue_pop" | "queue_count" | "ticket_created" | "ticket_closed")
 // - socket.emit("join_room", room)  -> subscribe(room)
@@ -11,62 +11,84 @@ import { apiGet } from "../../../shared/apiClient";
 
 let centrifuge = null;
 let connected = false;
-
-// Tabela de assinaturas por canal (room)
-const subs = new Map();
-
-// Bus publicador → lista de handlers por 'event' lógico
-const listeners = new Map(); // key = eventName, value = Set<fn>
+const subs = new Map();            // room -> subscription
+const listeners = new Map();       // event -> Set<fn>
 
 function emitLocal(eventName, payload) {
   const set = listeners.get(eventName);
-  if (!set || set.size === 0) return;
+  if (!set) return;
   for (const fn of set) {
     try { fn(payload); } catch {}
   }
 }
 
-// Conecta no Centrifugo pegando o token do seu backend.
-// Seu back deve expor algo como GET /realtime/token (JWT Centrifugo).
+function normalizeWsUrl(raw) {
+  if (!raw) return "";
+  // garante o sufixo /connection/websocket
+  if (!/\/connection\/websocket$/.test(raw)) {
+    return raw.replace(/\/+$/, "") + "/connection/websocket";
+  }
+  return raw;
+}
+
+// Busca token no backend (deve responder { token: "<jwt>" })
+async function fetchToken() {
+  const data = await apiGet("/realtime/token");
+  if (!data?.token) throw new Error("token ausente");
+  return data.token;
+}
+
+// Conecta no Centrifugo.
+// VITE_WS_URL               => wss://realtime.northgate.ninechat.com.br/connection/websocket
+// VITE_CENTRIFUGO_INSECURE  => "true" para permitir conexão sem token (apenas testes)
 export async function connectSocket() {
   if (centrifuge && connected) return centrifuge;
 
-  // Você pode usar envs no Vite:
-  // VITE_WS_URL exemplo: wss://realtime.northgate.ninechat.com.br/connection/websocket
-  const WS_URL = import.meta.env.VITE_WS_URL || "";
+  const WS_URL_RAW = import.meta.env.VITE_WS_URL || "";
+  const WS_URL = normalizeWsUrl(WS_URL_RAW);
+  const ALLOW_INSECURE = String(import.meta.env.VITE_CENTRIFUGO_INSECURE || "").toLowerCase() === "true";
+
   if (!WS_URL) {
     console.warn("[realtime] VITE_WS_URL não definido");
     return null;
   }
 
-  // Pega token de conexão no back (outra opção é embutir HS, mas recomendado é token curto)
-  let token = "";
-  try {
-    const t = await apiGet("/realtime/token"); // implemente no back retornando { token }
-    token = t?.token || "";
-  } catch (e) {
-    console.error("[realtime] falha ao buscar token", e);
+  // Use o hook getToken para o Centrifuge renovar token quando necessário.
+  let getToken;
+  if (!ALLOW_INSECURE) {
+    getToken = async () => {
+      try {
+        return await fetchToken();
+      } catch (e) {
+        console.error("[realtime] falha ao buscar token:", e?.message || e);
+        throw e;
+      }
+    };
   }
 
   centrifuge = new Centrifuge(WS_URL, {
-    token: token || undefined,
-    // reconexão padrão já inclusa
+    // se insecure=false no servidor, `getToken` é obrigatório
+    // se insecure=true no servidor, pode conectar sem token (apenas testes)
+    ...(getToken ? { getToken } : {}),
+    // ajustes de reconexão (opcional)
+    minReconnectDelay: 500,
+    maxReconnectDelay: 5000,
   });
 
-  centrifuge.on("connected", ctx => {
+  centrifuge.on("connected", (ctx) => {
     connected = true;
-    // expõe um id estilo socket.id
-    centrifuge.id = ctx.client; // compat
-    console.log("[realtime] connected", ctx.client);
+    // compat com socket.io: expor um "id"
+    centrifuge.id = ctx.client;
+    console.log("[realtime] connected -> client:", ctx.client, "transport:", ctx.transport);
   });
 
-  centrifuge.on("disconnected", ctx => {
+  centrifuge.on("disconnected", (ctx) => {
     connected = false;
-    console.warn("[realtime] disconnected", ctx.reason);
+    console.warn("[realtime] disconnected ->", ctx.reason);
   });
 
-  centrifuge.on("error", err => {
-    console.warn("[realtime] error", err);
+  centrifuge.on("error", (err) => {
+    console.warn("[realtime] error ->", err);
   });
 
   centrifuge.connect();
@@ -76,9 +98,7 @@ export async function connectSocket() {
 export function getSocket() {
   if (!centrifuge) return null;
 
-  // “Socket compatível” para o resto do app
   return {
-    // compat c/ socket.io
     get connected() { return connected; },
     get id() { return centrifuge?.id || null; },
 
@@ -93,21 +113,18 @@ export function getSocket() {
       if (set.size === 0) listeners.delete(event);
     },
 
-    // “emit” só precisa tratar join/leave; demais ficaram no back via HTTP normal
     emit(name, payload) {
       if (name === "join_room") {
-        const room = String(payload);
-        return subscribeRoom(room);
+        return subscribeRoom(String(payload));
       }
       if (name === "leave_room") {
-        const room = String(payload);
-        return unsubscribeRoom(room);
+        return unsubscribeRoom(String(payload));
       }
       if (name === "identify") {
-        // no-op (no Centrifugo não há namespace/socket room por identify)
+        // no-op no Centrifugo
         return;
       }
-      // outros emits não são necessários aqui
+      // demais emits não são necessários: publicações vêm do back via HTTP publish/API
     },
 
     connect() { centrifuge?.connect(); },
@@ -115,31 +132,26 @@ export function getSocket() {
   };
 }
 
-// --- Subscriptions -------------------------------------------------
+// ---------------- Subscriptions ----------------
 
 function subscribeRoom(room) {
   if (!centrifuge) return;
-  if (subs.has(room)) return; // já assinado
+  if (subs.has(room)) return;
 
   const sub = centrifuge.newSubscription(room);
 
-  sub.on("publication", ctx => {
-    // Esperamos que o back publique como: {event: "new_message", payload: {...}}
-    // (isso você já preparou no worker/publicação)
+  sub.on("publication", (ctx) => {
+    // Publicamos do back como { event: "new_message", payload: {...} }
     const data = ctx.data || {};
     const evt = data.event || data.type || null;
     const payload = data.payload != null ? data.payload : data;
-
-    if (!evt) return;
-    // Normaliza nomes já usados no front:
-    // new_message, update_message, queue_push, queue_pop, queue_count, ticket_created, ticket_closed
-    emitLocal(evt, payload);
+    if (evt) emitLocal(evt, payload);
   });
 
-  sub.on("subscribed", ctx => {
-    console.log("[realtime] subscribed:", room, "recoverable:", ctx.recovered);
+  sub.on("subscribed", (ctx) => {
+    console.log("[realtime] subscribed:", room, "recovered:", ctx.recovered);
   });
-  sub.on("error", err => {
+  sub.on("error", (err) => {
     console.warn("[realtime] sub error:", room, err);
   });
   sub.on("unsubscribed", () => {
