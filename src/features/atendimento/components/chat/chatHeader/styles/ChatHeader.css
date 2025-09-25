@@ -52,7 +52,6 @@
   font-weight: 500;
   color: var(--color-primary);
   background-color: var(--color-primary-bg);
-  padding: 4px 10px;
   border-radius: 6px;
   align-self: flex-start;
   width: max-content;
@@ -118,3 +117,4 @@
     flex: 1;
   }
 }
+
