@@ -15,7 +15,7 @@ import "./styles/ChatWindow.css";
 
 const PAGE_LIMIT = 100;
 
-/* -------------------- helpers --------------------- */
+/* -------------------- helpers -------------------- */
 function extractText(c) {
   if (c == null) return "";
   if (typeof c === "string") {
@@ -118,12 +118,15 @@ export default function ChatWindow({ userIdSelecionado }) {
   const clearTicketTarget = useTicketNavStore((s) => s.clearTarget);
 
   const [allMessages, setAllMessages] = useState([]);
-  const [modalImage, setModalImage] = useState(null);
-  const [pdfModal, setPdfModal] = useState(null);
+  const [modalImage, setModalImage]   = useState(null);
+  const [pdfModal, setPdfModal]       = useState(null);
   const [clienteInfo, setClienteInfo] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [replyTo, setReplyTo] = useState(null);
+  const [isLoading, setIsLoading]     = useState(false);
+  const [replyTo, setReplyTo]         = useState(null);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
+
+  // controla comportamento do auto-scroll do MessageList
+  const [autoScrollMode, setAutoScrollMode] = useState('ifAtBottom');
 
   const messageListRef   = useRef(null);
   const loaderRef        = useRef(null);
@@ -156,10 +159,9 @@ export default function ChatWindow({ userIdSelecionado }) {
       const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
       messageCacheRef.current.set(msg.user_id, next);
 
-      // atualiza card/snippet
       const ts = msg.timestamp || new Date().toISOString();
       mergeConversation(msg.user_id, {
-        content: contentToText(msg.content),
+        content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
         direction: msg.direction,
         timestamp: ts,
@@ -179,7 +181,7 @@ export default function ChatWindow({ userIdSelecionado }) {
 
       const ts = msg.timestamp || new Date().toISOString();
       mergeConversation(msg.user_id, {
-        content: contentToText(msg.content),
+        content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
         direction: msg.direction,
         timestamp: ts,
@@ -218,7 +220,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => { socket.off("connect", onConnect); };
   }, [userIdSelecionado]);
 
-  /* ------ load on user change (pega últimos N ASC + cursor) ------ */
+  /* ------ load on user change ------ */
   useEffect(() => {
     if (!userIdSelecionado) return;
     setIsLoading(true);
@@ -240,11 +242,9 @@ export default function ChatWindow({ userIdSelecionado }) {
         }
 
         const msgs = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
-
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
 
-        // cursor = TS da mais antiga carregada
         oldestTsRef.current = msgs.length ? (msgs[0].timestamp || msgs[0].created_at) : null;
 
         const lastMsg = msgs[msgs.length - 1] || {};
@@ -283,7 +283,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         console.error("Erro ao buscar cliente/conversa:", err);
       } finally {
         setIsLoading(false);
-        setTimeout(scrollToBottom, 30);
+        // não força scroll aqui; o MessageList vai descer se o usuário já estiver no fim
       }
     })();
   }, [
@@ -292,7 +292,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     userFilas,
     mergeConversation,
     setClienteAtivo,
-    scrollToBottom,
   ]);
 
   /* ------ infinite scroll (carrega mensagens mais antigas via cursor) ------ */
@@ -341,17 +340,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [userIdSelecionado]);
 
-  /* ------ tab visible refresh (reconecta socket) ------ */
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== "visible" || !userIdSelecionado) return;
-      const socket = getSocket();
-      if (socket && !socket.connected) socket.connect();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [userIdSelecionado]);
-
   /* ------ envio otimista ------ */
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
@@ -380,21 +368,25 @@ export default function ChatWindow({ userIdSelecionado }) {
     });
 
     setReplyTo(null);
-    setTimeout(scrollToBottom, 0);
-  }, [mergeConversation, userIdSelecionado, scrollToBottom]);
+    setTimeout(() => {
+      if (autoScrollMode !== 'off') scrollToBottom();
+    }, 0);
+  }, [mergeConversation, userIdSelecionado, scrollToBottom, autoScrollMode]);
 
   /* ------ scroll até âncora de ticket (com paginação on-demand) ------ */
   const scrollToTicketAnchor = useCallback(async (ticketNumber) => {
     const container = messageListRef.current?.getContainer?.();
     if (!container) return;
 
+    // desliga auto-scroll durante a busca/scroll
+    setAutoScrollMode('off');
+
     const findAnchor = () =>
       container.querySelector(`[data-ticket="${CSS.escape(String(ticketNumber))}"]`);
 
-    // tenta já disponível
     let anchor = findAnchor();
 
-    // se não houver, pagina para trás até achar (ou acabar)
+    // pagina para trás até achar (ou acabar)
     while (!anchor && oldestTsRef.current) {
       try {
         const prevHeight = container.scrollHeight;
@@ -431,6 +423,11 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     if (anchor) {
       anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+      // dá um tempinho pro browser finalizar a animação antes de reativar o auto-scroll
+      setTimeout(() => setAutoScrollMode('ifAtBottom'), 400);
+    } else {
+      // não achou; reativa normal
+      setAutoScrollMode('ifAtBottom');
     }
   }, [userIdSelecionado]);
 
@@ -441,7 +438,6 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!t.ticket_number) return;
 
     scrollToTicketAnchor(t.ticket_number).finally(() => {
-      // limpa o alvo para futuros cliques funcionarem (e evitar loops)
       clearTicketTarget();
     });
   }, [ticketNavTarget, userIdSelecionado, scrollToTicketAnchor, clearTicketTarget]);
@@ -480,6 +476,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
         loaderRef={oldestTsRef.current ? loaderRef : null}
+        autoScrollMode={autoScrollMode}   // 👈 controla o auto-scroll
       />
 
       <div ref={bottomRef} />
