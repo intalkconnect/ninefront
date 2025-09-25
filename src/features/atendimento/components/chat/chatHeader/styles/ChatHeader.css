@@ -23,9 +23,10 @@
 
 .nome-e-telefone {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  flex-direction: row;
+  align-items: baseline;   /* alinha pelos textos */
+  gap: 8px;
+  min-width: 0;            /* permite ellipsis no nome */
 }
 
 .chat-header-nome {
@@ -35,6 +36,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1 1 auto;          /* ocupa o espaço e empurra o badge pra frente */
+  min-width: 0;
 }
 
 .chat-header-phone {
@@ -52,7 +55,8 @@
   background-color: var(--color-primary-bg);
   padding: 4px 10px;
   border-radius: 6px;
-  width: max-content;
+  flex: 0 0 auto;          /* não estica */
+  white-space: nowrap;     /* não quebra linha */
 }
 
 .chat-header-right {
@@ -169,4 +173,5 @@
     flex: 1;
   }
 }
+
 
