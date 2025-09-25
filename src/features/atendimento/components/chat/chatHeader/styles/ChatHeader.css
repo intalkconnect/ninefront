@@ -21,28 +21,28 @@
   flex: 1 1 auto;                /* ocupa o espaço disponível */
 }
 
+
+.chat-header-phone {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* coloca o número abaixo do título, alinhado à esquerda */
 .nome-e-telefone {
   display: flex;
-  flex-direction: row;
-  align-items: baseline;   /* alinha pelos textos */
-  gap: 8px;
-  min-width: 0;            /* permite ellipsis no nome */
+  flex-direction: column;   /* empilha */
+  align-items: flex-start;  /* alinha à esquerda */
+  gap: 4px;                 /* espaço entre título e # */
+  min-width: 0;
 }
 
 .chat-header-nome {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--color-text-default);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1 1 auto;          /* ocupa o espaço e empurra o badge pra frente */
-  min-width: 0;
-}
-
-.chat-header-phone {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -55,9 +55,11 @@
   background-color: var(--color-primary-bg);
   padding: 4px 10px;
   border-radius: 6px;
-  flex: 0 0 auto;          /* não estica */
-  white-space: nowrap;     /* não quebra linha */
+  align-self: flex-start;   /* garante esquerda mesmo se herdado */
+  width: max-content;       /* não estica */
+  white-space: nowrap;
 }
+
 
 .chat-header-right {
   display: flex;
@@ -173,5 +175,6 @@
     flex: 1;
   }
 }
+
 
 
