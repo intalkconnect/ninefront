@@ -153,6 +153,7 @@ export function getSocket() {
 }
 
 // ---------------- subscriptions ----------------
+// ---------------- subscriptions ----------------
 async function subscribeRoom(room) {
   desiredRooms.add(room);
 
@@ -177,7 +178,20 @@ async function subscribeRoom(room) {
     return;
   }
 
-  const sub = centrifuge.newSubscription(room);
+  // ✅ NOVO: canais conv:* usam subscribe token
+  const needsSubToken = room.startsWith("conv:");
+
+  const sub = centrifuge.newSubscription(room, needsSubToken ? {
+    getToken: async () => {
+      const r = await fetch("/centrifugo/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: room, client: centrifuge.state.client })
+      });
+      const { token } = await r.json();
+      return token;
+    }
+  } : undefined);
 
   sub.on("publication", (ctx) => {
     // O worker publica como: { event: "new_message", payload: {...} }
@@ -202,6 +216,7 @@ async function subscribeRoom(room) {
   return sub;
 }
 
+
 function unsubscribeRoom(room) {
   desiredRooms.delete(room);
   const sub = subs.get(room);
@@ -209,3 +224,4 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
+
