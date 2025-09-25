@@ -44,7 +44,6 @@ function contentToText(content) {
 }
 const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, error: 1, undefined: 0, null: 0 };
 function rankStatus(s) { return STATUS_RANK[s] ?? 0; }
-function isOutgoing(m) { return m?.direction === "outgoing"; }
 function tsOf(m) {
   const t = m?.timestamp || m?.created_at || null;
   const n = t ? new Date(t).getTime() : NaN;
@@ -138,6 +137,9 @@ export default function ChatWindow({ userIdSelecionado }) {
   const oldestTsRef      = useRef(null);
   const fetchingMoreRef  = useRef(false);
 
+  // controla “primeiro scroll para o fim” ao trocar de usuário
+  const firstRenderScrollRef = useRef(false);
+
   // rooms já aderidos (NÃO fazer leave_room)
   const joinedRoomsRef = useRef(new Set());
 
@@ -179,7 +181,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
       messageCacheRef.current.set(msg.user_id, next);
 
-      const ts = msg.timestamp || new Date().toISOString();
+    const ts = msg.timestamp || new Date().toISOString();
       mergeConversation(msg.user_id, {
         content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
@@ -220,9 +222,13 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => { socket.off("connect", onConnect); };
   }, [userIdSelecionado]);
 
-  /* ------ load on user change ------ */
+  /* ------ load on user change (pega últimos N ASC + cursor) ------ */
   useEffect(() => {
     if (!userIdSelecionado) return;
+
+    // reset flag para garantir o “primeiro scroll para o fim” neste usuário
+    firstRenderScrollRef.current = false;
+
     setIsLoading(true);
 
     (async () => {
@@ -242,9 +248,11 @@ export default function ChatWindow({ userIdSelecionado }) {
         }
 
         const msgs = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
+
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
 
+        // cursor = TS da mais antiga carregada
         oldestTsRef.current = msgs.length ? (msgs[0].timestamp || msgs[0].created_at) : null;
 
         const lastMsg = msgs[msgs.length - 1] || {};
@@ -283,7 +291,13 @@ export default function ChatWindow({ userIdSelecionado }) {
         console.error("Erro ao buscar cliente/conversa:", err);
       } finally {
         setIsLoading(false);
-        // não força scroll aqui; o MessageList vai descer se o usuário já estiver no fim
+        // ⬇️ força ir para o fim só no primeiro carregamento após selecionar o usuário
+        if (!firstRenderScrollRef.current) {
+          requestAnimationFrame(() => {
+            messageListRef.current?.scrollToBottomInstant?.();
+            firstRenderScrollRef.current = true;
+          });
+        }
       }
     })();
   }, [
@@ -338,6 +352,17 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => observer.disconnect();
+  }, [userIdSelecionado]);
+
+  /* ------ tab visible refresh (reconecta socket) ------ */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== "visible" || !userIdSelecionado) return;
+      const socket = getSocket();
+      if (socket && !socket.connected) socket.connect();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [userIdSelecionado]);
 
   /* ------ envio otimista ------ */
@@ -476,7 +501,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
         loaderRef={oldestTsRef.current ? loaderRef : null}
-        autoScrollMode={autoScrollMode}   // 👈 controla o auto-scroll
+        autoScrollMode={autoScrollMode}   // controla o auto-scroll
       />
 
       <div ref={bottomRef} />
