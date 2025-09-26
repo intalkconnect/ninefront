@@ -50,7 +50,7 @@ export default function TicketChapterModal({
       const msgs = await fetchChapterMessagesByTicketId({ ticketId });
       setMessages(msgs);
     } catch (e) {
-      setError(e?.message || "Falha ao carregar capítulo");
+      setError(e?.message || "Falha ao carregar histórico");
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export default function TicketChapterModal({
         </div>
 
         <div className="chapter-modal__body">
-          {loading && <div className="chapter-modal__center">Carregando capítulo…</div>}
+          {loading && <div className="chapter-modal__center">Carregando histórico…</div>}
           {error && <div className="chapter-modal__center chapter-modal__center--error">{error}</div>}
           {!loading && !error && messages.length === 0 && (
             <div className="chapter-modal__center">Nenhuma mensagem encontrada.</div>
