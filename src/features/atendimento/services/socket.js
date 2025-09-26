@@ -31,18 +31,39 @@ function toConvChannel(room) {
   return room.startsWith("conv:") ? room : `conv:t:${tenant}:${room}`;
 }
 
+// src/app/services/socket.js
+
 async function fetchConnectToken() {
   const { apiBaseUrl, tenant } = getRuntimeConfig();
   const token = localStorage.getItem("token");
   const { email } = parseJwt(token) || {};
+  
+  console.log("[realtime] fetchConnectToken called, email:", email);
+  
+  const headers = { "X-Tenant": tenant };
+  if (email) {
+    headers["X-User-Id"] = email;
+    headers["X-User-Email"] = email;
+  }
+  
+  console.log("[realtime] fetchConnectToken headers:", headers);
+  
   const r = await fetch(`${apiBaseUrl}/realtime/token`, {
-    headers: { "X-Tenant": tenant, ...(email ? { "X-User-Id": email } : {}) },
+    headers,
     credentials: "include",
   });
-  if (!r.ok) throw new Error("GET /realtime/token failed");
-  const { token: t } = await r.json();
-  if (!t) throw new Error("token ausente");
-  return t;
+  
+  if (!r.ok) {
+    const errorText = await r.text();
+    console.error("[realtime] fetchConnectToken failed:", r.status, errorText);
+    throw new Error("GET /realtime/token failed");
+  }
+  
+  const data = await r.json();
+  console.log("[realtime] fetchConnectToken response:", data);
+  
+  if (!data.token) throw new Error("token ausente");
+  return data.token;
 }
 
 async function fetchSubscribeToken(channel, clientId) {
@@ -50,23 +71,36 @@ async function fetchSubscribeToken(channel, clientId) {
   const token = localStorage.getItem("token");
   const { email } = parseJwt(token) || {};
   
+  console.log("[realtime] fetchSubscribeToken:", { channel, clientId, email });
+  
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Tenant": tenant,
+  };
+  
+  if (email) {
+    headers["X-User-Id"] = email;
+    headers["X-User-Email"] = email;
+  }
+  
+  console.log("[realtime] fetchSubscribeToken headers:", headers);
+  
   const r = await fetch(`${apiBaseUrl}/realtime/subscribe`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Tenant": tenant,
-      ...(email ? { "X-User-Id": email } : {})
-    },
+    headers,
     body: JSON.stringify({ channel, client: clientId }),
     credentials: "include",
   });
   
   if (!r.ok) {
     const errorText = await r.text();
-    throw new Error(`POST /realtime/subscribe failed: ${r.status} - ${errorText}`);
+    console.error("[realtime] fetchSubscribeToken failed:", r.status, errorText);
+    throw new Error(`POST /realtime/subscribe failed: ${r.status}`);
   }
   
   const data = await r.json();
+  console.log("[realtime] fetchSubscribeToken response:", data);
+  
   if (!data.token) throw new Error("subscribe token ausente");
   return data.token;
 }
@@ -206,4 +240,5 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
+
 
