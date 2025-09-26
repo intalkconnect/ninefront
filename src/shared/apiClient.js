@@ -5,11 +5,12 @@ const { apiBaseUrl, tenant, currentUserId } = getRuntimeConfig();
 // helper p/ juntar headers e garantir X-Tenant-Id + X-User-Id
 function withTenantHeaders(extra = {}) {
   return {
-    "X-Tenant": tenant,
+    "X-Tenant-Id": tenant,            // <-- nome que o back lê
     ...(currentUserId ? { "X-User-Id": currentUserId } : {}),
     ...extra,
   };
 }
+
 
 // === helpers com fetch (agora COM X-Tenant) ===
 // se usa cookie de sessão, adicione { credentials: "include" } onde precisar
@@ -60,4 +61,5 @@ export async function apiDelete(path) {
   if (!res.ok) throw new Error(`DELETE ${path} failed`);
   return res.json();
 }
+
 
