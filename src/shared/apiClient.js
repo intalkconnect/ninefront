@@ -1,16 +1,14 @@
 import { getRuntimeConfig } from "./runtimeConfig";
 
-const { apiBaseUrl, tenant, currentUserId } = getRuntimeConfig();
+const { apiBaseUrl, tenant } = getRuntimeConfig();
 
-// helper p/ juntar headers e garantir X-Tenant-Id + X-User-Id
+// helper p/ juntar headers e garantir X-Tenant
 function withTenantHeaders(extra = {}) {
   return {
-    "X-Tenant-Id": tenant,            // <-- nome que o back lê
-    ...(currentUserId ? { "X-User-Id": currentUserId } : {}),
+    "X-Tenant": tenant,
     ...extra,
   };
 }
-
 
 // === helpers com fetch (agora COM X-Tenant) ===
 // se usa cookie de sessão, adicione { credentials: "include" } onde precisar
@@ -61,5 +59,3 @@ export async function apiDelete(path) {
   if (!res.ok) throw new Error(`DELETE ${path} failed`);
   return res.json();
 }
-
-
