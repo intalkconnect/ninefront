@@ -90,35 +90,43 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               <p className="sem-historico">Sem capítulos encontrados</p>
             ) : (
               <ul className="historico-list">
-                {historico.map((t) => {
-                  const ticketNum = t.ticket_number;
-                  const when = t.updated_at || t.created_at;
-                  return (
-                    <li key={`${ticketNum}-${t.id}`} className="ticket-item">
-                      <button
-                        type="button"
-                        className="ticket-card"
-                        onClick={() => {
-                          if (!t.id) return;
-                          setChapterModal({
-                            open: true,
-                            ticketId: t.id,               // usado para /tickets/history/:id
-                            ticketNumber: t.ticket_number // só título
-                          });
-                        }}
-                        style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, cursor: 'pointer' }}
-                      >
-                        <div className="ticket-title">Ticket: {ticketNum || '—'}</div>
-                        <div className="ticket-date">
-                          {when ? new Date(when).toLocaleString('pt-BR') : '—'}
-                        </div>
-                        {t.fila && <div className="ticket-queue">Fila: {t.fila}</div>}
-                        {t.assigned_to && <div className="ticket-agent">Atendente: {t.assigned_to}</div>}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+  {historico.map((t) => {
+    const ticketNum = t.ticket_number;
+    const when = t.updated_at || t.created_at;
+    const numFmt = ticketNum != null ? String(ticketNum).padStart(6, '0') : '—';
+
+    return (
+      <li key={`${ticketNum}-${t.id}`} className="ticket-item">
+        <button
+          type="button"
+          className="ticket-card"
+          aria-label={`Abrir capítulo do ticket ${numFmt}`}
+          onClick={() => {
+            if (!t.id) return;
+            setChapterModal({
+              open: true,
+              ticketId: t.id,
+              ticketNumber: t.ticket_number
+            });
+          }}
+        >
+          <div className="ticket-title">
+            Ticket: <code>{numFmt}</code>
+          </div>
+
+          <div className="ticket-meta">
+            {t.fila && <span className="pill queue">Fila: {t.fila}</span>}
+            {t.assigned_to && <span className="pill agent">Atendente: {t.assigned_to}</span>}
+            <span className="ticket-date">
+              {when ? new Date(when).toLocaleString('pt-BR') : '—'}
+            </span>
+          </div>
+        </button>
+      </li>
+    );
+  })}
+</ul>
+
             )}
           </div>
         </div>
