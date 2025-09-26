@@ -1,80 +1,69 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { X } from "lucide-react";
 import { apiGet } from "../../../../shared/apiClient";
 import "./styles/TicketChapterModal.css";
 
-/* utils (tsOf, sortAsc, msgText) mantidos como no seu arquivo */
-/* ... utils iguais ... */
-
-async function fetchChapterMessages({ userId, ticketNumber, messagesInMemory, beforeTsRef, pageLimit = 100 }) {
-  const local = (messagesInMemory || []).filter(m => String(m.ticket_number) === String(ticketNumber));
-  if (local.length) return local.sort(sortAsc);
-
-  try {
-    const byApi = await apiGet(`/tickets/${encodeURIComponent(ticketNumber)}/messages?user_id=${encodeURIComponent(userId)}`);
-    const payload = Array.isArray(byApi) ? byApi : byApi?.data;
-    if (Array.isArray(payload) && payload.length) return payload.sort(sortAsc);
-  } catch (_) {}
-
-  let found = [];
-  let keep = true;
-
-  while (keep) {
-    const qs = new URLSearchParams({ limit: String(pageLimit), sort: "desc" });
-    if (beforeTsRef.current) qs.set("before_ts", String(beforeTsRef.current));
-
-    const older = await apiGet(`/messages/${encodeURIComponent(userId)}?${qs.toString()}`);
-    const arr = Array.isArray(older) ? older : (older?.data || []);
-    if (!arr.length) break;
-
-    const olderAsc = [...arr].reverse();
-    beforeTsRef.current = olderAsc[0]?.timestamp || olderAsc[0]?.created_at || null;
-
-    const chunk = olderAsc.filter(m => String(m.ticket_number) === String(ticketNumber));
-    if (chunk.length) found = [...chunk, ...found];
-
-    if (!beforeTsRef.current || olderAsc.length < pageLimit) keep = false;
+/* ===== utils ===== */
+function tsOf(m) {
+  const t = m?.timestamp || m?.created_at || null;
+  const n = t ? new Date(t).getTime() : NaN;
+  return Number.isFinite(n) ? n : 0;
+}
+function sortAsc(a, b) { return tsOf(a) - tsOf(b); }
+function msgText(m) {
+  const c = m?.content;
+  if (c == null) return "";
+  if (typeof c === "string") {
+    try { return msgText(JSON.parse(c)); } catch { return c.trim(); }
   }
-
-  return found.sort(sortAsc);
+  if (typeof c === "object") {
+    return String(c.text || c.caption || c.body || c.filename || c.url || "").trim();
+  }
+  return String(c).trim();
 }
 
+/* ===== fetch exclusivo por ticket ===== */
+async function fetchChapterMessagesByTicketId({ ticketId, messagesLimit = 2000 }) {
+  const qs = new URLSearchParams({ include: "messages", messages_limit: String(messagesLimit) });
+  const res = await apiGet(`/tickets/history/${encodeURIComponent(ticketId)}?${qs.toString()}`);
+  const msgs = Array.isArray(res?.messages) ? res.messages : [];
+  return msgs.sort(sortAsc);
+}
+
+/* ===== Modal ===== */
 export default function TicketChapterModal({
   open,
   onClose,
-  userId,
-  ticketNumber,
-  messagesInMemory = [],
+  userId,          // mantido se precisar depois
+  ticketId,        // usado no fetch
+  ticketNumber,    // só título
 }) {
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState(null);
-  const beforeTsRef = useRef(null);
 
-  const title = useMemo(() => `Capítulo • Ticket #${ticketNumber}`, [ticketNumber]);
+  const title = useMemo(() => `Capítulo • Ticket #${ticketNumber || "—"}`, [ticketNumber]);
 
+  // reset sempre que trocar ticket
   useEffect(() => {
-    beforeTsRef.current = null;
     setMessages([]);
     setError(null);
     setLoading(true);
-  }, [userId, ticketNumber]);
+  }, [ticketId]);
 
   const load = useCallback(async () => {
-    if (!open || !userId || !ticketNumber) return;
+    if (!open || !ticketId) return;
     setLoading(true);
     setError(null);
     try {
-      const msgs = await fetchChapterMessages({
-        userId, ticketNumber, messagesInMemory, beforeTsRef,
-      });
+      const msgs = await fetchChapterMessagesByTicketId({ ticketId });
       setMessages(msgs);
     } catch (e) {
       setError(e?.message || "Falha ao carregar capítulo");
     } finally {
       setLoading(false);
     }
-  }, [open, userId, ticketNumber, messagesInMemory]);
+  }, [open, ticketId]);
 
   useEffect(() => { load(); }, [load]);
 
