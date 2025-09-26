@@ -10,11 +10,26 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const [loadingHistorico, setLoadingHistorico] = useState(true);
   const [chapterModal, setChapterModal] = useState({ open: false, ticket: null });
 
+  // 🔁 quando troca de cliente, limpa modal e histórico
+  useEffect(() => {
+    setChapterModal({ open: false, ticket: null });
+    setHistorico([]);
+  }, [userIdSelecionado]);
+
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
-    apiGet(`/tickets/user/${userIdSelecionado}`)
-      .then(res => setHistorico(res?.tickets || []))
+
+    // ⚠️ usa a rota NOVA /tickets/history
+    // filtra por userId no parâmetro q (o back aceita LIKE em t.user_id)
+    const qs = new URLSearchParams({
+      q: String(userIdSelecionado),
+      page_size: '40', // permitido: 10,20,30,40 (usamos 40)
+      page: '1',
+    });
+
+    apiGet(`/tickets/history?${qs.toString()}`)
+      .then((res) => setHistorico(res?.data || []))
       .catch(() => setHistorico([]))
       .finally(() => setLoadingHistorico(false));
   }, [userIdSelecionado]);
@@ -76,21 +91,30 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               <p className="sem-historico">Sem capítulos encontrados</p>
             ) : (
               <ul className="historico-list">
-                {historico.map((t) => (
-                  <li key={t.id} className="ticket-item">
-                    <button
-                      type="button"
-                      className="ticket-card"
-                      onClick={() => setChapterModal({ open: true, ticket: t.ticket_number })}
-                      style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, cursor: 'pointer' }}
-                    >
-                      <div className="ticket-title">Ticket: {t.ticket_number}</div>
-                      <div className="ticket-date">
-                        {new Date(t.created_at).toLocaleString('pt-BR')}
-                      </div>
-                    </button>
-                  </li>
-                ))}
+                {historico.map((t) => {
+                  const ticketNum = t.ticket_number;
+                  const when = t.updated_at || t.created_at;
+                  return (
+                    <li key={`${ticketNum}-${t.id}`} className="ticket-item">
+                      <button
+                        type="button"
+                        className="ticket-card"
+                        onClick={() => {
+                          if (!ticketNum) return;
+                          setChapterModal({ open: true, ticket: ticketNum });
+                        }}
+                        style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, cursor: 'pointer' }}
+                      >
+                        <div className="ticket-title">Ticket: {ticketNum || '—'}</div>
+                        <div className="ticket-date">
+                          {when ? new Date(when).toLocaleString('pt-BR') : '—'}
+                        </div>
+                        {t.fila && <div className="ticket-queue">Fila: {t.fila}</div>}
+                        {t.assigned_to && <div className="ticket-agent">Atendente: {t.assigned_to}</div>}
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
