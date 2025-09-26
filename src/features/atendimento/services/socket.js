@@ -1,32 +1,20 @@
 // src/app/services/socket.js
-// Adaptador Centrifugo compatível com a API do app:
-// - connectSocket(), getSocket()
-// - socket.on/off("new_message" | "update_message" | "queue_push" | "queue_pop" | "queue_count" | "ticket_created" | "ticket_closed")
-// - socket.emit("join_room", room)  -> assina canal
-// - socket.emit("leave_room", room) -> desassina canal
-// - socket.id                       -> clientId do Centrifugo
-
 import { Centrifuge } from "centrifuge";
-import { apiGet, apiPost } from "../../../shared/apiClient";
+import { getRuntimeConfig } from "../../../shared/runtimeConfig";
+import { parseJwt } from "../../utils/auth"; // ajuste o caminho se necessário
 
 let centrifuge = null;
 let connectPromise = null;
 let isConnected = false;
 
-// Rooms que o app deseja manter ativas (para re-subscribe após reconnect)
 const desiredRooms = new Set();
-// room -> Subscription
 const subs = new Map();
-// event -> Set<fn>
 const listeners = new Map();
 
-// ---------------- utils ----------------
 function emitLocal(evt, payload) {
   const set = listeners.get(evt);
   if (!set) return;
-  for (const fn of set) {
-    try { fn(payload); } catch {}
-  }
+  for (const fn of set) { try { fn(payload); } catch {} }
 }
 
 function normalizeWsUrl(raw) {
@@ -36,24 +24,59 @@ function normalizeWsUrl(raw) {
     : raw.replace(/\/+$/, "") + "/connection/websocket";
 }
 
-async function fetchToken() {
-  // usa apiClient (já injeta headers padronizados)
-  const { token } = await apiGet("/realtime/token");
-  if (!token) throw new Error("token ausente");
-  return token;
+// 🔹 helper: canal lógico -> conv:t:<tenant>:<room>
+function toConvChannel(room) {
+  const { tenant } = getRuntimeConfig();
+  return room.startsWith("conv:") ? room : `conv:t:${tenant}:${room}`;
 }
 
-// ---------------- conexão (singleton) ----------------
+// 🔹 token de conexão: fetch DIRETO com X-Tenant + X-User-Id
+async function fetchConnectToken() {
+  const { apiBaseUrl, tenant } = getRuntimeConfig();
+  const token = localStorage.getItem("token");
+  const { email } = parseJwt(token) || {};
+  const r = await fetch(`${apiBaseUrl}/realtime/token`, {
+    headers: {
+      "X-Tenant": tenant,
+      ...(email ? { "X-User-Id": email } : {})
+    },
+    credentials: "include",
+  });
+  if (!r.ok) throw new Error("GET /realtime/token failed");
+  const { token: t } = await r.json();
+  if (!t) throw new Error("token ausente");
+  return t;
+}
+
+// 🔹 subscribe token por canal conv:t:*
+async function fetchSubscribeToken(channel, client) {
+  const { apiBaseUrl, tenant } = getRuntimeConfig();
+  const token = localStorage.getItem("token");
+  const { email } = parseJwt(token) || {};
+  const r = await fetch(`${apiBaseUrl}/realtime/subscribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Tenant": tenant,
+      ...(email ? { "X-User-Id": email } : {})
+    },
+    body: JSON.stringify({ channel, client }),
+    credentials: "include",
+  });
+  if (!r.ok) throw new Error("POST /realtime/subscribe failed");
+  const { token: t } = await r.json();
+  if (!t) throw new Error("subscribe token ausente");
+  return t;
+}
+
 export function connectSocket() {
-  // se já tem cliente e já está conectando/conectado, reutiliza
   if (centrifuge && (isConnected || connectPromise)) {
     return connectPromise ?? Promise.resolve(centrifuge);
   }
 
   connectPromise = (async () => {
     const WS_URL = normalizeWsUrl(import.meta.env.VITE_WS_URL || "");
-    const INSECURE =
-      String(import.meta.env.VITE_CENTRIFUGO_INSECURE || "").toLowerCase() === "true";
+    const INSECURE = String(import.meta.env.VITE_CENTRIFUGO_INSECURE || "").toLowerCase() === "true";
 
     if (!WS_URL) {
       console.warn("[realtime] VITE_WS_URL não definido");
@@ -64,7 +87,7 @@ export function connectSocket() {
     let getToken;
     if (!INSECURE) {
       getToken = async () => {
-        try { return await fetchToken(); }
+        try { return await fetchConnectToken(); }
         catch (e) { console.error("[realtime] token:", e?.message || e); throw e; }
       };
     }
@@ -77,31 +100,21 @@ export function connectSocket() {
 
     centrifuge.on("connected", (ctx) => {
       isConnected = true;
-      centrifuge.id = ctx.client; // compat com socket.io
+      centrifuge.id = ctx.client;
       console.log("[realtime] connected -> client:", ctx.client, "transport:", ctx.transport);
 
-      // 🔁 re-ativa todas as rooms desejadas sem criar duplicatas
       for (const room of desiredRooms) {
         const sub = subs.get(room);
-        if (!sub) {
-          // nunca criamos sub para esse room ainda (primeira conexão)
-          subscribeRoom(room);
-          continue;
-        }
-        // se já existe, apenas garante que esteja assinada
+        if (!sub) { subscribeRoom(room); continue; }
         if (sub.state === "unsubscribed") {
-          try { sub.subscribe(); } catch (e) {
-            console.warn("[realtime] resubscribe fail:", room, e);
-          }
+          try { sub.subscribe(); } catch (e) { console.warn("[realtime] resubscribe fail:", room, e); }
         }
-        // estados "subscribing" ou "subscribed": não fazer nada
       }
     });
 
     centrifuge.on("disconnected", (ctx) => {
       isConnected = false;
       console.warn("[realtime] disconnected ->", ctx.reason);
-      // não dá unsubscribe aqui; o Centrifuge fará recover/handshake.
     });
 
     centrifuge.on("error", (err) => {
@@ -115,106 +128,65 @@ export function connectSocket() {
   return connectPromise.finally(() => { connectPromise = null; });
 }
 
-// ---------------- API compatível ----------------
 export function getSocket() {
   return {
     get connected() { return isConnected; },
     get id() { return centrifuge?.id || null; },
 
-    on(evt, fn) {
-      if (!listeners.has(evt)) listeners.set(evt, new Set());
-      listeners.get(evt).add(fn);
-    },
-    off(evt, fn) {
-      const set = listeners.get(evt);
-      if (!set) return;
-      set.delete(fn);
-      if (set.size === 0) listeners.delete(evt);
-    },
+    on(evt, fn) { if (!listeners.has(evt)) listeners.set(evt, new Set()); listeners.get(evt).add(fn); },
+    off(evt, fn) { const set = listeners.get(evt); if (!set) return; set.delete(fn); if (set.size === 0) listeners.delete(evt); },
 
     emit(name, payload) {
       if (name === "join_room")  return subscribeRoom(String(payload));
       if (name === "leave_room") return unsubscribeRoom(String(payload));
-      if (name === "identify")   return; // no-op no Centrifugo
-      // outros emits: publicações devem vir do back via HTTP /api (publish)
+      if (name === "identify")   return;
     },
 
     connect() { centrifuge?.connect(); },
 
-    // util de depuração
     _debug() {
-      console.table([...subs.entries()].map(([room, sub]) => ({
-        room, state: sub.state
-      })));
+      console.table([...subs.entries()].map(([room, sub]) => ({ room, state: sub.state })));
       console.log("desired:", [...desiredRooms]);
     }
   };
 }
 
-// ---------------- subscriptions ----------------
 async function subscribeRoom(room) {
   desiredRooms.add(room);
 
-  // se já temos sub criada para o room, apenas garante que esteja ativa
   const existing = subs.get(room);
   if (existing) {
     if (existing.state === "unsubscribed") {
-      try { existing.subscribe(); } catch (e) {
-        console.warn("[realtime] subscribe fail:", room, e);
-      }
+      try { existing.subscribe(); } catch (e) { console.warn("[realtime] subscribe fail:", room, e); }
     }
     return existing;
   }
 
   if (!centrifuge) await connectSocket();
-
-  // se ainda não conectou, agenda subscribe após conectar
   if (!isConnected) {
-    const t = setInterval(() => {
-      if (isConnected) { clearInterval(t); subscribeRoom(room); }
-    }, 100);
+    const t = setInterval(() => { if (isConnected) { clearInterval(t); subscribeRoom(room); } }, 100);
     return;
   }
 
-  // canais conv:* usam subscribe token
-  const needsSubToken = room.startsWith("conv:");
+  // mapeia para conv:t:<tenant>:<room>
+  const channel = toConvChannel(room);
 
-  const sub = centrifuge.newSubscription(
-    room,
-    needsSubToken
-      ? {
-    getToken: async () => {
-      // usa a mesma base (/api/v1) e os mesmos headers do apiClient (X-Tenant + Bearer)
-      const { token } = await apiPost("/realtime/subscribe", {
-        channel: room,
-        client: centrifuge?.state?.client || centrifuge?.id || null,
-      });
-      if (!token) throw new Error("subscribe token ausente");
-      return token;
-    }
-        }
-      : undefined
-  );
+  const sub = centrifuge.newSubscription(channel, {
+    // conv:* exigem subscribe token
+    getToken: async () => fetchSubscribeToken(channel, centrifuge.state.client),
+  });
 
   sub.on("publication", (ctx) => {
-    // O worker publica como: { event: "new_message", payload: {...} }
     const data = ctx.data || {};
     const evt = data.event || data.type || null;
     const payload = data.payload ?? data;
     if (evt) emitLocal(evt, payload);
   });
-  sub.on("subscribed", (ctx) => {
-    console.log("[realtime] subscribed:", room, "recovered:", ctx.recovered);
-  });
-  sub.on("unsubscribed", () => {
-    console.log("[realtime] unsubscribed:", room);
-  });
-  sub.on("error", (err) => {
-    console.warn("[realtime] sub error:", room, err);
-  });
+  sub.on("subscribed", (ctx) => { console.log("[realtime] subscribed:", channel, "recovered:", ctx.recovered); });
+  sub.on("unsubscribed", () => { console.log("[realtime] unsubscribed:", channel); });
+  sub.on("error", (err) => { console.warn("[realtime] sub error:", channel, err); });
 
-  // registra ANTES de assinar para evitar duplicatas em reconnect
-  subs.set(room, sub);
+  subs.set(room, sub); // chaveia pelo "room lógico"
   sub.subscribe();
   return sub;
 }
@@ -226,4 +198,3 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
-
