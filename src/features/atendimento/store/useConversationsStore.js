@@ -1,7 +1,8 @@
+// src/app/store/useConversationsStore.js
 import { create } from "zustand";
 import { apiGet, apiPut } from "../../../shared/apiClient";
 
-// gera uma chave estável para comparar mensagens
+// ------- utils de mensagem/snippet -------
 function msgKey(m) {
   return (
     m?.message_id ||
@@ -13,25 +14,19 @@ function msgKey(m) {
   );
 }
 
-// merge imutável de uma mensagem na lista
 function upsertMessage(list, incoming) {
   const keyIn = msgKey(incoming);
   if (!Array.isArray(list)) return [incoming];
-
   const idx = list.findIndex((m) => {
     const k = msgKey(m);
     return k && keyIn && String(k) === String(keyIn);
   });
-
-  if (idx === -1) {
-    return [...list, { ...incoming }];
-  }
+  if (idx === -1) return [...list, { ...incoming }];
   const next = [...list];
   next[idx] = { ...list[idx], ...incoming };
   return next;
 }
 
-// Função auxiliar para detectar tipo pelo conteúdo
 function detectTypeFromContent(content) {
   console.debug("[store] detectTypeFromContent →", {
     typeof: typeof content,
@@ -70,7 +65,6 @@ function detectTypeFromContent(content) {
   return "text";
 }
 
-// gera o snippet do card a partir do último conteúdo (sempre string)
 function contentToSnippet(content, type) {
   console.debug("[store] contentToSnippet (in)", {
     typeIn: type,
@@ -78,7 +72,6 @@ function contentToSnippet(content, type) {
     sample: typeof content === "string" ? content.slice(0, 200) : content,
   });
 
-  // parse defensivo
   let parsed = content;
   if (typeof content === "string") {
     try {
@@ -98,34 +91,25 @@ function contentToSnippet(content, type) {
         return (text || "[Texto]").slice(0, 40);
       }
       return "[Texto]";
-
     case "audio":
     case "voice":
       return "🎤 Áudio";
-
     case "image":
     case "photo":
       return "🖼️ Imagem";
-
     case "video":
       return "🎥 Vídeo";
-
     case "file":
     case "document":
       return "📄 Arquivo";
-
     case "template":
       return "📋 Template";
-
     case "location":
       return "📍 Localização";
-
     case "contact":
       return "👤 Contato";
-
     case "sticker":
       return "🌟 Figurinha";
-
     default:
       if (parsed?.url) {
         const url = String(parsed.url).toLowerCase();
@@ -138,17 +122,12 @@ function contentToSnippet(content, type) {
   }
 }
 
-/** Helpers para blindar downgrade de snippet **/
-
-// placeholders que não queremos que sobreponham um snippet melhor
+// ------- helpers de snippet/downgrade -------
 function isPlaceholder(s) {
   if (typeof s !== "string") return false;
   const t = s.trim();
   return /^\[(mensagem|menssage|texto|arquivo)\]$/i.test(t);
 }
-
-// classifica “qualidade” do snippet: maior é melhor
-// 0 = vazio/indefinido, 1 = placeholder [mensagem], 2 = label de mídia (🖼️/🎤/🎥/📄/...), 3 = texto de usuário
 function snippetQuality(s) {
   if (!s || typeof s !== "string") return 0;
   const t = s.trim();
@@ -158,6 +137,7 @@ function snippetQuality(s) {
   return 3;
 }
 
+// =============================================
 const useConversationsStore = create((set, get) => ({
   conversations: {},
   lastRead: {},
@@ -208,7 +188,7 @@ const useConversationsStore = create((set, get) => ({
     }
   },
 
-  // Define/merge conversa (não toca em messages) — BLINDADO contra downgrade
+  // Define/merge conversa — atualiza snippet/timestamp/last_message/_at (com blindagem)
   mergeConversation: (userId, data = {}) =>
     set((state) => {
       const prev = state.conversations[userId] || {};
@@ -226,7 +206,6 @@ const useConversationsStore = create((set, get) => ({
       const hasContentField = Object.prototype.hasOwnProperty.call(data, "content");
       const hasTypeField = Object.prototype.hasOwnProperty.call(data, "type");
 
-      // normaliza entrada -> snippet
       let incomingType = prev.type;
       let incomingSnippet = prev.content;
 
@@ -244,23 +223,19 @@ const useConversationsStore = create((set, get) => ({
       let nextSnippet = prevSnippet;
       let nextType = prev.type;
 
-      // regra: só troca se o novo for de qualidade >= anterior
       if ((hasContentField || hasTypeField) && newScore >= prevScore) {
         nextSnippet = incomingSnippet;
         nextType = incomingType;
       } else if (!(hasContentField || hasTypeField)) {
-        // sem atualização de content/type, mantém o anterior
         nextSnippet = prevSnippet;
         nextType = prev.type;
       } else {
-        // tentativa de downgrade bloqueada
         console.info("[store] mergeConversation: downgrade de snippet bloqueado", {
           prev: { snippet: prevSnippet, score: prevScore, type: prev.type },
           incoming: { snippet: incomingSnippet, score: newScore, type: incomingType },
         });
       }
 
-      // timestamp: mantém o mais novo se chegou um novo
       const nextTs =
         timestamp && (!prev.timestamp || new Date(timestamp) > new Date(prev.timestamp))
           ? timestamp
@@ -272,9 +247,11 @@ const useConversationsStore = create((set, get) => ({
           [userId]: {
             ...prev,
             ...data,
-            content: nextSnippet,     // SEMPRE string pronta pro card
+            content: nextSnippet,
             type: nextType,
             timestamp: nextTs,
+            last_message: typeof nextSnippet === "string" ? nextSnippet : prev.last_message,
+            last_message_at: nextTs || prev.last_message_at,
           },
         },
       };
@@ -297,15 +274,14 @@ const useConversationsStore = create((set, get) => ({
       };
     }),
 
-  // Seta a lista inteira de mensagens (garantindo nova ref)
+  // Seta a lista inteira de mensagens e atualiza card
   setMessages: (userId, msgs = []) =>
     set((state) => {
       const conv = state.conversations[userId] || {};
-      // também atualiza snippet/tipo/timestamp a partir da última mensagem
       const last = msgs.length ? msgs[msgs.length - 1] : null;
       const lastType = last ? (last.type || detectTypeFromContent(last.content) || "text").toLowerCase() : conv.type;
       const snippet = last ? contentToSnippet(last.content, lastType) : conv.content;
-      const timestamp = last?.timestamp || last?.created_at || conv.timestamp;
+      const timestamp = last?.timestamp || last?.created_at || conv.timestamp || new Date().toISOString();
 
       return {
         conversations: {
@@ -316,12 +292,14 @@ const useConversationsStore = create((set, get) => ({
             content: snippet,
             type: lastType,
             timestamp,
+            last_message: typeof snippet === "string" ? snippet : conv.last_message,
+            last_message_at: timestamp,
           },
         },
       };
     }),
 
-  // Adiciona/atualiza 1 mensagem (imutável) e atualiza snippet
+  // Upsert de 1 mensagem e atualiza card
   appendOrUpdateMessage: (userId, msg) =>
     set((state) => {
       console.groupCollapsed("%c[store] appendOrUpdateMessage", "color:#2196f3");
@@ -336,6 +314,7 @@ const useConversationsStore = create((set, get) => ({
       const lastContent = last?.content;
       const lastType = (last?.type || detectTypeFromContent(lastContent) || "text").toLowerCase();
       const snippet = contentToSnippet(lastContent, lastType);
+      const ts = last?.timestamp || last?.created_at || new Date().toISOString();
 
       console.log("last picked for card:", { lastType, lastContent, snippet });
       console.groupEnd();
@@ -346,15 +325,17 @@ const useConversationsStore = create((set, get) => ({
           [userId]: {
             ...conv,
             messages: nextMessages,
-            content: snippet, // sempre string
+            content: snippet,
             type: lastType,
-            timestamp: last?.timestamp || last?.created_at || conv.timestamp,
+            timestamp: ts,
+            last_message: typeof snippet === "string" ? snippet : conv.last_message,
+            last_message_at: ts,
           },
         },
       };
     }),
 
-  // Atualiza apenas status/provedor de uma já existente (por emitUpdateMessage do back)
+  // Atualiza status de uma mensagem existente e reflete no card
   updateMessageStatus: (userId, partial) =>
     set((state) => {
       const conv = state.conversations[userId] || {};
@@ -381,6 +362,7 @@ const useConversationsStore = create((set, get) => ({
       const last = next[next.length - 1] || null;
       const lastType = last?.type || detectTypeFromContent(last?.content) || conv.type || "text";
       const snippet = last ? contentToSnippet(last.content, lastType) : conv.content;
+      const ts = last?.timestamp || last?.created_at || conv.timestamp || new Date().toISOString();
 
       return {
         conversations: {
@@ -390,7 +372,9 @@ const useConversationsStore = create((set, get) => ({
             messages: next,
             content: snippet,
             type: (lastType || "text").toLowerCase(),
-            timestamp: last?.timestamp || last?.created_at || conv.timestamp,
+            timestamp: ts,
+            last_message: typeof snippet === "string" ? snippet : conv.last_message,
+            last_message_at: ts,
           },
         },
       };
