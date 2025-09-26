@@ -54,7 +54,7 @@ function findIndexByAnyId(list, msg) {
   if (!keys.size) return -1;
   return list.findIndex(m => {
     const ks = [m?.id, m?.message_id, m?.provider_id, m?.client_id].filter(Boolean).map(String);
-    return ks.some(k => keys.has(k));
+    return ks.some(k => keys.some(x => x === k));
   });
 }
 function mergeOutgoing(a, b) {
@@ -75,7 +75,6 @@ function mergeOutgoing(a, b) {
     reply_direction: first.reply_direction ?? second.reply_direction,
   };
 }
-
 /** Inserção ordenada ASC por timestamp (evita sort global) */
 function insertSortedAsc(list, msg) {
   const t = tsOf(msg);
@@ -181,7 +180,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
       messageCacheRef.current.set(msg.user_id, next);
 
-    const ts = msg.timestamp || new Date().toISOString();
+      const ts = msg.timestamp || new Date().toISOString();
       mergeConversation(msg.user_id, {
         content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
@@ -291,7 +290,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         console.error("Erro ao buscar cliente/conversa:", err);
       } finally {
         setIsLoading(false);
-        // ⬇️ força ir para o fim só no primeiro carregamento após selecionar o usuário
+        // força ir para o fim só no primeiro carregamento após selecionar o usuário
         if (!firstRenderScrollRef.current) {
           requestAnimationFrame(() => {
             messageListRef.current?.scrollToBottomInstant?.();
@@ -398,21 +397,21 @@ export default function ChatWindow({ userIdSelecionado }) {
     }, 0);
   }, [mergeConversation, userIdSelecionado, scrollToBottom, autoScrollMode]);
 
-  /* ------ scroll até âncora de ticket (com paginação on-demand) ------ */
+  /* ------ scroll até âncora de ticket (com paginação on-demand, mas SALTO instantâneo) ------ */
   const scrollToTicketAnchor = useCallback(async (ticketNumber) => {
-    const container = messageListRef.current?.getContainer?.();
+    const list = messageListRef.current;
+    const container = list?.getContainer?.();
     if (!container) return;
 
     // desliga auto-scroll durante a busca/scroll
     setAutoScrollMode('off');
 
-    const findAnchor = () =>
-      container.querySelector(`[data-ticket="${CSS.escape(String(ticketNumber))}"]`);
+    // 1) tenta pular instantaneamente (já renderizado)
+    let ok = list?.scrollToTicketInstant?.(ticketNumber, { center: true });
+    if (ok) { setAutoScrollMode('ifAtBottom'); return; }
 
-    let anchor = findAnchor();
-
-    // pagina para trás até achar (ou acabar)
-    while (!anchor && oldestTsRef.current) {
+    // 2) pagina até achar (sem smooth longo)
+    while (!ok && oldestTsRef.current) {
       try {
         const prevHeight = container.scrollHeight;
         const qs = new URLSearchParams({
@@ -424,36 +423,29 @@ export default function ChatWindow({ userIdSelecionado }) {
         const arr = Array.isArray(older) ? older : (older?.data || []);
         arr.reverse();
 
-        if (arr.length) {
-          setAllMessages(prev => {
-            const next = [...arr, ...prev];
-            messageCacheRef.current.set(userIdSelecionado, next);
-            return next;
-          });
-          oldestTsRef.current = arr[0].timestamp || arr[0].created_at;
+        if (!arr.length) { oldestTsRef.current = null; break; }
 
-          await new Promise(r => requestAnimationFrame(r));
-          const newHeight = container.scrollHeight;
-          container.scrollTop = newHeight - prevHeight;
+        setAllMessages(prev => {
+          const next = [...arr, ...prev];
+          messageCacheRef.current.set(userIdSelecionado, next);
+          return next;
+        });
+        oldestTsRef.current = arr[0].timestamp || arr[0].created_at;
 
-          anchor = findAnchor();
-        } else {
-          oldestTsRef.current = null;
-        }
+        await new Promise(r => requestAnimationFrame(r));
+        const newHeight = container.scrollHeight;
+        container.scrollTop = newHeight - prevHeight;
+
+        // tenta de novo após inserir
+        ok = list?.scrollToTicketInstant?.(ticketNumber, { center: true });
       } catch (e) {
         console.error("Erro ao paginar buscando âncora do ticket:", e);
         break;
       }
     }
 
-    if (anchor) {
-      anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-      // dá um tempinho pro browser finalizar a animação antes de reativar o auto-scroll
-      setTimeout(() => setAutoScrollMode('ifAtBottom'), 400);
-    } else {
-      // não achou; reativa normal
-      setAutoScrollMode('ifAtBottom');
-    }
+    // volta o modo de auto-scroll
+    setAutoScrollMode('ifAtBottom');
   }, [userIdSelecionado]);
 
   /* ------ reage ao alvo vindo do DetailsPanel via Zustand ------ */
