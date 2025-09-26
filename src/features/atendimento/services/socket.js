@@ -173,7 +173,12 @@ async function subscribeRoom(room) {
 
   const sub = centrifuge.newSubscription(channel, {
     // conv:* exigem subscribe token
-    getToken: async () => fetchSubscribeToken(channel, centrifuge.state.client),
+    getToken: async () => {
+    // usa o id que salvamos em `on("connected")`
+    const clientId = centrifuge?.id;
+    if (!clientId) throw new Error("clientId ausente (centrifuge.id)");
+    return fetchSubscribeToken(channel, clientId);
+  },
   });
 
   sub.on("publication", (ctx) => {
@@ -198,4 +203,5 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
+
 
