@@ -26,7 +26,7 @@ export default function TransferModal({ userId, onClose }) {
   useEffect(() => {
     (async () => {
       try {
-        const data = await apiGet(`/filas/fila-permissoes/${userEmail}`);
+        const data = await apiGet(`/queues/queues-permissoes/${userEmail}`);
         setFilas(data);
       } catch (err) {
         console.error('Erro ao buscar filas:', err);
@@ -51,7 +51,7 @@ export default function TransferModal({ userId, onClose }) {
       }
 
       try {
-        const resp = await apiGet(`/filas/atendentes/${filaNome}`);
+        const resp = await apiGet(`/queues/agents/${filaNome}`);
         const lista = Array.isArray(resp.atendentes) ? resp.atendentes : resp;
         setAtendentes(lista.filter(a => a.email !== userEmail)); // remove próprio usuário
       } catch (err) {
