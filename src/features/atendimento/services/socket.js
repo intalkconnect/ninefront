@@ -49,6 +49,7 @@ async function fetchSubscribeToken(channel, clientId) {
   const { apiBaseUrl, tenant } = getRuntimeConfig();
   const token = localStorage.getItem("token");
   const { email } = parseJwt(token) || {};
+  
   const r = await fetch(`${apiBaseUrl}/realtime/subscribe`, {
     method: "POST",
     headers: {
@@ -59,10 +60,15 @@ async function fetchSubscribeToken(channel, clientId) {
     body: JSON.stringify({ channel, client: clientId }),
     credentials: "include",
   });
-  if (!r.ok) throw new Error("POST /realtime/subscribe failed");
-  const { token: t } = await r.json();
-  if (!t) throw new Error("subscribe token ausente");
-  return t;
+  
+  if (!r.ok) {
+    const errorText = await r.text();
+    throw new Error(`POST /realtime/subscribe failed: ${r.status} - ${errorText}`);
+  }
+  
+  const data = await r.json();
+  if (!data.token) throw new Error("subscribe token ausente");
+  return data.token;
 }
 
 // helper para obter SEMPRE o client id mais recente
@@ -200,3 +206,4 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
+
