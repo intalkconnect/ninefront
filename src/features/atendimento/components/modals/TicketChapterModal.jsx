@@ -33,7 +33,7 @@ export default function TicketChapterModal({
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState(null);
 
-  const title = useMemo(() => `Capítulo • Ticket #${ticketNumber || "—"}`, [ticketNumber]);
+  const title = useMemo(() => `Histórico • Ticket #${ticketNumber || "—"}`, [ticketNumber]);
 
   // reset sempre que trocar ticket
   useEffect(() => {
