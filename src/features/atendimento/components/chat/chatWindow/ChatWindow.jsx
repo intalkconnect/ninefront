@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { connectSocket, getSocket } from "../../../services/socket";
 import { apiGet } from "../../../../../shared/apiClient";
 import useConversationsStore from "../../../store/useConversationsStore";
-import useTicketNavStore from "../../../store/useTicketNavStore";
 import { marcarMensagensAntesDoTicketComoLidas } from "../../../hooks/useSendMessage";
 
 import SendMessageForm from "../../sendMessageForm/SendMessageForm";
@@ -54,7 +53,7 @@ function findIndexByAnyId(list, msg) {
   if (!keys.size) return -1;
   return list.findIndex(m => {
     const ks = [m?.id, m?.message_id, m?.provider_id, m?.client_id].filter(Boolean).map(String);
-    return ks.some(k => keys.some(x => x === k));
+    return ks.some(k => keys.has(k));
   });
 }
 function mergeOutgoing(a, b) {
@@ -75,6 +74,7 @@ function mergeOutgoing(a, b) {
     reply_direction: first.reply_direction ?? second.reply_direction,
   };
 }
+
 /** Inserção ordenada ASC por timestamp (evita sort global) */
 function insertSortedAsc(list, msg) {
   const t = tsOf(msg);
@@ -111,9 +111,6 @@ export default function ChatWindow({ userIdSelecionado }) {
   const setClienteAtivo   = useConversationsStore((state) => state.setClienteAtivo);
   const userEmail         = useConversationsStore((state) => state.userEmail);
   const userFilas         = useConversationsStore((state) => state.userFilas);
-
-  const ticketNavTarget   = useTicketNavStore((s) => s.target);
-  const clearTicketTarget = useTicketNavStore((s) => s.clearTarget);
 
   const [allMessages, setAllMessages] = useState([]);
   const [modalImage, setModalImage]   = useState(null);
@@ -290,7 +287,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         console.error("Erro ao buscar cliente/conversa:", err);
       } finally {
         setIsLoading(false);
-        // força ir para o fim só no primeiro carregamento após selecionar o usuário
+        // ⬇️ força ir para o fim só no primeiro carregamento após selecionar o usuário
         if (!firstRenderScrollRef.current) {
           requestAnimationFrame(() => {
             messageListRef.current?.scrollToBottomInstant?.();
@@ -396,68 +393,6 @@ export default function ChatWindow({ userIdSelecionado }) {
       if (autoScrollMode !== 'off') scrollToBottom();
     }, 0);
   }, [mergeConversation, userIdSelecionado, scrollToBottom, autoScrollMode]);
-
-  /* ------ scroll até âncora de ticket (com paginação on-demand, mas SALTO instantâneo) ------ */
-  const scrollToTicketAnchor = useCallback(async (ticketNumber) => {
-    const list = messageListRef.current;
-    const container = list?.getContainer?.();
-    if (!container) return;
-
-    // desliga auto-scroll durante a busca/scroll
-    setAutoScrollMode('off');
-
-    // 1) tenta pular instantaneamente (já renderizado)
-    let ok = list?.scrollToTicketInstant?.(ticketNumber, { center: true });
-    if (ok) { setAutoScrollMode('ifAtBottom'); return; }
-
-    // 2) pagina até achar (sem smooth longo)
-    while (!ok && oldestTsRef.current) {
-      try {
-        const prevHeight = container.scrollHeight;
-        const qs = new URLSearchParams({
-          limit: String(PAGE_LIMIT),
-          before_ts: String(oldestTsRef.current),
-          sort: "desc",
-        });
-        const older = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
-        const arr = Array.isArray(older) ? older : (older?.data || []);
-        arr.reverse();
-
-        if (!arr.length) { oldestTsRef.current = null; break; }
-
-        setAllMessages(prev => {
-          const next = [...arr, ...prev];
-          messageCacheRef.current.set(userIdSelecionado, next);
-          return next;
-        });
-        oldestTsRef.current = arr[0].timestamp || arr[0].created_at;
-
-        await new Promise(r => requestAnimationFrame(r));
-        const newHeight = container.scrollHeight;
-        container.scrollTop = newHeight - prevHeight;
-
-        // tenta de novo após inserir
-        ok = list?.scrollToTicketInstant?.(ticketNumber, { center: true });
-      } catch (e) {
-        console.error("Erro ao paginar buscando âncora do ticket:", e);
-        break;
-      }
-    }
-
-    // volta o modo de auto-scroll
-    setAutoScrollMode('ifAtBottom');
-  }, [userIdSelecionado]);
-
-  /* ------ reage ao alvo vindo do DetailsPanel via Zustand ------ */
-  useEffect(() => {
-    const t = ticketNavTarget;
-    if (!t || String(t.userId) !== String(userIdSelecionado)) return;
-    if (!t.ticket_number) return;
-
-    scrollToTicketAnchor(t.ticket_number).finally(() => {
-      clearTicketTarget();
-    });
-  }, [ticketNavTarget, userIdSelecionado, scrollToTicketAnchor, clearTicketTarget]);
 
   /* ------ render ------ */
   if (!userIdSelecionado) {
