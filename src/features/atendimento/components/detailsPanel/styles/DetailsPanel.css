@@ -1,136 +1,347 @@
-/* ===== painel vazio ===== */
-.painel-vazio { min-height: 220px; display: grid; place-items: center; }
-.conteudo-vazio { text-align: center; color: #6b7280; }
-.mensagem-vazia { font-weight: 600; margin: 4px 0; }
-.submensagem-vazia { margin: 0; }
-
-/* ===== cartão de informações ===== */
-.info-card { position: relative; }
-.circle-initial-box { display: flex; justify-content: center; margin: 8px 0; }
-.circle-initial {
-  width: 64px; height: 64px; border-radius: 50%;
-  display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 22px;
+/* =========================
+   Base / Container
+   ========================= */
+.details-panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  flex-grow: 1;
 }
-.name-label { text-align: center; margin: 8px 0 10px; }
-.info-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-.info-icon { color: #94a3b8; }
-.info-value { color: #111827; }
 
-/* ===== histórico ===== */
-.historico-card .card-title { margin-bottom: 10px; }
+/* Cards */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin: 0;
+  margin-bottom: var(--gap);
+  box-sizing: border-box;
+  width: 100%;
+  flex-shrink: 0;
+}
 
-/* Filtros */
-.history-filter { margin: 6px 0 12px; }
+.painel-vazio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.conteudo-vazio {
+  margin-top: 20px;
+  color: var(--color-text-muted);
+}
+
+.mensagem-vazia {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-default);
+  margin-bottom: 4px;
+}
+
+.submensagem-vazia {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+/* =========================
+   Histórico (card ocupa o resto)
+   ========================= */
+.historico-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 200px;
+  margin-bottom: 0;  /* elimina espaço no final */
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+  color: var(--color-text-default);
+}
+
+/* Conteúdo com rolagem */
+.historico-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 8px;
+  scrollbar-gutter: stable;
+}
+
+/* Lista “fallback” (mantida) */
+.historico-content ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.historico-content li {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+/* Texto de aviso */
+.sem-historico {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  padding: 8px;
+}
+
+/* =========================
+   NOVO: Filtros do histórico
+   ========================= */
+.history-filter {
+  margin: 6px 0 12px;
+}
+
 .hf-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   align-items: end;
 }
-.hf-field { display: grid; gap: 6px; }
-.hf-field > span { font-size: 12px; color: #6b7280; }
+
+.hf-field {
+  display: grid;
+  gap: 6px;
+}
+
+.hf-field > span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
 .hf-input {
   width: 100%;
   padding: 9px 12px;
-  border: 1px solid #e6e8ee;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   background: #fff;
   font-size: 14px;
   outline: none;
+  color: var(--color-text-default);
 }
+
 .hf-input:focus {
   border-color: #c9d6ff;
   box-shadow: 0 0 0 3px rgba(76, 128, 255, 0.15);
 }
-.hf-date { padding: 8px 10px; }
+
+.hf-date {
+  padding: 8px 10px;
+}
+
 .hf-clear {
   justify-self: end;
   padding: 9px 12px;
-  border: 1px solid #e6e8ee;
+  border: 1px solid var(--color-border);
   background: #fafbff;
   border-radius: 10px;
   font-size: 13px;
   cursor: pointer;
+  color: var(--color-text-default);
   transition: background .15s ease, border-color .15s ease;
 }
-.hf-clear:hover { background: #f2f5ff; border-color: #dde6ff; }
 
-/* Lista de cards */
-.historico-content {
-  max-height: 520px;
-  overflow: auto;
-  scrollbar-gutter: stable;
+.hf-clear:hover {
+  background: #f2f5ff;
+  border-color: #dde6ff;
 }
+
+/* =========================
+   NOVO: Lista de capítulos (cards)
+   ========================= */
 .historico-list {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
   list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.ticket-item { margin: 0; }
 
+.ticket-item {
+  margin: 0;
+}
+
+/* Botão-card (ocupa largura toda) */
 .ticket-card {
-  display: grid;
-  gap: 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 12px 16px;
   width: 100%;
   text-align: left;
-  background: #fff;
-  border: 1px solid #eceff4;
-  border-radius: 12px;
-  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: box-shadow .15s ease, border-color .15s ease, transform .06s ease;
 }
+
 .ticket-card:hover {
   box-shadow: 0 6px 18px rgba(16, 24, 40, .06);
   border-color: #e3e9f9;
 }
-.ticket-card:active { transform: translateY(1px); }
+
+.ticket-card:active {
+  transform: translateY(1px);
+}
+
 .ticket-card:focus-visible {
   outline: 3px solid #9bb7ff;
   outline-offset: 2px;
 }
 
-/* Cabeçalho do card */
-.ticket-row { display: flex; align-items: baseline; gap: 12px; }
-.ticket-title { font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
+/* Cabeçalho do card: título à esquerda, data à direita */
+.ticket-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.ticket-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text-default);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 .ticket-title code {
-  background: #f5f7ff; color: #1f2a44;
-  padding: 2px 6px; border-radius: 6px;
+  background: #f5f7ff;
+  color: #1f2a44;
+  padding: 2px 6px;
+  border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: .95em;
 }
-.ticket-date { margin-left: auto; color: #6b7280; font-size: 12px; white-space: nowrap; }
 
-/* Chips */
-.ticket-chips { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ticket-date {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Chips (segunda linha) */
+.ticket-chips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .chip {
-  font-size: 12px; padding: 4px 10px; border-radius: 999px;
-  background: #f7f8fb; border: 1px solid #eceff4; color: #374151;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f7f8fb;           /* neutro */
+  border: 1px solid #eceff4;
+  color: #374151;
 }
-.chip--muted { color: #495265; background: #f8f8fc; border-color: #ececf6; }
 
-/* Estados vazios */
-.sem-historico { text-align: center; color: #6b7280; padding: 16px 0; }
+.chip--muted {
+  color: #495265;
+  background: #f8f8fc;
+  border-color: #ececf6;
+}
 
-/* Scrollbar (opcional) */
-.historico-content::-webkit-scrollbar { width: 10px; }
+/* =========================
+   Informações de Contato
+   ========================= */
+.circle-initial-box {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+}
+
+.circle-initial {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name-label {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text-default);
+  margin-bottom: 16px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+  color: var(--color-text-default);
+}
+
+.info-icon {
+  color: var(--color-primary);
+}
+
+.info-value {
+  word-break: break-word;
+}
+
+/* =========================
+   Scrollbar opcional
+   ========================= */
+.historico-content::-webkit-scrollbar {
+  width: 10px;
+}
 .historico-content::-webkit-scrollbar-thumb {
-  background: #e6e9f2; border-radius: 999px;
+  background: #e6e9f2;
+  border-radius: 999px;
 }
-.historico-content::-webkit-scrollbar-thumb:hover { background: #d8ddee; }
+.historico-content::-webkit-scrollbar-thumb:hover {
+  background: #d8ddee;
+}
 
-/* Responsivo */
+/* =========================
+   Responsivo
+   ========================= */
 @media (max-width: 900px) {
-  .hf-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .hf-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
+
 @media (max-width: 640px) {
-  .hf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hf-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
+
 @media (max-width: 520px) {
-  .ticket-card { border-radius: 10px; padding: 10px 12px; }
+  .ticket-card {
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
   .ticket-title { font-size: 14px; }
-  .ticket-date { font-size: 11.5px; }
+  .ticket-date  { font-size: 11.5px; }
   .chip { font-size: 11.5px; padding: 3px 8px; }
 }
