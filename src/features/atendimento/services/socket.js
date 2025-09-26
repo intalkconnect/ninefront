@@ -183,15 +183,15 @@ async function subscribeRoom(room) {
     room,
     needsSubToken
       ? {
-          getToken: async () => {
-            // 👉 usa apiClient (envia headers padronizados + baseUrl)
-            const { token } = await apiPost("/centrifugo/subscribe", {
-              channel: room,
-              client: centrifuge.state.client,
-            });
-            if (!token) throw new Error("subscribe token ausente");
-            return token;
-          },
+    getToken: async () => {
+      // usa a mesma base (/api/v1) e os mesmos headers do apiClient (X-Tenant + Bearer)
+      const { token } = await apiPost("/realtime/subscribe", {
+        channel: room,
+        client: centrifuge?.state?.client || centrifuge?.id || null,
+      });
+      if (!token) throw new Error("subscribe token ausente");
+      return token;
+    }
         }
       : undefined
   );
@@ -226,3 +226,4 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
+
