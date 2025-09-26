@@ -1,61 +1,84 @@
+// src/shared/apiClient.js
 import { getRuntimeConfig } from "./runtimeConfig";
 
 const { apiBaseUrl, tenant } = getRuntimeConfig();
 
-// helper p/ juntar headers e garantir X-Tenant
-function withTenantHeaders(extra = {}) {
-  return {
-    "X-Tenant": tenant,
-    ...extra,
-  };
+// pega token salvo via ?token= (localStorage) ou sessionStorage
+function getBearer() {
+  try {
+    const ls = localStorage.getItem("token");
+    if (ls) return ls;
+  } catch {}
+  try {
+    const ss = sessionStorage.getItem("token");
+    if (ss) return ss;
+  } catch {}
+  return null;
 }
 
-// === helpers com fetch (agora COM X-Tenant) ===
-// se usa cookie de sessão, adicione { credentials: "include" } onde precisar
+// detecta se é mesma origem (pra decidir credentials)
+function isSameOrigin(url) {
+  try {
+    const u = new URL(url, window.location.href);
+    return u.origin === window.location.origin;
+  } catch {
+    return true;
+  }
+}
+
+// headers padrão: X-Tenant + Authorization quando existir
+function withAuthHeaders(extra = {}) {
+  const h = { ...(extra || {}) };
+  if (tenant) h["X-Tenant"] = tenant;           // ✅ padrão alinhado: X-Tenant
+  const bearer = getBearer();
+  if (bearer) h["Authorization"] = `Bearer ${bearer}`;
+  return h;
+}
+
+async function doFetch(path, init = {}) {
+  const url = `${apiBaseUrl}${path}`;
+  const opts = {
+    ...init,
+    headers: withAuthHeaders(init.headers),
+  };
+  // envia cookies quando for mesma origem
+  if (isSameOrigin(url)) {
+    opts.credentials = "include";
+  }
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`${init.method || "GET"} ${path} failed (${res.status}) ${txt}`);
+  }
+  // pode vir 204
+  if (res.status === 204) return null;
+  return res.json();
+}
 
 export async function apiGet(path) {
-  const res = await fetch(`${apiBaseUrl}${path}`, {
-    headers: withTenantHeaders(),
-  });
-  if (!res.ok) throw new Error(`GET ${path} failed`);
-  return res.json();
+  return doFetch(path);
 }
-
 export async function apiPost(path, data) {
-  const res = await fetch(`${apiBaseUrl}${path}`, {
+  return doFetch(path, {
     method: "POST",
-    headers: withTenantHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data ?? {}),
   });
-  if (!res.ok) throw new Error(`POST ${path} failed`);
-  return res.json();
 }
-
 export async function apiPut(path, data) {
-  const res = await fetch(`${apiBaseUrl}${path}`, {
+  return doFetch(path, {
     method: "PUT",
-    headers: withTenantHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data ?? {}),
   });
-  if (!res.ok) throw new Error(`PUT ${path} failed`);
-  return res.json();
 }
-
 export async function apiPatch(path, data) {
-  const res = await fetch(`${apiBaseUrl}${path}`, {
+  return doFetch(path, {
     method: "PATCH",
-    headers: withTenantHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data ?? {}),
   });
-  if (!res.ok) throw new Error(`PATCH ${path} failed`);
-  return res.json();
 }
-
 export async function apiDelete(path) {
-  const res = await fetch(`${apiBaseUrl}${path}`, {
-    method: "DELETE",
-    headers: withTenantHeaders(),
-  });
-  if (!res.ok) throw new Error(`DELETE ${path} failed`);
-  return res.json();
+  return doFetch(path, { method: "DELETE" });
 }
