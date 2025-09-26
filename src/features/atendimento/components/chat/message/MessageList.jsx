@@ -7,7 +7,6 @@ import React, {
 
 import MessageRow from './MessageRow';
 
-// ---------- helpers ----------
 function findReplyTarget(messages, refId) {
   if (!refId) return null;
   return (
@@ -30,15 +29,9 @@ function isNearBottom(el, threshold = 80) {
   return dist <= threshold;
 }
 
-function getOffsetTopWithin(el, ancestor) {
-  // calcula o top relativo do elemento dentro do container rolável
-  let y = 0, n = el;
-  while (n && n !== ancestor) { y += n.offsetTop; n = n.offsetParent; }
-  return y;
-}
-
 /**
  * MessageList (puro, sem paginação interna; usa um sentinel no topo para carregar mais)
+ * — Removidas âncoras de “capítulo” (data-ticket/id) —
  */
 const MessageList = forwardRef(
   (
@@ -56,39 +49,14 @@ const MessageList = forwardRef(
 
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
-        const c = containerRef.current;
-        if (c) c.scrollTo({ top: c.scrollHeight, behavior: 'auto' });
+        if (containerRef.current) {
+          containerRef.current.scrollTo({
+            top: containerRef.current.scrollHeight,
+            behavior: 'auto',
+          });
+        }
       },
       getContainer: () => containerRef.current,
-
-      /**
-       * Salta instantaneamente até a âncora do ticket (sem animação longa).
-       * Retorna true se encontrou e rolou, senão false.
-       */
-      scrollToTicketInstant: (ticketNumber, { center = true } = {}) => {
-        const c = containerRef.current;
-        if (!c) return false;
-        const anchor = c.querySelector(
-          `[data-ticket="${CSS.escape(String(ticketNumber))}"]`
-        );
-        if (!anchor) return false;
-
-        const top = getOffsetTopWithin(anchor, c);
-        const targetTop = center
-          ? Math.max(0, top - Math.max(0, (c.clientHeight / 2) - (anchor.clientHeight / 2)))
-          : top;
-
-        const prev = c.style.scrollBehavior;
-        c.style.scrollBehavior = 'auto';
-        c.scrollTop = targetTop;
-        c.style.scrollBehavior = prev || '';
-
-        // realce visual leve (opcional)
-        anchor.classList.add('ticket-flash');
-        setTimeout(() => anchor.classList.remove('ticket-flash'), 600);
-
-        return true;
-      },
     }));
 
     // auto-scroll controlado quando a lista muda
@@ -142,12 +110,10 @@ const MessageList = forwardRef(
           }
 
           const prevMsg = messages[index - 1];
-
           const showTicketDivider =
-            msg.ticket_number &&
-            (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
+            msg.ticket_number && (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
-          // 🧩 Resolução do alvo de resposta
+          // 🧩 Resolução do alvo de resposta (preview)
           let replyToMessage = msg.replyTo || null;
           const replyId = msg.reply_to || msg.context?.message_id || null;
           if (!replyToMessage && typeof replyId === 'string' && replyId.trim() !== '') {
@@ -157,11 +123,7 @@ const MessageList = forwardRef(
           return (
             <React.Fragment key={msg.id || msg.message_id || index}>
               {showTicketDivider && (
-                <div
-                  className="ticket-divider"
-                  data-ticket={msg.ticket_number}
-                  id={`ticket-${msg.ticket_number}`}
-                >
+                <div className="ticket-divider">
                   Ticket #{msg.ticket_number}
                 </div>
               )}
