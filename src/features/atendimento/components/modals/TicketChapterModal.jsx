@@ -3,6 +3,9 @@ import { X } from "lucide-react";
 import { apiGet } from "../../../../shared/apiClient";
 import "./styles/TicketChapterModal.css";
 
+// 👉 importe os componentes enviados
+import MessageList from "../chat/message/MessageList";   // ajuste o caminho se necessário
+
 /* ===== utils ===== */
 function tsOf(m) {
   const t = m?.timestamp || m?.created_at || null;
@@ -10,17 +13,6 @@ function tsOf(m) {
   return Number.isFinite(n) ? n : 0;
 }
 function sortAsc(a, b) { return tsOf(a) - tsOf(b); }
-function msgText(m) {
-  const c = m?.content;
-  if (c == null) return "";
-  if (typeof c === "string") {
-    try { return msgText(JSON.parse(c)); } catch { return c.trim(); }
-  }
-  if (typeof c === "object") {
-    return String(c.text || c.caption || c.body || c.filename || c.url || "").trim();
-  }
-  return String(c).trim();
-}
 
 /* ===== fetch exclusivo por ticket ===== */
 async function fetchChapterMessagesByTicketId({ ticketId, messagesLimit = 2000 }) {
@@ -34,7 +26,6 @@ async function fetchChapterMessagesByTicketId({ ticketId, messagesLimit = 2000 }
 export default function TicketChapterModal({
   open,
   onClose,
-  userId,          // mantido se precisar depois
   ticketId,        // usado no fetch
   ticketNumber,    // só título
 }) {
@@ -69,6 +60,11 @@ export default function TicketChapterModal({
 
   if (!open) return null;
 
+  // handlers opcionais para imagem/pdf (se você quiser abrir lightbox, por exemplo)
+  const handleImageClick = (url) => { /* TODO: abrir preview se quiser */ };
+  const handlePdfClick = (url) => { /* TODO: abrir visualizador se quiser */ };
+  const handleReply = () => {}; // no modal normalmente não precisa responder
+
   return (
     <div
       role="dialog"
@@ -90,23 +86,15 @@ export default function TicketChapterModal({
           {!loading && !error && messages.length === 0 && (
             <div className="chapter-modal__center">Nenhuma mensagem encontrada.</div>
           )}
+
           {!loading && !error && messages.length > 0 && (
-            <div className="chapter-modal__list">
-              {messages.map((m, i) => {
-                const ts = new Date(tsOf(m)).toLocaleString('pt-BR');
-                const who = m.direction === "outgoing" ? "Agente" :
-                            (m.direction === "incoming" ? "Cliente" : "Sistema");
-                return (
-                  <div key={m.id || m.message_id || m.provider_id || i} className="chapter-modal__row">
-                    <div className="chapter-modal__row-meta">
-                      <span className="chapter-modal__pill">{who}</span>
-                      <span className="chapter-modal__when">{ts}</span>
-                    </div>
-                    <div className="chapter-modal__text">{msgText(m) || "[mensagem]"}</div>
-                  </div>
-                );
-              })}
-            </div>
+            // ⤵️ usa os componentes enviados para renderizar a conversa
+            <MessageList
+              messages={messages}
+              onImageClick={handleImageClick}
+              onPdfClick={handlePdfClick}
+              onReply={handleReply}
+            />
           )}
         </div>
 
