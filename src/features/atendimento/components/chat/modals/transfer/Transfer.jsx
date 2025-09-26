@@ -26,7 +26,7 @@ export default function TransferModal({ userId, onClose }) {
   useEffect(() => {
     (async () => {
       try {
-        const data = await apiGet(`/queues/queues-permissoes/${userEmail}`);
+        const data = await apiGet(`/queues/queues-permission/${userEmail}`);
         setFilas(data);
       } catch (err) {
         console.error('Erro ao buscar filas:', err);
