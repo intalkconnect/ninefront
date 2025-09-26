@@ -8,23 +8,22 @@ import TicketChapterModal from '../modals/TicketChapterModal';
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [historico, setHistorico] = useState([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
-  const [chapterModal, setChapterModal] = useState({ open: false, ticket: null });
+  const [chapterModal, setChapterModal] = useState({ open: false, ticketId: null, ticketNumber: null });
 
-  // 🔁 quando troca de cliente, limpa modal e histórico
+  // limpa modal e histórico ao trocar de cliente
   useEffect(() => {
-    setChapterModal({ open: false, ticket: null });
+    setChapterModal({ open: false, ticketId: null, ticketNumber: null });
     setHistorico([]);
   }, [userIdSelecionado]);
 
+  // busca capítulos no /tickets/history filtrando por user_id no "q"
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
 
-    // ⚠️ usa a rota NOVA /tickets/history
-    // filtra por userId no parâmetro q (o back aceita LIKE em t.user_id)
     const qs = new URLSearchParams({
       q: String(userIdSelecionado),
-      page_size: '40', // permitido: 10,20,30,40 (usamos 40)
+      page_size: '40', // permitido: 10, 20, 30, 40
       page: '1',
     });
 
@@ -100,8 +99,12 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
                         type="button"
                         className="ticket-card"
                         onClick={() => {
-                          if (!ticketNum) return;
-                          setChapterModal({ open: true, ticket: ticketNum });
+                          if (!t.id) return;
+                          setChapterModal({
+                            open: true,
+                            ticketId: t.id,               // usado para /tickets/history/:id
+                            ticketNumber: t.ticket_number // só título
+                          });
                         }}
                         style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, cursor: 'pointer' }}
                       >
@@ -123,9 +126,10 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
       <TicketChapterModal
         open={chapterModal.open}
-        onClose={() => setChapterModal({ open: false, ticket: null })}
+        onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null })}
         userId={userIdSelecionado}
-        ticketNumber={chapterModal.ticket}
+        ticketId={chapterModal.ticketId}
+        ticketNumber={chapterModal.ticketNumber}
         messagesInMemory={conversaSelecionada?.messages || []}
       />
     </>
