@@ -1,7 +1,7 @@
 // src/app/services/socket.js
 import { Centrifuge } from "centrifuge";
 import { getRuntimeConfig } from "../../../shared/runtimeConfig";
-import { parseJwt } from "../../utils/auth"; // ajuste o caminho se necessário
+import { parseJwt } from "../../../app/utils/auth";
 
 let centrifuge = null;
 let connectPromise = null;
@@ -198,3 +198,4 @@ function unsubscribeRoom(room) {
   try { sub.unsubscribe(); } catch {}
   subs.delete(room);
 }
+
