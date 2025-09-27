@@ -249,7 +249,7 @@ export default function QueueHours() {
                     <div className={css.emptyRow}>Sem janelas.</div>
                   )}
                   {(windows[key] || []).map((w, idx) => (
-                    <div key={idx} className={css.win}}>
+                    <div key={idx} className={css.win}>
                       <input
                         type="time"
                         value={w.start || ''}
