@@ -1,28 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Share2, CheckCircle, Tag as TagIcon } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiDelete, apiPut } from "../../../../../shared/apiClient";
 import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
-import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
-/* helpers */
-function padTicket(n) {
-  if (n == null) return '000000';
-  try { return String(n).padStart(6, '0'); } catch { return String(n); }
-}
-
-/** Listbox simples com checkboxes (sem modal) */
-function TagsListbox({ label = 'Tags', options = [], selected = [], onChange }) {
+/* ---------- Listbox simples (aparece somente se houver catálogo) ---------- */
+function TagsListbox({ label = 'Tags do ticket', options = [], selected = [], onChange }) {
   const [open, setOpen] = useState(false);
-  const boxRef = useRef(null);
+  const ref = useRef(null);
 
   useEffect(() => {
-    const onDoc = (e) => {
-      if (!boxRef.current) return;
-      if (!boxRef.current.contains(e.target)) setOpen(false);
-    };
+    const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
@@ -30,20 +21,20 @@ function TagsListbox({ label = 'Tags', options = [], selected = [], onChange }) 
   const toggle = (val) => {
     const has = selected.includes(val);
     const next = has ? selected.filter(t => t !== val) : [...selected, val];
-    onChange(next);
+    // remove duplicados por segurança
+    onChange([...new Set(next)]);
   };
 
+  if (!options?.length) return null;
+
   return (
-    <div className="tags-lb" ref={boxRef}>
+    <div className="tags-lb" ref={ref}>
       <button type="button" className="tags-lb__button" onClick={() => setOpen(o => !o)}>
         <TagIcon size={14} /> <span>{label}</span> <span className="tags-lb__caret">▾</span>
       </button>
-
       {open && (
         <div className="tags-lb__panel" role="listbox" aria-label={label}>
-          {options.length === 0 ? (
-            <div className="tags-lb__empty">Nenhuma tag disponível</div>
-          ) : options.map(opt => (
+          {options.map(opt => (
             <label key={opt.tag} className="tags-lb__item">
               <input
                 type="checkbox"
@@ -59,75 +50,64 @@ function TagsListbox({ label = 'Tags', options = [], selected = [], onChange }) 
   );
 }
 
+/* util para salvar tags do cliente de acordo com as rotas novas (POST/DELETE) */
+async function saveCustomerTagsDiff(userId, initialTags = [], selectedTags = []) {
+  const initialSet  = new Set(initialTags);
+  const selectedSet = new Set(selectedTags);
+
+  const toAdd    = [...selectedSet].filter(t => !initialSet.has(t));
+  const toRemove = [...initialSet].filter(t => !selectedSet.has(t));
+
+  if (toAdd.length) {
+    await apiPost(`/tags/customer/${encodeURIComponent(userId)}`, { tags: toAdd });
+  }
+  for (const t of toRemove) {
+    await apiDelete(`/tags/customer/${encodeURIComponent(userId)}/${encodeURIComponent(t)}`);
+  }
+}
+
 export default function ChatHeader({ userIdSelecionado }) {
   const confirm = useConfirm();
   const [showTransferModal, setShowTransferModal] = useState(false);
-  const clienteAtivo       = useConversationsStore((state) => state.clienteAtivo);
-  const mergeConversation  = useConversationsStore((state) => state.mergeConversation);
-  const setSelectedUserId  = useConversationsStore((state) => state.setSelectedUserId);
+
+  const clienteAtivo       = useConversationsStore((s) => s.clienteAtivo);
+  const mergeConversation  = useConversationsStore((s) => s.mergeConversation);
+  const setSelectedUserId  = useConversationsStore((s) => s.setSelectedUserId);
 
   const ticketNumber = clienteAtivo?.ticket_number || '000000';
   const name         = clienteAtivo?.name || 'Cliente';
   const user_id      = clienteAtivo?.user_id || userIdSelecionado;
 
-  /* ===== Ticket tags (chips + listbox) ===== */
-  const [ticketTags, setTicketTags] = useState([]);
+  /* ======= TAGS do TICKET ======= */
   const [ticketCatalog, setTicketCatalog] = useState([]);
+  const [ticketTags, setTicketTags] = useState([]); // sempre começa vazio por ticket
 
-  // carrega catálogo e tags atuais
+  // carrega catálogo do ticket pela fila do ticket
   useEffect(() => {
     let alive = true;
-
-    async function load() {
+    setTicketTags([]); // zera seleção ao trocar de ticket
+    setTicketCatalog([]);
+    (async () => {
       if (!ticketNumber) return;
       try {
-        const [cur, cat] = await Promise.all([
-          apiGet(`/tickets/tags/ticket/${encodeURIComponent(ticketNumber)}`),
-          apiGet(`/tickets/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`)
-        ]);
-
-        const current = Array.isArray(cur?.tags) ? cur.tags.map(x => x.tag || x) : [];
-        const catalog = Array.isArray(cat?.catalog) ? cat.catalog : [];
-
+        const r = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`);
         if (!alive) return;
-        setTicketTags(current);
-        setTicketCatalog(catalog);
-        mergeConversation(user_id, { motivo_tags: current });
+        const cat = Array.isArray(r?.catalog) ? r.catalog : [];
+        setTicketCatalog(cat);
       } catch {
-        if (!alive) return;
-        setTicketTags([]);
-        setTicketCatalog([]);
+        if (alive) setTicketCatalog([]);
       }
-    }
-    load();
+    })();
     return () => { alive = false; };
-  }, [ticketNumber, user_id, mergeConversation]);
+  }, [ticketNumber]);
 
-  // aplica alterações (diferença incremental usando POST + DELETE)
-  const applyTicketTags = async (next) => {
-    const toAdd = next.filter(t => !ticketTags.includes(t));
-    const toDel = ticketTags.filter(t => !next.includes(t));
+  if (!clienteAtivo) return null;
 
-    try {
-      if (toAdd.length) {
-        await apiPost(`/tickets/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: toAdd });
-      }
-      for (const t of toDel) {
-        // remover vínculos inexistentes não dá erro (404 vira ignorado aqui)
-        try { await apiDelete(`/tickets/tags/ticket/${encodeURIComponent(ticketNumber)}/${encodeURIComponent(t)}`); } catch {}
-      }
-      setTicketTags(next);
-      mergeConversation(user_id, { motivo_tags: next });
-    } catch (err) {
-      console.error('Falha ao salvar tags do ticket', err);
-    }
-  };
-
-  // finalizar (com ConfirmProvider) — também garante salvar tags do cliente (store -> API) se existir
+  /* ================== FINALIZAR ================== */
   const finalizarAtendimento = async () => {
     const ok = await confirm({
       title: 'Finalizar atendimento?',
-      description: `Deseja finalizar o atendimento do ticket #${padTicket(ticketNumber)}?`,
+      description: `Deseja finalizar o ticket #${String(ticketNumber).padStart(6,'0')}? As tags selecionadas serão salvas.`,
       confirmText: 'Finalizar',
       cancelText: 'Cancelar',
       tone: 'success',
@@ -135,74 +115,68 @@ export default function ChatHeader({ userIdSelecionado }) {
     if (!ok) return;
 
     try {
-      // fecha ticket
+      // 1) Salva tags do ticket (se houver)
+      if (ticketTags.length) {
+        await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
+      }
+
+      // 2) Salva tags do cliente: compara inicial x selecionadas (vindas do Details)
+      const initialCustomer =
+        clienteAtivo?.customer_tags ?? [];                 // do GET inicial
+      const selectedCustomer =
+        clienteAtivo?.pending_customer_tags ?? initialCustomer; // seleção atual (Details mantém isso)
+
+      await saveCustomerTagsDiff(user_id, initialCustomer, selectedCustomer);
+
+      // 3) Fecha o ticket
       await apiPut(`/tickets/${encodeURIComponent(user_id)}`, { status: 'closed' });
-
-      // salva estado atual de tags do ticket (no caso de alguém esquecer de clicar fora do listbox)
-      if (ticketTags?.length) {
-        await apiPost(`/tickets/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
-      }
-
-      // salva tags do cliente (se existirem no objeto do store)
-      const customerTags = Array.isArray(clienteAtivo?.customer_tags) ? clienteAtivo.customer_tags : [];
-      if (customerTags.length) {
-        await apiPost(`/clientes/${encodeURIComponent(user_id)}/tags`, { tags: customerTags });
-      }
-
       mergeConversation(user_id, { status: 'closed' });
 
+      // 4) websocket + UI
       const socket = getSocket();
       if (socket?.connected) socket.emit('leave_room', user_id);
       try { window.dispatchEvent(new CustomEvent('room-closed', { detail: { userId: user_id } })); } catch {}
 
       setSelectedUserId(null);
     } catch (err) {
-      console.error('Erro ao finalizar ticket:', err);
+      console.error('Erro ao finalizar:', err);
       await confirm({
-        title: 'Erro',
-        description: 'Não foi possível finalizar. Tente novamente.',
+        title: 'Erro ao finalizar',
+        description: 'Não foi possível concluir a operação. Tente novamente.',
         confirmText: 'Ok',
-        cancelText: null,
+        hideCancel: true,
         tone: 'danger',
       });
     }
   };
 
-  if (!clienteAtivo) return null;
-
-  // chips somente se houver
-  const chosen = ticketTags;
-  const chosenChips = useMemo(() => {
-    if (!chosen?.length) return [];
-    const map = new Map(ticketCatalog.map(x => [x.tag, x]));
-    return chosen.map(t => ({ tag: t, label: map.get(t)?.label || t }));
-  }, [chosen, ticketCatalog]);
-
+  /* =============== RENDER =============== */
   return (
     <>
       <div className="chat-header">
         <div className="chat-header-left">
+          {/* Nome + ticket embaixo (como antes) */}
           <div className="nome-e-telefone">
             <span className="chat-header-nome">{name}</span>
-            <span className="ticket-numero">#{padTicket(ticketNumber)}</span>
-
-            {/* chips aparecem logo abaixo do número */}
-            {chosenChips.length > 0 && (
-              <div className="ticket-chips-inline">
-                {chosenChips.map(c => (
-                  <span key={c.tag} className="chip chip--motivo">{c.label}</span>
-                ))}
-              </div>
-            )}
+            <span className="ticket-numero">#{String(ticketNumber).padStart(6, '0')}</span>
           </div>
 
-          {/* listbox de tags sempre visível; chips ficam no bloco acima */}
+          {/* Listbox de tags do ticket (apenas se houver catálogo); chips só se houver seleção */}
           <TagsListbox
-            label="Tags"
+            label="Tags do ticket"
             options={ticketCatalog}
             selected={ticketTags}
-            onChange={applyTicketTags}
+            onChange={setTicketTags}
           />
+          {ticketTags.length > 0 && (
+            <div className="ticket-tags">
+              <div className="ticket-tags__chips">
+                {ticketTags.map((t) => (
+                  <span className="chip chip--motivo" key={t}>{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="chat-header-right">
