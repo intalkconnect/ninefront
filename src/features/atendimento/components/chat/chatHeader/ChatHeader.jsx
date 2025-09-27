@@ -5,7 +5,7 @@ import { apiGet, apiPut } from "../../../../../shared/apiClient";
 import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
 import './styles/ChatHeader.css';
-import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 
 /* ===== chamadas de API p/ tags do ticket (vinculadas à fila) ===== */
 async function fetchTicketTags(ticketNumber) {
@@ -171,3 +171,4 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
