@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Plus, X, Tag } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
-import { apiGet } from '../../../../shared/apiClient';
+import { apiGet, apiPut } from '../../../../shared/apiClient';
 import TicketChapterModal from '../modals/TicketChapterModal';
 
 /* ---------- helpers ---------- */
@@ -15,7 +15,7 @@ function padTicket(n) {
 function toIsoDate(s) {
   if (!s) return '';
   const t = String(s).trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t; // ISO direto
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
   const m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
   return '';
@@ -28,14 +28,9 @@ function parseSearch(q) {
 
   let from = ''; let to = ''; let text = raw;
 
-  // intervalo “A..B”
   const range = raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/);
-  if (range) {
-    from = toIsoDate(range[1]); to = toIsoDate(range[2]);
-    text = raw.replace(range[0], ' ').trim();
-  }
+  if (range) { from = toIsoDate(range[1]); to = toIsoDate(range[2]); text = raw.replace(range[0], ' ').trim(); }
 
-  // de:/ate: (ou from:/to:)
   const mFrom = raw.match(/(?:\bde:|\bfrom:)(\S+)/i);
   const mTo   = raw.match(/(?:\bate:|\bto:)(\S+)/i);
   if (mFrom) { const iso = toIsoDate(mFrom[1]); if (iso) from = iso; }
@@ -46,6 +41,33 @@ function parseSearch(q) {
 
   const tokens = text.split(/\s+/).map(t => t.trim()).filter(Boolean);
   return { tokens, from, to };
+}
+
+/* ===== storage adapter (pronto p/ endpoints) ===== */
+const USE_API = false; // ⬅️ troque para true quando criar endpoints
+
+const CONTACT_TAGS_KEY = (userId) => `contact:tags:${String(userId || '')}`;
+
+async function fetchContactTags(userId) {
+  if (USE_API) {
+    // ⬇️ EXEMPLO (ajuste para seu endpoint)
+    // const res = await apiGet(`/customers/${encodeURIComponent(userId)}/tags`);
+    // return Array.isArray(res?.tags) ? res.tags : [];
+    return []; // placeholder até endpoints existirem
+  }
+  try {
+    const raw = localStorage.getItem(CONTACT_TAGS_KEY(userId));
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch { return []; }
+}
+async function updateContactTags(userId, tags) {
+  if (USE_API) {
+    // ⬇️ EXEMPLO (ajuste para seu endpoint)
+    // await apiPut(`/customers/${encodeURIComponent(userId)}/tags`, { tags });
+    return;
+  }
+  try { localStorage.setItem(CONTACT_TAGS_KEY(userId), JSON.stringify(tags)); } catch {}
 }
 
 /** Debounce simples */
@@ -65,11 +87,25 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const debouncedQuery = useDebounced(query, 250);
   const { tokens, from, to } = useMemo(() => parseSearch(debouncedQuery), [debouncedQuery]);
 
+  // tags do contato
+  const [contactTags, setContactTags] = useState([]);
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef(null);
+
   // reset ao mudar o cliente
   useEffect(() => {
     setChapterModal({ open: false, ticketId: null, ticketNumber: null });
     setHistorico([]);
     setQuery('');
+
+    (async () => {
+      if (userIdSelecionado) {
+        const saved = await fetchContactTags(userIdSelecionado);
+        setContactTags(saved);
+      } else {
+        setContactTags([]);
+      }
+    })();
   }, [userIdSelecionado]);
 
   // busca no servidor: restringe ao user + período
@@ -98,6 +134,27 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       return toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q));
     });
   }, [historico, tokens]);
+
+  // ações de tag do contato
+  const persistContact = async (next) => {
+    setContactTags(next);
+    await updateContactTags(userIdSelecionado, next);
+  };
+  const addContactTag = async (raw) => {
+    const v = String(raw || '').trim();
+    if (!v) return;
+    if (contactTags.includes(v)) { setDraft(''); return; }
+    await persistContact([...contactTags, v]);
+    setDraft('');
+  };
+  const removeContactTag = async (t) => {
+    await persistContact(contactTags.filter(x => x !== t));
+  };
+  const onContactKey = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addContactTag(draft); }
+    if (e.key === ',' || e.key === ';') { e.preventDefault(); addContactTag(draft); }
+    if (e.key === 'Backspace' && !draft && contactTags.length) { e.preventDefault(); removeContactTag(contactTags[contactTags.length - 1]); }
+  };
 
   if (!userIdSelecionado || !conversaSelecionada) {
     return (
@@ -131,9 +188,46 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           <div className="info-row"><Phone size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span></div>
           <div className="info-row"><IdCard size={16} className="info-icon" /><span className="info-value">{documento || 'Não informado'}</span></div>
           <div className="info-row"><IdCardLanyard size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.user_id || 'Não informado'}</span></div>
+
+          {/* ===== Tags do cliente (múltiplas) ===== */}
+          <div className="contact-tags">
+            <div className="contact-tags__label">
+              <Tag size={14} style={{ marginRight: 6 }} /> Tags do cliente
+            </div>
+            <div className="contact-tags__chips">
+              {contactTags.length === 0 && <span className="chips-empty">Nenhuma tag</span>}
+              {contactTags.map((t) => (
+                <span className="chip chip--client" key={t} title="Tag do cliente">
+                  {t}
+                  <button
+                    type="button"
+                    className="chip-x"
+                    onClick={() => removeContactTag(t)}
+                    aria-label={`Remover tag ${t}`}
+                    title="Remover"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+              <input
+                ref={inputRef}
+                className="contact-tags__input"
+                placeholder={contactTags.length ? "Adicionar outra tag…" : "Adicionar tags do cliente…"}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={onContactKey}
+                aria-label="Adicionar tag ao cliente"
+              />
+              <button className="contact-tags__add" onClick={() => addContactTag(draft)} aria-label="Adicionar tag">
+                <Plus size={14} />
+                <span>Adicionar</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* ===== Capítulos ===== */}
+        {/* ===== Histórico de tickets ===== */}
         <div className="card historico-card">
           <h4 className="card-title">Histórico de tickets</h4>
 
