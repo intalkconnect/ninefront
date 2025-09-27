@@ -1,67 +1,135 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Tag } from 'lucide-react';
+import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Tag as TagIcon, ChevronDown } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../../../shared/apiClient';
 import TicketChapterModal from '../modals/TicketChapterModal';
+import useConversationsStore from '../../../store/useConversationsStore';
 
 /* ---------- helpers ---------- */
-function padTicket(n) {
-  if (n == null) return '—';
-  try { return String(n).padStart(6, '0'); } catch { return String(n); }
-}
-
-/** dd/mm/aaaa -> yyyy-mm-dd (ou mantém vazio) */
+function padTicket(n) { return n == null ? '—' : String(n).padStart(6, '0'); }
 function toIsoDate(s) {
   if (!s) return '';
   const t = String(s).trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
   const m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-  return '';
+  return m ? `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}` : '';
 }
-
-/** Analisa o campo único: extrai período (from/to) e tokens livres */
 function parseSearch(q) {
   const raw = String(q || '').trim();
   if (!raw) return { tokens: [], from: '', to: '' };
-
   let from = ''; let to = ''; let text = raw;
-
   const range = raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/);
   if (range) { from = toIsoDate(range[1]); to = toIsoDate(range[2]); text = raw.replace(range[0], ' ').trim(); }
-
   const mFrom = raw.match(/(?:\bde:|\bfrom:)(\S+)/i);
   const mTo   = raw.match(/(?:\bate:|\bto:)(\S+)/i);
-  if (mFrom) { const iso = toIsoDate(mFrom[1]); if (iso) from = iso; }
-  if (mTo)   { const iso = toIsoDate(mTo[1]);   if (iso) to   = iso; }
-  text = text.replace(/(?:\bde:|\bfrom:)(\S+)/i, ' ')
-             .replace(/(?:\bate:|\bto:)(\S+)/i, ' ')
-             .trim();
-
+  if (mFrom) from = toIsoDate(mFrom[1]) || from;
+  if (mTo)   to   = toIsoDate(mTo[1])   || to;
+  text = text.replace(/(?:\bde:|\bfrom:)(\S+)/i, ' ').replace(/(?:\bate:|\bto:)(\S+)/i, ' ').trim();
   const tokens = text.split(/\s+/).map(t => t.trim()).filter(Boolean);
   return { tokens, from, to };
 }
 
-/** Debounce simples */
-function useDebounced(value, delay = 250) {
-  const [v, setV] = useState(value);
-  useEffect(() => { const id = setTimeout(() => setV(value), delay); return () => clearTimeout(id); }, [value, delay]);
-  return v;
+/* ----------------- Modal seletor de tags do cliente ----------------- */
+function CustomerTagSelector({ open, onClose, userId, onApply }) {
+  const [loading, setLoading] = useState(false);
+  const [catalog, setCatalog] = useState([]); // catálogo global de cliente
+  const [selected, setSelected] = useState(new Set()); // seleção local
+
+  useEffect(() => {
+    if (!open || !userId) return;
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        // catálogo de cliente (global)
+        const catRes = await apiGet(`/tags/customer/catalog?active=true&page_size=100`);
+        const cat = Array.isArray(catRes?.data) ? catRes.data : [];
+
+        // tags já vinculadas ao cliente
+        const curRes = await apiGet(`/tags/customer/${encodeURIComponent(userId)}`);
+        const cur = Array.isArray(curRes?.tags) ? curRes.tags.map(r => r.tag) : [];
+
+        if (!alive) return;
+        setCatalog(cat);
+        setSelected(new Set(cur));
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [open, userId]);
+
+  const toggle = (tag) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(tag) ? next.delete(tag) : next.add(tag);
+      return next;
+    });
+  };
+
+  const apply = () => { onApply([...selected]); onClose(); };
+
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Selecionar tags do cliente">
+      <div className="modal-card">
+        <div className="modal-header">
+          <h3>Tags do cliente</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Fechar">×</button>
+        </div>
+        <div className="modal-body">
+          {loading ? (
+            <p>Carregando catálogo…</p>
+          ) : catalog.length === 0 ? (
+            <p>Nenhuma tag disponível no catálogo.</p>
+          ) : (
+            <ul className="tag-checklist">
+              {catalog.map((item) => {
+                const key = String(item?.tag || '').trim();
+                if (!key) return null;
+                const label = item?.label || key;
+                const checked = selected.has(key);
+                return (
+                  <li key={key}>
+                    <label className="check-row">
+                      <input type="checkbox" checked={checked} onChange={() => toggle(key)} />
+                      <span className="check-row__label">
+                        {label}
+                        {item?.color && <i className="tag-dot" style={{ backgroundColor: item.color }} />}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn-primary" onClick={apply} disabled={loading}>Aplicar</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
+/* ======================= Painel ======================= */
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [historico, setHistorico] = useState([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
   const [chapterModal, setChapterModal] = useState({ open: false, ticketId: null, ticketNumber: null });
 
-  // campo ÚNICO de busca + ajuda “i”
+  // busca única
   const [query, setQuery] = useState('');
-  const debouncedQuery = useDebounced(query, 250);
-  const { tokens, from, to } = useMemo(() => parseSearch(debouncedQuery), [debouncedQuery]);
+  const [debounced, setDebounced] = useState(query);
+  useEffect(() => { const id = setTimeout(() => setDebounced(query), 250); return () => clearTimeout(id); }, [query]);
+  const { tokens, from, to } = useMemo(() => parseSearch(debounced), [debounced]);
 
-  // apenas LISTAGEM de tags do cliente (sem edição)
-  const [customerTags, setCustomerTags] = useState([]);
+  // seletor/estado de tags do cliente
+  const [openCustomerSelector, setOpenCustomerSelector] = useState(false);
+  const [customerTags, setCustomerTags] = useState([]); // exibição
+  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
 
   // reset ao mudar o cliente
   useEffect(() => {
@@ -73,19 +141,19 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     (async () => {
       if (!userIdSelecionado) return;
       try {
-        // GET /clientes/:user_id/tags -> { user_id, tags: ["a","b"] } OU objetos
-        const res = await apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}/tags`);
-        const arr = Array.isArray(res?.tags)
-          ? res.tags.map((t) => (typeof t === 'string' ? t : t?.tag)).filter(Boolean)
-          : [];
+        const res = await apiGet(`/tags/customer/${encodeURIComponent(userIdSelecionado)}`);
+        const arr = Array.isArray(res?.tags) ? res.tags.map(r => r.tag) : [];
         setCustomerTags(arr);
+        // não persiste; guarda como "seleção atual" no store para o ChatHeader salvar no Finalizar
+        mergeConversation(userIdSelecionado, { customer_tags_draft: arr });
       } catch {
         setCustomerTags([]);
+        mergeConversation(userIdSelecionado, { customer_tags_draft: [] });
       }
     })();
-  }, [userIdSelecionado]);
+  }, [userIdSelecionado, mergeConversation]);
 
-  // busca histórico de tickets fechados do usuário + período
+  // histórico de tickets do usuário
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
@@ -100,7 +168,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       .finally(() => setLoadingHistorico(false));
   }, [userIdSelecionado, from, to]);
 
-  // filtro local: tokens em ticket_number, fila, assigned_to (AND)
   const historicoFiltrado = useMemo(() => {
     const toks = (tokens || []).map(t => t.toLowerCase());
     if (!toks.length) return historico;
@@ -127,6 +194,13 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const inicial = nome.charAt(0).toUpperCase();
   const documento = conversaSelecionada.documento;
 
+  const hasCustomerTags = customerTags.length > 0;
+
+  const applyCustomerTags = (arr) => {
+    setCustomerTags(arr);
+    mergeConversation(userIdSelecionado, { customer_tags_draft: arr });
+  };
+
   return (
     <>
       <div className="details-panel-container full-layout">
@@ -142,58 +216,52 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
           <div className="info-row"><Mail size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.email || 'Não informado'}</span></div>
           <div className="info-row"><Phone size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span></div>
-          <div className="info-row"><IdCard size={16} className="info-icon" /><span className="info-value">{documento || 'Não informado'}</span></div>
+          <div className="info-row"><IdCard size={16} className="info-icon" /><span className="info-value">{convers aSelecionada.phone2 || ' '}</span></div>
           <div className="info-row"><IdCardLanyard size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.user_id || 'Não informado'}</span></div>
 
-          {/* ===== Tags do cliente — somente se existirem ===== */}
-          {customerTags.length > 0 && (
-            <div className="contact-tags">
-              <div className="contact-tags__label">
-                <Tag size={14} style={{ marginRight: 6 }} /> Tags do cliente
-              </div>
+          {/* ===== Tags do cliente ===== */}
+          <div className="contact-tags">
+            <div className="contact-tags__label">
+              <TagIcon size={14} style={{ marginRight: 6 }} /> Tags do cliente
+              <button
+                className="btn-tags btn-tags--small"
+                onClick={() => setOpenCustomerSelector(true)}
+                title="Selecionar tags do cliente"
+                aria-label="Selecionar tags do cliente"
+              >
+                <span>Selecionar</span>
+                <ChevronDown size={14} />
+              </button>
+            </div>
+
+            {hasCustomerTags && (
               <div className="contact-tags__chips">
                 {customerTags.map((t) => (
-                  <span className="chip chip--client" key={t} title="Tag do cliente">
-                    {t}
-                  </span>
+                  <span className="chip chip--client" key={t}>{t}</span>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+            {!hasCustomerTags && (
+              <div className="chips-empty">Nenhuma tag</div>
+            )}
+          </div>
         </div>
 
         {/* ===== Histórico de tickets ===== */}
         <div className="card historico-card">
           <h4 className="card-title">Histórico de tickets</h4>
 
-          {/* Busca única + “i” com tooltip nativo */}
           <div className="history-search">
             <Search size={16} className="hs-icon" aria-hidden="true" />
             <input
               type="text"
               className="hs-input"
-              placeholder="Buscar por número do ticket, fila, atendente ou período. Ex.: 000030 agendamento daniel 22/08/2025..28/08/2025"
+              placeholder="Buscar por número do ticket, fila, atendente ou período…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Buscar por número do ticket, fila, atendente ou período"
             />
-            {query && (
-              <button className="hs-clear" onClick={() => setQuery('')} aria-label="Limpar busca">×</button>
-            )}
-            <i
-              className="hs-help-i"
-              title={[
-                "Use um único campo para filtrar por ticket, fila, atendente e período.",
-                "Os termos se combinam (AND).",
-                "",
-                "Exemplos:",
-                "• 000030 agendamento daniel",
-                "• agendamento 22/08/2025..28/08/2025",
-                "• de:2025-08-20 ate:2025-08-28",
-                "",
-                "Datas: dd/mm/aaaa ou aaaa-mm-dd. Intervalo com .."
-              ].join("\n")}
-            />
+            {query && (<button className="hs-clear" onClick={() => setQuery('')} aria-label="Limpar busca">×</button>)}
           </div>
 
           <div className="historico-content">
@@ -231,13 +299,20 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modais */}
       <TicketChapterModal
         open={chapterModal.open}
         onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null })}
         userId={userIdSelecionado}
         ticketId={chapterModal.ticketId}
         ticketNumber={chapterModal.ticketNumber}
+      />
+
+      <CustomerTagSelector
+        open={openCustomerSelector}
+        onClose={() => setOpenCustomerSelector(false)}
+        userId={userIdSelecionado}
+        onApply={applyCustomerTags}
       />
     </>
   );
