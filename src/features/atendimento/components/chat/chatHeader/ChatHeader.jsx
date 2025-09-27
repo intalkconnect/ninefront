@@ -4,7 +4,7 @@ import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiPut } from "../../../../../shared/apiClient";
 import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
-import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
 function normalizeTag(raw) {
@@ -178,3 +178,4 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
