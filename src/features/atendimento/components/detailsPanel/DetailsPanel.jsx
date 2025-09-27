@@ -4,7 +4,7 @@ import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
 import { apiGet } from '../../../../shared/apiClient';
 import TicketChapterModal from '../modals/TicketChapterModal';
-import useConversationsStore from '../../../store/useConversationsStore';
+import useConversationsStore from '../../store/useConversationsStore';
 
 /* ---------- helpers ---------- */
 function padTicket(n){ if(n==null)return'—'; try{return String(n).padStart(6,'0');}catch{return String(n);} }
