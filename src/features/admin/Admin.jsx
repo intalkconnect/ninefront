@@ -25,7 +25,8 @@ import {
   UserPen,
   MessageSquareReply,
   WalletCards
-} from "lucide-react";
+} $1
+import { Megaphone } from "lucide-react";
 import {
   NavLink,
   Routes,
