@@ -126,7 +126,7 @@
 .chip {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 10px; border-radius: 999px; font-size: 12px; line-height: 1;
-  background: #f7f8fb; border: 1px solid #eceff4; color: #374151;
+  border: 1px solid #eceff4; color: #374151;
 }
 .chip--muted { color: #495265; background: #f8f8fc; border-color: #ececf6; }
 .chip-ic { color: #6b7280; }
