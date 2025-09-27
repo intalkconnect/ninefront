@@ -82,7 +82,13 @@
   text-align: left; cursor: pointer; color: var(--color-text-default);
 }
 .lb__option:hover { background: #f7f8fc; }
-.lb__empty { padding: 8px; color: var(--color-text-muted); }
+
+/* <<< AQUI: 'Sem tags' sem negrito no ChatHeader */
+.lb__empty {
+  padding: 8px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
 
 /* chips */
 .chips { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -94,7 +100,7 @@
 .chip__x {
   width: 18px; height: 18px; border-radius: 999px; border: 0;
   display: grid; place-items: center; cursor: pointer;
-  background: rgba(0,0,0,.08); color: #1e3a8a; line-height: 1;
+  background: rgba(0,0,0,.08); color: #1e3a8a; font-weight: 700; line-height: 1;
 }
 .chip__x:hover { background: rgba(0,0,0,.15); }
 
@@ -110,14 +116,13 @@
 .btn-finalizar { background: var(--color-success); color: #fff; }
 .btn-finalizar:hover { background: #148f50; color: #fff !important; }
 
-/* responsivo: quebra em 2 linhas mas mantém ordem */
+/* responsivo */
 @media (max-width: 860px) {
   .chat-header {
-    grid-template-columns: 1fr auto; /* esquerda ocupa 1ª linha inteira junto do centro */
+    grid-template-columns: 1fr auto;
     grid-auto-flow: row;
   }
   .h-left { grid-column: 1 / -1; }
   .h-center { grid-column: 1 / -1; }
   .h-right { grid-column: 1 / -1; justify-content: flex-end; }
 }
-
