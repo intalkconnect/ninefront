@@ -75,12 +75,17 @@ import TokensSecurity from "./preferences/security/Tokens";
 document.title = "NineChat - Gestão";
 
 function RequireRole({ allow, children }) {
-  if (!allow) return <Navigate to="/" replace />;
+  console.log('🔐 RequireRole - Permissão:', allow);
+  if (!allow) {
+    console.log('🚫 Acesso negado - Redirecionando para /');
+    return <Navigate to="/" replace />;
+  }
   return children;
 }
 
 export default function Admin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem("token");
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
@@ -89,7 +94,6 @@ export default function Admin() {
 
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
-  const location = useLocation();
 
   const [isProfileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
@@ -97,16 +101,25 @@ export default function Admin() {
   const helpRef = useRef(null);
   const navRef = useRef(null);
 
+  // DEBUG: Log da rota atual
+  useEffect(() => {
+    console.log('📍 ROTA ATUAL:', location.pathname);
+    console.log('🔍 Location object:', location);
+  }, [location]);
+
   useEffect(() => {
     let mounted = true;
     const fetchAdminInfo = async () => {
       setAuthLoading(true);
       try {
         if (email) {
+          console.log('👤 Buscando dados do usuário:', email);
           const res = await apiGet(`/users/${email}`);
           if (mounted) setUserData(res);
+          console.log('✅ Dados do usuário carregados:', res);
         } else {
           if (mounted) setUserData(null);
+          console.log('❌ Email não encontrado no token');
         }
       } catch (err) {
         console.error("Erro ao buscar dados do admin:", err);
@@ -121,6 +134,7 @@ export default function Admin() {
 
   // fecha mega menu e drawer ao trocar de rota
   useEffect(() => {
+    console.log('🔄 Fechando menus devido à mudança de rota');
     setMobileMenuOpen(false);
     setOpenDropdown(null);
     setProfileOpen(false);
@@ -164,7 +178,10 @@ export default function Admin() {
   const isAdmin = role?.toLowerCase() === "admin";
   const isSupervisor = role?.toLowerCase() === "supervisor";
 
+  console.log('🎭 Permissões detectadas:', { role, isAdmin, isSupervisor });
+
   const filterMenusByRole = (items) => {
+    console.log('📋 Filtrando menus por role:', role);
     if (!isSupervisor) return items;
     return items
       .filter((m) => !["development", "settings"].includes(m.key))
@@ -188,8 +205,8 @@ export default function Admin() {
   };
 
   const menus = useMemo(
-    () =>
-      filterMenusByRole([
+    () => {
+      const filtered = filterMenusByRole([
         {
           key: "dashboard",
           label: "Dashboard",
@@ -306,23 +323,34 @@ export default function Admin() {
             },
           ],
         },
-      ]),
+      ]);
+      
+      console.log('📁 Menus filtrados:', filtered);
+      return filtered;
+    },
     [isSupervisor]
   );
 
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
-  const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
+  const handleTopClick = (key) => {
+    console.log('🖱️ Clicado no menu:', key);
+    setOpenDropdown((cur) => (cur === key ? null : key));
+  };
 
   // ✅ FUNÇÃO CORRIGIDA DE NAVEGAÇÃO
   const handleNavigation = (path) => {
-    if (path.startsWith('/')) {
-      navigate(path);
-    } else {
-      navigate(`/${path}`);
-    }
+    const targetPath = path.startsWith('/') ? path : `/${path}`;
+    console.log('🔄 Navegando para:', { 
+      pathOriginal: path, 
+      targetPath: targetPath,
+      currentPath: location.pathname 
+    });
+    
+    navigate(targetPath);
   };
 
   if (authLoading) {
+    console.log('⏳ Carregando auth...');
     return (
       <div
         style={{
@@ -373,6 +401,8 @@ export default function Admin() {
     );
   }
 
+  console.log('🎬 Renderizando Admin...');
+
   return (
     <div className={styles.wrapper}>
       {/* Top Navbar */}
@@ -389,12 +419,13 @@ export default function Admin() {
             <span />
           </button>
 
-          {/* ✅ LOGO CORRIGIDO */}
+          {/* Logo */}
           <NavLink
             to={DASHBOARD_PATH}
             className={styles.brand}
             onClick={(e) => { 
               e.preventDefault(); 
+              console.log('🏠 Logo clicado - Navegando para dashboard');
               navigate('/', { replace: true });
             }}
           >
@@ -496,6 +527,7 @@ export default function Admin() {
                           to="settings/preferences"
                           onClick={(e) => {
                             e.preventDefault();
+                            console.log('👤 Edit profile clicked');
                             setProfileOpen(false);
                             handleNavigation("settings/preferences");
                           }}
@@ -528,6 +560,8 @@ export default function Admin() {
           <nav ref={navRef} className={styles.hnav} aria-label="Menu principal">
             {menus.map((m) => {
               const dropdown = isGroup(m);
+              console.log('📦 Renderizando menu item:', m.key, { dropdown, hasTo: !!m.to });
+              
               return (
                 <div
                   key={m.key}
@@ -544,6 +578,7 @@ export default function Admin() {
                       className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
                       onClick={(e) => { 
                         e.preventDefault(); 
+                        console.log('🔗 Menu link clicado:', m.key, m.to);
                         handleNavigation(m.to);
                       }}
                     >
@@ -576,6 +611,7 @@ export default function Admin() {
                                     className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
                                     onClick={(e) => { 
                                       e.preventDefault(); 
+                                      console.log('🍂 Submenu clicado:', leaf.to, leaf.label);
                                       setOpenDropdown(null); 
                                       handleNavigation(leaf.to);
                                     }}
@@ -637,6 +673,7 @@ export default function Admin() {
                               className={({ isActive }) => (isActive ? styles.active : undefined)}
                               onClick={(e) => {
                                 e.preventDefault();
+                                console.log('📱 Mobile menu clicado:', leaf.to);
                                 setMobileMenuOpen(false);
                                 handleNavigation(leaf.to);
                               }}
@@ -657,6 +694,7 @@ export default function Admin() {
                   className={({ isActive }) => (isActive ? styles.active : undefined)}
                   onClick={(e) => {
                     e.preventDefault();
+                    console.log('📱 Mobile menu principal clicado:', m.to);
                     setMobileMenuOpen(false);
                     handleNavigation(m.to);
                   }}
@@ -709,6 +747,32 @@ export default function Admin() {
           <Route path="campaigns/templates/new" element={<TemplateCreate />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
 
+          {/* ✅ CORREÇÃO: Rotas de settings com paths absolutos */}
+          <Route
+            path="/settings/preferences"
+            element={
+              <RequireRole allow={isAdmin}>
+                <Preferences />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/settings/channels"
+            element={
+              <RequireRole allow={isAdmin}>
+                <Channels />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/settings/security"
+            element={
+              <RequireRole allow={isAdmin}>
+                <TokensSecurity />
+              </RequireRole>
+            }
+          />
+
           {/* channels */}
           <Route path="channels/whatsapp" element={<WhatsAppProfile />} />
           <Route path="channels/telegram" element={<TelegramConnect />} />
@@ -735,32 +799,6 @@ export default function Admin() {
             element={
               <RequireRole allow={isAdmin}>
                 <JourneyBeholder />
-              </RequireRole>
-            }
-          />
-
-          {/* settings – admin only */}
-          <Route
-            path="settings/preferences"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Preferences />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/channels"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Channels />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="settings/security"
-            element={
-              <RequireRole allow={isAdmin}>
-                <TokensSecurity />
               </RequireRole>
             }
           />
