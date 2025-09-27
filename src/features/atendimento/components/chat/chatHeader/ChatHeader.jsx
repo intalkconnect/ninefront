@@ -19,7 +19,7 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  // remove do dropdown qualquer tag já selecionada
+  // dropdown não mostra itens já selecionados
   const base = useMemo(
     () => options.filter(o => !selected.includes(o.tag)),
     [options, selected]
@@ -78,7 +78,7 @@ async function saveCustomerTagsDiff(userId, initialTags = [], selectedTags = [])
   }
 }
 
-/* obtém do servidor as tags atuais do cliente (fonte da verdade) */
+/* pega do servidor as tags atuais do cliente (fonte da verdade) */
 async function fetchServerCustomerTags(userId) {
   try {
     const r = await apiGet(`/tags/customer/${encodeURIComponent(userId)}`);
@@ -146,7 +146,7 @@ export default function ChatHeader({ userIdSelecionado }) {
         await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
-      // 2) salva diff das tags do cliente (GARANTIDO)
+      // 2) salva diff das tags do cliente (garantido)
       const state = useConversationsStore.getState();
       const pending = Array.isArray(state?.clienteAtivo?.pending_customer_tags)
         ? state.clienteAtivo.pending_customer_tags
@@ -182,38 +182,40 @@ export default function ChatHeader({ userIdSelecionado }) {
 
   return (
     <>
-      <div className="chat-header">
-        <div className="chat-header-left">
-          <div className="nome-e-telefone">
-            <span className="chat-header-nome">{name}</span>
-            <span className="ticket-numero">#{String(ticketNumber).padStart(6, '0')}</span>
-          </div>
-
-          {/* Linha: “Adicionar tags” + listbox (se houver catálogo) + chips (se houver seleção) */}
-          <div className="tags-row">
-            {ticketCatalog.length > 0 && (
-              <ComboTags
-                options={ticketCatalog}
-                selected={ticketTags}
-                onAdd={addTicketTag}
-                placeholder="Procurar tag"
-              />
-            )}
-
-            {ticketTags.length > 0 && (
-              <div className="chips">
-                {ticketTags.map(t => (
-                  <span key={t} className="chip">
-                    <span>{t}</span>
-                    <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="chat-header header-inline">
+        {/* ESQUERDA: título + número */}
+        <div className="h-left">
+          <span className="h-title">{name}</span>
+          {ticketNumber && (
+            <span className="h-badge">#{String(ticketNumber).padStart(6,'0')}</span>
+          )}
         </div>
 
-        <div className="chat-header-right">
+        {/* CENTRO: combo + chips (se houver) */}
+        <div className="h-center">
+          {ticketCatalog.length > 0 && (
+            <ComboTags
+              options={ticketCatalog}
+              selected={ticketTags}
+              onAdd={addTicketTag}
+              placeholder="Procurar tag..."
+            />
+          )}
+
+          {ticketTags.length > 0 && (
+            <div className="chips">
+              {ticketTags.map(t => (
+                <span key={t} className="chip">
+                  <span>{t}</span>
+                  <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* DIREITA: botões */}
+        <div className="h-right">
           <button className="btn-transferir" onClick={() => setShowTransferModal(true)}>
             <Share2 size={14} /> <span>Transferir</span>
           </button>
