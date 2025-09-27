@@ -1,26 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Share2, CheckCircle, Tag, X, Plus } from 'lucide-react';
+import { Share2, CheckCircle, Tag, X } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
-import { apiGet, apiPut } from "../../../../../shared/apiClient";
+import { apiGet, apiPost, apiPut } from "../../../../../shared/apiClient";
 import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
+import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
-import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 
-/* ===== chamadas de API p/ tags do ticket (vinculadas à fila) ===== */
-async function fetchTicketTags(ticketNumber) {
-  // /tickets/:ticket_number/tags → { ticket_number, tags: string[] }
-  const res = await apiGet(`/tickets/${encodeURIComponent(ticketNumber)}/tags`);
-  if (!res) return [];
-  return Array.isArray(res.tags) ? res.tags : [];
-}
-async function updateTicketTags(ticketNumber, tags) {
-  // substitutivo
-  await apiPut(`/tickets/${encodeURIComponent(ticketNumber)}/tags`, { tags });
+function normalizeTag(raw) {
+  if (raw == null) return null;
+  const t = String(raw).trim().replace(/\s+/g, ' ');
+  if (!t) return null;
+  if (t.length > 40) return t.slice(0, 40);
+  if (/[^\S\r\n]*[\r\n]/.test(t)) return null;
+  return t;
 }
 
 export default function ChatHeader({ userIdSelecionado }) {
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const confirm = useConfirm();
+
   const clienteAtivo       = useConversationsStore((state) => state.clienteAtivo);
   const mergeConversation  = useConversationsStore((state) => state.mergeConversation);
   const setSelectedUserId  = useConversationsStore((state) => state.setSelectedUserId);
@@ -29,50 +28,47 @@ export default function ChatHeader({ userIdSelecionado }) {
   const [draft, setDraft] = useState('');
   const inputRef = useRef(null);
 
-  const ticketNumber = clienteAtivo?.ticket_number || '000000';
+  const ticketNumber = clienteAtivo?.ticket_number || '';
   const name         = clienteAtivo?.name || 'Cliente';
   const user_id      = clienteAtivo?.user_id || userIdSelecionado;
 
-  const confirm = useConfirm();
-
-  // carrega tags do ticket ao trocar de ticket
+  // carrega tags atuais do ticket (apenas para exibir/editar localmente)
   useEffect(() => {
     let alive = true;
-    (async () => {
+    async function load() {
+      if (!ticketNumber) { setTags([]); return; }
       try {
-        const t = await fetchTicketTags(ticketNumber);
+        // usamos o endpoint que retorna catálogo aplicado ao ticket
+        // GET /tags/ticket/:ticket_number  -> { ticket_number, fila, tags: [{tag, ...}] }
+        const res = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}`);
+        const arr = Array.isArray(res?.tags) ? res.tags.map(r => r.tag) : [];
         if (!alive) return;
-        setTags(t);
-        mergeConversation(user_id, { motivo_tags: t });
+        setTags(arr);
+        mergeConversation(user_id, { motivo_tags: arr });
       } catch {
         if (!alive) return;
         setTags([]);
-        mergeConversation(user_id, { motivo_tags: [] });
       }
-    })();
+    }
+    load();
     return () => { alive = false; };
   }, [ticketNumber, user_id, mergeConversation]);
 
-  // salvar
-  const persist = async (next) => {
+  // helpers de edição local (NÃO persistem até finalizar)
+  const addTag = (raw) => {
+    const v = normalizeTag(raw);
+    if (!v) { setDraft(''); return; }
+    if (tags.includes(v)) { setDraft(''); return; }
+    const next = [...tags, v];
     setTags(next);
-    try { await updateTicketTags(ticketNumber, next); } catch {}
+    setDraft('');
     mergeConversation(user_id, { motivo_tags: next });
   };
-
-  // adicionar/remover
-  const addTag = async (raw) => {
-    const v = String(raw || '').trim();
-    if (!v) return;
-    if (tags.includes(v)) { setDraft(''); return; }
-    await persist([...tags, v]);
-    setDraft('');
+  const removeTag = (t) => {
+    const next = tags.filter(x => x !== t);
+    setTags(next);
+    mergeConversation(user_id, { motivo_tags: next });
   };
-  const removeTag = async (t) => {
-    await persist(tags.filter(x => x !== t));
-  };
-
-  // atalhos do input
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); addTag(draft); }
     if (e.key === ',' || e.key === ';') { e.preventDefault(); addTag(draft); }
@@ -84,26 +80,37 @@ export default function ChatHeader({ userIdSelecionado }) {
   const finalizarAtendimento = async () => {
     const ok = await confirm({
       title: 'Finalizar atendimento?',
-      description: `Tem certeza que deseja finalizar o atendimento do ticket #${ticketNumber}? Isso irá fechá-lo.`,
+      description: 'As tags informadas serão salvas no ticket e o atendimento será encerrado.',
       confirmText: 'Finalizar',
       cancelText: 'Cancelar',
-      tone: 'danger',
+      tone: 'confirm',
     });
     if (!ok) return;
 
     try {
-      await apiPut(`/tickets/${user_id}`, { status: 'closed' });
+      // 1) salva as tags do ticket (se houver)
+      if (ticketNumber && tags.length) {
+        await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags });
+      }
+
+      // 2) encerra o ticket
+      await apiPut(`/tickets/${encodeURIComponent(user_id)}`, { status: 'closed' });
       mergeConversation(user_id, { status: 'closed' });
 
+      // 3) housekeeping de socket/UX
       const socket = getSocket();
       if (socket?.connected) socket.emit('leave_room', user_id);
-
       try { window.dispatchEvent(new CustomEvent('room-closed', { detail: { userId: user_id } })); } catch {}
-
       setSelectedUserId(null);
     } catch (err) {
       console.error('Erro ao finalizar ticket:', err);
-      alert('Erro ao finalizar atendimento.');
+      await confirm({
+        title: 'Erro ao finalizar',
+        description: 'Não foi possível finalizar o atendimento. Tente novamente.',
+        confirmText: 'Ok',
+        hideCancel: true,
+        tone: 'danger',
+      });
     }
   };
 
@@ -113,15 +120,16 @@ export default function ChatHeader({ userIdSelecionado }) {
         <div className="chat-header-left">
           <div className="nome-e-telefone">
             <span className="chat-header-nome">{name}</span>
-            <span className="ticket-numero">#{ticketNumber}</span>
+            {ticketNumber && <a className="ticket-numero" title="Abrir histórico">{`#${String(ticketNumber).padStart(6,'0')}`}</a>}
           </div>
 
-          {/* ===== Tags de MOTIVO (múltiplas) ===== */}
+          {/* ===== Tags do ticket (chips + input — sem botão “Adicionar”) ===== */}
           <div className="ticket-tags">
             <Tag size={14} className="ticket-tags__icon" aria-hidden="true" />
             <div className="ticket-tags__chips">
+              {/* lista as tags existentes */}
               {tags.map((t) => (
-                <span className="chip chip--motivo" key={t} title="Tag de motivo">
+                <span className="chip chip--motivo" key={t} title="Tag do ticket">
                   {t}
                   <button
                     type="button"
@@ -134,18 +142,17 @@ export default function ChatHeader({ userIdSelecionado }) {
                   </button>
                 </span>
               ))}
+
+              {/* campo único — adicionar com Enter, vírgula ou ponto-e-vírgula */}
               <input
                 ref={inputRef}
                 className="ticket-tags__input"
-                placeholder={tags.length ? "Adicionar outra tag…" : "Adicionar tags de motivo…"}
+                placeholder={tags.length ? "Adicionar outra tag e Enter…" : "Adicionar tags do ticket e Enter…"}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
-                aria-label="Adicionar tag de motivo"
+                aria-label="Adicionar tag do ticket"
               />
-              <button type="button" className="ticket-tags__add" onClick={() => addTag(draft)} aria-label="Adicionar tag">
-                <Plus size={14} /> <span>Adicionar</span>
-              </button>
             </div>
           </div>
         </div>
@@ -171,4 +178,3 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
-
