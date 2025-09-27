@@ -1,22 +1,23 @@
-/* =========================
-   ChatHeader (layout inline)
-   ========================= */
+/* ===== Wrap sticky com duas faixas ===== */
+.chat-header-wrap{
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-surface);
+}
 
-/* barra */
+/* ===== FAIXA 1: barra principal (título/# + ações) ===== */
 .chat-header {
   display: grid;
-  grid-template-columns: auto 1fr auto; /* esquerda | centro | direita */
+  grid-template-columns: auto 1fr auto; /* esquerda | centro vazio | direita */
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  /* sem border-bottom: a sub-barra que delimita */
 }
 
-/* alinhamento como no print */
+/* esquerda */
 .h-left {
   display: inline-flex;
   align-items: center;
@@ -41,14 +42,8 @@
   white-space: nowrap;
 }
 
-/* centro: input + chips fluindo */
-.h-center {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex-wrap: wrap;
-}
+/* centro (apenas um espaçador) */
+.h-spacer { flex: 1 1 auto; }
 
 /* direita: botões */
 .h-right {
@@ -57,118 +52,10 @@
   gap: 8px;
   white-space: nowrap;
 }
-
-/* =========================
-   Combo/Listbox compacto
-   ========================= */
-
-.lb { position: relative; }
-.lb__control {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 240px;
-  height: 34px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #fff;
-  cursor: pointer;
-}
-.lb__icon { color: var(--color-text-muted); }
-.lb__placeholder { color: var(--color-text-muted); font-size: .95rem; }
-.lb__caret { margin-left: auto; opacity: .6; }
-
-.lb__panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 20;
-  min-width: 260px;
-  max-height: 280px;
-  overflow: auto;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  box-shadow: 0 10px 24px rgba(16,24,40,.12);
-  padding: 8px;
-}
-.lb__search {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  outline: none;
-  margin-bottom: 8px;
-}
-.lb__option {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: transparent;
-  border: 0;
-  text-align: left;
-  cursor: pointer;
-  color: var(--color-text-default);
-}
-.lb__option:hover { background: #f7f8fc; }
-.lb__empty { padding: 8px; color: var(--color-text-muted); }
-
-/* =========================
-   Chips (removíveis)
-   ========================= */
-
-.chips {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  line-height: 1;
-  background: #dbeafe;
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
-}
-.chip__x {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  border: 0;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  background: rgba(0,0,0,.08);
-  color: #1e3a8a;
-  font-weight: 700;
-  line-height: 1;
-}
-.chip__x:hover { background: rgba(0,0,0,.15); }
-
-/* =========================
-   Botões (direita)
-   ========================= */
-
 .h-right button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all .2s ease;
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border: none; border-radius: var(--border-radius);
+  font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all .2s ease;
   min-width: max-content;
 }
 .btn-transferir {
@@ -180,47 +67,64 @@
 .btn-finalizar { background: var(--color-success); color: #fff; }
 .btn-finalizar:hover { background: #148f50; color: #fff !important; }
 
-/* =========================
-   Responsivo
-   ========================= */
-
-@media (max-width: 860px) {
-  .chat-header {
-    grid-template-columns: 1fr auto; /* esquerda/centro na 1ª linha, botões abaixo */
-    grid-auto-flow: row;
-  }
-  .h-left { grid-column: 1 / -1; }
-  .h-center { grid-column: 1 / -1; }
-  .h-right { grid-column: 1 / -1; justify-content: flex-end; }
+/* ===== FAIXA 2: sub-barra de tags ===== */
+.tag-subbar{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* =========================
-   Overrides anti-negrito
-   ========================= */
+/* ===== Listbox/combobox de tags ===== */
+.lb { position: relative; }
+.lb__control{
+  display: inline-flex; align-items: center; gap: 8px;
+  min-width: 240px; height: 34px; padding: 0 10px;
+  border: 1px solid var(--color-border); border-radius: 8px;
+  background: #fff; cursor: pointer;
+}
+.lb__icon{ color: var(--color-text-muted); }
+.lb__placeholder{ color: var(--color-text-muted); font-size: .95rem; }
+.lb__caret{ margin-left: auto; opacity: .6; }
 
-/* Algumas folhas globais estão aplicando font-weight:700 no header.
-   Garantimos peso normal aqui e reespecificamos onde precisa. */
-.chat-header.header-inline,
-.chat-header {
-  font-weight: 400 !important;
+.lb__panel{
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
+  min-width: 260px; max-height: 280px; overflow: auto;
+  background: #fff; border: 1px solid var(--color-border); border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(16,24,40,.12); padding: 8px;
+}
+.lb__search{
+  width: 100%; padding: 8px 10px; border: 1px solid var(--color-border);
+  border-radius: 8px; outline: none; margin-bottom: 8px;
+}
+.lb__option{
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; background: transparent; border: 0;
+  text-align: left; cursor: pointer; color: var(--color-text-default);
+}
+.lb__option:hover{ background: #f7f8fc; }
+.lb__empty{
+  padding: 8px; color: var(--color-text-muted);
+  font-weight: 400; /* garante que não fique em negrito */
 }
 
-/* Mantém pesos desejados */
-.h-title { font-weight: 600; }
-.h-badge { font-weight: 600; }
-.h-right button { font-weight: 500; }
-
-/* Conteúdo do listbox e chips sem negrito “herdado” */
-.lb__placeholder,
-.lb__option,
-.lb__empty,
-.lb__search,
-.chips .chip,
-.chips .chip__x {
-  font-weight: 400;
+/* ===== Chips removíveis ===== */
+.chips{ display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.chip{
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 999px; font-size: 12px; line-height: 1;
+  background: #dbeafe; border: 1px solid #bfdbfe; color: #1e3a8a;
 }
+.chip__x{
+  width: 18px; height: 18px; border-radius: 999px; border: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: rgba(0,0,0,.08); color: #1e3a8a; font-weight: 700; line-height: 1;
+}
+.chip__x:hover{ background: rgba(0,0,0,.15); }
 
-/* (alternativa mais agressiva, se necessário)
-.chat-header .lb__panel,
-.chat-header .lb__panel * { font-weight: 400 !important; }
-*/
+/* ===== Responsivo ===== */
+@media (max-width: 860px){
+  .tag-subbar{ flex-wrap: wrap; }
+}
