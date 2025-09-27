@@ -42,6 +42,9 @@ export default function QueueForm() {
   const [form, setForm] = useState({ nome: '', descricao: '', color: '' });
   const [touched, setTouched] = useState({ nome: false, color: false });
 
+  // Nome a ser exibido no breadcrumb (usa queue_name do backend)
+  const [queueDisplay, setQueueDisplay] = useState(id || '');
+
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
   const nameInvalid = !form.nome.trim();
   const colorInvalid = form.color ? !colorPreview : false;
@@ -58,8 +61,10 @@ export default function QueueForm() {
           descricao: q.descricao ?? '',
           color: q.color ?? ''
         });
+        setQueueDisplay(q.queue_name ?? q.nome ?? q.name ?? id);
       } else {
         setForm({ nome: '', descricao: '', color: '' });
+        setQueueDisplay('');
       }
     } catch (e) {
       console.error(e);
@@ -114,7 +119,7 @@ export default function QueueForm() {
           <li className={styles.bcSep}>/</li>
           <li><Link to="/management/queues" className={styles.bcLink}>Filas</Link></li>
           <li className={styles.bcSep}>/</li>
-          <li><span className={styles.bcCurrent}>{isEdit ? `Editar fila: ${form.nome?.trim() || '…'}` : 'Nova fila'}</span></li>
+          <li><span className={styles.bcCurrent}>{isEdit ? `Editar ${queueDisplay}` : 'Nova fila'}</span></li>
         </ol>
       </nav>
 
