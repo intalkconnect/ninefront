@@ -7,8 +7,8 @@ import TransferModal from '../modals/transfer/Transfer';
 import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
-/** Combobox/Listbox com filtro – sem digitação livre para salvar */
-function ComboTags({ options = [], selected = [], onChange, placeholder = 'Procurar tag' }) {
+/** Listbox: clica no item para ADICIONAR (sem checkbox) */
+function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -24,12 +24,6 @@ function ComboTags({ options = [], selected = [], onChange, placeholder = 'Procu
     if (!t) return options;
     return options.filter(o => (o.label || o.tag).toLowerCase().includes(t));
   }, [q, options]);
-
-  const toggle = (tag) => {
-    const has = selected.includes(tag);
-    const next = has ? selected.filter(x => x !== tag) : [...selected, tag];
-    onChange([...new Set(next)]);
-  };
 
   if (!options.length) return null;
 
@@ -47,14 +41,14 @@ function ComboTags({ options = [], selected = [], onChange, placeholder = 'Procu
             <div className="lb__empty">Nenhuma tag encontrada</div>
           ) : (
             filtered.map(opt => (
-              <label key={opt.tag} className="lb__item">
-                <input
-                  type="checkbox"
-                  checked={selected.includes(opt.tag)}
-                  onChange={() => toggle(opt.tag)}
-                />
-                <span>{opt.label || opt.tag}</span>
-              </label>
+              <button
+                key={opt.tag}
+                type="button"
+                className="lb__option"
+                onClick={() => { onAdd(opt.tag); setOpen(false); setQ(''); }}
+              >
+                {(opt.label || opt.tag)}
+              </button>
             ))
           )}
         </div>
@@ -96,7 +90,10 @@ export default function ChatHeader({ userIdSelecionado }) {
   const [ticketCatalog, setTicketCatalog] = useState([]);
   const [ticketTags, setTicketTags] = useState([]); // começa vazio por ticket
 
-  // carrega catálogo do ticket pela fila do ticket
+  const addTicketTag = (tag) => setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
+  const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
+
+  // carrega catálogo aplicável pela fila do ticket
   useEffect(() => {
     let alive = true;
     setTicketTags([]);
@@ -104,7 +101,6 @@ export default function ChatHeader({ userIdSelecionado }) {
     (async () => {
       if (!ticketNumber) return;
       try {
-        // catálogo aplicável por fila do ticket
         const r = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`);
         if (!alive) return;
         setTicketCatalog(Array.isArray(r?.catalog) ? r.catalog : []);
@@ -132,7 +128,7 @@ export default function ChatHeader({ userIdSelecionado }) {
         await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
-      // 2) salva dif das tags do cliente (Details mantém em memória no store)
+      // 2) salva dif das tags do cliente
       const initialCustomer = clienteAtivo?.customer_tags ?? [];
       const selectedCustomer = clienteAtivo?.pending_customer_tags ?? initialCustomer;
       await saveCustomerTagsDiff(userId, initialCustomer, selectedCustomer);
@@ -174,8 +170,7 @@ export default function ChatHeader({ userIdSelecionado }) {
             {ticketCatalog.length > 0 && (
               <ComboTags
                 options={ticketCatalog}
-                selected={ticketTags}
-                onChange={setTicketTags}
+                onAdd={addTicketTag}
                 placeholder="Procurar tag"
               />
             )}
@@ -183,7 +178,10 @@ export default function ChatHeader({ userIdSelecionado }) {
             {ticketTags.length > 0 && (
               <div className="chips">
                 {ticketTags.map(t => (
-                  <span key={t} className="chip">{t}</span>
+                  <span key={t} className="chip">
+                    <span>{t}</span>
+                    <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
+                  </span>
                 ))}
               </div>
             )}
