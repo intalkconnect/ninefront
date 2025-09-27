@@ -114,7 +114,7 @@ export default function QueueForm() {
           <li className={styles.bcSep}>/</li>
           <li><Link to="/management/queues" className={styles.bcLink}>Filas</Link></li>
           <li className={styles.bcSep}>/</li>
-          <li><span className={styles.bcCurrent}>{isEdit ? `Editar ${id}` : 'Nova fila'}</span></li>
+          <li><span className={styles.bcCurrent}>{isEdit ? `Editar fila: ${form.nome?.trim() || '…'}` : 'Nova fila'}</span></li>
         </ol>
       </nav>
 
