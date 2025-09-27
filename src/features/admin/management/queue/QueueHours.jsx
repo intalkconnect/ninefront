@@ -167,7 +167,7 @@ export default function QueueHours() {
           <li className={css.bcSep}>/</li>
           <li><Link to="/management/queues" className={css.bcLink}>Filas</Link></li>
           <li className={css.bcSep}>/</li>
-          <li><span className={css.bcCurrent}>Horários — {queueNome}</span></li>
+          <li><span className={css.bcCurrent}>{queueNome} - Horários</span></li>
         </ol>
       </nav>
 
