@@ -12,42 +12,56 @@ function toIsoDate(s){ if(!s)return''; const t=String(s).trim(); if(/^\d{4}-\d{2
 function parseSearch(q){ const raw=String(q||'').trim(); if(!raw)return{tokens:[],from:'',to:''}; let from='',to='',text=raw; const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/); if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();} const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i); const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i); if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;} if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;} text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim(); const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean); return {tokens,from,to}; }
 function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
 
-/* ---------- Listbox de tags do cliente ---------- */
-function CustomerTagsListbox({ options = [], selected = [], onChange }) {
+/** Combobox para TAGS do cliente (multi) — sem digitação livre */
+function ComboTags({ options = [], selected = [], onChange, placeholder = 'Procurar tag' }) {
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
   const ref = useRef(null);
 
   useEffect(() => {
-    const onDoc = (e)=>{ if(!ref.current) return; if(!ref.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  const toggle = (val) => {
-    const has = selected.includes(val);
-    const next = has ? selected.filter(t => t !== val) : [...selected, val];
-    onChange([...new Set(next)]); // sem duplicados
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    if (!t) return options;
+    return options.filter(o => (o.label || o.tag).toLowerCase().includes(t));
+  }, [q, options]);
+
+  const toggle = (tag) => {
+    const has = selected.includes(tag);
+    const next = has ? selected.filter(x => x !== tag) : [...selected, tag];
+    onChange([...new Set(next)]);
   };
 
-  if (!options?.length) return null;
+  if (!options.length) return null;
 
   return (
-    <div className="tags-lb" ref={ref}>
-      <button type="button" className="tags-lb__button" onClick={() => setOpen(o => !o)}>
-        <TagIcon size={14} /> <span>Tags</span> <span className="tags-lb__caret">▾</span>
+    <div className="lb" ref={ref}>
+      <button type="button" className="lb__control" onClick={() => setOpen(o => !o)} aria-haspopup="listbox">
+        <TagIcon size={16} className="lb__icon" />
+        <span className="lb__placeholder">{placeholder}</span>
+        <span className="lb__caret">▾</span>
       </button>
       {open && (
-        <div className="tags-lb__panel" role="listbox" aria-label="Tags do cliente">
-          {options.map(opt => (
-            <label key={opt.tag} className="tags-lb__item">
-              <input
-                type="checkbox"
-                checked={selected.includes(opt.tag)}
-                onChange={() => toggle(opt.tag)}
-              />
-              <span>{opt.label || opt.tag}</span>
-            </label>
-          ))}
+        <div className="lb__panel" role="listbox" aria-label="Selecionar tags">
+          <input className="lb__search" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} />
+          {filtered.length === 0 ? (
+            <div className="lb__empty">Nenhuma tag encontrada</div>
+          ) : (
+            filtered.map(opt => (
+              <label key={opt.tag} className="lb__item">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(opt.tag)}
+                  onChange={() => toggle(opt.tag)}
+                />
+                <span>{opt.label || opt.tag}</span>
+              </label>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -63,14 +77,14 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const debouncedQuery = useDebounced(query, 250);
   const { tokens, from, to } = useMemo(() => parseSearch(debouncedQuery), [debouncedQuery]);
 
-  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
+  const mergeConversation = useConversationsStore(s => s.mergeConversation);
 
   /* ======= TAGS DO CLIENTE ======= */
   const [customerCatalog, setCustomerCatalog] = useState([]);
   const [customerTagsInitial, setCustomerTagsInitial] = useState([]);
   const [customerTagsSelected, setCustomerTagsSelected] = useState([]);
 
-  // carrega catálogo + tags atuais SEMPRE
+  // carrega catálogo e tags selecionadas do cliente SEMPRE
   useEffect(() => {
     let alive = true;
     setCustomerCatalog([]); setCustomerTagsInitial([]); setCustomerTagsSelected([]);
@@ -81,19 +95,18 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           apiGet('/tags/customer/catalog?active=true&page_size=100'),
           apiGet(`/tags/customer/${encodeURIComponent(userIdSelecionado)}`)
         ]);
-
         if (!alive) return;
 
         const catalog = Array.isArray(cat?.data) ? cat.data : [];
         const current = Array.isArray(tags?.tags)
-          ? tags.tags.map((x) => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
+          ? tags.tags.map(x => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
           : [];
 
         setCustomerCatalog(catalog);
         setCustomerTagsInitial(current);
         setCustomerTagsSelected(current);
 
-        // guarda no store para o Header salvar o diff ao finalizar
+        // guarda no store (para o Header salvar na finalização)
         mergeConversation(userIdSelecionado, {
           customer_tags: current,
           pending_customer_tags: current,
@@ -103,15 +116,13 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         setCustomerCatalog([]);
         setCustomerTagsInitial([]);
         setCustomerTagsSelected([]);
-        mergeConversation(userIdSelecionado, {
-          customer_tags: [],
-          pending_customer_tags: [],
-        });
+        mergeConversation(userIdSelecionado, { customer_tags: [], pending_customer_tags: [] });
       }
     })();
     return () => { alive = false; };
   }, [userIdSelecionado, mergeConversation]);
 
+  // sempre que muda a seleção, mantém no store (sem salvar ainda)
   const onChangeCustomerSelection = (next) => {
     setCustomerTagsSelected(next);
     if (userIdSelecionado) {
@@ -119,11 +130,10 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     }
   };
 
-  /* ======= Histórico de tickets (fechados) ======= */
+  /* ======= Histórico ======= */
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
-
     const qs = new URLSearchParams({ q: String(userIdSelecionado), page_size: '40', page: '1' });
     if (from) qs.set('from', from);
     if (to)   qs.set('to', to);
@@ -163,13 +173,11 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   return (
     <>
       <div className="details-panel-container full-layout">
-        {/* ===== Informações de contato ===== */}
+        {/* ===== Informações ===== */}
         <div className="card info-card">
           <h4 className="card-title">Informações de Contato</h4>
           <div className="circle-initial-box">
-            <div className="circle-initial" style={{ backgroundColor: stringToColor(nome) }}>
-              {inicial}
-            </div>
+            <div className="circle-initial" style={{ backgroundColor: stringToColor(nome) }}>{inicial}</div>
           </div>
           <h4 className="name-label">{nome}</h4>
 
@@ -180,27 +188,24 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
           {/* ===== Tags do cliente ===== */}
           <div className="contact-tags">
-            <div className="contact-tags__label">
-              <TagIcon size={14} style={{ marginRight: 6 }} /> Tags do cliente
-            </div>
+            <div className="contact-tags__label"><TagIcon size={14}/> Tags do cliente</div>
 
-            {/* chips selecionados OU "Sem tags" */}
-            {customerTagsSelected.length > 0 ? (
-              <div className="contact-tags__chips" style={{ marginBottom: 8 }}>
-                {customerTagsSelected.map((t) => (
-                  <span className="chip chip--client" key={t}>{t}</span>
-                ))}
-              </div>
+            {customerTagsSelected.length === 0 ? (
+              <div className="chips-empty">Sem tags</div>
             ) : (
-              <span className="chips-empty">Sem tags</span>
+              <div className="contact-tags__chips" style={{ marginBottom: 6 }}>
+                {customerTagsSelected.map(t => <span key={t} className="chip">{t}</span>)}
+              </div>
             )}
 
-            {/* listbox só se houver catálogo */}
-            <CustomerTagsListbox
-              options={customerCatalog}
-              selected={customerTagsSelected}
-              onChange={onChangeCustomerSelection}
-            />
+            {customerCatalog.length > 0 && (
+              <ComboTags
+                options={customerCatalog}
+                selected={customerTagsSelected}
+                onChange={onChangeCustomerSelection}
+                placeholder="Procurar tag"
+              />
+            )}
           </div>
         </div>
 
@@ -218,9 +223,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               onChange={(e) => setQuery(e.target.value)}
               aria-label="Buscar por número do ticket, fila, atendente ou período"
             />
-            {query && (
-              <button className="hs-clear" onClick={() => setQuery('')} aria-label="Limpar busca">×</button>
-            )}
+            {query && <button className="hs-clear" onClick={() => setQuery('')} aria-label="Limpar busca">×</button>}
             <i
               className="hs-help-i"
               title={[
@@ -272,7 +275,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
-      {/* Modal de capítulo */}
       <TicketChapterModal
         open={chapterModal.open}
         onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null })}
