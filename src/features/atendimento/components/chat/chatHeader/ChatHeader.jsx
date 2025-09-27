@@ -8,7 +8,7 @@ import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
 /** Listbox: clica no item para ADICIONAR (sem checkbox) */
-function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag' }) {
+function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag...' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -35,14 +35,27 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
 
   return (
     <div className="lb" ref={ref}>
-      <button type="button" className="lb__control" onClick={() => setOpen(o => !o)} aria-haspopup="listbox">
+      <button
+        type="button"
+        className="lb__control"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title="Adicionar tags ao ticket"
+      >
         <TagIcon size={16} className="lb__icon" />
         <span className="lb__placeholder">{placeholder}</span>
         <span className="lb__caret">▾</span>
       </button>
+
       {open && (
         <div className="lb__panel" role="listbox" aria-label="Selecionar tags">
-          <input className="lb__search" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} />
+          <input
+            className="lb__search"
+            placeholder={placeholder}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
           {filtered.length === 0 ? (
             <div className="lb__empty">Sem tags</div>
           ) : (
@@ -108,8 +121,11 @@ export default function ChatHeader({ userIdSelecionado }) {
   const [ticketCatalog, setTicketCatalog] = useState([]);
   const [ticketTags, setTicketTags] = useState([]); // começa vazio por ticket
 
-  const addTicketTag = (tag) => setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
-  const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
+  const addTicketTag = (tag) =>
+    setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
+
+  const removeTicketTag = (tag) =>
+    setTicketTags(prev => prev.filter(t => t !== tag));
 
   // carrega catálogo aplicável pela fila do ticket
   useEffect(() => {
@@ -182,47 +198,53 @@ export default function ChatHeader({ userIdSelecionado }) {
 
   return (
     <>
-      <div className="chat-header header-inline">
-        {/* ESQUERDA: título + número */}
-        <div className="h-left">
-          <span className="h-title">{name}</span>
-          {ticketNumber && (
-            <span className="h-badge">#{String(ticketNumber).padStart(6,'0')}</span>
-          )}
+      {/* Wrap sticky com duas faixas */}
+      <div className="chat-header-wrap">
+        {/* FAIXA 1: título + número + botões (sem campos no meio) */}
+        <div className="chat-header header-inline">
+          <div className="h-left">
+            <span className="h-title">{name}</span>
+            {ticketNumber && (
+              <span className="h-badge">#{String(ticketNumber).padStart(6,'0')}</span>
+            )}
+          </div>
+
+          <div className="h-spacer" />
+
+          <div className="h-right">
+            <button className="btn-transferir" onClick={() => setShowTransferModal(true)}>
+              <Share2 size={14} /> <span>Transferir</span>
+            </button>
+            <button className="btn-finalizar" onClick={finalizarAtendimento}>
+              <CheckCircle size={14} /> <span>Finalizar</span>
+            </button>
+          </div>
         </div>
 
-        {/* CENTRO: combo + chips (se houver) */}
-        <div className="h-center">
-          {ticketCatalog.length > 0 && (
-            <ComboTags
-              options={ticketCatalog}
-              selected={ticketTags}
-              onAdd={addTicketTag}
-              placeholder="Procurar tag..."
-            />
-          )}
+        {/* FAIXA 2: tags (só mostra se houver catálogo ou seleção) */}
+        {(ticketCatalog.length > 0 || ticketTags.length > 0) && (
+          <div className="tag-subbar">
+            {ticketCatalog.length > 0 && (
+              <ComboTags
+                options={ticketCatalog}
+                selected={ticketTags}
+                onAdd={addTicketTag}
+                placeholder="Procurar tag..."
+              />
+            )}
 
-          {ticketTags.length > 0 && (
-            <div className="chips">
-              {ticketTags.map(t => (
-                <span key={t} className="chip">
-                  <span>{t}</span>
-                  <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* DIREITA: botões */}
-        <div className="h-right">
-          <button className="btn-transferir" onClick={() => setShowTransferModal(true)}>
-            <Share2 size={14} /> <span>Transferir</span>
-          </button>
-          <button className="btn-finalizar" onClick={finalizarAtendimento}>
-            <CheckCircle size={14} /> <span>Finalizar</span>
-          </button>
-        </div>
+            {ticketTags.length > 0 && (
+              <div className="chips">
+                {ticketTags.map(t => (
+                  <span key={t} className="chip">
+                    <span>{t}</span>
+                    <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {showTransferModal && (
@@ -231,4 +253,3 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
-
