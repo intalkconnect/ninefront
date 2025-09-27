@@ -94,7 +94,7 @@
 .chip__x {
   width: 18px; height: 18px; border-radius: 999px; border: 0;
   display: grid; place-items: center; cursor: pointer;
-  background: rgba(0,0,0,.08); color: #1e3a8a; font-weight: 700; line-height: 1;
+  background: rgba(0,0,0,.08); color: #1e3a8a; line-height: 1;
 }
 .chip__x:hover { background: rgba(0,0,0,.15); }
 
@@ -120,3 +120,4 @@
   .h-center { grid-column: 1 / -1; }
   .h-right { grid-column: 1 / -1; justify-content: flex-end; }
 }
+
