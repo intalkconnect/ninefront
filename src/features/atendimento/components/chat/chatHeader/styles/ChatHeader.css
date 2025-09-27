@@ -1,7 +1,11 @@
+/* =========================
+   ChatHeader (layout inline)
+   ========================= */
+
 /* barra */
 .chat-header {
   display: grid;
-  grid-template-columns: auto 1fr auto; /* esquerda | centro (flexível) | direita */
+  grid-template-columns: auto 1fr auto; /* esquerda | centro | direita */
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
@@ -37,13 +41,13 @@
   white-space: nowrap;
 }
 
-/* centro: input + chips no fluxo, à direita do título */
+/* centro: input + chips fluindo */
 .h-center {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  flex-wrap: wrap; /* se faltar espaço, chips quebram para baixo */
+  flex-wrap: wrap;
 }
 
 /* direita: botões */
@@ -54,75 +58,169 @@
   white-space: nowrap;
 }
 
-/* ======= Combo/listbox ======= */
+/* =========================
+   Combo/Listbox compacto
+   ========================= */
+
 .lb { position: relative; }
 .lb__control {
-  display: inline-flex; align-items: center; gap: 8px;
-  min-width: 240px; height: 34px; padding: 0 10px;
-  border: 1px solid var(--color-border); border-radius: 8px;
-  background: #fff; cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 240px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
 }
 .lb__icon { color: var(--color-text-muted); }
 .lb__placeholder { color: var(--color-text-muted); font-size: .95rem; }
 .lb__caret { margin-left: auto; opacity: .6; }
 
 .lb__panel {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
-  min-width: 260px; max-height: 280px; overflow: auto;
-  background: #fff; border: 1px solid var(--color-border); border-radius: 10px;
-  box-shadow: 0 10px 24px rgba(16,24,40,.12); padding: 8px;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  min-width: 260px;
+  max-height: 280px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(16,24,40,.12);
+  padding: 8px;
 }
 .lb__search {
-  width: 100%; padding: 8px 10px; border: 1px solid var(--color-border);
-  border-radius: 8px; outline: none; margin-bottom: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  outline: none;
+  margin-bottom: 8px;
 }
 .lb__option {
-  width: 100%; display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: 8px; background: transparent; border: 0;
-  text-align: left; cursor: pointer; color: var(--color-text-default);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--color-text-default);
 }
 .lb__option:hover { background: #f7f8fc; }
+.lb__empty { padding: 8px; color: var(--color-text-muted); }
 
-/* <<< AQUI: 'Sem tags' sem negrito no ChatHeader */
-.lb__empty {
-  padding: 8px;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
+/* =========================
+   Chips (removíveis)
+   ========================= */
+
+.chips {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
 }
-
-/* chips */
-.chips { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 10px; border-radius: 999px; font-size: 12px; line-height: 1;
-  background: #dbeafe; border: 1px solid #bfdbfe; color: #1e3a8a;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
 }
 .chip__x {
-  width: 18px; height: 18px; border-radius: 999px; border: 0;
-  display: grid; place-items: center; cursor: pointer;
-  background: rgba(0,0,0,.08); color: #1e3a8a; font-weight: 700; line-height: 1;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: rgba(0,0,0,.08);
+  color: #1e3a8a;
+  font-weight: 700;
+  line-height: 1;
 }
 .chip__x:hover { background: rgba(0,0,0,.15); }
 
-/* botões */
+/* =========================
+   Botões (direita)
+   ========================= */
+
 .h-right button {
-  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
-  border: none; border-radius: var(--border-radius);
-  font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all .2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s ease;
   min-width: max-content;
 }
-.btn-transferir { background: var(--color-surface-variant); color: var(--color-text-default); border: 1px solid var(--color-border); }
+.btn-transferir {
+  background: var(--color-surface-variant);
+  color: var(--color-text-default);
+  border: 1px solid var(--color-border);
+}
 .btn-transferir:hover { background: var(--color-surface-variant-hover); }
 .btn-finalizar { background: var(--color-success); color: #fff; }
 .btn-finalizar:hover { background: #148f50; color: #fff !important; }
 
-/* responsivo */
+/* =========================
+   Responsivo
+   ========================= */
+
 @media (max-width: 860px) {
   .chat-header {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto; /* esquerda/centro na 1ª linha, botões abaixo */
     grid-auto-flow: row;
   }
   .h-left { grid-column: 1 / -1; }
   .h-center { grid-column: 1 / -1; }
   .h-right { grid-column: 1 / -1; justify-content: flex-end; }
 }
+
+/* =========================
+   Overrides anti-negrito
+   ========================= */
+
+/* Algumas folhas globais estão aplicando font-weight:700 no header.
+   Garantimos peso normal aqui e reespecificamos onde precisa. */
+.chat-header.header-inline,
+.chat-header {
+  font-weight: 400 !important;
+}
+
+/* Mantém pesos desejados */
+.h-title { font-weight: 600; }
+.h-badge { font-weight: 600; }
+.h-right button { font-weight: 500; }
+
+/* Conteúdo do listbox e chips sem negrito “herdado” */
+.lb__placeholder,
+.lb__option,
+.lb__empty,
+.lb__search,
+.chips .chip,
+.chips .chip__x {
+  font-weight: 400;
+}
+
+/* (alternativa mais agressiva, se necessário)
+.chat-header .lb__panel,
+.chat-header .lb__panel * { font-weight: 400 !important; }
+*/
