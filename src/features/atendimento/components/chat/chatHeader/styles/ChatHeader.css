@@ -127,6 +127,35 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Listbox enxuta */
+.tags-lb { position: relative; }
+.tags-lb__button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 999px;
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-border);
+  cursor: pointer; font-size: .85rem;
+}
+.tags-lb__button:hover { background: var(--color-surface-variant-hover); }
+.tags-lb__caret { opacity: .6; }
+
+.tags-lb__panel {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
+  min-width: 220px; max-height: 260px; overflow: auto;
+  background: #fff; border: 1px solid var(--color-border); border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(16,24,40,.12);
+  padding: 8px;
+}
+.tags-lb__item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 4px; border-radius: 6px; cursor: pointer;
+}
+.tags-lb__item:hover { background: #f7f8fc; }
+.tags-lb__empty { color: var(--color-text-muted); padding: 8px; }
+
+.ticket-chips-inline { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+
 /* mobile */
 @media (max-width: 768px) {
   .chat-header {
@@ -141,3 +170,4 @@
     flex: 1;
   }
 }
+
