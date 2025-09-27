@@ -44,7 +44,7 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
         <div className="lb__panel" role="listbox" aria-label="Selecionar tags">
           <input className="lb__search" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} />
           {filtered.length === 0 ? (
-            <div className="lb__empty">Nenhuma tag encontrada</div>
+            <div className="lb__empty">Sem tags</div>
           ) : (
             filtered.map(opt => (
               <button
@@ -231,3 +231,4 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
