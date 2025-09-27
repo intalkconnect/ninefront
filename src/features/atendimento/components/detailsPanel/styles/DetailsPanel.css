@@ -74,7 +74,7 @@
 }
 .hs-clear:hover { background: #f2f5ff; }
 
-/* “i” simples com tooltip nativo (title) */
+/* “i” com tooltip nativo */
 .hs-help-i {
   position: absolute; right: 6px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -88,18 +88,14 @@
 .hs-help-i:hover { background: #f2f5ff; border-color: #dde6ff; }
 
 /* Conteúdo com rolagem */
-.historico-content {
-  flex: 1; overflow-y: auto; padding-top: 8px; scrollbar-gutter: stable;
-}
-
-/* Texto de aviso */
+.historico-content { flex: 1; overflow-y: auto; padding-top: 8px; scrollbar-gutter: stable; }
 .sem-historico { font-size: 0.95rem; color: var(--color-text-muted); padding: 8px; }
 
-/* Lista de capítulos (cards) */
+/* Lista de capítulos */
 .historico-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
 .ticket-item { margin: 0; }
 
-/* Botão-card */
+/* Card */
 .ticket-card {
   appearance: none; -webkit-appearance: none;
   background: #fff; border: 1px solid var(--color-border); border-radius: var(--border-radius);
@@ -139,12 +135,7 @@
 .info-icon { color: var(--color-primary); }
 .info-value { word-break: break-word; }
 
-/* Scrollbar opcional */
-.historico-content::-webkit-scrollbar { width: 10px; }
-.historico-content::-webkit-scrollbar-thumb { background: #e6e9f2; border-radius: 999px; }
-.historico-content::-webkit-scrollbar-thumb:hover { background: #d8ddee; }
-
-/* ===== Tags do cliente (somente lista + botão Selecionar) ===== */
+/* ===== Tags do cliente ===== */
 .contact-tags { margin-top: 14px; }
 .contact-tags__label {
   font-size: 0.92rem;
@@ -153,42 +144,40 @@
   font-weight: 600;
   display: flex; align-items: center; gap: 8px;
 }
-.contact-tags__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 28px;
-}
+.contact-tags__chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 28px; }
 .chips-empty { color: var(--color-text-muted); font-size: 0.9rem; }
 
-/* chips genéricos */
-.chip--client {
-  background: #f5f7ff;
-  border-color: #e7ebff;
-  color: #1f2a44;
-}
+/* chip estilo contato */
+.chip--client { background: #f5f7ff; border-color: #e7ebff; color: #1f2a44; }
 
-/* Botão Selecionar (reaproveitado no header) */
-.btn-tags {
-  display: inline-flex; align-items: center; gap: .4rem;
-  padding: .25rem .5rem; border-radius: 999px;
+/* ===== Listbox (reaproveita padrão do header) ===== */
+.tags-lb { position: relative; margin-top: 8px; }
+.tags-lb__button {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 999px;
+  background: var(--color-surface-variant);
   border: 1px solid var(--color-border);
-  background: #fff; cursor: pointer; font-size: 12.5px;
+  cursor: pointer; font-size: .85rem;
 }
-.btn-tags--small { padding: .2rem .45rem; }
+.tags-lb__button:hover { background: var(--color-surface-variant-hover); }
+.tags-lb__caret { opacity: .6; }
+.tags-lb__panel {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
+  min-width: 220px; max-height: 260px; overflow: auto;
+  background: #fff; border: 1px solid var(--color-border); border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(16,24,40,.12);
+  padding: 8px;
+}
+.tags-lb__item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 4px; border-radius: 6px; cursor: pointer;
+}
+.tags-lb__item:hover { background: #f7f8fc; }
 
-/* ===== Modal genérico de seleção de tags ===== */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:30}
-.modal-card{width:520px;max-width:calc(100vw - 24px);background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-.modal-header,.modal-footer{padding:12px 16px;border-bottom:1px solid #eee}
-.modal-footer{border-top:1px solid #eee;border-bottom:0;display:flex;justify-content:flex-end;gap:8px}
-.modal-body{padding:12px 16px;max-height:60vh;overflow:auto}
-.modal-close{background:transparent;border:0;font-size:20px;cursor:pointer}
-.tag-checklist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.check-row{display:flex;align-items:center;gap:.6rem;cursor:pointer}
-.tag-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:.4rem}
-.btn-primary{background:#10b981;color:#fff;border:0;padding:8px 12px;border-radius:8px}
-.btn-secondary{background:#f3f4f6;color:#111827;border:0;padding:8px 12px;border-radius:8px}
+/* Scrollbar opcional */
+.historico-content::-webkit-scrollbar { width: 10px; }
+.historico-content::-webkit-scrollbar-thumb { background: #e6e9f2; border-radius: 999px; }
+.historico-content::-webkit-scrollbar-thumb:hover { background: #d8ddee; }
 
 /* Responsivo */
 @media (max-width: 520px) {
