@@ -13,19 +13,17 @@
 
 .chat-header-left {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  min-width: 0;        /* permite ellipsis funcionar */
-  flex: 1 1 auto;      /* ocupa o espaço disponível */
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-/* bloco com título e número embaixo, alinhados à esquerda */
-.nome-e-telefone {
+/* linha com nome, #ticket e botão Tags */
+.row-primary {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -39,26 +37,50 @@
   text-overflow: ellipsis;
 }
 
-.chat-header-phone {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .ticket-numero {
   font-size: 0.95rem;
   font-weight: 500;
   color: var(--color-primary);
   background-color: var(--color-primary-bg);
   border-radius: 6px;
-  align-self: flex-start;
+  padding: 2px 6px;
   width: max-content;
   white-space: nowrap;
 }
 
+/* lista de chips do ticket (só aparece se houver) */
+.ticket-tags-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f7f8fb;
+  border: 1px solid #eceff4;
+  color: #374151;
+  font-size: 12px;
+  line-height: 1;
+}
+.chip--motivo {
+  background: #fff7f5;
+  border-color: #ffe2db;
+  color: #7a2e22;
+}
+
+/* botão Tags */
+.btn-tags {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .25rem .6rem; border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: #fff; cursor: pointer; font-size: 12.5px;
+}
 
 /* botões à direita */
 .chat-header-right {
@@ -66,7 +88,7 @@
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
-  margin-left: auto;   /* empurra para a direita */
+  margin-left: auto;
   white-space: nowrap;
 }
 
@@ -105,81 +127,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* ===== Tags de MOTIVO no header ===== */
-.ticket-tags {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-.ticket-tags__icon { color: var(--color-text-muted); margin-top: 6px; }
-.ticket-tags__chips {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.ticket-tags__input {
-  min-width: 180px;
-  max-width: 280px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #fff;
-  font-size: 13px;
-  outline: none;
-}
-.ticket-tags__input:focus {
-  border-color: #c9d6ff;
-  box-shadow: 0 0 0 3px rgba(76,128,255,.15);
-}
-
-.ticket-tags__add {
-  display: inline-flex; gap: 6px; align-items: center;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: #fafbff;
-  cursor: pointer;
-  font-size: 13px;
-}
-.ticket-tags__add:hover { background: #f2f5ff; }
-
-/* chips genéricos (pode já existir no seu CSS; se tiver, reutilize) */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #f7f8fb;
-  border: 1px solid #eceff4;
-  color: #374151;
-  font-size: 12px;
-  line-height: 1;
-}
-.chip--motivo {
-  background: #fff7f5;
-  border-color: #ffe2db;
-  color: #7a2e22;
-}
-.chip-x {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-  width: 16px; height: 16px;
-  border-radius: 6px;
-  display: inline-grid; place-items: center;
-  cursor: pointer;
-  color: #6b7280;
-}
-.chip-x:hover { background: rgba(0,0,0,.06); }
-
-
 /* mobile */
 @media (max-width: 768px) {
   .chat-header {
@@ -194,5 +141,3 @@
     flex: 1;
   }
 }
-
-
