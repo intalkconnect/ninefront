@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Save, Palette, RefreshCw, X } from 'lucide-react';
-import { apiGet, apiPost, apiPut } from '../../../../shared/apiClient';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/QueueForm.module.css';
 
@@ -33,7 +33,6 @@ const randomPastelHex = () => {
 function ChipsInput({
   value = [],
   onChange,
-  existing = [],
   placeholder = 'ex.: agendamento, reclamacao, urgencia',
   maxLen = 40,
 }) {
@@ -59,11 +58,10 @@ function ChipsInput({
     const tokens = tokenize(raw);
     if (!tokens.length) return;
     const set = new Set(value);
-    const exist = new Set(existing);
-    const fresh = tokens.filter(t => !set.has(t) && !exist.has(t));
+    const fresh = tokens.filter(t => !set.has(t));
     if (!fresh.length) return;
     onChange([...value, ...fresh]);
-  }, [value, existing, onChange]);
+  }, [value, onChange]);
 
   const removeChip = (t) => onChange(value.filter(x => x !== t));
 
@@ -136,8 +134,8 @@ export default function QueueForm() {
   const [queueDisplay, setQueueDisplay] = useState(id || '');
 
   // tags
-  const [existingTags, setExistingTags] = useState([]); // catálogo atual (nomes)
-  const [pendingTags, setPendingTags] = useState([]);   // novas a criar ao salvar
+  const [initialTags, setInitialTags] = useState([]); // catálogo original
+  const [tags, setTags] = useState([]);               // estado visível no input (com chips)
 
   // validação
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
@@ -147,13 +145,16 @@ export default function QueueForm() {
 
   // carrega catálogo por nome de fila
   const loadTags = useCallback(async (filaNome) => {
-    if (!filaNome) { setExistingTags([]); return; }
+    if (!filaNome) { setInitialTags([]); setTags([]); return; }
     try {
       const r = await apiGet(`/tags/ticket/catalog?fila=${encodeURIComponent(filaNome)}&page_size=200`);
       const list = Array.isArray(r?.data) ? r.data : [];
-      setExistingTags(list.map(x => x.tag));
+      const arr = list.map(x => x.tag);
+      setInitialTags(arr);
+      setTags(arr); // mostra as já cadastradas como chips dentro do input
     } catch {
-      setExistingTags([]);
+      setInitialTags([]);
+      setTags([]);
     }
   }, []);
 
@@ -174,12 +175,11 @@ export default function QueueForm() {
         setQueueDisplay(nomeFila || id);
 
         await loadTags(nomeFila || q.nome || q.name);
-        setPendingTags([]); // começamos sem novas
       } else {
         setForm({ nome: '', descricao: '', color: '' });
         setQueueDisplay('');
-        setExistingTags([]);
-        setPendingTags([]);
+        setInitialTags([]);
+        setTags([]);
       }
     } catch (e) {
       console.error(e);
@@ -196,17 +196,32 @@ export default function QueueForm() {
   const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
   const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
 
-  // cria todas as pendentes
-  async function createPendingTags(filaNome) {
-    if (!pendingTags.length) return;
-    const promises = pendingTags.map(tag =>
-      apiPost('/tags/ticket/catalog', { fila: filaNome, tag, active: true })
-    );
-    const res = await Promise.allSettled(promises);
+  // cria e remove conforme diff
+  async function persistTagsDiff(filaNome, before = [], current = []) {
+    const prev = new Set(before);
+    const now  = new Set(current);
+
+    const toAdd    = [...now].filter(t => !prev.has(t));
+    const toRemove = [...prev].filter(t => !now.has(t));
+
+    const jobs = [];
+
+    // criar
+    for (const tag of toAdd) {
+      jobs.push(apiPost('/tags/ticket/catalog', { fila: filaNome, tag, active: true }));
+    }
+    // remover
+    for (const tag of toRemove) {
+      jobs.push(apiDelete(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(tag)}`));
+    }
+
+    if (!jobs.length) return;
+
+    const res = await Promise.allSettled(jobs);
     const ok = res.filter(r => r.status === 'fulfilled').length;
     const fail = res.length - ok;
-    if (ok) toast.success(`${ok} etiqueta(s) criada(s).`);
-    if (fail) toast.error(`${fail} etiqueta(s) não puderam ser criadas.`);
+    if (ok) toast.success(`${ok} alteração(ões) de etiqueta aplicada(s).`);
+    if (fail) toast.error(`${fail} alteração(ões) falharam. Verifique dependências (tags em uso).`);
   }
 
   async function handleSave() {
@@ -233,11 +248,9 @@ export default function QueueForm() {
         toast.success('Fila criada.');
       }
 
-      // criar etiquetas pendentes usando o NOME da fila definido no formulário
-      const filaNomeParaTags = form.nome.trim();
-      if (filaNomeParaTags) {
-        await createPendingTags(filaNomeParaTags);
-      }
+      // aplicar diff das etiquetas usando o NOME atual do formulário
+      const filaNome = form.nome.trim();
+      await persistTagsDiff(filaNome, initialTags, tags);
 
       navigate('/management/queues');
     } catch (e) {
@@ -351,30 +364,20 @@ export default function QueueForm() {
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
               <p className={styles.cardDesc}>
-                Digite as etiquetas e pressione <strong>Enter</strong>. Várias podem ser separadas por vírgula ou ponto-e-vírgula.
-                Elas serão criadas quando você salvar a fila.
+                Digite as etiquetas e pressione <strong>Enter</strong>. Separe várias por vírgula ou ponto-e-vírgula.
+                As alterações (criações e remoções) serão aplicadas ao salvar a fila.
               </p>
             </div>
 
             <div className={styles.cardBody}>
-              <label className={styles.label}>Etiquetas (novas)</label>
+              <label className={styles.label}>Etiquetas</label>
               <ChipsInput
-                value={pendingTags}
-                onChange={setPendingTags}
-                existing={existingTags}
+                value={tags}
+                onChange={setTags}
               />
-
-              {existingTags.length > 0 && (
-                <>
-                  <div className={styles.divider} />
-                  <div className={styles.groupTitle}>Cadastradas nesta fila</div>
-                  <div className={styles.tagsExistingWrap}>
-                    {existingTags.map(t => (
-                      <span key={t} className={styles.tagExisting}>{t}</span>
-                    ))}
-                  </div>
-                </>
-              )}
+              <p className={styles.hint} style={{marginTop:8}}>
+                Dica: use <kbd>Backspace</kbd> para remover o último chip quando o campo estiver vazio.
+              </p>
             </div>
           </section>
 
