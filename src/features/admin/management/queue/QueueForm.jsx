@@ -1,10 +1,12 @@
+// src/features/admin/management/queue/QueueForm.jsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Save, Palette, RefreshCw, X, Plus, Trash2, Check } from 'lucide-react';
-import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../../../../shared/apiClient';
+import { Save, Palette, RefreshCw, X, Trash2, RotateCcw } from 'lucide-react';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/QueueForm.module.css';
 
+/* ===== util de cor ===== */
 const normalizeHexColor = (input) => {
   if (!input) return null;
   let c = String(input).trim();
@@ -29,12 +31,31 @@ const randomPastelHex = () => {
   return hslToHex(h, s, l);
 };
 
+/* ===== util de tags ===== */
+const slugifyTag = (s) => {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .replace(/[,]/g, ' ')
+    .replace(/\s+/g, '-')        // espaço -> hífen
+    .replace(/[^a-z0-9-_]/g, '') // somente seguro
+    .replace(/-+/g, '-')         // colapsa hífens
+    .replace(/^[-_]+|[-_]+$/g, '');
+};
+const parseTokens = (raw) =>
+  String(raw || '')
+    .split(',')
+    .map(t => slugifyTag(t))
+    .filter(Boolean);
+
 export default function QueueForm() {
-  const { id } = useParams();
+  const { id } = useParams(); // id da fila (pk/uuid) usado para GET/PUT /queues/:id
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const topRef = useRef(null);
 
+  /* ===== estados básicos ===== */
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
@@ -42,20 +63,44 @@ export default function QueueForm() {
   const [form, setForm] = useState({ nome: '', descricao: '', color: '' });
   const [touched, setTouched] = useState({ nome: false, color: false });
 
-  // Nome a ser exibido no breadcrumb (usa queue_name do backend)
+  // Nome exibido no breadcrumb (usa queue_name se backend enviar)
   const [queueDisplay, setQueueDisplay] = useState(id || '');
 
-  // === catálogo de tags da fila (somente em edição) ===
+  /* ===== estados de tags (catálogo por fila) ===== */
   const [tagsLoading, setTagsLoading] = useState(false);
   const [tags, setTags] = useState([]); // [{tag,label,color,active}]
-  const [newTag, setNewTag] = useState({ tag: '', label: '', color: '', active: true });
-  const [rowSaving, setRowSaving] = useState({}); // {tagKey: boolean}
-  const [rowDeleting, setRowDeleting] = useState({}); // {tagKey: boolean}
 
+  // Entrada rápida
+  const [newTagsInput, setNewTagsInput] = useState('');
+  const [pendingTags, setPendingTags] = useState([]); // strings ainda não salvas
+  const [savingBatch, setSavingBatch] = useState(false);
+
+  /* ===== validações ===== */
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
   const nameInvalid = !form.nome.trim();
   const colorInvalid = form.color ? !colorPreview : false;
   const canSubmit = !saving && !nameInvalid && !colorInvalid;
+
+  /* ===== carregar fila + catálogo ===== */
+  const loadTags = useCallback(async (filaNome) => {
+    if (!filaNome) { setTags([]); return; }
+    setTagsLoading(true);
+    try {
+      const r = await apiGet(`/tags/ticket/catalog?fila=${encodeURIComponent(filaNome)}&page_size=200`);
+      setTags(Array.isArray(r?.data) ? r.data.map(x => ({
+        tag: x.tag,
+        label: x.label || '',
+        color: x.color || '',
+        active: Boolean(x.active)
+      })) : []);
+    } catch (e) {
+      console.error(e);
+      setTags([]);
+      toast.error('Falha ao carregar etiquetas da fila.');
+    } finally {
+      setTagsLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
@@ -63,19 +108,18 @@ export default function QueueForm() {
       if (isEdit) {
         const data = await apiGet(`/queues/${encodeURIComponent(id)}`);
         const q = data?.data ?? data ?? {};
+        const nomeFila = (q.queue_name ?? q.nome ?? q.name ?? '').trim();
         setForm({
           nome: q.nome ?? q.name ?? '',
           descricao: q.descricao ?? '',
           color: q.color ?? ''
         });
-        setQueueDisplay(q.queue_name ?? q.nome ?? q.name ?? id);
-
-        // carrega catálogo de tags da fila (por nome)
-        await loadTags(q.nome ?? q.name ?? id);
+        setQueueDisplay(nomeFila || id);
+        await loadTags(nomeFila || q.nome || q.name);
       } else {
         setForm({ nome: '', descricao: '', color: '' });
         setQueueDisplay('');
-        setTags([]); // nada para criar/editar sem fila persistida
+        setTags([]); setPendingTags([]);
       }
     } catch (e) {
       console.error(e);
@@ -85,33 +129,11 @@ export default function QueueForm() {
       setLoading(false);
       requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
-  }, [isEdit, id]);
-
-  // carrega catálogo de tags
-  const loadTags = useCallback(async (queueName) => {
-    if (!queueName) { setTags([]); return; }
-    setTagsLoading(true);
-    try {
-      const res = await apiGet(`/tags/ticket/catalog?fila=${encodeURIComponent(queueName)}&active=&page_size=1000`);
-      const arr = Array.isArray(res?.data) ? res.data : [];
-      // normaliza array
-      setTags(arr.map(x => ({
-        tag: x.tag,
-        label: x.label || '',
-        color: x.color || '',
-        active: !!x.active
-      })));
-    } catch (e) {
-      console.error(e);
-      setTags([]);
-      toast.error('Não foi possível carregar as tags da fila.');
-    } finally {
-      setTagsLoading(false);
-    }
-  }, []);
+  }, [isEdit, id, loadTags]);
 
   useEffect(() => { load(); }, [load]);
 
+  /* ===== ações do form ===== */
   const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
   const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
 
@@ -145,78 +167,121 @@ export default function QueueForm() {
     }
   }
 
-  // ===== CRUD de TAGS da FILA =====
+  /* ===== entrada rápida de tags ===== */
+  const addPending = (raw) => {
+    const tokens = parseTokens(raw);
+    if (!tokens.length) return;
 
-  const saveRow = async (filaNome, item) => {
-    const tagKey = item.tag;
-    setRowSaving(s => ({ ...s, [tagKey]: true }));
-    try {
-      // valida cor (se preenchida)
-      const norm = item.color ? normalizeHexColor(item.color) : '';
-      if (item.color && !norm) {
-        toast.warn(`Cor inválida em "${item.tag}". Use #RRGGBB.`);
-        return;
+    const currentSet = new Set(pendingTags);
+    const catalogSet = new Set((tags || []).map(t => t.tag));
+    const fresh = tokens.filter(t => !currentSet.has(t) && !catalogSet.has(t));
+    if (!fresh.length) {
+      toast.info('Todas as etiquetas inseridas já existem ou estão pendentes.');
+      return;
+    }
+    setPendingTags(prev => [...prev, ...fresh]);
+  };
+
+  const onNewTagsKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      if (newTagsInput.trim()) {
+        addPending(newTagsInput);
+        setNewTagsInput('');
       }
-      // PATCH /tags/ticket/catalog/:fila/:tag
-      await apiPatch(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(tagKey)}`, {
-        label: item.label || null,
-        color: norm || null,
-        active: !!item.active
-      });
-      toast.success(`Etiqueta "${tagKey}" salva.`);
-      await loadTags(filaNome);
-    } catch (e) {
-      console.error(e);
-      toast.error(`Erro ao salvar a etiqueta "${tagKey}".`);
-    } finally {
-      setRowSaving(s => ({ ...s, [tagKey]: false }));
     }
   };
+  const onNewTagsPaste = (e) => {
+    const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    if (text.includes(',')) {
+      e.preventDefault();
+      addPending(text);
+    }
+  };
+  const removePending = (t) => setPendingTags(arr => arr.filter(x => x !== t));
 
-  const deleteRow = async (filaNome, tagKey) => {
-    if (!window.confirm(`Remover a etiqueta "${tagKey}" desta fila?`)) return;
-    setRowDeleting(s => ({ ...s, [tagKey]: true }));
+  const savePendingBatch = async () => {
+    if (!pendingTags.length) {
+      toast.info('Nenhuma etiqueta pendente para salvar.');
+      return;
+    }
+    const filaNome = queueDisplay || form.nome || id;
+    if (!filaNome) {
+      toast.warn('Defina/salve o nome da fila antes de cadastrar etiquetas.');
+      return;
+    }
+    setSavingBatch(true);
     try {
-      // DELETE /tags/ticket/catalog/:fila/:tag
-      await apiDelete(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(tagKey)}`);
-      toast.success(`Etiqueta "${tagKey}" removida.`);
+      const promises = pendingTags.map(tag =>
+        apiPost('/tags/ticket/catalog', {
+          fila: filaNome,
+          tag,
+          label: null,
+          color: null,
+          active: true,
+        })
+      );
+      const res = await Promise.allSettled(promises);
+      const ok = res.filter(r => r.status === 'fulfilled').length;
+      const fail = res.length - ok;
+
+      if (ok) toast.success(`${ok} etiqueta(s) criada(s).`);
+      if (fail) toast.error(`${fail} etiqueta(s) falharam.`);
+
+      setPendingTags([]);
       await loadTags(filaNome);
     } catch (e) {
       console.error(e);
-      toast.error(`Não foi possível remover "${tagKey}".`);
+      toast.error('Erro ao salvar etiquetas.');
     } finally {
-      setRowDeleting(s => ({ ...s, [tagKey]: false }));
+      setSavingBatch(false);
     }
   };
 
-  const createTag = async (filaNome) => {
-    const t = (newTag.tag || '').trim();
-    if (!t) { toast.warn('Informe a “tag” (chave).'); return; }
+  /* ===== edição/exclusão linha-a-linha ===== */
+  const handleTagField = (idx, field, value) => {
+    setTags(prev => {
+      const arr = [...prev];
+      arr[idx] = { ...arr[idx], [field]: value };
+      return arr;
+    });
+  };
 
-    const norm = newTag.color ? normalizeHexColor(newTag.color) : '';
-    if (newTag.color && !norm) { toast.warn('Cor inválida. Use #RRGGBB.'); return; }
-
+  const saveRow = async (idx) => {
+    const filaNome = queueDisplay || form.nome || id;
+    const row = tags[idx];
     try {
       await apiPost('/tags/ticket/catalog', {
         fila: filaNome,
-        tag: t,
-        label: newTag.label || null,
-        color: norm || null,
-        active: !!newTag.active,
+        tag: row.tag,
+        label: row.label || null,
+        color: row.color || null,
+        active: !!row.active
       });
-      toast.success('Etiqueta criada/atualizada.');
-      setNewTag({ tag: '', label: '', color: '', active: true });
+      toast.success('Etiqueta atualizada.');
       await loadTags(filaNome);
     } catch (e) {
       console.error(e);
-      toast.error('Erro ao criar/atualizar a etiqueta.');
+      toast.error('Não foi possível salvar a etiqueta.');
     }
   };
 
-  const queueNameForTags = useMemo(() => (isEdit ? (form.nome || id) : ''), [isEdit, form.nome, id]);
+  const deleteRow = async (idx) => {
+    const filaNome = queueDisplay || form.nome || id;
+    const row = tags[idx];
+    try {
+      await apiDelete(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(row.tag)}`);
+      toast.success('Etiqueta removida.');
+      await loadTags(filaNome);
+    } catch (e) {
+      console.error(e);
+      toast.error(e?.response?.data?.error || 'Não foi possível remover. Verifique se não está em uso.');
+    }
+  };
 
   return (
     <div className={styles.page} ref={topRef}>
+      {/* Breadcrumb */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
           <li><Link to="/" className={styles.bcLink}>Dashboard</Link></li>
@@ -243,7 +308,7 @@ export default function QueueForm() {
         <>
           {err && <div className={styles.alert}>{err}</div>}
 
-          {/* CARD: Identificação */}
+          {/* ===== Card: identificação ===== */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Identificação</h2>
@@ -312,8 +377,8 @@ export default function QueueForm() {
             </div>
           </section>
 
-          {/* CARD: Tags da fila (somente em edição) */}
-          {isEdit && (
+          {/* ===== Card: etiquetas por fila (somente em edição) ===== */}
+          {isEdit ? (
             <section className={styles.card}>
               <div className={styles.cardHead}>
                 <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
@@ -323,176 +388,189 @@ export default function QueueForm() {
               </div>
 
               <div className={styles.cardBody}>
-                {/* Lista/edição inline */}
-                {tagsLoading ? (
-                  <div className={styles.emptyRow}>Carregando etiquetas…</div>
-                ) : tags.length === 0 ? (
-                  <div className={styles.emptyRow}>Nenhuma etiqueta cadastrada.</div>
-                ) : (
-                  <div className={styles.table}>
-                    <div className={styles.thead}>
-                      <div className={styles.th} style={{minWidth:160}}>Tag</div>
-                      <div className={styles.th} style={{flex:1}}>Rótulo</div>
-                      <div className={styles.th} style={{minWidth:130}}>Cor</div>
-                      <div className={styles.th} style={{minWidth:110}}>Ativa</div>
-                      <div className={styles.th} style={{minWidth:150}}>Ações</div>
+                {/* Entrada rápida */}
+                <div className={styles.groupTitle}>Adicionar etiquetas (rápido)</div>
+                <p className={styles.cardDesc} style={{ marginTop: -6 }}>
+                  Digite a(s) etiqueta(s) e pressione <strong>Enter</strong>. Separe várias por vírgula.
+                </p>
+
+                <div className={styles.cardBodyGrid3} style={{ alignItems: 'center' }}>
+                  <div className={styles.groupWide}>
+                    <label className={styles.label}>Etiquetas</label>
+                    <input
+                      className={styles.input}
+                      placeholder="ex.: agendamento, reclamacao, urgencia"
+                      value={newTagsInput}
+                      onChange={e => setNewTagsInput(e.target.value)}
+                      onKeyDown={onNewTagsKeyDown}
+                      onPaste={onNewTagsPaste}
+                    />
+                  </div>
+
+                  <div className={styles.group} style={{ alignSelf: 'end' }}>
+                    <button
+                      type="button"
+                      className={styles.btnPrimary}
+                      onClick={() => { if (newTagsInput.trim()) { addPending(newTagsInput); setNewTagsInput(''); } }}
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+
+                {pendingTags.length > 0 && (
+                  <>
+                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {pendingTags.map(t => (
+                        <span
+                          key={t}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                            padding: '6px 10px', borderRadius: 999, fontSize: 12,
+                            background: '#eef2ff', border: '1px solid #dbeafe', color: '#1e3a8a'
+                          }}
+                          title={t}
+                        >
+                          <span>{t}</span>
+                          <button
+                            type="button"
+                            onClick={() => removePending(t)}
+                            style={{
+                              width: 18, height: 18, borderRadius: 999, border: 0, cursor: 'pointer',
+                              display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.08)',
+                              color: '#1e3a8a', fontWeight: 700, lineHeight: 1
+                            }}
+                            aria-label={`Remover ${t}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
                     </div>
-                    {tags.map((it, idx) => (
-                      <div key={it.tag} className={styles.tr}>
-                        <div className={styles.td} style={{minWidth:160}}>
-                          <code>{it.tag}</code>
+
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <button
+                        type="button"
+                        className={styles.btnPrimary}
+                        onClick={savePendingBatch}
+                        disabled={savingBatch}
+                      >
+                        <Save size={16} /> {savingBatch ? 'Salvando…' : 'Salvar etiquetas'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        onClick={() => setPendingTags([])}
+                        disabled={savingBatch}
+                      >
+                        Limpar pendentes
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                <div className={styles.divider} />
+
+                {/* Lista/edição de etiquetas existentes */}
+                <div className={styles.groupTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>Etiquetas cadastradas</span>
+                  <button
+                    type="button"
+                    className={styles.btnSecondary}
+                    onClick={() => loadTags(queueDisplay || form.nome || id)}
+                    title="Recarregar"
+                  >
+                    <RotateCcw size={16} /> Recarregar
+                  </button>
+                </div>
+
+                {tagsLoading ? (
+                  <div className={styles.cardDesc}>Carregando…</div>
+                ) : tags.length === 0 ? (
+                  <div className={styles.cardDesc}>Nenhuma etiqueta cadastrada.</div>
+                ) : (
+                  <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+                    {tags.map((row, idx) => (
+                      <div
+                        key={row.tag}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(140px, 220px) 1fr 170px 120px',
+                          gap: 8,
+                          alignItems: 'center'
+                        }}
+                      >
+                        <div>
+                          <label className={styles.label}>Tag</label>
+                          <input className={styles.input} value={row.tag} disabled />
                         </div>
-                        <div className={styles.td} style={{flex:1}}>
+
+                        <div>
+                          <label className={styles.label}>Rótulo (opcional)</label>
                           <input
                             className={styles.input}
-                            value={it.label || ''}
-                            onChange={e => {
-                              const v = e.target.value;
-                              setTags(arr => {
-                                const n = [...arr];
-                                n[idx] = {...n[idx], label: v};
-                                return n;
-                              });
-                            }}
-                            placeholder="Rótulo visível (opcional)"
+                            value={row.label || ''}
+                            onChange={e => handleTagField(idx, 'label', e.target.value)}
+                            placeholder="ex.: Agendamento"
                           />
                         </div>
-                        <div className={styles.td} style={{minWidth:130}}>
+
+                        <div>
+                          <label className={styles.label}>Cor (opcional)</label>
                           <input
                             className={styles.input}
-                            value={it.color || ''}
-                            onChange={e => {
-                              const v = e.target.value;
-                              setTags(arr => {
-                                const n = [...arr];
-                                n[idx] = {...n[idx], color: v};
-                                return n;
-                              });
-                            }}
+                            value={row.color || ''}
+                            onChange={e => handleTagField(idx, 'color', e.target.value)}
                             placeholder="#RRGGBB"
                           />
                         </div>
-                        <div className={styles.td} style={{minWidth:110}}>
-                          <label className={styles.switch}>
+
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <label className={styles.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                             <input
                               type="checkbox"
-                              checked={!!it.active}
-                              onChange={e => {
-                                const v = e.target.checked;
-                                setTags(arr => {
-                                  const n = [...arr];
-                                  n[idx] = {...n[idx], active: v};
-                                  return n;
-                                });
-                              }}
+                              checked={!!row.active}
+                              onChange={e => handleTagField(idx, 'active', e.target.checked)}
                             />
-                            <span className={styles.slider}/>
+                            Ativa
                           </label>
-                        </div>
-                        <div className={styles.td} style={{minWidth:150, display:'flex', gap:8}}>
+
                           <button
                             type="button"
                             className={styles.btnPrimary}
-                            onClick={() => saveRow(form.nome || id, it)}
-                            disabled={!!rowSaving[it.tag]}
-                            title="Salvar linha"
+                            onClick={() => saveRow(idx)}
+                            title="Salvar"
                           >
-                            <Check size={16}/> {rowSaving[it.tag] ? 'Salvando…' : 'Salvar'}
+                            <Save size={16} />
                           </button>
+
                           <button
                             type="button"
-                            className={`${styles.btn} ${styles.danger}`}
-                            onClick={() => deleteRow(form.nome || id, it.tag)}
-                            disabled={!!rowDeleting[it.tag]}
-                            title="Remover"
+                            className={styles.btn}
+                            onClick={() => deleteRow(idx)}
+                            title="Excluir"
                           >
-                            <Trash2 size={16}/> {rowDeleting[it.tag] ? 'Removendo…' : 'Remover'}
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-
-                {/* Criar nova */}
-                <div className={styles.divider} />
-                <div className={styles.groupTitle}>Adicionar etiqueta</div>
-                <div className={styles.cardBodyGrid3}>
-                  <div className={styles.group}>
-                    <label className={styles.label}>Tag (chave)</label>
-                    <input
-                      className={styles.input}
-                      value={newTag.tag}
-                      onChange={e => setNewTag(nt => ({ ...nt, tag: e.target.value }))}
-                      placeholder="ex.: agendamento"
-                    />
-                  </div>
-                  <div className={styles.groupWide}>
-                    <label className={styles.label}>Rótulo (opcional)</label>
-                    <input
-                      className={styles.input}
-                      value={newTag.label}
-                      onChange={e => setNewTag(nt => ({ ...nt, label: e.target.value }))}
-                      placeholder="ex.: Agendamento"
-                    />
-                  </div>
-                  <div className={styles.group}>
-                    <label className={styles.label}>Cor (opcional)</label>
-                    <div style={{display:'flex', alignItems:'center', gap:8}}>
-                      <input
-                        className={styles.input}
-                        value={newTag.color}
-                        onChange={e => setNewTag(nt => ({ ...nt, color: e.target.value }))}
-                        placeholder="#RRGGBB"
-                      />
-                      <button
-                        type="button"
-                        className={styles.btnSecondary}
-                        onClick={() => setNewTag(nt => ({ ...nt, color: randomPastelHex() }))}
-                        title="Sortear cor"
-                      >
-                        <RefreshCw size={16}/>
-                        Sortear
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.inlineRow} style={{marginTop:8}}>
-                  <div className={styles.inlineItem}>
-                    <span className={styles.inlineLabel}>Ativa</span>
-                    <label className={styles.switch}>
-                      <input
-                        type="checkbox"
-                        checked={!!newTag.active}
-                        onChange={e => setNewTag(nt => ({ ...nt, active: e.target.checked }))}
-                      />
-                      <span className={styles.slider}/>
-                    </label>
-                  </div>
-                </div>
-
-                <div style={{display:'flex', gap:8, marginTop:12}}>
-                  <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={() => createTag(form.nome || id)}
-                  >
-                    <Plus size={16}/> Adicionar etiqueta
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnGhost}
-                    onClick={() => loadTags(form.nome || id)}
-                    disabled={tagsLoading}
-                  >
-                    Recarregar
-                  </button>
-                </div>
+              </div>
+            </section>
+          ) : (
+            <section className={styles.card}>
+              <div className={styles.cardHead}>
+                <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
+                <p className={styles.cardDesc}>
+                  Salve a fila primeiro para gerenciar as etiquetas disponíveis.
+                </p>
               </div>
             </section>
           )}
 
-          {/* Footer fixo */}
+          {/* rodapé fixo */}
           <div className={styles.stickyFooter} role="region" aria-label="Ações">
             <div className={styles.stickyInner}>
               <button type="button" className={styles.btnGhost} onClick={() => navigate('/management/queues')}>
