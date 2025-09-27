@@ -8,7 +8,7 @@ import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
 /** Listbox: clica no item para ADICIONAR (sem checkbox) */
-function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
+function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -19,11 +19,17 @@ function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  // remove do dropdown qualquer tag já selecionada
+  const base = useMemo(
+    () => options.filter(o => !selected.includes(o.tag)),
+    [options, selected]
+  );
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return options;
-    return options.filter(o => (o.label || o.tag).toLowerCase().includes(t));
-  }, [q, options]);
+    if (!t) return base;
+    return base.filter(o => (o.label || o.tag).toLowerCase().includes(t));
+  }, [q, base]);
 
   if (!options.length) return null;
 
@@ -141,8 +147,6 @@ export default function ChatHeader({ userIdSelecionado }) {
       }
 
       // 2) salva diff das tags do cliente (GARANTIDO)
-      //    - pega a seleção atual do store (pending_customer_tags)
-      //    - compara com o que está no servidor neste momento
       const state = useConversationsStore.getState();
       const pending = Array.isArray(state?.clienteAtivo?.pending_customer_tags)
         ? state.clienteAtivo.pending_customer_tags
@@ -187,11 +191,10 @@ export default function ChatHeader({ userIdSelecionado }) {
 
           {/* Linha: “Adicionar tags” + listbox (se houver catálogo) + chips (se houver seleção) */}
           <div className="tags-row">
-            <span className="tags-label"><TagIcon size={16}/> Adicionar tags</span>
-
             {ticketCatalog.length > 0 && (
               <ComboTags
                 options={ticketCatalog}
+                selected={ticketTags}
                 onAdd={addTicketTag}
                 placeholder="Procurar tag"
               />
