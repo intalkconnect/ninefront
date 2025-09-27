@@ -1,12 +1,12 @@
 // src/features/admin/management/queue/QueueForm.jsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Save, Palette, RefreshCw, X, Trash2, RotateCcw } from 'lucide-react';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../../../shared/apiClient';
+import { Save, Palette, RefreshCw, X } from 'lucide-react';
+import { apiGet, apiPost, apiPut } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/QueueForm.module.css';
 
-/* ===== util de cor ===== */
+/* ===== utils de cor ===== */
 const normalizeHexColor = (input) => {
   if (!input) return null;
   let c = String(input).trim();
@@ -15,7 +15,6 @@ const normalizeHexColor = (input) => {
   if (/^#([0-9a-fA-F]{3})$/.test(c)) c = '#' + c.slice(1).split('').map(ch => ch + ch).join('');
   return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
 };
-
 const hslToHex = (h, s, l) => {
   s /= 100; l /= 100;
   const k = (n) => (n + h / 30) % 12;
@@ -31,26 +30,88 @@ const randomPastelHex = () => {
   return hslToHex(h, s, l);
 };
 
-/* ===== util de tags ===== */
+/* ===== utils de tag ===== */
 const slugifyTag = (s) => {
   return String(s || '')
     .trim()
     .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[,]/g, ' ')
-    .replace(/\s+/g, '-')        // espaço -> hífen
-    .replace(/[^a-z0-9-_]/g, '') // somente seguro
-    .replace(/-+/g, '-')         // colapsa hífens
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '')
+    .replace(/-+/g, '-')
     .replace(/^[-_]+|[-_]+$/g, '');
 };
-const parseTokens = (raw) =>
+const splitTokens = (raw) =>
   String(raw || '')
     .split(',')
     .map(t => slugifyTag(t))
     .filter(Boolean);
 
+/* ===== ChipsInput (tags dentro do input) ===== */
+function ChipsInput({ value = [], onChange, placeholder = 'ex.: agendamento, reclamacao, urgencia', existing = [] }) {
+  const [text, setText] = useState('');
+  const ref = useRef(null);
+
+  const addTokens = useCallback((raw) => {
+    const tokens = splitTokens(raw);
+    if (!tokens.length) return;
+
+    const set = new Set(value);
+    const exist = new Set(existing);
+    const fresh = tokens.filter(t => !set.has(t) && !exist.has(t));
+    if (!fresh.length) return;
+
+    onChange([...value, ...fresh]);
+  }, [value, onChange, existing]);
+
+  const onKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      if (text.trim()) {
+        addTokens(text);
+        setText('');
+      }
+    }
+    if (e.key === 'Backspace' && !text) {
+      // remove último chip
+      if (value.length) onChange(value.slice(0, -1));
+    }
+  };
+
+  const onPaste = (e) => {
+    const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    if (txt.includes(',')) {
+      e.preventDefault();
+      addTokens(txt);
+    }
+  };
+
+  const removeChip = (t) => onChange(value.filter(x => x !== t));
+
+  return (
+    <div className={styles.tagsField} onClick={() => ref.current?.focus()}>
+      {value.map(t => (
+        <span key={t} className={styles.tagChip}>
+          <span>{t}</span>
+          <button type="button" className={styles.tagChipX} onClick={() => removeChip(t)} aria-label={`Remover ${t}`}>×</button>
+        </span>
+      ))}
+      <input
+        ref={ref}
+        className={styles.tagsInput}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={onKeyDown}
+        onPaste={onPaste}
+        placeholder={value.length ? '' : placeholder}
+      />
+    </div>
+  );
+}
+
 export default function QueueForm() {
-  const { id } = useParams(); // id da fila (pk/uuid) usado para GET/PUT /queues/:id
+  const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const topRef = useRef(null);
@@ -62,20 +123,13 @@ export default function QueueForm() {
 
   const [form, setForm] = useState({ nome: '', descricao: '', color: '' });
   const [touched, setTouched] = useState({ nome: false, color: false });
-
-  // Nome exibido no breadcrumb (usa queue_name se backend enviar)
   const [queueDisplay, setQueueDisplay] = useState(id || '');
 
-  /* ===== estados de tags (catálogo por fila) ===== */
-  const [tagsLoading, setTagsLoading] = useState(false);
-  const [tags, setTags] = useState([]); // [{tag,label,color,active}]
+  /* ===== tags ===== */
+  const [existingTags, setExistingTags] = useState([]);   // catálogo atual (somente nomes)
+  const [pendingTags, setPendingTags] = useState([]);     // novas a criar ao salvar
 
-  // Entrada rápida
-  const [newTagsInput, setNewTagsInput] = useState('');
-  const [pendingTags, setPendingTags] = useState([]); // strings ainda não salvas
-  const [savingBatch, setSavingBatch] = useState(false);
-
-  /* ===== validações ===== */
+  /* ===== valida ===== */
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
   const nameInvalid = !form.nome.trim();
   const colorInvalid = form.color ? !colorPreview : false;
@@ -83,22 +137,13 @@ export default function QueueForm() {
 
   /* ===== carregar fila + catálogo ===== */
   const loadTags = useCallback(async (filaNome) => {
-    if (!filaNome) { setTags([]); return; }
-    setTagsLoading(true);
+    if (!filaNome) { setExistingTags([]); return; }
     try {
       const r = await apiGet(`/tags/ticket/catalog?fila=${encodeURIComponent(filaNome)}&page_size=200`);
-      setTags(Array.isArray(r?.data) ? r.data.map(x => ({
-        tag: x.tag,
-        label: x.label || '',
-        color: x.color || '',
-        active: Boolean(x.active)
-      })) : []);
-    } catch (e) {
-      console.error(e);
-      setTags([]);
-      toast.error('Falha ao carregar etiquetas da fila.');
-    } finally {
-      setTagsLoading(false);
+      const list = Array.isArray(r?.data) ? r.data : [];
+      setExistingTags(list.map(x => x.tag));
+    } catch {
+      setExistingTags([]);
     }
   }, []);
 
@@ -119,7 +164,8 @@ export default function QueueForm() {
       } else {
         setForm({ nome: '', descricao: '', color: '' });
         setQueueDisplay('');
-        setTags([]); setPendingTags([]);
+        setExistingTags([]);
+        setPendingTags([]);
       }
     } catch (e) {
       console.error(e);
@@ -133,9 +179,21 @@ export default function QueueForm() {
 
   useEffect(() => { load(); }, [load]);
 
-  /* ===== ações do form ===== */
+  /* ===== ações ===== */
   const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
   const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
+
+  async function createPendingTags(filaNome) {
+    if (!pendingTags.length) return;
+    const promises = pendingTags.map(tag =>
+      apiPost('/tags/ticket/catalog', { fila: filaNome, tag, active: true })
+    );
+    const res = await Promise.allSettled(promises);
+    const ok = res.filter(r => r.status === 'fulfilled').length;
+    const fail = res.length - ok;
+    if (ok) toast.success(`${ok} etiqueta(s) criada(s).`);
+    if (fail) toast.error(`${fail} etiqueta(s) não puderam ser criadas.`);
+  }
 
   async function handleSave() {
     setTouched({ nome: true, color: true });
@@ -151,6 +209,8 @@ export default function QueueForm() {
         ...(colorPreview ? { color: colorPreview } : {}),
       };
 
+      let filaNomeParaTags = form.nome.trim();
+
       if (isEdit) {
         await apiPut(`/queues/${encodeURIComponent(id)}`, payload);
         toast.success('Fila atualizada.');
@@ -158,6 +218,12 @@ export default function QueueForm() {
         await apiPost('/queues', payload);
         toast.success('Fila criada.');
       }
+
+      // cria as etiquetas pendentes usando o nome da fila (novo ou existente)
+      if (filaNomeParaTags) {
+        await createPendingTags(filaNomeParaTags);
+      }
+
       navigate('/management/queues');
     } catch (e) {
       console.error(e);
@@ -166,118 +232,6 @@ export default function QueueForm() {
       setSaving(false);
     }
   }
-
-  /* ===== entrada rápida de tags ===== */
-  const addPending = (raw) => {
-    const tokens = parseTokens(raw);
-    if (!tokens.length) return;
-
-    const currentSet = new Set(pendingTags);
-    const catalogSet = new Set((tags || []).map(t => t.tag));
-    const fresh = tokens.filter(t => !currentSet.has(t) && !catalogSet.has(t));
-    if (!fresh.length) {
-      toast.info('Todas as etiquetas inseridas já existem ou estão pendentes.');
-      return;
-    }
-    setPendingTags(prev => [...prev, ...fresh]);
-  };
-
-  const onNewTagsKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      if (newTagsInput.trim()) {
-        addPending(newTagsInput);
-        setNewTagsInput('');
-      }
-    }
-  };
-  const onNewTagsPaste = (e) => {
-    const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
-    if (text.includes(',')) {
-      e.preventDefault();
-      addPending(text);
-    }
-  };
-  const removePending = (t) => setPendingTags(arr => arr.filter(x => x !== t));
-
-  const savePendingBatch = async () => {
-    if (!pendingTags.length) {
-      toast.info('Nenhuma etiqueta pendente para salvar.');
-      return;
-    }
-    const filaNome = queueDisplay || form.nome || id;
-    if (!filaNome) {
-      toast.warn('Defina/salve o nome da fila antes de cadastrar etiquetas.');
-      return;
-    }
-    setSavingBatch(true);
-    try {
-      const promises = pendingTags.map(tag =>
-        apiPost('/tags/ticket/catalog', {
-          fila: filaNome,
-          tag,
-          label: null,
-          color: null,
-          active: true,
-        })
-      );
-      const res = await Promise.allSettled(promises);
-      const ok = res.filter(r => r.status === 'fulfilled').length;
-      const fail = res.length - ok;
-
-      if (ok) toast.success(`${ok} etiqueta(s) criada(s).`);
-      if (fail) toast.error(`${fail} etiqueta(s) falharam.`);
-
-      setPendingTags([]);
-      await loadTags(filaNome);
-    } catch (e) {
-      console.error(e);
-      toast.error('Erro ao salvar etiquetas.');
-    } finally {
-      setSavingBatch(false);
-    }
-  };
-
-  /* ===== edição/exclusão linha-a-linha ===== */
-  const handleTagField = (idx, field, value) => {
-    setTags(prev => {
-      const arr = [...prev];
-      arr[idx] = { ...arr[idx], [field]: value };
-      return arr;
-    });
-  };
-
-  const saveRow = async (idx) => {
-    const filaNome = queueDisplay || form.nome || id;
-    const row = tags[idx];
-    try {
-      await apiPost('/tags/ticket/catalog', {
-        fila: filaNome,
-        tag: row.tag,
-        label: row.label || null,
-        color: row.color || null,
-        active: !!row.active
-      });
-      toast.success('Etiqueta atualizada.');
-      await loadTags(filaNome);
-    } catch (e) {
-      console.error(e);
-      toast.error('Não foi possível salvar a etiqueta.');
-    }
-  };
-
-  const deleteRow = async (idx) => {
-    const filaNome = queueDisplay || form.nome || id;
-    const row = tags[idx];
-    try {
-      await apiDelete(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(row.tag)}`);
-      toast.success('Etiqueta removida.');
-      await loadTags(filaNome);
-    } catch (e) {
-      console.error(e);
-      toast.error(e?.response?.data?.error || 'Não foi possível remover. Verifique se não está em uso.');
-    }
-  };
 
   return (
     <div className={styles.page} ref={topRef}>
@@ -308,7 +262,7 @@ export default function QueueForm() {
         <>
           {err && <div className={styles.alert}>{err}</div>}
 
-          {/* ===== Card: identificação ===== */}
+          {/* ===== Identificação ===== */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Identificação</h2>
@@ -377,200 +331,37 @@ export default function QueueForm() {
             </div>
           </section>
 
-          {/* ===== Card: etiquetas por fila (somente em edição) ===== */}
-          {isEdit ? (
-            <section className={styles.card}>
-              <div className={styles.cardHead}>
-                <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
-                <p className={styles.cardDesc}>
-                  Crie, edite ou desative etiquetas disponíveis para tickets transferidos/abertos nesta fila.
-                </p>
-              </div>
+          {/* ===== Etiquetas da fila ===== */}
+          <section className={styles.card}>
+            <div className={styles.cardHead}>
+              <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
+              <p className={styles.cardDesc}>Digite as etiquetas e pressione Enter. Várias podem ser separadas por vírgula. Elas serão criadas quando você salvar a fila.</p>
+            </div>
 
-              <div className={styles.cardBody}>
-                {/* Entrada rápida */}
-                <div className={styles.groupTitle}>Adicionar etiquetas (rápido)</div>
-                <p className={styles.cardDesc} style={{ marginTop: -6 }}>
-                  Digite a(s) etiqueta(s) e pressione <strong>Enter</strong>. Separe várias por vírgula.
-                </p>
+            <div className={styles.cardBody}>
+              <label className={styles.label}>Etiquetas (novas)</label>
+              <ChipsInput
+                value={pendingTags}
+                onChange={setPendingTags}
+                existing={existingTags}
+              />
 
-                <div className={styles.cardBodyGrid3} style={{ alignItems: 'center' }}>
-                  <div className={styles.groupWide}>
-                    <label className={styles.label}>Etiquetas</label>
-                    <input
-                      className={styles.input}
-                      placeholder="ex.: agendamento, reclamacao, urgencia"
-                      value={newTagsInput}
-                      onChange={e => setNewTagsInput(e.target.value)}
-                      onKeyDown={onNewTagsKeyDown}
-                      onPaste={onNewTagsPaste}
-                    />
-                  </div>
-
-                  <div className={styles.group} style={{ alignSelf: 'end' }}>
-                    <button
-                      type="button"
-                      className={styles.btnPrimary}
-                      onClick={() => { if (newTagsInput.trim()) { addPending(newTagsInput); setNewTagsInput(''); } }}
-                    >
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
-
-                {pendingTags.length > 0 && (
-                  <>
-                    <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {pendingTags.map(t => (
-                        <span
-                          key={t}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 8,
-                            padding: '6px 10px', borderRadius: 999, fontSize: 12,
-                            background: '#eef2ff', border: '1px solid #dbeafe', color: '#1e3a8a'
-                          }}
-                          title={t}
-                        >
-                          <span>{t}</span>
-                          <button
-                            type="button"
-                            onClick={() => removePending(t)}
-                            style={{
-                              width: 18, height: 18, borderRadius: 999, border: 0, cursor: 'pointer',
-                              display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,.08)',
-                              color: '#1e3a8a', fontWeight: 700, lineHeight: 1
-                            }}
-                            aria-label={`Remover ${t}`}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <button
-                        type="button"
-                        className={styles.btnPrimary}
-                        onClick={savePendingBatch}
-                        disabled={savingBatch}
-                      >
-                        <Save size={16} /> {savingBatch ? 'Salvando…' : 'Salvar etiquetas'}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.btnGhost}
-                        onClick={() => setPendingTags([])}
-                        disabled={savingBatch}
-                      >
-                        Limpar pendentes
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                <div className={styles.divider} />
-
-                {/* Lista/edição de etiquetas existentes */}
-                <div className={styles.groupTitle} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>Etiquetas cadastradas</span>
-                  <button
-                    type="button"
-                    className={styles.btnSecondary}
-                    onClick={() => loadTags(queueDisplay || form.nome || id)}
-                    title="Recarregar"
-                  >
-                    <RotateCcw size={16} /> Recarregar
-                  </button>
-                </div>
-
-                {tagsLoading ? (
-                  <div className={styles.cardDesc}>Carregando…</div>
-                ) : tags.length === 0 ? (
-                  <div className={styles.cardDesc}>Nenhuma etiqueta cadastrada.</div>
-                ) : (
-                  <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                    {tags.map((row, idx) => (
-                      <div
-                        key={row.tag}
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'minmax(140px, 220px) 1fr 170px 120px',
-                          gap: 8,
-                          alignItems: 'center'
-                        }}
-                      >
-                        <div>
-                          <label className={styles.label}>Tag</label>
-                          <input className={styles.input} value={row.tag} disabled />
-                        </div>
-
-                        <div>
-                          <label className={styles.label}>Rótulo (opcional)</label>
-                          <input
-                            className={styles.input}
-                            value={row.label || ''}
-                            onChange={e => handleTagField(idx, 'label', e.target.value)}
-                            placeholder="ex.: Agendamento"
-                          />
-                        </div>
-
-                        <div>
-                          <label className={styles.label}>Cor (opcional)</label>
-                          <input
-                            className={styles.input}
-                            value={row.color || ''}
-                            onChange={e => handleTagField(idx, 'color', e.target.value)}
-                            placeholder="#RRGGBB"
-                          />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <label className={styles.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <input
-                              type="checkbox"
-                              checked={!!row.active}
-                              onChange={e => handleTagField(idx, 'active', e.target.checked)}
-                            />
-                            Ativa
-                          </label>
-
-                          <button
-                            type="button"
-                            className={styles.btnPrimary}
-                            onClick={() => saveRow(idx)}
-                            title="Salvar"
-                          >
-                            <Save size={16} />
-                          </button>
-
-                          <button
-                            type="button"
-                            className={styles.btn}
-                            onClick={() => deleteRow(idx)}
-                            title="Excluir"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
+              {/* Mostra catálogo existente somente para referência */}
+              {existingTags.length > 0 && (
+                <>
+                  <div className={styles.divider} />
+                  <div className={styles.groupTitle}>Cadastradas nesta fila</div>
+                  <div className={styles.tagsExistingWrap}>
+                    {existingTags.map(t => (
+                      <span key={t} className={styles.tagExisting}>{t}</span>
                     ))}
                   </div>
-                )}
-              </div>
-            </section>
-          ) : (
-            <section className={styles.card}>
-              <div className={styles.cardHead}>
-                <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
-                <p className={styles.cardDesc}>
-                  Salve a fila primeiro para gerenciar as etiquetas disponíveis.
-                </p>
-              </div>
-            </section>
-          )}
+                </>
+              )}
+            </div>
+          </section>
 
-          {/* rodapé fixo */}
+          {/* Rodapé */}
           <div className={styles.stickyFooter} role="region" aria-label="Ações">
             <div className={styles.stickyInner}>
               <button type="button" className={styles.btnGhost} onClick={() => navigate('/management/queues')}>
