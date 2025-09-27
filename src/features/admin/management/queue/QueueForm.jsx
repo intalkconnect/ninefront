@@ -270,13 +270,13 @@ export default function QueueForm() {
           <li className={styles.bcSep}>/</li>
           <li><Link to="/management/queues" className={styles.bcLink}>Filas</Link></li>
           <li className={styles.bcSep}>/</li>
-          <li><span className={styles.bcCurrent}>{isEdit ? `Editar ${queueDisplay}` : 'Nova fila'}</span></li>
+          <li><span className={styles.bcCurrent}>{isEdit ? `${queueDisplay}` : 'Nova fila'}</span></li>
         </ol>
       </nav>
 
       <header className={styles.pageHeader}>
         <div className={styles.pageTitleWrap}>
-          <h1 className={styles.pageTitle}>{isEdit ? 'Editar fila' : 'Nova fila'}</h1>
+          <h1 className={styles.pageTitle}>{isEdit ? `Editar ${queueDisplay}` : 'Nova fila'}</h1>
           <p className={styles.pageSubtitle}>Defina o nome da fila, uma descrição e (opcionalmente) uma cor de identificação.</p>
         </div>
       </header>
@@ -362,21 +362,20 @@ export default function QueueForm() {
           {/* ===== Etiquetas ===== */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
+              <h2 className={styles.cardTitle}>Tags</h2>
               <p className={styles.cardDesc}>
-                Digite as etiquetas e pressione <strong>Enter</strong>. Separe várias por vírgula ou ponto-e-vírgula.
+                Digite as tags e pressione <strong>Enter</strong>. Separe várias por vírgula ou ponto-e-vírgula.
                 As alterações (criações e remoções) serão aplicadas ao salvar a fila.
               </p>
             </div>
 
             <div className={styles.cardBody}>
-              <label className={styles.label}>Etiquetas</label>
               <ChipsInput
                 value={tags}
                 onChange={setTags}
               />
               <p className={styles.hint} style={{marginTop:8}}>
-                Dica: use <kbd>Backspace</kbd> para remover o último chip quando o campo estiver vazio.
+                Dica: Use <kbd>Backspace</kbd> para remover o último chip quando o campo estiver vazio.
               </p>
             </div>
           </section>
