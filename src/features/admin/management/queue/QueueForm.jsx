@@ -1,4 +1,3 @@
-// src/features/admin/management/queue/QueueForm.jsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Save, Palette, RefreshCw, X } from 'lucide-react';
@@ -6,7 +5,7 @@ import { apiGet, apiPost, apiPut } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/QueueForm.module.css';
 
-/* ===== utils de cor ===== */
+/* =================== utils de cor =================== */
 const normalizeHexColor = (input) => {
   if (!input) return null;
   let c = String(input).trim();
@@ -30,71 +29,80 @@ const randomPastelHex = () => {
   return hslToHex(h, s, l);
 };
 
-/* ===== utils de tag ===== */
-const slugifyTag = (s) => {
-  return String(s || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[,]/g, ' ')
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-_]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^[-_]+|[-_]+$/g, '');
-};
-const splitTokens = (raw) =>
-  String(raw || '')
-    .split(',')
-    .map(t => slugifyTag(t))
-    .filter(Boolean);
-
-/* ===== ChipsInput (tags dentro do input) ===== */
-function ChipsInput({ value = [], onChange, placeholder = 'ex.: agendamento, reclamacao, urgencia', existing = [] }) {
+/* =================== ChipsInput (tags) =================== */
+function ChipsInput({
+  value = [],
+  onChange,
+  existing = [],
+  placeholder = 'ex.: agendamento, reclamacao, urgencia',
+  maxLen = 40,
+}) {
   const [text, setText] = useState('');
   const ref = useRef(null);
 
-  const addTokens = useCallback((raw) => {
-    const tokens = splitTokens(raw);
-    if (!tokens.length) return;
+  const slug = (s) => String(s || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\- ]+/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, maxLen);
 
+  const tokenize = (raw) =>
+    String(raw || '')
+      .split(/[,;\n]+/)
+      .map(slug)
+      .filter(Boolean);
+
+  const addTokens = useCallback((raw) => {
+    const tokens = tokenize(raw);
+    if (!tokens.length) return;
     const set = new Set(value);
     const exist = new Set(existing);
     const fresh = tokens.filter(t => !set.has(t) && !exist.has(t));
     if (!fresh.length) return;
-
     onChange([...value, ...fresh]);
-  }, [value, onChange, existing]);
+  }, [value, existing, onChange]);
 
-  const onKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
+  const removeChip = (t) => onChange(value.filter(x => x !== t));
+
+  const handleKeyDown = (e) => {
+    const isSep = e.key === 'Enter' || e.key === ',' || e.key === ';';
+    if (isSep) {
       e.preventDefault();
       if (text.trim()) {
         addTokens(text);
         setText('');
       }
+      return;
     }
-    if (e.key === 'Backspace' && !text) {
-      // remove último chip
-      if (value.length) onChange(value.slice(0, -1));
+    if (e.key === 'Backspace' && !text && value.length) {
+      onChange(value.slice(0, -1));
     }
   };
 
-  const onPaste = (e) => {
-    const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
-    if (txt.includes(',')) {
+  const handlePaste = (e) => {
+    const pasted = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+    if (/[,\n;]/.test(pasted)) {
       e.preventDefault();
-      addTokens(txt);
+      addTokens(pasted);
     }
   };
-
-  const removeChip = (t) => onChange(value.filter(x => x !== t));
 
   return (
     <div className={styles.tagsField} onClick={() => ref.current?.focus()}>
-      {value.map(t => (
+      {value.map((t) => (
         <span key={t} className={styles.tagChip}>
           <span>{t}</span>
-          <button type="button" className={styles.tagChipX} onClick={() => removeChip(t)} aria-label={`Remover ${t}`}>×</button>
+          <button
+            type="button"
+            className={styles.tagChipX}
+            aria-label={`Remover ${t}`}
+            onClick={() => removeChip(t)}
+          >
+            ×
+          </button>
         </span>
       ))}
       <input
@@ -102,40 +110,42 @@ function ChipsInput({ value = [], onChange, placeholder = 'ex.: agendamento, rec
         className={styles.tagsInput}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        onKeyDown={onKeyDown}
-        onPaste={onPaste}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         placeholder={value.length ? '' : placeholder}
       />
     </div>
   );
 }
 
+/* =================== Página =================== */
 export default function QueueForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const topRef = useRef(null);
 
-  /* ===== estados básicos ===== */
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
 
   const [form, setForm] = useState({ nome: '', descricao: '', color: '' });
   const [touched, setTouched] = useState({ nome: false, color: false });
+
+  // nome exibido no breadcrumb (usa queue_name do backend quando disponível)
   const [queueDisplay, setQueueDisplay] = useState(id || '');
 
-  /* ===== tags ===== */
-  const [existingTags, setExistingTags] = useState([]);   // catálogo atual (somente nomes)
-  const [pendingTags, setPendingTags] = useState([]);     // novas a criar ao salvar
+  // tags
+  const [existingTags, setExistingTags] = useState([]); // catálogo atual (nomes)
+  const [pendingTags, setPendingTags] = useState([]);   // novas a criar ao salvar
 
-  /* ===== valida ===== */
+  // validação
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
   const nameInvalid = !form.nome.trim();
   const colorInvalid = form.color ? !colorPreview : false;
   const canSubmit = !saving && !nameInvalid && !colorInvalid;
 
-  /* ===== carregar fila + catálogo ===== */
+  // carrega catálogo por nome de fila
   const loadTags = useCallback(async (filaNome) => {
     if (!filaNome) { setExistingTags([]); return; }
     try {
@@ -147,6 +157,7 @@ export default function QueueForm() {
     }
   }, []);
 
+  // carrega fila
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
     try {
@@ -154,13 +165,16 @@ export default function QueueForm() {
         const data = await apiGet(`/queues/${encodeURIComponent(id)}`);
         const q = data?.data ?? data ?? {};
         const nomeFila = (q.queue_name ?? q.nome ?? q.name ?? '').trim();
+
         setForm({
           nome: q.nome ?? q.name ?? '',
           descricao: q.descricao ?? '',
           color: q.color ?? ''
         });
         setQueueDisplay(nomeFila || id);
+
         await loadTags(nomeFila || q.nome || q.name);
+        setPendingTags([]); // começamos sem novas
       } else {
         setForm({ nome: '', descricao: '', color: '' });
         setQueueDisplay('');
@@ -179,10 +193,10 @@ export default function QueueForm() {
 
   useEffect(() => { load(); }, [load]);
 
-  /* ===== ações ===== */
   const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
   const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
 
+  // cria todas as pendentes
   async function createPendingTags(filaNome) {
     if (!pendingTags.length) return;
     const promises = pendingTags.map(tag =>
@@ -203,14 +217,14 @@ export default function QueueForm() {
     }
     try {
       setSaving(true);
+
       const payload = {
         nome: form.nome.trim(),
         ...(form.descricao.trim() ? { descricao: form.descricao.trim() } : {}),
         ...(colorPreview ? { color: colorPreview } : {}),
       };
 
-      let filaNomeParaTags = form.nome.trim();
-
+      // salvar fila (criar/editar)
       if (isEdit) {
         await apiPut(`/queues/${encodeURIComponent(id)}`, payload);
         toast.success('Fila atualizada.');
@@ -219,7 +233,8 @@ export default function QueueForm() {
         toast.success('Fila criada.');
       }
 
-      // cria as etiquetas pendentes usando o nome da fila (novo ou existente)
+      // criar etiquetas pendentes usando o NOME da fila definido no formulário
+      const filaNomeParaTags = form.nome.trim();
       if (filaNomeParaTags) {
         await createPendingTags(filaNomeParaTags);
       }
@@ -331,11 +346,14 @@ export default function QueueForm() {
             </div>
           </section>
 
-          {/* ===== Etiquetas da fila ===== */}
+          {/* ===== Etiquetas ===== */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Etiquetas da fila</h2>
-              <p className={styles.cardDesc}>Digite as etiquetas e pressione Enter. Várias podem ser separadas por vírgula. Elas serão criadas quando você salvar a fila.</p>
+              <p className={styles.cardDesc}>
+                Digite as etiquetas e pressione <strong>Enter</strong>. Várias podem ser separadas por vírgula ou ponto-e-vírgula.
+                Elas serão criadas quando você salvar a fila.
+              </p>
             </div>
 
             <div className={styles.cardBody}>
@@ -346,7 +364,6 @@ export default function QueueForm() {
                 existing={existingTags}
               />
 
-              {/* Mostra catálogo existente somente para referência */}
               {existingTags.length > 0 && (
                 <>
                   <div className={styles.divider} />
