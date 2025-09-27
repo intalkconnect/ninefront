@@ -1,86 +1,172 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Share2, CheckCircle, Tag, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Share2, CheckCircle, Tag as TagIcon, ChevronDown } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiPut } from "../../../../../shared/apiClient";
 import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
-import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
+
+const pad = (n) => (n ? String(n).padStart(6, '0') : '');
 
 function normalizeTag(raw) {
   if (raw == null) return null;
-  const t = String(raw).trim().replace(/\s+/g, ' ');
-  if (!t) return null;
-  if (t.length > 40) return t.slice(0, 40);
-  if (/[^\S\r\n]*[\r\n]/.test(t)) return null;
-  return t;
+  const t = String(raw).trim();
+  return t || null;
 }
 
+/* ---------- Seletor de tags do ticket (catálogo por Fila) ---------- */
+function TagSelectorModal({ open, onClose, ticketNumber, onApply }) {
+  const [loading, setLoading] = useState(false);
+  const [catalog, setCatalog] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+
+  useEffect(() => {
+    if (!open || !ticketNumber) return;
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const catRes = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`);
+        const cat = Array.isArray(catRes?.catalog) ? catRes.catalog : [];
+
+        const curRes = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}`);
+        const cur = Array.isArray(curRes?.tags) ? curRes.tags.map(r => r.tag) : [];
+
+        if (!alive) return;
+        setCatalog(cat);
+        setSelected(new Set(cur));
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [open, ticketNumber]);
+
+  const toggle = (tag) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(tag) ? next.delete(tag) : next.add(tag);
+      return next;
+    });
+  };
+
+  const apply = () => {
+    onApply([...selected]);
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Selecionar tags do ticket">
+      <div className="modal-card">
+        <div className="modal-header">
+          <h3>Tags do ticket</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Fechar">×</button>
+        </div>
+        <div className="modal-body">
+          {loading ? (
+            <p>Carregando catálogo…</p>
+          ) : catalog.length === 0 ? (
+            <p>Nenhuma tag disponível para a fila deste ticket.</p>
+          ) : (
+            <ul className="tag-checklist">
+              {catalog.map(item => {
+                const key = normalizeTag(item?.tag);
+                const label = item?.label || key;
+                if (!key) return null;
+                const checked = selected.has(key);
+                return (
+                  <li key={key}>
+                    <label className="check-row">
+                      <input type="checkbox" checked={checked} onChange={() => toggle(key)} />
+                      <span className="check-row__label">
+                        {label}
+                        {item?.color && <i className="tag-dot" style={{ backgroundColor: item.color }} />}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn-primary" onClick={apply} disabled={loading}>Aplicar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ======================= Header ======================= */
 export default function ChatHeader({ userIdSelecionado }) {
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showSelector, setShowSelector] = useState(false);
+
   const confirm = useConfirm();
 
-  const clienteAtivo       = useConversationsStore((state) => state.clienteAtivo);
-  const mergeConversation  = useConversationsStore((state) => state.mergeConversation);
-  const setSelectedUserId  = useConversationsStore((state) => state.setSelectedUserId);
+  const clienteAtivo       = useConversationsStore((s) => s.clienteAtivo);
+  const mergeConversation  = useConversationsStore((s) => s.mergeConversation);
+  const setSelectedUserId  = useConversationsStore((s) => s.setSelectedUserId);
 
-  const [tags, setTags] = useState([]);
-  const [draft, setDraft] = useState('');
-  const inputRef = useRef(null);
+  const [ticketTags, setTicketTags] = useState([]);
 
   const ticketNumber = clienteAtivo?.ticket_number || '';
   const name         = clienteAtivo?.name || 'Cliente';
   const user_id      = clienteAtivo?.user_id || userIdSelecionado;
 
-  // carrega tags atuais do ticket (apenas para exibir/editar localmente)
+  // carrega tags atuais do ticket para listar
   useEffect(() => {
     let alive = true;
-    async function load() {
-      if (!ticketNumber) { setTags([]); return; }
+    (async () => {
+      if (!ticketNumber) { setTicketTags([]); return; }
       try {
-        // usamos o endpoint que retorna catálogo aplicado ao ticket
-        // GET /tags/ticket/:ticket_number  -> { ticket_number, fila, tags: [{tag, ...}] }
         const res = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}`);
         const arr = Array.isArray(res?.tags) ? res.tags.map(r => r.tag) : [];
         if (!alive) return;
-        setTags(arr);
+        setTicketTags(arr);
         mergeConversation(user_id, { motivo_tags: arr });
       } catch {
         if (!alive) return;
-        setTags([]);
+        setTicketTags([]);
       }
-    }
-    load();
+    })();
     return () => { alive = false; };
   }, [ticketNumber, user_id, mergeConversation]);
 
-  // helpers de edição local (NÃO persistem até finalizar)
-  const addTag = (raw) => {
-    const v = normalizeTag(raw);
-    if (!v) { setDraft(''); return; }
-    if (tags.includes(v)) { setDraft(''); return; }
-    const next = [...tags, v];
-    setTags(next);
-    setDraft('');
-    mergeConversation(user_id, { motivo_tags: next });
+  const handleApplyTicketTags = (arr) => {
+    setTicketTags(arr);
+    mergeConversation(user_id, { motivo_tags: arr });
   };
-  const removeTag = (t) => {
-    const next = tags.filter(x => x !== t);
-    setTags(next);
-    mergeConversation(user_id, { motivo_tags: next });
-  };
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); addTag(draft); }
-    if (e.key === ',' || e.key === ';') { e.preventDefault(); addTag(draft); }
-    if (e.key === 'Backspace' && !draft && tags.length) { e.preventDefault(); removeTag(tags[tags.length - 1]); }
-  };
-
-  if (!clienteAtivo) return null;
 
   const finalizarAtendimento = async () => {
+    // recupera draft de tags do cliente (DetailsPanel grava no store)
+    const customerDraft = Array.isArray(clienteAtivo?.customer_tags_draft)
+      ? clienteAtivo.customer_tags_draft
+      : null;
+
+    // se não houver draft, busca as atuais para persistir junto
+    let customerTags = customerDraft;
+    if (!customerTags) {
+      try {
+        const res = await apiGet(`/tags/customer/${encodeURIComponent(user_id)}`);
+        customerTags = Array.isArray(res?.tags) ? res.tags.map(r => r.tag) : [];
+      } catch {
+        customerTags = [];
+      }
+    }
+
+    const msgDesc = [
+      ticketTags?.length ? `• Tags do ticket: ${ticketTags.join(', ')}` : '• Ticket sem tags',
+      customerTags?.length ? `• Tags do cliente: ${customerTags.join(', ')}` : '• Cliente sem tags'
+    ].join('\n');
+
     const ok = await confirm({
       title: 'Finalizar atendimento?',
-      description: 'As tags informadas serão salvas no ticket e o atendimento será encerrado.',
+      description: `As seleções abaixo serão salvas e o atendimento será encerrado:\n\n${msgDesc}`,
       confirmText: 'Finalizar',
       cancelText: 'Cancelar',
       tone: 'confirm',
@@ -88,16 +174,21 @@ export default function ChatHeader({ userIdSelecionado }) {
     if (!ok) return;
 
     try {
-      // 1) salva as tags do ticket (se houver)
-      if (ticketNumber && tags.length) {
-        await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags });
+      // 1) Salva tags do ticket (se houver)
+      if (ticketNumber && ticketTags.length) {
+        await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
-      // 2) encerra o ticket
+      // 2) Salva tags do cliente (se houver)
+      if (user_id && customerTags.length) {
+        await apiPost(`/tags/customer/${encodeURIComponent(user_id)}`, { tags: customerTags });
+      }
+
+      // 3) Fecha o ticket
       await apiPut(`/tickets/${encodeURIComponent(user_id)}`, { status: 'closed' });
       mergeConversation(user_id, { status: 'closed' });
 
-      // 3) housekeeping de socket/UX
+      // 4) housekeeping
       const socket = getSocket();
       if (socket?.connected) socket.emit('leave_room', user_id);
       try { window.dispatchEvent(new CustomEvent('room-closed', { detail: { userId: user_id } })); } catch {}
@@ -114,47 +205,37 @@ export default function ChatHeader({ userIdSelecionado }) {
     }
   };
 
+  if (!clienteAtivo) return null;
+
+  const hasTicketTags = ticketTags.length > 0;
+
   return (
     <>
       <div className="chat-header">
         <div className="chat-header-left">
-          <div className="nome-e-telefone">
+          <div className="row-primary">
             <span className="chat-header-nome">{name}</span>
-            {ticketNumber && <a className="ticket-numero" title="Abrir histórico">{`#${String(ticketNumber).padStart(6,'0')}`}</a>}
+            {ticketNumber && <span className="ticket-numero">#{pad(ticketNumber)}</span>}
+
+            <button
+              className="btn-tags"
+              onClick={() => setShowSelector(true)}
+              aria-label="Selecionar tags do ticket"
+              title="Selecionar tags do ticket"
+            >
+              <TagIcon size={14} />
+              <span>Tags</span>
+              <ChevronDown size={14} />
+            </button>
           </div>
 
-          {/* ===== Tags do ticket (chips + input — sem botão “Adicionar”) ===== */}
-          <div className="ticket-tags">
-            <Tag size={14} className="ticket-tags__icon" aria-hidden="true" />
-            <div className="ticket-tags__chips">
-              {/* lista as tags existentes */}
-              {tags.map((t) => (
-                <span className="chip chip--motivo" key={t} title="Tag do ticket">
-                  {t}
-                  <button
-                    type="button"
-                    className="chip-x"
-                    onClick={() => removeTag(t)}
-                    aria-label={`Remover tag ${t}`}
-                    title="Remover"
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
+          {hasTicketTags && (
+            <div className="ticket-tags-line">
+              {ticketTags.map((t) => (
+                <span className="chip chip--motivo chip--compact" key={t}>{t}</span>
               ))}
-
-              {/* campo único — adicionar com Enter, vírgula ou ponto-e-vírgula */}
-              <input
-                ref={inputRef}
-                className="ticket-tags__input"
-                placeholder={tags.length ? "Adicionar outra tag e Enter…" : "Adicionar tags do ticket e Enter…"}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                aria-label="Adicionar tag do ticket"
-              />
             </div>
-          </div>
+          )}
         </div>
 
         <div className="chat-header-right">
@@ -169,13 +250,16 @@ export default function ChatHeader({ userIdSelecionado }) {
         </div>
       </div>
 
+      <TagSelectorModal
+        open={showSelector}
+        onClose={() => setShowSelector(false)}
+        ticketNumber={ticketNumber}
+        onApply={handleApplyTicketTags}
+      />
+
       {showTransferModal && (
-        <TransferModal
-          userId={user_id}
-          onClose={() => setShowTransferModal(false)}
-        />
+        <TransferModal userId={user_id} onClose={() => setShowTransferModal(false)} />
       )}
     </>
   );
 }
-
