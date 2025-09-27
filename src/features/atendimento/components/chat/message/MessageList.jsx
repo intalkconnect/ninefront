@@ -2,89 +2,111 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useRef,
-  useEffect
+  useEffect,
+  useLayoutEffect,
 } from 'react';
 
 import MessageRow from './MessageRow';
 
-function findReplyTarget(messages, refId) {
-  if (!refId) return null;
+/* ===== helpers locais ===== */
+function idKey(m) {
   return (
-    messages.find((m) => {
-      const ids = [
-        m.message_id,
-        m.whatsapp_message_id,
-        m.telegram_message_id,
-        m.provider_id,
-        m.id,
-      ].filter(Boolean);
-      return ids.some((x) => String(x) === String(refId));
-    }) || null
+    m?.id ||
+    m?.message_id ||
+    m?.provider_id ||
+    m?.client_id ||
+    null
   );
 }
-
-function isNearBottom(el, threshold = 80) {
-  if (!el) return true;
-  const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
-  return dist <= threshold;
+function timeKey(m) {
+  return m?.timestamp || m?.created_at || null;
 }
 
 /**
- * MessageList (puro, sem paginação interna; usa um sentinel no topo para carregar mais)
- * — Removidas âncoras de “capítulo” (data-ticket/id) —
+ * MessageList
+ * - Inicializa já no final (useLayoutEffect no mount)
+ * - Em mudanças de mensagens:
+ *     • Se chegou item NOVO no fim → desce para o fim (sem efeito)
+ *     • Se vieram itens no topo (paginações) → mantém posição
+ * - Não tem auto-scroll “suave” / sem animação
  */
 const MessageList = forwardRef(
   (
     {
-      messages,
+      messages = [],
       onImageClick,
       onPdfClick,
       onReply,
-      loaderRef = null,
-      autoScrollMode = 'ifAtBottom', // 'always' | 'ifAtBottom' | 'off'
+      loaderRef = null, // sentinel no topo (IntersectionObserver vem do pai)
     },
     ref
   ) => {
     const containerRef = useRef(null);
 
+    // guardas para detectar se a mudança foi append (fim) ou prepend (topo)
+    const prevLastKeyRef  = useRef(null);
+    const prevFirstKeyRef = useRef(null);
+    const prevLenRef      = useRef(0);
+
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
-        if (containerRef.current) {
-          containerRef.current.scrollTo({
-            top: containerRef.current.scrollHeight,
-            behavior: 'auto',
-          });
+        const el = containerRef.current;
+        if (el) {
+          el.scrollTop = el.scrollHeight; // sem efeito
         }
       },
       getContainer: () => containerRef.current,
     }));
 
-    // auto-scroll controlado quando a lista muda
-    useEffect(() => {
+    // 1) Ao montar, já desce pro final (sem efeito)
+    useLayoutEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
+      el.scrollTop = el.scrollHeight;
+    }, []);
+
+    // 2) Ao mudar a lista de mensagens:
+    //    - Detecta append vs prepend e decide se desce para o final
+    useLayoutEffect(() => {
       const el = containerRef.current;
       if (!el) return;
 
-      if (autoScrollMode === 'always' || (autoScrollMode === 'ifAtBottom' && isNearBottom(el))) {
-        el.scrollTop = el.scrollHeight;
+      const len = messages.length;
+      if (len === 0) {
+        prevLenRef.current = 0;
+        prevFirstKeyRef.current = null;
+        prevLastKeyRef.current = null;
+        return;
       }
-    }, [messages, autoScrollMode]);
 
-    // ao voltar o foco pra aba, só desce se permitido
-    useEffect(() => {
-      const handleVisibility = () => {
-        if (document.visibilityState !== 'visible') return;
-        const el = containerRef.current;
-        if (!el) return;
-        if (autoScrollMode === 'off') return;
-        if (autoScrollMode === 'always' || (autoScrollMode === 'ifAtBottom' && isNearBottom(el))) {
-          setTimeout(() => {
-            el.scrollTop = el.scrollHeight;
-          }, 50);
-        }
-      };
-      document.addEventListener('visibilitychange', handleVisibility);
-      return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }, [autoScrollMode]);
+      const first = messages[0];
+      const last  = messages[len - 1];
+
+      // chaves para detectar mudança estrutural
+      const firstKey = idKey(first) || timeKey(first);
+      const lastKey  = idKey(last)  || timeKey(last);
+
+      const prevFirst = prevFirstKeyRef.current;
+      const prevLast  = prevLastKeyRef.current;
+      const prevLen   = prevLenRef.current;
+
+      // Caso 1: append (nova msg no final): lastKey mudou
+      const appended = prevLen > 0 && lastKey && prevLast && lastKey !== prevLast;
+
+      // Caso 2: prepend (mensagens antigas carregadas no topo): firstKey mudou e len aumentou
+      const prepended = prevLen > 0 && firstKey && prevFirst && firstKey !== prevFirst && len > prevLen;
+
+      if (appended) {
+        // novas mensagens ao fim → acompanha a conversa
+        el.scrollTop = el.scrollHeight; // sem efeito
+      }
+      // se foi prepend, não mexe no scroll (o pai já ajusta a posição ao carregar antigas)
+
+      // atualiza guardas
+      prevLenRef.current      = len;
+      prevFirstKeyRef.current = firstKey || null;
+      prevLastKeyRef.current  = lastKey || null;
+    }, [messages]);
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
@@ -113,11 +135,21 @@ const MessageList = forwardRef(
           const showTicketDivider =
             msg.ticket_number && (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
-          // 🧩 Resolução do alvo de resposta (preview)
+          // Resolução do alvo de resposta (preview)
           let replyToMessage = msg.replyTo || null;
           const replyId = msg.reply_to || msg.context?.message_id || null;
           if (!replyToMessage && typeof replyId === 'string' && replyId.trim() !== '') {
-            replyToMessage = findReplyTarget(messages, replyId);
+            const target = messages.find((m) => {
+              const ids = [
+                m.message_id,
+                m.whatsapp_message_id,
+                m.telegram_message_id,
+                m.provider_id,
+                m.id,
+              ].filter(Boolean);
+              return ids.some((x) => String(x) === String(replyId));
+            });
+            replyToMessage = target || null;
           }
 
           return (
