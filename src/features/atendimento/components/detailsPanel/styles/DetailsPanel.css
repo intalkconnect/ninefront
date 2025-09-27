@@ -1,3 +1,7 @@
+/* =========================
+   DetailsPanel.css (limpo)
+   ========================= */
+
 /* Base / Container */
 .details-panel-container {
   display: flex;
@@ -117,12 +121,12 @@
 }
 .ticket-date { margin-left: auto; font-size: .875rem; color: var(--color-text-muted); white-space: nowrap; }
 
-/* Chips (histórico) */
+/* Chips (histórico + genéricos) */
 .ticket-chips { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .chip {
-  font-size: 12px; padding: 4px 10px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 999px; font-size: 12px; line-height: 1;
   background: #f7f8fb; border: 1px solid #eceff4; color: #374151;
-  display: inline-flex; align-items: center; gap: 6px;
 }
 .chip--muted { color: #495265; background: #f8f8fc; border-color: #ececf6; }
 .chip-ic { color: #6b7280; }
@@ -147,53 +151,10 @@
 .contact-tags__chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 28px; }
 .chips-empty { color: var(--color-text-muted); font-size: 0.9rem; }
 
-/* chip estilo contato */
+/* chip do cliente (variação sobre o genérico) */
 .chip--client { background: #f5f7ff; border-color: #e7ebff; color: #1f2a44; }
 
-/* ===== Listbox (reaproveita padrão do header) ===== */
-.tags-lb { position: relative; margin-top: 8px; }
-.tags-lb__button {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 10px; border-radius: 999px;
-  background: var(--color-surface-variant);
-  border: 1px solid var(--color-border);
-  cursor: pointer; font-size: .85rem;
-}
-.tags-lb__button:hover { background: var(--color-surface-variant-hover); }
-.tags-lb__caret { opacity: .6; }
-.tags-lb__panel {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
-  min-width: 220px; max-height: 260px; overflow: auto;
-  background: #fff; border: 1px solid var(--color-border); border-radius: 10px;
-  box-shadow: 0 10px 24px rgba(16,24,40,.12);
-  padding: 8px;
-}
-.tags-lb__item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 4px; border-radius: 6px; cursor: pointer;
-}
-.tags-lb__item:hover { background: #f7f8fc; }
-
-/* Scrollbar opcional */
-.historico-content::-webkit-scrollbar { width: 10px; }
-.historico-content::-webkit-scrollbar-thumb { background: #e6e9f2; border-radius: 999px; }
-.historico-content::-webkit-scrollbar-thumb:hover { background: #d8ddee; }
-/* ===== Blocos usados pela UI de tags (reaproveita look do header) ===== */
-/* ===== Tags do cliente (chips removíveis + listbox igual ao header) ===== */
-.contact-tags { margin-top: 14px; }
-.contact-tags__label {
-  font-size: 0.92rem; color: var(--color-text-default); margin-bottom: 6px;
-  font-weight: 600; display: flex; align-items: center; gap: 8px;
-}
-.contact-tags__chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 28px; }
-.chips-empty { color: var(--color-text-muted); font-size: 0.9rem; }
-
-/* chips cliente (removíveis) */
-.chip {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 10px; border-radius: 999px; font-size: 12px; line-height: 1;
-  background: #dbeafe; border: 1px solid #bfdbfe; color: #1e3a8a;
-}
+/* botão de remover no chip (usado quando for removível) */
 .chip__x {
   width: 18px; height: 18px; border-radius: 999px; border: 0;
   display: grid; place-items: center; cursor: pointer;
@@ -201,7 +162,7 @@
 }
 .chip__x:hover { background: rgba(0,0,0,.15); }
 
-/* listbox (reuso do header) */
+/* ===== Listbox (mesmo padrão do header) ===== */
 .lb { position: relative; }
 .lb__control {
   display: inline-flex; align-items: center; gap: 8px;
@@ -230,7 +191,10 @@
 .lb__option:hover { background: #f7f8fc; }
 .lb__empty { padding: 8px; color: var(--color-text-muted); }
 
-
+/* Scrollbar opcional */
+.historico-content::-webkit-scrollbar { width: 10px; }
+.historico-content::-webkit-scrollbar-thumb { background: #e6e9f2; border-radius: 999px; }
+.historico-content::-webkit-scrollbar-thumb:hover { background: #d8ddee; }
 
 /* Responsivo */
 @media (max-width: 520px) {
