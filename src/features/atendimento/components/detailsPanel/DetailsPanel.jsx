@@ -2,36 +2,23 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Tag as TagIcon } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
-import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
+import { apiGet } from '../../../../shared/apiClient';
 import TicketChapterModal from '../modals/TicketChapterModal';
+import useConversationsStore from '../../../store/useConversationsStore';
 
-/* helpers */
-function padTicket(n) { if (n == null) return '—'; try { return String(n).padStart(6, '0'); } catch { return String(n); } }
-function toIsoDate(s){ if(!s)return''; const t=String(s).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t; const m=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:'';}
-function parseSearch(q){ const raw=String(q||'').trim(); if(!raw) return {tokens:[],from:'',to:''}; let from='',to='',text=raw; const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/); if(range){from=toIsoDate(range[1]); to=toIsoDate(range[2]); text=raw.replace(range[0],' ').trim();} const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i); const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i); if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso) from=iso;} if(mTo){const iso=toIsoDate(mTo[1]); if(iso) to=iso;} text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim(); const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean); return {tokens,from,to};}
-function useDebounced(value, delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return ()=>clearTimeout(id);},[value,delay]); return v;}
+/* ---------- helpers ---------- */
+function padTicket(n){ if(n==null)return'—'; try{return String(n).padStart(6,'0');}catch{return String(n);} }
+function toIsoDate(s){ if(!s)return''; const t=String(s).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t; const m=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''; }
+function parseSearch(q){ const raw=String(q||'').trim(); if(!raw)return{tokens:[],from:'',to:''}; let from='',to='',text=raw; const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/); if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();} const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i); const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i); if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;} if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;} text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim(); const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean); return {tokens,from,to}; }
+function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
 
-/** Listbox de catálogo para cliente */
-function CustomerTagsListbox({ userId, selected, onChange }) {
+/* ---------- Listbox de tags do cliente ---------- */
+function CustomerTagsListbox({ options = [], selected = [], onChange }) {
   const [open, setOpen] = useState(false);
-  const [catalog, setCatalog] = useState([]);
   const ref = useRef(null);
 
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const r = await apiGet('/clientes/catalog?active=true&page_size=100');
-        const data = Array.isArray(r?.data) ? r.data : [];
-        if (!alive) return;
-        setCatalog(data);
-      } catch { setCatalog([]); }
-    })();
-    return () => { alive = false; };
-  }, [userId]);
-
-  useEffect(() => {
-    const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e)=>{ if(!ref.current) return; if(!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
@@ -39,8 +26,10 @@ function CustomerTagsListbox({ userId, selected, onChange }) {
   const toggle = (val) => {
     const has = selected.includes(val);
     const next = has ? selected.filter(t => t !== val) : [...selected, val];
-    onChange(next);
+    onChange([...new Set(next)]);
   };
+
+  if (!options?.length) return null;
 
   return (
     <div className="tags-lb" ref={ref}>
@@ -49,9 +38,7 @@ function CustomerTagsListbox({ userId, selected, onChange }) {
       </button>
       {open && (
         <div className="tags-lb__panel" role="listbox" aria-label="Tags do cliente">
-          {catalog.length === 0 ? (
-            <div className="tags-lb__empty">Nenhuma tag disponível</div>
-          ) : catalog.map(opt => (
+          {options.map(opt => (
             <label key={opt.tag} className="tags-lb__item">
               <input
                 type="checkbox"
@@ -72,55 +59,68 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const [loadingHistorico, setLoadingHistorico] = useState(true);
   const [chapterModal, setChapterModal] = useState({ open: false, ticketId: null, ticketNumber: null });
 
-  // busca única
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounced(query, 250);
   const { tokens, from, to } = useMemo(() => parseSearch(debouncedQuery), [debouncedQuery]);
 
-  // tags do cliente
-  const [customerTags, setCustomerTags] = useState([]);
+  const mergeConversation = useConversationsStore((s) => s.mergeConversation);
 
-  // reset ao mudar cliente
+  /* ======= TAGS DO CLIENTE ======= */
+  const [customerCatalog, setCustomerCatalog] = useState([]);     // catálogo disponível
+  const [customerTagsInitial, setCustomerTagsInitial] = useState([]); // veio do server
+  const [customerTagsSelected, setCustomerTagsSelected] = useState([]); // seleção atual (não salva ainda)
+
+  // carrega catálogo e as tags atuais do cliente SEMPRE
   useEffect(() => {
-    setChapterModal({ open: false, ticketId: null, ticketNumber: null });
-    setHistorico([]);
-    setQuery('');
-
+    let alive = true;
+    setCustomerCatalog([]); setCustomerTagsInitial([]); setCustomerTagsSelected([]);
     (async () => {
-      if (userIdSelecionado) {
-        try {
-          const r = await apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}/tags`);
-          const arr = Array.isArray(r?.tags) ? r.tags.map(x => x.tag || x) : [];
-          setCustomerTags(arr);
-        } catch { setCustomerTags([]); }
-      } else {
-        setCustomerTags([]);
+      if (!userIdSelecionado) return;
+      try {
+        const [cat, tags] = await Promise.all([
+          apiGet('/tags/customer/catalog?active=true&page_size=100'),
+          apiGet(`/tags/customer/${encodeURIComponent(userIdSelecionado)}`)
+        ]);
+
+        if (!alive) return;
+
+        const catalog = Array.isArray(cat?.data) ? cat.data : [];
+        const current = Array.isArray(tags?.tags)
+          ? tags.tags.map(x => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
+          : [];
+
+        setCustomerCatalog(catalog);
+        setCustomerTagsInitial(current);
+        setCustomerTagsSelected(current);
+
+        // guarda no store (para o Header finalizar salvar o diff)
+        mergeConversation(userIdSelecionado, {
+          customer_tags: current,
+          pending_customer_tags: current,
+        });
+      } catch {
+        if (!alive) return;
+        setCustomerCatalog([]);
+        setCustomerTagsInitial([]);
+        setCustomerTagsSelected([]);
+        mergeConversation(userIdSelecionado, {
+          customer_tags: [],
+          pending_customer_tags: [],
+        });
       }
     })();
-  }, [userIdSelecionado]);
+    return () => { alive = false; };
+  }, [userIdSelecionado, mergeConversation]);
 
-  // expõe no store para o ChatHeader salvar ao finalizar
-  useEffect(() => {
-    // opcional: sincronizar no store global se você usa isso em outros lugares
-    // useConversationsStore.getState().mergeConversation(userIdSelecionado, { customer_tags: customerTags });
-    const merge = require('../../../store/useConversationsStore').default.getState().mergeConversation;
-    if (userIdSelecionado) merge(userIdSelecionado, { customer_tags: customerTags });
-  }, [customerTags, userIdSelecionado]);
-
-  // salvar incremental cliente (POST adiciona várias; DELETE por item removido)
-  const applyCustomerTags = async (next) => {
-    const toAdd = next.filter(t => !customerTags.includes(t));
-    const toDel = customerTags.filter(t => !next.includes(t));
-    try {
-      if (toAdd.length) await apiPost(`/clientes/${encodeURIComponent(userIdSelecionado)}/tags`, { tags: toAdd });
-      for (const t of toDel) { try { await apiDelete(`/clientes/${encodeURIComponent(userIdSelecionado)}/tags/${encodeURIComponent(t)}`); } catch {} }
-      setCustomerTags(next);
-    } catch (e) {
-      console.error('Falha ao salvar tags do cliente', e);
+  // sempre que usuário alterna seleção, mantém apenas em memória (store)
+  const onChangeCustomerSelection = (next) => {
+    setCustomerTagsSelected(next);
+    if (userIdSelecionado) {
+      mergeConversation(userIdSelecionado, { pending_customer_tags: next });
     }
   };
 
-  // busca histórico
+  /* ======= Histórico de tickets (fechados) ======= */
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
@@ -185,20 +185,20 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               <TagIcon size={14} style={{ marginRight: 6 }} /> Tags do cliente
             </div>
 
-            {/* chips apenas se houver selecionadas */}
-            {customerTags.length > 0 && (
+            {/* chips dos selecionados (oculta se vazio) */}
+            {customerTagsSelected.length > 0 && (
               <div className="contact-tags__chips" style={{ marginBottom: 8 }}>
-                {customerTags.map((t) => (
+                {customerTagsSelected.map((t) => (
                   <span className="chip chip--client" key={t}>{t}</span>
                 ))}
               </div>
             )}
 
-            {/* listbox sempre visível (sem digitação livre) */}
+            {/* listbox só se houver catálogo */}
             <CustomerTagsListbox
-              userId={userIdSelecionado}
-              selected={customerTags}
-              onChange={applyCustomerTags}
+              options={customerCatalog}
+              selected={customerTagsSelected}
+              onChange={onChangeCustomerSelection}
             />
           </div>
         </div>
@@ -271,6 +271,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
+      {/* Modal */}
       <TicketChapterModal
         open={chapterModal.open}
         onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null })}
