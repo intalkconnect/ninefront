@@ -57,7 +57,7 @@ function validateWindows(windows) {
 }
 
 export default function QueueHours() {
-  const { name } = useParams(); // usamos 'name' porque seu backend atual é por nome
+  const { name } = useParams(); // param usado para buscar os dados
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -70,10 +70,14 @@ export default function QueueHours() {
   const [windows, setWindows] = useState(emptyWindows());
   const [holidays, setHolidays] = useState([]);
 
+  // Nome bonito para breadcrumb (usa queue_name do /queues/:id)
+  const [queueNome, setQueueNome] = useState(name || '');
+
   useEffect(() => {
     (async () => {
       setLoading(true); setErr(null);
       try {
+        // 1) Carrega horas/regra da fila
         const data = await apiGet(`/queue-hours/${encodeURIComponent(name)}/hours`);
         const norm = normalizeIncoming(data);
         setEnabled(norm.enabled);
@@ -82,6 +86,14 @@ export default function QueueHours() {
         setOffMsg(norm.off_message);
         setWindows({ ...emptyWindows(), ...(norm.windows || {}) });
         setHolidays(norm.holidays);
+
+        // 2) Resolve o nome de exibição (queue_name) via /queues/:id
+        try {
+          const q = await apiGet(`/queues/${encodeURIComponent(name)}`);
+          setQueueNome(q?.queue_name ?? q?.nome ?? q?.name ?? name);
+        } catch {
+          setQueueNome(name);
+        }
       } catch (e) {
         console.error(e);
         setErr('Falha ao carregar horários desta fila.');
@@ -155,7 +167,7 @@ export default function QueueHours() {
           <li className={css.bcSep}>/</li>
           <li><Link to="/management/queues" className={css.bcLink}>Filas</Link></li>
           <li className={css.bcSep}>/</li>
-          <li><span className={css.bcCurrent}>Horários — {name}</span></li>
+          <li><span className={css.bcCurrent}>Horários — {queueNome}</span></li>
         </ol>
       </nav>
 
@@ -237,7 +249,7 @@ export default function QueueHours() {
                     <div className={css.emptyRow}>Sem janelas.</div>
                   )}
                   {(windows[key] || []).map((w, idx) => (
-                    <div key={idx} className={css.win}>
+                    <div key={idx} className={css.win}}>
                       <input
                         type="time"
                         value={w.start || ''}
@@ -308,14 +320,14 @@ export default function QueueHours() {
               </button>
             </div>
           ))}
-              <button
-                type="button"
-                className={css.btnSecondary}
-                onClick={addHoliday}
-              >
-                <Plus size={16} aria-hidden="true" />
-                Adicionar feriado
-              </button>
+          <button
+            type="button"
+            className={css.btnSecondary}
+            onClick={addHoliday}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Adicionar feriado
+          </button>
         </div>
       </section>
 
