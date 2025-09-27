@@ -1,3 +1,5 @@
+// File: Admin.jsx
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   LayoutDashboard,
   Bot,
@@ -19,6 +21,7 @@ import {
   ListTree,
   Gauge,
   Clock,
+  Plug,
   Shield,
   Code2,
   Contact,
@@ -56,7 +59,6 @@ import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
 import TemplateCreate from './campaigns/template/TemplateCreate';
 
-// ⚠️ Alteração: Users agora é a LISTA, e criamos UserForm como subpágina
 import UsersPage from "./management/users/Users";
 import UserForm from "./management/users/UserForm";
 
@@ -72,12 +74,8 @@ import TokensSecurity from "./preferences/security/Tokens";
 
 document.title = "NineChat - Gestão";
 
-/**
- * Guard declarado FORA do componente para manter identidade estável
- * e não remontar as rotas ao re-render do layout.
- */
 function RequireRole({ allow, children }) {
-  if (!allow) return <Navigate to="/" replace state={{ denied: true }} />;
+  if (!allow) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -86,6 +84,7 @@ export default function Admin() {
   const token = localStorage.getItem("token");
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
+
   const [authLoading, setAuthLoading] = useState(true);
 
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -162,46 +161,30 @@ export default function Admin() {
     userData?.profile ||
     "user";
 
-  // Normaliza e amplia o entendimento de papéis vindos do backend
-  const rawRole = String(role || "").toLowerCase();
-  const isAdmin = [
-    "admin",
-    "administrator",
-    "administrador",
-    "superadmin",
-    "owner",
-    "root",
-  ].includes(rawRole);
-
-  const isSupervisor = ["supervisor", "manager", "gestor"].includes(rawRole);
+  const isAdmin = role?.toLowerCase() === "admin";
+  const isSupervisor = role?.toLowerCase() === "supervisor";
 
   const filterMenusByRole = (items) => {
-    let out = items;
-
-    // Esconder menus e itens que exigem admin
-    if (!isAdmin) {
-      out = out.filter((m) => !["development", "settings"].includes(m.key));
-      out = out.map((m) => {
+    if (!isSupervisor) return items;
+    return items
+      .filter((m) => !["development", "settings"].includes(m.key))
+      .map((m) => {
         if (m.key !== "monitoring") return m;
-        const cloned = { ...m, children: m.children?.map((g) => ({ ...g })) };
+        const cloned = {
+          ...m,
+          children: m.children?.map((g) => ({ ...g }))
+        };
         cloned.children = cloned.children?.map((grp) => {
           if (grp.key !== "monitoring-analysis") return grp;
           return {
             ...grp,
-            children: (grp.children || []).filter((leaf) => leaf.to !== "analytics/sessions"),
+            children: (grp.children || []).filter(
+              (leaf) => leaf.to !== "analytics/sessions"
+            ),
           };
         });
         return cloned;
       });
-    }
-
-    // Regras extras para supervisor (se quiser restringir algo a mais)
-    if (isSupervisor && !isAdmin) {
-      // Exemplo: poderia ocultar configurações caso escapem em algum ponto
-      out = out.filter((m) => m.key !== "settings");
-    }
-
-    return out;
   };
 
   const menus = useMemo(
@@ -324,12 +307,20 @@ export default function Admin() {
           ],
         },
       ]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isAdmin, isSupervisor]
+    [isSupervisor]
   );
 
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
   const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
+
+  // ✅ FUNÇÃO CORRIGIDA DE NAVEGAÇÃO
+  const handleNavigation = (path) => {
+    if (path.startsWith('/')) {
+      navigate(path);
+    } else {
+      navigate(`/${path}`);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -398,11 +389,14 @@ export default function Admin() {
             <span />
           </button>
 
-          {/* Logo → força navegação SPA */}
+          {/* ✅ LOGO CORRIGIDO */}
           <NavLink
             to={DASHBOARD_PATH}
             className={styles.brand}
-            onClick={(e) => { e.preventDefault(); navigate(DASHBOARD_PATH); }}
+            onClick={(e) => { 
+              e.preventDefault(); 
+              navigate('/', { replace: true });
+            }}
           >
             <img src="/logo-front.png" alt="NineChat" />
           </NavLink>
@@ -497,21 +491,19 @@ export default function Admin() {
                     </div>
 
                     <ul className={styles.pdList}>
-                      {isAdmin && (
-                        <li className={styles.pdItem}>
-                          <NavLink
-                            to="settings/preferences"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setProfileOpen(false);
-                              navigate("settings/preferences");
-                            }}
-                          >
-                            <span className={styles.pdIcon}><User size={16} /></span>
-                            Editar perfil
-                          </NavLink>
-                        </li>
-                      )}
+                      <li className={styles.pdItem}>
+                        <NavLink
+                          to="settings/preferences"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setProfileOpen(false);
+                            handleNavigation("settings/preferences");
+                          }}
+                        >
+                          <span className={styles.pdIcon}><User size={16} /></span>
+                          Editar perfil
+                        </NavLink>
+                      </li>
 
                       <li className={styles.pdSeparator} role="separator" />
 
@@ -550,7 +542,10 @@ export default function Admin() {
                       end={m.exact}
                       to={m.to}
                       className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                      onClick={(e) => { e.preventDefault(); navigate(m.to); }}
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        handleNavigation(m.to);
+                      }}
                     >
                       {m.icon}
                       <span>{m.label}</span>
@@ -579,7 +574,11 @@ export default function Admin() {
                                   <NavLink
                                     to={leaf.to}
                                     className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                    onClick={(e) => { e.preventDefault(); setOpenDropdown(null); navigate(leaf.to); }}
+                                    onClick={(e) => { 
+                                      e.preventDefault(); 
+                                      setOpenDropdown(null); 
+                                      handleNavigation(leaf.to);
+                                    }}
                                     role="menuitem"
                                   >
                                     {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
@@ -639,7 +638,7 @@ export default function Admin() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 setMobileMenuOpen(false);
-                                navigate(leaf.to);
+                                handleNavigation(leaf.to);
                               }}
                             >
                               {leaf.icon}
@@ -659,7 +658,7 @@ export default function Admin() {
                   onClick={(e) => {
                     e.preventDefault();
                     setMobileMenuOpen(false);
-                    navigate(m.to);
+                    handleNavigation(m.to);
                   }}
                 >
                   {m.icon}
@@ -693,7 +692,6 @@ export default function Admin() {
 
           {/* management */}
           <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
-          {/* ✅ novas subpáginas (antes era modal) */}
           <Route path="management/users/new" element={<UserForm />} />
           <Route path="management/users/:userId/edit" element={<UserForm />} />
 
@@ -732,9 +730,8 @@ export default function Admin() {
               </RequireRole>
             }
           />
-          {/* 🔧 FIX: rota DETALHE agora é RELATIVA (sem "/") */}
           <Route 
-            path="development/tracker/:userId" 
+            path="/development/tracker/:userId" 
             element={
               <RequireRole allow={isAdmin}>
                 <JourneyBeholder />
@@ -768,7 +765,7 @@ export default function Admin() {
             }
           />
 
-          <Route path="*" element={<Navigate to="" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
