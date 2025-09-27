@@ -210,7 +210,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
                 options={customerCatalog}
                 selected={customerTagsSelected}
                 onAdd={addCustomerTag}
-                placeholder="Procurar tag"
+                placeholder="Procurar etiqueta"
               />
             )}
           </div>
