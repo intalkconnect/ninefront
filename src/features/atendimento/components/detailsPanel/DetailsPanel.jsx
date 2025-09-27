@@ -6,14 +6,14 @@ import { apiGet } from '../../../../shared/apiClient';
 import TicketChapterModal from '../modals/TicketChapterModal';
 import useConversationsStore from '../../store/useConversationsStore';
 
-/* ---------- helpers ---------- */
+/* helpers */
 function padTicket(n){ if(n==null)return'—'; try{return String(n).padStart(6,'0');}catch{return String(n);} }
 function toIsoDate(s){ if(!s)return''; const t=String(s).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t; const m=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''; }
 function parseSearch(q){ const raw=String(q||'').trim(); if(!raw)return{tokens:[],from:'',to:''}; let from='',to='',text=raw; const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/); if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();} const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i); const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i); if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;} if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;} text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim(); const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean); return {tokens,from,to}; }
 function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
 
-/** Combobox para TAGS do cliente (multi) — sem digitação livre */
-function ComboTags({ options = [], selected = [], onChange, placeholder = 'Procurar tag' }) {
+/** Listbox – clica para ADICIONAR; chips têm “x” para remover */
+function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -29,12 +29,6 @@ function ComboTags({ options = [], selected = [], onChange, placeholder = 'Procu
     if (!t) return options;
     return options.filter(o => (o.label || o.tag).toLowerCase().includes(t));
   }, [q, options]);
-
-  const toggle = (tag) => {
-    const has = selected.includes(tag);
-    const next = has ? selected.filter(x => x !== tag) : [...selected, tag];
-    onChange([...new Set(next)]);
-  };
 
   if (!options.length) return null;
 
@@ -52,14 +46,14 @@ function ComboTags({ options = [], selected = [], onChange, placeholder = 'Procu
             <div className="lb__empty">Nenhuma tag encontrada</div>
           ) : (
             filtered.map(opt => (
-              <label key={opt.tag} className="lb__item">
-                <input
-                  type="checkbox"
-                  checked={selected.includes(opt.tag)}
-                  onChange={() => toggle(opt.tag)}
-                />
-                <span>{opt.label || opt.tag}</span>
-              </label>
+              <button
+                key={opt.tag}
+                type="button"
+                className="lb__option"
+                onClick={() => { onAdd(opt.tag); setOpen(false); setQ(''); }}
+              >
+                {(opt.label || opt.tag)}
+              </button>
             ))
           )}
         </div>
@@ -81,13 +75,26 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
   /* ======= TAGS DO CLIENTE ======= */
   const [customerCatalog, setCustomerCatalog] = useState([]);
-  const [customerTagsInitial, setCustomerTagsInitial] = useState([]);
   const [customerTagsSelected, setCustomerTagsSelected] = useState([]);
 
-  // carrega catálogo e tags selecionadas do cliente SEMPRE
+  const addCustomerTag = (tag) =>
+    setCustomerTagsSelected(prev => {
+      const next = prev.includes(tag) ? prev : [...prev, tag];
+      if (userIdSelecionado) mergeConversation(userIdSelecionado, { pending_customer_tags: next });
+      return next;
+    });
+
+  const removeCustomerTag = (tag) =>
+    setCustomerTagsSelected(prev => {
+      const next = prev.filter(t => t !== tag);
+      if (userIdSelecionado) mergeConversation(userIdSelecionado, { pending_customer_tags: next });
+      return next;
+    });
+
+  // carrega catálogo e as tags atuais do cliente SEMPRE
   useEffect(() => {
     let alive = true;
-    setCustomerCatalog([]); setCustomerTagsInitial([]); setCustomerTagsSelected([]);
+    setCustomerCatalog([]); setCustomerTagsSelected([]);
     (async () => {
       if (!userIdSelecionado) return;
       try {
@@ -103,10 +110,8 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           : [];
 
         setCustomerCatalog(catalog);
-        setCustomerTagsInitial(current);
         setCustomerTagsSelected(current);
 
-        // guarda no store (para o Header salvar na finalização)
         mergeConversation(userIdSelecionado, {
           customer_tags: current,
           pending_customer_tags: current,
@@ -114,21 +119,12 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       } catch {
         if (!alive) return;
         setCustomerCatalog([]);
-        setCustomerTagsInitial([]);
         setCustomerTagsSelected([]);
         mergeConversation(userIdSelecionado, { customer_tags: [], pending_customer_tags: [] });
       }
     })();
     return () => { alive = false; };
   }, [userIdSelecionado, mergeConversation]);
-
-  // sempre que muda a seleção, mantém no store (sem salvar ainda)
-  const onChangeCustomerSelection = (next) => {
-    setCustomerTagsSelected(next);
-    if (userIdSelecionado) {
-      mergeConversation(userIdSelecionado, { pending_customer_tags: next });
-    }
-  };
 
   /* ======= Histórico ======= */
   useEffect(() => {
@@ -173,7 +169,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   return (
     <>
       <div className="details-panel-container full-layout">
-        {/* ===== Informações ===== */}
+        {/* ===== Informações de contato ===== */}
         <div className="card info-card">
           <h4 className="card-title">Informações de Contato</h4>
           <div className="circle-initial-box">
@@ -194,15 +190,19 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               <div className="chips-empty">Sem tags</div>
             ) : (
               <div className="contact-tags__chips" style={{ marginBottom: 6 }}>
-                {customerTagsSelected.map(t => <span key={t} className="chip">{t}</span>)}
+                {customerTagsSelected.map(t => (
+                  <span key={t} className="chip">
+                    <span>{t}</span>
+                    <button className="chip__x" onClick={() => removeCustomerTag(t)} aria-label={`Remover ${t}`}>×</button>
+                  </span>
+                ))}
               </div>
             )}
 
             {customerCatalog.length > 0 && (
               <ComboTags
                 options={customerCatalog}
-                selected={customerTagsSelected}
-                onChange={onChangeCustomerSelection}
+                onAdd={addCustomerTag}
                 placeholder="Procurar tag"
               />
             )}
@@ -263,7 +263,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
                         </div>
                         <div className="ticket-chips">
                           {t.fila && <span className="chip"><Share2 size={14} className="chip-ic" />{t.fila}</span>}
-                          {t.assigned_to && <span className="chip chip--muted"><Users size={14} className="chip-ic" />{t.assigned_to}</span>}
+                          {t.assigned_to && <span className="chip" style={{ background:'#eef2ff', borderColor:'#e0e7ff', color:'#3730a3' }}><Users size={14} className="chip-ic" />{t.assigned_to}</span>}
                         </div>
                       </button>
                     </li>
