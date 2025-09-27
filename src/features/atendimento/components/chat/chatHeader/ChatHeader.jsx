@@ -72,6 +72,18 @@ async function saveCustomerTagsDiff(userId, initialTags = [], selectedTags = [])
   }
 }
 
+/* obtém do servidor as tags atuais do cliente (fonte da verdade) */
+async function fetchServerCustomerTags(userId) {
+  try {
+    const r = await apiGet(`/tags/customer/${encodeURIComponent(userId)}`);
+    return Array.isArray(r?.tags)
+      ? r.tags.map(x => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function ChatHeader({ userIdSelecionado }) {
   const confirm = useConfirm();
   const [showTransferModal, setShowTransferModal] = useState(false);
@@ -82,7 +94,7 @@ export default function ChatHeader({ userIdSelecionado }) {
 
   if (!clienteAtivo) return null;
 
-  const ticketNumber = clienteAtivo?.ticket_number || '000000';
+  const ticketNumber = clienteAtivo?.ticket_number || '';
   const name   = clienteAtivo?.name || 'Cliente';
   const userId = clienteAtivo?.user_id || userIdSelecionado;
 
@@ -128,10 +140,20 @@ export default function ChatHeader({ userIdSelecionado }) {
         await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
-      // 2) salva dif das tags do cliente
-      const initialCustomer = clienteAtivo?.customer_tags ?? [];
-      const selectedCustomer = clienteAtivo?.pending_customer_tags ?? initialCustomer;
-      await saveCustomerTagsDiff(userId, initialCustomer, selectedCustomer);
+      // 2) salva diff das tags do cliente (GARANTIDO)
+      //    - pega a seleção atual do store (pending_customer_tags)
+      //    - compara com o que está no servidor neste momento
+      const state = useConversationsStore.getState();
+      const pending = Array.isArray(state?.clienteAtivo?.pending_customer_tags)
+        ? state.clienteAtivo.pending_customer_tags
+        : Array.isArray(clienteAtivo?.pending_customer_tags)
+          ? clienteAtivo.pending_customer_tags
+          : Array.isArray(clienteAtivo?.customer_tags)
+            ? clienteAtivo.customer_tags
+            : [];
+
+      const serverCurrent = await fetchServerCustomerTags(userId);
+      await saveCustomerTagsDiff(userId, serverCurrent, pending);
 
       // 3) fecha ticket
       await apiPut(`/tickets/${encodeURIComponent(userId)}`, { status: 'closed' });
