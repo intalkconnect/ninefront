@@ -43,31 +43,19 @@ function parseSearch(q) {
   return { tokens, from, to };
 }
 
-/* ===== storage adapter (pronto p/ endpoints) ===== */
-const USE_API = false; // ⬅️ troque para true quando criar endpoints
-
-const CONTACT_TAGS_KEY = (userId) => `contact:tags:${String(userId || '')}`;
-
+/* ===== chamadas de API p/ tags de cliente ===== */
 async function fetchContactTags(userId) {
-  if (USE_API) {
-    // ⬇️ EXEMPLO (ajuste para seu endpoint)
-    // const res = await apiGet(`/customers/${encodeURIComponent(userId)}/tags`);
-    // return Array.isArray(res?.tags) ? res.tags : [];
-    return []; // placeholder até endpoints existirem
+  const res = await apiGet(`/clientes/${encodeURIComponent(userId)}/tags`);
+  // backend: { user_id, tags: ["vip","inadimplente", ...] } ou { user_id, tags: [{tag,...}] }
+  if (!res) return [];
+  if (Array.isArray(res.tags)) {
+    // pode vir string[] ou objetos (quando usar catálogo). Garantimos string[] aqui.
+    return res.tags.map(t => (typeof t === 'string' ? t : t?.tag)).filter(Boolean);
   }
-  try {
-    const raw = localStorage.getItem(CONTACT_TAGS_KEY(userId));
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  } catch { return []; }
+  return [];
 }
 async function updateContactTags(userId, tags) {
-  if (USE_API) {
-    // ⬇️ EXEMPLO (ajuste para seu endpoint)
-    // await apiPut(`/customers/${encodeURIComponent(userId)}/tags`, { tags });
-    return;
-  }
-  try { localStorage.setItem(CONTACT_TAGS_KEY(userId), JSON.stringify(tags)); } catch {}
+  await apiPut(`/clientes/${encodeURIComponent(userId)}/tags`, { tags });
 }
 
 /** Debounce simples */
@@ -100,8 +88,12 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
     (async () => {
       if (userIdSelecionado) {
-        const saved = await fetchContactTags(userIdSelecionado);
-        setContactTags(saved);
+        try {
+          const saved = await fetchContactTags(userIdSelecionado);
+          setContactTags(saved);
+        } catch {
+          setContactTags([]);
+        }
       } else {
         setContactTags([]);
       }
@@ -138,7 +130,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   // ações de tag do contato
   const persistContact = async (next) => {
     setContactTags(next);
-    await updateContactTags(userIdSelecionado, next);
+    try { await updateContactTags(userIdSelecionado, next); } catch {}
   };
   const addContactTag = async (raw) => {
     const v = String(raw || '').trim();
