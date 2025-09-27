@@ -21,12 +21,13 @@ import {
   ListTree,
   Gauge,
   Clock,
+  Plug,
   Shield,
   Code2,
   Contact,
   UserPen,
   MessageSquareReply,
-  WalletCards,
+  WalletCards
 } from "lucide-react";
 import {
   NavLink,
@@ -56,9 +57,9 @@ import QueueForm from "./management/queue/QueueForm";
 import QueueHours from "./management/queue/QueueHours";
 import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
-import TemplateCreate from "./campaigns/template/TemplateCreate";
+import TemplateCreate from './campaigns/template/TemplateCreate';
 
-// Users list + form
+// ⚠️ Alteração: Users agora é a LISTA, e criamos UserForm como subpágina
 import UsersPage from "./management/users/Users";
 import UserForm from "./management/users/UserForm";
 
@@ -74,9 +75,12 @@ import TokensSecurity from "./preferences/security/Tokens";
 
 document.title = "NineChat - Gestão";
 
-/** Guard simples — fora do componente para manter identidade estável */
+/** <<< FIX PRINCIPAL >>>
+ * Declarar o guard fora do componente Admin, para manter identidade estável
+ * e não remontar as rotas ao re-render do layout.
+ */
 function RequireRole({ allow, children }) {
-  if (!allow) return <Navigate to="." replace />;
+  if (!allow) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -85,6 +89,7 @@ export default function Admin() {
   const token = localStorage.getItem("token");
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
+
   const [authLoading, setAuthLoading] = useState(true);
 
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -97,7 +102,6 @@ export default function Admin() {
   const helpRef = useRef(null);
   const navRef = useRef(null);
 
-  // Carrega dados do usuário logado
   useEffect(() => {
     let mounted = true;
     const fetchAdminInfo = async () => {
@@ -117,12 +121,10 @@ export default function Admin() {
       }
     };
     fetchAdminInfo();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [email]);
 
-  // Fecha menus ao trocar de rota
+  // fecha mega menu e drawer ao trocar de rota
   useEffect(() => {
     setMobileMenuOpen(false);
     setOpenDropdown(null);
@@ -142,7 +144,7 @@ export default function Admin() {
     return () => document.removeEventListener("mousedown", onDocDown);
   }, []);
 
-  // ESC para fechar popovers
+  // ESC
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -155,20 +157,17 @@ export default function Admin() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // Caminho do dashboard relativo ao container (ex.: /admin)
-  const DASHBOARD_PATH = ".";
+  const DASHBOARD_PATH = "/";
 
   /* ===== Permissões ===== */
-  const roleRaw =
-    userData?.role ??
-    userData?.perfil ??
-    userData?.profile ??
-    "user";
   const role =
-    typeof roleRaw === "string" ? roleRaw.trim().toLowerCase() : "user";
+    userData?.role ||
+    userData?.perfil ||
+    userData?.profile ||
+    "user";
 
-  const isAdmin = role === "admin";
-  const isSupervisor = role === "supervisor";
+  const isAdmin = role?.toLowerCase() === "admin";
+  const isSupervisor = role?.toLowerCase() === "supervisor";
 
   const filterMenusByRole = (items) => {
     if (!isSupervisor) return items;
@@ -178,7 +177,7 @@ export default function Admin() {
         if (m.key !== "monitoring") return m;
         const cloned = {
           ...m,
-          children: m.children?.map((g) => ({ ...g })),
+          children: m.children?.map((g) => ({ ...g }))
         };
         cloned.children = cloned.children?.map((grp) => {
           if (grp.key !== "monitoring-analysis") return grp;
@@ -213,32 +212,16 @@ export default function Admin() {
               key: "monitoring-realtime",
               label: "Tempo real",
               children: [
-                {
-                  to: "monitoring/realtime/queues",
-                  icon: <ListTree size={16} />,
-                  label: "Filas",
-                },
-                {
-                  to: "monitoring/realtime/agents",
-                  icon: <Headset size={16} />,
-                  label: "Agentes",
-                },
+                { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas" },
+                { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes" },
               ],
             },
             {
               key: "monitoring-analysis",
               label: "Análise",
               children: [
-                {
-                  to: "analytics/quality",
-                  icon: <Gauge size={16} />,
-                  label: "Qualidade",
-                },
-                {
-                  to: "analytics/sessions",
-                  icon: <Clock size={16} />,
-                  label: "Sessões",
-                },
+                { to: "analytics/quality",  icon: <Gauge size={16} />, label: "Qualidade" },
+                { to: "analytics/sessions", icon: <Clock size={16} />, label: "Sessões"   },
               ],
             },
           ],
@@ -253,37 +236,17 @@ export default function Admin() {
               key: "mgmt-cadastros",
               label: "Cadastros",
               children: [
-                {
-                  to: "management/users",
-                  icon: <UserPen size={16} />,
-                  label: "Usuários",
-                },
-                {
-                  to: "management/queues",
-                  icon: <Folder size={16} />,
-                  label: "Filas",
-                },
-                {
-                  to: "management/quick-replies",
-                  icon: <MessageSquareReply size={16} />,
-                  label: "Respostas Rápidas",
-                },
+                { to: "management/users",         icon: <UserPen size={16} />,  label: "Usuários" },
+                { to: "management/queues",        icon: <Folder size={16} />,   label: "Filas" },
+                { to: "management/quick-replies", icon: <MessageSquareReply size={16} />, label: "Respostas Rápidas" }
               ],
             },
             {
               key: "mgmt-operacao",
               label: "Operação",
               children: [
-                {
-                  to: "management/history",
-                  icon: <WalletCards size={16} />,
-                  label: "Histórico de Ticket",
-                },
-                {
-                  to: "management/clientes",
-                  icon: <Contact size={16} />,
-                  label: "Clientes",
-                },
+                { to: "management/history", icon: <WalletCards size={16} />, label: "Histórico de Ticket" },
+                { to: "management/clientes", icon: <Contact size={16} />,    label: "Clientes" },
               ],
             },
           ],
@@ -298,22 +261,14 @@ export default function Admin() {
               key: "camp-modelos",
               label: "Modelos",
               children: [
-                {
-                  to: "campaigns/templates",
-                  icon: <FileText size={16} />,
-                  label: "Templates",
-                },
+                { to: "campaigns/templates", icon: <FileText size={16} />, label: "Templates" },
               ],
             },
             {
               key: "camp-disparo",
               label: "Mensagens Ativas",
               children: [
-                {
-                  to: "campaigns/campaigns",
-                  icon: <Send size={16} />,
-                  label: "Disparo de Massa",
-                },
+                { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo de Massa" },
               ],
             },
           ],
@@ -334,7 +289,6 @@ export default function Admin() {
             },
           ],
         },
-
         {
           key: "settings",
           label: "Configurações",
@@ -344,16 +298,8 @@ export default function Admin() {
               key: "settings-geral",
               label: "Geral",
               children: [
-                {
-                  to: "settings/preferences",
-                  icon: <SettingsIcon size={16} />,
-                  label: "Preferências",
-                },
-                {
-                  to: "settings/channels",
-                  icon: <MessageCircle size={16} />,
-                  label: "Canais",
-                },
+                { to: "settings/preferences", icon: <SettingsIcon size={16} />,     label: "Preferências" },
+                { to: "settings/channels",    icon: <MessageCircle size={16} />, label: "Canais" },
               ],
             },
             {
@@ -371,8 +317,7 @@ export default function Admin() {
   );
 
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
-  const handleTopClick = (key) =>
-    setOpenDropdown((cur) => (cur === key ? null : key));
+  const handleTopClick = (key) => setOpenDropdown((cur) => (cur === key ? null : key));
 
   if (authLoading) {
     return (
@@ -441,14 +386,11 @@ export default function Admin() {
             <span />
           </button>
 
-          {/* Logo — navegação SPA relativa */}
+          {/* Logo → força navegação SPA */}
           <NavLink
             to={DASHBOARD_PATH}
             className={styles.brand}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(DASHBOARD_PATH);
-            }}
+            onClick={(e) => { e.preventDefault(); navigate(DASHBOARD_PATH); }}
           >
             <img src="/logo-front.png" alt="NineChat" />
           </NavLink>
@@ -594,10 +536,7 @@ export default function Admin() {
                       end={m.exact}
                       to={m.to}
                       className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate(m.to);
-                      }}
+                      onClick={(e) => { e.preventDefault(); navigate(m.to); }}
                     >
                       {m.icon}
                       <span>{m.label}</span>
@@ -626,11 +565,7 @@ export default function Admin() {
                                   <NavLink
                                     to={leaf.to}
                                     className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setOpenDropdown(null);
-                                      navigate(leaf.to);
-                                    }}
+                                    onClick={(e) => { e.preventDefault(); setOpenDropdown(null); navigate(leaf.to); }}
                                     role="menuitem"
                                   >
                                     {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
@@ -744,6 +679,7 @@ export default function Admin() {
 
           {/* management */}
           <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
+          {/* ✅ novas subpáginas (antes era modal) */}
           <Route path="management/users/new" element={<UserForm />} />
           <Route path="management/users/:userId/edit" element={<UserForm />} />
 
@@ -782,8 +718,8 @@ export default function Admin() {
               </RequireRole>
             }
           />
-          <Route
-            path="development/tracker/:userId"
+          <Route 
+            path="/development/tracker/:userId" 
             element={
               <RequireRole allow={isAdmin}>
                 <JourneyBeholder />
@@ -817,8 +753,7 @@ export default function Admin() {
             }
           />
 
-          {/* fallback */}
-          <Route path="*" element={<Navigate to="." replace />} />
+          <Route path="*" element={<Navigate to="" />} />
         </Routes>
       </main>
     </div>
