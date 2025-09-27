@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Share2, CheckCircle, Tag as TagIcon } from 'lucide-react';
+import { Share2, CheckCircle, Tag as TagIcon, X } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiDelete, apiPut } from '../../../../../shared/apiClient';
 import { getSocket } from '../../../services/socket';
@@ -7,47 +7,66 @@ import TransferModal from '../modals/transfer/Transfer';
 import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
-/** Listbox: clica no item para ADICIONAR (sem checkbox) */
-function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const ref = useRef(null);
-
+/* ---------------- Listbox simples de adição (ticket) ---------------- */
+function useOutsideClose(ref, setOpen) {
   useEffect(() => {
     const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
+  }, [ref, setOpen]);
+}
+
+function TicketTagsListbox({ options = [], selected = [], onAdd }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef(null);
+  useOutsideClose(ref, setOpen);
+
+  if (!options?.length) return null;
 
   const filtered = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    if (!t) return options;
-    return options.filter(o => (o.label || o.tag).toLowerCase().includes(t));
-  }, [q, options]);
-
-  if (!options.length) return null;
+    const s = q.trim().toLowerCase();
+    const list = options
+      .filter(o => !selected.includes(o.tag)) // não exibir já selecionadas
+      .filter(o => !s || (o.tag?.toLowerCase().includes(s) || (o.label || '').toLowerCase().includes(s)));
+    return list;
+  }, [options, selected, q]);
 
   return (
-    <div className="lb" ref={ref}>
-      <button type="button" className="lb__control" onClick={() => setOpen(o => !o)} aria-haspopup="listbox">
-        <TagIcon size={16} className="lb__icon" />
-        <span className="lb__placeholder">{placeholder}</span>
-        <span className="lb__caret">▾</span>
+    <div className="tags-lb" ref={ref}>
+      <button
+        type="button"
+        className="tags-lb__button"
+        onClick={() => setOpen(o => !o)}
+        title="Adicionar tags do ticket"
+      >
+        <TagIcon size={14} />
+        <span>Adicionar tags</span>
+        <span className="tags-lb__caret">▾</span>
       </button>
+
       {open && (
-        <div className="lb__panel" role="listbox" aria-label="Selecionar tags">
-          <input className="lb__search" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="tags-lb__panel" role="listbox" aria-label="Tags do ticket">
+          <input
+            autoFocus
+            className="hs-input"
+            style={{ width: '100%', marginBottom: 8, padding: '8px 10px' }}
+            placeholder="Procurar tag"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
           {filtered.length === 0 ? (
-            <div className="lb__empty">Nenhuma tag encontrada</div>
+            <div className="tags-lb__empty">Nenhuma tag encontrada</div>
           ) : (
             filtered.map(opt => (
               <button
-                key={opt.tag}
                 type="button"
-                className="lb__option"
-                onClick={() => { onAdd(opt.tag); setOpen(false); setQ(''); }}
+                key={opt.tag}
+                className="tags-lb__item"
+                onClick={() => { onAdd(opt.tag); setQ(''); }}
+                title={`Adicionar "${opt.label || opt.tag}"`}
               >
-                {(opt.label || opt.tag)}
+                <span>{opt.label || opt.tag}</span>
               </button>
             ))
           )}
@@ -57,12 +76,24 @@ function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
   );
 }
 
-/* salva diff das tags do cliente (POST/DELETE conforme rotas) */
+/* ------------ helpers para persistir tags do cliente com DIFF ----------- */
+async function getCurrentCustomerTagsFromAPI(userId) {
+  try {
+    const r = await apiGet(`/tags/customer/${encodeURIComponent(userId)}`);
+    return Array.isArray(r?.tags)
+      ? r.tags.map(x => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 async function saveCustomerTagsDiff(userId, initialTags = [], selectedTags = []) {
-  const initial = new Set(initialTags);
-  const selected = new Set(selectedTags);
-  const toAdd = [...selected].filter(t => !initial.has(t));
-  const toRemove = [...initial].filter(t => !selected.has(t));
+  const initialSet  = new Set(initialTags);
+  const selectedSet = new Set(selectedTags);
+
+  const toAdd    = [...selectedSet].filter(t => !initialSet.has(t));
+  const toRemove = [...initialSet].filter(t => !selectedSet.has(t));
 
   if (toAdd.length) {
     await apiPost(`/tags/customer/${encodeURIComponent(userId)}`, { tags: toAdd });
@@ -76,40 +107,44 @@ export default function ChatHeader({ userIdSelecionado }) {
   const confirm = useConfirm();
   const [showTransferModal, setShowTransferModal] = useState(false);
 
-  const clienteAtivo      = useConversationsStore(s => s.clienteAtivo);
-  const mergeConversation = useConversationsStore(s => s.mergeConversation);
-  const setSelectedUserId = useConversationsStore(s => s.setSelectedUserId);
-
-  if (!clienteAtivo) return null;
+  const clienteAtivo       = useConversationsStore((s) => s.clienteAtivo);
+  const mergeConversation  = useConversationsStore((s) => s.mergeConversation);
+  const setSelectedUserId  = useConversationsStore((s) => s.setSelectedUserId);
 
   const ticketNumber = clienteAtivo?.ticket_number || '000000';
-  const name   = clienteAtivo?.name || 'Cliente';
-  const userId = clienteAtivo?.user_id || userIdSelecionado;
+  const name         = clienteAtivo?.name || 'Cliente';
+  const userId       = clienteAtivo?.user_id || userIdSelecionado;
 
   /* ======= TAGS do TICKET ======= */
   const [ticketCatalog, setTicketCatalog] = useState([]);
-  const [ticketTags, setTicketTags] = useState([]); // começa vazio por ticket
+  const [ticketTags, setTicketTags] = useState([]); // seleção atual (começa vazio por ticket)
 
-  const addTicketTag = (tag) => setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
-  const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
-
-  // carrega catálogo aplicável pela fila do ticket
   useEffect(() => {
     let alive = true;
-    setTicketTags([]);
+    setTicketTags([]); // novo ticket → zera seleção
     setTicketCatalog([]);
     (async () => {
       if (!ticketNumber) return;
       try {
         const r = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`);
         if (!alive) return;
-        setTicketCatalog(Array.isArray(r?.catalog) ? r.catalog : []);
+        const cat = Array.isArray(r?.catalog) ? r.catalog : [];
+        setTicketCatalog(cat);
       } catch {
         if (alive) setTicketCatalog([]);
       }
     })();
     return () => { alive = false; };
   }, [ticketNumber]);
+
+  const addTicketTag = (tag) => {
+    if (!tag) return;
+    if (ticketTags.includes(tag)) return;
+    setTicketTags(prev => [...prev, tag]);
+  };
+  const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
+
+  if (!clienteAtivo) return null;
 
   /* ================== FINALIZAR ================== */
   const finalizarAtendimento = async () => {
@@ -123,17 +158,20 @@ export default function ChatHeader({ userIdSelecionado }) {
     if (!ok) return;
 
     try {
-      // 1) salva tags do ticket (se houver)
+      // 1) Salva tags do ticket (se houver)
       if (ticketTags.length) {
         await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
-      // 2) salva dif das tags do cliente
-      const initialCustomer = clienteAtivo?.customer_tags ?? [];
-      const selectedCustomer = clienteAtivo?.pending_customer_tags ?? initialCustomer;
-      await saveCustomerTagsDiff(userId, initialCustomer, selectedCustomer);
+      // 2) Salva tags do cliente com diff robusto
+      const serverCurrent = await getCurrentCustomerTagsFromAPI(userId);
+      const { clienteAtivo: fresh } = useConversationsStore.getState();
+      const selectedCustomer =
+        Array.isArray(fresh?.pending_customer_tags) ? fresh.pending_customer_tags : serverCurrent;
 
-      // 3) fecha ticket
+      await saveCustomerTagsDiff(userId, serverCurrent, selectedCustomer);
+
+      // 3) Fecha o ticket
       await apiPut(`/tickets/${encodeURIComponent(userId)}`, { status: 'closed' });
       mergeConversation(userId, { status: 'closed' });
 
@@ -154,52 +192,62 @@ export default function ChatHeader({ userIdSelecionado }) {
     }
   };
 
+  /* =============== RENDER =============== */
   return (
     <>
       <div className="chat-header">
         <div className="chat-header-left">
+          {/* título com #ticket embaixo */}
           <div className="nome-e-telefone">
             <span className="chat-header-nome">{name}</span>
             <span className="ticket-numero">#{String(ticketNumber).padStart(6, '0')}</span>
           </div>
 
-          {/* Linha: “Adicionar tags” + listbox (se houver catálogo) + chips (se houver seleção) */}
-          <div className="tags-row">
-            <span className="tags-label"><TagIcon size={16}/> Adicionar tags</span>
+          {/* Listbox para adicionar + chips com X (só mostra listbox se houver catálogo) */}
+          <TicketTagsListbox
+            options={ticketCatalog}
+            selected={ticketTags}
+            onAdd={addTicketTag}
+          />
 
-            {ticketCatalog.length > 0 && (
-              <ComboTags
-                options={ticketCatalog}
-                onAdd={addTicketTag}
-                placeholder="Procurar tag"
-              />
-            )}
-
-            {ticketTags.length > 0 && (
-              <div className="chips">
-                {ticketTags.map(t => (
-                  <span key={t} className="chip">
-                    <span>{t}</span>
-                    <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          {ticketTags.length > 0 && (
+            <div className="ticket-chips-inline" aria-label="Tags do ticket selecionadas">
+              {ticketTags.map(tag => (
+                <span key={tag} className="chip chip--motivo">
+                  {tag}
+                  <button
+                    type="button"
+                    className="chip-x"
+                    onClick={() => removeTicketTag(tag)}
+                    title="Remover"
+                    aria-label={`Remover ${tag}`}
+                    style={{ marginLeft: 6 }}
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="chat-header-right">
           <button className="btn-transferir" onClick={() => setShowTransferModal(true)}>
-            <Share2 size={14} /> <span>Transferir</span>
+            <Share2 size={14} />
+            <span>Transferir</span>
           </button>
           <button className="btn-finalizar" onClick={finalizarAtendimento}>
-            <CheckCircle size={14} /> <span>Finalizar</span>
+            <CheckCircle size={14} />
+            <span>Finalizar</span>
           </button>
         </div>
       </div>
 
       {showTransferModal && (
-        <TransferModal userId={userId} onClose={() => setShowTransferModal(false)} />
+        <TransferModal
+          userId={userId}
+          onClose={() => setShowTransferModal(false)}
+        />
       )}
     </>
   );
