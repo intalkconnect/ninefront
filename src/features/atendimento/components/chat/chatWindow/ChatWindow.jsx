@@ -120,28 +120,17 @@ export default function ChatWindow({ userIdSelecionado }) {
   const [replyTo, setReplyTo]         = useState(null);
   const [canSendFreeform, setCanSendFreeform] = useState(true);
 
-  // controla comportamento do auto-scroll do MessageList
-  const [autoScrollMode, setAutoScrollMode] = useState('ifAtBottom');
-
   const messageListRef   = useRef(null);
   const loaderRef        = useRef(null);
   const socketRef        = useRef(null);
   const messageCacheRef  = useRef(new Map());
-  const bottomRef        = useRef(null);
 
   // paginação por cursor
   const oldestTsRef      = useRef(null);
   const fetchingMoreRef  = useRef(false);
 
-  // controla “primeiro scroll para o fim” ao trocar de usuário
-  const firstRenderScrollRef = useRef(false);
-
   // rooms já aderidos (NÃO fazer leave_room)
   const joinedRoomsRef = useRef(new Set());
-
-  const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
-  }, []);
 
   useEffect(() => {
     connectSocket();
@@ -222,9 +211,6 @@ export default function ChatWindow({ userIdSelecionado }) {
   useEffect(() => {
     if (!userIdSelecionado) return;
 
-    // reset flag para garantir o “primeiro scroll para o fim” neste usuário
-    firstRenderScrollRef.current = false;
-
     setIsLoading(true);
 
     (async () => {
@@ -287,13 +273,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         console.error("Erro ao buscar cliente/conversa:", err);
       } finally {
         setIsLoading(false);
-        // ⬇️ força ir para o fim só no primeiro carregamento após selecionar o usuário
-        if (!firstRenderScrollRef.current) {
-          requestAnimationFrame(() => {
-            messageListRef.current?.scrollToBottomInstant?.();
-            firstRenderScrollRef.current = true;
-          });
-        }
+        // NÃO faz scroll aqui: a MessageList já inicia no final ao montar.
       }
     })();
   }, [
@@ -307,12 +287,14 @@ export default function ChatWindow({ userIdSelecionado }) {
   /* ------ infinite scroll (carrega mensagens mais antigas via cursor) ------ */
   useEffect(() => {
     const container = messageListRef.current?.getContainer?.();
+    if (!container) return;
+
     const observer = new IntersectionObserver(async (entries) => {
       if (!entries[0].isIntersecting) return;
       if (!oldestTsRef.current || fetchingMoreRef.current) return;
 
       fetchingMoreRef.current = true;
-      const prevHeight = container?.scrollHeight || 0;
+      const prevHeight = container.scrollHeight;
 
       try {
         const qs = new URLSearchParams({
@@ -322,7 +304,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         });
         const older = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
         const arr = Array.isArray(older) ? older : (older?.data || []);
-        arr.reverse();
+        arr.reverse(); // mantém ASC
 
         if (arr.length) {
           setAllMessages((prev) => {
@@ -332,9 +314,10 @@ export default function ChatWindow({ userIdSelecionado }) {
           });
           oldestTsRef.current = arr[0].timestamp || arr[0].created_at;
 
+          // preserva posição visual após inserir no topo
           requestAnimationFrame(() => {
-            const newHeight = container?.scrollHeight || 0;
-            if (container) container.scrollTop = newHeight - prevHeight;
+            const newHeight = container.scrollHeight;
+            container.scrollTop = newHeight - prevHeight;
           });
         } else {
           oldestTsRef.current = null;
@@ -350,18 +333,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [userIdSelecionado]);
 
-  /* ------ tab visible refresh (reconecta socket) ------ */
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== "visible" || !userIdSelecionado) return;
-      const socket = getSocket();
-      if (socket && !socket.connected) socket.connect();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [userIdSelecionado]);
-
-  /* ------ envio otimista ------ */
+  /* ------ envio otimista (mantém a visualização no fim) ------ */
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
 
@@ -389,10 +361,10 @@ export default function ChatWindow({ userIdSelecionado }) {
     });
 
     setReplyTo(null);
-    setTimeout(() => {
-      if (autoScrollMode !== 'off') scrollToBottom();
-    }, 0);
-  }, [mergeConversation, userIdSelecionado, scrollToBottom, autoScrollMode]);
+
+    // Sem animação: garante que fica no final ao enviar
+    messageListRef.current?.scrollToBottomInstant?.();
+  }, [mergeConversation, userIdSelecionado]);
 
   /* ------ render ------ */
   if (!userIdSelecionado) {
@@ -428,10 +400,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
         loaderRef={oldestTsRef.current ? loaderRef : null}
-        autoScrollMode={autoScrollMode}   // controla o auto-scroll
       />
-
-      <div ref={bottomRef} />
 
       <div className="chat-input">
         <SendMessageForm
