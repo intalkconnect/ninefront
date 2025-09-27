@@ -216,7 +216,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
           <div className="info-row"><Mail size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.email || 'Não informado'}</span></div>
           <div className="info-row"><Phone size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.phone || 'Não informado'}</span></div>
-          <div className="info-row"><IdCard size={16} className="info-icon" /><span className="info-value">{convers aSelecionada.phone2 || ' '}</span></div>
           <div className="info-row"><IdCardLanyard size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.user_id || 'Não informado'}</span></div>
 
           {/* ===== Tags do cliente ===== */}
