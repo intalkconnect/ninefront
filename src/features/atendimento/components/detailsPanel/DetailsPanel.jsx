@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Plus, X, Tag } from 'lucide-react';
+import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Tag } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
-import { apiGet, apiPut } from '../../../../shared/apiClient';
+import { apiGet } from '../../../../shared/apiClient';
 import TicketChapterModal from '../modals/TicketChapterModal';
 
 /* ---------- helpers ---------- */
@@ -43,21 +43,6 @@ function parseSearch(q) {
   return { tokens, from, to };
 }
 
-/* ===== chamadas de API p/ tags de cliente ===== */
-async function fetchContactTags(userId) {
-  const res = await apiGet(`/clientes/${encodeURIComponent(userId)}/tags`);
-  // backend: { user_id, tags: ["vip","inadimplente", ...] } ou { user_id, tags: [{tag,...}] }
-  if (!res) return [];
-  if (Array.isArray(res.tags)) {
-    // pode vir string[] ou objetos (quando usar catálogo). Garantimos string[] aqui.
-    return res.tags.map(t => (typeof t === 'string' ? t : t?.tag)).filter(Boolean);
-  }
-  return [];
-}
-async function updateContactTags(userId, tags) {
-  await apiPut(`/clientes/${encodeURIComponent(userId)}/tags`, { tags });
-}
-
 /** Debounce simples */
 function useDebounced(value, delay = 250) {
   const [v, setV] = useState(value);
@@ -75,32 +60,32 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const debouncedQuery = useDebounced(query, 250);
   const { tokens, from, to } = useMemo(() => parseSearch(debouncedQuery), [debouncedQuery]);
 
-  // tags do contato
-  const [contactTags, setContactTags] = useState([]);
-  const [draft, setDraft] = useState('');
-  const inputRef = useRef(null);
+  // apenas LISTAGEM de tags do cliente (sem edição)
+  const [customerTags, setCustomerTags] = useState([]);
 
   // reset ao mudar o cliente
   useEffect(() => {
     setChapterModal({ open: false, ticketId: null, ticketNumber: null });
     setHistorico([]);
     setQuery('');
+    setCustomerTags([]);
 
     (async () => {
-      if (userIdSelecionado) {
-        try {
-          const saved = await fetchContactTags(userIdSelecionado);
-          setContactTags(saved);
-        } catch {
-          setContactTags([]);
-        }
-      } else {
-        setContactTags([]);
+      if (!userIdSelecionado) return;
+      try {
+        // GET /clientes/:user_id/tags -> { user_id, tags: ["a","b"] } OU objetos
+        const res = await apiGet(`/clientes/${encodeURIComponent(userIdSelecionado)}/tags`);
+        const arr = Array.isArray(res?.tags)
+          ? res.tags.map((t) => (typeof t === 'string' ? t : t?.tag)).filter(Boolean)
+          : [];
+        setCustomerTags(arr);
+      } catch {
+        setCustomerTags([]);
       }
     })();
   }, [userIdSelecionado]);
 
-  // busca no servidor: restringe ao user + período
+  // busca histórico de tickets fechados do usuário + período
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
@@ -126,27 +111,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       return toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q));
     });
   }, [historico, tokens]);
-
-  // ações de tag do contato
-  const persistContact = async (next) => {
-    setContactTags(next);
-    try { await updateContactTags(userIdSelecionado, next); } catch {}
-  };
-  const addContactTag = async (raw) => {
-    const v = String(raw || '').trim();
-    if (!v) return;
-    if (contactTags.includes(v)) { setDraft(''); return; }
-    await persistContact([...contactTags, v]);
-    setDraft('');
-  };
-  const removeContactTag = async (t) => {
-    await persistContact(contactTags.filter(x => x !== t));
-  };
-  const onContactKey = (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); addContactTag(draft); }
-    if (e.key === ',' || e.key === ';') { e.preventDefault(); addContactTag(draft); }
-    if (e.key === 'Backspace' && !draft && contactTags.length) { e.preventDefault(); removeContactTag(contactTags[contactTags.length - 1]); }
-  };
 
   if (!userIdSelecionado || !conversaSelecionada) {
     return (
@@ -181,42 +145,21 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           <div className="info-row"><IdCard size={16} className="info-icon" /><span className="info-value">{documento || 'Não informado'}</span></div>
           <div className="info-row"><IdCardLanyard size={16} className="info-icon" /><span className="info-value">{conversaSelecionada.user_id || 'Não informado'}</span></div>
 
-          {/* ===== Tags do cliente (múltiplas) ===== */}
-          <div className="contact-tags">
-            <div className="contact-tags__label">
-              <Tag size={14} style={{ marginRight: 6 }} /> Tags do cliente
+          {/* ===== Tags do cliente — somente se existirem ===== */}
+          {customerTags.length > 0 && (
+            <div className="contact-tags">
+              <div className="contact-tags__label">
+                <Tag size={14} style={{ marginRight: 6 }} /> Tags do cliente
+              </div>
+              <div className="contact-tags__chips">
+                {customerTags.map((t) => (
+                  <span className="chip chip--client" key={t} title="Tag do cliente">
+                    {t}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="contact-tags__chips">
-              {contactTags.length === 0 && <span className="chips-empty">Nenhuma tag</span>}
-              {contactTags.map((t) => (
-                <span className="chip chip--client" key={t} title="Tag do cliente">
-                  {t}
-                  <button
-                    type="button"
-                    className="chip-x"
-                    onClick={() => removeContactTag(t)}
-                    aria-label={`Remover tag ${t}`}
-                    title="Remover"
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-              <input
-                ref={inputRef}
-                className="contact-tags__input"
-                placeholder={contactTags.length ? "Adicionar outra tag…" : "Adicionar tags do cliente…"}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={onContactKey}
-                aria-label="Adicionar tag ao cliente"
-              />
-              <button className="contact-tags__add" onClick={() => addContactTag(draft)} aria-label="Adicionar tag">
-                <Plus size={14} />
-                <span>Adicionar</span>
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ===== Histórico de tickets ===== */}
