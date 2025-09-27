@@ -44,7 +44,7 @@
   font-weight: 500;
 }
 
-/* Listbox compacto (com filtro) */
+/* Listbox compacto (com busca) – controle */
 .lb { position: relative; }
 .lb__control {
   display: inline-flex; align-items: center; gap: 8px;
@@ -67,17 +67,27 @@
   width: 100%; padding: 8px 10px; border: 1px solid var(--color-border);
   border-radius: 8px; outline: none; margin-bottom: 8px;
 }
-.lb__item { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: 6px; cursor: pointer; }
-.lb__item:hover { background: #f7f8fc; }
+.lb__option {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; background: transparent; border: 0;
+  text-align: left; cursor: pointer; color: var(--color-text-default);
+}
+.lb__option:hover { background: #f7f8fc; }
 .lb__empty { padding: 8px; color: var(--color-text-muted); }
 
-/* chips */
+/* chips (removíveis) */
 .chips { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .chip {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 10px; border-radius: 999px; font-size: 12px; line-height: 1;
-  background: #fff7f5; border: 1px solid #ffe2db; color: #7a2e22;
+  background: #dbeafe; border: 1px solid #bfdbfe; color: #1e3a8a;
 }
+.chip__x {
+  width: 18px; height: 18px; border-radius: 999px; border: 0;
+  display: grid; place-items: center; cursor: pointer;
+  background: rgba(0,0,0,.08); color: #1e3a8a; font-weight: 700; line-height: 1;
+}
+.chip__x:hover { background: rgba(0,0,0,.15); }
 
 /* botões à direita */
 .chat-header-right {
