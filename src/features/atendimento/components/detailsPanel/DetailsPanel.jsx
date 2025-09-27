@@ -26,7 +26,7 @@ function CustomerTagsListbox({ options = [], selected = [], onChange }) {
   const toggle = (val) => {
     const has = selected.includes(val);
     const next = has ? selected.filter(t => t !== val) : [...selected, val];
-    onChange([...new Set(next)]);
+    onChange([...new Set(next)]); // sem duplicados
   };
 
   if (!options?.length) return null;
@@ -66,11 +66,11 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const mergeConversation = useConversationsStore((s) => s.mergeConversation);
 
   /* ======= TAGS DO CLIENTE ======= */
-  const [customerCatalog, setCustomerCatalog] = useState([]);     // catálogo disponível
-  const [customerTagsInitial, setCustomerTagsInitial] = useState([]); // veio do server
-  const [customerTagsSelected, setCustomerTagsSelected] = useState([]); // seleção atual (não salva ainda)
+  const [customerCatalog, setCustomerCatalog] = useState([]);
+  const [customerTagsInitial, setCustomerTagsInitial] = useState([]);
+  const [customerTagsSelected, setCustomerTagsSelected] = useState([]);
 
-  // carrega catálogo e as tags atuais do cliente SEMPRE
+  // carrega catálogo + tags atuais SEMPRE
   useEffect(() => {
     let alive = true;
     setCustomerCatalog([]); setCustomerTagsInitial([]); setCustomerTagsSelected([]);
@@ -86,14 +86,14 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
         const catalog = Array.isArray(cat?.data) ? cat.data : [];
         const current = Array.isArray(tags?.tags)
-          ? tags.tags.map(x => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
+          ? tags.tags.map((x) => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
           : [];
 
         setCustomerCatalog(catalog);
         setCustomerTagsInitial(current);
         setCustomerTagsSelected(current);
 
-        // guarda no store (para o Header finalizar salvar o diff)
+        // guarda no store para o Header salvar o diff ao finalizar
         mergeConversation(userIdSelecionado, {
           customer_tags: current,
           pending_customer_tags: current,
@@ -112,7 +112,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     return () => { alive = false; };
   }, [userIdSelecionado, mergeConversation]);
 
-  // sempre que usuário alterna seleção, mantém apenas em memória (store)
   const onChangeCustomerSelection = (next) => {
     setCustomerTagsSelected(next);
     if (userIdSelecionado) {
@@ -185,13 +184,15 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               <TagIcon size={14} style={{ marginRight: 6 }} /> Tags do cliente
             </div>
 
-            {/* chips dos selecionados (oculta se vazio) */}
-            {customerTagsSelected.length > 0 && (
+            {/* chips selecionados OU "Sem tags" */}
+            {customerTagsSelected.length > 0 ? (
               <div className="contact-tags__chips" style={{ marginBottom: 8 }}>
                 {customerTagsSelected.map((t) => (
                   <span className="chip chip--client" key={t}>{t}</span>
                 ))}
               </div>
+            ) : (
+              <span className="chips-empty">Sem tags</span>
             )}
 
             {/* listbox só se houver catálogo */}
@@ -271,7 +272,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal de capítulo */}
       <TicketChapterModal
         open={chapterModal.open}
         onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null })}
