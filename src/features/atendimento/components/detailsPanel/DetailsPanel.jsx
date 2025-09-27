@@ -13,7 +13,7 @@ function parseSearch(q){ const raw=String(q||'').trim(); if(!raw)return{tokens:[
 function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
 
 /** Listbox – clica para ADICIONAR; chips têm “x” para remover */
-function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
+function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -24,11 +24,17 @@ function ComboTags({ options = [], onAdd, placeholder = 'Procurar tag' }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  // remove do dropdown qualquer tag já selecionada
+  const base = useMemo(
+    () => options.filter(o => !selected.includes(o.tag)),
+    [options, selected]
+  );
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return options;
-    return options.filter(o => (o.label || o.tag).toLowerCase().includes(t));
-  }, [q, options]);
+    if (!t) return base;
+    return base.filter(o => (o.label || o.tag).toLowerCase().includes(t));
+  }, [q, base]);
 
   if (!options.length) return null;
 
@@ -184,10 +190,10 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
           {/* ===== Tags do cliente ===== */}
           <div className="contact-tags">
-            <div className="contact-tags__label"><TagIcon size={14}/> Tags do cliente</div>
+            <div className="contact-tags__label"><TagIcon size={14}/> Etiqueta</div>
 
             {customerTagsSelected.length === 0 ? (
-              <div className="chips-empty">Sem tags</div>
+              <div className="chips-empty">Sem etiquetas</div>
             ) : (
               <div className="contact-tags__chips" style={{ marginBottom: 6 }}>
                 {customerTagsSelected.map(t => (
@@ -202,6 +208,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
             {customerCatalog.length > 0 && (
               <ComboTags
                 options={customerCatalog}
+                selected={customerTagsSelected}
                 onAdd={addCustomerTag}
                 placeholder="Procurar tag"
               />
