@@ -4,7 +4,7 @@ import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiDelete, apiPut } from "../../../../../shared/apiClient";
 import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
-import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
 /* ---------- Listbox simples (aparece somente se houver catálogo) ---------- */
@@ -200,3 +200,4 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
