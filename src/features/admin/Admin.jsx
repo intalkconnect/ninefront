@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState, useRef } from "react";
 import {
   LayoutDashboard,
   Bot,
@@ -10,6 +9,7 @@ import {
   Route as RouteIcon,
   GraduationCap,
   Folder,
+  Megaphone,
   FileText,
   Send,
   ChevronDown,
@@ -25,8 +25,7 @@ import {
   UserPen,
   MessageSquareReply,
   WalletCards
-} $1
-import { Megaphone } from "lucide-react";
+} from "lucide-react";
 import {
   NavLink,
   Routes,
