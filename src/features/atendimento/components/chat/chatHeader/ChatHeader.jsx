@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Share2, CheckCircle, Tag as TagIcon, X } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiDelete, apiPut } from '../../../../../shared/apiClient';
@@ -8,29 +8,23 @@ import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
 /* ---------------- Listbox simples de adição (ticket) ---------------- */
-function useOutsideClose(ref, setOpen) {
-  useEffect(() => {
-    const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [ref, setOpen]);
-}
-
 function TicketTagsListbox({ options = [], selected = [], onAdd }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
-  useOutsideClose(ref, setOpen);
 
-  if (!options?.length) return null;
+  useEffect(() => {
+    const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    const list = options
-      .filter(o => !selected.includes(o.tag)) // não exibir já selecionadas
-      .filter(o => !s || (o.tag?.toLowerCase().includes(s) || (o.label || '').toLowerCase().includes(s)));
-    return list;
-  }, [options, selected, q]);
+  if (!Array.isArray(options) || options.length === 0) return null;
+
+  const s = q.trim().toLowerCase();
+  const filtered = options
+    .filter(o => !selected.includes(o.tag))
+    .filter(o => !s || (String(o.tag).toLowerCase().includes(s) || String(o.label || '').toLowerCase().includes(s)));
 
   return (
     <div className="tags-lb" ref={ref}>
@@ -139,8 +133,7 @@ export default function ChatHeader({ userIdSelecionado }) {
 
   const addTicketTag = (tag) => {
     if (!tag) return;
-    if (ticketTags.includes(tag)) return;
-    setTicketTags(prev => [...prev, tag]);
+    setTicketTags(prev => (prev.includes(tag) ? prev : [...prev, tag]));
   };
   const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
 
@@ -163,11 +156,13 @@ export default function ChatHeader({ userIdSelecionado }) {
         await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
-      // 2) Salva tags do cliente com diff robusto
+      // 2) Salva tags do cliente com diff robusto (usa servidor como verdade)
       const serverCurrent = await getCurrentCustomerTagsFromAPI(userId);
-      const { clienteAtivo: fresh } = useConversationsStore.getState();
+      const state = useConversationsStore.getState();
       const selectedCustomer =
-        Array.isArray(fresh?.pending_customer_tags) ? fresh.pending_customer_tags : serverCurrent;
+        Array.isArray(state?.clienteAtivo?.pending_customer_tags)
+          ? state.clienteAtivo.pending_customer_tags
+          : serverCurrent;
 
       await saveCustomerTagsDiff(userId, serverCurrent, selectedCustomer);
 
@@ -192,12 +187,10 @@ export default function ChatHeader({ userIdSelecionado }) {
     }
   };
 
-  /* =============== RENDER =============== */
   return (
     <>
       <div className="chat-header">
         <div className="chat-header-left">
-          {/* título com #ticket embaixo */}
           <div className="nome-e-telefone">
             <span className="chat-header-nome">{name}</span>
             <span className="ticket-numero">#{String(ticketNumber).padStart(6, '0')}</span>
