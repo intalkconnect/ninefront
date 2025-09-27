@@ -1,3 +1,4 @@
+// src/app/features/chat/components/header/ChatHeader.jsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Share2, CheckCircle, Tag as TagIcon } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
@@ -7,7 +8,7 @@ import TransferModal from '../modals/transfer/Transfer';
 import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
-/** Listbox: clica no item para ADICIONAR (sem checkbox) */
+/** ===== Combo/Listbox: clica no item para ADICIONAR (sem checkbox) ===== */
 function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag...' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -35,11 +36,17 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
 
   return (
     <div className="lb" ref={ref}>
-      <button type="button" className="lb__control" onClick={() => setOpen(o => !o)} aria-haspopup="listbox">
+      <button
+        type="button"
+        className="lb__control"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+      >
         <TagIcon size={16} className="lb__icon" />
         <span className="lb__placeholder">{placeholder}</span>
         <span className="lb__caret">▾</span>
       </button>
+
       {open && (
         <div className="lb__panel" role="listbox" aria-label="Selecionar tags">
           <input
@@ -68,22 +75,7 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
   );
 }
 
-/* salva diff das tags do cliente (POST/DELETE conforme rotas) */
-async function saveCustomerTagsDiff(userId, initialTags = [], selectedTags = []) {
-  const initial = new Set(initialTags);
-  const selected = new Set(selectedTags);
-  const toAdd = [...selected].filter(t => !initial.has(t));
-  const toRemove = [...initial].filter(t => !selected.has(t));
-
-  if (toAdd.length) {
-    await apiPost(`/tags/customer/${encodeURIComponent(userId)}`, { tags: toAdd });
-  }
-  for (const t of toRemove) {
-    await apiDelete(`/tags/customer/${encodeURIComponent(userId)}/${encodeURIComponent(t)}`);
-  }
-}
-
-/* pega do servidor as tags atuais do cliente (fonte da verdade) */
+/** ===== Helpers de CUSTOMER TAGS: GET (fonte da verdade) + DIFF (POST/DELETE) ===== */
 async function fetchServerCustomerTags(userId) {
   try {
     const r = await apiGet(`/tags/customer/${encodeURIComponent(userId)}`);
@@ -92,6 +84,22 @@ async function fetchServerCustomerTags(userId) {
       : [];
   } catch {
     return [];
+  }
+}
+
+async function saveCustomerTagsDiff(userId, initialTags = [], selectedTags = []) {
+  const initial  = new Set(initialTags);
+  const selected = new Set(selectedTags);
+  const toAdd    = [...selected].filter(t => !initial.has(t));
+  const toRemove = [...initial].filter(t => !selected.has(t));
+
+  if (toAdd.length) {
+    console.log('[CUSTOMER] POST add →', toAdd);
+    await apiPost(`/tags/customer/${encodeURIComponent(userId)}`, { tags: toAdd });
+  }
+  for (const t of toRemove) {
+    console.log('[CUSTOMER] DELETE remove →', t);
+    await apiDelete(`/tags/customer/${encodeURIComponent(userId)}/${encodeURIComponent(t)}`);
   }
 }
 
@@ -106,14 +114,14 @@ export default function ChatHeader({ userIdSelecionado }) {
   if (!clienteAtivo) return null;
 
   const ticketNumber = clienteAtivo?.ticket_number || '';
-  const name   = clienteAtivo?.name || 'Cliente';
-  const userId = clienteAtivo?.user_id || userIdSelecionado;
+  const name         = clienteAtivo?.name || 'Cliente';
+  const userId       = clienteAtivo?.user_id || userIdSelecionado;
 
-  /* ======= TAGS do TICKET ======= */
+  /** ===== TAGS do TICKET ===== */
   const [ticketCatalog, setTicketCatalog] = useState([]);
-  const [ticketTags, setTicketTags] = useState([]); // começa vazio por ticket
+  const [ticketTags, setTicketTags] = useState([]); // reseta por ticket
 
-  const addTicketTag = (tag) => setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
+  const addTicketTag    = (tag) => setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
   const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
 
   // carrega catálogo aplicável pela fila do ticket
@@ -134,7 +142,7 @@ export default function ChatHeader({ userIdSelecionado }) {
     return () => { alive = false; };
   }, [ticketNumber]);
 
-  /* ================== FINALIZAR ================== */
+  /** ===== FINALIZAR (ticket + customer) ===== */
   const finalizarAtendimento = async () => {
     const ok = await confirm({
       title: 'Finalizar atendimento?',
@@ -146,25 +154,30 @@ export default function ChatHeader({ userIdSelecionado }) {
     if (!ok) return;
 
     try {
-      // 1) salva tags do ticket (se houver)
+      // 1) Salva tags do TICKET (se houver)
       if (ticketTags.length) {
+        console.log('[FINALIZAR] POST ticket tags →', ticketTags);
         await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
-      // 2) salva diff das tags do cliente (garantido)
-      const state = useConversationsStore.getState();
-      const pending = Array.isArray(state?.clienteAtivo?.pending_customer_tags)
-        ? state.clienteAtivo.pending_customer_tags
-        : Array.isArray(clienteAtivo?.pending_customer_tags)
-          ? clienteAtivo.pending_customer_tags
-          : Array.isArray(clienteAtivo?.customer_tags)
-            ? clienteAtivo.customer_tags
-            : [];
+      // 2) Salva DIFF de tags do CUSTOMER
+      //    Fonte: conversations[userId].pending_customer_tags (setada no DetailsPanel via mergeConversation)
+      const st   = useConversationsStore.getState();
+      const conv = (st.conversations && st.conversations[userId]) || {};
+      const pendentesRaw =
+        Array.isArray(conv.pending_customer_tags) ? conv.pending_customer_tags :
+        Array.isArray(st?.clienteAtivo?.pending_customer_tags) ? st.clienteAtivo.pending_customer_tags :
+        Array.isArray(conv.customer_tags) ? conv.customer_tags :
+        Array.isArray(st?.clienteAtivo?.customer_tags) ? st.clienteAtivo.customer_tags :
+        [];
+
+      const pending = [...new Set((pendentesRaw || []).map(t => String(t).trim()).filter(Boolean))];
 
       const serverCurrent = await fetchServerCustomerTags(userId);
+      console.log('[FINALIZAR] CUSTOMER diff → from server:', serverCurrent, ' pending:', pending);
       await saveCustomerTagsDiff(userId, serverCurrent, pending);
 
-      // 3) fecha ticket
+      // 3) Fecha o ticket
       await apiPut(`/tickets/${encodeURIComponent(userId)}`, { status: 'closed' });
       mergeConversation(userId, { status: 'closed' });
 
@@ -197,8 +210,7 @@ export default function ChatHeader({ userIdSelecionado }) {
           )}
         </div>
 
-        {/* CENTRO vazio (layout mantém o respiro). 
-            As tags ficam na sub-barra logo abaixo */}
+        {/* CENTRO (vazio – as tags vão na sub-barra) */}
         <div className="h-center" />
 
         {/* DIREITA: botões */}
