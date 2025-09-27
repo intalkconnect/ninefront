@@ -4,7 +4,7 @@ import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiPut } from "../../../../../shared/apiClient";
 import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
-import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
+import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
 
 const pad = (n) => (n ? String(n).padStart(6, '0') : '');
@@ -263,3 +263,4 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
