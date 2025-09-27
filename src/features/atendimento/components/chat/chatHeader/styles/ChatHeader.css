@@ -1,62 +1,71 @@
-/* ChatHeader.css */
+/* barra */
 .chat-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* esquerda | centro (flexível) | direita */
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  background-color: var(--color-surface);
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-/* coluna esquerda: nome / #ticket / linha de tags */
-.chat-header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* alinhamento como no print */
+.h-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
-  flex: 1 1 auto;
-  align-items: flex-start;
 }
-
-.nome-e-telefone { display: flex; flex-direction: column; gap: 4px; }
-.chat-header-nome {
-  font-size: 1.1rem; font-weight: 600; color: var(--color-text-default);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ticket-numero {
-  font-size: 0.95rem; font-weight: 500; color: var(--color-primary);
-  background: var(--color-primary-bg); border-radius: 6px; padding: 2px 6px;
-  width: max-content; white-space: nowrap;
-}
-
-/* linha com label “Adicionar tags”, select e chips */
-.tags-row {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-}
-
-/* label “Adicionar tags” */
-.tags-label {
-  display: inline-flex; align-items: center; gap: 8px;
+.h-title {
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--color-text-default);
-  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.h-badge {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
-/* Listbox compacto (com busca) – controle */
+/* centro: input + chips no fluxo, à direita do título */
+.h-center {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap; /* se faltar espaço, chips quebram para baixo */
+}
+
+/* direita: botões */
+.h-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/* ======= Combo/listbox ======= */
 .lb { position: relative; }
 .lb__control {
   display: inline-flex; align-items: center; gap: 8px;
-  min-width: 220px; height: 36px; padding: 0 10px;
-  border: 1px solid var(--color-border); border-radius: 10px;
+  min-width: 240px; height: 34px; padding: 0 10px;
+  border: 1px solid var(--color-border); border-radius: 8px;
   background: #fff; cursor: pointer;
 }
 .lb__icon { color: var(--color-text-muted); }
 .lb__placeholder { color: var(--color-text-muted); font-size: .95rem; }
 .lb__caret { margin-left: auto; opacity: .6; }
 
-/* painel */
 .lb__panel {
   position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
   min-width: 260px; max-height: 280px; overflow: auto;
@@ -75,8 +84,8 @@
 .lb__option:hover { background: #f7f8fc; }
 .lb__empty { padding: 8px; color: var(--color-text-muted); }
 
-/* chips (removíveis) */
-.chips { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+/* chips */
+.chips { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .chip {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 6px 10px; border-radius: 999px; font-size: 12px; line-height: 1;
@@ -89,13 +98,9 @@
 }
 .chip__x:hover { background: rgba(0,0,0,.15); }
 
-/* botões à direita */
-.chat-header-right {
-  display: flex; gap: 8px; align-items: center; justify-content: flex-end;
-  margin-left: auto; white-space: nowrap;
-}
-.chat-header-right button {
-  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+/* botões */
+.h-right button {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
   border: none; border-radius: var(--border-radius);
   font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all .2s ease;
   min-width: max-content;
@@ -105,9 +110,13 @@
 .btn-finalizar { background: var(--color-success); color: #fff; }
 .btn-finalizar:hover { background: #148f50; color: #fff !important; }
 
-/* mobile */
-@media (max-width: 768px) {
-  .chat-header { flex-direction: column; align-items: stretch; gap: 12px; }
-  .chat-header-right { justify-content: center; }
-  .chat-header-right button { flex: 1; }
+/* responsivo: quebra em 2 linhas mas mantém ordem */
+@media (max-width: 860px) {
+  .chat-header {
+    grid-template-columns: 1fr auto; /* esquerda ocupa 1ª linha inteira junto do centro */
+    grid-auto-flow: row;
+  }
+  .h-left { grid-column: 1 / -1; }
+  .h-center { grid-column: 1 / -1; }
+  .h-right { grid-column: 1 / -1; justify-content: flex-end; }
 }
