@@ -1,4 +1,3 @@
-// File: Admin.jsx
 import { useEffect, useMemo, useState, useRef } from "react";
 import {
   LayoutDashboard,
@@ -11,7 +10,6 @@ import {
   Route as RouteIcon,
   GraduationCap,
   Folder,
-  Megaphone,
   FileText,
   Send,
   ChevronDown,
@@ -21,7 +19,6 @@ import {
   ListTree,
   Gauge,
   Clock,
-  Plug,
   Shield,
   Code2,
   Contact,
@@ -75,12 +72,12 @@ import TokensSecurity from "./preferences/security/Tokens";
 
 document.title = "NineChat - Gestão";
 
-/** <<< FIX PRINCIPAL >>>
- * Declarar o guard fora do componente Admin, para manter identidade estável
+/**
+ * Guard declarado FORA do componente para manter identidade estável
  * e não remontar as rotas ao re-render do layout.
  */
 function RequireRole({ allow, children }) {
-  if (!allow) return <Navigate to="/" replace />;
+  if (!allow) return <Navigate to="/" replace state={{ denied: true }} />;
   return children;
 }
 
@@ -89,7 +86,6 @@ export default function Admin() {
   const token = localStorage.getItem("token");
   const { email } = token ? parseJwt(token) : {};
   const [userData, setUserData] = useState(null);
-
   const [authLoading, setAuthLoading] = useState(true);
 
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -166,30 +162,46 @@ export default function Admin() {
     userData?.profile ||
     "user";
 
-  const isAdmin = role?.toLowerCase() === "admin";
-  const isSupervisor = role?.toLowerCase() === "supervisor";
+  // Normaliza e amplia o entendimento de papéis vindos do backend
+  const rawRole = String(role || "").toLowerCase();
+  const isAdmin = [
+    "admin",
+    "administrator",
+    "administrador",
+    "superadmin",
+    "owner",
+    "root",
+  ].includes(rawRole);
+
+  const isSupervisor = ["supervisor", "manager", "gestor"].includes(rawRole);
 
   const filterMenusByRole = (items) => {
-    if (!isSupervisor) return items;
-    return items
-      .filter((m) => !["development", "settings"].includes(m.key))
-      .map((m) => {
+    let out = items;
+
+    // Esconder menus e itens que exigem admin
+    if (!isAdmin) {
+      out = out.filter((m) => !["development", "settings"].includes(m.key));
+      out = out.map((m) => {
         if (m.key !== "monitoring") return m;
-        const cloned = {
-          ...m,
-          children: m.children?.map((g) => ({ ...g }))
-        };
+        const cloned = { ...m, children: m.children?.map((g) => ({ ...g })) };
         cloned.children = cloned.children?.map((grp) => {
           if (grp.key !== "monitoring-analysis") return grp;
           return {
             ...grp,
-            children: (grp.children || []).filter(
-              (leaf) => leaf.to !== "analytics/sessions"
-            ),
+            children: (grp.children || []).filter((leaf) => leaf.to !== "analytics/sessions"),
           };
         });
         return cloned;
       });
+    }
+
+    // Regras extras para supervisor (se quiser restringir algo a mais)
+    if (isSupervisor && !isAdmin) {
+      // Exemplo: poderia ocultar configurações caso escapem em algum ponto
+      out = out.filter((m) => m.key !== "settings");
+    }
+
+    return out;
   };
 
   const menus = useMemo(
@@ -313,7 +325,7 @@ export default function Admin() {
         },
       ]),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isSupervisor]
+    [isAdmin, isSupervisor]
   );
 
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
@@ -485,19 +497,21 @@ export default function Admin() {
                     </div>
 
                     <ul className={styles.pdList}>
-                      <li className={styles.pdItem}>
-                        <NavLink
-                          to="settings/preferences"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setProfileOpen(false);
-                            navigate("settings/preferences");
-                          }}
-                        >
-                          <span className={styles.pdIcon}><User size={16} /></span>
-                          Editar perfil
-                        </NavLink>
-                      </li>
+                      {isAdmin && (
+                        <li className={styles.pdItem}>
+                          <NavLink
+                            to="settings/preferences"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setProfileOpen(false);
+                              navigate("settings/preferences");
+                            }}
+                          >
+                            <span className={styles.pdIcon}><User size={16} /></span>
+                            Editar perfil
+                          </NavLink>
+                        </li>
+                      )}
 
                       <li className={styles.pdSeparator} role="separator" />
 
@@ -718,8 +732,9 @@ export default function Admin() {
               </RequireRole>
             }
           />
+          {/* 🔧 FIX: rota DETALHE agora é RELATIVA (sem "/") */}
           <Route 
-            path="/development/tracker/:userId" 
+            path="development/tracker/:userId" 
             element={
               <RequireRole allow={isAdmin}>
                 <JourneyBeholder />
