@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Tag as TagIcon, X } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
@@ -24,15 +24,12 @@ function CustomerTagsListbox({ options = [], selected = [], onAdd }) {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  if (!options?.length) return null;
+  if (!Array.isArray(options) || options.length === 0) return null;
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    const list = options
-      .filter(o => !selected.includes(o.tag))
-      .filter(o => !s || (o.tag?.toLowerCase().includes(s) || (o.label || '').toLowerCase().includes(s)));
-    return list;
-  }, [options, selected, q]);
+  const s = q.trim().toLowerCase();
+  const filtered = options
+    .filter(o => !selected.includes(o.tag))
+    .filter(o => !s || (String(o.tag).toLowerCase().includes(s) || String(o.label || '').toLowerCase().includes(s)));
 
   return (
     <div className="tags-lb" ref={ref}>
@@ -105,7 +102,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         setCustomerCatalog(catalog);
         setCustomerTagsSelected(current);
 
-        // Guarda no store para o Header gravar no finalizar
         mergeConversation(userIdSelecionado, {
           customer_tags: current,
           pending_customer_tags: current,
@@ -202,7 +198,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               <TagIcon size={14} /> Tags do cliente
             </div>
 
-            {/* chips dos selecionados (ou "Sem tags" se vazio) */}
             <div className="contact-tags__chips" style={{ marginBottom: 8 }}>
               {customerTagsSelected.length === 0 ? (
                 <span className="chips-empty">Sem tags</span>
@@ -225,7 +220,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
               )}
             </div>
 
-            {/* listbox só se houver catálogo */}
             <CustomerTagsListbox
               options={customerCatalog}
               selected={customerTagsSelected}
@@ -302,7 +296,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
-      {/* Modal */}
       <TicketChapterModal
         open={chapterModal.open}
         onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null })}
