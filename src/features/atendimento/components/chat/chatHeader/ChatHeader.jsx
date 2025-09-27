@@ -76,7 +76,7 @@ export default function ChatHeader({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore((s) => s.mergeConversation);
   const setSelectedUserId = useConversationsStore((s) => s.setSelectedUserId);
 
-  const ticketNumber = clienteAtivo?.ticket_number || '000000';
+  const ticketNumber = clienteAtivo?.ticket_number ?? null;
   const name = clienteAtivo?.name || 'Cliente';
   const user_id = clienteAtivo?.user_id || userIdSelecionado;
 
@@ -199,3 +199,4 @@ export default function ChatHeader({ userIdSelecionado }) {
     </>
   );
 }
+
