@@ -44,7 +44,6 @@ function ChipsCreateInput({ placeholder = 'ex.: vip, reclamacao, atraso', onCrea
       e.preventDefault();
       if (text.trim()) await commit(text);
     }
-    // opcional: backspace não faz nada aqui (sem chips locais)
   };
 
   const onPaste = async (e) => {
@@ -166,10 +165,10 @@ export default function Clientes() {
       setCatalogBusy(true);
       const uniq = [...new Set(tokens)];
       await Promise.all(uniq.map(tag => apiPost('/tags/customer/catalog', { tag, active: true })));
-      toast.success(uniq.length === 1 ? 'Etiqueta criada.' : `${uniq.length} etiquetas criadas.`);
+      // sem toast aqui (para não poluir a cada insert)
       await loadCatalog();
     } catch {
-      toast.error('Não foi possível criar as etiquetas.');
+      // sem toast
     } finally {
       setCatalogBusy(false);
     }
@@ -182,12 +181,11 @@ export default function Clientes() {
     try {
       setCatalogBusy(true);
       await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
-      // se estava aplicada no filtro, remove
-      setSelectedTags(prev => prev.filter(t => t !== tag));
+      setSelectedTags(prev => prev.filter(t => t !== tag)); // se estava no filtro, remove
       await loadCatalog();
-      toast.success('Etiqueta removida do catálogo.');
+      // sem toast
     } catch {
-      toast.error('Não foi possível remover a etiqueta.');
+      // sem toast
     } finally {
       setCatalogBusy(false);
     }
@@ -304,7 +302,7 @@ export default function Clientes() {
             </div>
           </div>
 
-          {/* Busca por texto */}
+          {/* Busca por texto – alinhada à direita */}
           <form onSubmit={onSearch} className={styles.searchGroup}>
             <input
               className={styles.searchInput}
@@ -389,7 +387,7 @@ export default function Clientes() {
                       </td>
                     </tr>
 
-                    {/* details */}
+                    {/* details (sem seção de etiquetas — removida por solicitação) */}
                     {isOpen && (
                       <tr className={styles.rowDetails}>
                         <td colSpan={3}>
@@ -421,23 +419,7 @@ export default function Clientes() {
                                   {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
                                 </div>
                               </div>
-
-                              <div className={`${styles.item} ${styles.itemFull}`}>
-                                <div className={styles.k}>Etiquetas</div>
-                                <div className={styles.v}>
-                                  {!tagsLoaded[uid] ? (
-                                    <span className={styles.muted}>Carregando etiquetas…</span>
-                                  ) : (userTags && userTags.length > 0) ? (
-                                    <div className={styles.tagsExistingWrap}>
-                                      {userTags.map(t => (
-                                        <span key={t} className={styles.tagExisting}>{t}</span>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <span className={styles.muted}>Sem etiquetas</span>
-                                  )}
-                                </div>
-                              </div>
+                              {/* (Sem itemFull de etiquetas aqui) */}
                             </div>
                           </div>
                         </td>
