@@ -22,7 +22,7 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/* ===== cores harmoniosas (sólidas) ===== */
+/* ===== cores claras (não pastéis) ===== */
 function hslToHex(h, s, l) {
   s /= 100; l /= 100;
   const k = n => (n + h / 30) % 12;
@@ -44,78 +44,42 @@ function contrastText(hex) {
     return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055)/1.055, 2.4);
   };
   const L = 0.2126*toLin(rgb.r) + 0.7152*toLin(rgb.g) + 0.0722*toLin(rgb.b);
-  return L > 0.55 ? '#111827' : '#FFFFFF';
+  return L > 0.6 ? '#111827' : '#FFFFFF';
 }
-function ensureReadable(hex) {
-  // se muito claro/escuro, ajusta L levemente mantendo o matiz harmonioso
-  const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
-  // contraste relativo com branco/preto
-  const toLin = v => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055)/1.055, 2.4);
-  };
-  const L = 0.2126*toLin(rgb.r) + 0.7152*toLin(rgb.g) + 0.0722*toLin(rgb.b);
-  // se muito claro, escurece um pouco; se muito escuro, clareia
-  if (L > 0.82 || L < 0.18) {
-    // reconstrói via HSL aproximado (ajuste simples por channel scale)
-    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    const targetL = L > 0.82 ? 0.6 : 0.4;
-    return hslToHex(hsl.h, hsl.s * 100, targetL * 100);
-  }
-  return hex;
-}
-function rgbToHsl(r, g, b) {
-  r/=255; g/=255; b/=255;
-  const max = Math.max(r,g,b), min = Math.min(r,g,b);
-  let h, s, l=(max+min)/2;
-  if (max===min) { h = s = 0; }
-  else {
-    const d = max-min;
-    s = l>0.5 ? d/(2-max-min) : d/(max+min);
-    switch(max){
-      case r: h = (g-b)/d + (g<b?6:0); break;
-      case g: h = (b-r)/d + 2; break;
-      case b: h = (r-g)/d + 4; break;
-      default: h = 0;
-    }
-    h/=6;
-  }
-  return { h: Math.round(h*360), s, l };
-}
-
-/* 
-   cor harmoniosa determinística baseada no nome:
-   escolhe um matiz de uma paleta equilibrada e aplica S/L consistentes.
-*/
-const HARMONIC_HUES = [
-  280, // roxo
-  250, // índigo
-  220, // azul
-  195, // ciano
-  170, // teal
-  145, // verde
-  95,  // lima/oliva
-  45,  // âmbar
-  25,  // laranja
-  5,   // vermelho
-  335, // magenta/pink
-];
+const HARMONIC_HUES = [285, 255, 225, 200, 170, 140, 100, 60, 30, 10, 350];
+// cores claras, mas vivas (não lavadas)
 function solidColorFromTag(tag) {
   let h = 0;
   for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
-  const idx = h % HARMONIC_HUES.length;
-  const hue = HARMONIC_HUES[idx];
-  const hex = hslToHex(hue, 68, 46); // saturação alta, luminosidade média (sólido)
-  return ensureReadable(hex);
+  const hue = HARMONIC_HUES[h % HARMONIC_HUES.length];
+  const hex = hslToHex(hue, 62, 56); // S 62 / L 56 → claro, porém com presença
+  return hex;
 }
 function chipStylesSolid(hex) {
-  const safe = ensureReadable(hex);
-  const text = contrastText(safe);
-  return { background: safe, color: text, borderColor: safe };
+  const text = contrastText(hex);
+  return { background: hex, color: text, borderColor: hex };
+}
+// pílula “soft” do input (mais evidente que pastel)
+function chipStylesSoft(hex) {
+  const rgb = hexToRgb(hex) || { r: 59, g: 130, b: 246 };
+  const { r, g, b } = rgb;
+  return {
+    background: `rgba(${r},${g},${b},0.22)`,
+    color: `rgb(${Math.round(r*0.7)},${Math.round(g*0.7)},${Math.round(b*0.7)})`,
+    border: `1px solid rgba(${r},${g},${b},0.55)`
+  };
+}
+function chipCloseStyles(hex) {
+  const rgb = hexToRgb(hex) || { r: 59, g: 130, b: 246 };
+  const { r, g, b } = rgb;
+  return {
+    background: `rgb(255 255 255 / 95%)`,
+    border: `1px solid rgba(${r},${g},${b},0.6)`,
+    color: `rgb(${r},${g},${b})`
+  };
 }
 
-/* ===== ícones de canal (SVG inline) ===== */
+/* ===== ícones de canal ===== */
 const IconWA = (props) => (
   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
     <path fill="#25D366" d="M20.52 3.48A11.94 11.94 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.16 1.6 5.98L0 24l6.2-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52z"/>
@@ -151,7 +115,7 @@ function channelIcon(channel) {
   return null;
 }
 
-/** Input de criação com chips internos coloridos e X para excluir */
+/** Input de criação com chips internos (layout da imagem) */
 function ChipsCreateInput({
   placeholder = 'ex.: vip, reclamacao, atraso',
   onCreate,
@@ -189,20 +153,24 @@ function ChipsCreateInput({
       onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}
       aria-label="Criar etiquetas do catálogo"
     >
-      {tags.map(({ tag, color }) => (
-        <span key={tag} className={styles.tagChip} style={chipStylesSolid(color || solidColorFromTag(tag))}>
-          <span className={styles.tagText}>{tag}</span>
-          <button
-            type="button"
-            className={styles.tagChipX}
-            onClick={() => onDeleteTag && onDeleteTag(tag)}
-            aria-label={`Excluir ${tag}`}
-            disabled={busy}
-          >
-            ×
-          </button>
-        </span>
-      ))}
+      {tags.map(({ tag, color }) => {
+        const col = color || solidColorFromTag(tag);
+        return (
+          <span key={tag} className={`${styles.tagChip} ${styles.tagChipSoft}`} style={chipStylesSoft(col)}>
+            <span className={styles.tagText}>{tag}</span>
+            <button
+              type="button"
+              className={`${styles.tagChipX} ${styles.tagChipXSoft}`}
+              style={chipCloseStyles(col)}
+              onClick={() => onDeleteTag && onDeleteTag(tag)}
+              aria-label={`Excluir ${tag}`}
+              disabled={busy}
+            >
+              ×
+            </button>
+          </span>
+        );
+      })}
 
       <input
         className={styles.tagsInput}
@@ -235,8 +203,8 @@ export default function Clientes() {
   const [selectedTags, setSelectedTags] = useState([]);
 
   // tags por cliente
-  const [tagsByUser, setTagsByUser] = useState({});  // { [user_id]: string[] }
-  const [tagsLoaded, setTagsLoaded] = useState({});  // { [user_id]: bool }
+  const [tagsByUser, setTagsByUser] = useState({});
+  const [tagsLoaded, setTagsLoaded] = useState({});
 
   /* ========= carregar clientes ========= */
   const load = useCallback(async (opts = {}) => {
@@ -292,7 +260,6 @@ export default function Clientes() {
     try {
       setCatalogBusy(true);
       const r = await apiGet('/tags/customer/catalog?active=true&page_size=200');
-      // aceita tanto [{tag, color}] quanto [string]
       const raw = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
       const list = raw.map(it => {
         if (typeof it === 'string') return { tag: it, color: solidColorFromTag(it) };
@@ -388,7 +355,7 @@ export default function Clientes() {
 
       {/* Card */}
       <div className={styles.card}>
-        {/* ===== Criação (chips coloridos dentro do input) ===== */}
+        {/* ===== Criação ===== */}
         <section className={styles.cardHead}>
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
