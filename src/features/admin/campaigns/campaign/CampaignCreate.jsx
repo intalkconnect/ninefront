@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CampaignWizardPage from './CampaignWizardPage';
-import styles from './styles/CampaignCreatePage.module.css';
+import styles from './styles/CampaignCreate.module.css';
 
-export default function CampaignCreatePage() {
+export default function CampaignCreate() {
   const navigate = useNavigate();
 
   return (
