@@ -6,12 +6,7 @@ import styles from './styles/Clientes.module.css';
 
 /* ================== helpers ================== */
 function labelChannel(c) {
-  const m = {
-    whatsapp: 'WhatsApp',
-    telegram: 'Telegram',
-    instagram: 'Instagram',
-    facebook: 'Facebook',
-  };
+  const m = { whatsapp: 'WhatsApp', telegram: 'Telegram', instagram: 'Instagram', facebook: 'Facebook' };
   return m[(c || '').toLowerCase()] || '—';
 }
 
@@ -118,7 +113,7 @@ export default function Clientes() {
       const totalFound = Number(resp?.total || data.length || 0);
       setTotal(totalFound);
 
-      // baixa tags dos clientes visíveis
+      // baixa tags dos clientes visíveis em pequenos lotes
       const chunk = async (arr, size) => {
         for (let i = 0; i < arr.length; i += size) {
           const slice = arr.slice(i, i + size);
@@ -360,7 +355,12 @@ export default function Clientes() {
                       </td>
 
                       <td className={styles.summaryRight}>
-                        <span className={styles.chip}>{labelChannel(row.channel)}</span>
+                        <span
+                          className={styles.chip}
+                          data-channel={String(row.channel || '').toLowerCase()}
+                        >
+                          {labelChannel(row.channel)}
+                        </span>
                       </td>
                     </tr>
 
@@ -376,7 +376,9 @@ export default function Clientes() {
                               </div>
                               <div className={styles.item}>
                                 <div className={styles.k}>Telefone</div>
-                                <div className={styles.v}>{row.channel?.toLowerCase() === 'whatsapp' ? (row.phone || '—') : '—'}</div>
+                                <div className={styles.v}>
+                                  {String(row.channel || '').toLowerCase() === 'whatsapp' ? (row.phone || '—') : '—'}
+                                </div>
                               </div>
                               <div className={styles.item}>
                                 <div className={styles.k}>Canal</div>
@@ -395,7 +397,7 @@ export default function Clientes() {
                                 </div>
                               </div>
 
-                              <div className={styles.itemFull}>
+                              <div className={`${styles.item} ${styles.itemFull}`}>
                                 <div className={styles.k}>Etiquetas</div>
                                 <div className={styles.v}>
                                   {!tagsLoaded[uid] ? (
