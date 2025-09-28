@@ -4,46 +4,27 @@ import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import styles from './styles/Clientes.module.css';
 
 /* ================== helpers ================== */
+function labelChannel(c) {
+  const m = { whatsapp: 'WhatsApp', telegram: 'Telegram', instagram: 'Instagram', facebook: 'Facebook' };
+  return m[(c || '').toLowerCase()] || '—';
+}
 const PAGE_SIZES = [10, 20, 30, 40];
 
-// ícones de canal (inline SVG, leves e sem dependência externa)
-function ChannelIcon({ channel, className }) {
-  const c = String(channel || '').toLowerCase();
-  if (c === 'whatsapp') {
-    return (
-      <svg viewBox="0 0 256 256" className={className} aria-label="WhatsApp">
-        <path d="M128 20a108 108 0 0 0-93.3 162.7L24 236l54-10.7A108 108 0 1 0 128 20Z" fill="currentColor"/>
-        <path d="M190.7 149.3c-2.2 6.2-10.8 11.4-17.4 12.9-4.6 1-10.6 1.8-33.2-6.9-27.9-11-46-39-47.4-40.8-1.4-1.9-11.3-15-11.3-28.6s7.2-20.5 10-23.4c2.6-2.9 6.9-4.2 11.1-4.2 1.4 0 2.6 0.1 3.7 0.1 3.2 0.1 4.9 0.3 7 5.4 2.2 5.4 7.5 18.8 8.2 20.2 0.6 1.4 1.1 3.2 0.2 5-0.8 1.7-1.3 2.7-2.6 4.3s-2.7 3-4.1 4.8c-1.3 1.7-2.7 3.6-1.2 6.4 1.4 2.9 6 9.8 12.9 16 8.9 7.9 16.4 10.4 19.3 11.6 2.9 1.1 4.7 0.9 6.5-0.6 2.1-1.5 4.4-5.7 7-9.1 1.8-2.4 4-2.8 6.4-1.9 2.4 0.8 15.1 7.1 17.7 8.4 2.6 1.3 4.3 1.9 4.9 3C192.9 139.5 192.9 143.1 190.7 149.3z" fill="#fff"/>
-      </svg>
-    );
-  }
-  if (c === 'telegram') {
-    return (
-      <svg viewBox="0 0 256 256" className={className} aria-label="Telegram">
-        <path d="M128 16a112 112 0 1 0 0 224 112 112 0 0 0 0-224Z" fill="currentColor"/>
-        <path d="M194 77 53 126c-6 2-6 10-1 12l33 10 14 44c2 6 10 6 12 1l19-30 39 29c5 3 11 1 12-5l20-99c1-7-5-12-11-10Z" fill="#fff"/>
-      </svg>
-    );
-  }
-  if (c === 'instagram') {
-    return (
-      <svg viewBox="0 0 256 256" className={className} aria-label="Instagram">
-        <rect x="36" y="36" width="184" height="184" rx="48" fill="currentColor"/>
-        <circle cx="128" cy="128" r="46" fill="#fff"/>
-        <circle cx="182" cy="74" r="10" fill="#fff"/>
-      </svg>
-    );
-  }
-  if (c === 'facebook') {
-    return (
-      <svg viewBox="0 0 256 256" className={className} aria-label="Facebook">
-        <path d="M128 16a112 112 0 1 0 0 224 112 112 0 0 0 0-224Z" fill="currentColor"/>
-        <path d="M138 216v-76h25l4-30h-29v-19c0-9 3-15 15-15h15V49c-3 0-14-1-26-1-26 0-44 16-44 45v17H78v30h20v76h40z" fill="#fff"/>
-      </svg>
-    );
-  }
-  // fallback: bolha genérica
-  return <div className={className} aria-hidden="true" />;
+/* hash → cor pastel estável por tag */
+function hash32(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+function tagVars(tag) {
+  const hue = hash32(String(tag)) % 360;
+  const s = 72;   // saturação
+  const l = 92;   // luminosidade (bg)
+  return {
+    '--tag-bg': `hsl(${hue} ${s}% ${l}%)`,
+    '--tag-border': `hsl(${hue} ${s}% ${l - 10}%)`,
+    '--tag-fg': `hsl(${hue} 32% 22%)`,
+  };
 }
 
 // quebra por vírgula/; , normaliza e slugifica
@@ -62,32 +43,25 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/** Input simples: cria etiquetas do catálogo ao Enter/virgula/colar (sem toast) */
+/** Input: cria etiquetas do catálogo ao Enter/virgula/colar (sem botão, sem toast) */
 function ChipsCreateInput({ placeholder = 'ex.: vip, reclamacao, atraso', onCreate, busy }) {
   const [text, setText] = useState('');
-
   const commit = async (raw) => {
     const tokens = splitTokens(raw);
     if (!tokens.length) return;
     setText('');
     await onCreate(tokens);
   };
-
   const onKeyDown = async (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       if (text.trim()) await commit(text);
     }
   };
-
   const onPaste = async (e) => {
     const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
-    if (/[,\u003B\u061B\uFF1B]/.test(txt)) {
-      e.preventDefault();
-      await commit(txt);
-    }
+    if (/[,\u003B\u061B\uFF1B]/.test(txt)) { e.preventDefault(); await commit(txt); }
   };
-
   return (
     <div className={styles.tagsField} onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}>
       <input
@@ -111,18 +85,18 @@ export default function Clientes() {
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [openRow, setOpenRow] = useState(null); // user_id aberto
+  const [openRow, setOpenRow] = useState(null);
 
-  // ===== catálogo global de tags de cliente =====
-  const [catalog, setCatalog] = useState([]);        // array de strings
+  // catálogo global de tags
+  const [catalog, setCatalog] = useState([]);        // strings
   const [catalogBusy, setCatalogBusy] = useState(false);
 
-  // ===== filtro por tag =====
-  const [selectedTags, setSelectedTags] = useState([]); // tags usadas no filtro
+  // filtro por tag
+  const [selectedTags, setSelectedTags] = useState([]);
 
-  // ===== tags por cliente =====
-  const [tagsByUser, setTagsByUser] = useState({});     // { [user_id]: string[] }
-  const [tagsLoaded, setTagsLoaded] = useState({});     // { [user_id]: bool }
+  // tags por cliente
+  const [tagsByUser, setTagsByUser] = useState({});  // { [user_id]: string[] }
+  const [tagsLoaded, setTagsLoaded] = useState({});  // { [user_id]: bool }
 
   /* ========= carregar clientes ========= */
   const load = useCallback(async (opts = {}) => {
@@ -165,9 +139,6 @@ export default function Clientes() {
       await chunk(data, 8);
 
       return { data, total: totalFound };
-    } catch {
-      setItems([]); setTotal(0);
-      return { data: [], total: 0 };
     } finally {
       setLoading(false);
     }
@@ -198,12 +169,8 @@ export default function Clientes() {
       setCatalogBusy(true);
       const uniq = [...new Set(tokens)];
       await Promise.all(uniq.map(tag => apiPost('/tags/customer/catalog', { tag, active: true })));
-      await loadCatalog(); // silencioso, sem toast
-    } catch {
-      // silencioso
-    } finally {
-      setCatalogBusy(false);
-    }
+      await loadCatalog();
+    } finally { setCatalogBusy(false); }
   };
 
   const deleteCatalogTag = async (tag) => {
@@ -214,12 +181,8 @@ export default function Clientes() {
       setCatalogBusy(true);
       await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
       setSelectedTags(prev => prev.filter(t => t !== tag));
-      await loadCatalog(); // silencioso
-    } catch {
-      // silencioso
-    } finally {
-      setCatalogBusy(false);
-    }
+      await loadCatalog();
+    } finally { setCatalogBusy(false); }
   };
 
   /* ========= filtros ========= */
@@ -227,10 +190,6 @@ export default function Clientes() {
     e?.preventDefault?.();
     setPage(1);
     await load({ page: 1, q });
-  };
-
-  const toggleFilterTag = (tag) => {
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
   };
 
   const visible = useMemo(() => {
@@ -264,15 +223,16 @@ export default function Clientes() {
       {/* Cabeçalho */}
       <div className={styles.header}>
         <div>
-          <p className={styles.subtitle}>Gestão de clientes: crie etiquetas globais, filtre por etiquetas e visualize os detalhes.</p>
+          <p className={styles.subtitle}>
+            Gestão de clientes: crie etiquetas globais, filtre por etiquetas e visualize os detalhes.
+          </p>
         </div>
       </div>
 
-      {/* Card principal */}
+      {/* Card */}
       <div className={styles.card}>
-        {/* ===== Cabeçalho do card (criação + busca à direita) ===== */}
+        {/* ===== Criação de etiquetas (topo do card) ===== */}
         <section className={styles.cardHead}>
-          {/* criar etiquetas */}
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
               <label className={styles.label}>Criar etiquetas (globais)</label>
@@ -284,40 +244,27 @@ export default function Clientes() {
               <div className={styles.hint}>As etiquetas criadas aqui ficam disponíveis para todos os clientes.</div>
             </div>
           </div>
-
-          {/* busca */}
-          <form onSubmit={onSearch} className={styles.searchGroup}>
-            <label className={styles.searchLabel}>Buscar</label>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por nome, telefone ou user_id…"
-              value={q}
-              onChange={(e)=> setQ(e.target.value)}
-            />
-            {q && (
-              <button type="button" className={styles.searchClear} onClick={()=> setQ('')} aria-label="Limpar">
-                <XIcon size={14}/>
-              </button>
-            )}
-          </form>
         </section>
 
-        {/* ===== Barra de filtros (abaixo do cabeçalho) ===== */}
+        {/* ===== Filtros + BUSCA (logo abaixo do cabeçalho) ===== */}
         <section className={styles.filtersBar}>
           <div className={styles.filtersHead}>
-            <span className={styles.filtersTitle}>Filtrar por etiquetas</span>
+            <div className={styles.filtersTitle}>Filtrar por etiquetas</div>
           </div>
+
           <div className={styles.tagsFilterWrap}>
             {catalogBusy && catalog.length === 0 && <div className={styles.loading}>Carregando etiquetas…</div>}
             {!catalogBusy && catalog.length === 0 && <div className={styles.empty}>Nenhuma etiqueta cadastrada.</div>}
             {catalog.map(tag => {
               const active = selectedTags.includes(tag);
               return (
-                <span key={tag} className={styles.tagToggleWrap}>
+                <span key={tag} className={styles.tagToggleWrap} style={tagVars(tag)}>
                   <button
                     type="button"
-                    className={`${styles.tagToggle} ${active ? styles.tagToggleOn : ''}`}
-                    onClick={() => toggleFilterTag(tag)}
+                    className={`${styles.tagToggle} ${styles.tagDynamic} ${active ? styles.tagToggleOn : ''}`}
+                    onClick={() =>
+                      setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+                    }
                     title={active ? 'Remover do filtro' : 'Adicionar ao filtro'}
                   >
                     {tag}
@@ -337,17 +284,38 @@ export default function Clientes() {
             })}
           </div>
 
+          {/* chips do filtro selecionado */}
           {selectedTags.length > 0 && (
             <div className={styles.filterSelectedRow}>
               {selectedTags.map(t => (
-                <span key={t} className={styles.tagChip}>
+                <span key={t} className={`${styles.tagChip} ${styles.tagDynamic}`} style={tagVars(t)}>
                   <span className={styles.tagText}>{t}</span>
-                  <button className={styles.tagChipX} onClick={()=> toggleFilterTag(t)} aria-label={`Remover ${t}`}>×</button>
+                  <button className={styles.tagChipX} onClick={() =>
+                    setSelectedTags(prev => prev.filter(x => x !== t))
+                  } aria-label={`Remover ${t}`}>×</button>
                 </span>
               ))}
               <button type="button" className={styles.btn} onClick={()=> setSelectedTags([])}>Limpar filtro</button>
             </div>
           )}
+
+          {/* BUSCA — sob o filtro */}
+          <form onSubmit={onSearch} className={styles.searchGroupInline}>
+            <label className={styles.searchLabel}>Buscar</label>
+            <div className={styles.searchBox}>
+              <input
+                className={styles.searchInput}
+                placeholder="Buscar por nome, telefone ou user_id…"
+                value={q}
+                onChange={(e)=> setQ(e.target.value)}
+              />
+              {q && (
+                <button type="button" className={styles.searchClear} onClick={()=> setQ('')} aria-label="Limpar">
+                  <XIcon size={14}/>
+                </button>
+              )}
+            </div>
+          </form>
         </section>
 
         {/* ===== Tabela ===== */}
@@ -366,13 +334,8 @@ export default function Clientes() {
               </tr>
             </thead>
             <tbody>
-              {loading && (
-                <tr><td colSpan={3} className={styles.loading}>Carregando…</td></tr>
-              )}
-
-              {!loading && visible.length === 0 && (
-                <tr><td colSpan={3} className={styles.empty}>Nenhum cliente encontrado.</td></tr>
-              )}
+              {loading && <tr><td colSpan={3} className={styles.loading}>Carregando…</td></tr>}
+              {!loading && visible.length === 0 && <tr><td colSpan={3} className={styles.empty}>Nenhum cliente encontrado.</td></tr>}
 
               {!loading && visible.map((row) => {
                 const uid = row.user_id;
@@ -382,26 +345,19 @@ export default function Clientes() {
 
                 return (
                   <React.Fragment key={uid}>
-                    {/* summary (3 colunas) */}
-                    <tr
-                      className={`${styles.rowHover} ${styles.accRow}`}
-                      onClick={() => setOpenRow(isOpen ? null : uid)}
-                    >
+                    <tr className={`${styles.rowHover} ${styles.accRow}`} onClick={() => setOpenRow(isOpen ? null : uid)}>
                       <td className={styles.summaryCell}>
-                        <span className={`${styles.chev} ${isOpen ? styles.chevOpen : ''}`}>
-                          <ChevronRight size={16}/>
-                        </span>
+                        <span className={`${styles.chev} ${isOpen ? styles.chevOpen : ''}`}><ChevronRight size={16}/></span>
                         <span className={styles.nameText}>{row.name || '—'}</span>
                       </td>
 
-                      {/* Etiquetas (coluna do meio) */}
                       <td className={styles.tagsCell}>
                         {tagsPending ? (
                           <span className={styles.muted}>—</span>
                         ) : (userTags && userTags.length > 0) ? (
                           <div className={styles.tagsRowWrap}>
                             {userTags.map(t => (
-                              <span key={t} className={styles.tagExisting}>{t}</span>
+                              <span key={t} className={`${styles.tagExisting} ${styles.tagDynamic}`} style={tagVars(t)}>{t}</span>
                             ))}
                           </div>
                         ) : (
@@ -409,18 +365,18 @@ export default function Clientes() {
                         )}
                       </td>
 
-                      {/* Canal com ícone */}
                       <td className={styles.summaryRight}>
                         <span
-                          className={`${styles.chanBubble} ${styles[`chan-${String(row.channel || '').toLowerCase()}`]}`}
-                          title={String(row.channel || '').charAt(0).toUpperCase() + String(row.channel || '').slice(1)}
+                          className={styles.chip}
+                          data-channel={String(row.channel || '').toLowerCase()}
+                          title={labelChannel(row.channel)}
                         >
-                          <ChannelIcon channel={row.channel} className={styles.chanIcon} />
+                          {/* aqui você pode trocar por SVGs dos canais se quiser */}
+                          {labelChannel(row.channel)}
                         </span>
                       </td>
                     </tr>
 
-                    {/* details */}
                     {isOpen && (
                       <tr className={styles.rowDetails}>
                         <td colSpan={3}>
@@ -438,13 +394,7 @@ export default function Clientes() {
                               </div>
                               <div className={styles.item}>
                                 <div className={styles.k}>Canal</div>
-                                <div className={styles.v}>
-                                  <span
-                                    className={`${styles.chanBubble} ${styles[`chan-${String(row.channel || '').toLowerCase()}`]}`}
-                                  >
-                                    <ChannelIcon channel={row.channel} className={styles.chanIcon}/>
-                                  </span>
-                                </div>
+                                <div className={styles.v}>{labelChannel(row.channel)}</div>
                               </div>
                               <div className={styles.item}>
                                 <div className={styles.k}>Atualizado em</div>
@@ -458,8 +408,7 @@ export default function Clientes() {
                                   {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
                                 </div>
                               </div>
-
-                              {/* removido: exibição interna de etiquetas (você pediu para manter só fora) */}
+                              {/* Removido bloco de etiquetas aqui para evitar duplicidade, conforme solicitado */}
                             </div>
                           </div>
                         </td>
