@@ -1,4 +1,3 @@
-// src/features/admin/management/clientes/Clientes.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ChevronRight, RefreshCw, X as XIcon, Plus } from 'lucide-react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
@@ -119,7 +118,7 @@ export default function Clientes() {
       const totalFound = Number(resp?.total || data.length || 0);
       setTotal(totalFound);
 
-      // após carregar a página, baixa tags dos clientes da página (para filtro e exibição)
+      // baixa tags dos clientes visíveis
       const chunk = async (arr, size) => {
         for (let i = 0; i < arr.length; i += size) {
           const slice = arr.slice(i, i + size);
@@ -139,7 +138,7 @@ export default function Clientes() {
           }));
         }
       };
-      await chunk(data, 8); // 8 por vez
+      await chunk(data, 8);
 
       return { data, total: totalFound };
     } catch (e) {
@@ -198,10 +197,7 @@ export default function Clientes() {
   };
 
   const visible = useMemo(() => {
-    // 1) aplica filtro de texto (já vem do servidor)
     let data = items;
-
-    // 2) aplica filtro por tags (AND: cliente precisa ter TODAS as tags selecionadas)
     if (selectedTags.length > 0) {
       data = data.filter(row => {
         const uid = row.user_id;
@@ -309,30 +305,34 @@ export default function Clientes() {
           <table className={styles.table}>
             <colgroup>
               <col className={styles.colNome}/>
+              <col className={styles.colTags}/>
               <col className={styles.colCanal}/>
             </colgroup>
             <thead>
               <tr>
                 <th>Nome</th>
+                <th>Etiquetas</th>
                 <th>Canal</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={2} className={styles.loading}>Carregando…</td></tr>
+                <tr><td colSpan={3} className={styles.loading}>Carregando…</td></tr>
               )}
 
               {!loading && visible.length === 0 && (
-                <tr><td colSpan={2} className={styles.empty}>Nenhum cliente encontrado.</td></tr>
+                <tr><td colSpan={3} className={styles.empty}>Nenhum cliente encontrado.</td></tr>
               )}
 
               {!loading && visible.map((row) => {
                 const uid = row.user_id;
                 const isOpen = openRow === uid;
-                const userTags = tagsByUser[uid] || [];
+                const userTags = tagsByUser[uid];
+                const tagsPending = !tagsLoaded[uid];
+
                 return (
                   <React.Fragment key={uid}>
-                    {/* summary */}
+                    {/* summary (3 colunas) */}
                     <tr
                       className={`${styles.rowHover} ${styles.accRow}`}
                       onClick={() => setOpenRow(isOpen ? null : uid)}
@@ -343,15 +343,31 @@ export default function Clientes() {
                         </span>
                         <span className={styles.nameText}>{row.name || '—'}</span>
                       </td>
+
+                      {/* Etiquetas (coluna do meio) */}
+                      <td className={styles.tagsCell}>
+                        {tagsPending ? (
+                          <span className={styles.muted}>—</span>
+                        ) : (userTags && userTags.length > 0) ? (
+                          <div className={styles.tagsRowWrap}>
+                            {userTags.map(t => (
+                              <span key={t} className={styles.tagExisting}>{t}</span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className={styles.muted}>—</span>
+                        )}
+                      </td>
+
                       <td className={styles.summaryRight}>
                         <span className={styles.chip}>{labelChannel(row.channel)}</span>
                       </td>
                     </tr>
 
-                    {/* details: exibe tags do cliente (somente leitura) */}
+                    {/* details */}
                     {isOpen && (
                       <tr className={styles.rowDetails}>
-                        <td colSpan={2}>
+                        <td colSpan={3}>
                           <div className={styles.detailsBox}>
                             <div className={styles.detailsGrid}>
                               <div className={styles.item}>
@@ -382,14 +398,16 @@ export default function Clientes() {
                               <div className={styles.itemFull}>
                                 <div className={styles.k}>Etiquetas</div>
                                 <div className={styles.v}>
-                                  {userTags.length === 0 ? (
-                                    <span className={styles.muted}>Sem etiquetas</span>
-                                  ) : (
+                                  {!tagsLoaded[uid] ? (
+                                    <span className={styles.muted}>Carregando etiquetas…</span>
+                                  ) : (userTags && userTags.length > 0) ? (
                                     <div className={styles.tagsExistingWrap}>
                                       {userTags.map(t => (
                                         <span key={t} className={styles.tagExisting}>{t}</span>
                                       ))}
                                     </div>
+                                  ) : (
+                                    <span className={styles.muted}>Sem etiquetas</span>
                                   )}
                                 </div>
                               </div>
