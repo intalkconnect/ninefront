@@ -15,12 +15,6 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/* ===== Etiquetas sempre azuis (layout da imagem) ===== */
-const FIXED_TAG_BLUE = '#2563EB';
-function chipStylesBlue() {
-  return { background: FIXED_TAG_BLUE, color: '#FFFFFF', borderColor: FIXED_TAG_BLUE };
-}
-
 /* ===== ícones de canal ===== */
 const IconWA = (props) => (
   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
@@ -57,7 +51,7 @@ function channelIcon(channel) {
   return null;
 }
 
-/** Input de criação com chips AZUIS e “X” (dentro do input) */
+/** Input de criação com chips (azul claro, sem pastel “lavado”) e “X” */
 function ChipsCreateInput({
   placeholder = 'ex.: VIP, Suporte, Cliente Atrasado',
   onCreate,
@@ -96,7 +90,7 @@ function ChipsCreateInput({
       aria-label="Criar etiquetas do catálogo"
     >
       {tags.map(({ tag }) => (
-        <span key={tag} className={styles.tagChip} style={chipStylesBlue()}>
+        <span key={tag} className={styles.tagChip}>
           <span className={styles.tagText}>{tag}</span>
           <button
             type="button"
@@ -200,7 +194,6 @@ export default function Clientes() {
     try {
       setCatalogBusy(true);
       const r = await apiGet('/tags/customer/catalog?active=true&page_size=200');
-      // ignoramos a cor do backend, pois o layout é azul fixo
       const raw = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
       const list = raw.map(it => {
         if (typeof it === 'string') return { tag: it };
@@ -223,7 +216,6 @@ export default function Clientes() {
       const uniq = [...new Set(tokens)];
       await Promise.all(
         uniq.map(tag =>
-          // não enviamos cor — UI é sempre azul
           apiPost('/tags/customer/catalog', { tag, active: true })
         )
       );
@@ -248,13 +240,8 @@ export default function Clientes() {
       setCatalogBusy(true);
       await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
 
-      // 1) remove do catálogo local
       setCatalog(prev => prev.filter(it => (typeof it === 'string' ? it !== tag : it.tag !== tag)));
-
-      // 2) se estava no filtro, remove
       setSelectedTags(prev => prev.filter(t => t !== tag));
-
-      // 3) remove de TODOS os clientes exibidos (estado local)
       setTagsByUser(prev => {
         const next = {};
         for (const [uid, arr] of Object.entries(prev)) {
@@ -263,7 +250,6 @@ export default function Clientes() {
         return next;
       });
 
-      // sincroniza catálogo
       await loadCatalog();
     } catch (e) {
       console.error('Falha ao remover etiqueta:', e);
@@ -310,7 +296,7 @@ export default function Clientes() {
 
       {/* Card */}
       <div className={styles.card}>
-        {/* ===== Criação (chips azuis dentro do input) ===== */}
+        {/* ===== Criação (chips no input) ===== */}
         <section className={styles.cardHead}>
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
@@ -355,7 +341,7 @@ export default function Clientes() {
           {selectedTags.length > 0 && (
             <div className={styles.filterSelectedRow}>
               {selectedTags.map(t => (
-                <span key={t} className={styles.tagChip /* aparência neutra aqui */}>
+                <span key={t} className={styles.tagChip /* mesma aparência, mas sem X no filtro principal */}>
                   <span className={styles.tagText}>{t}</span>
                   <button
                     className={styles.tagChipX}
@@ -426,7 +412,7 @@ export default function Clientes() {
                         ) : (userTags && userTags.length > 0) ? (
                           <div className={styles.tagsRowWrap}>
                             {userTags.map(t => (
-                              <span key={t} className={styles.tagExisting} style={chipStylesBlue()}>
+                              <span key={t} className={styles.tagChip}>
                                 {t}
                               </span>
                             ))}
