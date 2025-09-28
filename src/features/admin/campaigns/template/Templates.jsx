@@ -6,7 +6,7 @@ import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import { toast } from 'react-toastify';
 
-// >>> usamos o preview compartilhado (o mesmo do Create)
+// Preview compartilhado (o mesmo do Create)
 import PreviewWhatsApp from './PreviewWhatsApp';
 import styles from './styles/Templates.module.css';
 
@@ -108,7 +108,7 @@ export default function Templates() {
       .reverse();
   }, [items, statusFilter, query]);
 
-  // seleciona o primeiro da lista quando carregar/filtrar, se nada estiver selecionado
+  // seleciona automaticamente o primeiro item quando a lista/filtragem muda
   useEffect(() => {
     if (!selected || !filtered.find(f => f.id === selected.id)) {
       setSelected(filtered[0] || null);
@@ -172,20 +172,22 @@ export default function Templates() {
         <div className={styles.colList}>
           <div className={styles.card}>
             <div className={styles.cardHead}>
-              {/* filtro por status */}
-              <div className={styles.optionsRow} role="radiogroup" aria-label="Filtrar por status">
-                {STATUS_OPTIONS.map(opt => (
-                  <label key={opt.key || 'all'} className={styles.opt} role="radio" aria-checked={statusFilter === opt.key}>
-                    <input
-                      type="radio"
-                      name="statusFilter"
-                      value={opt.key}
-                      checked={statusFilter === opt.key}
-                      onChange={() => setStatusFilter(opt.key)}
-                    />
-                    <span>{opt.label}</span>
-                  </label>
-                ))}
+              {/* filtro por status — estilo pílulas */}
+              <div className={styles.segmentRow} role="tablist" aria-label="Filtrar por status">
+                {STATUS_OPTIONS.map(opt => {
+                  const active = statusFilter === opt.key;
+                  return (
+                    <button
+                      key={opt.key || 'all'}
+                      type="button"
+                      className={`${styles.segBtn} ${active ? styles.segBtnActive : ''}`}
+                      onClick={() => setStatusFilter(opt.key)}
+                      aria-pressed={active}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* busca */}
