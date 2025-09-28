@@ -1,43 +1,55 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
-import { apiGet, apiPost, apiDelete, apiPatch } from '../../../../shared/apiClient'; // <-- adiciona apiPatch
+import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import styles from './styles/Clientes.module.css';
 
 /* ================== helpers ================== */
 const PAGE_SIZES = [10, 20, 30, 40];
 
-/** cor única (layout pedido) */
-const CHIP_COLOR = '#14A3FF';
-const CHIP_TEXT  = '#FFFFFF';
-
-/** aceita o texto como foi digitado (sem slug/lowercase) */
-function splitTokensKeep(raw) {
+// NÃO alterar o texto digitado: apenas separa por vírgula/; para criação múltipla
+function splitTokens(raw) {
   return String(raw || '')
     .split(/[,\u003B\u061B\uFF1B]/)
     .map(s => s.trim())
     .filter(Boolean);
 }
 
-/** estilos da pílula sólida (input + tabela) */
-const chipSolidStyle = () => ({ background: CHIP_COLOR, color: CHIP_TEXT, borderColor: CHIP_COLOR });
-const chipCloseSolidStyle = () => ({
-  background: 'rgba(255,255,255,.18)',
-  border: '1px solid rgba(255,255,255,.55)',
-  color: '#fff'
-});
-
-/** Compat: o provider pode expor `confirm` OU ser a própria função */
-function useAppConfirm() {
-  const inst = useConfirm?.() ?? null;
-  let fn = null;
-  if (typeof inst === 'function') fn = inst;
-  else if (inst && typeof inst.confirm === 'function') fn = inst.confirm;
-
-  return async (opts) => {
-    if (fn) return await fn(opts);
-    return window.confirm(opts?.description || 'Confirmar operação?');
+/* ===== cores sólidas (não pastéis), porém harmoniosas ===== */
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
+}
+function solidColorFromTag(tag) {
+  // cor determinística pelo texto (mantemos a mesma cor para o mesmo nome)
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  // saturação 70, luminosidade 50 → forte, limpa (não pastel)
+  return hslToHex(hue, 70, 50);
+}
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+  if (!m) return null;
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+function contrastText(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return '#111827';
+  const toLin = v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055)/1.055, 2.4);
   };
+  const L = 0.2126*toLin(rgb.r) + 0.7152*toLin(rgb.g) + 0.0722*toLin(rgb.b);
+  return L > 0.55 ? '#111827' : '#FFFFFF';
+}
+function chipStylesSolid(hex) {
+  const text = contrastText(hex);
+  return { background: hex, color: text, borderColor: hex };
 }
 
 /* ===== ícones de canal ===== */
@@ -76,18 +88,18 @@ function channelIcon(channel) {
   return null;
 }
 
-/** Input com chips sólidas e X para excluir */
+/** Input de criação com chips coloridos e X (dentro do input) */
 function ChipsCreateInput({
-  placeholder = 'Digite e pressione Enter (pode colar várias separadas por vírgula)',
+  placeholder = 'ex.: VIP, Suporte, Cliente Atrasado',
   onCreate,
   onDeleteTag,
   busy,
-  tags = [], // [{tag}] ou string[]
+  tags = [], // [{ tag, color }]
 }) {
   const [text, setText] = useState('');
 
   const commit = async (raw) => {
-    const tokens = splitTokensKeep(raw);
+    const tokens = splitTokens(raw);
     if (!tokens.length) return;
     setText('');
     await onCreate(tokens);
@@ -99,9 +111,7 @@ function ChipsCreateInput({
       if (text.trim()) await commit(text);
     }
     if (e.key === 'Backspace' && !text && tags.length) {
-      const last = tags[tags.length - 1];
-      const tag = typeof last === 'string' ? last : last.tag;
-      onDeleteTag && onDeleteTag(tag);
+      onDeleteTag && onDeleteTag(tags[tags.length - 1].tag);
     }
   };
 
@@ -116,24 +126,24 @@ function ChipsCreateInput({
       onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}
       aria-label="Criar etiquetas do catálogo"
     >
-      {(tags || []).map((it) => {
-        const tag = typeof it === 'string' ? it : it.tag;
-        return (
-          <span key={tag} className={`${styles.tagChip} ${styles.tagChipSolid}`} style={chipSolidStyle()}>
-            <span className={styles.tagText}>{tag}</span>
-            <button
-              type="button"
-              className={`${styles.tagChipX} ${styles.tagChipXSolid}`}
-              style={chipCloseSolidStyle()}
-              onClick={() => onDeleteTag && onDeleteTag(tag)}
-              aria-label={`Excluir ${tag}`}
-              disabled={busy}
-            >
-              ×
-            </button>
-          </span>
-        );
-      })}
+      {tags.map(({ tag, color }) => (
+        <span
+          key={tag}
+          className={styles.tagChip}
+          style={chipStylesSolid(color || solidColorFromTag(tag))}
+        >
+          <span className={styles.tagText}>{tag}</span>
+          <button
+            type="button"
+            className={styles.tagChipX}
+            onClick={() => onDeleteTag && onDeleteTag(tag)}
+            aria-label={`Excluir ${tag}`}
+            disabled={busy}
+          >
+            ×
+          </button>
+        </span>
+      ))}
 
       <input
         className={styles.tagsInput}
@@ -141,7 +151,7 @@ function ChipsCreateInput({
         onChange={(e)=> setText(e.target.value)}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
-        placeholder={(tags?.length ?? 0) === 0 ? placeholder : ''}
+        placeholder={placeholder}
         disabled={busy}
       />
     </div>
@@ -149,7 +159,7 @@ function ChipsCreateInput({
 }
 
 export default function Clientes() {
-  const confirm = useAppConfirm();
+  const confirm = useConfirm();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -160,16 +170,16 @@ export default function Clientes() {
   const [total, setTotal] = useState(0);
   const [openRow, setOpenRow] = useState(null);
 
-  // catálogo global [{tag}]
+  // catálogo global [{tag, color}]
   const [catalog, setCatalog] = useState([]);
   const [catalogBusy, setCatalogBusy] = useState(false);
 
-  // filtro por tag
+  // filtro por tag (strings)
   const [selectedTags, setSelectedTags] = useState([]);
 
   // tags por cliente
-  const [tagsByUser, setTagsByUser] = useState({});
-  const [tagsLoaded, setTagsLoaded] = useState({});
+  const [tagsByUser, setTagsByUser] = useState({});  // { [user_id]: string[] }
+  const [tagsLoaded, setTagsLoaded] = useState({});  // { [user_id]: bool }
 
   /* ========= carregar clientes ========= */
   const load = useCallback(async (opts = {}) => {
@@ -179,14 +189,17 @@ export default function Clientes() {
 
     setLoading(true);
     try {
-      const resp = await apiGet('/customers', { params: { q: nextQ, page: nextPage, page_size: nextPageSize } });
+      const resp = await apiGet('/customers', {
+        params: { q: nextQ, page: nextPage, page_size: nextPageSize }
+      });
       const data = Array.isArray(resp?.data) ? resp.data : resp?.data ?? [];
       setItems(data);
       setPage(resp?.page || nextPage);
       setPageSize(resp?.page_size || nextPageSize);
-      setTotal(Number(resp?.total || data.length || 0));
+      const totalFound = Number(resp?.total || data.length || 0);
+      setTotal(totalFound);
 
-      // baixar tags dos visíveis
+      // baixa tags dos clientes visíveis
       const chunk = async (arr, size) => {
         for (let i = 0; i < arr.length; i += size) {
           const slice = arr.slice(i, i + size);
@@ -196,7 +209,7 @@ export default function Clientes() {
             try {
               const r = await apiGet(`/tags/customer/${encodeURIComponent(uid)}`);
               const list = Array.isArray(r?.tags) ? r.tags : (Array.isArray(r?.data) ? r.data : []);
-              const norm = (list || []).map(x => String(x?.tag || x)).filter(Boolean);
+              const norm = (list || []).map(x => String(x?.tag || x).trim()).filter(Boolean);
               setTagsByUser(m => ({ ...m, [uid]: norm }));
               setTagsLoaded(m => ({ ...m, [uid]: true }));
             } catch {
@@ -207,9 +220,12 @@ export default function Clientes() {
         }
       };
       await chunk(data, 8);
+
+      return { data, total: totalFound };
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, q, tagsLoaded]);
 
   useEffect(() => { load(); }, []); // primeira carga
@@ -220,10 +236,12 @@ export default function Clientes() {
       setCatalogBusy(true);
       const r = await apiGet('/tags/customer/catalog?active=true&page_size=200');
       const raw = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
-      const list = raw.map(it => (typeof it === 'string'
-        ? { tag: it }
-        : { tag: String(it?.tag || '') }
-      )).filter(x => x.tag);
+      const list = raw.map(it => {
+        if (typeof it === 'string') return { tag: it, color: solidColorFromTag(it) };
+        const tag = String(it?.tag || '').trim();
+        const color = (it?.color && String(it.color).trim()) || '';
+        return { tag, color: color || solidColorFromTag(tag) };
+      }).filter(x => x.tag);
       const dedup = Array.from(new Map(list.map(x => [x.tag, x])).values())
         .sort((a,b) => a.tag.localeCompare(b.tag));
       setCatalog(dedup);
@@ -239,19 +257,22 @@ export default function Clientes() {
       setCatalogBusy(true);
       const uniq = [...new Set(tokens)];
       await Promise.all(
-        uniq.map(tag => apiPost('/tags/customer/catalog', { tag, color: CHIP_COLOR, active: true }))
+        uniq.map(tag =>
+          apiPost('/tags/customer/catalog', { tag, color: solidColorFromTag(tag), active: true })
+        )
       );
+      // sem toast
       await loadCatalog();
     } finally { setCatalogBusy(false); }
   };
 
-  /** Exclusão com CONFIRM + trata 204/404/409 (Conflict) */
+  // >>>>>>> ATUALIZADO: remove também das exibições de todos os clientes <<<<<<<
   const deleteCatalogTag = async (tag) => {
     if (!tag) return;
 
     const ok = await confirm({
-      title: 'Excluir etiqueta?',
-      description: `Excluir a etiqueta "${tag}" do catálogo global? Isso não remove a etiqueta já aplicada em clientes.`,
+      title: 'Excluir etiqueta do catálogo',
+      description: `Tem certeza que deseja excluir a etiqueta "${tag}"? Esse procedimento também removerá a etiqueta de todos os clientes.`,
       confirmText: 'Excluir',
       cancelText: 'Cancelar',
       tone: 'danger',
@@ -259,49 +280,32 @@ export default function Clientes() {
     if (!ok) return;
 
     try {
+      setCatalogBusy(true);
+      // backend já remove em cascata dos vínculos
       await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
-      // sucesso (204/200) — recarrega
-      await loadCatalog();
-      return;
-    } catch (err) {
-      const status = err?.status ?? err?.response?.status;
-      const msg = String(err?.message || '');
 
-      // corpo vazio em 204 com cliente tentando .json()
-      if (/Unexpected end of JSON input/i.test(msg) || status === 204) {
-        await loadCatalog();
-        return;
-      }
-      // 404 — já não existia: sincroniza e segue
-      if (status === 404 || /404/.test(msg)) {
-        await loadCatalog();
-        return;
-      }
-      // 409 — em uso: oferece inativar
-      if (status === 409 || /409/.test(msg)) {
-        const okDeactivate = await confirm({
-          title: 'Etiqueta em uso',
-          description:
-            `A etiqueta "${tag}" está em uso por clientes. Deseja **inativá-la** (não poderá ser mais usada)?`,
-          confirmText: 'Inativar',
-          cancelText: 'Cancelar',
-          tone: 'warning',
-        });
-        if (!okDeactivate) return;
+      // 1) remove do catálogo local
+      setCatalog(prev => prev.filter(it => (typeof it === 'string' ? it !== tag : it.tag !== tag)));
 
-        try {
-          await apiPatch(`/tags/customer/catalog/${encodeURIComponent(tag)}`, { active: false });
-          await loadCatalog(); // como listamos active=true, ela some do catálogo
-          return;
-        } catch (e2) {
-          console.error('Falha ao inativar etiqueta:', e2);
-          await loadCatalog();
-          return;
+      // 2) se estava no filtro, remove
+      setSelectedTags(prev => prev.filter(t => t !== tag));
+
+      // 3) remove de TODOS os clientes exibidos (estado local)
+      setTagsByUser(prev => {
+        const next = {};
+        for (const [uid, arr] of Object.entries(prev)) {
+          next[uid] = (arr || []).filter(t => t !== tag);
         }
-      }
+        return next;
+      });
 
-      console.error('Falha ao remover etiqueta:', err);
+      // opcional: recarrega catálogo silenciosamente para manter consistência
       await loadCatalog();
+    } catch (e) {
+      // sem toast; apenas log
+      console.error('Falha ao remover etiqueta:', e);
+    } finally {
+      setCatalogBusy(false);
     }
   };
 
@@ -312,9 +316,10 @@ export default function Clientes() {
     await load({ page: 1, q });
   };
 
+  // mapa tag -> color para pintar na tabela
   const colorMap = useMemo(() => {
     const m = new Map();
-    catalog.forEach(({ tag }) => { m.set(tag, CHIP_COLOR); });
+    catalog.forEach(({ tag, color }) => { m.set(tag, color || solidColorFromTag(tag)); });
     return m;
   }, [catalog]);
 
@@ -330,7 +335,7 @@ export default function Clientes() {
     return data;
   }, [items, selectedTags, tagsByUser]);
 
-  /* ========= helpers UI ========= */
+  /* ========= helpers de UI ========= */
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo   = total === 0 ? 0 : Math.min(page * pageSize, total);
@@ -357,7 +362,7 @@ export default function Clientes() {
 
       {/* Card */}
       <div className={styles.card}>
-        {/* Criação */}
+        {/* ===== Criação (chips coloridos dentro do input) ===== */}
         <section className={styles.cardHead}>
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
@@ -367,13 +372,14 @@ export default function Clientes() {
                 onDeleteTag={deleteCatalogTag}
                 busy={catalogBusy}
                 tags={catalog}
+                placeholder="Digite e pressione Enter (pode colar várias separadas por vírgula)"
               />
               <div className={styles.hint}>As etiquetas criadas aqui ficam disponíveis para todos os clientes.</div>
             </div>
           </div>
         </section>
 
-        {/* Filtro + Busca */}
+        {/* ===== Filtro + Busca ===== */}
         <section className={styles.filtersBar}>
           <div className={styles.filtersHead}>
             <div className={styles.filtersTitle}>Filtrar por etiquetas</div>
@@ -414,6 +420,7 @@ export default function Clientes() {
             </div>
           )}
 
+          {/* BUSCA */}
           <form onSubmit={onSearch} className={styles.searchGroupInline}>
             <label className={styles.searchLabel}>Buscar</label>
             <div className={styles.searchBox}>
@@ -432,7 +439,7 @@ export default function Clientes() {
           </form>
         </section>
 
-        {/* Tabela */}
+        {/* ===== Tabela ===== */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <colgroup>
@@ -470,11 +477,14 @@ export default function Clientes() {
                           <span className={styles.muted}>—</span>
                         ) : (userTags && userTags.length > 0) ? (
                           <div className={styles.tagsRowWrap}>
-                            {userTags.map(t => (
-                              <span key={t} className={`${styles.tagExisting} ${styles.tagChipSolid}`} style={chipSolidStyle()}>
-                                {t}
-                              </span>
-                            ))}
+                            {userTags.map(t => {
+                              const c = colorMap.get(t) || solidColorFromTag(t);
+                              return (
+                                <span key={t} className={styles.tagExisting} style={chipStylesSolid(c)}>
+                                  {t}
+                                </span>
+                              );
+                            })}
                           </div>
                         ) : (
                           <span className={styles.muted}>—</span>
@@ -532,7 +542,7 @@ export default function Clientes() {
           </table>
         </div>
 
-        {/* Footer */}
+        {/* Footer paginador */}
         <div className={styles.tableFooter}>
           <div className={styles.leftInfo}>
             Mostrando {showingFrom}–{showingTo} de {total}
