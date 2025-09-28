@@ -59,12 +59,14 @@ import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
 import TemplateCreate from './campaigns/template/TemplateCreate';
 
+
 import UsersPage from "./management/users/Users";
 import UserForm from "./management/users/UserForm";
 
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campaigns/campaign/Campaigns";
+import CampaignCreate from './Campaigns/CampaignCreatePage';
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
 import TicketDetail from "./atendimento/history/TicketDetail";
@@ -746,6 +748,7 @@ export default function Admin() {
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/templates/new" element={<TemplateCreate />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
+          <Route path="campaigns/campaigns/new" element={<CampaignsCreate />} />
 
           {/* ✅ CORREÇÃO: Rotas de settings com paths absolutos */}
           <Route
