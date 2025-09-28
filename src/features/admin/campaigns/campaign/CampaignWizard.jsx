@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Loader2, Upload } from 'lucide-react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
-import styles from './styles/CampaignWizardPage.module.css';
+import styles from './styles/CampaignWizard.module.css';
 
 export default function CampaignWizardPage({ onCreated }) {
   const [step, setStep] = useState(1);
