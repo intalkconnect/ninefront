@@ -22,9 +22,9 @@
 
 /* Página */
 .container{
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding:24px;
+  max-width:1400px;
+  margin:0 auto;
   background:transparent !important;
 }
 .header{
@@ -33,13 +33,13 @@
 }
 .header::after{
   content:''; position:absolute; left:0; right:0; bottom:-16px; height:2px;
-  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+  background:linear-gradient(90deg,#2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
 }
 .subtitle{ margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400; }
 
 /* Toolbar topo */
-.toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
-.headerActions{display:flex;gap:10px;flex-wrap:wrap}
+.toolbar{ display:flex; justify-content:flex-end; margin-bottom:8px; }
+.headerActions{ display:flex; gap:10px; flex-wrap:wrap; }
 
 .btn{
   border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
@@ -53,15 +53,16 @@
 }
 .btnSecondary:hover{ background:#ebe9ff; }
 
-/* ===== CABEÇALHO DO CARD =====
-   Grid de 2 colunas: esquerda (criação/filtro), direita (busca) */
+/* Card */
 .card{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:16px;
   box-shadow:var(--qr-shadow); overflow:hidden;
 }
+
+/* ===== Cabeçalho do card (ESQ: criação | DIR: busca) ===== */
 .cardHead{
   display:grid;
-  grid-template-columns: 1fr minmax(340px, 38%);
+  grid-template-columns: 1fr minmax(340px, 420px); /* busca com largura controlada */
   gap:16px;
   align-items:start;
   padding:12px 16px;
@@ -74,7 +75,7 @@
 /* bloco da esquerda */
 .groupColumn{
   display:flex; flex-direction:column; gap:12px;
-  min-width:420px; /* garante corpo sólido */
+  min-width:420px; /* evita encolher demais e “quebrar” as linhas */
 }
 .groupRow{ display:flex; flex-direction:column; gap:8px; }
 .label{ font-size:14px; font-weight:700; color:#111827; }
@@ -85,27 +86,30 @@
 .searchGroup{
   position:relative;
   display:flex; flex-direction:column; gap:6px;
-  /* gruda na direita pois está na 2ª coluna do grid */
 }
-.searchLabel{
-  font-size:14px; font-weight:700; color:#111827;
-}
+.searchLabel{ font-size:14px; font-weight:700; color:#111827; }
 .searchGroup .searchInput{
-  width:100%;
-  height:40px;
-  padding:0 36px 0 12px;
-  border:1px solid var(--qr-border);
-  border-radius:12px;
+  width:100%; height:40px; padding:0 36px 0 12px;
+  border:1px solid var(--qr-border); border-radius:12px;
   outline:none; background:#fff; font-size:14px;
 }
 .searchInput:focus{ box-shadow:0 0 0 3px var(--qr-primary-100); border-color:var(--qr-primary); }
 .searchClear{
-  position:absolute; right:6px; bottom:6px; /* alinha com a borda inferior */
+  position:absolute; right:6px; bottom:6px;
   border:1px solid var(--qr-border); background:#fff; border-radius:8px;
   width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
 }
 
-/* ===== chips-input (criação de etiquetas) */
+/* ===== Barra de filtros logo abaixo do cabeçalho ===== */
+.filtersBar{
+  padding:12px 16px;
+  border-bottom:1px solid var(--qr-border-light);
+  background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%);
+}
+.filtersHead{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.filtersTitle{ font-size:13px; font-weight:800; color:#111827; letter-spacing:.02em; }
+
+/* chips-input (criação) */
 .tagsField{
   display:flex; flex-wrap:wrap; gap:8px;
   min-height:42px; padding:6px 8px;
@@ -117,7 +121,7 @@
   font:inherit; padding:8px 4px; background:transparent;
 }
 
-/* ===== catálogo de tags (filtro) com “x” para excluir do catálogo ===== */
+/* Catálogo de tags com “x” para excluir */
 .tagsFilterWrap{ display:flex; flex-wrap:wrap; gap:8px; }
 .tagToggleWrap{ position:relative; display:inline-flex; align-items:center; }
 .tagToggle{
@@ -188,15 +192,22 @@
 .chevOpen{ transform:rotate(90deg); }
 .nameText{ font-weight:700; color:var(--qr-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
+/* Ícones/badges de canal */
 .summaryRight{ text-align:center; }
-.summaryRight .chip{
-  display:inline-flex; align-items:center; gap:6px;
-  padding:6px 10px; border-radius:999px; font-weight:700; font-size:13px;
-  background:#f8f9ff; color:#4338ca; border:1px solid #c7d2fe;
-  margin:0 auto;
+.chanBubble{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:999px; border:1px solid #e5e7eb;
+  background:#fff;
 }
+.chanIcon{ width:18px; height:18px; }
 
-/* Coluna de etiquetas (lista compacta) */
+/* cores por canal */
+.chan-whatsapp{ color:#22c55e; border-color:#bbf7d0; background:#ecfdf5; }
+.chan-telegram{ color:#0ea5e9; border-color:#bae6fd; background:#e0f2fe; }
+.chan-instagram{ color:#db2777; border-color:#fecdd3; background:#ffe4e6; }
+.chan-facebook{ color:#2563eb; border-color:#bfdbfe; background:#eff6ff; }
+
+/* Coluna de etiquetas (resumo) */
 .tagsCell{ padding:10px 12px; }
 .tagsRowWrap{
   display:flex; flex-wrap:wrap; gap:6px;
@@ -239,19 +250,13 @@
 /* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
-/* chip de canal */
-.chip[data-channel="whatsapp"]{ color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; }
-.chip[data-channel="telegram"]{ color:#0ea5e9; border-color:#bae6fd; background:#e0f2fe; }
-.chip[data-channel="instagram"]{ color:#db2777; border-color:#fecdd3; background:#ffe4e6; }
-.chip[data-channel="facebook"]{ color:#2563eb; border-color:#bfdbfe; background:#eff6ff; }
-
 /* Responsivo */
-@media (max-width: 1020px){
-  .cardHead{
-    grid-template-columns: 1fr; /* empilha */
-  }
+@media (max-width: 1100px){
+  .cardHead{ grid-template-columns: 1fr minmax(300px, 380px); }
+}
+@media (max-width: 980px){
+  .cardHead{ grid-template-columns: 1fr; } /* empilha */
   .groupColumn{ min-width:0; }
-  .searchGroup{ max-width:none; }
 }
 @media (max-width: 920px){
   .detailsGrid{ grid-template-columns: 1fr; }
