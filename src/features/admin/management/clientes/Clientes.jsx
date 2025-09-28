@@ -6,80 +6,31 @@ import styles from './styles/Clientes.module.css';
 /* ================== helpers ================== */
 const PAGE_SIZES = [10, 20, 30, 40];
 
-// split + slugify
-function splitTokens(raw) {
+/** Cor única para todas as etiquetas (layout de referência) */
+const CHIP_COLOR = '#14A3FF'; // azul vivo
+const CHIP_TEXT  = '#FFFFFF';
+
+/** Divide por vírgula/; mas mantém o texto original (sem lowercase, sem slug) */
+function splitTokensKeep(raw) {
   return String(raw || '')
     .split(/[,\u003B\u061B\uFF1B]/)
     .map(s => s.trim())
-    .map(s => s
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-      .replace(/\s+/g,'-')
-      .replace(/[^a-z0-9-_]/g,'')
-      .replace(/-+/g,'-')
-      .replace(/^[-_]+|[-_]+$/g,'')
-    )
     .filter(Boolean);
 }
 
-/* ===== cores claras (não pastéis) ===== */
-function hslToHex(h, s, l) {
-  s /= 100; l /= 100;
-  const k = n => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-  const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
-  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
+/** estilos inline das pílulas sólidas (input e tabela) */
+function chipSolidStyle() {
+  return { background: CHIP_COLOR, color: CHIP_TEXT, borderColor: CHIP_COLOR };
 }
-function hexToRgb(hex) {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
-  if (!m) return null;
-  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
-}
-function contrastText(hex) {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return '#111827';
-  const toLin = v => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055)/1.055, 2.4);
-  };
-  const L = 0.2126*toLin(rgb.r) + 0.7152*toLin(rgb.g) + 0.0722*toLin(rgb.b);
-  return L > 0.6 ? '#111827' : '#FFFFFF';
-}
-const HARMONIC_HUES = [285, 255, 225, 200, 170, 140, 100, 60, 30, 10, 350];
-// cores claras, mas vivas (não lavadas)
-function solidColorFromTag(tag) {
-  let h = 0;
-  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
-  const hue = HARMONIC_HUES[h % HARMONIC_HUES.length];
-  const hex = hslToHex(hue, 62, 56); // S 62 / L 56 → claro, porém com presença
-  return hex;
-}
-function chipStylesSolid(hex) {
-  const text = contrastText(hex);
-  return { background: hex, color: text, borderColor: hex };
-}
-// pílula “soft” do input (mais evidente que pastel)
-function chipStylesSoft(hex) {
-  const rgb = hexToRgb(hex) || { r: 59, g: 130, b: 246 };
-  const { r, g, b } = rgb;
+function chipCloseSolidStyle() {
   return {
-    background: `rgba(${r},${g},${b},0.22)`,
-    color: `rgb(${Math.round(r*0.7)},${Math.round(g*0.7)},${Math.round(b*0.7)})`,
-    border: `1px solid rgba(${r},${g},${b},0.55)`
-  };
-}
-function chipCloseStyles(hex) {
-  const rgb = hexToRgb(hex) || { r: 59, g: 130, b: 246 };
-  const { r, g, b } = rgb;
-  return {
-    background: `rgb(255 255 255 / 95%)`,
-    border: `1px solid rgba(${r},${g},${b},0.6)`,
-    color: `rgb(${r},${g},${b})`
+    background: 'rgba(255,255,255,.18)',
+    border: `1px solid rgba(255,255,255,.55)`,
+    color: '#FFFFFF'
   };
 }
 
-/* ===== ícones de canal ===== */
+/* ===== ícones de canal (SVG inline) ===== */
 const IconWA = (props) => (
   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
     <path fill="#25D366" d="M20.52 3.48A11.94 11.94 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.16 1.6 5.98L0 24l6.2-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52z"/>
@@ -115,18 +66,18 @@ function channelIcon(channel) {
   return null;
 }
 
-/** Input de criação com chips internos (layout da imagem) */
+/** Input de criação com chips sólidos azuis (layout do print) */
 function ChipsCreateInput({
-  placeholder = 'ex.: vip, reclamacao, atraso',
+  placeholder = 'Digite e pressione Enter (pode colar várias separadas por vírgula)',
   onCreate,
   onDeleteTag,
   busy,
-  tags = [], // [{tag, color}]
+  tags = [], // [{tag, color?}] — usaremos uma única cor
 }) {
   const [text, setText] = useState('');
 
   const commit = async (raw) => {
-    const tokens = splitTokens(raw);
+    const tokens = splitTokensKeep(raw);
     if (!tokens.length) return;
     setText('');
     await onCreate(tokens);
@@ -138,7 +89,7 @@ function ChipsCreateInput({
       if (text.trim()) await commit(text);
     }
     if (e.key === 'Backspace' && !text && tags.length) {
-      onDeleteTag && onDeleteTag(tags[tags.length - 1].tag);
+      onDeleteTag && onDeleteTag(tags[tags.length - 1].tag || tags[tags.length - 1]);
     }
   };
 
@@ -153,15 +104,15 @@ function ChipsCreateInput({
       onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}
       aria-label="Criar etiquetas do catálogo"
     >
-      {tags.map(({ tag, color }) => {
-        const col = color || solidColorFromTag(tag);
+      {(tags || []).map((it) => {
+        const tag = typeof it === 'string' ? it : it.tag;
         return (
-          <span key={tag} className={`${styles.tagChip} ${styles.tagChipSoft}`} style={chipStylesSoft(col)}>
+          <span key={tag} className={`${styles.tagChip} ${styles.tagChipSolid}`} style={chipSolidStyle()}>
             <span className={styles.tagText}>{tag}</span>
             <button
               type="button"
-              className={`${styles.tagChipX} ${styles.tagChipXSoft}`}
-              style={chipCloseStyles(col)}
+              className={`${styles.tagChipX} ${styles.tagChipXSolid}`}
+              style={chipCloseSolidStyle()}
               onClick={() => onDeleteTag && onDeleteTag(tag)}
               aria-label={`Excluir ${tag}`}
               disabled={busy}
@@ -178,7 +129,7 @@ function ChipsCreateInput({
         onChange={(e)=> setText(e.target.value)}
         onKeyDown={onKeyDown}
         onPaste={onPaste}
-        placeholder={placeholder}
+        placeholder={(tags?.length ?? 0) === 0 ? placeholder : ''}
         disabled={busy}
       />
     </div>
@@ -195,7 +146,7 @@ export default function Clientes() {
   const [total, setTotal] = useState(0);
   const [openRow, setOpenRow] = useState(null);
 
-  // catálogo global [{tag, color}]
+  // catálogo global [{tag, color?}]
   const [catalog, setCatalog] = useState([]);
   const [catalogBusy, setCatalogBusy] = useState(false);
 
@@ -203,8 +154,8 @@ export default function Clientes() {
   const [selectedTags, setSelectedTags] = useState([]);
 
   // tags por cliente
-  const [tagsByUser, setTagsByUser] = useState({});
-  const [tagsLoaded, setTagsLoaded] = useState({});
+  const [tagsByUser, setTagsByUser] = useState({});  // { [user_id]: string[] }
+  const [tagsLoaded, setTagsLoaded] = useState({});  // { [user_id]: bool }
 
   /* ========= carregar clientes ========= */
   const load = useCallback(async (opts = {}) => {
@@ -234,7 +185,7 @@ export default function Clientes() {
             try {
               const r = await apiGet(`/tags/customer/${encodeURIComponent(uid)}`);
               const list = Array.isArray(r?.tags) ? r.tags : (Array.isArray(r?.data) ? r.data : []);
-              const norm = (list || []).map(x => String(x?.tag || x).trim()).filter(Boolean);
+              const norm = (list || []).map(x => String(x?.tag || x)).filter(Boolean);
               setTagsByUser(m => ({ ...m, [uid]: norm }));
               setTagsLoaded(m => ({ ...m, [uid]: true }));
             } catch {
@@ -261,12 +212,10 @@ export default function Clientes() {
       setCatalogBusy(true);
       const r = await apiGet('/tags/customer/catalog?active=true&page_size=200');
       const raw = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
-      const list = raw.map(it => {
-        if (typeof it === 'string') return { tag: it, color: solidColorFromTag(it) };
-        const tag = String(it?.tag || '').trim();
-        const color = (it?.color && String(it.color).trim()) || '';
-        return { tag, color: color || solidColorFromTag(tag) };
-      }).filter(x => x.tag);
+      const list = raw.map(it => (typeof it === 'string'
+        ? { tag: it }
+        : { tag: String(it?.tag || '') }
+      )).filter(x => x.tag);
       const dedup = Array.from(new Map(list.map(x => [x.tag, x])).values())
         .sort((a,b) => a.tag.localeCompare(b.tag));
       setCatalog(dedup);
@@ -283,7 +232,7 @@ export default function Clientes() {
       const uniq = [...new Set(tokens)];
       await Promise.all(
         uniq.map(tag =>
-          apiPost('/tags/customer/catalog', { tag, color: solidColorFromTag(tag), active: true })
+          apiPost('/tags/customer/catalog', { tag, color: CHIP_COLOR, active: true })
         )
       );
       await loadCatalog();
@@ -309,10 +258,10 @@ export default function Clientes() {
     await load({ page: 1, q });
   };
 
-  // mapa tag -> color para pintar na tabela
+  // cor única para pintar na tabela
   const colorMap = useMemo(() => {
     const m = new Map();
-    catalog.forEach(({ tag, color }) => { m.set(tag, color || solidColorFromTag(tag)); });
+    catalog.forEach(({ tag }) => { m.set(tag, CHIP_COLOR); });
     return m;
   }, [catalog]);
 
@@ -365,7 +314,6 @@ export default function Clientes() {
                 onDeleteTag={deleteCatalogTag}
                 busy={catalogBusy}
                 tags={catalog}
-                placeholder="Digite e pressione Enter (pode colar várias separadas por vírgula)"
               />
               <div className={styles.hint}>As etiquetas criadas aqui ficam disponíveis para todos os clientes.</div>
             </div>
@@ -470,14 +418,11 @@ export default function Clientes() {
                           <span className={styles.muted}>—</span>
                         ) : (userTags && userTags.length > 0) ? (
                           <div className={styles.tagsRowWrap}>
-                            {userTags.map(t => {
-                              const c = colorMap.get(t) || solidColorFromTag(t);
-                              return (
-                                <span key={t} className={styles.tagExisting} style={chipStylesSolid(c)}>
-                                  {t}
-                                </span>
-                              );
-                            })}
+                            {userTags.map(t => (
+                              <span key={t} className={`${styles.tagExisting} ${styles.tagChipSolid}`} style={chipSolidStyle()}>
+                                {t}
+                              </span>
+                            ))}
                           </div>
                         ) : (
                           <span className={styles.muted}>—</span>
