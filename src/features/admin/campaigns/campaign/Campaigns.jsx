@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshCw, Plus, X as XIcon } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { apiGet } from '../../../../shared/apiClient';
 import styles from './styles/Campaigns.module.css';
 import { toast } from 'react-toastify';
-import CampaignCreateModal from './CampaignCreateModal';
 
 /** Radios (options) do topo */
 const FILTERS = [
@@ -58,7 +58,9 @@ export default function Campaigns() {
   const [query, setQuery]   = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState(null);
-  const [createOpen, setCreateOpen] = useState(false);
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,6 +79,15 @@ export default function Campaigns() {
 
   useEffect(() => { load(); }, [load]);
 
+  // se voltou da página de criação com sucesso, recarrega e avisa
+  useEffect(() => {
+    if (location.state?.created) {
+      load();
+      toast.success('Campanha criada com sucesso!');
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate, load]);
+
   // filtro client-side (busca só por NOME)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -91,37 +102,33 @@ export default function Campaigns() {
         }
         return true;
       })
-      .filter(c => {
-        if (!q) return true;
-        return String(c.name || '').toLowerCase().includes(q); // 🔎 só nome
-      })
+      .filter(c => !q || String(c.name || '').toLowerCase().includes(q))
       .sort((a, b) => String(a.updated_at || '').localeCompare(String(b.updated_at || '')))
       .reverse();
   }, [items, filter, query]);
 
   return (
     <div className={styles.container}>
-      {/* Cabeçalho superior */}
-      {/* Botões acima do card (à direita) */}
+      {/* Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.leftGroup} />
         <div className={styles.headerActions}>
           <button
-   className={styles.btn}
-   onClick={async () => { await load(); toast.success('Lista atualizada!'); }}
- >
-   <RefreshCw size={16}/> Atualizar
- </button>
+            className={styles.btn}
+            onClick={async () => { await load(); toast.success('Lista atualizada!'); }}
+          >
+            <RefreshCw size={16}/> Atualizar
+          </button>
           <button
-            className={styles.btnPrimary} 
-            onClick={() => setCreateOpen(true)}
+            className={styles.btnPrimary}
+            onClick={() => navigate('/management/campaigns/new')}
           >
             <Plus size={16}/> Nova campanha
           </button>
         </div>
       </div>
 
-            <div className={styles.header}>
+      <div className={styles.header}>
         <div>
           <p className={styles.subtitle}>Envie imediatamente ou agende. Acompanhe progresso e resultados.</p>
         </div>
@@ -191,7 +198,7 @@ export default function Campaigns() {
                 const { processed, total } = calcProcessed(c);
                 const pct = total ? Math.round((processed / total) * 100) : 0;
                 const stUi = getStatusUi(c);
-                const execAt = c.exec_at || c.started_at || c.start_at || c.updated_at; // ← “data de execução”
+                const execAt = c.exec_at || c.started_at || c.start_at || c.updated_at;
 
                 return (
                   <tr key={c.id} className={styles.rowHover}>
@@ -242,12 +249,7 @@ export default function Campaigns() {
           </table>
         </div>
 
-     </div>
-      <CampaignCreateModal
-  isOpen={createOpen}
-  onClose={() => setCreateOpen(false)}
-  onCreated={() => { setCreateOpen(false); /* recarrega lista */ load(); toast.success('Campanha criada com sucesso!'); }}
-/>
+      </div>
     </div>
   );
 }
