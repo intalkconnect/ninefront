@@ -10,23 +10,6 @@ function labelChannel(c) {
 }
 const PAGE_SIZES = [10, 20, 30, 40];
 
-/* hash → cor pastel estável por tag */
-function hash32(str) {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-function tagVars(tag) {
-  const hue = hash32(String(tag)) % 360;
-  const s = 72;   // saturação
-  const l = 92;   // luminosidade (bg)
-  return {
-    '--tag-bg': `hsl(${hue} ${s}% ${l}%)`,
-    '--tag-border': `hsl(${hue} ${s}% ${l - 10}%)`,
-    '--tag-fg': `hsl(${hue} 32% 22%)`,
-  };
-}
-
 // quebra por vírgula/; , normaliza e slugifica
 function splitTokens(raw) {
   return String(raw || '')
@@ -43,27 +26,62 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/** Input: cria etiquetas do catálogo ao Enter/virgula/colar (sem botão, sem toast) */
-function ChipsCreateInput({ placeholder = 'ex.: vip, reclamacao, atraso', onCreate, busy }) {
+/** Input de criação com chips internos (mostra catálogo com "x" e um input ao final) */
+function ChipsCreateInput({
+  placeholder = 'ex.: vip, reclamacao, atraso',
+  onCreate,
+  onDeleteTag,
+  busy,
+  tags = [],
+}) {
   const [text, setText] = useState('');
+
   const commit = async (raw) => {
     const tokens = splitTokens(raw);
     if (!tokens.length) return;
     setText('');
     await onCreate(tokens);
   };
+
   const onKeyDown = async (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       if (text.trim()) await commit(text);
     }
+    if (e.key === 'Backspace' && !text && tags.length) {
+      // backspace com input vazio remove o último chip
+      onDeleteTag && onDeleteTag(tags[tags.length - 1]);
+    }
   };
+
   const onPaste = async (e) => {
     const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
     if (/[,\u003B\u061B\uFF1B]/.test(txt)) { e.preventDefault(); await commit(txt); }
   };
+
   return (
-    <div className={styles.tagsField} onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}>
+    <div
+      className={styles.tagsField}
+      onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}
+      aria-label="Criar etiquetas do catálogo"
+    >
+      {/* chips do catálogo com X para excluir */}
+      {tags.map(tag => (
+        <span key={tag} className={styles.tagChip}>
+          <span className={styles.tagText}>{tag}</span>
+          <button
+            type="button"
+            className={styles.tagChipX}
+            onClick={() => onDeleteTag && onDeleteTag(tag)}
+            aria-label={`Excluir ${tag}`}
+            disabled={busy}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+
+      {/* input para digitar / colar novas etiquetas */}
       <input
         className={styles.tagsInput}
         value={text}
@@ -175,6 +193,7 @@ export default function Clientes() {
 
   const deleteCatalogTag = async (tag) => {
     if (!tag) return;
+    // confirmação simples (sem toast)
     const ok = window.confirm(`Excluir a etiqueta "${tag}" do catálogo global?\nIsso não remove a etiqueta de clientes que já a possuem.`);
     if (!ok) return;
     try {
@@ -185,7 +204,7 @@ export default function Clientes() {
     } finally { setCatalogBusy(false); }
   };
 
-  /* ========= filtros ========= */
+  /* ========= filtros / busca ========= */
   const onSearch = async (e) => {
     e?.preventDefault?.();
     setPage(1);
@@ -231,68 +250,60 @@ export default function Clientes() {
 
       {/* Card */}
       <div className={styles.card}>
-        {/* ===== Criação de etiquetas (topo do card) ===== */}
+        {/* ===== Criação (com chips dentro do input) ===== */}
         <section className={styles.cardHead}>
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
               <label className={styles.label}>Criar etiquetas (globais)</label>
               <ChipsCreateInput
                 onCreate={createTags}
+                onDeleteTag={deleteCatalogTag}
                 busy={catalogBusy}
-                placeholder="Digite a etiqueta e pressione Enter (pode colar várias separadas por vírgula)"
+                tags={catalog}
+                placeholder="Digite e pressione Enter (pode colar várias separadas por vírgula)"
               />
               <div className={styles.hint}>As etiquetas criadas aqui ficam disponíveis para todos os clientes.</div>
             </div>
           </div>
         </section>
 
-        {/* ===== Filtros + BUSCA (logo abaixo do cabeçalho) ===== */}
+        {/* ===== Filtro + Busca (logo abaixo) ===== */}
         <section className={styles.filtersBar}>
           <div className={styles.filtersHead}>
             <div className={styles.filtersTitle}>Filtrar por etiquetas</div>
           </div>
 
+          {/* catálogo sem “x” e sem cor; só toggle on/off */}
           <div className={styles.tagsFilterWrap}>
-            {catalogBusy && catalog.length === 0 && <div className={styles.loading}>Carregando etiquetas…</div>}
-            {!catalogBusy && catalog.length === 0 && <div className={styles.empty}>Nenhuma etiqueta cadastrada.</div>}
+            {catalog.length === 0 && <div className={styles.empty}>Nenhuma etiqueta cadastrada.</div>}
             {catalog.map(tag => {
               const active = selectedTags.includes(tag);
               return (
-                <span key={tag} className={styles.tagToggleWrap} style={tagVars(tag)}>
-                  <button
-                    type="button"
-                    className={`${styles.tagToggle} ${styles.tagDynamic} ${active ? styles.tagToggleOn : ''}`}
-                    onClick={() =>
-                      setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
-                    }
-                    title={active ? 'Remover do filtro' : 'Adicionar ao filtro'}
-                  >
-                    {tag}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.tagRemove}
-                    aria-label={`Excluir ${tag}`}
-                    title={`Excluir ${tag} do catálogo`}
-                    onClick={() => deleteCatalogTag(tag)}
-                    disabled={catalogBusy}
-                  >
-                    ×
-                  </button>
-                </span>
+                <button
+                  type="button"
+                  key={tag}
+                  className={`${styles.tagToggle} ${active ? styles.tagToggleOn : ''}`}
+                  onClick={() =>
+                    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])
+                  }
+                >
+                  {tag}
+                </button>
               );
             })}
           </div>
 
-          {/* chips do filtro selecionado */}
+          {/* chips do filtro selecionado (neutros, sem “x” no catálogo, mas aqui pode limpar individual) */}
           {selectedTags.length > 0 && (
             <div className={styles.filterSelectedRow}>
               {selectedTags.map(t => (
-                <span key={t} className={`${styles.tagChip} ${styles.tagDynamic}`} style={tagVars(t)}>
+                <span key={t} className={styles.tagChip}>
                   <span className={styles.tagText}>{t}</span>
-                  <button className={styles.tagChipX} onClick={() =>
-                    setSelectedTags(prev => prev.filter(x => x !== t))
-                  } aria-label={`Remover ${t}`}>×</button>
+                  <button
+                    className={styles.tagChipX}
+                    onClick={()=> setSelectedTags(prev => prev.filter(x => x !== t))}
+                    aria-label={`Remover ${t}`}
+                  >×</button>
                 </span>
               ))}
               <button type="button" className={styles.btn} onClick={()=> setSelectedTags([])}>Limpar filtro</button>
@@ -357,7 +368,7 @@ export default function Clientes() {
                         ) : (userTags && userTags.length > 0) ? (
                           <div className={styles.tagsRowWrap}>
                             {userTags.map(t => (
-                              <span key={t} className={`${styles.tagExisting} ${styles.tagDynamic}`} style={tagVars(t)}>{t}</span>
+                              <span key={t} className={styles.tagExisting}>{t}</span>
                             ))}
                           </div>
                         ) : (
@@ -371,7 +382,6 @@ export default function Clientes() {
                           data-channel={String(row.channel || '').toLowerCase()}
                           title={labelChannel(row.channel)}
                         >
-                          {/* aqui você pode trocar por SVGs dos canais se quiser */}
                           {labelChannel(row.channel)}
                         </span>
                       </td>
@@ -408,7 +418,7 @@ export default function Clientes() {
                                   {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
                                 </div>
                               </div>
-                              {/* Removido bloco de etiquetas aqui para evitar duplicidade, conforme solicitado */}
+                              {/* etiquetas dentro do detalhe foram removidas para evitar duplicidade */}
                             </div>
                           </div>
                         </td>
