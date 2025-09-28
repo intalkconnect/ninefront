@@ -7,11 +7,11 @@ import styles from './styles/Clientes.module.css';
 /* ================== helpers ================== */
 const PAGE_SIZES = [10, 20, 30, 40];
 
-/** Cor única para todas as etiquetas (visual da referência) */
+/** cor única (layout pedido) */
 const CHIP_COLOR = '#14A3FF';
 const CHIP_TEXT  = '#FFFFFF';
 
-/** Divide por vírgula/; mantendo o texto original (sem lowercase/slug) */
+/** aceita o texto como foi digitado (sem slug/lowercase) */
 function splitTokensKeep(raw) {
   return String(raw || '')
     .split(/[,\u003B\u061B\uFF1B]/)
@@ -19,19 +19,29 @@ function splitTokensKeep(raw) {
     .filter(Boolean);
 }
 
-/** estilos inline das pílulas sólidas (input e tabela) */
-function chipSolidStyle() {
-  return { background: CHIP_COLOR, color: CHIP_TEXT, borderColor: CHIP_COLOR };
-}
-function chipCloseSolidStyle() {
-  return {
-    background: 'rgba(255,255,255,.18)',
-    border: `1px solid rgba(255,255,255,.55)`,
-    color: '#FFFFFF'
+/** estilos da pílula sólida (input + tabela) */
+const chipSolidStyle = () => ({ background: CHIP_COLOR, color: CHIP_TEXT, borderColor: CHIP_COLOR });
+const chipCloseSolidStyle = () => ({
+  background: 'rgba(255,255,255,.18)',
+  border: '1px solid rgba(255,255,255,.55)',
+  color: '#fff'
+});
+
+/** Compat: o provider pode expor `confirm` OU ser a própria função */
+function useAppConfirm() {
+  const inst = useConfirm?.() ?? null;
+  let fn = null;
+  if (typeof inst === 'function') fn = inst;
+  else if (inst && typeof inst.confirm === 'function') fn = inst.confirm;
+
+  return async (opts) => {
+    if (fn) return await fn(opts);
+    // fallback (não deve disparar normalmente)
+    return window.confirm(opts?.description || 'Confirmar operação?');
   };
 }
 
-/* ===== ícones de canal (SVG inline) ===== */
+/* ===== ícones de canal ===== */
 const IconWA = (props) => (
   <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
     <path fill="#25D366" d="M20.52 3.48A11.94 11.94 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.16 1.6 5.98L0 24l6.2-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52z"/>
@@ -67,13 +77,13 @@ function channelIcon(channel) {
   return null;
 }
 
-/** Input de criação com chips sólidos azuis */
+/** Input com chips sólidas e X para excluir */
 function ChipsCreateInput({
   placeholder = 'Digite e pressione Enter (pode colar várias separadas por vírgula)',
   onCreate,
   onDeleteTag,
   busy,
-  tags = [], // [{tag}]
+  tags = [], // [{tag}] ou string[]
 }) {
   const [text, setText] = useState('');
 
@@ -91,7 +101,8 @@ function ChipsCreateInput({
     }
     if (e.key === 'Backspace' && !text && tags.length) {
       const last = tags[tags.length - 1];
-      onDeleteTag && onDeleteTag(typeof last === 'string' ? last : last.tag);
+      const tag = typeof last === 'string' ? last : last.tag;
+      onDeleteTag && onDeleteTag(tag);
     }
   };
 
@@ -139,7 +150,8 @@ function ChipsCreateInput({
 }
 
 export default function Clientes() {
-  const { confirm } = useConfirm();
+  const confirm = useAppConfirm();
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -153,12 +165,12 @@ export default function Clientes() {
   const [catalog, setCatalog] = useState([]);
   const [catalogBusy, setCatalogBusy] = useState(false);
 
-  // filtro por tag (strings)
+  // filtro por tag
   const [selectedTags, setSelectedTags] = useState([]);
 
   // tags por cliente
-  const [tagsByUser, setTagsByUser] = useState({});  // { [user_id]: string[] }
-  const [tagsLoaded, setTagsLoaded] = useState({});  // { [user_id]: bool }
+  const [tagsByUser, setTagsByUser] = useState({});
+  const [tagsLoaded, setTagsLoaded] = useState({});
 
   /* ========= carregar clientes ========= */
   const load = useCallback(async (opts = {}) => {
@@ -168,17 +180,14 @@ export default function Clientes() {
 
     setLoading(true);
     try {
-      const resp = await apiGet('/customers', {
-        params: { q: nextQ, page: nextPage, page_size: nextPageSize }
-      });
+      const resp = await apiGet('/customers', { params: { q: nextQ, page: nextPage, page_size: nextPageSize } });
       const data = Array.isArray(resp?.data) ? resp.data : resp?.data ?? [];
       setItems(data);
       setPage(resp?.page || nextPage);
       setPageSize(resp?.page_size || nextPageSize);
-      const totalFound = Number(resp?.total || data.length || 0);
-      setTotal(totalFound);
+      setTotal(Number(resp?.total || data.length || 0));
 
-      // baixa tags dos clientes visíveis
+      // baixar tags dos visíveis
       const chunk = async (arr, size) => {
         for (let i = 0; i < arr.length; i += size) {
           const slice = arr.slice(i, i + size);
@@ -199,12 +208,9 @@ export default function Clientes() {
         }
       };
       await chunk(data, 8);
-
-      return { data, total: totalFound };
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, q, tagsLoaded]);
 
   useEffect(() => { load(); }, []); // primeira carga
@@ -234,45 +240,40 @@ export default function Clientes() {
       setCatalogBusy(true);
       const uniq = [...new Set(tokens)];
       await Promise.all(
-        uniq.map(tag =>
-          apiPost('/tags/customer/catalog', { tag, color: CHIP_COLOR, active: true })
-        )
+        uniq.map(tag => apiPost('/tags/customer/catalog', { tag, color: CHIP_COLOR, active: true }))
       );
       await loadCatalog();
     } finally { setCatalogBusy(false); }
   };
 
-  /** Exclusão com CONFIRM e tratamento de 204/404 como sucesso */
+  /** Exclusão com CONFIRM + tolerante a 204/404/corpo vazio */
   const deleteCatalogTag = async (tag) => {
     if (!tag) return;
 
     const ok = await confirm({
       title: 'Excluir etiqueta?',
-      description: `Tem certeza que deseja excluir a etiqueta "${tag}" do catálogo global? Isso não remove a etiqueta já aplicada em clientes.`,
+      description: `Excluir a etiqueta "${tag}" do catálogo global? Isso não remove a etiqueta já aplicada em clientes.`,
       confirmText: 'Excluir',
       cancelText: 'Cancelar',
       tone: 'danger',
     });
     if (!ok) return;
 
-    // Remoção otimista local (deixa a UI suave mesmo que a API retorne 204/404)
+    // remoção otimista
     setCatalog(prev => prev.filter(t => (typeof t === 'string' ? t : t.tag) !== tag));
     setSelectedTags(prev => prev.filter(t => t !== tag));
 
     try {
       await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
-      // Alguns backends retornam 204 sem body → apiClient pode lançar ao tentar .json().
-      // Se chegamos aqui sem throw, ok. Caso lance, o catch abaixo normaliza.
+      // se o backend devolver 204 sem body e seu apiClient tentar .json(), ele pode lançar;
+      // tratamos abaixo no catch, considerando sucesso.
     } catch (err) {
       const msg = String(err?.message || '');
       const is404 = /404/.test(msg);
       const emptyJson = /Unexpected end of JSON input/i.test(msg);
-      if (is404 || emptyJson) {
-        // Considera sucesso: já não existia ou retornou 204 sem corpo
-        return;
-      }
-      // Falha real: reverte estado e informa
-      await loadCatalog(); // volta a sincronizar
+      if (is404 || emptyJson) return; // ok
+      // erro real: volta a sincronizar
+      await loadCatalog();
       console.error('Falha ao remover etiqueta:', err);
     }
   };
@@ -284,7 +285,7 @@ export default function Clientes() {
     await load({ page: 1, q });
   };
 
-  // todas as cores da tabela = azul único
+  // mapa de cores (azul único)
   const colorMap = useMemo(() => {
     const m = new Map();
     catalog.forEach(({ tag }) => { m.set(tag, CHIP_COLOR); });
@@ -303,7 +304,7 @@ export default function Clientes() {
     return data;
   }, [items, selectedTags, tagsByUser]);
 
-  /* ========= helpers de UI ========= */
+  /* ========= helpers UI ========= */
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo   = total === 0 ? 0 : Math.min(page * pageSize, total);
@@ -330,7 +331,7 @@ export default function Clientes() {
 
       {/* Card */}
       <div className={styles.card}>
-        {/* ===== Criação ===== */}
+        {/* Criação */}
         <section className={styles.cardHead}>
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
@@ -346,7 +347,7 @@ export default function Clientes() {
           </div>
         </section>
 
-        {/* ===== Filtro + Busca ===== */}
+        {/* Filtro + Busca */}
         <section className={styles.filtersBar}>
           <div className={styles.filtersHead}>
             <div className={styles.filtersTitle}>Filtrar por etiquetas</div>
@@ -387,7 +388,6 @@ export default function Clientes() {
             </div>
           )}
 
-          {/* BUSCA */}
           <form onSubmit={onSearch} className={styles.searchGroupInline}>
             <label className={styles.searchLabel}>Buscar</label>
             <div className={styles.searchBox}>
@@ -406,7 +406,7 @@ export default function Clientes() {
           </form>
         </section>
 
-        {/* ===== Tabela ===== */}
+        {/* Tabela */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <colgroup>
@@ -506,7 +506,7 @@ export default function Clientes() {
           </table>
         </div>
 
-        {/* Footer paginador */}
+        {/* Footer */}
         <div className={styles.tableFooter}>
           <div className={styles.leftInfo}>
             Mostrando {showingFrom}–{showingTo} de {total}
