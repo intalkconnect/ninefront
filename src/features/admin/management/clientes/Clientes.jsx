@@ -22,7 +22,7 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/* ===== cores “normais” (sólidas) ===== */
+/* ===== cores harmoniosas (sólidas) ===== */
 function hslToHex(h, s, l) {
   s /= 100; l /= 100;
   const k = n => (n + h / 30) % 12;
@@ -30,14 +30,6 @@ function hslToHex(h, s, l) {
   const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
   const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
   return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
-}
-// cor determinística sólida baseada no nome
-function solidColorFromTag(tag) {
-  let h = 0;
-  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
-  const hue = h % 360;
-  // saturação alta, luminosidade média → cor forte (não pastel)
-  return hslToHex(hue, 68, 48);
 }
 function hexToRgb(hex) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
@@ -47,21 +39,80 @@ function hexToRgb(hex) {
 function contrastText(hex) {
   const rgb = hexToRgb(hex);
   if (!rgb) return '#111827';
-  // luminância relativa (WCAG)
   const toLin = v => {
     v /= 255;
     return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055)/1.055, 2.4);
   };
   const L = 0.2126*toLin(rgb.r) + 0.7152*toLin(rgb.g) + 0.0722*toLin(rgb.b);
-  return L > 0.55 ? '#111827' : '#FFFFFF'; // claro → texto escuro, escuro → texto branco
+  return L > 0.55 ? '#111827' : '#FFFFFF';
+}
+function ensureReadable(hex) {
+  // se muito claro/escuro, ajusta L levemente mantendo o matiz harmonioso
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  // contraste relativo com branco/preto
+  const toLin = v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055)/1.055, 2.4);
+  };
+  const L = 0.2126*toLin(rgb.r) + 0.7152*toLin(rgb.g) + 0.0722*toLin(rgb.b);
+  // se muito claro, escurece um pouco; se muito escuro, clareia
+  if (L > 0.82 || L < 0.18) {
+    // reconstrói via HSL aproximado (ajuste simples por channel scale)
+    const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const targetL = L > 0.82 ? 0.6 : 0.4;
+    return hslToHex(hsl.h, hsl.s * 100, targetL * 100);
+  }
+  return hex;
+}
+function rgbToHsl(r, g, b) {
+  r/=255; g/=255; b/=255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l=(max+min)/2;
+  if (max===min) { h = s = 0; }
+  else {
+    const d = max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h = (g-b)/d + (g<b?6:0); break;
+      case g: h = (b-r)/d + 2; break;
+      case b: h = (r-g)/d + 4; break;
+      default: h = 0;
+    }
+    h/=6;
+  }
+  return { h: Math.round(h*360), s, l };
+}
+
+/* 
+   cor harmoniosa determinística baseada no nome:
+   escolhe um matiz de uma paleta equilibrada e aplica S/L consistentes.
+*/
+const HARMONIC_HUES = [
+  280, // roxo
+  250, // índigo
+  220, // azul
+  195, // ciano
+  170, // teal
+  145, // verde
+  95,  // lima/oliva
+  45,  // âmbar
+  25,  // laranja
+  5,   // vermelho
+  335, // magenta/pink
+];
+function solidColorFromTag(tag) {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  const idx = h % HARMONIC_HUES.length;
+  const hue = HARMONIC_HUES[idx];
+  const hex = hslToHex(hue, 68, 46); // saturação alta, luminosidade média (sólido)
+  return ensureReadable(hex);
 }
 function chipStylesSolid(hex) {
-  const text = contrastText(hex);
-  return {
-    background: hex,
-    color: text,
-    borderColor: hex
-  };
+  const safe = ensureReadable(hex);
+  const text = contrastText(safe);
+  return { background: safe, color: text, borderColor: safe };
 }
 
 /* ===== ícones de canal (SVG inline) ===== */
