@@ -10,7 +10,7 @@ function labelChannel(c) {
 }
 const PAGE_SIZES = [10, 20, 30, 40];
 
-// quebra por vírgula/; , normaliza e slugifica
+// split + slugify
 function splitTokens(raw) {
   return String(raw || '')
     .split(/[,\u003B\u061B\uFF1B]/)
@@ -26,13 +26,48 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/** Input de criação com chips internos (mostra catálogo com "x" e um input ao final) */
+/* ===== cores ===== */
+function hslToHex(h, s, l) {
+  s /= 100; l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
+}
+function randomPastel() {
+  const h = Math.floor(Math.random() * 360);
+  const s = 55 + Math.floor(Math.random() * 10);   // 55–64
+  const l = 78 + Math.floor(Math.random() * 8);    // 78–85
+  return hslToHex(h, s, l);
+}
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+  if (!m) return null;
+  return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+}
+function colorStyles(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return {};
+  const bg = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.16)`;
+  const bd = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.38)`;
+  return { background: bg, borderColor: bd, color: '#0f172a' };
+}
+// cor determinística (fallback) baseada no nome
+function hashColorFromTag(tag) {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) { h = (h * 31 + tag.charCodeAt(i)) >>> 0; }
+  const hue = h % 360;
+  return hslToHex(hue, 58, 82);
+}
+
+/** Input de criação com chips internos coloridos (catálogo) e X para excluir */
 function ChipsCreateInput({
   placeholder = 'ex.: vip, reclamacao, atraso',
   onCreate,
   onDeleteTag,
   busy,
-  tags = [],
+  tags = [], // [{tag, color}]
 }) {
   const [text, setText] = useState('');
 
@@ -49,8 +84,7 @@ function ChipsCreateInput({
       if (text.trim()) await commit(text);
     }
     if (e.key === 'Backspace' && !text && tags.length) {
-      // backspace com input vazio remove o último chip
-      onDeleteTag && onDeleteTag(tags[tags.length - 1]);
+      onDeleteTag && onDeleteTag(tags[tags.length - 1].tag);
     }
   };
 
@@ -65,9 +99,8 @@ function ChipsCreateInput({
       onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}
       aria-label="Criar etiquetas do catálogo"
     >
-      {/* chips do catálogo com X para excluir */}
-      {tags.map(tag => (
-        <span key={tag} className={styles.tagChip}>
+      {tags.map(({ tag, color }) => (
+        <span key={tag} className={styles.tagChip} style={colorStyles(color || hashColorFromTag(tag))}>
           <span className={styles.tagText}>{tag}</span>
           <button
             type="button"
@@ -81,7 +114,6 @@ function ChipsCreateInput({
         </span>
       ))}
 
-      {/* input para digitar / colar novas etiquetas */}
       <input
         className={styles.tagsInput}
         value={text}
@@ -105,11 +137,11 @@ export default function Clientes() {
   const [total, setTotal] = useState(0);
   const [openRow, setOpenRow] = useState(null);
 
-  // catálogo global de tags
-  const [catalog, setCatalog] = useState([]);        // strings
+  // catálogo global [{tag, color}]
+  const [catalog, setCatalog] = useState([]);
   const [catalogBusy, setCatalogBusy] = useState(false);
 
-  // filtro por tag
+  // filtro por tag (strings)
   const [selectedTags, setSelectedTags] = useState([]);
 
   // tags por cliente
@@ -170,11 +202,18 @@ export default function Clientes() {
     try {
       setCatalogBusy(true);
       const r = await apiGet('/tags/customer/catalog?active=true&page_size=200');
-      const list = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
-      const names = list.map(t => String(t?.tag || t).trim()).filter(Boolean);
-      setCatalog([...new Set(names)].sort());
-    } catch {
-      setCatalog([]);
+      // aceita tanto [{tag, color}] quanto [string]
+      const raw = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
+      const list = raw.map(it => {
+        if (typeof it === 'string') return { tag: it, color: hashColorFromTag(it) };
+        const tag = String(it?.tag || '').trim();
+        const color = (it?.color && String(it.color).trim()) || '';
+        return { tag, color: color || hashColorFromTag(tag) };
+      }).filter(x => x.tag);
+      // remove duplicados por tag
+      const dedup = Array.from(new Map(list.map(x => [x.tag, x])).values())
+        .sort((a,b) => a.tag.localeCompare(b.tag));
+      setCatalog(dedup);
     } finally {
       setCatalogBusy(false);
     }
@@ -186,14 +225,17 @@ export default function Clientes() {
     try {
       setCatalogBusy(true);
       const uniq = [...new Set(tokens)];
-      await Promise.all(uniq.map(tag => apiPost('/tags/customer/catalog', { tag, active: true })));
+      await Promise.all(
+        uniq.map(tag =>
+          apiPost('/tags/customer/catalog', { tag, color: randomPastel(), active: true })
+        )
+      );
       await loadCatalog();
     } finally { setCatalogBusy(false); }
   };
 
   const deleteCatalogTag = async (tag) => {
     if (!tag) return;
-    // confirmação simples (sem toast)
     const ok = window.confirm(`Excluir a etiqueta "${tag}" do catálogo global?\nIsso não remove a etiqueta de clientes que já a possuem.`);
     if (!ok) return;
     try {
@@ -210,6 +252,13 @@ export default function Clientes() {
     setPage(1);
     await load({ page: 1, q });
   };
+
+  // mapa tag -> color para pintar na tabela
+  const colorMap = useMemo(() => {
+    const m = new Map();
+    catalog.forEach(({ tag, color }) => { m.set(tag, color || hashColorFromTag(tag)); });
+    return m;
+  }, [catalog]);
 
   const visible = useMemo(() => {
     let data = items;
@@ -250,7 +299,7 @@ export default function Clientes() {
 
       {/* Card */}
       <div className={styles.card}>
-        {/* ===== Criação (com chips dentro do input) ===== */}
+        {/* ===== Criação (chips coloridos dentro do input) ===== */}
         <section className={styles.cardHead}>
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
@@ -267,16 +316,15 @@ export default function Clientes() {
           </div>
         </section>
 
-        {/* ===== Filtro + Busca (logo abaixo) ===== */}
+        {/* ===== Filtro + Busca ===== */}
         <section className={styles.filtersBar}>
           <div className={styles.filtersHead}>
             <div className={styles.filtersTitle}>Filtrar por etiquetas</div>
           </div>
 
-          {/* catálogo sem “x” e sem cor; só toggle on/off */}
           <div className={styles.tagsFilterWrap}>
             {catalog.length === 0 && <div className={styles.empty}>Nenhuma etiqueta cadastrada.</div>}
-            {catalog.map(tag => {
+            {catalog.map(({ tag }) => {
               const active = selectedTags.includes(tag);
               return (
                 <button
@@ -293,7 +341,6 @@ export default function Clientes() {
             })}
           </div>
 
-          {/* chips do filtro selecionado (neutros, sem “x” no catálogo, mas aqui pode limpar individual) */}
           {selectedTags.length > 0 && (
             <div className={styles.filterSelectedRow}>
               {selectedTags.map(t => (
@@ -310,7 +357,7 @@ export default function Clientes() {
             </div>
           )}
 
-          {/* BUSCA — sob o filtro */}
+          {/* BUSCA */}
           <form onSubmit={onSearch} className={styles.searchGroupInline}>
             <label className={styles.searchLabel}>Buscar</label>
             <div className={styles.searchBox}>
@@ -367,9 +414,14 @@ export default function Clientes() {
                           <span className={styles.muted}>—</span>
                         ) : (userTags && userTags.length > 0) ? (
                           <div className={styles.tagsRowWrap}>
-                            {userTags.map(t => (
-                              <span key={t} className={styles.tagExisting}>{t}</span>
-                            ))}
+                            {userTags.map(t => {
+                              const c = colorMap.get(t) || hashColorFromTag(t);
+                              return (
+                                <span key={t} className={styles.tagExisting} style={colorStyles(c)}>
+                                  {t}
+                                </span>
+                              );
+                            })}
                           </div>
                         ) : (
                           <span className={styles.muted}>—</span>
@@ -418,7 +470,7 @@ export default function Clientes() {
                                   {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
                                 </div>
                               </div>
-                              {/* etiquetas dentro do detalhe foram removidas para evitar duplicidade */}
+                              {/* Sem repetir etiquetas dentro do detalhe */}
                             </div>
                           </div>
                         </td>
