@@ -42,11 +42,11 @@
 .headerActions{display:flex;gap:10px;flex-wrap:wrap}
 
 .btn{
-  border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
+  border:1px solid var(--qr-border); background:#fff; color:#374151;
   border-radius:12px; padding:10px 14px; font-weight:700;
   display:inline-flex; align-items:center; gap:8px; cursor:pointer;
 }
-.btn:hover{ background:var(--qr-surface-2); }
+.btn:hover{ background:#f1f5f9; }
 .btnSecondary{
   background:#f1f0ff; border:1px solid #e6e4ff; color:#4338ca;
   border-radius:10px; padding:8px 12px; font-weight:700; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
@@ -59,7 +59,7 @@
   box-shadow:var(--qr-shadow); overflow:hidden;
 }
 
-/* ===== Criação de etiquetas (cabeçalho do card) ===== */
+/* ===== Criação (chips dentro do input) ===== */
 .cardHead{
   display:block;
   padding:12px 16px;
@@ -75,7 +75,7 @@
 .hint{ color:#6b7280; font-size:12px; }
 .muted{ color:#6b7280; }
 
-/* ===== Barra de filtros + BUSCA ===== */
+/* ===== Barra: Filtro + Busca ===== */
 .filtersBar{
   padding:12px 16px 14px;
   border-bottom:1px solid var(--qr-border-light);
@@ -86,7 +86,7 @@
 
 .tagsFilterWrap{ display:flex; flex-wrap:wrap; gap:8px; }
 
-/* busca dentro da barra de filtros */
+/* Busca abaixo do filtro */
 .searchGroupInline{ margin-top:10px; display:flex; flex-direction:column; gap:6px; }
 .searchBox{ position:relative; }
 .searchLabel{ font-size:14px; font-weight:700; color:#111827; }
@@ -95,7 +95,7 @@
   border:1px solid var(--qr-border); border-radius:12px;
   outline:none; background:#fff; font-size:14px;
 }
-.searchInput:focus{ box-shadow:0 0 0 3px var(--qr-primary-100); border-color:var(--qr-primary); }
+.searchInput:focus{ box-shadow:0 0 0 3px var(--qr-primary-100); border-color:#8B5CF6; }
 .searchClear{
   position:absolute; right:6px; top:50%; transform:translateY(-50%);
   border:1px solid var(--qr-border); background:#fff; border-radius:8px;
@@ -114,7 +114,7 @@
   font:inherit; padding:8px 4px; background:transparent;
 }
 
-/* chips neutros (dentro do input e nas seleções do filtro) */
+/* chips genéricas (neutras); as coloridas usam inline-style */
 .tagChip{
   display:inline-flex; align-items:center; gap:8px;
   padding:6px 10px; border-radius:999px;
@@ -128,7 +128,7 @@
 .tagChipX:hover{ background:rgba(0,0,0,.16); }
 .tagText{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-/* catálogo para o filtro: sem “x”, sem cor marcante */
+/* catálogo no filtro: sem “x”, sem cor */
 .tagToggle{
   border:1px solid #e5e7eb; background:#fff; color:#374151;
   border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer;
@@ -138,11 +138,11 @@
 }
 .filterSelectedRow{ display:flex; gap:8px; align-items:center; margin-top:8px; }
 
-/* chips exibidas na coluna/tabela (neutras) */
+/* chips exibidas na coluna/tabela; serão coloridas via inline-style */
 .tagsExistingWrap{ display:flex; flex-wrap:wrap; gap:6px; }
 .tagExisting{
   font-size:12px; padding:4px 10px; border-radius:999px;
-  background:#f7f8fb; border:1px solid #eceff4; color:#374151;
+  background:#f7f8fb; border:1px solid #eceff4; color:#0f172a;
 }
 
 /* Tabela */
@@ -212,7 +212,7 @@
 }
 .itemFull{ grid-column:1 / -1; }
 .k{
-  font-size:12px; font-weight:800; color:var(--qr-muted);
+  font-size:12px; font-weight:800; color:#6b7280;
   text-transform:uppercase; letter-spacing:.05em;
 }
 .v{ margin-top:4px; color:#0f172a; word-break:break-word; }
@@ -223,17 +223,17 @@
   border-top:1px solid var(--qr-border-light);
   background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%);
 }
-.leftInfo{ color:var(--qr-muted); font-size:13px; }
+.leftInfo{ color:#6b7280; font-size:13px; }
 .pager{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .pageSize{
   height:36px; border:1px solid var(--qr-border); border-radius:10px; padding:0 10px; background:#fff; font-weight:700;
 }
 .pBtn{ border:1px solid var(--qr-border); background:#fff; border-radius:10px; padding:8px 10px; cursor:pointer; }
 .pBtn:disabled{ opacity:.5; cursor:not-allowed; }
-.pInfo{ color:var(--qr-muted); }
+.pInfo{ color:#6b7280; }
 
 /* Estados */
-.loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
+.loading,.empty{ padding:24px; color:#6b7280; text-align:center; }
 
 /* chip de canal */
 .chip[data-channel="whatsapp"]{ color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; }
