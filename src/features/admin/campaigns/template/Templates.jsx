@@ -6,7 +6,8 @@ import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import { toast } from 'react-toastify';
 
-import TemplatePreview from './TemplatePreview';
+// >>> usamos o preview compartilhado (o mesmo do Create)
+import PreviewWhatsApp from './PreviewWhatsApp';
 import styles from './styles/Templates.module.css';
 
 const STATUS_OPTIONS = [
@@ -29,7 +30,6 @@ function StatusChip({ status }) {
 }
 
 function ScoreSemaforo({ value }) {
-  // aceita GREEN/YELLOW/RED/UNKNOWN e variantes em objeto/JSON
   function parseQuality(raw) {
     if (!raw) return { score: null, date: null };
     if (typeof raw === 'object') {
@@ -60,11 +60,8 @@ export default function Templates() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // preview
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewItem, setPreviewItem] = useState(null);
-  const openPreview  = (item) => { setPreviewItem(item); setPreviewOpen(true); };
-  const closePreview = () => { setPreviewItem(null); setPreviewOpen(false); };
+  // seleção para o preview lateral
+  const [selected, setSelected] = useState(null);
 
   // polling p/ “submitted”
   const pollRef = useRef(null);
@@ -111,6 +108,13 @@ export default function Templates() {
       .reverse();
   }, [items, statusFilter, query]);
 
+  // seleciona o primeiro da lista quando carregar/filtrar, se nada estiver selecionado
+  useEffect(() => {
+    if (!selected || !filtered.find(f => f.id === selected.id)) {
+      setSelected(filtered[0] || null);
+    }
+  }, [filtered]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleDelete(id, status) {
     if (!['draft', 'rejected'].includes(status)) {
       setError('Apenas rascunhos ou rejeitados podem ser removidos localmente.');
@@ -130,6 +134,7 @@ export default function Templates() {
       await apiDelete(`/templates/${id}`);
       toastOK('Template removido.');
       load();
+      if (selected?.id === id) setSelected(null);
     } catch (e) {
       console.error(e);
       setError('Falha ao excluir template.');
@@ -161,106 +166,131 @@ export default function Templates() {
         <div><p className={styles.subtitle}>Crie seus templates e envie para aprovação da Meta.</p></div>
       </div>
 
-      {/* Card da lista */}
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          {/* filtro por status */}
-          <div className={styles.optionsRow} role="radiogroup" aria-label="Filtrar por status">
-            {STATUS_OPTIONS.map(opt => (
-              <label key={opt.key || 'all'} className={styles.opt} role="radio" aria-checked={statusFilter === opt.key}>
+      {/* === GRID COM LISTA À ESQUERDA E PREVIEW À DIREITA === */}
+      <div className={styles.mainGrid}>
+        {/* Coluna: Lista */}
+        <div className={styles.colList}>
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              {/* filtro por status */}
+              <div className={styles.optionsRow} role="radiogroup" aria-label="Filtrar por status">
+                {STATUS_OPTIONS.map(opt => (
+                  <label key={opt.key || 'all'} className={styles.opt} role="radio" aria-checked={statusFilter === opt.key}>
+                    <input
+                      type="radio"
+                      name="statusFilter"
+                      value={opt.key}
+                      checked={statusFilter === opt.key}
+                      onChange={() => setStatusFilter(opt.key)}
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* busca */}
+              <div className={styles.searchGroup}>
                 <input
-                  type="radio"
-                  name="statusFilter"
-                  value={opt.key}
-                  checked={statusFilter === opt.key}
-                  onChange={() => setStatusFilter(opt.key)}
+                  className={styles.searchInput}
+                  placeholder="Buscar por nome ou conteúdo…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Buscar templates"
                 />
-                <span>{opt.label}</span>
-              </label>
-            ))}
-          </div>
+                {query && (
+                  <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca" type="button">
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
 
-          {/* busca */}
-          <div className={styles.searchGroup}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por nome ou conteúdo…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Buscar templates"
-            />
-            {query && (
-              <button className={styles.searchClear} onClick={clearSearch} aria-label="Limpar busca" type="button">
-                <XIcon size={14} />
-              </button>
-            )}
-          </div>
-        </div>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={{ minWidth: 240, textAlign: 'left' }}>Nome do modelo</th>
+                    <th>Categoria</th>
+                    <th>Recategorizado</th>
+                    <th>Idioma</th>
+                    <th>Status</th>
+                    <th>Qualidade</th>
+                    <th style={{ width: 120 }}>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && <tr><td className={styles.loading} colSpan={7}>Carregando…</td></tr>}
+                  {!loading && filtered.length === 0 && <tr><td className={styles.empty} colSpan={7}>Nenhum template encontrado.</td></tr>}
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th style={{ minWidth: 240 }}>Nome do modelo</th>
-                <th>Categoria</th>
-                <th>Recategorizado</th>
-                <th>Idioma</th>
-                <th>Status</th>
-                <th>Qualidade</th>
-                <th style={{ width: 120 }}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && <tr><td className={styles.loading} colSpan={7}>Carregando…</td></tr>}
-              {!loading && filtered.length === 0 && <tr><td className={styles.empty} colSpan={7}>Nenhum template encontrado.</td></tr>}
-
-              {!loading && filtered.map(t => (
-                <tr
-                  key={t.id}
-                  className={styles.rowHover}
-                  style={{ cursor:'pointer' }}
-                  onClick={() => openPreview(t)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPreview(t); } }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Abrir prévia de ${t.name}`}
-                >
-                  <td data-label="Nome"><div className={styles.keyTitle}>{t.name}</div></td>
-                  <td data-label="Categoria">{t.category || '—'}</td>
-                  <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
-                  <td data-label="Idioma">{t.language_code || '—'}</td>
-                  <td data-label="Status"><StatusChip status={t.status} /></td>
-                  <td data-label="Qualidade"><ScoreSemaforo value={t.quality_score} /></td>
-                  <td
-                    data-label="Ações"
-                    className={styles.actionsCell}
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
-                  >
-                    <div className={styles.actions}>
-                      <button
-                        className={`${styles.qrIconBtn} ${styles.danger}`}
-                        title="Excluir"
-                        onClick={() => handleDelete(t.id, t.status)}
-                        disabled={!['draft', 'rejected'].includes(t.status)}
-                        type="button"
+                  {!loading && filtered.map(t => {
+                    const isSel = selected?.id === t.id;
+                    return (
+                      <tr
+                        key={t.id}
+                        className={`${styles.rowHover} ${isSel ? styles.rowSelected : ''}`}
+                        onClick={() => setSelected(t)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(t); } }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Selecionar ${t.name} para prévia`}
                       >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        <td data-label="Nome" style={{ textAlign: 'left' }}>
+                          <div className={styles.keyTitle}>{t.name}</div>
+                        </td>
+                        <td data-label="Categoria">{t.category || '—'}</td>
+                        <td data-label="Recategorizado">{t.recategorized ? 'Sim' : 'Não'}</td>
+                        <td data-label="Idioma">{t.language_code || '—'}</td>
+                        <td data-label="Status"><StatusChip status={t.status} /></td>
+                        <td data-label="Qualidade"><ScoreSemaforo value={t.quality_score} /></td>
+                        <td
+                          data-label="Ações"
+                          className={styles.actionsCell}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          <div className={styles.actions}>
+                            <button
+                              className={`${styles.qrIconBtn} ${styles.danger}`}
+                              title="Excluir"
+                              onClick={() => handleDelete(t.id, t.status)}
+                              disabled={!['draft', 'rejected'].includes(t.status)}
+                              type="button"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {error && <div className={styles.alertErr} role="alert">⚠️ {error}</div>}
+            {okMsg && <div className={styles.alertOk} role="status">✅ {okMsg}</div>}
+          </div>
         </div>
 
-        {error && <div className={styles.alertErr} role="alert">⚠️ {error}</div>}
-        {okMsg && <div className={styles.alertOk} role="status">✅ {okMsg}</div>}
+        {/* Coluna: Preview lateral */}
+        <aside className={styles.colPreview} aria-label="Prévia do template selecionado">
+          {!selected ? (
+            <div className={styles.previewEmpty}>
+              Selecione um template na lista para visualizar a prévia.
+            </div>
+          ) : (
+            <PreviewWhatsApp
+              name={selected.name}
+              headerType={selected.header_type || 'NONE'}
+              headerText={selected.header_text || ''}
+              headerMediaUrl={selected.header_media_url || ''}
+              bodyText={selected.body_text || ''}
+              footerText={selected.footer_text || ''}
+              buttons={selected.buttons || []}
+            />
+          )}
+        </aside>
       </div>
-
-      {/* Preview em modal */}
-      <TemplatePreview isOpen={previewOpen} template={previewItem} onClose={closePreview}/>
     </div>
   );
 }
