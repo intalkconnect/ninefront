@@ -66,7 +66,7 @@ import UserForm from "./management/users/UserForm";
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campaigns/campaign/Campaigns";
-import CampaignCreate from './campaigns/CampaignCreatePage';
+import CampaignCreate from './campaigns/CampaignCreate';
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
 import TicketDetail from "./atendimento/history/TicketDetail";
