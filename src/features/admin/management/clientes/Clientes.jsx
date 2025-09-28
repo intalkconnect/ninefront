@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
 import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
+import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import styles from './styles/Clientes.module.css';
 
 /* ================== helpers ================== */
 const PAGE_SIZES = [10, 20, 30, 40];
 
-/** Cor única para todas as etiquetas (layout de referência) */
-const CHIP_COLOR = '#14A3FF'; // azul vivo
+/** Cor única para todas as etiquetas (visual da referência) */
+const CHIP_COLOR = '#14A3FF';
 const CHIP_TEXT  = '#FFFFFF';
 
-/** Divide por vírgula/; mas mantém o texto original (sem lowercase, sem slug) */
+/** Divide por vírgula/; mantendo o texto original (sem lowercase/slug) */
 function splitTokensKeep(raw) {
   return String(raw || '')
     .split(/[,\u003B\u061B\uFF1B]/)
@@ -66,13 +67,13 @@ function channelIcon(channel) {
   return null;
 }
 
-/** Input de criação com chips sólidos azuis (layout do print) */
+/** Input de criação com chips sólidos azuis */
 function ChipsCreateInput({
   placeholder = 'Digite e pressione Enter (pode colar várias separadas por vírgula)',
   onCreate,
   onDeleteTag,
   busy,
-  tags = [], // [{tag, color?}] — usaremos uma única cor
+  tags = [], // [{tag}]
 }) {
   const [text, setText] = useState('');
 
@@ -89,7 +90,8 @@ function ChipsCreateInput({
       if (text.trim()) await commit(text);
     }
     if (e.key === 'Backspace' && !text && tags.length) {
-      onDeleteTag && onDeleteTag(tags[tags.length - 1].tag || tags[tags.length - 1]);
+      const last = tags[tags.length - 1];
+      onDeleteTag && onDeleteTag(typeof last === 'string' ? last : last.tag);
     }
   };
 
@@ -137,6 +139,7 @@ function ChipsCreateInput({
 }
 
 export default function Clientes() {
+  const { confirm } = useConfirm();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -146,7 +149,7 @@ export default function Clientes() {
   const [total, setTotal] = useState(0);
   const [openRow, setOpenRow] = useState(null);
 
-  // catálogo global [{tag, color?}]
+  // catálogo global [{tag}]
   const [catalog, setCatalog] = useState([]);
   const [catalogBusy, setCatalogBusy] = useState(false);
 
@@ -239,16 +242,39 @@ export default function Clientes() {
     } finally { setCatalogBusy(false); }
   };
 
+  /** Exclusão com CONFIRM e tratamento de 204/404 como sucesso */
   const deleteCatalogTag = async (tag) => {
     if (!tag) return;
-    const ok = window.confirm(`Excluir a etiqueta "${tag}" do catálogo global?\nIsso não remove a etiqueta de clientes que já a possuem.`);
+
+    const ok = await confirm({
+      title: 'Excluir etiqueta?',
+      description: `Tem certeza que deseja excluir a etiqueta "${tag}" do catálogo global? Isso não remove a etiqueta já aplicada em clientes.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger',
+    });
     if (!ok) return;
+
+    // Remoção otimista local (deixa a UI suave mesmo que a API retorne 204/404)
+    setCatalog(prev => prev.filter(t => (typeof t === 'string' ? t : t.tag) !== tag));
+    setSelectedTags(prev => prev.filter(t => t !== tag));
+
     try {
-      setCatalogBusy(true);
       await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
-      setSelectedTags(prev => prev.filter(t => t !== tag));
-      await loadCatalog();
-    } finally { setCatalogBusy(false); }
+      // Alguns backends retornam 204 sem body → apiClient pode lançar ao tentar .json().
+      // Se chegamos aqui sem throw, ok. Caso lance, o catch abaixo normaliza.
+    } catch (err) {
+      const msg = String(err?.message || '');
+      const is404 = /404/.test(msg);
+      const emptyJson = /Unexpected end of JSON input/i.test(msg);
+      if (is404 || emptyJson) {
+        // Considera sucesso: já não existia ou retornou 204 sem corpo
+        return;
+      }
+      // Falha real: reverte estado e informa
+      await loadCatalog(); // volta a sincronizar
+      console.error('Falha ao remover etiqueta:', err);
+    }
   };
 
   /* ========= filtros / busca ========= */
@@ -258,7 +284,7 @@ export default function Clientes() {
     await load({ page: 1, q });
   };
 
-  // cor única para pintar na tabela
+  // todas as cores da tabela = azul único
   const colorMap = useMemo(() => {
     const m = new Map();
     catalog.forEach(({ tag }) => { m.set(tag, CHIP_COLOR); });
