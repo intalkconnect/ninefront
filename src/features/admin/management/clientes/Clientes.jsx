@@ -342,20 +342,12 @@ export default function Clientes() {
 
   return (
     <div className={styles.container}>
-      {/* Toolbar topo */}
-      <div className={styles.toolbar}>
-        <div className={styles.headerActions}>
-          <button className={styles.btn} onClick={()=> load()} title="Atualizar">
-            <RefreshCw size={16}/> Atualizar
-          </button>
-        </div>
-      </div>
 
       {/* Cabeçalho */}
       <div className={styles.header}>
         <div>
           <p className={styles.subtitle}>
-            Gestão de clientes: crie etiquetas globais, filtre por etiquetas e visualize os detalhes.
+            Gestão de clientes: crie etiquetas, filtre por etiquetas e visualize os detalhes.
           </p>
         </div>
       </div>
@@ -366,7 +358,7 @@ export default function Clientes() {
         <section className={styles.cardHead}>
           <div className={styles.groupColumn}>
             <div className={styles.groupRow}>
-              <label className={styles.label}>Criar etiquetas (globais)</label>
+              <label className={styles.label}>Etiquetas</label>
               <ChipsCreateInput
                 onCreate={createTags}
                 onDeleteTag={deleteCatalogTag}
