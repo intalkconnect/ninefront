@@ -53,44 +53,45 @@
 }
 .btnSecondary:hover{ background:#ebe9ff; }
 
-/* Card */
+/* ===== CABEÇALHO DO CARD =====
+   Grid de 2 colunas: esquerda (criação/filtro), direita (busca) */
 .card{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:16px;
   box-shadow:var(--qr-shadow); overflow:hidden;
 }
-
-/* ===== CABEÇALHO DO CARD (ESQ: criação/filtro | DIR: busca) ===== */
 .cardHead{
-  display:flex;
-  align-items:flex-start;
+  display:grid;
+  grid-template-columns: 1fr minmax(340px, 38%);
   gap:16px;
+  align-items:start;
   padding:12px 16px;
   border-bottom:1px solid var(--qr-border-light);
   background:
     linear-gradient(180deg, #fff 0%, #fff 100%),
     linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
-  flex-wrap:wrap;
 }
 
-/* bloco da esquerda pode crescer à vontade */
+/* bloco da esquerda */
 .groupColumn{
-  display:flex; flex-direction:column; gap:12px; min-width:420px; flex: 1 1 600px;
+  display:flex; flex-direction:column; gap:12px;
+  min-width:420px; /* garante corpo sólido */
 }
 .groupRow{ display:flex; flex-direction:column; gap:8px; }
 .label{ font-size:14px; font-weight:700; color:#111827; }
 .hint{ color:#6b7280; font-size:12px; }
 .muted{ color:#6b7280; }
 
-/* busca do cabeçalho: cola na direita e ocupa o restante */
+/* Busca (coluna da direita) */
 .searchGroup{
   position:relative;
-  margin-left:auto;
-  flex: 1 1 360px;           /* base mínima */
-  max-width: 720px;          /* limite superior para não ficar exagerado */
-  min-width: 280px;
+  display:flex; flex-direction:column; gap:6px;
+  /* gruda na direita pois está na 2ª coluna do grid */
+}
+.searchLabel{
+  font-size:14px; font-weight:700; color:#111827;
 }
 .searchGroup .searchInput{
-  width:100%;                /* ocupa todo o espaço disponível */
+  width:100%;
   height:40px;
   padding:0 36px 0 12px;
   border:1px solid var(--qr-border);
@@ -99,12 +100,12 @@
 }
 .searchInput:focus{ box-shadow:0 0 0 3px var(--qr-primary-100); border-color:var(--qr-primary); }
 .searchClear{
-  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  position:absolute; right:6px; bottom:6px; /* alinha com a borda inferior */
   border:1px solid var(--qr-border); background:#fff; border-radius:8px;
   width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
 }
 
-/* ===== chips-input para criar etiquetas ===== */
+/* ===== chips-input (criação de etiquetas) */
 .tagsField{
   display:flex; flex-wrap:wrap; gap:8px;
   min-height:42px; padding:6px 8px;
@@ -116,35 +117,23 @@
   font:inherit; padding:8px 4px; background:transparent;
 }
 
-/* ===== catálogo de tags (filtro) com botão de remover “x” ===== */
+/* ===== catálogo de tags (filtro) com “x” para excluir do catálogo ===== */
 .tagsFilterWrap{ display:flex; flex-wrap:wrap; gap:8px; }
-
-.tagToggleWrap{
-  position:relative;
-  display:inline-flex;
-  align-items:center;
-}
+.tagToggleWrap{ position:relative; display:inline-flex; align-items:center; }
 .tagToggle{
   border:1px solid #e5e7eb; background:#fff; color:#374151;
   border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer;
 }
-.tagToggleOn{
-  background:#eef2ff; border-color:#e0e7ff; color:#3730a3;
-}
-/* x de remoção do catálogo */
+.tagToggleOn{ background:#eef2ff; border-color:#e0e7ff; color:#3730a3; }
 .tagRemove{
-  position:absolute;
-  top:-6px; right:-6px;
-  width:18px; height:18px;
-  line-height:18px; text-align:center;
-  border-radius:999px;
-  border:1px solid #e5e7eb;
-  background:#fff; color:#374151;
-  font-weight:700; cursor:pointer;
+  position:absolute; top:-6px; right:-6px;
+  width:18px; height:18px; line-height:18px; text-align:center;
+  border-radius:999px; border:1px solid #e5e7eb;
+  background:#fff; color:#374151; font-weight:700; cursor:pointer;
 }
 .tagRemove:hover{ background:#f3f4f6; }
 
-/* chips “pill” reutilizáveis (para filtro selecionado e detalhes) */
+/* chips “pill” reutilizáveis */
 .tagChip{
   display:inline-flex; align-items:center; gap:8px;
   padding:6px 10px; border-radius:999px;
@@ -160,19 +149,11 @@
 
 .filterSelectedRow{ display:flex; gap:8px; align-items:center; margin-top:8px; }
 
-/* chips do detalhe/coluna */
-.tagsExistingWrap{ display:flex; flex-wrap:wrap; gap:6px; }
-.tagExisting{
-  font-size:12px; padding:4px 10px; border-radius:999px;
-  background:#f7f8fb; border:1px solid #eceff4; color:#374151;
-}
-
 /* Tabela */
 .tableWrap{ overflow:auto; }
 .table{
   width:100%; border-collapse:separate; border-spacing:0; font-size:14px; table-layout:fixed;
 }
-/* larguras das 3 colunas */
 .colNome{ width:35%; }
 .colTags{ width:45%; }
 .colCanal{ width:20%; }
@@ -186,19 +167,17 @@
   color:#64748b; text-transform:uppercase; letter-spacing:.08em; font-size:12px;
   position:sticky; top:0; z-index:1;
 }
-/* header da 3ª coluna centralizado (CANAL) */
 .table thead th:nth-child(3){ text-align:center; }
 
 .table tbody td{
   padding:14px 16px; border-bottom:1px solid var(--qr-border-light); vertical-align:middle;
 }
-/* células da 3ª coluna centralizadas */
 .table tbody td:nth-child(3){ text-align:center; }
 
 .rowHover{ transition:var(--t-fast); }
 .rowHover:hover{ background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%); }
 
-/* Sumário do acordeon */
+/* Acordeon */
 .accRow{ cursor:pointer; }
 .summaryCell{ display:flex; align-items:center; gap:8px; }
 .chev{
@@ -224,7 +203,7 @@
   max-height:48px; overflow:hidden;
 }
 
-/* Detalhes do acordeon */
+/* Detalhes */
 .rowDetails td{ padding:0; }
 .detailsBox{ background:var(--qr-surface-2); border-top:1px solid var(--qr-border-light); }
 .detailsGrid{
@@ -260,17 +239,21 @@
 /* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
-/* chip de canal com tema por data-attribute */
+/* chip de canal */
 .chip[data-channel="whatsapp"]{ color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; }
 .chip[data-channel="telegram"]{ color:#0ea5e9; border-color:#bae6fd; background:#e0f2fe; }
 .chip[data-channel="instagram"]{ color:#db2777; border-color:#fecdd3; background:#ffe4e6; }
 .chip[data-channel="facebook"]{ color:#2563eb; border-color:#bfdbfe; background:#eff6ff; }
 
 /* Responsivo */
+@media (max-width: 1020px){
+  .cardHead{
+    grid-template-columns: 1fr; /* empilha */
+  }
+  .groupColumn{ min-width:0; }
+  .searchGroup{ max-width:none; }
+}
 @media (max-width: 920px){
-  .cardHead{ flex-direction:column; }
-  .groupColumn{ min-width:0; flex:1 1 auto; }
-  .searchGroup{ margin-left:0; max-width:none; width:100%; }
   .detailsGrid{ grid-template-columns: 1fr; }
   .colNome{ width:45%; }
   .colTags{ width:35%; }
