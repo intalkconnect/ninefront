@@ -4,10 +4,6 @@ import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import styles from './styles/Clientes.module.css';
 
 /* ================== helpers ================== */
-function labelChannel(c) {
-  const m = { whatsapp: 'WhatsApp', telegram: 'Telegram', instagram: 'Instagram', facebook: 'Facebook' };
-  return m[(c || '').toLowerCase()] || '—';
-}
 const PAGE_SIZES = [10, 20, 30, 40];
 
 // split + slugify
@@ -26,7 +22,7 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/* ===== cores ===== */
+/* ===== cores “normais” (sólidas) ===== */
 function hslToHex(h, s, l) {
   s /= 100; l /= 100;
   const k = n => (n + h / 30) % 12;
@@ -35,33 +31,76 @@ function hslToHex(h, s, l) {
   const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
   return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
 }
-function randomPastel() {
-  const h = Math.floor(Math.random() * 360);
-  const s = 55 + Math.floor(Math.random() * 10);   // 55–64
-  const l = 78 + Math.floor(Math.random() * 8);    // 78–85
-  return hslToHex(h, s, l);
+// cor determinística sólida baseada no nome
+function solidColorFromTag(tag) {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  // saturação alta, luminosidade média → cor forte (não pastel)
+  return hslToHex(hue, 68, 48);
 }
 function hexToRgb(hex) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
   if (!m) return null;
   return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
 }
-function colorStyles(hex) {
+function contrastText(hex) {
   const rgb = hexToRgb(hex);
-  if (!rgb) return {};
-  const bg = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.16)`;
-  const bd = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.38)`;
-  return { background: bg, borderColor: bd, color: '#0f172a' };
+  if (!rgb) return '#111827';
+  // luminância relativa (WCAG)
+  const toLin = v => {
+    v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055)/1.055, 2.4);
+  };
+  const L = 0.2126*toLin(rgb.r) + 0.7152*toLin(rgb.g) + 0.0722*toLin(rgb.b);
+  return L > 0.55 ? '#111827' : '#FFFFFF'; // claro → texto escuro, escuro → texto branco
 }
-// cor determinística (fallback) baseada no nome
-function hashColorFromTag(tag) {
-  let h = 0;
-  for (let i = 0; i < tag.length; i++) { h = (h * 31 + tag.charCodeAt(i)) >>> 0; }
-  const hue = h % 360;
-  return hslToHex(hue, 58, 82);
+function chipStylesSolid(hex) {
+  const text = contrastText(hex);
+  return {
+    background: hex,
+    color: text,
+    borderColor: hex
+  };
 }
 
-/** Input de criação com chips internos coloridos (catálogo) e X para excluir */
+/* ===== ícones de canal (SVG inline) ===== */
+const IconWA = (props) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
+    <path fill="#25D366" d="M20.52 3.48A11.94 11.94 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.16 1.6 5.98L0 24l6.2-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52z"/>
+    <path fill="#fff" d="M18.41 14.23c-.25.7-1.23 1.29-2.02 1.47-.54.13-1.24.24-3.58-.74-3.01-1.25-4.95-4.34-5.1-4.55-.15-.22-1.22-1.62-1.22-3.09 0-1.47.77-2.19 1.05-2.49.27-.3.58-.37.78-.37h.56c.18 0 .43.06.66.51.25.5.8 1.73.87 1.86.07.14.12.3.02.48-.1.19-.15.3-.3.47-.14.17-.3.38-.42.51-.14.14-.29.3-.13.58.15.29.65 1.08 1.4 1.75.97.86 1.79 1.13 2.06 1.25.27.12.43.1.6-.06.19-.2.43-.52.68-.84.17-.23.39-.26.62-.18.24.08 1.5.71 1.76.84.26.13.43.19.5.3.06.11.06.67-.19 1.37z"/>
+  </svg>
+);
+const IconTG = (props) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
+    <path fill="#229ED9" d="M9.999 15.2 9.9 20c.4 0 .6-.2.8-.4l1.9-1.8 3.9 2.8c.7.4 1.2.2 1.4-.6l2.6-12.2c.2-.8-.3-1.2-1-.9L3.8 9.4c-.8.3-.8.7-.1 1l4.7 1.5 10.8-6.7-9.4 10.5z"/>
+  </svg>
+);
+const IconIG = (props) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
+    <radialGradient id="igG" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stopColor="#FFD776"/><stop offset="50%" stopColor="#F56040"/><stop offset="100%" stopColor="#8A3AB9"/>
+    </radialGradient>
+    <rect x="2" y="2" width="20" height="20" rx="5" fill="url(#igG)"/>
+    <circle cx="12" cy="12" r="4" fill="#fff"/>
+    <circle cx="17" cy="7" r="1.3" fill="#fff"/>
+  </svg>
+);
+const IconFB = (props) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
+    <path fill="#1877F2" d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.093 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.007 1.793-4.668 4.533-4.668 1.313 0 2.686.235 2.686.235v2.953h-1.514c-1.492 0-1.956.928-1.956 1.88v2.246h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+  </svg>
+);
+function channelIcon(channel) {
+  const c = String(channel || '').toLowerCase();
+  if (c === 'whatsapp') return <IconWA />;
+  if (c === 'telegram') return <IconTG />;
+  if (c === 'instagram') return <IconIG />;
+  if (c === 'facebook') return <IconFB />;
+  return null;
+}
+
+/** Input de criação com chips internos coloridos e X para excluir */
 function ChipsCreateInput({
   placeholder = 'ex.: vip, reclamacao, atraso',
   onCreate,
@@ -100,7 +139,7 @@ function ChipsCreateInput({
       aria-label="Criar etiquetas do catálogo"
     >
       {tags.map(({ tag, color }) => (
-        <span key={tag} className={styles.tagChip} style={colorStyles(color || hashColorFromTag(tag))}>
+        <span key={tag} className={styles.tagChip} style={chipStylesSolid(color || solidColorFromTag(tag))}>
           <span className={styles.tagText}>{tag}</span>
           <button
             type="button"
@@ -166,7 +205,7 @@ export default function Clientes() {
       const totalFound = Number(resp?.total || data.length || 0);
       setTotal(totalFound);
 
-      // baixa tags dos clientes visíveis em pequenos lotes
+      // baixa tags dos clientes visíveis
       const chunk = async (arr, size) => {
         for (let i = 0; i < arr.length; i += size) {
           const slice = arr.slice(i, i + size);
@@ -205,12 +244,11 @@ export default function Clientes() {
       // aceita tanto [{tag, color}] quanto [string]
       const raw = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
       const list = raw.map(it => {
-        if (typeof it === 'string') return { tag: it, color: hashColorFromTag(it) };
+        if (typeof it === 'string') return { tag: it, color: solidColorFromTag(it) };
         const tag = String(it?.tag || '').trim();
         const color = (it?.color && String(it.color).trim()) || '';
-        return { tag, color: color || hashColorFromTag(tag) };
+        return { tag, color: color || solidColorFromTag(tag) };
       }).filter(x => x.tag);
-      // remove duplicados por tag
       const dedup = Array.from(new Map(list.map(x => [x.tag, x])).values())
         .sort((a,b) => a.tag.localeCompare(b.tag));
       setCatalog(dedup);
@@ -227,7 +265,7 @@ export default function Clientes() {
       const uniq = [...new Set(tokens)];
       await Promise.all(
         uniq.map(tag =>
-          apiPost('/tags/customer/catalog', { tag, color: randomPastel(), active: true })
+          apiPost('/tags/customer/catalog', { tag, color: solidColorFromTag(tag), active: true })
         )
       );
       await loadCatalog();
@@ -256,7 +294,7 @@ export default function Clientes() {
   // mapa tag -> color para pintar na tabela
   const colorMap = useMemo(() => {
     const m = new Map();
-    catalog.forEach(({ tag, color }) => { m.set(tag, color || hashColorFromTag(tag)); });
+    catalog.forEach(({ tag, color }) => { m.set(tag, color || solidColorFromTag(tag)); });
     return m;
   }, [catalog]);
 
@@ -415,9 +453,9 @@ export default function Clientes() {
                         ) : (userTags && userTags.length > 0) ? (
                           <div className={styles.tagsRowWrap}>
                             {userTags.map(t => {
-                              const c = colorMap.get(t) || hashColorFromTag(t);
+                              const c = colorMap.get(t) || solidColorFromTag(t);
                               return (
-                                <span key={t} className={styles.tagExisting} style={colorStyles(c)}>
+                                <span key={t} className={styles.tagExisting} style={chipStylesSolid(c)}>
                                   {t}
                                 </span>
                               );
@@ -429,12 +467,8 @@ export default function Clientes() {
                       </td>
 
                       <td className={styles.summaryRight}>
-                        <span
-                          className={styles.chip}
-                          data-channel={String(row.channel || '').toLowerCase()}
-                          title={labelChannel(row.channel)}
-                        >
-                          {labelChannel(row.channel)}
+                        <span className={styles.chanIcon} title={String(row.channel || '')} aria-label={String(row.channel || '')}>
+                          {channelIcon(row.channel)}
                         </span>
                       </td>
                     </tr>
@@ -456,7 +490,7 @@ export default function Clientes() {
                               </div>
                               <div className={styles.item}>
                                 <div className={styles.k}>Canal</div>
-                                <div className={styles.v}>{labelChannel(row.channel)}</div>
+                                <div className={styles.v}>{String(row.channel || '') || '—'}</div>
                               </div>
                               <div className={styles.item}>
                                 <div className={styles.k}>Atualizado em</div>
@@ -470,7 +504,7 @@ export default function Clientes() {
                                   {row.created_at ? new Date(row.created_at).toLocaleString() : '—'}
                                 </div>
                               </div>
-                              {/* Sem repetir etiquetas dentro do detalhe */}
+                              {/* sem duplicar etiquetas aqui */}
                             </div>
                           </div>
                         </td>
