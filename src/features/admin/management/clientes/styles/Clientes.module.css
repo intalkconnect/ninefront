@@ -15,7 +15,7 @@
   --qr-primary-100:rgba(139,92,246,.20);
 
   --t-fast: all .18s cubic-bezier(.4,0,.2,1);
-  --chip-color:#14A3FF;   /* mesma cor em todo lugar */
+  --chip-color:#14A3FF;
   --chip-text:#FFFFFF;
 }
 
@@ -68,7 +68,7 @@
   border:1px solid #c7d2fe; background:#fff; border-radius:8px; width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
 }
 
-/* ===== chips-input (pílulas sólidas azuis, como o print) ===== */
+/* ===== chips-input (pílulas sólidas) ===== */
 .tagsField{
   display:flex; flex-wrap:wrap; gap:8px; min-height:46px; padding:8px;
   border:2px solid #c7d2fe; border-radius:14px; background:#fff; transition:var(--t-fast);
@@ -82,9 +82,7 @@
   box-shadow:0 2px 6px rgba(0,0,0,.06);
 }
 .tagChipSolid{ background:var(--chip-color); border:1px solid var(--chip-color); color:var(--chip-text); }
-.tagChipX{
-  width:18px; height:18px; border-radius:999px; border:0; cursor:pointer; display:grid; place-items:center; font-weight:700;
-}
+.tagChipX{ width:18px; height:18px; border-radius:999px; border:0; cursor:pointer; display:grid; place-items:center; font-weight:700; }
 .tagChipXSolid{ color:#fff; }
 .tagText{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
@@ -124,7 +122,7 @@
 .summaryRight{ text-align:center; }
 .chanIcon{ display:inline-grid; place-items:center; width:28px; height:28px; border-radius:999px; background:#fff; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,.08); margin:0 auto; }
 
-/* Coluna de etiquetas (usa a mesma cor sólida do input) */
+/* Coluna de etiquetas (mesma cor do input) */
 .tagsCell{ padding:10px 12px; }
 .tagsRowWrap{ display:flex; flex-wrap:wrap; gap:8px; max-height:48px; overflow:hidden; }
 .tagExisting{ background:var(--chip-color); border:1px solid var(--chip-color); color:var(--chip-text); border-radius:999px; padding:6px 10px; font-size:12px; }
