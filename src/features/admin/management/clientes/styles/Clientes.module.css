@@ -1,265 +1,153 @@
-// routes/customerTags.js
-/**
- * Endpoints:
- * - GET    /tags/customer/catalog            → lista catálogo de tags de cliente
- * - POST   /tags/customer/catalog            → cria/ativa/atualiza (upsert) tag no catálogo
- * - PATCH  /tags/customer/catalog/:tag       → atualiza label/color/active
- * - DELETE /tags/customer/catalog/:tag       → remove do catálogo (se não estiver em uso)
- *
- * - GET    /tags/customer/:user_id           → lista tags do cliente
- * - POST   /tags/customer/:user_id           → adiciona 1..N tags ao cliente
- * - DELETE /tags/customer/:user_id/:tag      → remove 1 tag do cliente
- */
+:root{
+  --qr-bg:#f6f7fb;
+  --qr-surface:#f7f8fa;
+  --qr-surface-2:#f1f5f9;
 
-function isValidUserId(user_id) {
-  // mesmo critério dos tickets (aceita "coisa@dominio")
-  return /^[\w\d]+@[\w\d.-]+$/.test(String(user_id));
+  --qr-border:#3b82f6;
+  --qr-border-light:#2563eb;
+
+  --qr-text:#0f172a;
+  --qr-text-2:#374151;
+  --qr-muted:#6b7280;
+
+  --qr-primary:#8B5CF6;
+  --qr-primary-600:#7C3AED;
+  --qr-primary-100:rgba(139,92,246,.20);
+
+  --t-fast: all .18s cubic-bezier(.4,0,.2,1);
+  --chip-color:#14A3FF;
+  --chip-text:#FFFFFF;
 }
 
-async function customerTagsRoutes(fastify) {
-  // ============================
-  // Catálogo (customer_tag_catalog)
-  // ============================
+/* Página */
+.container{ padding:24px; max-width:1400px; margin:0 auto; background:transparent!important; }
+.header{ display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:18px; position:relative; }
+.header::after{ content:''; position:absolute; left:0; right:0; bottom:-16px; height:2px; background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%); }
+.subtitle{ margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400; }
 
-  // GET /tags/customer/catalog?q=&active=true|false&page=1&page_size=20
-  fastify.get('/customer/catalog', async (req, reply) => {
-    const { q = '', active, page = 1, page_size = 20 } = req.query || {};
-    const pageNum  = Math.max(1, Number(page) || 1);
-    const pageSize = Math.min(Math.max(Number(page_size) || 20, 1), 100);
-    const offset   = (pageNum - 1) * pageSize;
+/* Toolbar topo */
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
+.headerActions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{ border:1px solid var(--qr-border); background:#fff; color:#374151; border-radius:12px; padding:10px 14px; font-weight:700; display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
+.btn:hover{ background:#f1f5f9; }
+.btnSecondary{ background:#f1f0ff; border:1px solid #e6e4ff; color:#4338ca; border-radius:10px; padding:8px 12px; font-weight:700; display:inline-flex; align-items:center; gap:8px; cursor:pointer; }
+.btnSecondary:hover{ background:#ebe9ff; }
 
-    const where = [];
-    const params = [];
+/* Card base */
+.card{ background:#fff; border:1px solid var(--qr-border-light); border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06); overflow:hidden; }
 
-    if (q) {
-      params.push(`%${q}%`);
-      where.push(`(LOWER(tag) LIKE LOWER($${params.length}) OR LOWER(COALESCE(label,'')) LIKE LOWER($${params.length}))`);
-    }
-    if (active === 'true' || active === true) {
-      where.push(`active IS TRUE`);
-    } else if (active === 'false' || active === false) {
-      where.push(`active IS FALSE`);
-    }
-    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+/* Criação */
+.cardHead{
+  display:block; padding:12px 16px; border-bottom:1px solid var(--qr-border-light);
+  background:linear-gradient(180deg,#fff 0%, #fff 100%), linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
+}
+.groupColumn{ display:flex; flex-direction:column; gap:12px; }
+.groupRow{ display:flex; flex-direction:column; gap:8px; }
+.label{ font-size:14px; font-weight:700; color:#111827; }
+.hint{ color:#6b7280; font-size:12px; }
+.muted{ color:#6b7280; }
 
-    const sqlCount = `SELECT COUNT(*)::bigint AS total FROM customer_tag_catalog ${whereSql}`;
-    const sqlList  = `
-      SELECT tag, label, color, active, created_at
-        FROM customer_tag_catalog
-        ${whereSql}
-       ORDER BY tag ASC
-       LIMIT $${params.length + 1}
-      OFFSET $${params.length + 2}
-    `;
+/* Filtro + busca */
+.filtersBar{ padding:12px 16px 14px; border-bottom:1px solid var(--qr-border-light); background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%); }
+.filtersHead{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.filtersTitle{ font-size:13px; font-weight:800; color:#111827; letter-spacing:.02em; }
+.tagsFilterWrap{ display:flex; flex-wrap:wrap; gap:8px; }
 
-    try {
-      const rCount = await req.db.query(sqlCount, params);
-      const total  = Number(rCount.rows?.[0]?.total || 0);
-      const rList  = await req.db.query(sqlList, [...params, pageSize, offset]);
-      return reply.send({
-        data: rList.rows || [],
-        page: pageNum,
-        page_size: pageSize,
-        total,
-        total_pages: Math.max(1, Math.ceil(total / pageSize)),
-      });
-    } catch (err) {
-      req.log.error({ err }, 'GET /tags/customer/catalog');
-      return reply.code(500).send({ error: 'Erro ao listar catálogo de tags de cliente' });
-    }
-  });
-
-  // POST /tags/customer/catalog  { tag, label?, color?, active? }
-  fastify.post('/customer/catalog', async (req, reply) => {
-    const { tag, label = null, color = null, active = true } = req.body || {};
-    const t = String(tag || '').trim();
-    if (!t) return reply.code(400).send({ error: 'tag é obrigatória' });
-
-    try {
-      const sql = `
-        INSERT INTO customer_tag_catalog (tag, label, color, active)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (tag) DO UPDATE
-          SET label = EXCLUDED.label,
-              color = EXCLUDED.color,
-              active = EXCLUDED.active
-        RETURNING tag, label, color, active, created_at
-      `;
-      const { rows } = await req.db.query(sql, [t, label, color, Boolean(active)]);
-      return reply.code(201).send(rows[0]);
-    } catch (err) {
-      req.log.error({ err }, 'POST /tags/customer/catalog');
-      return reply.code(500).send({ error: 'Erro ao criar/atualizar tag no catálogo' });
-    }
-  });
-
-  // PATCH /tags/customer/catalog/:tag   { label?, color?, active? }
-  fastify.patch('/customer/catalog/:tag', async (req, reply) => {
-    const key = String(req.params?.tag || '').trim();
-    if (!key) return reply.code(400).send({ error: 'tag inválida' });
-
-    const allowed = ['label', 'color', 'active'];
-    const upd = {};
-    for (const k of allowed) {
-      if (k in req.body) upd[k] = req.body[k];
-    }
-    if (!Object.keys(upd).length) {
-      return reply.code(400).send({ error: 'Nada para atualizar' });
-    }
-
-    const sets = [];
-    const vals = [];
-    let i = 1;
-    for (const [k, v] of Object.entries(upd)) {
-      sets.push(`${k} = $${i++}`);
-      vals.push(k === 'active' ? Boolean(v) : v);
-    }
-    vals.push(key);
-
-    try {
-      const sql = `
-        UPDATE customer_tag_catalog
-           SET ${sets.join(', ')}
-         WHERE tag = $${i}
-         RETURNING tag, label, color, active, created_at
-      `;
-      const { rows } = await req.db.query(sql, vals);
-      if (!rows[0]) return reply.code(404).send({ error: 'Tag do catálogo não encontrada' });
-      return reply.send(rows[0]);
-    } catch (err) {
-      req.log.error({ err }, 'PATCH /tags/customer/catalog/:tag');
-      return reply.code(500).send({ error: 'Erro ao atualizar tag do catálogo' });
-    }
-  });
-
-  // DELETE /tags/customer/catalog/:tag
-  fastify.delete('/customer/catalog/:tag', async (req, reply) => {
-    const key = String(req.params?.tag || '').trim();
-    if (!key) return reply.code(400).send({ error: 'tag inválida' });
-
-    try {
-      // impede excluir se em uso (opcional; remova se quiser cascata lógica)
-      const rUse = await req.db.query(
-        `SELECT 1 FROM customer_tags WHERE tag = $1 LIMIT 1`,
-        [key]
-      );
-      if (rUse.rowCount) {
-        return reply.code(409).send({ error: 'Tag está em uso por clientes — remova os vínculos antes' });
-      }
-
-      const { rowCount } = await req.db.query(
-        `DELETE FROM customer_tag_catalog WHERE tag = $1`,
-        [key]
-      );
-      return rowCount ? reply.code(204).send() : reply.code(404).send({ error: 'Tag não encontrada' });
-    } catch (err) {
-      req.log.error({ err }, 'DELETE /tags/customer/catalog/:tag');
-      return reply.code(500).send({ error: 'Erro ao remover tag do catálogo' });
-    }
-  });
-
-  // ============================
-  // Vínculo cliente ⇄ tag (customer_tags)
-  // ============================
-
-  // GET /tags/customer/:user_id
-  fastify.get('/customer/:user_id', async (req, reply) => {
-    const { user_id } = req.params || {};
-    if (!isValidUserId(user_id)) {
-      return reply.code(400).send({ error: 'Formato de user_id inválido' });
-    }
-    try {
-      // garante que o cliente existe (o DDL não tem FK em user_id)
-      const rCli = await req.db.query(
-        `SELECT 1 FROM clientes WHERE user_id = $1 LIMIT 1`,
-        [user_id]
-      );
-      if (!rCli.rowCount) return reply.code(404).send({ error: 'Cliente não encontrado' });
-
-      const sql = `
-        SELECT ct.tag, ctc.label, ctc.color, ctc.active, ct.created_at
-          FROM customer_tags ct
-          LEFT JOIN customer_tag_catalog ctc ON ctc.tag = ct.tag
-         WHERE ct.user_id = $1
-         ORDER BY ct.tag ASC
-      `;
-      const { rows } = await req.db.query(sql, [user_id]);
-      return reply.send({ user_id, tags: rows || [] });
-    } catch (err) {
-      req.log.error({ err }, 'GET /tags/customer/:user_id');
-      return reply.code(500).send({ error: 'Erro ao listar tags do cliente' });
-    }
-  });
-
-  // POST /tags/customer/:user_id  { tags: ["vip","inadimplente"] }
-  fastify.post('/customer/:user_id', async (req, reply) => {
-    const { user_id } = req.params || {};
-    const tags = Array.isArray(req.body?.tags) ? req.body.tags.map(x => String(x).trim()).filter(Boolean) : [];
-    if (!isValidUserId(user_id)) {
-      return reply.code(400).send({ error: 'Formato de user_id inválido' });
-    }
-    if (!tags.length) return reply.code(400).send({ error: 'tags é obrigatório (array não-vazio)' });
-
-    try {
-      const rCli = await req.db.query(
-        `SELECT 1 FROM clientes WHERE user_id = $1 LIMIT 1`,
-        [user_id]
-      );
-      if (!rCli.rowCount) return reply.code(404).send({ error: 'Cliente não encontrado' });
-
-      // garante que existem no catálogo
-      const rKnown = await req.db.query(
-        `SELECT tag FROM customer_tag_catalog WHERE tag = ANY($1::text[]) AND active IS TRUE`,
-        [tags]
-      );
-      const known = new Set((rKnown.rows || []).map(r => r.tag));
-      const unknown = tags.filter(t => !known.has(t));
-      if (unknown.length) {
-        return reply.code(400).send({ error: 'Tags inexistentes ou inativas no catálogo', unknown });
-      }
-
-      // upserts
-      const values = [];
-      const params = [];
-      let i = 1;
-      for (const t of tags) {
-        params.push(user_id, t);
-        values.push(`($${i++}, $${i++})`);
-      }
-      const sql = `
-        INSERT INTO customer_tags (user_id, tag)
-        VALUES ${values.join(', ')}
-        ON CONFLICT (user_id, tag) DO NOTHING
-        RETURNING user_id, tag, created_at
-      `;
-      const { rows } = await req.db.query(sql, params);
-      return reply.code(201).send({ added: rows.length, items: rows });
-    } catch (err) {
-      req.log.error({ err }, 'POST /tags/customer/:user_id');
-      return reply.code(500).send({ error: 'Erro ao vincular tags ao cliente' });
-    }
-  });
-
-  // DELETE /tags/customer/:user_id/:tag
-  fastify.delete('/customer/:user_id/:tag', async (req, reply) => {
-    const { user_id, tag } = req.params || {};
-    if (!isValidUserId(user_id)) {
-      return reply.code(400).send({ error: 'Formato de user_id inválido' });
-    }
-    const t = String(tag || '').trim();
-    if (!t) return reply.code(400).send({ error: 'tag inválida' });
-
-    try {
-      const { rowCount } = await req.db.query(
-        `DELETE FROM customer_tags WHERE user_id = $1 AND tag = $2`,
-        [user_id, t]
-      );
-      return rowCount ? reply.code(204).send() : reply.code(404).send({ error: 'Vínculo não encontrado' });
-    } catch (err) {
-      req.log.error({ err }, 'DELETE /tags/customer/:user_id/:tag');
-      return reply.code(500).send({ error: 'Erro ao remover tag do cliente' });
-    }
-  });
+.searchGroupInline{ margin-top:10px; display:flex; flex-direction:column; gap:6px; }
+.searchBox{ position:relative; }
+.searchLabel{ font-size:14px; font-weight:700; color:#111827; }
+.searchInput{
+  width:100%; height:40px; padding:0 36px 0 12px;
+  border:2px solid #c7d2fe; border-radius:14px; outline:none; background:#fff; font-size:14px; transition:var(--t-fast);
+}
+.searchInput:focus{ box-shadow:0 0 0 4px rgba(37,99,235,.25); border-color:#2563EB; }
+.searchClear{
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  border:1px solid #c7d2fe; background:#fff; border-radius:8px; width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
 }
 
-export default customerTagsRoutes;
+/* Input de tags (azul sólido) */
+.tagsField{
+  display:flex; flex-wrap:wrap; gap:8px; min-height:46px; padding:8px;
+  border:2px solid #c7d2fe; border-radius:14px; background:#fff; transition:var(--t-fast);
+}
+.tagsField:focus-within{ border-color:#2563EB; box-shadow:0 0 0 4px rgba(37,99,235,.25); }
+.tagsInput{ border:0; outline:none; flex:1; min-width:160px; font:inherit; padding:8px 4px; background:transparent; }
+
+.tagChip{
+  display:inline-flex; align-items:center; gap:8px; padding:8px 12px;
+  border-radius:999px; font-size:13px; line-height:1;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+}
+.tagChipSolid{ background:var(--chip-color); border:1px solid var(--chip-color); color:var(--chip-text); }
+.tagChipX{ width:18px; height:18px; border-radius:999px; border:0; cursor:pointer; display:grid; place-items:center; font-weight:700; }
+.tagChipXSolid{ color:#fff; }
+.tagText{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* Filtro — sem “x”, sem cor */
+.tagToggle{
+  border:1px solid #e5e7eb; background:#fff; color:#374151;
+  border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer;
+}
+.tagToggleOn{ background:#eef2ff; border-color:#e0e7ff; color:#1f2937; }
+.filterSelectedRow{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+
+/* Tabela */
+.tableWrap{ overflow:auto; }
+.table{ width:100%; border-collapse:separate; border-spacing:0; font-size:14px; table-layout:fixed; }
+.colNome{ width:35%; } .colTags{ width:45%; } .colCanal{ width:20%; }
+
+.table thead th{
+  text-align:left; padding:12px 16px;
+  background:linear-gradient(180deg,var(--qr-surface) 0%, #fff 100%), linear-gradient(90deg,var(--qr-primary-100) 0%, transparent 45%);
+  border-bottom:1px solid var(--qr-border); color:#64748b; text-transform:uppercase; letter-spacing:.08em; font-size:12px; position:sticky; top:0; z-index:1;
+}
+.table thead th:nth-child(3){ text-align:center; }
+.table tbody td{ padding:14px 16px; border-bottom:1px solid var(--qr-border-light); vertical-align:middle; }
+.table tbody td:nth-child(3){ text-align:center; }
+
+.rowHover{ transition:var(--t-fast); }
+.rowHover:hover{ background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%); }
+
+/* Acordeon */
+.accRow{ cursor:pointer; }
+.summaryCell{ display:flex; align-items:center; gap:8px; }
+.chev{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:6px; border:1px solid var(--qr-border); background:#fff; transition:transform .18s ease; }
+.chevOpen{ transform:rotate(90deg); }
+.nameText{ font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Canal */
+.summaryRight{ text-align:center; }
+.chanIcon{ display:inline-grid; place-items:center; width:28px; height:28px; border-radius:999px; background:#fff; border:1px solid #e5e7eb; box-shadow:0 1px 3px rgba(0,0,0,.08); margin:0 auto; }
+
+/* Etiquetas na tabela (mesma cor do input) */
+.tagsCell{ padding:10px 12px; }
+.tagsRowWrap{ display:flex; flex-wrap:wrap; gap:8px; max-height:48px; overflow:hidden; }
+.tagExisting{ background:var(--chip-color); border:1px solid var(--chip-color); color:var(--chip-text); border-radius:999px; padding:6px 10px; font-size:12px; }
+
+/* Detalhes */
+.rowDetails td{ padding:0; }
+.detailsBox{ background:var(--qr-surface-2); border-top:1px solid var(--qr-border-light); }
+.detailsGrid{ display:grid; gap:10px; padding:14px 16px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.item{ background:#fff; border:1px solid var(--qr-border-light); border-radius:10px; padding:10px 12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.itemFull{ grid-column:1 / -1; }
+.k{ font-size:12px; font-weight:800; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; }
+.v{ margin-top:4px; color:#0f172a; word-break:break-word; }
+
+/* Footer/pager */
+.tableFooter{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; border-top:1px solid var(--qr-border-light); background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%); }
+.leftInfo{ color:#6b7280; font-size:13px; }
+.pager{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.pageSize{ height:36px; border:1px solid var(--qr-border); border-radius:10px; padding:0 10px; background:#fff; font-weight:700; }
+.pBtn{ border:1px solid var(--qr-border); background:#fff; border-radius:10px; padding:8px 10px; cursor:pointer; }
+.pBtn:disabled{ opacity:.5; cursor:not-allowed; }
+.pInfo{ color:#6b7280; }
+
+/* Estados */
+.loading,.empty{ padding:24px; color:#6b7280; text-align:center; }
+
+/* Responsivo */
+@media (max-width: 1020px){
+  .detailsGrid{ grid-template-columns: 1fr; }
+  .colNome{ width:45%; } .colTags{ width:35%; } .colCanal{ width:20%; }
+}
