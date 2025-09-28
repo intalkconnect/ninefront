@@ -1,0 +1,240 @@
+:root {
+  --border: #e5e7eb;
+  --muted: #6b7280;
+  --muted-2: #9ca3af;
+  --bg: #ffffff;
+  --bg-soft: #f9fafb;
+  --accent: #111827;
+  --success: #059669;
+  --danger: #dc2626;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.pageTitle {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (min-width: 768px) {
+  .stepsGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.stepCircle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.stepCircleDone {
+  background: var(--success);
+  color: #fff;
+}
+.stepTitle {
+  font-weight: 500;
+}
+
+.blockTitle {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.alertErr {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+/* inputs */
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  outline: none;
+  transition: box-shadow .15s, border-color .15s;
+  background: #fff;
+}
+.input:focus {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 4px rgba(156,163,175,.15);
+}
+
+.inputIconRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.inputIconRow .input {
+  flex: 1;
+}
+
+/* tiles */
+.row {
+  display: flex;
+  gap: 12px;
+  flex-direction: column;
+}
+@media (min-width: 768px) {
+  .row { flex-direction: row; }
+}
+
+.selectTile {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.selectTile:hover { border-color: #cbd5e1; }
+.tileActive { border-color: var(--accent); }
+.selectTile input { margin-right: 8px; }
+
+.tileTitle { font-weight: 600; margin: 2px 0; }
+.tileDesc  { font-size: 13px; color: var(--muted); }
+
+.radioRow {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.radioItem {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 768px) {
+  .grid2 { grid-template-columns: 1fr 1fr; }
+}
+.gridFull { grid-column: 1 / -1; }
+
+.stack { display: grid; gap: 8px; }
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.fileNative { display: none; }
+.fileButton {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: var(--bg);
+}
+.fileName { font-size: 14px; color: #111827; }
+
+.mt4 { margin-top: 16px; }
+
+.hint { font-size: 14px; color: var(--muted); margin-top: 8px; }
+.hintSmall { font-size: 12px; color: var(--muted-2); margin-top: 6px; }
+
+/* actions */
+.actionsRight {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.actionsSplit {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn:hover { background: var(--bg-soft); }
+
+.btnPrimary {
+  border: 1px solid #111827;
+  background: #111827;
+  color: #fff;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btnPrimary:hover { filter: brightness(0.96); }
+
+.btnSuccess {
+  border-color: var(--success);
+  background: var(--success);
+}
+
+.reviewList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.reviewList li { margin: 6px 0; }
+
+.spin {
+  margin-right: 8px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
