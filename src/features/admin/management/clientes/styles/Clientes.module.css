@@ -14,8 +14,8 @@
   --qr-primary-600:#7C3AED;
   --qr-primary-100:rgba(139,92,246,.20);
 
-  --qr-shadow:0 1px 3px 0 rgb(0 0 0 / 8%), 0 1px 2px -1px rgb(0 0 0 / 6%);
-  --qr-shadow-lg:0 10px 15px -3px rgb(0 0 0 / .08), 0 4px 6px -4px rgb(0 0 0 / .06);
+  /* usado no :focus-within da tag */
+  --brand-100:#d6e4ff;
 
   --t-fast: all .18s cubic-bezier(.4,0,.2,1);
 }
@@ -37,26 +37,11 @@
 }
 .subtitle{ margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400; }
 
-/* Toolbar topo */
-.toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
-.headerActions{display:flex;gap:10px;flex-wrap:wrap}
-
-.btn{
-  border:1px solid var(--qr-border); background:#fff; color:#374151;
-  border-radius:12px; padding:10px 14px; font-weight:700;
-  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-}
-.btn:hover{ background:#f1f5f9; }
-.btnSecondary{
-  background:#f1f0ff; border:1px solid #e6e4ff; color:#4338ca;
-  border-radius:10px; padding:8px 12px; font-weight:700; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-}
-.btnSecondary:hover{ background:#ebe9ff; }
-
 /* Card */
 .card{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:16px;
-  box-shadow:var(--qr-shadow); overflow:hidden;
+  box-shadow:0 1px 3px 0 rgb(0 0 0 / 8%), 0 1px 2px -1px rgb(0 0 0 / 6%);
+  overflow:hidden;
 }
 
 /* ===== Criação (chips dentro do input) ===== */
@@ -114,21 +99,23 @@
   font:inherit; padding:8px 4px; background:transparent;
 }
 
-/* chips genéricas; quando coloridas, recebem style inline (bg, color, border) */
+/* ====== CORES APLICADAS ÀS TAGS (INPUT e LISTA) ====== */
 .tagChip{
   display:inline-flex; align-items:center; gap:8px;
-  padding:6px 10px; border-radius:999px;
-  font-size:12px; line-height:1;
-  background:#f7f8fb; border:1px solid #eceff4; color:#374151;
+  padding:8px 12px; border-radius:999px; font-size:12.5px; line-height:1;
+  background:#e8f0ff; border:1px solid #d6e4ff; color:#16325c;
+  box-shadow:0 1px 2px rgba(2,6,23,.05);
 }
+.tagChip:focus-within{ outline:2px solid var(--brand-100); outline-offset:2px; }
+
 .tagChipX{
   width:18px; height:18px; border-radius:999px; border:0; cursor:pointer;
-  display:grid; place-items:center; background:rgba(0,0,0,.08); color:#374151; font-weight:700;
+  display:grid; place-items:center; line-height:1; font-weight:800;
+  background:rgba(0,0,0,.08); color:#16325c;
 }
-.tagChipX:hover{ background:rgba(0,0,0,.16); }
-.tagText{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tagChipX:hover{ background:rgba(0,0,0,.15); }
 
-/* catálogo no filtro: sem “x”, sem cor */
+/* Filtro (neutro e sem “x”) */
 .tagToggle{
   border:1px solid #e5e7eb; background:#fff; color:#374151;
   border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer;
@@ -137,13 +124,6 @@
   background:#eef2ff; border-color:#e0e7ff; color:#1f2937;
 }
 .filterSelectedRow{ display:flex; gap:8px; align-items:center; margin-top:8px; }
-
-/* chips exibidas na coluna/tabela; ficam coloridas via inline-style */
-.tagsExistingWrap{ display:flex; flex-wrap:wrap; gap:6px; }
-.tagExisting{
-  font-size:12px; padding:4px 10px; border-radius:999px;
-  background:#f7f8fb; border:1px solid #eceff4; color:#0f172a;
-}
 
 /* Tabela */
 .tableWrap{ overflow:auto; }
@@ -190,11 +170,11 @@
   display:inline-grid; place-items:center;
   width:28px; height:28px; border-radius:999px;
   background:#fff; border:1px solid #e5e7eb;
-  box-shadow: var(--qr-shadow);
+  box-shadow:0 1px 3px 0 rgb(0 0 0 / 8%), 0 1px 2px -1px rgb(0 0 0 / 6%);
   margin: 0 auto;
 }
 
-/* Coluna de etiquetas (lista compacta) */
+/* Coluna de etiquetas (usa .tagChip para mesma aparência do input) */
 .tagsCell{ padding:10px 12px; }
 .tagsRowWrap{
   display:flex; flex-wrap:wrap; gap:6px;
@@ -210,7 +190,7 @@
 }
 .item{
   background:#fff; border:1px solid var(--qr-border-light); border-radius:10px;
-  padding:10px 12px; box-shadow:var(--qr-shadow);
+  padding:10px 12px; box-shadow:0 1px 3px 0 rgb(0 0 0 / 8%), 0 1px 2px -1px rgb(0 0 0 / 6%);
 }
 .itemFull{ grid-column:1 / -1; }
 .k{
