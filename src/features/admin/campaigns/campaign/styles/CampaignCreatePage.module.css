@@ -1,0 +1,16 @@
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.breadcrumbs { margin-bottom: 8px; }
+.bcList { list-style: none; padding: 0; margin: 0; display: flex; align-items: center; gap: 8px; }
+.bcLink { color: #2563eb; text-decoration: none; }
+.bcLink:hover { text-decoration: underline; }
+.bcSep { color: #9ca3af; }
+.bcCurrent { color: #111827; font-weight: 600; }
+
+.header { margin: 6px 0 16px; }
+.title { margin: 0; font-size: 22px; font-weight: 600; }
+.subtitle { margin: 6px 0 0; color: #6b7280; }
