@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
-import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
+import { apiGet, apiPost, apiDelete, apiPatch } from '../../../../shared/apiClient'; // <-- adiciona apiPatch
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import styles from './styles/Clientes.module.css';
 
@@ -36,7 +36,6 @@ function useAppConfirm() {
 
   return async (opts) => {
     if (fn) return await fn(opts);
-    // fallback (não deve disparar normalmente)
     return window.confirm(opts?.description || 'Confirmar operação?');
   };
 }
@@ -246,7 +245,7 @@ export default function Clientes() {
     } finally { setCatalogBusy(false); }
   };
 
-  /** Exclusão com CONFIRM + tolerante a 204/404/corpo vazio */
+  /** Exclusão com CONFIRM + trata 204/404/409 (Conflict) */
   const deleteCatalogTag = async (tag) => {
     if (!tag) return;
 
@@ -259,22 +258,50 @@ export default function Clientes() {
     });
     if (!ok) return;
 
-    // remoção otimista
-    setCatalog(prev => prev.filter(t => (typeof t === 'string' ? t : t.tag) !== tag));
-    setSelectedTags(prev => prev.filter(t => t !== tag));
-
     try {
       await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
-      // se o backend devolver 204 sem body e seu apiClient tentar .json(), ele pode lançar;
-      // tratamos abaixo no catch, considerando sucesso.
-    } catch (err) {
-      const msg = String(err?.message || '');
-      const is404 = /404/.test(msg);
-      const emptyJson = /Unexpected end of JSON input/i.test(msg);
-      if (is404 || emptyJson) return; // ok
-      // erro real: volta a sincronizar
+      // sucesso (204/200) — recarrega
       await loadCatalog();
+      return;
+    } catch (err) {
+      const status = err?.status ?? err?.response?.status;
+      const msg = String(err?.message || '');
+
+      // corpo vazio em 204 com cliente tentando .json()
+      if (/Unexpected end of JSON input/i.test(msg) || status === 204) {
+        await loadCatalog();
+        return;
+      }
+      // 404 — já não existia: sincroniza e segue
+      if (status === 404 || /404/.test(msg)) {
+        await loadCatalog();
+        return;
+      }
+      // 409 — em uso: oferece inativar
+      if (status === 409 || /409/.test(msg)) {
+        const okDeactivate = await confirm({
+          title: 'Etiqueta em uso',
+          description:
+            `A etiqueta "${tag}" está em uso por clientes. Deseja **inativá-la** (não poderá ser mais usada)?`,
+          confirmText: 'Inativar',
+          cancelText: 'Cancelar',
+          tone: 'warning',
+        });
+        if (!okDeactivate) return;
+
+        try {
+          await apiPatch(`/tags/customer/catalog/${encodeURIComponent(tag)}`, { active: false });
+          await loadCatalog(); // como listamos active=true, ela some do catálogo
+          return;
+        } catch (e2) {
+          console.error('Falha ao inativar etiqueta:', e2);
+          await loadCatalog();
+          return;
+        }
+      }
+
       console.error('Falha ao remover etiqueta:', err);
+      await loadCatalog();
     }
   };
 
@@ -285,7 +312,6 @@ export default function Clientes() {
     await load({ page: 1, q });
   };
 
-  // mapa de cores (azul único)
   const colorMap = useMemo(() => {
     const m = new Map();
     catalog.forEach(({ tag }) => { m.set(tag, CHIP_COLOR); });
