@@ -51,11 +51,11 @@
 
 .buttonGroup { min-width: 280px; background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 .buttonGroupAttached { border-top: 0; border-radius: 0 0 12px 12px; margin-top: -1px; overflow: hidden; }
-.ctaButton, .quickButton { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background-color .2s ease; max-width: 280px; }
+.ctaButton, .quickButton { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background-color .2s ease; max-width: 280px; justify-content: center; text-align: center; }
 .ctaButton:last-child, .quickButton:last-child { border-bottom: none; }
 .ctaButton:hover, .quickButton:hover { background: #f8fafc; }
-.btnIcon { display: flex; align-items: center; justify-content: center; }
-.btnText { flex: 1; color: #1ea0f2; font-weight: 600; font-size: 14px; }
+.btnIcon { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; }
+.btnText { flex: 0 0 auto; color: #1ea0f2; font-weight: 600; font-size: 14px; }
 .iBlue { color: #1ea0f2; }
 
 .previewLabel { text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted); font-weight: 600; }
