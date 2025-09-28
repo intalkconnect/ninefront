@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { ChevronRight, RefreshCw, X as XIcon, Plus } from 'lucide-react';
-import { apiGet, apiPost } from '../../../../shared/apiClient';
+import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
+import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
 import styles from './styles/Clientes.module.css';
 
@@ -28,21 +28,25 @@ function splitTokens(raw) {
     .filter(Boolean);
 }
 
-/** chips-input simples (para criar tags de catálogo) */
+/** Input simples: cria etiquetas do catálogo ao Enter/virgula/colar */
 function ChipsCreateInput({ placeholder = 'ex.: vip, reclamacao, atraso', onCreate, busy }) {
   const [text, setText] = useState('');
+
   const commit = async (raw) => {
     const tokens = splitTokens(raw);
     if (!tokens.length) return;
     setText('');
     await onCreate(tokens);
   };
+
   const onKeyDown = async (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       if (text.trim()) await commit(text);
     }
+    // opcional: backspace não faz nada aqui (sem chips locais)
   };
+
   const onPaste = async (e) => {
     const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
     if (/[,\u003B\u061B\uFF1B]/.test(txt)) {
@@ -50,6 +54,7 @@ function ChipsCreateInput({ placeholder = 'ex.: vip, reclamacao, atraso', onCrea
       await commit(txt);
     }
   };
+
   return (
     <div className={styles.tagsField} onClick={(e)=>e.currentTarget.querySelector('input')?.focus()}>
       <input
@@ -61,15 +66,6 @@ function ChipsCreateInput({ placeholder = 'ex.: vip, reclamacao, atraso', onCrea
         placeholder={placeholder}
         disabled={busy}
       />
-      <button
-        type="button"
-        className={styles.btnSecondary}
-        onClick={() => text.trim() && commit(text)}
-        disabled={busy || !text.trim()}
-        title="Criar"
-      >
-        <Plus size={16}/> Criar
-      </button>
     </div>
   );
 }
@@ -179,6 +175,24 @@ export default function Clientes() {
     }
   };
 
+  const deleteCatalogTag = async (tag) => {
+    if (!tag) return;
+    const ok = window.confirm(`Excluir a etiqueta "${tag}" do catálogo global?\nIsso não remove a etiqueta de clientes que já a possuem.`);
+    if (!ok) return;
+    try {
+      setCatalogBusy(true);
+      await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`);
+      // se estava aplicada no filtro, remove
+      setSelectedTags(prev => prev.filter(t => t !== tag));
+      await loadCatalog();
+      toast.success('Etiqueta removida do catálogo.');
+    } catch {
+      toast.error('Não foi possível remover a etiqueta.');
+    } finally {
+      setCatalogBusy(false);
+    }
+  };
+
   /* ========= filtros ========= */
   const onSearch = async (e) => {
     e?.preventDefault?.();
@@ -242,7 +256,7 @@ export default function Clientes() {
               <div className={styles.hint}>As etiquetas criadas aqui ficam disponíveis para todos os clientes.</div>
             </div>
 
-            {/* Filtro por etiquetas (toggle chips) */}
+            {/* Filtro por etiquetas (toggle chips) + excluir catálogo */}
             <div className={styles.groupRow}>
               <label className={styles.label}>Filtrar por etiquetas</label>
               <div className={styles.tagsFilterWrap}>
@@ -251,15 +265,26 @@ export default function Clientes() {
                 {catalog.map(tag => {
                   const active = selectedTags.includes(tag);
                   return (
-                    <button
-                      type="button"
-                      key={tag}
-                      className={`${styles.tagToggle} ${active ? styles.tagToggleOn : ''}`}
-                      onClick={() => toggleFilterTag(tag)}
-                      title={active ? 'Remover do filtro' : 'Adicionar ao filtro'}
-                    >
-                      {tag}
-                    </button>
+                    <span key={tag} className={styles.tagToggleWrap}>
+                      <button
+                        type="button"
+                        className={`${styles.tagToggle} ${active ? styles.tagToggleOn : ''}`}
+                        onClick={() => toggleFilterTag(tag)}
+                        title={active ? 'Remover do filtro' : 'Adicionar ao filtro'}
+                      >
+                        {tag}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.tagRemove}
+                        aria-label={`Excluir ${tag}`}
+                        title={`Excluir ${tag} do catálogo`}
+                        onClick={() => deleteCatalogTag(tag)}
+                        disabled={catalogBusy}
+                      >
+                        ×
+                      </button>
+                    </span>
                   );
                 })}
               </div>
