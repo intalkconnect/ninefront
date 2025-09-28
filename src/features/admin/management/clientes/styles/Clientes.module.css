@@ -193,3 +193,31 @@
   .colNome{ width:70%; }
   .colCanal{ width:30%; }
 }
+/* ===== Chips (tags dentro do campo) ===== */
+.tagsField{
+  display:flex; flex-wrap:wrap; gap:6px;
+  min-height:42px; padding:6px 8px;
+  border:1px solid var(--border,#e5e7eb);
+  border-radius:12px; background:#fff;
+  cursor:text;
+}
+.tagsBusy{ opacity:.75; pointer-events:none; }
+.tagsInput{
+  border:0; outline:none; flex:1; min-width:140px;
+  font:inherit; padding:8px 4px; background:transparent;
+}
+.tagChip{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 10px; border-radius:999px;
+  font-size:12px; line-height:1;
+  background:#dbeafe; border:1px solid #bfdbfe; color:#1e3a8a;
+}
+.tagText{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tagChipX{
+  width:18px; height:18px; border-radius:999px; border:0; cursor:pointer;
+  display:grid; place-items:center; background:rgba(0,0,0,.08); color:#1e3a8a; font-weight:700; line-height:1;
+}
+.tagChipX:hover{ background:rgba(0,0,0,.15); }
+.tagsHint{ margin-top:6px; font-size:12px; color:#6b7280; }
+.itemFull{ grid-column: 1 / -1; }
+
