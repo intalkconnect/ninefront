@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import CampaignWizardPage from './CampaignWizardPage';
+import CampaignWizardPage from './CampaignWizard';
 import styles from './styles/CampaignCreate.module.css';
 
 export default function CampaignCreate() {
