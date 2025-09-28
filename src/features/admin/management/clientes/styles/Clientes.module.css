@@ -22,9 +22,9 @@
 
 /* Página */
 .container{
-  padding:24px;
-  max-width:1400px;
-  margin:0 auto;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
   background:transparent !important;
 }
 .header{
@@ -33,13 +33,13 @@
 }
 .header::after{
   content:''; position:absolute; left:0; right:0; bottom:-16px; height:2px;
-  background:linear-gradient(90deg,#2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
 }
 .subtitle{ margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400; }
 
 /* Toolbar topo */
-.toolbar{ display:flex; justify-content:flex-end; margin-bottom:8px; }
-.headerActions{ display:flex; gap:10px; flex-wrap:wrap; }
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
+.headerActions{display:flex;gap:10px;flex-wrap:wrap}
 
 .btn{
   border:1px solid var(--qr-border); background:#fff; color:var(--qr-text-2);
@@ -59,57 +59,50 @@
   box-shadow:var(--qr-shadow); overflow:hidden;
 }
 
-/* ===== Cabeçalho do card (ESQ: criação | DIR: busca) ===== */
+/* ===== Criação de etiquetas (cabeçalho do card) ===== */
 .cardHead{
-  display:grid;
-  grid-template-columns: 1fr minmax(340px, 420px); /* busca com largura controlada */
-  gap:16px;
-  align-items:start;
+  display:block;
   padding:12px 16px;
   border-bottom:1px solid var(--qr-border-light);
   background:
-    linear-gradient(180deg, #fff 0%, #fff 100%),
+    linear-gradient(180deg,#fff 0%, #fff 100%),
     linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
 }
 
-/* bloco da esquerda */
-.groupColumn{
-  display:flex; flex-direction:column; gap:12px;
-  min-width:420px; /* evita encolher demais e “quebrar” as linhas */
-}
+.groupColumn{ display:flex; flex-direction:column; gap:12px; }
 .groupRow{ display:flex; flex-direction:column; gap:8px; }
 .label{ font-size:14px; font-weight:700; color:#111827; }
 .hint{ color:#6b7280; font-size:12px; }
 .muted{ color:#6b7280; }
 
-/* Busca (coluna da direita) */
-.searchGroup{
-  position:relative;
-  display:flex; flex-direction:column; gap:6px;
-}
-.searchLabel{ font-size:14px; font-weight:700; color:#111827; }
-.searchGroup .searchInput{
-  width:100%; height:40px; padding:0 36px 0 12px;
-  border:1px solid var(--qr-border); border-radius:12px;
-  outline:none; background:#fff; font-size:14px;
-}
-.searchInput:focus{ box-shadow:0 0 0 3px var(--qr-primary-100); border-color:var(--qr-primary); }
-.searchClear{
-  position:absolute; right:6px; bottom:6px;
-  border:1px solid var(--qr-border); background:#fff; border-radius:8px;
-  width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
-}
-
-/* ===== Barra de filtros logo abaixo do cabeçalho ===== */
+/* ===== Barra de filtros + BUSCA (logo abaixo do cabeçalho) ===== */
 .filtersBar{
-  padding:12px 16px;
+  padding:12px 16px 14px;
   border-bottom:1px solid var(--qr-border-light);
   background:linear-gradient(180deg,#fff 0%, var(--qr-surface) 100%);
 }
 .filtersHead{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
 .filtersTitle{ font-size:13px; font-weight:800; color:#111827; letter-spacing:.02em; }
 
-/* chips-input (criação) */
+.tagsFilterWrap{ display:flex; flex-wrap:wrap; gap:8px; }
+
+/* busca dentro da barra de filtros */
+.searchGroupInline{ margin-top:10px; display:flex; flex-direction:column; gap:6px; }
+.searchBox{ position:relative; }
+.searchLabel{ font-size:14px; font-weight:700; color:#111827; }
+.searchInput{
+  width:100%; height:40px; padding:0 36px 0 12px;
+  border:1px solid var(--qr-border); border-radius:12px;
+  outline:none; background:#fff; font-size:14px;
+}
+.searchInput:focus{ box-shadow:0 0 0 3px var(--qr-primary-100); border-color:var(--qr-primary); }
+.searchClear{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  border:1px solid var(--qr-border); background:#fff; border-radius:8px;
+  width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
+}
+
+/* ===== chips-input (criação de etiquetas) ===== */
 .tagsField{
   display:flex; flex-wrap:wrap; gap:8px;
   min-height:42px; padding:6px 8px;
@@ -121,14 +114,13 @@
   font:inherit; padding:8px 4px; background:transparent;
 }
 
-/* Catálogo de tags com “x” para excluir */
-.tagsFilterWrap{ display:flex; flex-wrap:wrap; gap:8px; }
+/* ===== catálogo de tags (filtro) com “x” para excluir do catálogo ===== */
 .tagToggleWrap{ position:relative; display:inline-flex; align-items:center; }
 .tagToggle{
   border:1px solid #e5e7eb; background:#fff; color:#374151;
   border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer;
 }
-.tagToggleOn{ background:#eef2ff; border-color:#e0e7ff; color:#3730a3; }
+.tagToggleOn{ box-shadow:0 0 0 3px rgba(139,92,246,.18); }
 .tagRemove{
   position:absolute; top:-6px; right:-6px;
   width:18px; height:18px; line-height:18px; text-align:center;
@@ -137,21 +129,36 @@
 }
 .tagRemove:hover{ background:#f3f4f6; }
 
-/* chips “pill” reutilizáveis */
+/* ===== Tag dinâmica (usa vars inline) ===== */
+.tagDynamic{
+  --_bg: var(--tag-bg, #eef2ff);
+  --_bd: var(--tag-border, #e5e7eb);
+  --_fg: var(--tag-fg, #111827);
+  background: var(--_bg);
+  border-color: var(--_bd);
+  color: var(--_fg);
+}
+
+/* chips “pill” reutilizáveis (selecionadas e coluna) */
 .tagChip{
   display:inline-flex; align-items:center; gap:8px;
-  padding:6px 10px; border-radius:999px;
-  font-size:12px; line-height:1;
-  background:#dbeafe; border:1px solid #bfdbfe; color:#1e3a8a;
+  padding:6px 10px; border-radius:999px; font-size:12px; line-height:1;
+  border:1px solid var(--_bd);
+  background:var(--_bg); color:var(--_fg);
 }
 .tagChipX{
   width:18px; height:18px; border-radius:999px; border:0; cursor:pointer;
-  display:grid; place-items:center; background:rgba(0,0,0,.08); color:#1e3a8a; font-weight:700;
+  display:grid; place-items:center; background:rgba(0,0,0,.08); color:inherit; font-weight:700;
 }
 .tagChipX:hover{ background:rgba(0,0,0,.16); }
 .tagText{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-.filterSelectedRow{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+/* chips exibidas na coluna/tabela */
+.tagsExistingWrap{ display:flex; flex-wrap:wrap; gap:6px; }
+.tagExisting{
+  font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid var(--_bd);
+  background:var(--_bg); color:var(--_fg);
+}
 
 /* Tabela */
 .tableWrap{ overflow:auto; }
@@ -190,24 +197,17 @@
   background:#fff; transition:transform .18s ease;
 }
 .chevOpen{ transform:rotate(90deg); }
-.nameText{ font-weight:700; color:var(--qr-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nameText{ font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-/* Ícones/badges de canal */
 .summaryRight{ text-align:center; }
-.chanBubble{
-  display:inline-flex; align-items:center; justify-content:center;
-  width:34px; height:34px; border-radius:999px; border:1px solid #e5e7eb;
-  background:#fff;
+.summaryRight .chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:999px; font-weight:700; font-size:13px;
+  background:#f8f9ff; color:#4338ca; border:1px solid #c7d2fe;
+  margin:0 auto;
 }
-.chanIcon{ width:18px; height:18px; }
 
-/* cores por canal */
-.chan-whatsapp{ color:#22c55e; border-color:#bbf7d0; background:#ecfdf5; }
-.chan-telegram{ color:#0ea5e9; border-color:#bae6fd; background:#e0f2fe; }
-.chan-instagram{ color:#db2777; border-color:#fecdd3; background:#ffe4e6; }
-.chan-facebook{ color:#2563eb; border-color:#bfdbfe; background:#eff6ff; }
-
-/* Coluna de etiquetas (resumo) */
+/* Coluna de etiquetas (lista compacta) */
 .tagsCell{ padding:10px 12px; }
 .tagsRowWrap{
   display:flex; flex-wrap:wrap; gap:6px;
@@ -230,7 +230,7 @@
   font-size:12px; font-weight:800; color:var(--qr-muted);
   text-transform:uppercase; letter-spacing:.05em;
 }
-.v{ margin-top:4px; color:var(--qr-text); word-break:break-word; }
+.v{ margin-top:4px; color:#0f172a; word-break:break-word; }
 
 /* Rodapé/pager */
 .tableFooter{
@@ -250,15 +250,14 @@
 /* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
+/* chip de canal (mantém texto por enquanto; pode trocar por SVG/ícone) */
+.chip[data-channel="whatsapp"]{ color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; }
+.chip[data-channel="telegram"]{ color:#0ea5e9; border-color:#bae6fd; background:#e0f2fe; }
+.chip[data-channel="instagram"]{ color:#db2777; border-color:#fecdd3; background:#ffe4e6; }
+.chip[data-channel="facebook"]{ color:#2563eb; border-color:#bfdbfe; background:#eff6ff; }
+
 /* Responsivo */
-@media (max-width: 1100px){
-  .cardHead{ grid-template-columns: 1fr minmax(300px, 380px); }
-}
-@media (max-width: 980px){
-  .cardHead{ grid-template-columns: 1fr; } /* empilha */
-  .groupColumn{ min-width:0; }
-}
-@media (max-width: 920px){
+@media (max-width: 1020px){
   .detailsGrid{ grid-template-columns: 1fr; }
   .colNome{ width:45%; }
   .colTags{ width:35%; }
