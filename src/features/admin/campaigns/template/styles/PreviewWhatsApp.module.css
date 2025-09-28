@@ -1,0 +1,65 @@
+/* src/pages/admin/management/templates/styles/PreviewWhatsApp.module.css */
+:root {
+  --border:#e5e7eb; --border2:#eef2f7; --text:#0f172a; --muted:#6b7280;
+  --whatsapp-bubble:#ffffff; --whatsapp-text:#1f2937;
+  --shadow-sm:0 1px 3px rgba(2,6,23,.08); --shadow-md:0 8px 24px rgba(2,6,23,.12);
+}
+
+.previewWrap { position: sticky; top: 20px; }
+.phoneCard { width: 100%; max-width: 360px; background: #fff; border: 1px solid var(--border2); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow-md); margin: 0 auto; }
+
+/* WhatsApp Header */
+.whatsappHeader { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: linear-gradient(135deg, #075e54 0%, #128c7e 100%); color: white; }
+.contactInfo { display: flex; align-items: center; gap: 12px; }
+.contactDetails { display: flex; flex-direction: column; }
+.contactName { font-size: 14px; font-weight: 600; color: white; }
+.contactStatus { font-size: 11px; color: rgba(255,255,255,.8); }
+.headerActions { display: flex; gap: 8px; }
+.headerBtn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 4px; border-radius: 4px; }
+.headerBtn:hover { background: rgba(255,255,255,.1); }
+
+/* Chat Area */
+.chatArea { padding: 16px; min-height: 300px;
+  background: radial-gradient(circle at 10px 10px, rgba(0,0,0,.02) 1px, transparent 1px) 0 0/20px 20px,
+              linear-gradient(180deg, #e8f4f8 0%, #f0f8ff 100%); position: relative; }
+.messageContainer { display: flex; flex-direction: column; align-items: flex-end; max-width: 100%; }
+
+.mediaHeader { width: 100%; max-width: 280px; }
+.mediaPlaceholder { background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px 16px; text-align: center; color: #6b7280; }
+.mediaIcon { margin-bottom: 8px; opacity: .7; }
+.iMedia { color: #6b7280; }
+.mediaLabel { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.mediaUrl { font-size: 11px; color: #9ca3af; word-break: break-all; }
+.mediaAttached { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; margin-bottom: -1px; }
+.mediaImgWrap { position: relative; }
+.mediaImage, .mediaVideo { display: block; width: 100%; height: 180px; object-fit: cover; }
+.mediaIframe { display: block; width: 100%; height: 220px; border: 0; background: #fff; }
+.mediaFallback { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; color: #6b7280; background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); padding: 16px; }
+
+.bubbleBlock { display:flex; flex-direction:column; align-items:flex-end; gap:0; max-width:100%; }
+.messageBubble { position: relative; min-width: 280px; background: var(--whatsapp-bubble); border: 1px solid #e0f2fe; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.1); padding: 12px 16px 24px 16px; color: var(--whatsapp-text); line-height: 1.4; word-wrap: break-word; }
+.messageBubble::after { content: ''; position: absolute; right: -6px; bottom: 0; width: 0; height: 0; border: 6px solid transparent; border-top-color: var(--whatsapp-bubble); border-right: none; border-bottom: none; }
+.bubbleAttachTop { border-top-left-radius: 0; border-top-right-radius: 0; border-top: 0; margin-top: -1px; }
+.bubbleAttachBottom { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 0; }
+
+.headerText { font-weight: 700; margin-bottom: 8px; color: var(--text); font-size: 14px; }
+.bodyText { white-space: pre-wrap; font-size: 14px; line-height: 1.4; }
+.footerText { margin-top: 8px; padding-top: 8px; border-top: 1px solid #f1f5f9; font-size: 12px; color: var(--muted); }
+.timestamp { position: absolute; right: 8px; bottom: 4px; font-size: 10px; color: #94a3b8; }
+
+.token { background: #dcfce7; color: #16a34a; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+
+.buttonGroup { min-width: 280px; background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.buttonGroupAttached { border-top: 0; border-radius: 0 0 12px 12px; margin-top: -1px; overflow: hidden; }
+.ctaButton, .quickButton { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background-color .2s ease; max-width: 280px; }
+.ctaButton:last-child, .quickButton:last-child { border-bottom: none; }
+.ctaButton:hover, .quickButton:hover { background: #f8fafc; }
+.btnIcon { display: flex; align-items: center; justify-content: center; }
+.btnText { flex: 1; color: #1ea0f2; font-weight: 600; font-size: 14px; }
+.iBlue { color: #1ea0f2; }
+
+.previewLabel { text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted); font-weight: 600; }
+
+@media (max-width: 1200px) {
+  .previewWrap { position: static; margin-top: 20px; }
+}
