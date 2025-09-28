@@ -121,7 +121,7 @@ export default function Campaigns() {
           </button>
           <button
             className={styles.btnPrimary}
-            onClick={() => navigate('/management/campaigns/new')}
+            onClick={() => navigate('/campaigns/campaigns/new')}
           >
             <Plus size={16}/> Nova campanha
           </button>
