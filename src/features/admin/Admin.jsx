@@ -748,7 +748,7 @@ export default function Admin() {
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/templates/new" element={<TemplateCreate />} />
           <Route path="campaigns/campaigns" element={<Campaigns />} />
-          <Route path="campaigns/campaigns/new" element={<CampaignsCreate />} />
+          <Route path="campaigns/campaigns/new" element={<CampaignCreate />} />
 
           {/* ✅ CORREÇÃO: Rotas de settings com paths absolutos */}
           <Route
