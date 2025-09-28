@@ -75,7 +75,7 @@
 .hint{ color:#6b7280; font-size:12px; }
 .muted{ color:#6b7280; }
 
-/* ===== Barra de filtros + BUSCA (logo abaixo do cabeçalho) ===== */
+/* ===== Barra de filtros + BUSCA ===== */
 .filtersBar{
   padding:12px 16px 14px;
   border-bottom:1px solid var(--qr-border-light);
@@ -102,7 +102,7 @@
   width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
 }
 
-/* ===== chips-input (criação de etiquetas) ===== */
+/* ===== chips-input (criação) ===== */
 .tagsField{
   display:flex; flex-wrap:wrap; gap:8px;
   min-height:42px; padding:6px 8px;
@@ -114,50 +114,35 @@
   font:inherit; padding:8px 4px; background:transparent;
 }
 
-/* ===== catálogo de tags (filtro) com “x” para excluir do catálogo ===== */
-.tagToggleWrap{ position:relative; display:inline-flex; align-items:center; }
-.tagToggle{
-  border:1px solid #e5e7eb; background:#fff; color:#374151;
-  border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer;
-}
-.tagToggleOn{ box-shadow:0 0 0 3px rgba(139,92,246,.18); }
-.tagRemove{
-  position:absolute; top:-6px; right:-6px;
-  width:18px; height:18px; line-height:18px; text-align:center;
-  border-radius:999px; border:1px solid #e5e7eb;
-  background:#fff; color:#374151; font-weight:700; cursor:pointer;
-}
-.tagRemove:hover{ background:#f3f4f6; }
-
-/* ===== Tag dinâmica (usa vars inline) ===== */
-.tagDynamic{
-  --_bg: var(--tag-bg, #eef2ff);
-  --_bd: var(--tag-border, #e5e7eb);
-  --_fg: var(--tag-fg, #111827);
-  background: var(--_bg);
-  border-color: var(--_bd);
-  color: var(--_fg);
-}
-
-/* chips “pill” reutilizáveis (selecionadas e coluna) */
+/* chips neutros (dentro do input e nas seleções do filtro) */
 .tagChip{
   display:inline-flex; align-items:center; gap:8px;
-  padding:6px 10px; border-radius:999px; font-size:12px; line-height:1;
-  border:1px solid var(--_bd);
-  background:var(--_bg); color:var(--_fg);
+  padding:6px 10px; border-radius:999px;
+  font-size:12px; line-height:1;
+  background:#f7f8fb; border:1px solid #eceff4; color:#374151;
 }
 .tagChipX{
   width:18px; height:18px; border-radius:999px; border:0; cursor:pointer;
-  display:grid; place-items:center; background:rgba(0,0,0,.08); color:inherit; font-weight:700;
+  display:grid; place-items:center; background:rgba(0,0,0,.08); color:#374151; font-weight:700;
 }
 .tagChipX:hover{ background:rgba(0,0,0,.16); }
 .tagText{ max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-/* chips exibidas na coluna/tabela */
+/* catálogo para o filtro: sem “x”, sem cor marcante */
+.tagToggle{
+  border:1px solid #e5e7eb; background:#fff; color:#374151;
+  border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer;
+}
+.tagToggleOn{
+  background:#eef2ff; border-color:#e0e7ff; color:#1f2937;
+}
+.filterSelectedRow{ display:flex; gap:8px; align-items:center; margin-top:8px; }
+
+/* chips exibidas na coluna/tabela (neutras) */
 .tagsExistingWrap{ display:flex; flex-wrap:wrap; gap:6px; }
 .tagExisting{
-  font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid var(--_bd);
-  background:var(--_bg); color:var(--_fg);
+  font-size:12px; padding:4px 10px; border-radius:999px;
+  background:#f7f8fb; border:1px solid #eceff4; color:#374151;
 }
 
 /* Tabela */
@@ -250,7 +235,7 @@
 /* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
-/* chip de canal (mantém texto por enquanto; pode trocar por SVG/ícone) */
+/* chip de canal */
 .chip[data-channel="whatsapp"]{ color:#1d4ed8; border-color:#bfdbfe; background:#eff6ff; }
 .chip[data-channel="telegram"]{ color:#0ea5e9; border-color:#bae6fd; background:#e0f2fe; }
 .chip[data-channel="instagram"]{ color:#db2777; border-color:#fecdd3; background:#ffe4e6; }
