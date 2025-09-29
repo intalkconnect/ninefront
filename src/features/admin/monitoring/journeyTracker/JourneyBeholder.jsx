@@ -218,7 +218,19 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     return () => clearInterval(id);
   }, [userId, fetchDetail]);
 
-  const lanes = useMemo(() => splitEvery10(detail?.journey || []), [detail]);
+  const lanes = useMemo(() => {
+    const j = Array.isArray(detail?.journey) ? detail.journey : [];
+    if (j.length === 0) return [];
+    // acha o último reset
+    const lastResetIdx = [...j]
+      .map((s, idx) => ({ t: String(s.type || '').toLowerCase(), idx }))
+      .filter(x => x.t === 'system_reset')
+      .map(x => x.idx)
+      .pop();
+    const sliced = (lastResetIdx != null) ? j.slice(lastResetIdx) : j;
+    // não filtramos "human" aqui: queremos ver blocos humanos no Beholder
+    return splitEvery10(sliced);
+  }, [detail]);
 
   // Abre modal sem buscar nada extra (usa somente o payload da jornada)
   const openModalForStage = (st) => {
