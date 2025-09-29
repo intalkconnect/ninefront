@@ -536,20 +536,11 @@ export default function CampaignWizard({ onCreated }) {
                   {blocksError && <div className={styles.alertErr}>⚠️ {blocksError}</div>}
                   {flowId && !blocksError && (
                     <small className={styles.hint}>
-                      Fluxo ativo: <b>#{flowId}</b>. reply_action: <b>flow_goto</b>.
+                      Fluxo ativo: <b>#{flowId}</b>. 
                     </small>
                   )}
                 </div>
 
-                {/* ⚠️ Observação só aparece quando for MASSA (CSV) */}
-                {form.sendType === 'mass' && (
-                  <div className={styles.group}>
-                    <label className={styles.label}>Observação</label>
-                    <div className={styles.input} style={{display:'flex', alignItems:'center'}}>
-                      Caso o bloco não exista, seu motor deve tratar como fallback (ex.: onerror).
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -607,21 +598,18 @@ export default function CampaignWizard({ onCreated }) {
                     </span>
                   </div>
                   <small className={styles.hint}>
-                    O CSV deve conter a coluna <b>to</b> (E.164) e as variáveis do template.
+                    O CSV deve conter a coluna <b>to</b> e as variáveis do template.
                   </small>
                 </div>
               ) : (
                 <div className={styles.group}>
-                  <label className={styles.label}>Número do destinatário (E.164)</label>
+                  <label className={styles.label}>Número do destinatário</label>
                   <input
                     className={styles.input}
                     placeholder="Ex.: 5511999998888"
                     value={form.to}
                     onChange={(e) => setField('to', e.target.value.replace(/\s+/g, ''))}
                   />
-                  <small className={styles.hint}>
-                    Envio individual é enfileirado imediatamente (sem agendamento).
-                  </small>
                 </div>
               )}
             </div>
@@ -704,7 +692,7 @@ export default function CampaignWizard({ onCreated }) {
                 </>
               ) : (
                 <div className={styles.group}>
-                  <label className={styles.label}>Bloco de destino</label>
+                  <label className={styles.label}>Destino no fluxo</label>
                   <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
                     {blocks.find(b => b.key === form.flow_block)?.name || '—'}
                   </div>
