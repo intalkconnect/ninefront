@@ -119,7 +119,7 @@ export default function Builder() {
         position: { x: 300, y: 100 },
         data: {
           label: "onError",
-          type: "text",
+          type: "error",
           color: "#FF4500",
           block: {
             type: "text",
