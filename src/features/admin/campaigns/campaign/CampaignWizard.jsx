@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Upload, Calendar, Loader2, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
-import styles from './styles/CampaignCreate.module.css';
+import styles from './styles/CampaignWizard.module.css';
 import { toast } from 'react-toastify';
 
 /**
