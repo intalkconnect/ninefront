@@ -282,7 +282,7 @@ export default function Admin() {
               key: "camp-disparo",
               label: "Mensagens Ativas",
               children: [
-                { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo de Massa" },
+                { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo Ativo" },
               ],
             },
           ],
