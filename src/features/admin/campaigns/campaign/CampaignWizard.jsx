@@ -1,629 +1,764 @@
-// File: CampaignWizard.jsx
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Upload, Calendar, Loader2, RefreshCw } from 'lucide-react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
 import styles from './styles/CampaignWizard.module.css';
+import { toast } from 'react-toastify';
 
-const STEPS = ['Informações', 'Público-alvo', 'Resposta padrão', 'Revisão'];
+/**
+ * Wizard de criação de campanha/envio ativo
+ * - Massa (CSV): POST /campaigns   (multipart: file + meta)
+ * - Individual:  POST /messages/send/template (JSON)
+ *
+ * Resposta do cliente:
+ * - open_ticket  -> fila (obrigatório) + assigned_to (opcional) => reply_payload { fila, assigned_to? }
+ * - flow_goto    -> bloco do fluxo (selecionado da lista)       => reply_payload { block }
+ *
+ * Agendamento só existe para Massa (CSV).
+ */
 
-const initialForm = {
-  // step 1
-  name: '',
-  sendKind: 'individual',     // 'individual' | 'csv'
-  scheduleMode: 'immediate',  // 'immediate' | 'scheduled'
-  start_at: '',
-  template_id: '',
-
-  // step 2
-  to: '',
-  file: null,
-
-  // step 3
-  origin: 'agent_active',     // 'individual' | 'agent_active' | 'campaign'
-  reply_action: 'open_ticket',// 'open_ticket' | 'flow_goto'
-  queue: '',
-  agent: '',
-  blockId: '',
-};
+// Helpers para normalizar filas
+function normalizeQueues(queues) {
+  return (Array.isArray(queues) ? queues : []).map((q) => {
+    if (typeof q === 'string') return { id: q, nome: q };
+    const id = q?.id ?? q?.nome ?? q?.name;
+    const nome = q?.nome ?? q?.name ?? String(id || '');
+    return { id: String(id), nome: String(nome) };
+  }).filter(q => q.id && q.nome);
+}
 
 export default function CampaignWizard({ onCreated }) {
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState(initialForm);
+  // ====== Estado geral ======
+  const [step, setStep] = useState(0); // 0..3
+  const maxStep = 3;
+
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState(null);
+  const [error, setError]     = useState(null);
 
-  // data
+  // dados carregados
   const [templates, setTemplates] = useState([]);
-  const [queues, setQueues] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [queues, setQueues]       = useState([]);
+  const [users, setUsers]         = useState([]);
 
-  const [activeFlowId, setActiveFlowId] = useState('');
-  const [flowBlocks, setFlowBlocks] = useState([]); // {id,name,type}
+  // fluxo/blocos
+  const [flowId, setFlowId]                 = useState(null);
+  const [blocks, setBlocks]                 = useState([]); // [{key, name, type}]
+  const [blocksLoading, setBlocksLoading]   = useState(false);
+  const [blocksError, setBlocksError]       = useState(null);
+
+  // formulário
+  const [form, setForm] = useState({
+    // Etapa 0 — Configuração
+    name: '',
+    sendType: 'mass',      // 'mass' | 'single'
+    mode: 'immediate',     // 'immediate' | 'scheduled' (apenas mass)
+    start_at: '',
+
+    // Etapa 1 — Resposta (ação ao responder)
+    actionType: 'open_ticket', // 'open_ticket' | 'flow_goto'
+
+    // Para open_ticket:
+    fila: '',              // nome da fila
+    assigned_to: '',       // email do atendente
+
+    // Para flow_goto:
+    flow_block: '',        // bloco de destino (key)
+
+    // Etapa 2 — Template & Destino
+    template_id: '',
+    file: null,            // quando mass
+    to: '',                // quando single (E.164)
+  });
+
+  const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const selectedTemplate = useMemo(
     () => templates.find(t => String(t.id) === String(form.template_id)) || null,
     [templates, form.template_id]
   );
 
-  // helpers
-  const setField = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+  const queuesNorm = useMemo(() => normalizeQueues(queues), [queues]);
+  const selectedQueue = useMemo(
+    () => queuesNorm.find(q => q.nome === form.fila) || null,
+    [queuesNorm, form.fila]
+  );
 
-  const resolveQueueName = useCallback((idOrName) => {
-    const q = queues.find(
-      q =>
-        String(q.id) === String(idOrName) ||
-        String(q.nome) === String(idOrName) ||
-        String(q.name) === String(idOrName)
-    );
-    return q?.nome || q?.name || String(idOrName || '');
-  }, [queues]);
-
-  // agentes por fila (users[].filas OU cruzando com queues[].members/agentes/agents)
-  const agentsInQueue = useMemo(() => {
-    if (!form.queue) return [];
-    const listByUser = (users || []).filter(u =>
-      Array.isArray(u.filas) && u.filas.map(String).includes(String(form.queue))
-    );
-
-    const q = (queues || []).find(
-      x =>
-        String(x.id) === String(form.queue) ||
-        String(x.nome) === String(form.queue) ||
-        String(x.name) === String(form.queue)
-    );
-    const rawMembers = []
-      .concat(q?.members || [])
-      .concat(q?.agentes || [])
-      .concat(q?.agents || []);
-    const memberKeys = new Set(
-      rawMembers
-        .map(m => (typeof m === 'string' ? m : (m?.email || m?.id)))
-        .filter(Boolean)
-        .map(String)
-    );
-    const listByQueue = (users || []).filter(u => memberKeys.has(String(u.email || u.id)));
-
-    const merged = [...listByUser, ...listByQueue];
-    const seen = new Set();
-    return merged.filter(u => {
-      const key = String(u.email || u.id);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+  // Atendentes por fila
+  const agentsForQueue = useMemo(() => {
+    if (!selectedQueue) return [];
+    const wantNome = selectedQueue.nome;
+    const wantId   = selectedQueue.id;
+    const norm = (arr) => (Array.isArray(arr) ? arr.map(x => String(x)) : []);
+    return (users || []).filter(u => {
+      const filas = norm(u.filas);
+      return filas.includes(String(wantNome)) || filas.includes(String(wantId));
     });
-  }, [users, queues, form.queue]);
+  }, [users, selectedQueue]);
 
-  // load
+  // ====== Validações de etapa ======
+  const canNextFromStep0 = useMemo(() => {
+    if (!form.name.trim()) return false;
+    if (form.sendType === 'mass' && form.mode === 'scheduled' && !form.start_at) return false;
+    return true;
+  }, [form.name, form.sendType, form.mode, form.start_at]);
+
+  const canNextFromStep1 = useMemo(() => {
+    if (form.actionType === 'open_ticket') {
+      return !!String(form.fila || '').trim();
+    }
+    if (form.actionType === 'flow_goto') {
+      return !!String(form.flow_block || '').trim();
+    }
+    return false;
+  }, [form.actionType, form.fila, form.flow_block]);
+
+  const canNextFromStep2 = useMemo(() => {
+    if (!selectedTemplate) return false;
+    if (form.sendType === 'mass') return Boolean(form.file);
+    return !!form.to.trim();
+  }, [selectedTemplate, form.file, form.to, form.sendType]);
+
+  const canCreate = useMemo(
+    () => canNextFromStep0 && canNextFromStep1 && canNextFromStep2,
+    [canNextFromStep0, canNextFromStep1, canNextFromStep2]
+  );
+
+  // ====== Load inicial (templates/filas/usuários) ======
   const loadAll = useCallback(async () => {
-    setErr(null);
+    setError(null);
     try {
-      const [tpl, qs, us, latest] = await Promise.all([
-        apiGet('/templates?status=approved').catch(() => []),
-        apiGet('/queues').catch(() => []),
-        apiGet('/users').catch(() => []),
-        apiGet('/flows/latest').catch(() => []),
+      const [tRes, qRes, uRes] = await Promise.all([
+        apiGet('/templates?status=approved'),
+        apiGet('/queues'),
+        apiGet('/users'),
       ]);
-
-      setTemplates(Array.isArray(tpl) ? tpl : []);
-      setQueues(Array.isArray(qs) ? qs : []);
-      setUsers(Array.isArray(us?.data) ? us.data : Array.isArray(us) ? us : []);
-
-      // fluxo ativo
-      const activeId =
-        Array.isArray(latest) ? latest.find(x => x.active)?.id :
-        latest?.find?.(x => x.active)?.id || latest?.id || null;
-
-      if (activeId) {
-        setActiveFlowId(String(activeId));
-        const data = await apiGet(`/flows/data/${encodeURIComponent(activeId)}`).catch(() => null);
-        const blocks = Object.entries((data?.blocks || {})).map(([id, b]) => ({
-          id,
-          name: b?.name || b?.title || id,
-          type: String(b?.type || '').toLowerCase(),
-        }));
-        // filtra script e api_call
-        setFlowBlocks(blocks.filter(b => !['script', 'api_call'].includes(b.type)));
-      } else {
-        setActiveFlowId('');
-        setFlowBlocks([]);
-      }
-    } catch {
-      setErr('Falha ao carregar dados iniciais.');
+      setTemplates(Array.isArray(tRes) ? tRes : []);
+      setQueues(Array.isArray(qRes) ? qRes : []);
+      setUsers(Array.isArray(uRes?.data) ? uRes.data : Array.isArray(uRes) ? uRes : []);
+    } catch (e) {
+      console.error(e);
+      setError('Falha ao carregar dados (templates/filas/usuários).');
+      toast.error('Falha ao carregar dados.');
     }
   }, []);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // validações por etapa
-  const canNext = (k = step) => {
-    if (k === 0) {
-      if (!form.name.trim()) return false;
-      if (!selectedTemplate) return false;
-      if (form.scheduleMode === 'scheduled' && !form.start_at) return false;
-      return true;
-    }
-    if (k === 1) {
-      if (form.sendKind === 'individual') {
-        return /^\d{10,15}$/.test(String(form.to).replace(/\D/g, ''));
-      }
-      return !!form.file;
-    }
-    if (k === 2) {
-      if (form.reply_action === 'open_ticket') {
-        return !!form.queue; // agente é opcional
-      }
-      if (form.reply_action === 'flow_goto') {
-        return !!form.blockId;
-      }
-      return true;
-    }
-    return true;
-  };
-
-  // submit
-  const handleSubmit = async () => {
-    if (loading) return;
-    setErr(null);
-    setLoading(true);
+  // ====== Load blocks a partir do fluxo ativo ======
+  const loadBlocks = useCallback(async () => {
     try {
-      const template = {
-        name: selectedTemplate.name,
-        language: { code: selectedTemplate.language_code },
-      };
+      setBlocksLoading(true);
+      setBlocksError(null);
 
-      if (form.sendKind === 'individual') {
-        // reply_payload automático
-        const reply_action = form.reply_action; // 'open_ticket' | 'flow_goto'
-        const reply_payload =
-          reply_action === 'open_ticket'
-            ? { fila: resolveQueueName(form.queue), assigned_to: form.agent || null }
-            : { blockId: form.blockId };
-
-        const body = {
-          to: String(form.to).replace(/\D/g, ''),
-          template,
-          origin: 'individual',
-          reply_action,
-          reply_payload,
-        };
-
-        const res = await apiPost('/messages/send/template', body);
-        if (!res?.success) throw new Error(res?.error || 'Falha ao enviar mensagem.');
-        onCreated?.();
+      // 1) pegar o(s) fluxo(s) ativo(s)
+      const latest = await apiGet('/flows/latest'); // pode retornar lista ou objeto
+      const active =
+        Array.isArray(latest) ? (latest.find(f => f.active) || latest[0]) :
+        (latest?.find?.(f => f.active) || latest || null);
+      const id = active?.id;
+      if (!id) {
+        setFlowId(null);
+        setBlocks([]);
+        setBlocksError('Nenhum fluxo ativo encontrado.');
         return;
       }
 
-      // CSV campanha
-      const meta = {
-        name: form.name.trim(),
-        start_at:
-          form.scheduleMode === 'scheduled'
-            ? new Date(form.start_at).toISOString()
-            : null,
-        template,
-        reply_action: form.reply_action,
-        reply_payload:
-          form.reply_action === 'open_ticket'
-            ? { fila: resolveQueueName(form.queue), assigned_to: form.agent || null }
-            : { blockId: form.blockId },
-      };
+      setFlowId(id);
 
-      const fd = new FormData();
-      fd.append('file', form.file);
-      fd.append('meta', JSON.stringify(meta));
+      // 2) pegar os dados do fluxo
+      const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
+      const raw = data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
 
-      const out = await apiPost('/campaigns', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      if (!out?.ok) throw new Error(out?.error || 'Não foi possível criar a campanha.');
-      onCreated?.();
+      // 3) construir lista: filtrar script e api_call, e mostrar só o "name"
+      const list = Object.entries(raw)
+        .map(([key, b]) => ({
+          key,
+          name: b?.name || b?.title || b?.label || key,
+          type: String(b?.type || '').toLowerCase(),
+        }))
+        .filter(b => !['script', 'api_call'].includes(b.type))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setBlocks(list);
+
+      // se o flow_block atual não existe mais, limpa
+      if (form.flow_block && !list.some(x => x.key === form.flow_block)) {
+        setField('flow_block', '');
+      }
     } catch (e) {
-      setErr(e?.message || 'Erro ao processar.');
+      console.error(e);
+      setBlocks([]);
+      setBlocksError('Falha ao carregar blocos do fluxo ativo.');
+    } finally {
+      setBlocksLoading(false);
+    }
+  }, [form.flow_block]);
+
+  // carregar blocos quando entrar na etapa 1 e a ação for flow_goto
+  useEffect(() => {
+    if (step === 1 && form.actionType === 'flow_goto') {
+      loadBlocks();
+    }
+  }, [step, form.actionType, loadBlocks]);
+
+  // ====== Navegação ======
+  function goPrev() { setStep(s => Math.max(0, s - 1)); }
+  function goNext() {
+    if (step === 0 && !canNextFromStep0) { toast.warn('Preencha os campos obrigatórios.'); return; }
+    if (step === 1 && !canNextFromStep1) {
+      toast.warn(form.actionType === 'open_ticket' ? 'Selecione a fila.' : 'Selecione um bloco do fluxo.');
+      return;
+    }
+    if (step === 2 && !canNextFromStep2) {
+      toast.warn(form.sendType === 'mass' ? 'Selecione o template e o arquivo CSV.' : 'Informe o número do destinatário e o template.');
+      return;
+    }
+    setStep(s => Math.min(maxStep, s + 1));
+  }
+
+  function handlePickFile(e) {
+    const f = e.target.files?.[0] || null;
+    setField('file', f);
+  }
+
+  // ====== Montagem do reply_* ======
+  const replyAction = form.actionType === 'flow_goto' ? 'flow_goto' : 'open_ticket';
+  const replyPayload = useMemo(() => {
+    if (replyAction === 'open_ticket') {
+      return {
+        fila: form.fila || null,
+        ...(form.assigned_to ? { assigned_to: form.assigned_to } : {})
+      };
+    }
+    // flow_goto
+    return { block: form.flow_block };
+  }, [replyAction, form.fila, form.assigned_to, form.flow_block]);
+
+  // ====== Criação ======
+  async function handleCreate() {
+    if (!canCreate) { toast.warn('Confira os campos obrigatórios.'); return; }
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (form.sendType === 'mass') {
+        // Campanha (CSV)
+        const meta = {
+          name: form.name.trim(),
+          start_at: form.mode === 'scheduled' ? new Date(form.start_at).toISOString() : null,
+          template: {
+            name: selectedTemplate.name,
+            language: { code: selectedTemplate.language_code },
+          },
+          reply_action: replyAction,
+          reply_payload: replyPayload
+        };
+
+        const fd = new FormData();
+        fd.append('file', form.file);
+        fd.append('meta', JSON.stringify(meta));
+
+        const res = await apiPost('/campaigns', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        if (res?.ok) {
+          toast.success(
+            meta.start_at
+              ? 'Campanha agendada! O scheduler disparará no horário definido.'
+              : 'Campanha criada! O scheduler iniciará o envio.'
+          );
+          onCreated?.(res);
+        } else {
+          setError(res?.error || 'Não foi possível criar a campanha.');
+          toast.error(res?.error || 'Não foi possível criar a campanha.');
+        }
+      } else {
+        // Individual
+        const payload = {
+          to: form.to.trim(),
+          origin: 'individual',
+          template: {
+            name: selectedTemplate.name,
+            language: { code: selectedTemplate.language_code },
+          },
+          reply_action: replyAction,
+          reply_payload: replyPayload,
+        };
+
+        const res = await apiPost('/messages/send/template', payload);
+
+        if (res?.enqueued || res?.success) {
+          toast.success('Mensagem ativa enfileirada com sucesso.');
+          onCreated?.(res);
+        } else {
+          setError(res?.error || 'Não foi possível enviar a mensagem.');
+          toast.error(res?.error || 'Não foi possível enviar a mensagem.');
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      setError('Erro ao processar o envio.');
+      toast.error('Erro ao processar o envio.');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // UI
+  const stepLabel = (i) =>
+    ['Configuração', 'Resposta', 'Template & Destino', 'Revisão'][i] || '';
+
+  // ====== Render ======
   return (
     <div className={styles.page}>
-      {/* stepper */}
-      <div className={styles.stepper}>
-        {STEPS.map((t, i) => {
-          const done = i < step;
-          const active = i === step;
+      {/* Stepper */}
+      <div className={styles.stepper} role="navigation" aria-label="Etapas">
+        {[0,1,2,3].map((i) => {
+          const active = step === i;
+          const done   = step > i;
           return (
             <div
-              key={t}
-              className={[
-                styles.step,
-                done ? styles.stepDone : '',
-                active ? styles.stepActive : '',
-              ].join(' ')}
+              key={i}
+              className={`${styles.step} ${active ? styles.stepActive : ''} ${done ? styles.stepDone : ''}`}
+              aria-current={active ? 'step' : undefined}
             >
               <span className={styles.stepIdx}>{i + 1}</span>
-              <span className={styles.stepTxt}>{t}</span>
+              <span className={styles.stepTxt}>{stepLabel(i)}</span>
             </div>
           );
         })}
       </div>
 
-      {err && <div className={styles.alertErr}>⚠️ {err}</div>}
+      {error && <div className={styles.alertErr}>⚠️ {error}</div>}
 
-      {/* ===== 1. Informações ===== */}
+      {/* STEP 0 — Configuração */}
       {step === 0 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
-            <h3 className={styles.cardTitle}>Informações</h3>
-            <p className={styles.cardDesc}>
-              Defina o nome, o tipo de envio, agendamento e o template aprovado.
-            </p>
+            <h2 className={styles.cardTitle}>Configuração</h2>
+            <p className={styles.cardDesc}>Defina nome, tipo de envio e (se massa) o agendamento.</p>
           </div>
-
-          <div className={styles.grid2}>
-            <div className={styles.group}>
-              <label className={styles.label}>Nome da campanha</label>
-              <input
-                className={styles.input}
-                value={form.name}
-                onChange={(e) => setField('name', e.target.value)}
-                placeholder="Ex.: Black Friday Leads"
-              />
-            </div>
-
-            <div className={styles.group}>
-              <label className={styles.label}>Tipo de envio</label>
-              <div className={styles.optionsRow} role="radiogroup">
-                <label className={styles.opt}>
-                  <input
-                    type="radio"
-                    name="sendKind"
-                    value="individual"
-                    checked={form.sendKind === 'individual'}
-                    onChange={() => setField('sendKind', 'individual')}
-                  />
-                  <span>Individual</span>
-                </label>
-                <label className={styles.opt}>
-                  <input
-                    type="radio"
-                    name="sendKind"
-                    value="csv"
-                    checked={form.sendKind === 'csv'}
-                    onChange={() => setField('sendKind', 'csv')}
-                  />
-                  <span>CSV (em massa)</span>
-                </label>
-              </div>
-            </div>
-
-            <div className={styles.group}>
-              <label className={styles.label}>Quando enviar</label>
-              <div className={styles.optionsRow} role="radiogroup">
-                <label className={styles.opt}>
-                  <input
-                    type="radio"
-                    name="scheduleMode"
-                    value="immediate"
-                    checked={form.scheduleMode === 'immediate'}
-                    onChange={() => setField('scheduleMode', 'immediate')}
-                  />
-                  <span>Imediato</span>
-                </label>
-                <label className={styles.opt}>
-                  <input
-                    type="radio"
-                    name="scheduleMode"
-                    value="scheduled"
-                    checked={form.scheduleMode === 'scheduled'}
-                    onChange={() => setField('scheduleMode', 'scheduled')}
-                  />
-                  <span>Agendar</span>
-                </label>
-              </div>
-            </div>
-
-            {form.scheduleMode === 'scheduled' && (
+          <div className={styles.cardBody}>
+            <div className={styles.grid2}>
               <div className={styles.group}>
-                <label className={styles.label}>Agendar para</label>
-                <div className={styles.inputIconRow}>
-                  <input
-                    type="datetime-local"
-                    className={styles.input}
-                    value={form.start_at}
-                    onChange={(e) => setField('start_at', e.target.value)}
-                  />
-                  <Calendar size={16} />
+                <label className={styles.label}>Nome da campanha</label>
+                <input
+                  className={styles.input}
+                  placeholder="Ex.: Black Friday Leads"
+                  value={form.name}
+                  onChange={(e) => setField('name', e.target.value)}
+                />
+              </div>
+
+              <div className={styles.group}>
+                <label className={styles.label}>Tipo de envio</label>
+                <div className={styles.optionsRow} role="radiogroup" aria-label="Tipo de envio">
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="sendType"
+                      value="mass"
+                      checked={form.sendType === 'mass'}
+                      onChange={() => setField('sendType', 'mass')}
+                    />
+                    <span>Massa (CSV)</span>
+                  </label>
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="sendType"
+                      value="single"
+                      checked={form.sendType === 'single'}
+                      onChange={() => setField('sendType', 'single')}
+                    />
+                    <span>Individual</span>
+                  </label>
                 </div>
               </div>
-            )}
 
-            <div className={styles.group}>
-              <label className={styles.label}>Template aprovado</label>
-              <select
-                className={styles.select}
-                value={form.template_id}
-                onChange={(e) => setField('template_id', e.target.value)}
-              >
-                <option value="">Selecionar…</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} • {t.language_code}
-                  </option>
-                ))}
-              </select>
-              {selectedTemplate && (
-                <small className={styles.hint}>
-                  Idioma: <b>{selectedTemplate.language_code}</b>.
-                </small>
+              {form.sendType === 'mass' && (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Modo de execução</label>
+                    <div className={styles.optionsRow} role="radiogroup" aria-label="Modo de execução">
+                      <label className={styles.opt}>
+                        <input
+                          type="radio"
+                          name="mode"
+                          value="immediate"
+                          checked={form.mode === 'immediate'}
+                          onChange={() => setField('mode', 'immediate')}
+                        />
+                        <span>Imediata</span>
+                      </label>
+                      <label className={styles.opt}>
+                        <input
+                          type="radio"
+                          name="mode"
+                          value="scheduled"
+                          checked={form.mode === 'scheduled'}
+                          onChange={() => setField('mode', 'scheduled')}
+                        />
+                        <span>Agendada</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {form.mode === 'scheduled' && (
+                    <div className={styles.group}>
+                      <label className={styles.label}>Agendar para</label>
+                      <div className={styles.inputIconRow}>
+                        <input
+                          type="datetime-local"
+                          className={styles.input}
+                          value={form.start_at}
+                          onChange={(e) => setField('start_at', e.target.value)}
+                        />
+                        <Calendar size={16} />
+                      </div>
+                      <span className={styles.hint}>Será convertido para ISO e enviado ao backend.</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
         </section>
       )}
 
-      {/* ===== 2. Público-alvo ===== */}
+      {/* STEP 1 — Resposta (open_ticket OU flow_goto) */}
       {step === 1 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
-            <h3 className={styles.cardTitle}>Público-alvo</h3>
+            <h2 className={styles.cardTitle}>Resposta do cliente</h2>
             <p className={styles.cardDesc}>
-              Informe o destinatário ou envie um CSV com a coluna <b>to</b> (E.164) e variáveis do template.
+              Escolha o que acontece quando o cliente responder: abrir um ticket em uma fila
+              ou direcionar para um bloco específico do fluxo.
             </p>
           </div>
-
-          <div className={styles.grid1}>
-            {form.sendKind === 'individual' ? (
+          <div className={styles.cardBody}>
+            <div className={styles.grid1}>
               <div className={styles.group}>
-                <label className={styles.label}>Destinatário (E.164)</label>
-                <input
-                  className={styles.input}
-                  value={form.to}
-                  onChange={(e) => setField('to', e.target.value)}
-                  placeholder="Ex.: 5511999999999"
-                />
-              </div>
-            ) : (
-              <div className={styles.group}>
-                <label className={styles.label}>Arquivo CSV</label>
-                <div className={styles.fileRow}>
-                  <input
-                    id="csvInput"
-                    type="file"
-                    accept=".csv,text/csv"
-                    className={styles.fileNative}
-                    onChange={(e) => setField('file', e.target.files?.[0] || null)}
-                  />
-                  <label htmlFor="csvInput" className={styles.fileButton}>
-                    <Upload size={16} /> {form.file ? 'Trocar arquivo…' : 'Selecionar arquivo…'}
+                <label className={styles.label}>Ação ao responder</label>
+                <div className={styles.optionsRow} role="radiogroup" aria-label="Ação de resposta">
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="actionType"
+                      value="open_ticket"
+                      checked={form.actionType === 'open_ticket'}
+                      onChange={() => setField('actionType', 'open_ticket')}
+                    />
+                    <span>Abrir ticket (fila/atendente)</span>
                   </label>
-                  <span className={styles.fileName}>
-                    {form.file ? form.file.name : 'Nenhum arquivo selecionado'}
-                  </span>
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="actionType"
+                      value="flow_goto"
+                      checked={form.actionType === 'flow_goto'}
+                      onChange={() => setField('actionType', 'flow_goto')}
+                    />
+                    <span>Enviar para bloco do fluxo</span>
+                  </label>
                 </div>
               </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ===== 3. Resposta padrão ===== */}
-      {step === 2 && (
-        <section className={styles.card}>
-          <div className={styles.cardHead}>
-            <h3 className={styles.cardTitle}>Resposta padrão</h3>
-            <p className={styles.cardDesc}>O que acontece quando o cliente responder a esta mensagem.</p>
-          </div>
-
-          <div className={styles.grid2}>
-            <div className={styles.group}>
-              <label className={styles.label}>Origem do envio</label>
-              <select
-                className={styles.select}
-                value={form.origin}
-                onChange={(e) => setField('origin', e.target.value)}
-              >
-                <option value="individual">Individual</option>
-                <option value="agent_active">Iniciado por atendente</option>
-                <option value="campaign">Campanha / CSV</option>
-              </select>
-              <small className={styles.hint}>Usado pelo worker para diferenciar a origem dos disparos.</small>
             </div>
 
-            <div className={styles.group}>
-              <label className={styles.label}>Ação ao responder</label>
-              <select
-                className={styles.select}
-                value={form.reply_action}
-                onChange={(e) => setField('reply_action', e.target.value)}
-              >
-                <option value="open_ticket">Abrir ticket</option>
-                <option value="flow_goto">Ir para bloco do fluxo</option>
-              </select>
-            </div>
-
-            {/* abrir ticket */}
-            {form.reply_action === 'open_ticket' && (
-              <>
+            {form.actionType === 'open_ticket' ? (
+              <div className={styles.grid2}>
                 <div className={styles.group}>
-                  <label className={styles.label}>Fila</label>
+                  <label className={styles.label}>Fila (obrigatório)</label>
                   <select
                     className={styles.select}
-                    value={form.queue}
+                    value={form.fila}
                     onChange={(e) => {
-                      setField('queue', e.target.value);
-                      setField('agent', '');
+                      const v = e.target.value;
+                      setForm(prev => ({ ...prev, fila: v, assigned_to: '' }));
                     }}
                   >
-                    <option value="">Selecionar…</option>
-                    {queues.map((q) => (
-                      <option key={q.id ?? q.nome ?? q.name} value={q.id ?? q.nome ?? q.name}>
-                        {q.nome ?? q.name ?? q.id}
-                      </option>
+                    <option value="">Selecione…</option>
+                    {queuesNorm.map(q => (
+                      <option key={q.id} value={q.nome}>{q.nome}</option>
                     ))}
                   </select>
+                  <small className={styles.hint}>
+                    reply_action: <b>open_ticket</b> — cria o ticket nesta fila.
+                  </small>
                 </div>
 
                 <div className={styles.group}>
                   <label className={styles.label}>Atendente (opcional)</label>
                   <select
                     className={styles.select}
-                    value={form.agent}
-                    onChange={(e) => setField('agent', e.target.value)}
-                    disabled={!form.queue}
+                    value={form.assigned_to}
+                    onChange={(e) => setField('assigned_to', e.target.value)}
+                    disabled={!form.fila}
                   >
-                    <option value="">Qualquer atendente da fila</option>
-                    {agentsInQueue.map((u) => (
-                      <option key={u.email ?? u.id} value={u.email ?? u.id}>
-                        {(u.name ? `${u.name} ${u.lastname || ''}`.trim() : (u.email ?? u.id))}
-                      </option>
-                    ))}
+                    <option value="">Sem atendente específico</option>
+                    {agentsForQueue.map(u => {
+                      const label = u.name
+                        ? `${u.name}${u.lastname ? ` ${u.lastname}` : ''} — ${u.email}`
+                        : u.email;
+                      return <option key={u.email} value={u.email}>{label}</option>;
+                    })}
                   </select>
+                  <small className={styles.hint}>
+                    Lista exibe apenas atendentes vinculados à fila selecionada.
+                  </small>
                 </div>
-              </>
-            )}
-
-            {/* goto bloco */}
-            {form.reply_action === 'flow_goto' && (
-              <>
+              </div>
+            ) : (
+              <div className={styles.grid2}>
                 <div className={styles.group}>
                   <label className={styles.label}>Bloco de destino (obrigatório)</label>
-                  <select
-                    className={styles.select}
-                    value={form.blockId}
-                    onChange={(e) => setField('blockId', e.target.value)}
-                  >
-                    <option value="">Selecionar…</option>
-                    {flowBlocks.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                  {activeFlowId && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                    <select
+                      className={styles.select}
+                      value={form.flow_block}
+                      onChange={(e) => setField('flow_block', e.target.value)}
+                      disabled={blocksLoading || !!blocksError}
+                    >
+                      <option value="">{blocksLoading ? 'Carregando blocos…' : 'Selecione um bloco…'}</option>
+                      {blocks.map(b => (
+                        <option key={b.key} value={b.key}>{b.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className={styles.fileButton}
+                      title="Atualizar blocos do fluxo"
+                      onClick={loadBlocks}
+                    >
+                      <RefreshCw size={16} />
+                      <span style={{ marginLeft: 6 }}>Atualizar</span>
+                    </button>
+                  </div>
+                  {blocksError && <div className={styles.alertErr}>⚠️ {blocksError}</div>}
+                  {flowId && !blocksError && (
                     <small className={styles.hint}>
-                      Fluxo ativo:&nbsp;<code>{activeFlowId}</code>
+                      Fluxo ativo: <b>#{flowId}</b>. reply_action: <b>flow_goto</b>.
                     </small>
                   )}
                 </div>
 
-                {/* ⚠️ Observação NÃO aparece em envio Individual */}
-                {form.sendKind !== 'individual' && (
+                {/* ⚠️ Observação só aparece quando for MASSA (CSV) */}
+                {form.sendType === 'mass' && (
                   <div className={styles.group}>
                     <label className={styles.label}>Observação</label>
-                    <div className={styles.textarea} style={{ background: '#f9fafb' }}>
+                    <div className={styles.input} style={{display:'flex', alignItems:'center'}}>
                       Caso o bloco não exista, seu motor deve tratar como fallback (ex.: onerror).
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </section>
       )}
 
-      {/* ===== 4. Revisão ===== */}
+      {/* STEP 2 — Template & Destino */}
+      {step === 2 && (
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>Template & Destino</h2>
+            <p className={styles.cardDesc}>
+              Selecione o template aprovado e informe o destino conforme o tipo de envio.
+            </p>
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.grid2}>
+              <div className={styles.group}>
+                <label className={styles.label}>Template aprovado</label>
+                <select
+                  className={styles.select}
+                  value={form.template_id}
+                  onChange={(e) => setField('template_id', e.target.value)}
+                >
+                  <option value="">Selecione…</option>
+                  {templates.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} • {t.language_code}
+                    </option>
+                  ))}
+                </select>
+                {selectedTemplate && (
+                  <small className={styles.hint}>
+                    Idioma: <b>{selectedTemplate.language_code}</b>. Variáveis vêm do CSV (massa) ou do template (individual).
+                  </small>
+                )}
+              </div>
+
+              {form.sendType === 'mass' ? (
+                <div className={styles.group}>
+                  <label className={styles.label}>Arquivo CSV</label>
+                  <div className={styles.fileRow}>
+                    <input
+                      id="csvInput"
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handlePickFile}
+                      className={styles.fileNative}
+                    />
+                    <label htmlFor="csvInput" className={styles.fileButton}>
+                      <Upload size={16} /> {form.file ? 'Trocar arquivo…' : 'Selecionar arquivo…'}
+                    </label>
+                    <span className={styles.fileName}>
+                      {form.file ? form.file.name : 'Nenhum arquivo selecionado'}
+                    </span>
+                  </div>
+                  <small className={styles.hint}>
+                    O CSV deve conter a coluna <b>to</b> (E.164) e as variáveis do template.
+                  </small>
+                </div>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>Número do destinatário (E.164)</label>
+                  <input
+                    className={styles.input}
+                    placeholder="Ex.: 5511999998888"
+                    value={form.to}
+                    onChange={(e) => setField('to', e.target.value.replace(/\s+/g, ''))}
+                  />
+                  <small className={styles.hint}>
+                    Envio individual é enfileirado imediatamente (sem agendamento).
+                  </small>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* STEP 3 — Revisão */}
       {step === 3 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
-            <h3 className={styles.cardTitle}>Revisão</h3>
+            <h2 className={styles.cardTitle}>Revisão</h2>
             <p className={styles.cardDesc}>Confira as informações antes de confirmar.</p>
           </div>
+          <div className={styles.cardBody}>
+            <div className={styles.grid2}>
+              <div className={styles.group}>
+                <label className={styles.label}>Nome</label>
+                <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                  {form.name || '—'}
+                </div>
+              </div>
 
-          <div className={styles.grid2}>
-            <ReviewRow label="Nome" value={form.name || '—'} />
-            <ReviewRow label="Tipo de envio" value={form.sendKind === 'csv' ? 'CSV (em massa)' : 'Individual'} />
-            {form.sendKind === 'individual'
-              ? <ReviewRow label="Destinatário" value={form.to || '—'} />
-              : <ReviewRow label="Arquivo" value={form.file?.name || '—'} />
-            }
-            <ReviewRow
-              label="Template"
-              value={selectedTemplate ? `${selectedTemplate.name} • ${selectedTemplate.language_code}` : '—'}
-            />
-            <ReviewRow
-              label="Execução"
-              value={
-                form.scheduleMode === 'immediate'
-                  ? 'Imediato'
-                  : (form.start_at ? new Date(form.start_at).toLocaleString('pt-BR') : '—')
-              }
-            />
-            <ReviewRow
-              label="Ação de resposta"
-              value={form.reply_action === 'open_ticket' ? 'Abrir ticket' : 'Ir para bloco do fluxo'}
-            />
-            {form.reply_action === 'open_ticket' ? (
-              <>
-                <ReviewRow label="Fila" value={resolveQueueName(form.queue) || '—'} />
-                <ReviewRow
-                  label="Atendente"
-                  value={
-                    (agentsInQueue.find(a => (a.email ?? a.id) === form.agent)?.email) ||
-                    (agentsInQueue.find(a => (a.email ?? a.id) === form.agent)?.name) ||
-                    (form.agent || '—')
-                  }
-                />
-              </>
-            ) : (
-              <ReviewRow
-                label="Bloco"
-                value={(flowBlocks.find(b => b.id === form.blockId)?.name) || (form.blockId || '—')}
-              />
-            )}
+              <div className={styles.group}>
+                <label className={styles.label}>Tipo de envio</label>
+                <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                  {form.sendType === 'mass' ? 'Massa (CSV)' : 'Individual'}
+                </div>
+              </div>
+
+              {form.sendType === 'mass' ? (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Execução</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.mode === 'scheduled'
+                        ? (form.start_at ? new Date(form.start_at).toLocaleString('pt-BR') : 'Agendada (sem data)')
+                        : 'Imediata'}
+                    </div>
+                  </div>
+
+                  <div className={styles.group}>
+                    <label className={styles.label}>Arquivo</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.file?.name || '—'}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>Destinatário</label>
+                  <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                    {form.to || '—'}
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.group}>
+                <label className={styles.label}>Ação de resposta</label>
+                <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                  {form.actionType === 'open_ticket' ? 'Abrir ticket' : 'Ir para bloco do fluxo'}
+                </div>
+              </div>
+
+              {form.actionType === 'open_ticket' ? (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Fila</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.fila || '—'}
+                    </div>
+                  </div>
+
+                  <div className={styles.group}>
+                    <label className={styles.label}>Atendente</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.assigned_to || '—'}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>Bloco de destino</label>
+                  <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                    {blocks.find(b => b.key === form.flow_block)?.name || '—'}
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.group}>
+                <label className={styles.label}>Template</label>
+                <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                  {selectedTemplate ? `${selectedTemplate.name} • ${selectedTemplate.language_code}` : '—'}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       )}
 
-      {/* footer */}
-      <div className={styles.stickyFooter}>
+      {/* Footer / Navegação */}
+      <div className={styles.stickyFooter} role="region" aria-label="Ações do wizard">
         <div className={styles.stickyInner}>
-          <button
-            type="button"
-            className={styles.btnGhost}
-            onClick={() => setStep(s => Math.max(0, s - 1))}
-            disabled={step === 0 || loading}
-          >
-            Voltar
-          </button>
-
-          {step < 3 ? (
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={() => setStep(s => s + 1)}
-              disabled={!canNext(step) || loading}
-            >
-              Avançar
-            </button>
-          ) : (
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? <Loader2 className={styles.spin} size={16} /> : null}
-              Confirmar envio
-            </button>
-          )}
+          <div />
+          <div style={{ display: 'flex', gap: 8 }}>
+            {step > 0 && (
+              <button type="button" className={styles.btnGhost} onClick={goPrev}>
+                Voltar
+              </button>
+            )}
+            {step < maxStep && (
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={goNext}
+                disabled={
+                  (step === 0 && !canNextFromStep0) ||
+                  (step === 1 && !canNextFromStep1) ||
+                  (step === 2 && !canNextFromStep2)
+                }
+              >
+                Avançar
+              </button>
+            )}
+            {step === maxStep && (
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={handleCreate}
+                disabled={loading || !canCreate}
+              >
+                {loading ? <Loader2 className={styles.spin} size={16}/> : null}
+                {loading ? 'Processando…' : (form.sendType === 'mass' ? 'Criar campanha' : 'Enviar mensagem')}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* util */}
-      <div style={{ display:'flex', gap:8, marginTop:8 }}>
-        <button type="button" className={styles.btnGhost} onClick={loadAll}>
-          <RefreshCw size={16}/> Recarregar listas
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ReviewRow({ label, value }) {
-  return (
-    <div className={styles.group}>
-      <label className={styles.label}>{label}</label>
-      <div className={styles.input} style={{ background: '#f9fafb' }}>
-        {String(value || '—')}
       </div>
     </div>
   );
