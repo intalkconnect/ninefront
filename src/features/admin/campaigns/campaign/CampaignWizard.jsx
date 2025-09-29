@@ -5,16 +5,28 @@ import styles from './styles/CampaignWizard.module.css';
 import { toast } from 'react-toastify';
 
 /**
- * Wizard de criação de campanha (4 etapas)
- * 1) Básico (nome, modo, agendamento)
- * 2) Resposta (fila e atendente, define reply_action/payload automáticos)
- * 3) Template + CSV
- * 4) Revisão e criar
+ * Wizard de criação de campanha/envio ativo
  *
- * POST /campaigns (multipart/form-data)
- *   - file: CSV
- *   - meta: { name, start_at|null, template:{ name, language:{code} }, reply_action:'open_ticket', reply_payload:{ fila, assigned_to? } }
+ * Fluxos suportados:
+ * - Massa (CSV): POST /campaigns   (multipart: file + meta)
+ * - Individual:  POST /messages/send/template (JSON)
+ *
+ * Regras:
+ * - Agendamento só existe para Massa (CSV).
+ * - reply_action = 'open_ticket'
+ * - reply_payload = { fila: <nome_da_fila>, assigned_to?: <email> }
+ * - Atendentes são filtrados pela fila selecionada.
  */
+
+// Helpers para normalizar filas
+function normalizeQueues(queues) {
+  return (Array.isArray(queues) ? queues : []).map((q) => {
+    if (typeof q === 'string') return { id: q, nome: q };
+    const id = q?.id ?? q?.nome ?? q?.name;
+    const nome = q?.nome ?? q?.name ?? String(id || '');
+    return { id: String(id), nome: String(nome) };
+  }).filter(q => q.id && q.nome);
+}
 
 export default function CampaignWizard({ onCreated }) {
   // ====== Estado geral ======
@@ -26,23 +38,25 @@ export default function CampaignWizard({ onCreated }) {
 
   // dados carregados
   const [templates, setTemplates] = useState([]);
-  const [queues, setQueues]       = useState([]);  // filas
+  const [queues, setQueues]       = useState([]);  // filas (normalizadas)
   const [users, setUsers]         = useState([]);  // todos usuários (para filtrar atendentes por fila)
 
   // formulário
   const [form, setForm] = useState({
-    // Etapa 1:
+    // Etapa 0 — Configuração
     name: '',
-    mode: 'immediate',   // 'immediate' | 'scheduled'
-    start_at: '',        // datetime-local
+    sendType: 'mass',      // 'mass' | 'single'
+    mode: 'immediate',     // 'immediate' | 'scheduled' (apenas mass)
+    start_at: '',
 
-    // Etapa 2 (resposta):
-    fila: '',            // id/nome da fila
-    assigned_to: '',     // email do atendente (opcional)
+    // Etapa 1 — Resposta
+    fila: '',              // guardaremos o NOME da fila (não o id)
+    assigned_to: '',       // email do atendente (opcional)
 
-    // Etapa 3 (template + csv):
-    template_id: '',     // id do template (local) aprovado
-    file: null,
+    // Etapa 2 — Template & Destino
+    template_id: '',
+    file: null,            // quando mass
+    to: '',                // quando single (E.164)
   });
 
   // ====== Helpers ======
@@ -53,41 +67,55 @@ export default function CampaignWizard({ onCreated }) {
     [templates, form.template_id]
   );
 
-  const agentsForQueue = useMemo(() => {
-    const f = String(form.fila || '').trim();
-    if (!f) return [];
-    // users vem do /users; cada user tem "filas" (array de ids/nomes)
-    const norm = (arr) => (Array.isArray(arr) ? arr.map(x => String(x)) : []);
-    return (users || []).filter(u => norm(u.filas).includes(f));
-  }, [users, form.fila]);
+  const queuesNorm = useMemo(() => normalizeQueues(queues), [queues]);
 
+  const selectedQueue = useMemo(
+    () => queuesNorm.find(q => q.nome === form.fila) || null,
+    [queuesNorm, form.fila]
+  );
+
+  const agentsForQueue = useMemo(() => {
+    if (!selectedQueue) return [];
+    const wantNome = selectedQueue.nome;
+    const wantId   = selectedQueue.id;
+    const norm = (arr) => (Array.isArray(arr) ? arr.map(x => String(x)) : []);
+    return (users || []).filter(u => {
+      const filas = norm(u.filas);
+      // alguns ambientes armazenam ids, outros nomes — tentamos ambos
+      return filas.includes(String(wantNome)) || filas.includes(String(wantId));
+    });
+  }, [users, selectedQueue]);
+
+  // Etapa 0
   const canNextFromStep0 = useMemo(() => {
     if (!form.name.trim()) return false;
-    if (form.mode === 'scheduled' && !form.start_at) return false;
+    if (form.sendType === 'mass' && form.mode === 'scheduled' && !form.start_at) return false;
     return true;
-  }, [form.name, form.mode, form.start_at]);
+  }, [form.name, form.sendType, form.mode, form.start_at]);
 
-  const canNextFromStep1 = useMemo(() => {
-    // fila é obrigatória (assigned_to opcional)
-    return !!String(form.fila || '').trim();
-  }, [form.fila]);
+  // Etapa 1
+  const canNextFromStep1 = useMemo(() => !!String(form.fila || '').trim(), [form.fila]);
 
+  // Etapa 2
   const canNextFromStep2 = useMemo(() => {
-    return Boolean(selectedTemplate) && Boolean(form.file);
-  }, [selectedTemplate, form.file]);
+    if (!selectedTemplate) return false;
+    if (form.sendType === 'mass') return Boolean(form.file);
+    return !!form.to.trim(); // single
+  }, [selectedTemplate, form.file, form.to, form.sendType]);
 
-  const canCreate = useMemo(() => {
-    return canNextFromStep0 && canNextFromStep1 && canNextFromStep2;
-  }, [canNextFromStep0, canNextFromStep1, canNextFromStep2]);
+  const canCreate = useMemo(
+    () => canNextFromStep0 && canNextFromStep1 && canNextFromStep2,
+    [canNextFromStep0, canNextFromStep1, canNextFromStep2]
+  );
 
   // ====== Load inicial ======
   const loadAll = useCallback(async () => {
     setError(null);
     try {
       const [tRes, qRes, uRes] = await Promise.all([
-        apiGet('/templates?status=approved'), // lista templates aprovados
-        apiGet('/queues'),                    // suas filas
-        apiGet('/users'),                     // todos usuários para filtrar por fila
+        apiGet('/templates?status=approved'), // templates aprovados
+        apiGet('/queues'),                    // filas
+        apiGet('/users'),                     // usuários (array ou { data: [] })
       ]);
 
       setTemplates(Array.isArray(tRes) ? tRes : []);
@@ -109,7 +137,10 @@ export default function CampaignWizard({ onCreated }) {
   function goNext() {
     if (step === 0 && !canNextFromStep0) { toast.warn('Preencha os campos obrigatórios.'); return; }
     if (step === 1 && !canNextFromStep1) { toast.warn('Selecione a fila.'); return; }
-    if (step === 2 && !canNextFromStep2) { toast.warn('Selecione o template e o arquivo CSV.'); return; }
+    if (step === 2 && !canNextFromStep2) { 
+      toast.warn(form.sendType === 'mass' ? 'Selecione o template e o arquivo CSV.' : 'Informe o número do destinatário e o template.');
+      return; 
+    }
     setStep(s => Math.min(maxStep, s + 1));
   }
 
@@ -125,48 +156,76 @@ export default function CampaignWizard({ onCreated }) {
       return;
     }
 
+    const reply_payload = {
+      fila: form.fila || null, // nome da fila
+      ...(form.assigned_to ? { assigned_to: form.assigned_to } : {})
+    };
+
     try {
       setLoading(true);
       setError(null);
 
-      // monta meta final
-      const meta = {
-        name: form.name.trim(),
-        start_at: form.mode === 'scheduled' ? new Date(form.start_at).toISOString() : null,
-        template: {
-          name: selectedTemplate.name,
-          language: { code: selectedTemplate.language_code },
-        },
-        reply_action: 'open_ticket',
-        reply_payload: {
-          fila: form.fila || null,
-          ...(form.assigned_to ? { assigned_to: form.assigned_to } : {})
+      if (form.sendType === 'mass') {
+        // ===== Massa (CSV) → /campaigns
+        const meta = {
+          name: form.name.trim(),
+          start_at: form.mode === 'scheduled' ? new Date(form.start_at).toISOString() : null,
+          template: {
+            name: selectedTemplate.name,
+            language: { code: selectedTemplate.language_code },
+          },
+          reply_action: 'open_ticket',
+          reply_payload
+        };
+
+        const fd = new FormData();
+        fd.append('file', form.file);
+        fd.append('meta', JSON.stringify(meta));
+
+        const res = await apiPost('/campaigns', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+        if (res?.ok) {
+          toast.success(
+            meta.start_at
+              ? 'Campanha agendada! O scheduler disparará no horário definido.'
+              : 'Campanha criada! O scheduler iniciará o envio.'
+          );
+          onCreated?.(res);
+        } else {
+          setError(res?.error || 'Não foi possível criar a campanha.');
+          toast.error(res?.error || 'Não foi possível criar a campanha.');
         }
-      };
-
-      const fd = new FormData();
-      fd.append('file', form.file);
-      fd.append('meta', JSON.stringify(meta));
-
-      const res = await apiPost('/campaigns', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-
-      if (res?.ok) {
-        toast.success(
-          meta.start_at
-            ? 'Campanha agendada! O scheduler disparará no horário definido.'
-            : 'Campanha criada! O scheduler iniciará o envio.'
-        );
-        onCreated?.(res);
       } else {
-        setError(res?.error || 'Não foi possível criar a campanha.');
-        toast.error(res?.error || 'Não foi possível criar a campanha.');
+        // ===== Individual → /messages/send/template
+        const payload = {
+          to: form.to.trim(),
+          origin: 'individual',
+          template: {
+            name: selectedTemplate.name,
+            language: { code: selectedTemplate.language_code },
+            // components: (opcional) — variáveis se quiser validar antes
+          },
+          reply_action: 'open_ticket',
+          reply_payload,
+        };
+
+        // esse endpoint é JSON puro
+        const res = await apiPost('/messages/send/template', payload);
+
+        if (res?.enqueued) {
+          toast.success('Mensagem ativa enfileirada com sucesso.');
+          onCreated?.(res);
+        } else {
+          setError(res?.error || 'Não foi possível enviar a mensagem.');
+          toast.error(res?.error || 'Não foi possível enviar a mensagem.');
+        }
       }
     } catch (e) {
       console.error(e);
-      setError('Erro ao criar campanha.');
-      toast.error('Erro ao criar campanha.');
+      setError('Erro ao processar o envio.');
+      toast.error('Erro ao processar o envio.');
     } finally {
       setLoading(false);
     }
@@ -175,9 +234,9 @@ export default function CampaignWizard({ onCreated }) {
   // ====== UI auxiliares ======
   const stepLabel = (idx) => {
     switch (idx) {
-      case 0: return 'Básico';
+      case 0: return 'Configuração';
       case 1: return 'Resposta';
-      case 2: return 'Template & CSV';
+      case 2: return 'Template & Destino';
       case 3: return 'Revisão';
       default: return '';
     }
@@ -206,12 +265,12 @@ export default function CampaignWizard({ onCreated }) {
 
       {error && <div className={styles.alertErr}>⚠️ {error}</div>}
 
-      {/* ====== STEP 0 — Básico ====== */}
+      {/* ====== STEP 0 — Configuração ====== */}
       {step === 0 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
-            <h2 className={styles.cardTitle}>Básico</h2>
-            <p className={styles.cardDesc}>Nome da campanha e modo de envio.</p>
+            <h2 className={styles.cardTitle}>Configuração</h2>
+            <p className={styles.cardDesc}>Defina nome, tipo de envio e (se massa) o agendamento.</p>
           </div>
           <div className={styles.cardBody}>
             <div className={styles.grid2}>
@@ -226,45 +285,75 @@ export default function CampaignWizard({ onCreated }) {
               </div>
 
               <div className={styles.group}>
-                <label className={styles.label}>Modo de envio</label>
-                <div className={styles.optionsRow} role="radiogroup" aria-label="Modo de envio">
+                <label className={styles.label}>Tipo de envio</label>
+                <div className={styles.optionsRow} role="radiogroup" aria-label="Tipo de envio">
                   <label className={styles.opt}>
                     <input
                       type="radio"
-                      name="mode"
-                      value="immediate"
-                      checked={form.mode === 'immediate'}
-                      onChange={() => setField('mode', 'immediate')}
+                      name="sendType"
+                      value="mass"
+                      checked={form.sendType === 'mass'}
+                      onChange={() => setField('sendType', 'mass')}
                     />
-                    <span>Imediata</span>
+                    <span>Massa (CSV)</span>
                   </label>
                   <label className={styles.opt}>
                     <input
                       type="radio"
-                      name="mode"
-                      value="scheduled"
-                      checked={form.mode === 'scheduled'}
-                      onChange={() => setField('mode', 'scheduled')}
+                      name="sendType"
+                      value="single"
+                      checked={form.sendType === 'single'}
+                      onChange={() => setField('sendType', 'single')}
                     />
-                    <span>Agendada</span>
+                    <span>Individual</span>
                   </label>
                 </div>
               </div>
 
-              {form.mode === 'scheduled' && (
-                <div className={styles.group}>
-                  <label className={styles.label}>Agendar para</label>
-                  <div className={styles.inputIconRow}>
-                    <input
-                      type="datetime-local"
-                      className={styles.input}
-                      value={form.start_at}
-                      onChange={(e) => setField('start_at', e.target.value)}
-                    />
-                    <Calendar size={16} />
+              {form.sendType === 'mass' && (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Modo de execução</label>
+                    <div className={styles.optionsRow} role="radiogroup" aria-label="Modo de execução">
+                      <label className={styles.opt}>
+                        <input
+                          type="radio"
+                          name="mode"
+                          value="immediate"
+                          checked={form.mode === 'immediate'}
+                          onChange={() => setField('mode', 'immediate')}
+                        />
+                        <span>Imediata</span>
+                      </label>
+                      <label className={styles.opt}>
+                        <input
+                          type="radio"
+                          name="mode"
+                          value="scheduled"
+                          checked={form.mode === 'scheduled'}
+                          onChange={() => setField('mode', 'scheduled')}
+                        />
+                        <span>Agendada</span>
+                      </label>
+                    </div>
                   </div>
-                  <span className={styles.hint}>Será convertido para ISO e enviado ao backend.</span>
-                </div>
+
+                  {form.mode === 'scheduled' && (
+                    <div className={styles.group}>
+                      <label className={styles.label}>Agendar para</label>
+                      <div className={styles.inputIconRow}>
+                        <input
+                          type="datetime-local"
+                          className={styles.input}
+                          value={form.start_at}
+                          onChange={(e) => setField('start_at', e.target.value)}
+                        />
+                        <Calendar size={16} />
+                      </div>
+                      <span className={styles.hint}>Será convertido para ISO e enviado ao backend.</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -277,7 +366,7 @@ export default function CampaignWizard({ onCreated }) {
           <div className={styles.cardHead}>
             <h2 className={styles.cardTitle}>Resposta do cliente</h2>
             <p className={styles.cardDesc}>
-              Defina para qual <b>fila</b> o próximo retorno do cliente abrirá o ticket. Opcionalmente, selecione um <b>atendente</b> específico dessa fila.
+              Defina para qual <b>fila</b> o retorno do cliente abrirá o ticket. Opcionalmente, selecione um <b>atendente</b> dessa fila.
             </p>
           </div>
           <div className={styles.cardBody}>
@@ -292,22 +381,17 @@ export default function CampaignWizard({ onCreated }) {
                     setForm(prev => ({
                       ...prev,
                       fila: v,
-                      // se trocar de fila e o atendente atual não pertence a ela, zera
-                      assigned_to: prev.assigned_to && agentsForQueue.some(a => a.email === prev.assigned_to)
-                        ? prev.assigned_to
-                        : ''
+                      assigned_to: '' // ao trocar fila, limpamos atendente para evitar inconsistência
                     }));
                   }}
                 >
                   <option value="">Selecione…</option>
-                  {(queues || []).map(q => {
-                    const id = String(q.id ?? q.nome ?? q.name ?? '');
-                    const nome = String(q.nome ?? q.name ?? id);
-                    return <option key={id} value={id}>{nome}</option>;
-                  })}
+                  {queuesNorm.map(q => (
+                    <option key={q.id} value={q.nome}>{q.nome}</option>
+                  ))}
                 </select>
                 <small className={styles.hint}>
-                  Quando o cliente responder ao template, será criado um ticket nesta fila.
+                  Quando o cliente responder, será criado um ticket nesta fila (reply_action: <b>open_ticket</b>).
                 </small>
               </div>
 
@@ -322,7 +406,7 @@ export default function CampaignWizard({ onCreated }) {
                   <option value="">Sem atendente específico</option>
                   {agentsForQueue.map(u => {
                     const label = u.name
-                      ? `${u.name} ${u.lastname ? ` ${u.lastname}` : ''} — ${u.email}`
+                      ? `${u.name}${u.lastname ? ` ${u.lastname}` : ''} — ${u.email}`
                       : u.email;
                     return <option key={u.email} value={u.email}>{label}</option>;
                   })}
@@ -336,13 +420,13 @@ export default function CampaignWizard({ onCreated }) {
         </section>
       )}
 
-      {/* ====== STEP 2 — Template & CSV ====== */}
+      {/* ====== STEP 2 — Template & Destino ====== */}
       {step === 2 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
-            <h2 className={styles.cardTitle}>Template & CSV</h2>
+            <h2 className={styles.cardTitle}>Template & Destino</h2>
             <p className={styles.cardDesc}>
-              Selecione um template aprovado e envie o arquivo CSV de destinatários.
+              Selecione o template aprovado e informe o destino conforme o tipo de envio.
             </p>
           </div>
           <div className={styles.cardBody}>
@@ -363,32 +447,47 @@ export default function CampaignWizard({ onCreated }) {
                 </select>
                 {selectedTemplate && (
                   <small className={styles.hint}>
-                    Idioma: <b>{selectedTemplate.language_code}</b>. Variáveis vêm do CSV.
+                    Idioma: <b>{selectedTemplate.language_code}</b>. Variáveis virão do CSV (massa) ou do template (individual).
                   </small>
                 )}
               </div>
 
-              <div className={styles.group}>
-                <label className={styles.label}>Arquivo CSV</label>
-                <div className={styles.fileRow}>
-                  <input
-                    id="csvInput"
-                    type="file"
-                    accept=".csv,text/csv"
-                    onChange={handlePickFile}
-                    className={styles.fileNative}
-                  />
-                <label htmlFor="csvInput" className={styles.fileButton}>
-                    <Upload size={16} /> {form.file ? 'Trocar arquivo…' : 'Selecionar arquivo…'}
-                  </label>
-                  <span className={styles.fileName}>
-                    {form.file ? form.file.name : 'Nenhum arquivo selecionado'}
-                  </span>
+              {form.sendType === 'mass' ? (
+                <div className={styles.group}>
+                  <label className={styles.label}>Arquivo CSV</label>
+                  <div className={styles.fileRow}>
+                    <input
+                      id="csvInput"
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handlePickFile}
+                      className={styles.fileNative}
+                    />
+                    <label htmlFor="csvInput" className={styles.fileButton}>
+                      <Upload size={16} /> {form.file ? 'Trocar arquivo…' : 'Selecionar arquivo…'}
+                    </label>
+                    <span className={styles.fileName}>
+                      {form.file ? form.file.name : 'Nenhum arquivo selecionado'}
+                    </span>
+                  </div>
+                  <small className={styles.hint}>
+                    O CSV deve conter a coluna <b>to</b> (E.164) e colunas com variáveis usadas no template.
+                  </small>
                 </div>
-                <small className={styles.hint}>
-                  O CSV deve conter a coluna <b>to</b> (E.164) e colunas com variáveis usadas no template.
-                </small>
-              </div>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>Número do destinatário (E.164)</label>
+                  <input
+                    className={styles.input}
+                    placeholder="Ex.: 5511999998888"
+                    value={form.to}
+                    onChange={(e) => setField('to', e.target.value.replace(/\s+/g, ''))}
+                  />
+                  <small className={styles.hint}>
+                    Envio individual não possui agendamento; é enfileirado imediatamente.
+                  </small>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -399,7 +498,7 @@ export default function CampaignWizard({ onCreated }) {
         <section className={styles.card}>
           <div className={styles.cardHead}>
             <h2 className={styles.cardTitle}>Revisão</h2>
-            <p className={styles.cardDesc}>Confira as informações antes de criar a campanha.</p>
+            <p className={styles.cardDesc}>Confira as informações antes de confirmar.</p>
           </div>
           <div className={styles.cardBody}>
             <div className={styles.grid2}>
@@ -411,13 +510,38 @@ export default function CampaignWizard({ onCreated }) {
               </div>
 
               <div className={styles.group}>
-                <label className={styles.label}>Execução</label>
+                <label className={styles.label}>Tipo de envio</label>
                 <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
-                  {form.mode === 'scheduled'
-                    ? (form.start_at ? new Date(form.start_at).toLocaleString('pt-BR') : 'Agendada (sem data)')
-                    : 'Imediata'}
+                  {form.sendType === 'mass' ? 'Massa (CSV)' : 'Individual'}
                 </div>
               </div>
+
+              {form.sendType === 'mass' ? (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Execução</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.mode === 'scheduled'
+                        ? (form.start_at ? new Date(form.start_at).toLocaleString('pt-BR') : 'Agendada (sem data)')
+                        : 'Imediata'}
+                    </div>
+                  </div>
+
+                  <div className={styles.group}>
+                    <label className={styles.label}>Arquivo</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.file?.name || '—'}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>Destinatário</label>
+                  <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                    {form.to || '—'}
+                  </div>
+                </div>
+              )}
 
               <div className={styles.group}>
                 <label className={styles.label}>Fila</label>
@@ -438,13 +562,6 @@ export default function CampaignWizard({ onCreated }) {
                 <label className={styles.label}>Template</label>
                 <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
                   {selectedTemplate ? `${selectedTemplate.name} • ${selectedTemplate.language_code}` : '—'}
-                </div>
-              </div>
-
-              <div className={styles.group}>
-                <label className={styles.label}>Arquivo</label>
-                <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
-                  {form.file?.name || '—'}
                 </div>
               </div>
             </div>
@@ -484,7 +601,7 @@ export default function CampaignWizard({ onCreated }) {
                 disabled={loading || !canCreate}
               >
                 {loading ? <Loader2 className={styles.spin} size={16}/> : null}
-                {loading ? 'Criando…' : 'Criar campanha'}
+                {loading ? 'Processando…' : (form.sendType === 'mass' ? 'Criar campanha' : 'Enviar mensagem')}
               </button>
             )}
           </div>
