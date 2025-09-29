@@ -481,9 +481,6 @@ export default function CampaignWizard({ onCreated }) {
                       <option key={q.id} value={q.nome}>{q.nome}</option>
                     ))}
                   </select>
-                  <small className={styles.hint}>
-                    reply_action: <b>open_ticket</b> — cria o ticket nesta fila.
-                  </small>
                 </div>
 
                 <div className={styles.group}>
