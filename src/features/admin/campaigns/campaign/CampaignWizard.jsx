@@ -1,21 +1,19 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Upload, Calendar, Loader2 } from 'lucide-react';
+import { Upload, Calendar, Loader2, RefreshCw } from 'lucide-react';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
 import styles from './styles/CampaignWizard.module.css';
 import { toast } from 'react-toastify';
 
 /**
  * Wizard de criação de campanha/envio ativo
- *
- * Fluxos suportados:
  * - Massa (CSV): POST /campaigns   (multipart: file + meta)
  * - Individual:  POST /messages/send/template (JSON)
  *
- * Regras:
- * - Agendamento só existe para Massa (CSV).
- * - reply_action = 'open_ticket'
- * - reply_payload = { fila: <nome_da_fila>, assigned_to?: <email> }
- * - Atendentes são filtrados pela fila selecionada.
+ * Resposta do cliente:
+ * - open_ticket  -> fila (obrigatório) + assigned_to (opcional) => reply_payload { fila, assigned_to? }
+ * - flow_goto    -> bloco do fluxo (selecionado da lista)       => reply_payload { block }
+ *
+ * Agendamento só existe para Massa (CSV).
  */
 
 // Helpers para normalizar filas
@@ -38,8 +36,14 @@ export default function CampaignWizard({ onCreated }) {
 
   // dados carregados
   const [templates, setTemplates] = useState([]);
-  const [queues, setQueues]       = useState([]);  // filas (normalizadas)
-  const [users, setUsers]         = useState([]);  // todos usuários (para filtrar atendentes por fila)
+  const [queues, setQueues]       = useState([]);
+  const [users, setUsers]         = useState([]);
+
+  // fluxo/blocos
+  const [flowId, setFlowId]             = useState(null);
+  const [blocks, setBlocks]             = useState([]); // [{key, label}]
+  const [blocksLoading, setBlocksLoading] = useState(false);
+  const [blocksError, setBlocksError]     = useState(null);
 
   // formulário
   const [form, setForm] = useState({
@@ -49,9 +53,15 @@ export default function CampaignWizard({ onCreated }) {
     mode: 'immediate',     // 'immediate' | 'scheduled' (apenas mass)
     start_at: '',
 
-    // Etapa 1 — Resposta
-    fila: '',              // guardaremos o NOME da fila (não o id)
-    assigned_to: '',       // email do atendente (opcional)
+    // Etapa 1 — Resposta (ação ao responder)
+    actionType: 'open_ticket', // 'open_ticket' | 'flow_goto'
+
+    // Para open_ticket:
+    fila: '',              // nome da fila
+    assigned_to: '',       // email do atendente
+
+    // Para flow_goto:
+    flow_block: '',        // bloco de destino (key)
 
     // Etapa 2 — Template & Destino
     template_id: '',
@@ -59,8 +69,7 @@ export default function CampaignWizard({ onCreated }) {
     to: '',                // quando single (E.164)
   });
 
-  // ====== Helpers ======
-  const setField = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+  const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const selectedTemplate = useMemo(
     () => templates.find(t => String(t.id) === String(form.template_id)) || null,
@@ -68,12 +77,12 @@ export default function CampaignWizard({ onCreated }) {
   );
 
   const queuesNorm = useMemo(() => normalizeQueues(queues), [queues]);
-
   const selectedQueue = useMemo(
     () => queuesNorm.find(q => q.nome === form.fila) || null,
     [queuesNorm, form.fila]
   );
 
+  // Atendentes por fila
   const agentsForQueue = useMemo(() => {
     if (!selectedQueue) return [];
     const wantNome = selectedQueue.nome;
@@ -81,11 +90,11 @@ export default function CampaignWizard({ onCreated }) {
     const norm = (arr) => (Array.isArray(arr) ? arr.map(x => String(x)) : []);
     return (users || []).filter(u => {
       const filas = norm(u.filas);
-      // alguns ambientes armazenam ids, outros nomes — tentamos ambos
       return filas.includes(String(wantNome)) || filas.includes(String(wantId));
     });
   }, [users, selectedQueue]);
 
+  // ====== Validações de etapa ======
   // Etapa 0
   const canNextFromStep0 = useMemo(() => {
     if (!form.name.trim()) return false;
@@ -93,14 +102,22 @@ export default function CampaignWizard({ onCreated }) {
     return true;
   }, [form.name, form.sendType, form.mode, form.start_at]);
 
-  // Etapa 1
-  const canNextFromStep1 = useMemo(() => !!String(form.fila || '').trim(), [form.fila]);
+  // Etapa 1 (depende da ação selecionada)
+  const canNextFromStep1 = useMemo(() => {
+    if (form.actionType === 'open_ticket') {
+      return !!String(form.fila || '').trim();
+    }
+    if (form.actionType === 'flow_goto') {
+      return !!String(form.flow_block || '').trim();
+    }
+    return false;
+  }, [form.actionType, form.fila, form.flow_block]);
 
   // Etapa 2
   const canNextFromStep2 = useMemo(() => {
     if (!selectedTemplate) return false;
     if (form.sendType === 'mass') return Boolean(form.file);
-    return !!form.to.trim(); // single
+    return !!form.to.trim();
   }, [selectedTemplate, form.file, form.to, form.sendType]);
 
   const canCreate = useMemo(
@@ -108,16 +125,15 @@ export default function CampaignWizard({ onCreated }) {
     [canNextFromStep0, canNextFromStep1, canNextFromStep2]
   );
 
-  // ====== Load inicial ======
+  // ====== Load inicial (templates/filas/usuários) ======
   const loadAll = useCallback(async () => {
     setError(null);
     try {
       const [tRes, qRes, uRes] = await Promise.all([
-        apiGet('/templates?status=approved'), // templates aprovados
-        apiGet('/queues'),                    // filas
-        apiGet('/users'),                     // usuários (array ou { data: [] })
+        apiGet('/templates?status=approved'),
+        apiGet('/queues'),
+        apiGet('/users'),
       ]);
-
       setTemplates(Array.isArray(tRes) ? tRes : []);
       setQueues(Array.isArray(qRes) ? qRes : []);
       setUsers(Array.isArray(uRes?.data) ? uRes.data : Array.isArray(uRes) ? uRes : []);
@@ -130,16 +146,73 @@ export default function CampaignWizard({ onCreated }) {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // ====== Etapas ======
-  function goPrev() {
-    setStep(s => Math.max(0, s - 1));
-  }
+  // ====== Load blocks a partir do fluxo ativo ======
+  const loadBlocks = useCallback(async () => {
+    try {
+      setBlocksLoading(true);
+      setBlocksError(null);
+
+      // 1) pegar o(s) fluxo(s) ativo(s)
+      const latest = await apiGet('/flows/latest'); // pode retornar lista
+      const active = Array.isArray(latest) ? latest.find(f => f.active) || latest[0] : latest?.[0];
+      const id = active?.id;
+      if (!id) {
+        setFlowId(null);
+        setBlocks([]);
+        setBlocksError('Nenhum fluxo ativo encontrado.');
+        return;
+      }
+
+      setFlowId(id);
+
+      // 2) pegar os dados do fluxo
+      const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
+      const rawBlocks = data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
+
+      // 3) construir lista amigável
+      const keys = Object.keys(rawBlocks || {});
+      const list = keys.map((k) => {
+        const b = rawBlocks[k] || {};
+        const title = b.title || b.name || b.label || '';
+        const label = title ? `${k} — ${title}` : k;
+        return { key: k, label };
+      }).sort((a, b) => a.key.localeCompare(b.key));
+
+      setBlocks(list);
+
+      // se o flow_block atual não existe mais, limpa
+      if (form.flow_block && !list.some(x => x.key === form.flow_block)) {
+        setField('flow_block', '');
+      }
+    } catch (e) {
+      console.error(e);
+      setBlocks([]);
+      setBlocksError('Falha ao carregar blocos do fluxo ativo.');
+    } finally {
+      setBlocksLoading(false);
+    }
+  }, [form.flow_block]);
+
+  // carregar blocos quando:
+  // - entrar na Etapa 1 e a ação for flow_goto, ou
+  // - a ação mudar para flow_goto.
+  useEffect(() => {
+    if (step === 1 && form.actionType === 'flow_goto') {
+      loadBlocks();
+    }
+  }, [step, form.actionType, loadBlocks]);
+
+  // ====== Navegação ======
+  function goPrev() { setStep(s => Math.max(0, s - 1)); }
   function goNext() {
     if (step === 0 && !canNextFromStep0) { toast.warn('Preencha os campos obrigatórios.'); return; }
-    if (step === 1 && !canNextFromStep1) { toast.warn('Selecione a fila.'); return; }
-    if (step === 2 && !canNextFromStep2) { 
+    if (step === 1 && !canNextFromStep1) {
+      toast.warn(form.actionType === 'open_ticket' ? 'Selecione a fila.' : 'Selecione um bloco do fluxo.');
+      return;
+    }
+    if (step === 2 && !canNextFromStep2) {
       toast.warn(form.sendType === 'mass' ? 'Selecione o template e o arquivo CSV.' : 'Informe o número do destinatário e o template.');
-      return; 
+      return;
     }
     setStep(s => Math.min(maxStep, s + 1));
   }
@@ -149,24 +222,28 @@ export default function CampaignWizard({ onCreated }) {
     setField('file', f);
   }
 
+  // ====== Montagem do reply_* ======
+  const replyAction = form.actionType === 'flow_goto' ? 'flow_goto' : 'open_ticket';
+  const replyPayload = useMemo(() => {
+    if (replyAction === 'open_ticket') {
+      return {
+        fila: form.fila || null,
+        ...(form.assigned_to ? { assigned_to: form.assigned_to } : {})
+      };
+    }
+    // flow_goto
+    return { block: form.flow_block };
+  }, [replyAction, form.fila, form.assigned_to, form.flow_block]);
+
   // ====== Criação ======
   async function handleCreate() {
-    if (!canCreate) {
-      toast.warn('Confira os campos obrigatórios.');
-      return;
-    }
-
-    const reply_payload = {
-      fila: form.fila || null, // nome da fila
-      ...(form.assigned_to ? { assigned_to: form.assigned_to } : {})
-    };
-
+    if (!canCreate) { toast.warn('Confira os campos obrigatórios.'); return; }
     try {
       setLoading(true);
       setError(null);
 
       if (form.sendType === 'mass') {
-        // ===== Massa (CSV) → /campaigns
+        // Campanha (CSV)
         const meta = {
           name: form.name.trim(),
           start_at: form.mode === 'scheduled' ? new Date(form.start_at).toISOString() : null,
@@ -174,8 +251,8 @@ export default function CampaignWizard({ onCreated }) {
             name: selectedTemplate.name,
             language: { code: selectedTemplate.language_code },
           },
-          reply_action: 'open_ticket',
-          reply_payload
+          reply_action: replyAction,
+          reply_payload: replyPayload
         };
 
         const fd = new FormData();
@@ -198,20 +275,18 @@ export default function CampaignWizard({ onCreated }) {
           toast.error(res?.error || 'Não foi possível criar a campanha.');
         }
       } else {
-        // ===== Individual → /messages/send/template
+        // Individual
         const payload = {
           to: form.to.trim(),
           origin: 'individual',
           template: {
             name: selectedTemplate.name,
             language: { code: selectedTemplate.language_code },
-            // components: (opcional) — variáveis se quiser validar antes
           },
-          reply_action: 'open_ticket',
-          reply_payload,
+          reply_action: replyAction,
+          reply_payload: replyPayload,
         };
 
-        // esse endpoint é JSON puro
         const res = await apiPost('/messages/send/template', payload);
 
         if (res?.enqueued) {
@@ -231,16 +306,8 @@ export default function CampaignWizard({ onCreated }) {
     }
   }
 
-  // ====== UI auxiliares ======
-  const stepLabel = (idx) => {
-    switch (idx) {
-      case 0: return 'Configuração';
-      case 1: return 'Resposta';
-      case 2: return 'Template & Destino';
-      case 3: return 'Revisão';
-      default: return '';
-    }
-  };
+  const stepLabel = (i) =>
+    ['Configuração', 'Resposta', 'Template & Destino', 'Revisão'][i] || '';
 
   // ====== Render ======
   return (
@@ -265,7 +332,7 @@ export default function CampaignWizard({ onCreated }) {
 
       {error && <div className={styles.alertErr}>⚠️ {error}</div>}
 
-      {/* ====== STEP 0 — Configuração ====== */}
+      {/* STEP 0 — Configuração */}
       {step === 0 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
@@ -360,67 +427,134 @@ export default function CampaignWizard({ onCreated }) {
         </section>
       )}
 
-      {/* ====== STEP 1 — Resposta (fila/atendente) ====== */}
+      {/* STEP 1 — Resposta (open_ticket OU flow_goto) */}
       {step === 1 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
             <h2 className={styles.cardTitle}>Resposta do cliente</h2>
             <p className={styles.cardDesc}>
-              Defina para qual <b>fila</b> o retorno do cliente abrirá o ticket. Opcionalmente, selecione um <b>atendente</b> dessa fila.
+              Escolha o que acontece quando o cliente responder: abrir um ticket em uma fila
+              ou direcionar para um bloco específico do fluxo.
             </p>
           </div>
           <div className={styles.cardBody}>
-            <div className={styles.grid2}>
+            <div className={styles.grid1}>
               <div className={styles.group}>
-                <label className={styles.label}>Fila (obrigatório)</label>
-                <select
-                  className={styles.select}
-                  value={form.fila}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setForm(prev => ({
-                      ...prev,
-                      fila: v,
-                      assigned_to: '' // ao trocar fila, limpamos atendente para evitar inconsistência
-                    }));
-                  }}
-                >
-                  <option value="">Selecione…</option>
-                  {queuesNorm.map(q => (
-                    <option key={q.id} value={q.nome}>{q.nome}</option>
-                  ))}
-                </select>
-                <small className={styles.hint}>
-                  Quando o cliente responder, será criado um ticket nesta fila (reply_action: <b>open_ticket</b>).
-                </small>
-              </div>
-
-              <div className={styles.group}>
-                <label className={styles.label}>Atendente (opcional)</label>
-                <select
-                  className={styles.select}
-                  value={form.assigned_to}
-                  onChange={(e) => setField('assigned_to', e.target.value)}
-                  disabled={!form.fila}
-                >
-                  <option value="">Sem atendente específico</option>
-                  {agentsForQueue.map(u => {
-                    const label = u.name
-                      ? `${u.name}${u.lastname ? ` ${u.lastname}` : ''} — ${u.email}`
-                      : u.email;
-                    return <option key={u.email} value={u.email}>{label}</option>;
-                  })}
-                </select>
-                <small className={styles.hint}>
-                  A lista mostra apenas atendentes vinculados à fila selecionada.
-                </small>
+                <label className={styles.label}>Ação ao responder</label>
+                <div className={styles.optionsRow} role="radiogroup" aria-label="Ação de resposta">
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="actionType"
+                      value="open_ticket"
+                      checked={form.actionType === 'open_ticket'}
+                      onChange={() => setField('actionType', 'open_ticket')}
+                    />
+                    <span>Abrir ticket (fila/atendente)</span>
+                  </label>
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="actionType"
+                      value="flow_goto"
+                      checked={form.actionType === 'flow_goto'}
+                      onChange={() => setField('actionType', 'flow_goto')}
+                    />
+                    <span>Enviar para bloco do fluxo</span>
+                  </label>
+                </div>
               </div>
             </div>
+
+            {form.actionType === 'open_ticket' ? (
+              <div className={styles.grid2}>
+                <div className={styles.group}>
+                  <label className={styles.label}>Fila (obrigatório)</label>
+                  <select
+                    className={styles.select}
+                    value={form.fila}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setForm(prev => ({ ...prev, fila: v, assigned_to: '' }));
+                    }}
+                  >
+                    <option value="">Selecione…</option>
+                    {queuesNorm.map(q => (
+                      <option key={q.id} value={q.nome}>{q.nome}</option>
+                    ))}
+                  </select>
+                  <small className={styles.hint}>
+                    reply_action: <b>open_ticket</b> — cria o ticket nesta fila.
+                  </small>
+                </div>
+
+                <div className={styles.group}>
+                  <label className={styles.label}>Atendente (opcional)</label>
+                  <select
+                    className={styles.select}
+                    value={form.assigned_to}
+                    onChange={(e) => setField('assigned_to', e.target.value)}
+                    disabled={!form.fila}
+                  >
+                    <option value="">Sem atendente específico</option>
+                    {agentsForQueue.map(u => {
+                      const label = u.name
+                        ? `${u.name}${u.lastname ? ` ${u.lastname}` : ''} — ${u.email}`
+                        : u.email;
+                      return <option key={u.email} value={u.email}>{label}</option>;
+                    })}
+                  </select>
+                  <small className={styles.hint}>
+                    Lista exibe apenas atendentes vinculados à fila selecionada.
+                  </small>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.grid2}>
+                <div className={styles.group}>
+                  <label className={styles.label}>Bloco de destino (obrigatório)</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                    <select
+                      className={styles.select}
+                      value={form.flow_block}
+                      onChange={(e) => setField('flow_block', e.target.value)}
+                      disabled={blocksLoading || !!blocksError}
+                    >
+                      <option value="">{blocksLoading ? 'Carregando blocos…' : 'Selecione um bloco…'}</option>
+                      {blocks.map(b => (
+                        <option key={b.key} value={b.key}>{b.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className={styles.fileButton}
+                      title="Atualizar blocos do fluxo"
+                      onClick={loadBlocks}
+                    >
+                      <RefreshCw size={16} />
+                      <span style={{ marginLeft: 6 }}>Atualizar</span>
+                    </button>
+                  </div>
+                  {blocksError && <div className={styles.alertErr}>⚠️ {blocksError}</div>}
+                  {flowId && !blocksError && (
+                    <small className={styles.hint}>
+                      Fluxo ativo: <b>#{flowId}</b>. reply_action: <b>flow_goto</b>.
+                    </small>
+                  )}
+                </div>
+                <div className={styles.group}>
+                  <label className={styles.label}>Observação</label>
+                  <div className={styles.input} style={{display:'flex', alignItems:'center'}}>
+                    Caso o bloco não exista, seu motor deve tratar como fallback (ex.: onerror).
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}
 
-      {/* ====== STEP 2 — Template & Destino ====== */}
+      {/* STEP 2 — Template & Destino */}
       {step === 2 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
@@ -447,7 +581,7 @@ export default function CampaignWizard({ onCreated }) {
                 </select>
                 {selectedTemplate && (
                   <small className={styles.hint}>
-                    Idioma: <b>{selectedTemplate.language_code}</b>. Variáveis virão do CSV (massa) ou do template (individual).
+                    Idioma: <b>{selectedTemplate.language_code}</b>. Variáveis vêm do CSV (massa) ou do template (individual).
                   </small>
                 )}
               </div>
@@ -471,7 +605,7 @@ export default function CampaignWizard({ onCreated }) {
                     </span>
                   </div>
                   <small className={styles.hint}>
-                    O CSV deve conter a coluna <b>to</b> (E.164) e colunas com variáveis usadas no template.
+                    O CSV deve conter a coluna <b>to</b> (E.164) e as variáveis do template.
                   </small>
                 </div>
               ) : (
@@ -484,7 +618,7 @@ export default function CampaignWizard({ onCreated }) {
                     onChange={(e) => setField('to', e.target.value.replace(/\s+/g, ''))}
                   />
                   <small className={styles.hint}>
-                    Envio individual não possui agendamento; é enfileirado imediatamente.
+                    Envio individual é enfileirado imediatamente (sem agendamento).
                   </small>
                 </div>
               )}
@@ -493,7 +627,7 @@ export default function CampaignWizard({ onCreated }) {
         </section>
       )}
 
-      {/* ====== STEP 3 — Revisão ====== */}
+      {/* STEP 3 — Revisão */}
       {step === 3 && (
         <section className={styles.card}>
           <div className={styles.cardHead}>
@@ -544,19 +678,36 @@ export default function CampaignWizard({ onCreated }) {
               )}
 
               <div className={styles.group}>
-                <label className={styles.label}>Fila</label>
+                <label className={styles.label}>Ação de resposta</label>
                 <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
-                  {form.fila || '—'}
+                  {form.actionType === 'open_ticket' ? 'Abrir ticket' : 'Ir para bloco do fluxo'}
                 </div>
-                <small className={styles.hint}>reply_action: open_ticket</small>
               </div>
 
-              <div className={styles.group}>
-                <label className={styles.label}>Atendente</label>
-                <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
-                  {form.assigned_to || '—'}
+              {form.actionType === 'open_ticket' ? (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Fila</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.fila || '—'}
+                    </div>
+                  </div>
+
+                  <div className={styles.group}>
+                    <label className={styles.label}>Atendente</label>
+                    <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                      {form.assigned_to || '—'}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>Bloco de destino</label>
+                  <div className={styles.input} style={{ display: 'flex', alignItems: 'center' }}>
+                    {form.flow_block || '—'}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className={styles.group}>
                 <label className={styles.label}>Template</label>
@@ -569,7 +720,7 @@ export default function CampaignWizard({ onCreated }) {
         </section>
       )}
 
-      {/* ====== Footer / Navegação ====== */}
+      {/* Footer / Navegação */}
       <div className={styles.stickyFooter} role="region" aria-label="Ações do wizard">
         <div className={styles.stickyInner}>
           <div />
