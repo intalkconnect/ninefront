@@ -137,6 +137,11 @@ export default function QueueForm() {
   const [initialTags, setInitialTags] = useState([]); // catálogo original
   const [tags, setTags] = useState([]);               // estado visível no input (com chips)
 
+  // ====== NOVO: regra por fila ======
+  const [ruleEnabled, setRuleEnabled] = useState(true);
+  const [ruleConditionsText, setRuleConditionsText] = useState('[]');
+  const [ruleError, setRuleError] = useState('');
+
   // validação
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
   const nameInvalid = !form.nome.trim();
@@ -158,6 +163,36 @@ export default function QueueForm() {
     }
   }, []);
 
+  // NOVO: carregar regra da fila
+  const loadQueueRule = useCallback(async (filaNome) => {
+    if (!filaNome) {
+      setRuleEnabled(true);
+      setRuleConditionsText('[]');
+      setRuleError('');
+      return;
+    }
+    try {
+      const r = await apiGet(`/queue-rules/${encodeURIComponent(filaNome)}`);
+      const data = r?.data || r; // backend retorna {data}
+      const row = data?.data ?? data;
+      if (row && row.queue_name) {
+        setRuleEnabled(!!row.enabled);
+        setRuleConditionsText(JSON.stringify(row.conditions || [], null, 2));
+        setRuleError('');
+      } else {
+        // sem regra -> defaults
+        setRuleEnabled(true);
+        setRuleConditionsText('[]');
+        setRuleError('');
+      }
+    } catch {
+      // 404 sem regra é ok — deixa defaults
+      setRuleEnabled(true);
+      setRuleConditionsText('[]');
+      setRuleError('');
+    }
+  }, []);
+
   // carrega fila
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
@@ -174,12 +209,19 @@ export default function QueueForm() {
         });
         setQueueDisplay(nomeFila || id);
 
-        await loadTags(nomeFila || q.nome || q.name);
+        await Promise.all([
+          loadTags(nomeFila || q.nome || q.name),
+          loadQueueRule(nomeFila || q.nome || q.name)
+        ]);
       } else {
         setForm({ nome: '', descricao: '', color: '' });
         setQueueDisplay('');
         setInitialTags([]);
         setTags([]);
+        // regra default em nova fila
+        setRuleEnabled(true);
+        setRuleConditionsText('[]');
+        setRuleError('');
       }
     } catch (e) {
       console.error(e);
@@ -189,14 +231,14 @@ export default function QueueForm() {
       setLoading(false);
       requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
-  }, [isEdit, id, loadTags]);
+  }, [isEdit, id, loadTags, loadQueueRule]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
   const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
 
-  // cria e remove conforme diff
+  // cria e remove tags conforme diff
   async function persistTagsDiff(filaNome, before = [], current = []) {
     const prev = new Set(before);
     const now  = new Set(current);
@@ -222,6 +264,56 @@ export default function QueueForm() {
     const fail = res.length - ok;
     if (ok) toast.success(`${ok} alteração(ões) de etiqueta aplicada(s).`);
     if (fail) toast.error(`${fail} alteração(ões) falharam. Verifique dependências (tags em uso).`);
+  }
+
+  // ====== helpers da regra ======
+  const validateRuleJson = useCallback(() => {
+    try {
+      const parsed = JSON.parse(ruleConditionsText || '[]');
+      if (!Array.isArray(parsed)) {
+        setRuleError('O JSON deve ser um array de condições.');
+        return null;
+      }
+      setRuleError('');
+      return parsed;
+    } catch (e) {
+      setRuleError('JSON inválido: ' + e.message);
+      return null;
+    }
+  }, [ruleConditionsText]);
+
+  const prettifyRuleJson = () => {
+    const parsed = validateRuleJson();
+    if (!parsed) return;
+    setRuleConditionsText(JSON.stringify(parsed, null, 2));
+  };
+
+  const loadRuleExample = () => {
+    const example = [
+      { "type": "equals",   "variable": "x",               "value": "y" },
+      { "type": "contains", "variable": "lastUserMessage", "value": "agendar" },
+      { "type": "starts_with", "variable": "contact.phone", "value": "55" }
+    ];
+    setRuleConditionsText(JSON.stringify(example, null, 2));
+    setRuleError('');
+    setRuleEnabled(true);
+  };
+
+  async function persistQueueRule(filaNome) {
+    // se não houver nome válido, não tenta salvar regra
+    const name = String(filaNome || '').trim();
+    if (!name) return;
+
+    const parsed = validateRuleJson();
+    if (!parsed) {
+      throw new Error('Regra inválida — corrija o JSON.');
+    }
+
+    // upsert
+    await apiPut(`/queue-rules/${encodeURIComponent(name)}`, {
+      enabled: !!ruleEnabled,
+      conditions: parsed
+    });
   }
 
   async function handleSave() {
@@ -252,10 +344,14 @@ export default function QueueForm() {
       const filaNome = form.nome.trim();
       await persistTagsDiff(filaNome, initialTags, tags);
 
+      // salvar/atualizar regra (mesmo quando desabilitada — mantém as conditions)
+      await persistQueueRule(filaNome);
+      toast.success('Regra da fila salva.');
+
       navigate('/management/queues');
     } catch (e) {
       console.error(e);
-      toast.error('Não foi possível salvar. Tente novamente.');
+      toast.error(e?.message || 'Não foi possível salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -377,6 +473,82 @@ export default function QueueForm() {
               <p className={styles.hint} style={{marginTop:8}}>
                 Dica: Use <kbd>Backspace</kbd> para remover o último chip quando o campo estiver vazio.
               </p>
+            </div>
+          </section>
+
+          {/* ===== NOVO: Regra de distribuição ===== */}
+          <section className={styles.card}>
+            <div className={styles.cardHead}>
+              <h2 className={styles.cardTitle}>Regra de distribuição</h2>
+              <p className={styles.cardDesc}>
+                Defina condições (JSON) para que tickets sejam direcionados automaticamente para esta fila.
+                O formato é o mesmo de condições dos flows (ex.: <code>equals</code>, <code>contains</code>, <code>starts_with</code>…).
+              </p>
+            </div>
+
+            <div className={styles.cardBody}>
+              <div className={styles.group} style={{ marginBottom: 12 }}>
+                <label className={styles.checkbox}>
+                  <input
+                    type="checkbox"
+                    checked={ruleEnabled}
+                    onChange={(e) => setRuleEnabled(e.target.checked)}
+                  />
+                  &nbsp; Habilitar regra para esta fila
+                </label>
+                <p className={styles.hint}>
+                  Quando desabilitado, a regra fica salva mas não é aplicada.
+                </p>
+              </div>
+
+              <div className={styles.groupWide}>
+                <label className={styles.label}>Condições (JSON)</label>
+                <textarea
+                  className={`${styles.textarea} ${ruleError ? styles.invalid : ''}`}
+                  value={ruleConditionsText}
+                  onChange={(e) => setRuleConditionsText(e.target.value)}
+                  rows={12}
+                  placeholder='Ex.: [{"type":"equals","variable":"x","value":"y"}]'
+                />
+                {ruleError ? (
+                  <div className={styles.errMsg} style={{ marginTop: 6 }}>{ruleError}</div>
+                ) : (
+                  <p className={styles.hint} style={{ marginTop: 6 }}>
+                    Deve ser um <strong>array</strong> de objetos. Ex.: <code>[&#123;"type":"equals","variable":"x","value":"y"&#125;]</code>
+                  </p>
+                )}
+              </div>
+
+              <div className={styles.actionsRow}>
+                <button type="button" className={styles.btnSecondary} onClick={prettifyRuleJson}>
+                  Validar &amp; Formatar
+                </button>
+                <button type="button" className={styles.btn} onClick={loadRuleExample}>
+                  Inserir exemplo
+                </button>
+                {/* Opcional: botão para excluir a regra definitivamente
+                <button
+                  type="button"
+                  className={styles.btnGhost}
+                  onClick={async () => {
+                    const name = form.nome.trim();
+                    if (!name) { toast.warn('Defina o nome da fila antes.'); return; }
+                    if (!window.confirm('Excluir regra desta fila?')) return;
+                    try {
+                      await apiDelete(`/queue-rules/${encodeURIComponent(name)}`);
+                      toast.success('Regra excluída.');
+                      setRuleEnabled(true);
+                      setRuleConditionsText('[]');
+                      setRuleError('');
+                    } catch (e) {
+                      toast.error('Falha ao excluir regra.');
+                    }
+                  }}
+                >
+                  Excluir regra
+                </button>
+                */}
+              </div>
             </div>
           </section>
 
