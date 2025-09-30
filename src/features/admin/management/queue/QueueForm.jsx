@@ -30,35 +30,34 @@ const randomPastelHex = () => {
 };
 
 /* =================== ChipsInput (tags) =================== */
+/* Agora as tags são mantidas exatamente como digitadas:
+   - sem lower-case
+   - sem trocar espaços/acentos
+   - sem substituir por hífens/underscores
+   - apenas trim + corte por maxLen
+*/
 function ChipsInput({
   value = [],
   onChange,
-  placeholder = 'ex.: agendamento, reclamacao, urgencia',
+  placeholder = 'ex.: Agendamento, Cliente VIP, Urgência',
   maxLen = 40,
 }) {
   const [text, setText] = useState('');
   const ref = useRef(null);
 
-  const slug = (s) => String(s || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\- ]+/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, maxLen);
+  const sanitize = (s) => String(s ?? '').trim().slice(0, maxLen);
 
   const tokenize = (raw) =>
-    String(raw || '')
+    String(raw ?? '')
       .split(/[,;\n]+/)
-      .map(slug)
+      .map(sanitize)
       .filter(Boolean);
 
   const addTokens = useCallback((raw) => {
     const tokens = tokenize(raw);
     if (!tokens.length) return;
-    const set = new Set(value);
-    const fresh = tokens.filter(t => !set.has(t));
+    const existing = new Set(value); // case-sensitive de propósito
+    const fresh = tokens.filter(t => !existing.has(t));
     if (!fresh.length) return;
     onChange([...value, ...fresh]);
   }, [value, onChange]);
@@ -223,7 +222,7 @@ export default function QueueForm() {
       const list = Array.isArray(r?.data) ? r.data : [];
       const arr = list.map(x => x.tag);
       setInitialTags(arr);
-      setTags(arr); // mostra as já cadastradas como chips dentro do input
+      setTags(arr); // mantém como foi cadastrado (case/acentos)
     } catch {
       setInitialTags([]);
       setTags([]);
@@ -295,7 +294,7 @@ export default function QueueForm() {
   const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
   const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
 
-  // cria e remove conforme diff
+  // cria e remove conforme diff — respeita exatamente como escrito nas tags
   async function persistTagsDiff(filaNome, before = [], current = []) {
     const prev = new Set(before);
     const now  = new Set(current);
@@ -305,11 +304,9 @@ export default function QueueForm() {
 
     const jobs = [];
 
-    // criar
     for (const tag of toAdd) {
       jobs.push(apiPost('/tags/ticket/catalog', { fila: filaNome, tag, active: true }));
     }
-    // remover
     for (const tag of toRemove) {
       jobs.push(apiDelete(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(tag)}`));
     }
@@ -338,7 +335,6 @@ export default function QueueForm() {
         ...(colorPreview ? { color: colorPreview } : {}),
       };
 
-      // salvar fila (criar/editar)
       if (isEdit) {
         await apiPut(`/queues/${encodeURIComponent(id)}`, payload);
         toast.success('Fila atualizada.');
@@ -347,11 +343,9 @@ export default function QueueForm() {
         toast.success('Fila criada.');
       }
 
-      // aplicar diff das etiquetas usando o NOME atual do formulário
       const filaNome = form.nome.trim();
       await persistTagsDiff(filaNome, initialTags, tags);
 
-      // salvar/limpar regra (1 condição; equals|contains)
       if (ruleEnabled && rule.field.trim() && rule.value.trim()) {
         const body = {
           enabled: true,
@@ -549,7 +543,7 @@ export default function QueueForm() {
                     className={styles.input}
                     value={rule.value}
                     onChange={(e) => setRule(r => ({ ...r, value: e.target.value }))}
-                    placeholder="Ex.: particular"
+                    placeholder="Ex.: Particular"
                     disabled={!ruleEnabled}
                   />
                 </div>
