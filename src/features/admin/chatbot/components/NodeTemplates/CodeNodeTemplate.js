@@ -14,11 +14,13 @@ export const CodeNodeTemplate = {
   return 'done';
 }`,
     function: 'run(vars)', // ← chamada, não só o nome
+    writeMode: "none",
     outputVar: 'resultado',
     // os campos abaixo são opcionais para UI; o executor não usa:
     language: 'javascript',
     timeout: 5000
   },
 };
+
 
 
