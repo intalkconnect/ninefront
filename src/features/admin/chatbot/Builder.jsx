@@ -238,7 +238,7 @@ export default function Builder() {
       freshNode?.data?.block?.code ||
         `// Escreva seu código aqui
 // Use "context" para acessar dados da conversa
-function handler(context) {
+function run(context) {
   return { resultado: "valor de saída" };
 }`
     );
