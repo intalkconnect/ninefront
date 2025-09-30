@@ -28,7 +28,7 @@ export default function ScriptEditor({ code, onChange, onClose }) {
 }
 
 const getDefaultCode = () => `// Escreva seu código aqui
-function handler(context) {
+function run(context) {
   return { resultado: "valor de saída" };
 }
 `;
