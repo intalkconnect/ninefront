@@ -116,6 +116,74 @@ function ChipsInput({
   );
 }
 
+/* =================== NiceSelect (custom dropdown) =================== */
+function NiceSelect({ value, onChange, options = [], disabled = false }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const onDoc = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
+  const cur = options.find(o => o.value === value) || options[0];
+
+  return (
+    <div ref={ref} style={{ position: 'relative', maxWidth: 420 }}>
+      <button
+        type="button"
+        className={styles.input}
+        onClick={() => !disabled && setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? .6 : 1
+        }}
+      >
+        <span>{cur?.label || 'Selecionar…'}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style={{ color: '#64748b' }}>
+          <polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && !disabled && (
+        <ul
+          role="listbox"
+          style={{
+            position:'absolute', zIndex:20, left:0, right:0, marginTop:6,
+            background:'#fff', border:'1px solid var(--border)', borderRadius:12,
+            boxShadow:'var(--shadow-md)', listStyle:'none', padding:6,
+            maxHeight:240, overflow:'auto'
+          }}
+        >
+          {options.map(opt => (
+            <li
+              key={opt.value}
+              role="option"
+              aria-selected={opt.value === value}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              style={{
+                padding:'10px 12px', borderRadius:8, cursor:'pointer',
+                color:'var(--text2)',
+                background: opt.value === value ? '#e8f0ff' : 'transparent',
+                border: opt.value === value ? '1px solid #d6e4ff' : '1px solid transparent'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = opt.value === value ? '#e8f0ff' : 'transparent'; }}
+            >
+              {opt.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /* =================== Página =================== */
 export default function QueueForm() {
   const { id } = useParams();
@@ -451,15 +519,15 @@ export default function QueueForm() {
                 {/* Operador */}
                 <div>
                   <label className={styles.label} style={{ marginBottom:6, display:'block' }}>Operador</label>
-                  <select
-                    className={styles.input}
+                  <NiceSelect
                     value={rule.op}
-                    onChange={(e) => setRule(r => ({ ...r, op: e.target.value }))}
+                    onChange={(v) => setRule(r => ({ ...r, op: v }))}
+                    options={[
+                      { value: 'equals',   label: 'igual' },
+                      { value: 'contains', label: 'contém' }
+                    ]}
                     disabled={!ruleEnabled}
-                  >
-                    <option value="equals">igual</option>
-                    <option value="contains">contém</option>
-                  </select>
+                  />
                 </div>
 
                 {/* Variável */}
