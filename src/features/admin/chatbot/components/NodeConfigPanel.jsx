@@ -20,6 +20,7 @@ export default function NodeConfigPanel({
     history: true,
     default: true,
     offhoursShortcuts: true,
+    special: true, // nova seção
   });
 
   const panelRef = useRef(null);
@@ -40,7 +41,6 @@ export default function NodeConfigPanel({
     awaitResponse,
     sendDelayInSeconds,
     actions = [],
-    // ↓ campos de api_call (quando o bloco for esse tipo)
     method,
     url,
     headers,
@@ -79,6 +79,8 @@ export default function NodeConfigPanel({
       return "{}";
     }
   };
+
+  const ensureArray = (v) => (Array.isArray(v) ? v : []);
 
   const updateNode = (updatedNode) => onChange(updatedNode);
 
@@ -182,7 +184,7 @@ export default function NodeConfigPanel({
     );
   };
 
-  /* ---------------- hotkeys: bloquear propagação no painel ---------------- */
+  /* ---------------- hotkeys: painel ---------------- */
 
   const isEditableTarget = (el) => {
     if (!el) return false;
@@ -209,13 +211,9 @@ export default function NodeConfigPanel({
   };
 
   const handleKeyDownCapture = useCallback((e) => {
-    // Só age se o evento veio de dentro do painel
     if (!panelRef.current || !panelRef.current.contains(e.target)) return;
 
     const k = e.key?.toLowerCase?.() || "";
-
-    // Se estamos editando um campo de texto, bloqueia a propagação das hotkeys globais,
-    // mas NÃO chama preventDefault — assim o input mantém seu comportamento normal.
     if (isEditableTarget(e.target)) {
       const isDelete = e.key === "Delete" || e.key === "Backspace";
       const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && k === "z";
@@ -465,6 +463,127 @@ export default function NodeConfigPanel({
         )}
       </div>
 
+      {/* ===== Ações especiais (variáveis) ===== */}
+      <div className={styles.sectionContainer}>
+        <div
+          className={styles.sectionHeader}
+          onClick={() => toggleSection("special")}
+        >
+          <h4 className={styles.sectionTitle}>Ações especiais (variáveis)</h4>
+          {expandedSections.special ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+        </div>
+
+        {expandedSections.special && (
+          <div className={styles.sectionContent}>
+            {/* ENTRADA */}
+            <h5 className={styles.smallTitle}>Ao entrar no bloco</h5>
+            {(block.onEnter || []).map((a, i) => (
+              <div key={`en-${i}`} className={styles.rowItemStyle}>
+                <select
+                  className={styles.selectStyle}
+                  value={a.scope || "context"}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onEnter).slice();
+                    next[i] = { ...next[i], scope: e.target.value };
+                    updateBlock({ onEnter: next });
+                  }}
+                >
+                  <option value="context">context</option>
+                  <option value="contact">contact</option>
+                  <option value="contact.extra">contact.extra</option>
+                </select>
+                <input
+                  className={styles.inputStyle}
+                  placeholder="chave (ex.: protocolo)"
+                  value={a.key || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onEnter).slice();
+                    next[i] = { ...next[i], key: e.target.value };
+                    updateBlock({ onEnter: next });
+                  }}
+                />
+                <input
+                  className={styles.inputStyle}
+                  placeholder="valor (ex.: 12345)"
+                  value={a.value || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onEnter).slice();
+                    next[i] = { ...next[i], value: e.target.value };
+                    updateBlock({ onEnter: next });
+                  }}
+                />
+                <button
+                  className={styles.deleteButtonSmall}
+                  onClick={() => updateBlock({ onEnter: (block.onEnter || []).filter((_, idx) => idx !== i) })}
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button
+              className={styles.addButtonSmall}
+              onClick={() => updateBlock({ onEnter: [...(block.onEnter || []), { scope: "context", key: "", value: "" }] })}
+            >
+              + adicionar na entrada
+            </button>
+
+            <div className={styles.dividerLine} style={{ margin: "12px 0" }} />
+
+            {/* SAÍDA */}
+            <h5 className={styles.smallTitle}>Ao sair do bloco</h5>
+            {(block.onExit || []).map((a, i) => (
+              <div key={`ex-${i}`} className={styles.rowItemStyle}>
+                <select
+                  className={styles.selectStyle}
+                  value={a.scope || "context"}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onExit).slice();
+                    next[i] = { ...next[i], scope: e.target.value };
+                    updateBlock({ onExit: next });
+                  }}
+                >
+                  <option value="context">context</option>
+                  <option value="contact">contact</option>
+                  <option value="contact.extra">contact.extra</option>
+                </select>
+                <input
+                  className={styles.inputStyle}
+                  placeholder="chave (ex.: etapaAtual)"
+                  value={a.key || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onExit).slice();
+                    next[i] = { ...next[i], key: e.target.value };
+                    updateBlock({ onExit: next });
+                  }}
+                />
+                <input
+                  className={styles.inputStyle}
+                  placeholder="valor (ex.: finalizado)"
+                  value={a.value || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onExit).slice();
+                    next[i] = { ...next[i], value: e.target.value };
+                    updateBlock({ onExit: next });
+                  }}
+                />
+                <button
+                  className={styles.deleteButtonSmall}
+                  onClick={() => updateBlock({ onExit: (block.onExit || []).filter((_, idx) => idx !== i) })}
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button
+              className={styles.addButtonSmall}
+              onClick={() => updateBlock({ onExit: [...(block.onExit || []), { scope: "context", key: "", value: "" }] })}
+            >
+              + adicionar na saída
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className={styles.sectionContainer}>
         <div
           className={styles.sectionHeader}
@@ -530,6 +649,20 @@ export default function NodeConfigPanel({
               <option value="false">Não</option>
             </select>
           </div>
+
+          {Boolean(awaitResponse) && (
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
+              <input
+                type="text"
+                placeholder="ex.: context.respostaTexto"
+                value={block.saveResponseVar || ""}
+                onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                className={styles.inputStyle}
+              />
+              <small className={styles.helpText}>deixe em branco para não salvar</small>
+            </div>
+          )}
 
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
@@ -597,6 +730,20 @@ export default function NodeConfigPanel({
             </select>
           </div>
 
+          {Boolean(awaitResponse) && (
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
+              <input
+                type="text"
+                placeholder="ex.: context.respostaMidia"
+                value={block.saveResponseVar || ""}
+                onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                className={styles.inputStyle}
+              />
+              <small className={styles.helpText}>deixe em branco para não salvar</small>
+            </div>
+          )}
+
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
             <input
@@ -617,15 +764,10 @@ export default function NodeConfigPanel({
     if (type === "human") {
       return (
         <div className={styles.sectionContent}>
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Nome da fila de atendimento</label>
-            <input
-              type="text"
-              value={content.queueName || ""}
-              onChange={(e) => updateContent("queueName", e.target.value)}
-              className={styles.inputStyle}
-            />
-          </div>
+          <p className={styles.helpText}>
+            Este bloco envia a conversa para <strong>atendimento humano</strong>.
+            Não há configurações adicionais.
+          </p>
         </div>
       );
     }
@@ -634,11 +776,9 @@ export default function NodeConfigPanel({
       const isList = content.type === "list";
       const isQuickReply = content.type === "button";
 
-      /* ------ handlers quick reply ------ */
-
       const handleAddButton = () => {
         const current = deepClone(content.action?.buttons || []);
-                if (current.length >= 3) {
+        if (current.length >= 3) {
           toast.warn("Máximo de 3 botões atingido.");
           return;
         }
@@ -663,12 +803,10 @@ export default function NodeConfigPanel({
         updateBlock({ content: nextContent });
       };
 
-      /* ------ handlers list ------ */
-
       const handleAddListItem = () => {
         const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
         const rows = sections[0]?.rows || [];
-                if (rows.length >= 10) {
+        if (rows.length >= 10) {
           toast.warn("Máximo de 10 itens atingido.");
           return;
         }
@@ -686,14 +824,6 @@ export default function NodeConfigPanel({
         const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
         const rows = [...(sections[0]?.rows || [])];
         rows.splice(index, 1);
-        const nextSections = [{ ...(sections[0] || {}), rows }];
-        const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
-        const nextContent = { ...deepClone(content), action: nextAction };
-        updateBlock({ content: nextContent });
-      };
-
-      const handleUpdateRows = (rows) => {
-        const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
         const nextSections = [{ ...(sections[0] || {}), rows }];
         const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
         const nextContent = { ...deepClone(content), action: nextAction };
@@ -793,6 +923,20 @@ export default function NodeConfigPanel({
             </select>
           </div>
 
+          {Boolean(awaitResponse) && (
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
+              <input
+                type="text"
+                placeholder="ex.: context.respostaMenu"
+                value={block.saveResponseVar || ""}
+                onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                className={styles.inputStyle}
+              />
+              <small className={styles.helpText}>deixe em branco para não salvar</small>
+            </div>
+          )}
+
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
             <input
@@ -807,8 +951,7 @@ export default function NodeConfigPanel({
             />
           </div>
 
-          {/* LIST: botão "abrir lista" editável */}
-          {isList && (
+          {content.type === "list" && (
             <>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
@@ -901,7 +1044,6 @@ export default function NodeConfigPanel({
             </>
           )}
 
-          {/* QUICK REPLY buttons */}
           {isQuickReply && (
             <>
               {(content.action?.buttons || []).map((btn, idx) => (
@@ -1010,6 +1152,20 @@ export default function NodeConfigPanel({
             </select>
           </div>
 
+          {Boolean(awaitResponse) && (
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
+              <input
+                type="text"
+                placeholder="ex.: context.localizacao"
+                value={block.saveResponseVar || ""}
+                onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                className={styles.inputStyle}
+              />
+              <small className={styles.helpText}>deixe em branco para não salvar</small>
+            </div>
+          )}
+
           <div className={styles.inputGroup}>
             <label className={styles.inputLabel}>Atraso de envio (segundos)</label>
             <input
@@ -1063,7 +1219,6 @@ export default function NodeConfigPanel({
       );
     }
 
-    /* ===== NOVO: Editor para blocos de API ===== */
     if (type === "api_call") {
       return (
         <div className={styles.sectionContent}>
@@ -1147,7 +1302,6 @@ export default function NodeConfigPanel({
       );
     }
 
-    /* ===== Compatibilidade: nós antigos "http" (legado) ===== */
     if (type === "http") {
       return (
         <div className={styles.sectionContent}>
@@ -1190,7 +1344,9 @@ export default function NodeConfigPanel({
     >
       <div className={styles.panelHeader}>
         <h3 className={styles.panelTitle}>
-          {selectedNode.data.label || "Novo Bloco"}
+          {selectedNode.data.type === "human"
+            ? "atendimento humano"
+            : (selectedNode.data.label || "Novo Bloco")}
         </h3>
         <button
           onClick={() => onClose()}
@@ -1211,6 +1367,13 @@ export default function NodeConfigPanel({
                 com redirecionamento automático para o próximo bloco
                 configurado.
               </div>
+            ) : selectedNode.data.type === "human" ? (
+              <input
+                type="text"
+                value="atendimento humano"
+                disabled
+                className={styles.inputStyle}
+              />
             ) : (
               <input
                 type="text"
@@ -1264,6 +1427,3 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
-
-
-
