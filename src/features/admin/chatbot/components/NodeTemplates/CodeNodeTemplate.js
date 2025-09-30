@@ -13,11 +13,12 @@ export const CodeNodeTemplate = {
   vars.testFlag = 'ok';
   return 'done';
 }`,
-    function: 'handler(vars)', // ← chamada, não só o nome
+    function: 'run(vars)', // ← chamada, não só o nome
     outputVar: 'resultado',
     // os campos abaixo são opcionais para UI; o executor não usa:
     language: 'javascript',
     timeout: 5000
   },
 };
+
 
