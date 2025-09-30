@@ -29,172 +29,13 @@ const randomPastelHex = () => {
   return hslToHex(h, s, l);
 };
 
-/* =================== RuleBuilder (visual) =================== */
-const RULE_TYPES = [
-  'equals','not_equals','contains','starts_with','ends_with',
-  'exists','not_exists','regex',
-  'gt','gte','lt','lte',
-  'in','not_in'
-];
-
-function toUiRows(conditions) {
-  if (!Array.isArray(conditions)) return [{ type: 'equals', variable: '', value: '' }];
-  return conditions.map(c => ({
-    type: c?.type || 'equals',
-    variable: c?.variable || '',
-    // para in/not_in, value pode vir como array
-    value: Array.isArray(c?.value) ? c.value.join(', ') : (c?.value ?? '')
-  })).filter(r => r.type && (r.variable || ['exists','not_exists'].includes(r.type)));
-}
-
-function toConditions(rows) {
-  const out = [];
-  for (const r of rows) {
-    const type = String(r.type || '').trim();
-    const variable = String(r.variable || '').trim();
-    let value = r.value;
-
-    if (!type) continue;
-    if (!['exists','not_exists'].includes(type) && !variable) continue;
-
-    if (type === 'exists' || type === 'not_exists') {
-      out.push({ type, variable });
-      continue;
-    }
-
-    if (type === 'in' || type === 'not_in') {
-      // transforma "a, b, c" em ["a","b","c"]
-      const arr = String(value || '')
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
-      out.push({ type, variable, value: arr });
-    } else {
-      out.push({ type, variable, value: String(value ?? '') });
-    }
-  }
-  return out;
-}
-
-function RuleBuilder({ enabled, onToggleEnabled, rows, setRows }) {
-  const addRow = () => setRows(prev => [...prev, { type: 'equals', variable: '', value: '' }]);
-  const removeRow = (idx) => setRows(prev => prev.filter((_, i) => i !== idx));
-  const updateRow = (idx, patch) =>
-    setRows(prev => prev.map((r, i) => i === idx ? { ...r, ...patch } : r));
-
-  const insertExample = () => {
-    setRows([
-      { type: 'equals', variable: 'x', value: 'y' },
-      { type: 'contains', variable: 'lastUserMessage', value: 'agendar' },
-      { type: 'starts_with', variable: 'contact.phone', value: '55' },
-      { type: 'in', variable: 'channel', value: 'whatsapp, instagram' }
-    ]);
-    onToggleEnabled(true);
-  };
-
-  return (
-    <div className={styles.card}>
-      <div className={styles.cardHead}>
-        <h2 className={styles.cardTitle}>Regra de distribuição</h2>
-        <p className={styles.cardDesc}>
-          Crie condições para direcionar tickets automaticamente para esta fila.
-        </p>
-      </div>
-
-      <div className={styles.cardBody}>
-        <div className={styles.group} style={{ marginBottom: 12 }}>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => onToggleEnabled(e.target.checked)}
-            />
-            &nbsp; Habilitar regra para esta fila
-          </label>
-          <p className={styles.hint}>
-            Quando desabilitada, a regra permanece salva mas não é aplicada.
-          </p>
-        </div>
-
-        <div className={styles.tableLike}>
-          <div className={styles.ruleHeaderRow}>
-            <div className={styles.ruleColType}>Tipo</div>
-            <div className={styles.ruleColVar}>Variável</div>
-            <div className={styles.ruleColVal}>Valor</div>
-            <div className={styles.ruleColAct}></div>
-          </div>
-
-          {rows.map((r, idx) => {
-            const valueDisabled = r.type === 'exists' || r.type === 'not_exists';
-            return (
-              <div className={styles.ruleRow} key={idx}>
-                <div className={styles.ruleColType}>
-                  <select
-                    className={styles.input}
-                    value={r.type}
-                    onChange={(e) => updateRow(idx, { type: e.target.value })}
-                  >
-                    {RULE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-
-                <div className={styles.ruleColVar}>
-                  <input
-                    className={styles.input}
-                    placeholder="ex.: contact.phone"
-                    value={r.variable}
-                    onChange={(e) => updateRow(idx, { variable: e.target.value })}
-                    disabled={false}
-                  />
-                </div>
-
-                <div className={styles.ruleColVal}>
-                  <input
-                    className={styles.input}
-                    placeholder={r.type === 'in' || r.type === 'not_in'
-                      ? 'lista separada por vírgulas (ex.: a, b, c)'
-                      : 'valor'}
-                    value={r.value}
-                    onChange={(e) => updateRow(idx, { value: e.target.value })}
-                    disabled={valueDisabled}
-                  />
-                </div>
-
-                <div className={styles.ruleColAct}>
-                  <button
-                    type="button"
-                    className={styles.btn}
-                    onClick={() => removeRow(idx)}
-                    aria-label="Remover condição"
-                    title="Remover"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className={styles.actionsRow} style={{ marginTop: 8 }}>
-          <button type="button" className={styles.btnSecondary} onClick={addRow}>
-            + Adicionar condição
-          </button>
-          <button type="button" className={styles.btn} onClick={insertExample}>
-            Inserir exemplo
-          </button>
-        </div>
-
-        <p className={styles.hint} style={{ marginTop: 8 }}>
-          Exemplos de variáveis úteis: <code>lastUserMessage</code>, <code>contact.phone</code>, <code>contact.document</code>, <code>channel</code>…
-        </p>
-      </div>
-    </div>
-  );
-}
-
 /* =================== ChipsInput (tags) =================== */
-function ChipsInput({ value = [], onChange, placeholder = 'ex.: agendamento, reclamacao, urgencia', maxLen = 40 }) {
+function ChipsInput({
+  value = [],
+  onChange,
+  placeholder = 'ex.: agendamento, reclamacao, urgencia',
+  maxLen = 40,
+}) {
   const [text, setText] = useState('');
   const ref = useRef(null);
 
@@ -289,15 +130,16 @@ export default function QueueForm() {
   const [form, setForm] = useState({ nome: '', descricao: '', color: '' });
   const [touched, setTouched] = useState({ nome: false, color: false });
 
+  // nome exibido no breadcrumb (usa queue_name do backend quando disponível)
   const [queueDisplay, setQueueDisplay] = useState(id || '');
 
   // tags
-  const [initialTags, setInitialTags] = useState([]);
-  const [tags, setTags] = useState([]);
+  const [initialTags, setInitialTags] = useState([]); // catálogo original
+  const [tags, setTags] = useState([]);               // estado visível no input (com chips)
 
-  // ===== regra por fila (visual) =====
-  const [ruleEnabled, setRuleEnabled] = useState(true);
-  const [ruleRows, setRuleRows] = useState([{ type: 'equals', variable: '', value: '' }]);
+  // --- Regra de roteamento (apenas 1 condição; operadores: equals|contains) ---
+  const [ruleEnabled, setRuleEnabled] = useState(false);
+  const [rule, setRule] = useState({ field: '', op: 'equals', value: '' });
 
   // validação
   const colorPreview = useMemo(() => normalizeHexColor(form.color), [form.color]);
@@ -305,6 +147,7 @@ export default function QueueForm() {
   const colorInvalid = form.color ? !colorPreview : false;
   const canSubmit = !saving && !nameInvalid && !colorInvalid;
 
+  // carrega catálogo por nome de fila
   const loadTags = useCallback(async (filaNome) => {
     if (!filaNome) { setInitialTags([]); setTags([]); return; }
     try {
@@ -312,37 +155,38 @@ export default function QueueForm() {
       const list = Array.isArray(r?.data) ? r.data : [];
       const arr = list.map(x => x.tag);
       setInitialTags(arr);
-      setTags(arr);
+      setTags(arr); // mostra as já cadastradas como chips dentro do input
     } catch {
       setInitialTags([]);
       setTags([]);
     }
   }, []);
 
-  const loadQueueRule = useCallback(async (filaNome) => {
-    if (!filaNome) {
-      setRuleEnabled(true);
-      setRuleRows([{ type:'equals', variable:'', value:'' }]);
+  // carrega UMA regra da API
+  const loadRule = useCallback(async (filaIdOrName) => {
+    if (!filaIdOrName) {
+      setRuleEnabled(false);
+      setRule({ field: '', op: 'equals', value: '' });
       return;
     }
     try {
-      const r = await apiGet(`/queue-rules/${encodeURIComponent(filaNome)}`);
-      const data = r?.data || r;
-      const row = data?.data ?? data;
-      if (row && row.queue_name) {
-        setRuleEnabled(!!row.enabled);
-        setRuleRows(toUiRows(row.conditions || []));
-      } else {
-        setRuleEnabled(true);
-        setRuleRows([{ type:'equals', variable:'', value:'' }]);
-      }
+      const r = await apiGet(`/queues/${encodeURIComponent(filaIdOrName)}/rules`);
+      const cfg = r?.data || r;
+      const first = Array.isArray(cfg?.conditions) ? cfg.conditions[0] : null;
+
+      setRuleEnabled(!!cfg?.enabled);
+      setRule({
+        field: first?.field || '',
+        op: first?.op === 'contains' ? 'contains' : 'equals',
+        value: first?.value || ''
+      });
     } catch {
-      // sem regra: defaults
-      setRuleEnabled(true);
-      setRuleRows([{ type:'equals', variable:'', value:'' }]);
+      setRuleEnabled(false);
+      setRule({ field: '', op: 'equals', value: '' });
     }
   }, []);
 
+  // carrega fila
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
     try {
@@ -358,17 +202,15 @@ export default function QueueForm() {
         });
         setQueueDisplay(nomeFila || id);
 
-        await Promise.all([
-          loadTags(nomeFila || q.nome || q.name),
-          loadQueueRule(nomeFila || q.nome || q.name)
-        ]);
+        await loadTags(nomeFila || q.nome || q.name);
+        await loadRule(nomeFila || q.nome || q.name);
       } else {
         setForm({ nome: '', descricao: '', color: '' });
         setQueueDisplay('');
         setInitialTags([]);
         setTags([]);
-        setRuleEnabled(true);
-        setRuleRows([{ type:'equals', variable:'', value:'' }]);
+        setRuleEnabled(false);
+        setRule({ field: '', op: 'equals', value: '' });
       }
     } catch (e) {
       console.error(e);
@@ -378,41 +220,39 @@ export default function QueueForm() {
       setLoading(false);
       requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     }
-  }, [isEdit, id, loadTags, loadQueueRule]);
+  }, [isEdit, id, loadTags, loadRule]);
 
   useEffect(() => { load(); }, [load]);
 
   const handleSortearCor = () => setForm(f => ({ ...f, color: randomPastelHex() }));
   const handleLimparCor = () => setForm(f => ({ ...f, color: '' }));
 
+  // cria e remove conforme diff
   async function persistTagsDiff(filaNome, before = [], current = []) {
     const prev = new Set(before);
     const now  = new Set(current);
+
     const toAdd    = [...now].filter(t => !prev.has(t));
     const toRemove = [...prev].filter(t => !now.has(t));
+
     const jobs = [];
-    for (const tag of toAdd) jobs.push(apiPost('/tags/ticket/catalog', { fila: filaNome, tag, active: true }));
-    for (const tag of toRemove) jobs.push(apiDelete(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(tag)}`));
+
+    // criar
+    for (const tag of toAdd) {
+      jobs.push(apiPost('/tags/ticket/catalog', { fila: filaNome, tag, active: true }));
+    }
+    // remover
+    for (const tag of toRemove) {
+      jobs.push(apiDelete(`/tags/ticket/catalog/${encodeURIComponent(filaNome)}/${encodeURIComponent(tag)}`));
+    }
+
     if (!jobs.length) return;
+
     const res = await Promise.allSettled(jobs);
     const ok = res.filter(r => r.status === 'fulfilled').length;
     const fail = res.length - ok;
     if (ok) toast.success(`${ok} alteração(ões) de etiqueta aplicada(s).`);
     if (fail) toast.error(`${fail} alteração(ões) falharam. Verifique dependências (tags em uso).`);
-  }
-
-  async function persistQueueRule(filaNome) {
-    const name = String(filaNome || '').trim();
-    if (!name) return;
-    const conditions = toConditions(ruleRows);
-    // valida mínimo: se habilitada, precisa ter ao menos 1 condição válida
-    if (ruleEnabled && conditions.length === 0) {
-      throw new Error('Adicione ao menos uma condição ou desabilite a regra.');
-    }
-    await apiPut(`/queue-rules/${encodeURIComponent(name)}`, {
-      enabled: !!ruleEnabled,
-      conditions
-    });
   }
 
   async function handleSave() {
@@ -430,6 +270,7 @@ export default function QueueForm() {
         ...(colorPreview ? { color: colorPreview } : {}),
       };
 
+      // salvar fila (criar/editar)
       if (isEdit) {
         await apiPut(`/queues/${encodeURIComponent(id)}`, payload);
         toast.success('Fila atualizada.');
@@ -438,16 +279,29 @@ export default function QueueForm() {
         toast.success('Fila criada.');
       }
 
+      // aplicar diff das etiquetas usando o NOME atual do formulário
       const filaNome = form.nome.trim();
       await persistTagsDiff(filaNome, initialTags, tags);
 
-      await persistQueueRule(filaNome);
-      toast.success('Regra da fila salva.');
+      // salvar/limpar regra (1 condição; equals|contains)
+      if (ruleEnabled && rule.field.trim() && rule.value.trim()) {
+        const body = {
+          enabled: true,
+          conditions: [{
+            field: rule.field.trim(),
+            op: rule.op === 'contains' ? 'contains' : 'equals',
+            value: rule.value.trim()
+          }]
+        };
+        await apiPut(`/queues/${encodeURIComponent(filaNome)}/rules`, body);
+      } else {
+        await apiDelete(`/queues/${encodeURIComponent(filaNome)}/rules`);
+      }
 
       navigate('/management/queues');
     } catch (e) {
       console.error(e);
-      toast.error(e?.message || 'Não foi possível salvar. Tente novamente.');
+      toast.error('Não foi possível salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -519,7 +373,7 @@ export default function QueueForm() {
                 <div className={styles.colorRow}>
                   <input
                     id="color"
-                    className={`${styles.input} ${styles.colorField}`}
+                    className={`${styles.input} ${styles.colorField || ''}`}
                     placeholder="#RRGGBB (ex.: #4682B4)"
                     value={form.color}
                     onChange={(e) => setForm({ ...form, color: e.target.value })}
@@ -562,20 +416,95 @@ export default function QueueForm() {
             </div>
 
             <div className={styles.cardBody}>
-              <ChipsInput value={tags} onChange={setTags} />
+              <ChipsInput
+                value={tags}
+                onChange={setTags}
+              />
               <p className={styles.hint} style={{marginTop:8}}>
                 Dica: Use <kbd>Backspace</kbd> para remover o último chip quando o campo estiver vazio.
               </p>
             </div>
           </section>
 
-          {/* ===== Regra de distribuição (visual) ===== */}
-          <RuleBuilder
-            enabled={ruleEnabled}
-            onToggleEnabled={setRuleEnabled}
-            rows={ruleRows}
-            setRows={setRuleRows}
-          />
+          {/* ===== Regra de roteamento ===== */}
+          <section className={styles.card}>
+            <div className={styles.cardHead}>
+              <h2 className={styles.cardTitle}>Regra de roteamento para esta fila</h2>
+              <p className={styles.cardDesc}>
+                Defina uma condição para que tickets entrem automaticamente nesta fila.
+                (Somente uma condição. Operadores: <strong>igual</strong> ou <strong>contém</strong>.)
+              </p>
+            </div>
+
+            <div className={styles.cardBody}>
+              <label className={styles.label} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                <input
+                  type="checkbox"
+                  checked={ruleEnabled}
+                  onChange={(e) => setRuleEnabled(e.target.checked)}
+                  style={{ transform:'scale(1.1)' }}
+                />
+                Habilitar regra de roteamento
+              </label>
+
+              <div style={{ display:'grid', gap:12, gridTemplateColumns:'180px 1fr 1fr auto', alignItems:'center' }}>
+                {/* Operador */}
+                <div>
+                  <label className={styles.label} style={{ marginBottom:6, display:'block' }}>Operador</label>
+                  <select
+                    className={styles.input}
+                    value={rule.op}
+                    onChange={(e) => setRule(r => ({ ...r, op: e.target.value }))}
+                    disabled={!ruleEnabled}
+                  >
+                    <option value="equals">igual</option>
+                    <option value="contains">contém</option>
+                  </select>
+                </div>
+
+                {/* Variável */}
+                <div>
+                  <label className={styles.label} style={{ marginBottom:6, display:'block' }}>Variável</label>
+                  <input
+                    className={styles.input}
+                    value={rule.field}
+                    onChange={(e) => setRule(r => ({ ...r, field: e.target.value }))}
+                    placeholder="Ex.: contact.document"
+                    disabled={!ruleEnabled}
+                  />
+                </div>
+
+                {/* Valor */}
+                <div>
+                  <label className={styles.label} style={{ marginBottom:6, display:'block' }}>Valor</label>
+                  <input
+                    className={styles.input}
+                    value={rule.value}
+                    onChange={(e) => setRule(r => ({ ...r, value: e.target.value }))}
+                    placeholder="Ex.: particular"
+                    disabled={!ruleEnabled}
+                  />
+                </div>
+
+                {/* Ação */}
+                <div>
+                  <label className={styles.label} style={{ marginBottom:6, display:'block', visibility:'hidden' }}>.</label>
+                  <button
+                    type="button"
+                    className={styles.btn}
+                    onClick={() => { setRule({ field: '', op: 'equals', value: '' }); }}
+                    disabled={!ruleEnabled}
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+
+              <p className={styles.hint} style={{ marginTop: 8 }}>
+                Exemplos de variável: <code>contact.document</code>, <code>contact.email</code>, <code>tag</code>.
+              </p>
+            </div>
+          </section>
 
           {/* Rodapé */}
           <div className={styles.stickyFooter} role="region" aria-label="Ações">
