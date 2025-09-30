@@ -238,7 +238,7 @@ export default function QueueForm() {
       return;
     }
     try {
-      const r = await apiGet(`/queue-rules/${encodeURIComponent(filaIdOrName)}/rules`);
+      const r = await apiGet(`/queue-rules/${encodeURIComponent(filaIdOrName)}`);
       const cfg = r?.data || r;
       const first = Array.isArray(cfg?.conditions) ? cfg.conditions[0] : null;
 
@@ -361,9 +361,9 @@ export default function QueueForm() {
             value: rule.value.trim()
           }]
         };
-        await apiPut(`/queue-rules/${encodeURIComponent(filaNome)}/rules`, body);
+        await apiPut(`/queue-rules/${encodeURIComponent(filaNome)}`, body);
       } else {
-        await apiDelete(`/queue-rules/${encodeURIComponent(filaNome)}/rules`);
+        await apiDelete(`/queue-rules/${encodeURIComponent(filaNome)}`);
       }
 
       navigate('/management/queues');
