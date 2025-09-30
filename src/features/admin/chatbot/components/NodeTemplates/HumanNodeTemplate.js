@@ -6,7 +6,6 @@ export const HumanNodeTemplate = {
   block: {
     type: 'human',
     content: {
-      queueName: 'Atendimento Geral',
       transferMessage: 'Um momento enquanto conecto você com um atendente...',
       timeout: 300, // Tempo máximo de espera em segundos
       fallbackAction: 'continue' // 'continue' ou 'repeat'
@@ -17,4 +16,5 @@ export const HumanNodeTemplate = {
     escalationReason: '' // Motivo da transferência
   },
 };
+
 
