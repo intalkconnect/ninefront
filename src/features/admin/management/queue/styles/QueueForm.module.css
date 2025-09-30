@@ -33,7 +33,7 @@
 @keyframes skel{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
 /* card */
-.card{background:var(--card);border:1px solid var(--border2);border-radius:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;overflow:hidden}
+.card{background:var(--card);border:1px solid var(--border2);border-radius:16px;box-shadow:var(--shadow-sm);margin-bottom:16px;overflow:visible}
 .cardHead{padding:14px 16px;border-bottom:1px solid var(--border2);background:#fcfcfe}
 .cardTitle{margin:0;font-size:16px;font-weight:800;color:var(--text)}
 .cardDesc{margin:2px 0 0;color:#64748b;font-size:13px}
