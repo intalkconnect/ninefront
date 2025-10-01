@@ -28,7 +28,7 @@ export default function NodeConfigPanel({
   setScriptCode,
 }) {
   const [tab, setTab] = useState("visual"); // visual | acoes
-  const [editOpen, setEditOpen] = useState(true); // editor expandido dentro da pré-visualização
+  const [editOpen, setEditOpen] = useState(true);
   const [expandedSections, setExpandedSections] = useState({
     actions: true,
     default: true,
@@ -189,7 +189,6 @@ export default function NodeConfigPanel({
 
   /* ------------------------------- chat preview ------------------------------ */
 
-  // avatar do bloco (varia com o tipo)
   const iconForType = () => {
     if (type === "text" || type === "interactive") return MessageSquare;
     if (type === "media") return ImageIcon;
@@ -284,7 +283,6 @@ export default function NodeConfigPanel({
   /* ------------------------------ visual (chat) ------------------------------ */
 
   const VisualEditor = () => {
-    // chips topo
     const chips = (
       <div className={styles.chipsBar}>
         <Chip
@@ -297,18 +295,27 @@ export default function NodeConfigPanel({
           {awaitResponse ? "Aguardando resposta" : "Sem espera"}
         </Chip>
 
-        <Chip icon={Timer} active={!!sendDelayInSeconds} title="Atraso de envio" onClick={() => {
-          if (!sendDelayInSeconds) updateBlock({ sendDelayInSeconds: 1 });
-          setEditOpen(true);
-        }}>
+        <Chip
+          icon={Timer}
+          active={!!sendDelayInSeconds}
+          title="Atraso de envio"
+          onClick={() => {
+            if (!sendDelayInSeconds) updateBlock({ sendDelayInSeconds: 1 });
+            setEditOpen(true);
+          }}
+        >
           {`${sendDelayInSeconds || 0}s`}
         </Chip>
 
         {type === "script" && (
-          <Chip icon={Code} title="Abrir editor de código" onClick={() => {
-            setScriptCode(selectedNode?.data?.block?.code || "");
-            setShowScriptEditor(true);
-          }}>
+          <Chip
+            icon={Code}
+            title="Abrir editor de código"
+            onClick={() => {
+              setScriptCode(selectedNode?.data?.block?.code || "");
+              setShowScriptEditor(true);
+            }}
+          >
             Código
           </Chip>
         )}
@@ -321,7 +328,6 @@ export default function NodeConfigPanel({
       </div>
     );
 
-    // bubble: render por tipo
     const bubbleBody = (() => {
       if (type === "text") {
         return (
@@ -380,7 +386,7 @@ export default function NodeConfigPanel({
                     <input
                       type="text"
                       className={styles.input}
-                      placeholder="ex.: context.respostaTexto"
+                      placeholder="ex.: lastUserMessage"
                       value={saveResponseVar || ""}
                       onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
                     />
@@ -454,7 +460,7 @@ export default function NodeConfigPanel({
                     <input
                       type="text"
                       className={styles.input}
-                      placeholder="ex.: context.respostaMidia"
+                      placeholder="ex.: lastcontentmessage"
                       value={saveResponseVar || ""}
                       onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
                     />
@@ -481,7 +487,7 @@ export default function NodeConfigPanel({
 
       if (type === "interactive") {
         const isList = content.type === "list";
-        const isQuickReply = content.type !== "list"; // default button
+        const isQuickReply = content.type !== "list";
 
         const handleAddButton = () => {
           const current = deepClone(content.action?.buttons || []);
@@ -796,7 +802,7 @@ export default function NodeConfigPanel({
                     <input
                       type="text"
                       className={styles.input}
-                      placeholder="ex.: context.respostaMenu"
+                      placeholder="ex.: lastcontentmessage"
                       value={saveResponseVar || ""}
                       onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
                     />
@@ -912,7 +918,7 @@ export default function NodeConfigPanel({
                     <input
                       type="text"
                       className={styles.input}
-                      placeholder="ex.: context.localizacao"
+                      placeholder="ex.: lastcontentmessage"
                       value={saveResponseVar || ""}
                       onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
                     />
@@ -1459,7 +1465,7 @@ export default function NodeConfigPanel({
               <input
                 type="text"
                 className={styles.input}
-                value={selectedNode.data.label}
+                value={selectedNode.data.label || ""}
                 onChange={(e) =>
                   onChange({
                     ...selectedNode,
