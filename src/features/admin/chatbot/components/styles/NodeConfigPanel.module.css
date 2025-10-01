@@ -54,9 +54,9 @@
 .smallTitle{ margin:0 0 10px; font-weight:800; font-size:12px; color:#333; }
 
 /* Preview estilo chat */
-.chatPreviewCard{ position:relative; border:1px solid #ececec; border-radius:14px; background:#fff; margin-bottom:14px; }
+.chatPreviewCard{ position:relative; border:1px solid #ececec; border-radius:14px; background:#fff; margin-bottom:14px; overflow:hidden; }
 .floatingBtns{
-  position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:2;
+  position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:3;
 }
 .iconGhost{
   border:1px solid #e5e5e5; background:#fff; color:#222;
@@ -87,16 +87,32 @@
 .listTexts small{ display:block; color:#555; font-size:12px; }
 .moreHint{ color:#777; font-size:12px; margin-top:6px; display:block; }
 
-/* Chip “Entrada do usuário” que abre o await */
+/* Chip “Entrada do usuário” */
 .userInputChip{
   align-self:flex-end; display:inline-flex; align-items:center; gap:8px;
   background:#ffffff; color:#111; border-radius:999px; padding:8px 12px; font-size:12px; border:1px solid #e5e5e5;
-  cursor:pointer;
+  cursor:pointer; z-index:1;
 }
-.caret{
-  width:8px; height:8px; border:1px solid #bfbfbf; border-left:0; border-top:0; transform:rotate(45deg); margin-left:2px;
-}
+.caret{ width:8px; height:8px; border:1px solid #bfbfbf; border-left:0; border-top:0; transform:rotate(45deg); margin-left:2px; }
 .caretUp{ transform:rotate(-135deg); }
+
+/* ---- Overlay deslizante (o pedido) ---- */
+.slideOverlay{
+  position:absolute; inset:0; background:#fff; border-left:1px solid #eee; z-index:2;
+  transform:translateX(24px) scale(.98); opacity:0; pointer-events:none;
+  transition:transform .25s ease, opacity .25s ease;
+  box-shadow:0 14px 40px rgba(0,0,0,.06);
+  display:flex; flex-direction:column;
+}
+.slideOverlay.open{
+  transform:translateX(0) scale(1); opacity:1; pointer-events:auto;
+}
+.slideHeader{
+  display:flex; align-items:center; justify-content:space-between; padding:12px 14px;
+  border-bottom:1px solid #f0f0f0; background:#fff; position:sticky; top:0;
+}
+.slideHeader strong{ font-weight:800; color:#111; }
+.slideBody{ padding:12px 14px; overflow:auto; }
 
 /* Cards/ações/condições */
 .actionBox{ background:#fff; border:1px solid #ececec; border-radius:12px; padding:12px; margin-bottom:12px; }
@@ -109,7 +125,7 @@
 
 .buttonGroup{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 
-/* Botões (sem azul) */
+/* Botões */
 .addButton{
   width:100%; background:#16a34a; color:#fff; border:none; padding:11px 12px;
   border-radius:12px; font-weight:900; cursor:pointer; box-shadow:0 6px 18px rgba(22,163,74,.25);
