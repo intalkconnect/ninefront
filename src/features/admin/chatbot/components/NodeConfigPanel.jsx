@@ -1,1181 +1,1202 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+// Builder.jsx
+import React, { useCallback, useEffect, useState, useRef, useMemo } from "react";
+import ReactFlow, {
+  Controls,
+  Background,
+  addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
+  useReactFlow,
+} from "reactflow";
+import "reactflow/dist/style.css";
+import { toast } from "react-toastify";
+import { apiGet, apiPost } from "../../../shared/apiClient";
+
+import { nodeTemplates } from "./components/NodeTemplates";
+import VersionHistoryModal from "./components/VersionControlModal";
+
+import ScriptEditor from "./components/editor/scriptEditor";
+import NodeQuadrado from "./components/NodeQuadrado";
+import NodeConfigPanel from "./components/NodeConfigPanel";
 import {
-  Trash2,
-  Plus,
-  X,
-  MoreHorizontal,
-  PencilLine,
-  ArrowLeft,
-  SlidersHorizontal
+  Zap,
+  HelpCircle,
+  MessageCircle,
+  Code,
+  Globe,
+  Image,
+  Rocket,
+  Download,
+  MapPin,
+  Headset,
+  ArrowDownCircle as ArrowDownCircleIcon,
+  Undo2,
+  Redo2,
 } from "lucide-react";
-import styles from "./styles/NodeConfigPanel.module.css";
 
-export default function NodeConfigPanel({
-  selectedNode,
-  onChange,
-  onClose,
-  allNodes = [],
-  onConnectNodes,
-  setShowScriptEditor,
-  setScriptCode,
-}) {
-  if (!selectedNode || !selectedNode.data) return null;
+/* =========================
+ * Utils
+ * ========================= */
+const genId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `n_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  /* ---------------- state ---------------- */
-  // overlay: 'none' | 'conteudo' | 'regras' | 'await' | 'especiais'
-  const [overlayMode, setOverlayMode] = useState("none");
-  const panelRef = useRef(null);
+const genEdgeId = () =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `e_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  const block = selectedNode.data.block || {};
-  const {
-    type,
-    content = {},
-    awaitResponse,
-    awaitTimeInSeconds,
-    sendDelayInSeconds,
-    actions = [],
-    method,
-    url,
-    headers,
-    body,
-    timeout,
-    outputVar,
-    statusVar,
-    function: fnName,
-    saveResponseVar,
-    defaultNext,
-    onEnter = [],
-    onExit = [],
-  } = block;
+const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
-  const isHuman = type === "human";
+/* =========================
+ * Icon map e nodeTypes
+ * ========================= */
+const iconMap = {
+  Zap: <Zap size={16} />,
+  HelpCircle: <HelpCircle size={16} />,
+  MessageCircle: <MessageCircle size={16} />,
+  Code: <Code size={16} />,
+  Globe: <Globe size={16} />,
+  Image: <Image size={16} />,
+  MapPin: <MapPin size={16} />,
+  Headset: <Headset size={16} />,
+  ListEnd: <ArrowDownCircleIcon size={16} />,
+};
 
-  /* ---------------- helpers ---------------- */
+const nodeTypes = { quadrado: NodeQuadrado };
 
-  const deepClone = (obj) =>
-    typeof structuredClone === "function"
-      ? structuredClone(obj)
-      : JSON.parse(JSON.stringify(obj ?? {}));
+/* =========================
+ * Tema/estilos base
+ * ========================= */
+const nodeStyle = {
+  border: "2px solid",
+  borderRadius: "8px",
+  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.08)",
+  background: "#fff",
+};
 
-  const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
-  const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
+const selectedNodeStyle = {
+  boxShadow:
+    "0 0 0 2px rgba(16,185,129,0.65), 0 6px 12px rgba(0, 0, 0, 0.08)",
+};
 
-  const safeParseJson = (txt, fallback) => {
-    try {
-      if (typeof txt === "string" && txt.trim() !== "") return JSON.parse(txt);
-      return typeof txt === "object" && txt !== null ? txt : fallback;
-    } catch {
-      return fallback;
+const THEME = {
+  bg: "#f9fafb", // background geral
+  panelBg: "#ffffff",
+  text: "#0f172a",
+  textMuted: "#334155",
+  border: "#e2e8f0",
+  borderHover: "#cbd5e1",
+  subtle: "#f8fafc",
+  subtle2: "#f1f5f9",
+  icon: "#334155",
+  iconMuted: "#64748b",
+  shadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
+  ring: "0 0 0 3px rgba(99, 102, 241, 0.08)",
+};
+
+/* Botão redondo neutro (paleta) */
+const baseIconBtn = {
+  background: "#ffffff",
+  color: THEME.icon,
+  border: `1.5px solid ${THEME.border}`,
+  borderRadius: "12px",
+  padding: "8px",
+  width: "38px",
+  height: "38px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  boxShadow: THEME.shadow,
+};
+
+/* =========================
+ * Componente
+ * ========================= */
+export default function Builder() {
+  const reactFlowInstance = useReactFlow();
+
+  /* ---------- estado base ---------- */
+  const [nodes, setNodes] = useState(() => {
+    const startId = genId();
+    const fallbackId = genId();
+    return [
+      {
+        id: startId,
+        type: "quadrado",
+        position: { x: 100, y: 100 },
+        data: {
+          label: "Início",
+          type: "start",
+          nodeType: "start",
+          color: "#546E7A",
+          block: {
+            type: "text",
+            content: "Olá!",
+            awaitResponse: true,
+            awaitTimeInSeconds: 0,
+            sendDelayInSeconds: 1,
+            actions: [],
+            defaultNext: "",
+          },
+        },
+        draggable: false,
+        connectable: true,
+        selectable: true,
+        style: { ...nodeStyle, borderColor: "#546E7A" },
+      },
+      {
+        id: fallbackId,
+        type: "quadrado",
+        position: { x: 300, y: 100 },
+        data: {
+          label: "onError",
+          type: "error",
+          color: "#FF4500",
+          block: {
+            type: "text",
+            content:
+              "⚠️ Algo deu errado. Tente novamente mais tarde.",
+            awaitResponse: false,
+            awaitTimeInSeconds: 0,
+            sendDelayInSeconds: 1,
+            actions: [],
+          },
+        },
+        style: { ...nodeStyle, borderColor: "#FF4500" },
+      },
+    ];
+  });
+
+  const [edges, setEdges] = useState([]);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState(null);
+  const [highlightedNodeId, setHighlightedNodeId] = useState(null);
+
+  const [itor, setitor] = useState(false);
+  const [scriptCode, setScriptCode] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [flowHistory, setFlowHistory] = useState([]);
+  const [showNodeMenu, setShowNodeMenu] = useState(false);
+  const nodeMenuRef = useRef(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  /* ---------- Undo / Redo ---------- */
+  const [history, setHistory] = useState({ past: [], future: [] });
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
+
+  const snapshot = useCallback(
+    () => ({
+      nodes: deepClone(nodesRef.current),
+      edges: deepClone(edgesRef.current),
+    }),
+    []
+  );
+  const pushHistory = useCallback((prev) => {
+    setHistory((h) => ({
+      past: [...h.past, deepClone(prev)],
+      future: [],
+    }));
+  }, []);
+  const undo = useCallback(() => {
+    setHistory((h) => {
+      if (h.past.length === 0) return h;
+      const prev = h.past[h.past.length - 1];
+      const current = snapshot();
+      setNodes(prev.nodes);
+      setEdges(prev.edges);
+      setSelectedEdgeId(null);
+      setSelectedNode(null);
+      return { past: h.past.slice(0, -1), future: [...h.future, current] };
+    });
+  }, [snapshot]);
+  const redo = useCallback(() => {
+    setHistory((h) => {
+      if (h.future.length === 0) return h;
+      const next = h.future[h.future.length - 1];
+      const current = snapshot();
+      setNodes(next.nodes);
+      setEdges(next.edges);
+      setSelectedEdgeId(null);
+      setSelectedNode(null);
+      return { past: [...h.past, current], future: h.future.slice(0, -1) };
+    });
+  }, [snapshot]);
+
+  /* ---------- handlers básicos ---------- */
+  const onNodesChange = useCallback(
+    (changes) => {
+      const shouldPush = !changes.some(
+        (ch) => ch.type === "position" && ch.dragging
+      );
+      setNodes((nds) => {
+        if (shouldPush) pushHistory({ nodes: nds, edges: edgesRef.current });
+        return applyNodeChanges(changes, nds);
+      });
+    },
+    [pushHistory]
+  );
+
+  // sincroniza ações quando edges são removidos pelo ReactFlow + limpa seleção
+  const onEdgesChange = useCallback(
+    (changes) => {
+      const removedIds = new Set(
+        changes.filter((c) => c.type === "remove").map((c) => c.id)
+      );
+      const removedEdges = edgesRef.current.filter((e) =>
+        removedIds.has(e.id)
+      );
+
+      pushHistory({ nodes: nodesRef.current, edges: edgesRef.current });
+
+      setEdges((eds) => applyEdgeChanges(changes, eds));
+
+      if (removedEdges.length) {
+        setNodes((nds) =>
+          nds.map((node) => {
+            const block = node.data.block || {};
+            const before = block.actions || [];
+            const after = before.filter(
+              (a) =>
+                !removedEdges.some(
+                  (re) => re.source === node.id && re.target === a.next
+                )
+            );
+            if (after.length === before.length) return node;
+            return {
+              ...node,
+              data: { ...node.data, block: { ...block, actions: after } },
+            };
+          })
+        );
+      }
+
+      // deseleção se a edge removida estava ativa
+      if (removedIds.size) {
+        setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
+      }
+    },
+    [pushHistory]
+  );
+
+  const handleOpenEditor = (node) => {
+    const freshNode = nodes.find((n) => n.id === node.id);
+    setSelectedNode(freshNode);
+    setScriptCode(
+      freshNode?.data?.block?.code ||
+        `// Escreva seu código aqui
+// Use "context" para acessar dados da conversa
+function run(context) {
+  return { resultado: "valor de saída" };
+}`
+    );
+    setitor(true);
+  };
+
+  const handleUpdateCode = useCallback(
+    (newCode) => {
+      setScriptCode(newCode);
+      if (selectedNode && selectedNode.data?.block?.type === "script") {
+        pushHistory(snapshot());
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === selectedNode.id
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    block: { ...n.data.block, code: newCode },
+                  },
+                }
+              : n
+          )
+        );
+        setSelectedNode((prev) =>
+          prev
+            ? {
+                ...prev,
+                data: {
+                  ...prev.data,
+                  block: { ...prev.data.block, code: newCode },
+                },
+              }
+            : null
+        );
+      }
+    },
+    [selectedNode, snapshot, pushHistory]
+  );
+
+  const onConnect = useCallback(
+    (params) => {
+      const { source, target } = params;
+      const sourceNode = nodesRef.current.find((n) => n.id === source);
+      const actions = sourceNode?.data?.block?.actions || [];
+      const already = actions.some((a) => a.next === target);
+
+      pushHistory(snapshot());
+      setEdges((eds) => addEdge({ ...params, id: genEdgeId() }, eds));
+
+      if (!already) {
+        setNodes((nds) =>
+          nds.map((node) =>
+            node.id !== source
+              ? node
+              : {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    block: {
+                      ...node.data.block,
+                      actions: [
+                        ...actions,
+                        {
+                          next: target,
+                          conditions: [
+                            {
+                              variable: "lastUserMessage",
+                              type: "exists",
+                              value: "",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                }
+          )
+        );
+      }
+    },
+    [snapshot, pushHistory]
+  );
+
+  const onNodeDoubleClick = (_, node) => setSelectedNode(node);
+
+  // atualização do nó vinda do painel
+  const updateSelectedNode = (updated) => {
+    if (!updated) {
+      setSelectedNode(null);
+      return;
+    }
+
+    const prev = snapshot();
+    pushHistory(prev);
+
+    // 1) atualiza nó
+    setNodes((prevNodes) =>
+      prevNodes.map((n) => (n.id === updated.id ? updated : n))
+    );
+
+    // 2) reconcilia edges
+    const desiredTargets = new Set(
+      (updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean)
+    );
+    const prevEdges = edgesRef.current;
+
+    // edges removidas por falta de action correspondente
+    const removedEdges = prevEdges.filter(
+      (e) => e.source === updated.id && !desiredTargets.has(e.target)
+    );
+    const removedEdgeIds = new Set(removedEdges.map((e) => e.id));
+
+    // mantém as demais
+    const keptEdges = prevEdges.filter(
+      (e) => !(e.source === updated.id && removedEdgeIds.has(e.id))
+    );
+
+    // cria as que faltam
+    const keptPairs = new Set(keptEdges.map((e) => `${e.source}-${e.target}`));
+    const additions = [];
+    desiredTargets.forEach((t) => {
+      const key = `${updated.id}-${t}`;
+      if (!keptPairs.has(key))
+        additions.push({ id: genEdgeId(), source: updated.id, target: t });
+    });
+
+    const nextEdges = keptEdges.concat(additions);
+    setEdges(nextEdges);
+
+    // limpa seleção caso a edge selecionada tenha sido removida
+    if (removedEdgeIds.size) {
+      setSelectedEdgeId((cur) => (cur && removedEdgeIds.has(cur) ? null : cur));
+    }
+
+    setSelectedNode(updated);
+  };
+
+  const handleConnectNodes = ({ source, target }) => {
+    const src = nodesRef.current.find((n) => n.id === source);
+    const actions = src?.data?.block?.actions || [];
+    const already = actions.some((a) => a.next === target);
+
+    pushHistory(snapshot());
+    setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
+
+    if (!already) {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id !== source
+            ? node
+            : {
+                ...node,
+                data: {
+                  ...node.data,
+                  block: {
+                    ...node.data.block,
+                    actions: [
+                      ...actions,
+                      {
+                        next: target,
+                        conditions: [
+                          {
+                            variable: "lastUserMessage",
+                            type: "exists",
+                            value: "",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              }
+        )
+      );
     }
   };
-  const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
-  const ensureArray = (v) => (Array.isArray(v) ? v : []);
 
-  const updateBlock = (changes) =>
-    onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, ...changes } } });
+  const deleteNodeAndCleanup = (deletedId) => {
+    const prev = snapshot();
+    pushHistory(prev);
 
-  const updateContent = (field, value) => {
-    const cloned = deepClone(content);
-    cloned[field] = value;
-    updateBlock({ content: cloned });
-  };
-  const updateActions = (newActions) => updateBlock({ actions: deepClone(newActions) });
+    // ids das edges que sairão
+    const toRemove = edgesRef.current.filter(
+      (e) => e.source === deletedId || e.target === deletedId
+    );
+    const removedIds = new Set(toRemove.map((e) => e.id));
 
-  /* atalhos human */
-  const addOffhoursAction = (kind) => {
-    let conds = [];
-    if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
-    else if (kind === "reason_holiday") conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
-    else if (kind === "reason_closed") conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
-    updateActions([...(actions || []), { next: "", conditions: conds }]);
-  };
+    setNodes((nds) =>
+      nds
+        .filter((n) => n.id !== deletedId)
+        .map((n) => {
+          const block = n.data.block || {};
+          const cleanedActions = (block.actions || []).filter(
+            (a) => a.next !== deletedId
+          );
+          const cleanedDefaultNext =
+            block.defaultNext === deletedId ? undefined : block.defaultNext;
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              block: {
+                ...block,
+                actions: cleanedActions,
+                defaultNext: cleanedDefaultNext,
+              },
+            },
+          };
+        })
+    );
 
-  /* bloquear hotkeys do builder quando digita */
-  const isEditableTarget = (el) => {
-    if (!el) return false;
-    if (el.isContentEditable) return true;
-    const tag = el.tagName?.toUpperCase?.();
-    if (tag === "TEXTAREA") return true;
-    if (tag === "INPUT") {
-      const t = (el.type || "").toLowerCase();
-      const tl = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
-      if (tl.includes(t)) return !el.readOnly && !el.disabled;
+    setEdges((eds) => eds.filter((e) => !removedIds.has(e.id)));
+
+    // limpa seleção se a edge removida estava ativa
+    if (removedIds.size) {
+      setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
     }
-    return false;
   };
-  const handleKeyDownCapture = useCallback((e) => {
-    if (!panelRef.current || !panelRef.current.contains(e.target)) return;
-    const k = e.key?.toLowerCase?.() || "";
-    if (isEditableTarget(e.target)) {
-      const isDelete = e.key === "Delete" || e.key === "Backspace";
-      const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && k === "z";
-      const isRedo = (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
-      if (isDelete || isUndo || isRedo) e.stopPropagation();
-    }
+
+  const handleDelete = useCallback(() => {
+    if (
+      !selectedNode ||
+      selectedNode.data.nodeType === "start" ||
+      selectedNode.data.label?.toLowerCase()?.includes("onerror")
+    )
+      return;
+    deleteNodeAndCleanup(selectedNode.id);
+    setSelectedNode(null);
+  }, [selectedNode]);
+
+  /* ---------- efeitos auxiliares ---------- */
+  useEffect(() => {
+    if (!showHistory) return;
+    (async () => {
+      try {
+        const data = await apiGet("/flows/history");
+        setFlowHistory(data);
+      } catch (err) {
+        console.error("Erro ao carregar histórico de versões:", err);
+      }
+    })();
+  }, [showHistory]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) {
+        setShowNodeMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside, true);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
-  /* ---------------- variável para “regras” ---------------- */
-  const variableOptions = isHuman
-    ? [
-        { value: "lastUserMessage", label: "Resposta do usuário" },
-        { value: "offhours", label: "Fora do expediente" },
-        { value: "offhours_reason", label: "Motivo do off-hours" },
-        { value: "custom", label: "Variável personalizada" },
-      ]
-    : [
-        { value: "lastUserMessage", label: "Resposta do usuário" },
-        { value: "custom", label: "Variável personalizada" },
-      ];
+  // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest?.("[data-stop-hotkeys='true']")
+      ) {
+        return;
+      }
 
-  const renderValueInput = (cond, onChangeValue) => {
-    if (cond.type === "exists") return null;
-    if (cond.variable === "offhours") {
-      return (
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "true"} onChange={(e) => onChangeValue(e.target.value)}>
-            <option value="true">true</option>
-            <option value="false">false</option>
-          </select>
-        </div>
+      const isZ = event.key.toLowerCase() === "z";
+      const isY = event.key.toLowerCase() === "y";
+      if ((event.ctrlKey || event.metaKey) && isZ) {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && isY) {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if (event.key === "Delete") {
+        if (selectedEdgeId) {
+          const edgeToRemove = edgesRef.current.find(
+            (e) => e.id === selectedEdgeId
+          );
+          pushHistory(snapshot());
+          setEdges((eds) => eds.filter((e) => e.id !== selectedEdgeId));
+          if (edgeToRemove) {
+            setNodes((nds) =>
+              nds.map((node) => {
+                if (node.id !== edgeToRemove.source) return node;
+                const updatedActions = (node.data.block.actions || []).filter(
+                  (a) => a.next !== edgeToRemove.target
+                );
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    block: { ...node.data.block, actions: updatedActions },
+                  },
+                };
+              })
+            );
+          }
+          setSelectedEdgeId(null);
+        } else if (
+          selectedNode &&
+          selectedNode.data.nodeType !== "start" &&
+          !selectedNode.data.label?.toLowerCase()?.includes("onerror")
+        ) {
+          deleteNodeAndCleanup(selectedNode.id);
+          setSelectedNode(null);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedEdgeId, selectedNode, undo, redo, pushHistory, snapshot]);
+
+  /* ---------- carregar fluxo ativo ---------- */
+  useEffect(() => {
+    const loadLatestFlow = async () => {
+      try {
+        const latestData = await apiGet("/flows/latest");
+        const latestFlowId = latestData[0]?.id;
+        if (!latestFlowId) return;
+
+        const flowData = await apiGet(`/flows/data/${latestFlowId}`);
+        const blocksObj = flowData.blocks || {};
+        const entries = Object.entries(blocksObj);
+
+        const isOldFormat = entries.some(([_, b]) => !b?.id);
+        const keyToId = {};
+        const normalized = {};
+
+        if (isOldFormat) {
+          entries.forEach(([k, b]) => {
+            const id = genId();
+            keyToId[k] = id;
+            normalized[id] = { ...b, id, label: b?.label || k };
+          });
+          Object.values(normalized).forEach((b) => {
+            if (b.defaultNext && keyToId[b.defaultNext])
+              b.defaultNext = keyToId[b.defaultNext];
+            if (Array.isArray(b.actions)) {
+              b.actions = b.actions.map((a) => ({
+                ...a,
+                next: keyToId[a.next] || a.next,
+              }));
+            }
+          });
+        }
+
+        const blocks = isOldFormat
+          ? normalized
+          : Object.fromEntries(entries.map(([id, b]) => [id, { ...b, id }]));
+
+        const loadedNodes = Object.values(blocks).map((b) => ({
+          id: b.id,
+          type: "quadrado",
+          position: b.position || { x: 100, y: 100 },
+          data: {
+            label: b.label || "Sem Nome",
+            type: b.type,
+            nodeType:
+              b.type === "start" ||
+              (b.label || "").toLowerCase() === "início"
+                ? "start"
+                : undefined,
+            color: b.color || "#607D8B",
+            block: b,
+          },
+          style: { ...nodeStyle, borderColor: b.color || "#607D8B" },
+        }));
+
+        const loadedEdges = [];
+        Object.values(blocks).forEach((b) => {
+          (b.actions || []).forEach((a) => {
+            if (a.next && blocks[a.next]) {
+              loadedEdges.push({
+                id: genEdgeId(),
+                source: b.id,
+                target: a.next,
+              });
+            }
+          });
+        });
+
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+        setHistory({ past: [], future: [] });
+        setSelectedEdgeId(null);
+        setSelectedNode(null);
+      } catch (err) {
+        console.error("Erro ao carregar fluxo ativo", err);
+      }
+    };
+
+    loadLatestFlow();
+  }, []);
+
+  /* ---------- Publicar / Baixar ---------- */
+  const handlePublish = async () => {
+    setIsPublishing(true);
+    try {
+      const labelToId = {};
+      nodes.forEach((n) => {
+        if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label);
+        labelToId[n.data.label] = n.id;
+      });
+      const nodeIds = new Set(nodes.map((n) => n.id));
+
+      const blocks = {};
+      nodes.forEach((node) => {
+        const block = { ...node.data.block };
+        if (block.defaultNext)
+          block.defaultNext = nodeIds.has(block.defaultNext)
+            ? block.defaultNext
+            : labelToId[block.defaultNext] || undefined;
+        if (Array.isArray(block.actions)) {
+          block.actions = block.actions.map((a) => ({
+            ...a,
+            next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
+          }));
+        }
+        blocks[node.id] = {
+          ...block,
+          id: node.id,
+          label: node.data.label,
+          type: node.data.type,
+          color: node.data.color,
+          position: node.position,
+        };
+      });
+
+      const startNode = nodes.find((n) => n.data.nodeType === "start");
+      const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
+      await apiPost("/flows/publish", { data: flowData });
+      toast.success("Fluxo publicado com sucesso!");
+    } catch (err) {
+      toast.error(
+        `Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const downloadFlow = () => {
+    const labelToId = {};
+    nodes.forEach((n) => {
+      if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label);
+      labelToId[n.data.label] = n.id;
+    });
+    const nodeIds = new Set(nodes.map((n) => n.id));
+
+    const blocks = {};
+    nodes.forEach((node) => {
+      const originalBlock = node.data.block || {};
+      const clonedBlock = { ...originalBlock };
+      if (clonedBlock.defaultNext)
+        clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext)
+          ? clonedBlock.defaultNext
+          : labelToId[clonedBlock.defaultNext] || undefined;
+      if (Array.isArray(clonedBlock.actions)) {
+        clonedBlock.actions = clonedBlock.actions.map((a) => ({
+          ...a,
+          next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
+        }));
+      }
+      blocks[node.id] = {
+        ...clonedBlock,
+        id: node.id,
+        label: node.data.label,
+        type: node.data.type,
+        position: node.position,
+        color: node.data.color,
+      };
+    });
+
+    const flowData = {
+      start:
+        nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id,
+      blocks,
+    };
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "fluxo-chatbot.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /* ---------- add node ---------- */
+  const addNodeTemplate = (template) => {
+    const onErrorNode = nodesRef.current.find(
+      (n) => n.data.label?.toLowerCase() === "onerror"
+    );
+    pushHistory(snapshot());
+    const newNode = {
+      id: genId(),
+      type: "quadrado",
+      position: {
+        x: Math.random() * 250 + 100,
+        y: Math.random() * 250 + 100,
+      },
+      data: {
+        label: template.label,
+        type: template.type,
+        color: template.color,
+        block: { ...template.block, defaultNext: onErrorNode?.id },
+      },
+      style: { ...nodeStyle, borderColor: template.color },
+    };
+    setNodes((nds) => nds.concat(newNode));
+  };
+
+  /* ---------- destaque de arestas ---------- */
+  const sourceColorById = useMemo(() => {
+    const map = new Map();
+    nodes.forEach((n) => map.set(n.id, n.style?.borderColor || n.data?.color || "#888"));
+    return map;
+  }, [nodes]);
+
+  const activeEdges = useMemo(() => {
+    if (selectedEdgeId) return new Set([selectedEdgeId]);
+    if (selectedNode) {
+      return new Set(
+        edges.filter((e) => e.source === selectedNode.id).map((e) => e.id)
       );
     }
-    if (cond.variable === "offhours_reason") {
-      return (
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "holiday"} onChange={(e) => onChangeValue(e.target.value)}>
-            <option value="holiday">holiday</option>
-            <option value="closed">closed</option>
-          </select>
-        </div>
-      );
-    }
-    return (
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>Valor</label>
-        <input
-          type="text"
-          placeholder="Valor para comparação"
-          value={cond.value ?? ""}
-          onChange={(e) => onChangeValue(e.target.value)}
-          className={styles.inputStyle}
-        />
-      </div>
-    );
+    return new Set();
+  }, [edges, selectedNode, selectedEdgeId]);
+
+  const styledNodes = nodes.map((node) => ({
+    ...node,
+    selected: selectedNode?.id === node.id,
+    data: { ...node.data, isHighlighted: node.id === highlightedNodeId },
+    style: {
+      ...node.style,
+      ...(selectedNode?.id === node.id ? selectedNodeStyle : {}),
+      opacity: highlightedNodeId && highlightedNodeId !== node.id ? 0.6 : 1,
+    },
+  }));
+
+  const styledEdges = edges.map((edge) => {
+    const isActive = activeEdges.has(edge.id);
+    const baseStroke = "#94a3b8"; // cinza neutro
+    const srcColor =
+      sourceColorById.get(edge.source) || "#64748b";
+
+    const common = {
+      markerEnd: {
+        type: "arrowclosed",
+        color: isActive ? srcColor : baseStroke,
+        width: 16,
+        height: 16,
+      },
+      style: {
+        stroke: isActive ? srcColor : baseStroke,
+        strokeWidth: isActive ? 2.75 : 1.5,
+        opacity:
+          selectedEdgeId || selectedNode
+            ? isActive
+              ? 1
+              : 0.35
+            : 0.9,
+        transition: "stroke 120ms ease, opacity 120ms ease, stroke-width 120ms",
+      },
+    };
+    return { ...edge, ...common };
+  });
+
+  /* ---------- estilos do palette (menu flutuante) ---------- */
+  const iconButtonStyle = {
+    ...baseIconBtn,
+  };
+  const iconButtonHover = {
+    background: THEME.subtle,
+    border: `1.5px solid ${THEME.borderHover}`,
+    transform: "translateY(-1px)",
   };
 
-  /* ---------------- preview estilo chat ---------------- */
-
-  const renderQuickReplies = () => {
-    if (type !== "interactive" || content?.type !== "button") return null;
-    const buttons = content?.action?.buttons || [];
-    if (!buttons.length) return null;
-    return (
-      <div className={styles.quickReplies}>
-        {buttons.map((btn, i) => (
-          <span key={i} className={styles.quickReplyChip}>
-            {btn?.reply?.title || "Botão"}
-          </span>
-        ))}
-      </div>
-    );
+  const sideMenuWrapperStyle = {
+    position: "absolute",
+    top: "120px",
+    left: 10,
+    background: "transparent",
+    borderRadius: "12px",
+    padding: "0.25rem",
+    zIndex: 20,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "10px",
   };
 
-  const renderListPreview = () => {
-    if (type !== "interactive" || content?.type !== "list") return null;
-    const rows = content?.action?.sections?.[0]?.rows || [];
-    if (!rows.length) return null;
-    return (
-      <div className={styles.listPreview}>
-        {rows.slice(0, 3).map((row, i) => (
-          <div key={i} className={styles.listRow}>
-            <span className={styles.listDot} />
-            <div className={styles.listTexts}>
-              <strong>{row?.title || "Item"}</strong>
-              {row?.description ? <small>{row.description}</small> : null}
-            </div>
-          </div>
-        ))}
-        {rows.length > 3 && <small className={styles.moreHint}>e mais {rows.length - 3}…</small>}
-      </div>
-    );
+  const dividerStyle = {
+    width: "80%",
+    height: "1px",
+    backgroundColor: THEME.border,
+    margin: "6px 0",
   };
 
-  const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
-  const closeOverlay = () => setOverlayMode("none");
-
-  useEffect(() => { /* placeholder p/ futuros efeitos */ }, [overlayMode]);
-
-  const ChatPreview = () => (
-    <div className={styles.chatPreviewCard}>
-      <div className={styles.floatingBtns}>
-        <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
-          <PencilLine size={16} />
-        </button>
-        <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
-          <MoreHorizontal size={16} />
-        </button>
-        <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
-          <SlidersHorizontal size={16} />
-        </button>
-      </div>
-
-      <div className={styles.chatArea}>
-        <div className={styles.typingDot}>•••</div>
-
-        <div className={styles.bubble}>
-          <div className={styles.bubbleText}>
-            {type === "text" && (block.content || <em className={styles.placeholder}>Sem mensagem</em>)}
-
-            {type === "interactive" && (
-              <>
-                <div>{content?.body?.text || <em className={styles.placeholder}>Sem corpo</em>}</div>
-                {renderQuickReplies()}
-                {renderListPreview()}
-              </>
-            )}
-
-            {type === "media" && (
-              <>
-                <div><strong>Mídia:</strong> {content?.mediaType || "image"}</div>
-                <div>{content?.caption || <em className={styles.placeholder}>Sem legenda</em>}</div>
-              </>
-            )}
-
-            {type === "location" && (
-              <>
-                <div><strong>{content?.name || "Local"}</strong></div>
-                <small>{content?.address || "Endereço"}</small>
-              </>
-            )}
-
-            {isHuman && (
-              <div className={styles.infoBlock}>
-                Este bloco transfere a conversa para <strong>atendimento humano</strong>.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className={styles.userInputChip}
-          onClick={() => openOverlay("await")}
-          title="Configurar aguardar resposta"
-        >
-          Entrada do usuário
-          <span className={styles.caret} />
-        </button>
-      </div>
-    </div>
-  );
-
-  /* ---------------- overlay: AWAIT (somente opções de resposta) ---------------- */
-
-  const OverlayAwait = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Entrada do usuário</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-      <div className={styles.overlayBody}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Aguardar resposta</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            <div className={styles.rowTwoCols}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Ativar</label>
-                <select
-                  value={String(!!awaitResponse)}
-                  onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
-                  className={styles.selectStyle}
-                >
-                  <option value="true">Sim</option>
-                  <option value="false">Não</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Atraso de envio (s)</label>
-                <input
-                  type="number"
-                  value={sendDelayInSeconds ?? 0}
-                  onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || "0", 10) })}
-                  className={styles.inputStyle}
-                />
-              </div>
-            </div>
-
-            <div className={styles.rowTwoCols}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tempo de inatividade (s)</label>
-                <input
-                  type="number"
-                  value={awaitTimeInSeconds ?? 0}
-                  onChange={(e) => updateBlock({ awaitTimeInSeconds: parseInt(e.target.value || "0", 10) })}
-                  className={styles.inputStyle}
-                />
-                <small className={styles.helpText}>0 para desativar</small>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
-                <input
-                  type="text"
-                  placeholder="ex.: context.inputMenuPrincipal"
-                  value={saveResponseVar || ""}
-                  onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
-                  className={styles.inputStyle}
-                />
-                <small className={styles.helpText}>Se vazio, não salva.</small>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  /* ---------------- overlay: CONTEÚDO (somente editor do conteúdo) ---------------- */
-
-  const OverlayConteudo = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Conteúdo</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-
-      <div className={styles.overlayBody}>
-        {type === "text" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
-            <div className={styles.sectionContent}>
-              <textarea
-                rows={8}
-                value={block.content || ""}
-                onChange={(e) => updateBlock({ content: e.target.value })}
-                className={styles.textareaStyle}
-              />
-            </div>
-          </div>
-        )}
-
-        {type === "interactive" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tipo</label>
-                <select
-                  value={content.type || "button"}
-                  onChange={(e) => {
-                    const newType = e.target.value;
-                    if (newType === "list") {
-                      updateBlock({
-                        content: deepClone({
-                          type: "list",
-                          body: { text: "Escolha um item da lista:" },
-                          footer: { text: "Toque para selecionar" },
-                          header: { text: "Menu de Opções", type: "text" },
-                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
-                        }),
-                      });
-                    } else {
-                      updateBlock({
-                        content: deepClone({
-                          type: "button",
-                          body: { text: "Escolha uma opção:" },
-                          footer: { text: "" },
-                          action: {
-                            buttons: [
-                              { type: "reply", reply: { id: "Opção 1", title: "Opção 1" } },
-                              { type: "reply", reply: { id: "Opção 2", title: "Opção 2" } },
-                            ],
-                          },
-                        }),
-                      });
-                    }
-                  }}
-                  className={styles.selectStyle}
-                >
-                  <option value="button">Quick Reply</option>
-                  <option value="list">Menu List</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Corpo</label>
-                <input
-                  type="text"
-                  value={content.body?.text || ""}
-                  onChange={(e) =>
-                    updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })
-                  }
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              {content.type === "button" && (
-                <>
-                  {(content.action?.buttons || []).map((btn, idx) => (
-                    <div key={idx} className={styles.rowItemStyle}>
-                      <input
-                        type="text"
-                        value={btn.reply?.title || ""}
-                        maxLength={20}
-                        placeholder="Texto do botão"
-                        onChange={(e) => {
-                          const value = clamp(e.target.value, 20);
-                          const buttons = deepClone(content.action?.buttons || []);
-                          buttons[idx] = {
-                            ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
-                            reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
-                          };
-                          const nextAction = { ...(deepClone(content.action) || {}), buttons };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        className={styles.inputStyle}
-                      />
-                      <Trash2
-                        size={18}
-                        className={styles.trashIcon}
-                        onClick={() => {
-                          const current = deepClone(content.action?.buttons || []);
-                          current.splice(idx, 1);
-                          const nextAction = { ...(deepClone(content.action) || {}), buttons: current };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        title="Remover botão"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      const current = deepClone(content.action?.buttons || []);
-                      if (current.length >= 3) return;
-                      const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
-                      const nextAction = { ...(deepClone(content.action) || {}), buttons: [...current, newBtn] };
-                      const nextContent = { ...deepClone(content), action: nextAction };
-                      updateBlock({ content: nextContent });
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar botão
-                  </button>
-                </>
-              )}
-
-              {content.type === "list" && (
-                <>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
-                    <input
-                      type="text"
-                      maxLength={20}
-                      value={content.action?.button || ""}
-                      onChange={(e) => {
-                        const nextVal = (e.target.value || "").slice(0, 20);
-                        const nextAction = {
-                          ...(deepClone(content.action) || {}),
-                          button: nextVal,
-                          sections: deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]),
-                        };
-                        const nextContent = { ...deepClone(content), action: nextAction };
-                        updateBlock({ content: nextContent });
-                      }}
-                      className={styles.inputStyle}
-                    />
-                  </div>
-
-                  {(content.action?.sections?.[0]?.rows || []).map((item, idx) => (
-                    <div key={idx} className={styles.rowItemStyle}>
-                      <input
-                        type="text"
-                        value={item.title}
-                        maxLength={24}
-                        placeholder="Título"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const sections = deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitle(value, 24) };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const nextAction = { ...(deepClone(content.action) || {}), sections };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        className={styles.inputStyle}
-                      />
-                      <input
-                        type="text"
-                        value={item.description}
-                        placeholder="Descrição"
-                        onChange={(e) => {
-                          const sections = deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const nextAction = { ...(deepClone(content.action) || {}), sections };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        className={styles.inputStyle}
-                      />
-                      <Trash2
-                        size={18}
-                        className={styles.trashIcon}
-                        onClick={() => {
-                          const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows.splice(idx, 1);
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const nextAction = { ...(deepClone(content.action) || {}), sections };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        title="Remover item"
-                      />
-                    </div>
-                  ))}
-
-                  <button
-                    onClick={() => {
-                      const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
-                      const rows = sections[0]?.rows || [];
-                      const n = rows.length + 1;
-                      const title = `Item ${n}`;
-                      const newItem = { id: makeIdFromTitle(title, 24), title, description: "" };
-                      const nextRows = [...rows, newItem];
-                      const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
-                      const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
-                      const nextContent = { ...deepClone(content), action: nextAction };
-                      updateBlock({ content: nextContent });
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar item
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {type === "media" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tipo</label>
-                <select
-                  value={content.mediaType || "image"}
-                  onChange={(e) => updateContent("mediaType", e.target.value)}
-                  className={styles.selectStyle}
-                >
-                  <option value="image">Imagem</option>
-                  <option value="document">Documento</option>
-                  <option value="audio">Áudio</option>
-                  <option value="video">Vídeo</option>
-                </select>
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>URL</label>
-                <input type="text" value={content.url || ""} onChange={(e) => updateContent("url", e.target.value)} className={styles.inputStyle}/>
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Legenda</label>
-                <input type="text" value={content.caption || ""} onChange={(e) => updateContent("caption", e.target.value)} className={styles.inputStyle}/>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {type === "location" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
-                <input type="text" value={content.name || ""} onChange={(e) => updateContent("name", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
-                <input type="text" value={content.address || ""} onChange={(e) => updateContent("address", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
-                <input type="text" value={content.latitude || ""} onChange={(e) => updateContent("latitude", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
-                <input type="text" value={content.longitude || ""} onChange={(e) => updateContent("longitude", e.target.value)} className={styles.inputStyle}/></div>
-            </div>
-          </div>
-        )}
-
-        {type === "script" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
-            <div className={styles.sectionContent}>
-              <button
-                onClick={() => {
-                  setScriptCode(selectedNode?.data?.block?.code || "");
-                  setShowScriptEditor(true);
-                }}
-                className={styles.addButton}
-              >
-                Abrir editor de código
-              </button>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Função</label>
-                <input
-                  type="text"
-                  value={fnName || ""}
-                  onChange={(e) => updateBlock({ function: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Variável de saída</label>
-                <input
-                  type="text"
-                  value={outputVar || ""}
-                  onChange={(e) => updateBlock({ outputVar: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {type === "api_call" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Método</label>
-                <select
-                  value={method || "GET"}
-                  onChange={(e) => updateBlock({ method: e.target.value })}
-                  className={styles.selectStyle}
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="DELETE">DELETE</option>
-                  <option value="PATCH">PATCH</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>URL</label>
-                <input
-                  type="text"
-                  value={url || ""}
-                  onChange={(e) => updateBlock({ url: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Headers (JSON)</label>
-                <textarea
-                  rows={3}
-                  defaultValue={pretty(headers)}
-                  onBlur={(e) => updateBlock({ headers: safeParseJson(e.target.value, headers || {}) })}
-                  className={styles.textareaStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Body (JSON)</label>
-                <textarea
-                  rows={4}
-                  defaultValue={pretty(body)}
-                  onBlur={(e) => updateBlock({ body: safeParseJson(e.target.value, body || {}) })}
-                  className={styles.textareaStyle}
-                />
-              </div>
-
-              <div className={styles.rowTwoCols}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Timeout (ms)</label>
-                  <input
-                    type="number"
-                    value={timeout ?? 10000}
-                    onChange={(e) => updateBlock({ timeout: parseInt(e.target.value || "0", 10) })}
-                    className={styles.inputStyle}
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de saída</label>
-                  <input
-                    type="text"
-                    value={outputVar || "apiResponse"}
-                    onChange={(e) => updateBlock({ outputVar: e.target.value })}
-                    className={styles.inputStyle}
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de status</label>
-                  <input
-                    type="text"
-                    value={statusVar || "apiStatus"}
-                    onChange={(e) => updateBlock({ statusVar: e.target.value })}
-                    className={styles.inputStyle}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {type === "http" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Formato antigo</h4></div>
-            <div className={styles.sectionContent}>
-              <button
-                className={styles.addButton}
-                onClick={() => {
-                  const c = deepClone(content || {});
-                  updateBlock({
-                    type: "api_call",
-                    method: c.method || "GET",
-                    url: c.url || "",
-                    headers: safeParseJson(c.headers, {}),
-                    body: safeParseJson(c.body, {}),
-                    timeout: c.timeout ?? 10000,
-                    outputVar: c.outputVar || "apiResponse",
-                    statusVar: c.statusVar || "apiStatus",
-                    content: undefined,
-                  });
-                }}
-              >
-                Migrar para api_call
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  /* ---------------- overlay: REGRAS (somente regras de saída) ---------------- */
-
-  const OverlayRegras = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Regras de saída</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-      <div className={styles.overlayBody}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Regras</h4>
-            <span className={styles.sectionCount}>({actions.length}/25)</span>
-          </div>
-          <div className={styles.sectionContent}>
-            {isHuman && (
-              <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
-              </div>
-            )}
-
-            {actions.map((action, actionIdx) => (
-              <React.Fragment key={actionIdx}>
-                {actionIdx > 0 && (
-                  <div className={styles.dividerContainer}>
-                    <div className={styles.dividerLine}></div>
-                    <span className={styles.dividerText}>OU</span>
-                  </div>
-                )}
-
-                <div className={styles.actionBox}>
-                  <div className={styles.actionHeader}>
-                    <strong className={styles.actionTitle}>Regra {actionIdx + 1}</strong>
-                    <Trash2
-                      size={16}
-                      className={styles.trashIcon}
-                      onClick={() => {
-                        const updated = deepClone(actions);
-                        updated.splice(actionIdx, 1);
-                        updateActions(updated);
-                      }}
-                    />
-                  </div>
-
-                  {(action.conditions || []).map((cond, condIdx) => (
-                    <div key={condIdx} className={styles.conditionRow}>
-                      {/* Variável */}
-                      <div className={styles.inputGroup}>
-                        <label className={styles.inputLabel}>Variável</label>
-                        <select
-                          value={
-                            variableOptions.some((v) => v.value === cond.variable)
-                              ? cond.variable
-                              : cond.variable
-                              ? "custom"
-                              : "lastUserMessage"
-                          }
-                          onChange={(e) => {
-                            const nextVar = e.target.value;
-                            const updated = deepClone(actions);
-                            if (nextVar === "custom") {
-                              updated[actionIdx].conditions[condIdx].variable = "";
-                            } else {
-                              updated[actionIdx].conditions[condIdx].variable = nextVar;
-                              if (!updated[actionIdx].conditions[condIdx].type) {
-                                updated[actionIdx].conditions[condIdx].type = "equals";
-                              }
-                              if (nextVar === "offhours") {
-                                updated[actionIdx].conditions[condIdx].value = "true";
-                              } else if (nextVar === "offhours_reason") {
-                                updated[actionIdx].conditions[condIdx].value = "closed";
-                              }
-                            }
-                            updateActions(updated);
-                          }}
-                          className={styles.selectStyle}
-                        >
-                          {variableOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Nome var custom */}
-                      {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
-                        <div className={styles.inputGroup}>
-                          <label className={styles.inputLabel}>Nome da variável</label>
-                          <input
-                            type="text"
-                            placeholder="ex.: meuCampo"
-                            value={cond.variable || ""}
-                            onChange={(e) => {
-                              const updated = deepClone(actions);
-                              updated[actionIdx].conditions[condIdx].variable = e.target.value;
-                              updateActions(updated);
-                            }}
-                            className={styles.inputStyle}
-                          />
-                        </div>
-                      )}
-
-                      {/* Tipo */}
-                      <div className={styles.inputGroup}>
-                        <label className={styles.inputLabel}>Tipo de condição</label>
-                        <select
-                          value={cond.type || ""}
-                          onChange={(e) => {
-                            const updated = deepClone(actions);
-                            updated[actionIdx].conditions[condIdx].type = e.target.value;
-                            if (e.target.value === "exists") {
-                              updated[actionIdx].conditions[condIdx].value = "";
-                            }
-                            updateActions(updated);
-                          }}
-                          className={styles.selectStyle}
-                        >
-                          <option value="">Selecione...</option>
-                          <option value="exists">Existe</option>
-                          <option value="equals">Igual a</option>
-                          <option value="not_equals">Diferente de</option>
-                          <option value="contains">Contém</option>
-                          <option value="not_contains">Não contém</option>
-                          <option value="starts_with">Começa com</option>
-                          <option value="ends_with">Termina com</option>
-                        </select>
-                      </div>
-
-                      {/* Valor */}
-                      {renderValueInput(cond, (v) => {
-                        const updated = deepClone(actions);
-                        updated[actionIdx].conditions[condIdx].value = v;
-                        updateActions(updated);
-                      })}
-
-                      <div className={styles.buttonGroup}>
-                        <button
-                          className={styles.deleteButtonSmall}
-                          onClick={() => {
-                            const updated = deepClone(actions);
-                            updated[actionIdx].conditions.splice(condIdx, 1);
-                            updateActions(updated);
-                          }}
-                        >
-                          <Trash2 size={14} /> Remover condição
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Próximo bloco */}
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Ir para</label>
-                    <select
-                      value={action.next || ""}
-                      onChange={(e) => {
-                        const targetId = e.target.value;
-                        const updated = deepClone(actions);
-                        updated[actionIdx].next = targetId;
-                        updateActions(updated);
-                        if (onConnectNodes && targetId) {
-                          onConnectNodes({ source: selectedNode.id, target: targetId });
-                        }
-                      }}
-                      className={styles.selectStyle}
-                    >
-                      <option value="">Selecione um bloco...</option>
-                      {allNodes
-                        .filter((n) => n.id !== selectedNode.id)
-                        .map((node) => (
-                          <option key={node.id} value={node.id}>
-                            {node.data.label || node.id}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
-              </React.Fragment>
-            ))}
-
-            <div className={styles.buttonGroup}>
-              <button
-                onClick={() => {
-                  const newAction = {
-                    next: "",
-                    conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }],
-                  };
-                  updateActions([...(actions || []), newAction]);
-                }}
-                className={styles.addButton}
-              >
-                <Plus size={16} /> Adicionar regra
-              </button>
-            </div>
-
-            {/* Saída padrão */}
-            <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
-              <div className={styles.sectionHeaderStatic}>
-                <h4 className={styles.sectionTitle}>Saída padrão</h4>
-              </div>
-              <div className={styles.sectionContent}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Próximo bloco</label>
-                  <select
-                    value={defaultNext || ""}
-                    onChange={(e) => updateBlock({ defaultNext: e.target.value })}
-                    className={styles.selectStyle}
-                  >
-                    <option value="">Selecione um bloco...</option>
-                    {allNodes
-                      .filter((n) => n.id !== selectedNode.id)
-                      .map((node) => (
-                        <option key={node.id} value={node.id}>
-                          {node.data.label || node.id}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div> 
-    </>
-  );
-
-  /* ---------------- overlay: AÇÕES ESPECIAIS (onEnter / onExit) ---------------- */
-
-  const OverlayEspeciais = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Ações especiais</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-      <div className={styles.overlayBody}>
-        {/* ENTRADA */}
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Ao entrar no bloco</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            {(onEnter || []).map((a, i) => (
-              <div key={`en-${i}`} className={styles.rowItemStyle}>
-                <select
-                  className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: protocolo)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: 12345)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onEnter: (onEnter || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onEnter: [...(onEnter || []), { scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na entrada
-            </button>
-          </div>
-        </div>
-
-        {/* SAÍDA */}
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Ao sair do bloco</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            {(onExit || []).map((a, i) => (
-              <div key={`ex-${i}`} className={styles.rowItemStyle}>
-                <select
-                  className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: etapaAtual)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: finalizado)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onExit: (onExit || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onExit: [...(onExit || []), { scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na saída
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  /* ---------------- render ---------------- */
+  const edgeOptions = {
+    type: "smoothstep",
+    animated: false,
+    style: { stroke: "#94a3b8", strokeWidth: 2 },
+    markerEnd: { type: "arrowclosed", color: "#94a3b8", width: 12, height: 12 },
+  };
 
   return (
-    <aside
-      ref={panelRef}
-      className={styles.asidePanel}
-      data-stop-hotkeys="true"
-      onKeyDownCapture={handleKeyDownCapture}
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        position: "relative",
+        backgroundColor: THEME.bg,
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
-      <div className={styles.panelHeader}>
-        <h3 className={styles.panelTitle}>
-          {selectedNode.data.type === "human" ? "atendimento humano" : (selectedNode.data.label || "Novo Bloco")}
-        </h3>
-        <button onClick={onClose} className={styles.closeButton} title="Fechar">
-          <X size={20} />
-        </button>
-      </div>
-
-      <div className={styles.tabContent}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Nome do Bloco</label>
-          {selectedNode.data.nodeType === "start" ? (
-            <div className={styles.startNodeInfo}>
-              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
-            </div>
-          ) : selectedNode.data.type === "human" ? (
-            <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
-          ) : (
-            <input
-              type="text"
-              value={selectedNode.data.label}
-              onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
-              className={styles.inputStyle}
-              placeholder="Nomeie este bloco"
+      {/* Conteúdo principal */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <div style={{ position: "relative", flex: 1 }}>
+          {itor && (
+            <ScriptEditor
+              code={scriptCode}
+              onChange={handleUpdateCode}
+              onClose={() => setitor(false)}
             />
           )}
+
+          <ReactFlow
+            nodes={styledNodes}
+            edges={styledEdges}
+            nodeTypes={nodeTypes}
+            defaultEdgeOptions={edgeOptions}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeDoubleClick={onNodeDoubleClick}
+            onNodeClick={(event, node) => {
+              event.stopPropagation();
+              setSelectedNode(node);
+              setSelectedEdgeId(null);
+              setHighlightedNodeId(node.id);
+            }}
+            onEdgeClick={(event, edge) => {
+              event.stopPropagation();
+              setSelectedEdgeId(edge.id);
+              setSelectedNode(null);
+              setHighlightedNodeId(null);
+            }}
+            onPaneClick={(event) => {
+              if (
+                !event.target.closest(".react-flow__node") &&
+                !event.target.closest(".react-flow__edge")
+              ) {
+                setSelectedNode(null);
+                setSelectedEdgeId(null);
+                setHighlightedNodeId(null);
+              }
+            }}
+            fitViewOptions={{ padding: 0.5 }}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background color="#cbd5e1" gap={32} variant="dots" />
+            <Controls
+              style={{
+                backgroundColor: THEME.panelBg,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: "10px",
+                boxShadow: THEME.shadow,
+                overflow: "hidden",
+              }}
+              showInteractive={false}
+            />
+
+            <VersionHistoryModal
+              visible={showHistory}
+              onClose={() => setShowHistory(false)}
+              versions={flowHistory}
+              onRestore={async (id) => {
+                await apiPost("/flows/activate", { id });
+                window.location.reload();
+              }}
+            />
+          </ReactFlow>
+
+          {/* Paleta / Menu flutuante (tema claro neutro) */}
+          <div ref={nodeMenuRef} style={sideMenuWrapperStyle}>
+            {/* Botão principal (Adicionar Blocos) */}
+            <button
+              onClick={() => setShowNodeMenu((p) => !p)}
+              title="Adicionar Blocos"
+              style={{
+                ...iconButtonStyle,
+                background: showNodeMenu ? THEME.subtle : THEME.panelBg,
+                border:
+                  showNodeMenu
+                    ? `1.5px solid ${THEME.borderHover}`
+                    : `1.5px solid ${THEME.border}`,
+              }}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
+              ➕
+            </button>
+
+            {showNodeMenu && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: "60px",
+                  top: "0px",
+                  backgroundColor: THEME.panelBg,
+                  borderRadius: "12px",
+                  padding: "0.5rem",
+                  boxShadow: THEME.shadow,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.5rem",
+                  zIndex: 30,
+                  border: `1px solid ${THEME.border}`,
+                  minWidth: 52,
+                }}
+              >
+                {nodeTemplates.map((template) => (
+                  <button
+                    key={template.type + template.label}
+                    onClick={() => {
+                      addNodeTemplate(template);
+                      setShowNodeMenu(false);
+                    }}
+                    style={{
+                      ...iconButtonStyle,
+                      width: "36px",
+                      height: "36px",
+                      padding: "6px",
+                      background: "#fff",
+                      border: `1.5px solid ${template.color}`,
+                      color: template.color,
+                      boxShadow: `0 0 0 2px ${template.color}11, ${THEME.shadow}`,
+                    }}
+                    title={template.label}
+                    onMouseEnter={(e) =>
+                      Object.assign(e.currentTarget.style, {
+                        background: THEME.subtle,
+                        transform: "translateY(-1px)",
+                      })
+                    }
+                    onMouseLeave={(e) =>
+                      Object.assign(e.currentTarget.style, {
+                        background: "#fff",
+                        transform: "translateY(0)",
+                      })
+                    }
+                  >
+                    {iconMap[template.iconName] || <Zap size={16} />}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div style={dividerStyle} />
+
+            {/* Undo / Redo */}
+            <button
+              onClick={undo}
+              title="Desfazer (Ctrl/Cmd+Z)"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
+              <Undo2 size={18} />
+            </button>
+            <button
+              onClick={redo}
+              title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
+              <Redo2 size={18} />
+            </button>
+
+            <div style={dividerStyle} />
+
+            {/* Publicar / Baixar / Histórico */}
+            <button
+              onClick={handlePublish}
+              title="Publicar"
+              style={{
+                ...iconButtonStyle,
+                opacity: isPublishing ? 0.6 : 1,
+                pointerEvents: isPublishing ? "none" : "auto",
+              }}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
+              {isPublishing ? "⏳" : <Rocket size={18} />}
+            </button>
+            <button
+              onClick={downloadFlow}
+              title="Baixar JSON"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
+              <Download size={18} />
+            </button>
+            <button
+              onClick={() => setShowHistory(true)}
+              title="Histórico de Versões"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
+              🕘
+            </button>
+          </div>
         </div>
 
-        {/* Prévia e acionadores */}
-        <ChatPreview />
+        {/* Painel lateral */}
+        {selectedNode && (
+          <NodeConfigPanel
+            selectedNode={selectedNode}
+            onChange={updateSelectedNode}
+            onClose={() => setSelectedNode(null)}
+            allNodes={nodes}
+            onConnectNodes={({ source, target }) => {
+              const src = nodesRef.current.find((n) => n.id === source);
+              const actions = src?.data?.block?.actions || [];
+              const already = actions.some((a) => a.next === target);
+              pushHistory(snapshot());
+              setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
+              if (!already) {
+                setNodes((nds) =>
+                  nds.map((node) =>
+                    node.id !== source
+                      ? node
+                      : {
+                          ...node,
+                          data: {
+                            ...node.data,
+                            block: {
+                              ...node.data.block,
+                              actions: [
+                                ...actions,
+                                {
+                                  next: target,
+                                  conditions: [
+                                    {
+                                      variable: "lastUserMessage",
+                                      type: "exists",
+                                      value: "",
+                                    },
+                                  ],
+                                },
+                              ],
+                            },
+                          },
+                        }
+                  )
+                );
+              }
+            }}
+            setShowScriptEditor={setitor}
+            setScriptCode={setScriptCode}
+          />
+        )}
       </div>
-
-      {/* -------- Overlay interno ao componente -------- */}
-      <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
-        {overlayMode === "await" && <OverlayAwait />}
-        {overlayMode === "conteudo" && <OverlayConteudo />}
-        {overlayMode === "regras" && <OverlayRegras />}
-        {overlayMode === "especiais" && <OverlayEspeciais />}
-      </div>
-    </aside>
+    </div>
   );
 }
