@@ -114,7 +114,7 @@ export default function NodeConfigPanel({
     }
   }, []);
 
-  /* ---------------- variável para “regras” ---------------- */
+  /* ---------------- variável para “regras” e especiais ---------------- */
   const variableOptions = isHuman
     ? [
         { value: "lastUserMessage", label: "Resposta do usuário" },
@@ -998,6 +998,132 @@ export default function NodeConfigPanel({
 
   /* ---------------- overlay: AÇÕES ESPECIAIS (onEnter / onExit) ---------------- */
 
+  const SpecialConditionsEditor = ({ list, listName }) => (
+    <>
+      <div className={styles.conditionHeaderMini}>Executar somente se (opcional)</div>
+      {(list || []).map((c, ci) => (
+        <div key={ci} className={styles.specialCondRow}>
+          <select
+            className={styles.selectStyle}
+            value={
+              ["lastUserMessage","offhours","offhours_reason"].includes(c.variable)
+                ? c.variable
+                : c.variable ? "custom" : "lastUserMessage"
+            }
+            onChange={(e) => {
+              const nv = e.target.value === "custom" ? "" : e.target.value;
+              const nextArr = ensureArray(list).slice();
+              nextArr[ci] = { ...nextArr[ci], variable: nv };
+              if (nv === "offhours" && !nextArr[ci].type) nextArr[ci].type = "equals";
+              if (nv === "offhours_reason" && !nextArr[ci].type) nextArr[ci].type = "equals";
+              if (listName === "onEnter") {
+                const next = ensureArray(onEnter).slice();
+                next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                updateBlock({ onEnter: next });
+              } else {
+                const next = ensureArray(onExit).slice();
+                next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                updateBlock({ onExit: next });
+              }
+            }}
+          >
+            <option value="lastUserMessage">lastUserMessage</option>
+            <option value="offhours">offhours</option>
+            <option value="offhours_reason">offhours_reason</option>
+            <option value="custom">Variável personalizada…</option>
+          </select>
+
+          {(!["lastUserMessage","offhours","offhours_reason"].includes(c.variable) || c.variable === "") && (
+            <input
+              className={styles.inputStyle}
+              placeholder="ex.: context.minhaVar"
+              value={c.variable || ""}
+              onChange={(e) => {
+                const nextArr = ensureArray(list).slice();
+                nextArr[ci] = { ...nextArr[ci], variable: e.target.value };
+                if (listName === "onEnter") {
+                  const next = ensureArray(onEnter).slice();
+                  next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                  updateBlock({ onEnter: next });
+                } else {
+                  const next = ensureArray(onExit).slice();
+                  next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                  updateBlock({ onExit: next });
+                }
+              }}
+            />
+          )}
+
+          <select
+            className={styles.selectStyle}
+            value={c.type || "exists"}
+            onChange={(e) => {
+              const nextArr = ensureArray(list).slice();
+              nextArr[ci] = { ...nextArr[ci], type: e.target.value };
+              if (e.target.value === "exists") nextArr[ci].value = "";
+              if (listName === "onEnter") {
+                const next = ensureArray(onEnter).slice();
+                next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                updateBlock({ onEnter: next });
+              } else {
+                const next = ensureArray(onExit).slice();
+                next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                updateBlock({ onExit: next });
+              }
+            }}
+          >
+            <option value="exists">existe</option>
+            <option value="equals">igual a</option>
+            <option value="not_equals">diferente de</option>
+            <option value="contains">contém</option>
+            <option value="not_contains">não contém</option>
+            <option value="starts_with">começa com</option>
+            <option value="ends_with">termina com</option>
+          </select>
+
+          {c.type !== "exists" && (
+            <input
+              className={styles.inputStyle}
+              placeholder="valor"
+              value={c.value || ""}
+              onChange={(e) => {
+                const nextArr = ensureArray(list).slice();
+                nextArr[ci] = { ...nextArr[ci], value: e.target.value };
+                if (listName === "onEnter") {
+                  const next = ensureArray(onEnter).slice();
+                  next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                  updateBlock({ onEnter: next });
+                } else {
+                  const next = ensureArray(onExit).slice();
+                  next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                  updateBlock({ onExit: next });
+                }
+              }}
+            />
+          )}
+
+          <button
+            className={styles.deleteButtonSmall}
+            onClick={() => {
+              const nextArr = ensureArray(list).filter((_, idx) => idx !== ci);
+              if (listName === "onEnter") {
+                const next = ensureArray(onEnter).slice();
+                next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                updateBlock({ onEnter: next });
+              } else {
+                const next = ensureArray(onExit).slice();
+                next.forEach((a, i) => { if (a.when === list) next[i] = { ...a, when: nextArr }; });
+                updateBlock({ onExit: next });
+              }
+            }}
+          >
+            <Trash2 size={14}/> remover
+          </button>
+        </div>
+      ))}
+    </>
+  );
+
   const OverlayEspeciais = () => (
     <>
       <div className={styles.overlayHeader}>
@@ -1015,51 +1141,70 @@ export default function NodeConfigPanel({
           </div>
           <div className={styles.sectionContent}>
             {(onEnter || []).map((a, i) => (
-              <div key={`en-${i}`} className={styles.rowItemStyle}>
-                <select
-                  className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: protocolo)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: 12345)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onEnter: (onEnter || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
+              <div key={`en-${i}`} className={styles.specialCard}>
+                <div className={styles.specialInline}>
+                  <select
+                    className={styles.selectStyle}
+                    value={a.scope || "context"}
+                    onChange={(e) => {
+                      const next = ensureArray(onEnter).slice();
+                      next[i] = { ...next[i], scope: e.target.value };
+                      updateBlock({ onEnter: next });
+                    }}
+                  >
+                    <option value="context">context</option>
+                    <option value="contact">contact</option>
+                    <option value="contact.extra">contact.extra</option>
+                  </select>
+                  <input
+                    className={styles.inputStyle}
+                    placeholder="chave (ex.: protocolo)"
+                    value={a.key || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(onEnter).slice();
+                      next[i] = { ...next[i], key: e.target.value };
+                      updateBlock({ onEnter: next });
+                    }}
+                  />
+                  <input
+                    className={styles.inputStyle}
+                    placeholder="valor (ex.: 12345)"
+                    value={a.value || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(onEnter).slice();
+                      next[i] = { ...next[i], value: e.target.value };
+                      updateBlock({ onEnter: next });
+                    }}
+                  />
+                  <button
+                    className={styles.deleteButtonSmall}
+                    onClick={() => updateBlock({ onEnter: (onEnter || []).filter((_, idx) => idx !== i) })}
+                  >
+                    Remover
+                  </button>
+                </div>
+
+                <SpecialConditionsEditor list={a.when || []} listName="onEnter" />
+
+                <div className={styles.buttonGroup}>
+                  <button
+                    className={styles.addButtonSmall}
+                    onClick={() => {
+                      const next = ensureArray(onEnter).slice();
+                      const w = [...(next[i].when || [])];
+                      w.push({ variable: "lastUserMessage", type: "exists", value: "" });
+                      next[i] = { ...next[i], when: w };
+                      updateBlock({ onEnter: next });
+                    }}
+                  >
+                    + adicionar condição
+                  </button>
+                </div>
               </div>
             ))}
             <button
               className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onEnter: [...(onEnter || []), { scope: "context", key: "", value: "" }] })}
+              onClick={() => updateBlock({ onEnter: [...(onEnter || []), { scope: "context", key: "", value: "", when: [] }] })}
             >
               + adicionar na entrada
             </button>
@@ -1071,53 +1216,72 @@ export default function NodeConfigPanel({
           <div className={styles.sectionHeaderStatic}>
             <h4 className={styles.sectionTitle}>Ao sair do bloco</h4>
           </div>
-          <div className={styles.sectionContent}>
+        <div className={styles.sectionContent}>
             {(onExit || []).map((a, i) => (
-              <div key={`ex-${i}`} className={styles.rowItemStyle}>
-                <select
-                  className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: etapaAtual)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: finalizado)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onExit: (onExit || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
+              <div key={`ex-${i}`} className={styles.specialCard}>
+                <div className={styles.specialInline}>
+                  <select
+                    className={styles.selectStyle}
+                    value={a.scope || "context"}
+                    onChange={(e) => {
+                      const next = ensureArray(onExit).slice();
+                      next[i] = { ...next[i], scope: e.target.value };
+                      updateBlock({ onExit: next });
+                    }}
+                  >
+                    <option value="context">context</option>
+                    <option value="contact">contact</option>
+                    <option value="contact.extra">contact.extra</option>
+                  </select>
+                  <input
+                    className={styles.inputStyle}
+                    placeholder="chave (ex.: etapaAtual)"
+                    value={a.key || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(onExit).slice();
+                      next[i] = { ...next[i], key: e.target.value };
+                      updateBlock({ onExit: next });
+                    }}
+                  />
+                  <input
+                    className={styles.inputStyle}
+                    placeholder="valor (ex.: finalizado)"
+                    value={a.value || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(onExit).slice();
+                      next[i] = { ...next[i], value: e.target.value };
+                      updateBlock({ onExit: next });
+                    }}
+                  />
+                  <button
+                    className={styles.deleteButtonSmall}
+                    onClick={() => updateBlock({ onExit: (onExit || []).filter((_, idx) => idx !== i) })}
+                  >
+                    Remover
+                  </button>
+                </div>
+
+                <SpecialConditionsEditor list={a.when || []} listName="onExit" />
+
+                <div className={styles.buttonGroup}>
+                  <button
+                    className={styles.addButtonSmall}
+                    onClick={() => {
+                      const next = ensureArray(onExit).slice();
+                      const w = [...(next[i].when || [])];
+                      w.push({ variable: "lastUserMessage", type: "exists", value: "" });
+                      next[i] = { ...next[i], when: w };
+                      updateBlock({ onExit: next });
+                    }}
+                  >
+                    + adicionar condição
+                  </button>
+                </div>
               </div>
             ))}
             <button
               className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onExit: [...(onExit || []), { scope: "context", key: "", value: "" }] })}
+              onClick={() => updateBlock({ onExit: [...(onExit || []), { scope: "context", key: "", value: "", when: [] }] })}
             >
               + adicionar na saída
             </button>
