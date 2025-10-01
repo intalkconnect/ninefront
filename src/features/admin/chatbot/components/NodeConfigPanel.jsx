@@ -6,20 +6,10 @@ import {
   Plus,
   X,
   MoreHorizontal,
-  PencilLine,
-  Info
+  PencilLine
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/**
- * Painel lateral de configuração de blocos
- * - Tema claro, neutro (sem azul)
- * - Preview estilo chat (bolhas)
- * - Card recolhível "Aguardar resposta" que concentra TODAS configs do await
- * - Seção "Condições de Saída"
- * - Seção "Ações especiais (variáveis) onEnter/onExit"
- * - Seção "Saída Padrão"
- */
 export default function NodeConfigPanel({
   selectedNode,
   onChange,
@@ -36,12 +26,10 @@ export default function NodeConfigPanel({
     special: true,
   });
 
-  // preview / edição em linha do conteúdo
-  const [editingBubble, setEditingBubble] = useState(false);
-  const [awaitOpen, setAwaitOpen] = useState(false); // card "Aguardar resposta"
+  const [awaitOpen, setAwaitOpen] = useState(false); // abre tudo do await
+  const [editingContent, setEditingContent] = useState(false); // lápis
 
   const panelRef = useRef(null);
-
   if (!selectedNode || !selectedNode.data) return null;
 
   const block = selectedNode.data.block || {};
@@ -66,16 +54,13 @@ export default function NodeConfigPanel({
   const isHuman = type === "human";
 
   /* ---------------- helpers ---------------- */
-
   const deepClone = (obj) => {
     if (typeof structuredClone === "function") return structuredClone(obj);
     return JSON.parse(JSON.stringify(obj ?? {}));
   };
-
   const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
   const makeIdFromTitle = (title, max = 24) =>
     clamp((title || "").toString().trim(), max);
-
   const safeParseJson = (txt, fallback) => {
     try {
       if (typeof txt === "string" && txt.trim() !== "") return JSON.parse(txt);
@@ -84,63 +69,38 @@ export default function NodeConfigPanel({
       return fallback;
     }
   };
-
   const pretty = (obj) => {
-    try {
-      return JSON.stringify(obj ?? {}, null, 2);
-    } catch {
-      return "{}";
-    }
+    try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; }
   };
-
   const ensureArray = (v) => (Array.isArray(v) ? v : []);
-
-  const toggleSection = (section) =>
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  const toggleSection = (k) =>
+    setExpandedSections((p) => ({ ...p, [k]: !p[k] }));
 
   const updateNode = (updatedNode) => onChange(updatedNode);
-
   const updateBlock = (changes) => {
     const updatedNode = {
       ...selectedNode,
-      data: {
-        ...selectedNode.data,
-        block: {
-          ...block,
-          ...changes,
-        },
-      },
+      data: { ...selectedNode.data, block: { ...block, ...changes } },
     };
     updateNode(updatedNode);
   };
-
   const updateContent = (field, value) => {
     const cloned = deepClone(content);
     cloned[field] = value;
     updateBlock({ content: cloned });
   };
+  const updateActions = (newActions) => updateBlock({ actions: deepClone(newActions) });
 
-  const updateActions = (newActions) => {
-    updateBlock({ actions: deepClone(newActions) });
-  };
-
-  /* ---------------- atalhos "human" ---------------- */
-
+  /* ---- atalhos human ---- */
   const addOffhoursAction = (kind) => {
     let conds = [];
-    if (kind === "offhours_true") {
-      conds = [{ variable: "offhours", type: "equals", value: "true" }];
-    } else if (kind === "reason_holiday") {
-      conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
-    } else if (kind === "reason_closed") {
-      conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
-    }
-    const newAction = { next: "", conditions: conds };
-    updateActions([...(actions || []), newAction]);
+    if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
+    else if (kind === "reason_holiday") conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
+    else if (kind === "reason_closed") conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
+    updateActions([...(actions || []), { next: "", conditions: conds }]);
   };
 
-  /* ---------------- hotkeys: não propagar para o builder ---------------- */
-
+  /* ---- evitar hotkeys do builder ---- */
   const isEditableTarget = (el) => {
     if (!el) return false;
     if (el.isContentEditable) return true;
@@ -148,23 +108,11 @@ export default function NodeConfigPanel({
     if (tag === "TEXTAREA") return true;
     if (tag === "INPUT") {
       const t = (el.type || "").toLowerCase();
-      const textLike = [
-        "text",
-        "search",
-        "url",
-        "tel",
-        "email",
-        "password",
-        "number",
-        "date",
-        "datetime-local",
-        "time",
-      ];
+      const textLike = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
       if (textLike.includes(t)) return !el.readOnly && !el.disabled;
     }
     return false;
   };
-
   const handleKeyDownCapture = useCallback((e) => {
     if (!panelRef.current || !panelRef.current.contains(e.target)) return;
     const k = e.key?.toLowerCase?.() || "";
@@ -176,7 +124,7 @@ export default function NodeConfigPanel({
     }
   }, []);
 
-  /* ---------------- UI: Preview estilo chat (claro) ---------------- */
+  /* ---------------- UI: Preview estilo chat ---------------- */
 
   const renderQuickReplies = () => {
     if (type !== "interactive" || content?.type !== "button") return null;
@@ -215,21 +163,20 @@ export default function NodeConfigPanel({
 
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
-      <div className={styles.chatToolbar}>
-        <span className={styles.toolbarBadge}>Pré-visualização</span>
-        <div className={styles.toolbarButtons}>
-          <button
-            className={styles.iconGhost}
-            title="Editar conteúdo"
-            onClick={() => setEditingBubble((v) => !v)}
-          >
-            <PencilLine size={16} />
-          </button>
-          <button className={`${styles.iconGhost}`} title="Mais">
-            <MoreHorizontal size={16} />
-          </button>
-        </div>
+      {/* botões flutuantes no topo direito */}
+      <div className={styles.floatingBtns}>
+        <button
+          className={styles.iconGhost}
+          title="Editar conteúdo"
+          onClick={() => setEditingContent((v) => !v)}
+        >
+          <PencilLine size={16} />
+        </button>
+        <button className={styles.iconGhost} title="Mais opções">
+          <MoreHorizontal size={16} />
+        </button>
       </div>
+
       <div className={styles.chatArea}>
         <div className={styles.typingDot}>•••</div>
 
@@ -263,10 +210,6 @@ export default function NodeConfigPanel({
               </>
             )}
 
-            {type === "script" && (
-              <em className={styles.placeholder}>Este bloco executa código e pode gerar conteúdo.</em>
-            )}
-
             {isHuman && (
               <div className={styles.infoBlock}>
                 Este bloco transfere a conversa para <strong>atendimento humano</strong>.
@@ -275,16 +218,21 @@ export default function NodeConfigPanel({
           </div>
         </div>
 
-        {/* “Entrada do usuário” fantasma */}
-        <div className={styles.userInputGhost}>
-          <span>Entrada do usuário</span>
-          <span className={styles.inputTail} />
-        </div>
+        {/* Chip: Entrada do usuário — abre o card do await */}
+        <button
+          type="button"
+          className={styles.userInputChip}
+          onClick={() => setAwaitOpen((v) => !v)}
+          title="Configurar aguardar resposta"
+        >
+          Entrada do usuário
+          <span className={`${styles.caret} ${awaitOpen ? styles.caretUp : ""}`} />
+        </button>
       </div>
     </div>
   );
 
-  /* ---------------- Card "Aguardar resposta" (edita tudo do await) ---------------- */
+  /* ---------------- Card "Aguardar resposta" (tudo do await) ---------------- */
 
   const renderAwaitCard = () => (
     <div className={styles.cardToggle}>
@@ -304,9 +252,7 @@ export default function NodeConfigPanel({
               <label className={styles.inputLabel}>Ativar</label>
               <select
                 value={String(!!awaitResponse)}
-                onChange={(e) =>
-                  updateBlock({ awaitResponse: e.target.value === "true" })
-                }
+                onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
                 className={styles.selectStyle}
               >
                 <option value="true">Sim</option>
@@ -319,9 +265,7 @@ export default function NodeConfigPanel({
               <input
                 type="number"
                 value={sendDelayInSeconds ?? 0}
-                onChange={(e) =>
-                  updateBlock({ sendDelayInSeconds: parseInt(e.target.value || "0", 10) })
-                }
+                onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || "0", 10) })}
                 className={styles.inputStyle}
               />
             </div>
@@ -333,9 +277,7 @@ export default function NodeConfigPanel({
               <input
                 type="number"
                 value={awaitTimeInSeconds ?? 0}
-                onChange={(e) =>
-                  updateBlock({ awaitTimeInSeconds: parseInt(e.target.value || "0", 10) })
-                }
+                onChange={(e) => updateBlock({ awaitTimeInSeconds: parseInt(e.target.value || "0", 10) })}
                 className={styles.inputStyle}
               />
               <small className={styles.helpText}>0 para desativar</small>
@@ -351,7 +293,7 @@ export default function NodeConfigPanel({
                 className={styles.inputStyle}
               />
               <small className={styles.helpText}>
-                Se vazio, não salva. (No executor isso preenche <code>saveResponseVar</code> com a entrada do usuário).
+                Se vazio, não salva.
               </small>
             </div>
           </div>
@@ -367,7 +309,7 @@ export default function NodeConfigPanel({
                 className={styles.inputStyle}
               />
               <small className={styles.helpText}>
-                Armazena o payload/ID/URL do item selecionado (ex.: título e id do botão/lista).
+                Guarda o payload/ID/URL do item escolhido.
               </small>
             </div>
           )}
@@ -376,7 +318,7 @@ export default function NodeConfigPanel({
     </div>
   );
 
-  /* ---------------- Abas ---------------- */
+  /* ---------------- Variáveis para condições ---------------- */
 
   const variableOptions = isHuman
     ? [
@@ -436,6 +378,8 @@ export default function NodeConfigPanel({
     );
   };
 
+  /* ---------------- Abas ---------------- */
+
   const renderActionsTab = () => (
     <div className={styles.tabContent}>
       <div className={styles.sectionContainer}>
@@ -451,22 +395,13 @@ export default function NodeConfigPanel({
           <div className={styles.sectionContent}>
             {isHuman && (
               <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
-                <button
-                  className={styles.addButtonSmall}
-                  onClick={() => addOffhoursAction("offhours_true")}
-                >
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>
                   + Se offhours = true
                 </button>
-                <button
-                  className={styles.addButtonSmall}
-                  onClick={() => addOffhoursAction("reason_holiday")}
-                >
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>
                   + Se motivo = holiday
                 </button>
-                <button
-                  className={styles.addButtonSmall}
-                  onClick={() => addOffhoursAction("reason_closed")}
-                >
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>
                   + Se motivo = closed
                 </button>
               </div>
@@ -536,9 +471,8 @@ export default function NodeConfigPanel({
                         </select>
                       </div>
 
-                      {/* Nome da variável custom */}
-                      {(!variableOptions.some((v) => v.value === cond.variable) ||
-                        cond.variable === "") && (
+                      {/* Nome var custom */}
+                      {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
                         <div className={styles.inputGroup}>
                           <label className={styles.inputLabel}>Nome da variável</label>
                           <input
@@ -613,7 +547,6 @@ export default function NodeConfigPanel({
                         const updated = deepClone(actions);
                         updated[actionIdx].next = targetId;
                         updateActions(updated);
-
                         if (onConnectNodes && targetId) {
                           onConnectNodes({ source: selectedNode.id, target: targetId });
                         }
@@ -700,9 +633,7 @@ export default function NodeConfigPanel({
                 />
                 <button
                   className={styles.deleteButtonSmall}
-                  onClick={() =>
-                    updateBlock({ onEnter: (block.onEnter || []).filter((_, idx) => idx !== i) })
-                  }
+                  onClick={() => updateBlock({ onEnter: (block.onEnter || []).filter((_, idx) => idx !== i) })}
                 >
                   Remover
                 </button>
@@ -710,9 +641,7 @@ export default function NodeConfigPanel({
             ))}
             <button
               className={styles.addButtonSmall}
-              onClick={() =>
-                updateBlock({ onEnter: [...(block.onEnter || []), { scope: "context", key: "", value: "" }] })
-              }
+              onClick={() => updateBlock({ onEnter: [...(block.onEnter || []), { scope: "context", key: "", value: "" }] })}
             >
               + adicionar na entrada
             </button>
@@ -758,9 +687,7 @@ export default function NodeConfigPanel({
                 />
                 <button
                   className={styles.deleteButtonSmall}
-                  onClick={() =>
-                    updateBlock({ onExit: (block.onExit || []).filter((_, idx) => idx !== i) })
-                  }
+                  onClick={() => updateBlock({ onExit: (block.onExit || []).filter((_, idx) => idx !== i) })}
                 >
                   Remover
                 </button>
@@ -768,9 +695,7 @@ export default function NodeConfigPanel({
             ))}
             <button
               className={styles.addButtonSmall}
-              onClick={() =>
-                updateBlock({ onExit: [...(block.onExit || []), { scope: "context", key: "", value: "" }] })
-              }
+              onClick={() => updateBlock({ onExit: [...(block.onExit || []), { scope: "context", key: "", value: "" }] })}
             >
               + adicionar na saída
             </button>
@@ -811,7 +736,6 @@ export default function NodeConfigPanel({
   );
 
   const renderContentTab = () => {
-    // Bloco humano: somente o nome bloqueado e info
     if (isHuman) {
       return (
         <div className={styles.tabContent}>
@@ -819,17 +743,18 @@ export default function NodeConfigPanel({
             Este bloco envia a conversa para <strong>atendimento humano</strong>.
             Não há configurações adicionais.
           </div>
+          <ChatPreview />
+          {renderAwaitCard()}
         </div>
       );
     }
 
-    // Conteúdo (preview + editores específicos por tipo)
     return (
       <div className={styles.tabContent}>
         <ChatPreview />
 
-        {/* Editores por tipo */}
-        {type === "text" && (
+        {/* Editores por tipo (abrir/fechar com o lápis opcionalmente) */}
+        {(editingContent || type !== "text") && type === "text" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeader}>
               <h4 className={styles.sectionTitle}>Mensagem</h4>
@@ -869,9 +794,7 @@ export default function NodeConfigPanel({
                           header: { text: "Menu de Opções", type: "text" },
                           action: {
                             button: "Abrir lista",
-                            sections: [
-                              { title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }] },
-                            ],
+                            sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}],
                           },
                         }),
                       });
@@ -954,15 +877,9 @@ export default function NodeConfigPanel({
                         placeholder="Título"
                         onChange={(e) => {
                           const value = e.target.value;
-                          const sections = deepClone(
-                            content.action?.sections || [{ title: "Seção 1", rows: [] }]
-                          );
+                          const sections = deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = {
-                            ...(rows[idx] || {}),
-                            title: clamp(value, 24),
-                            id: makeIdFromTitle(value, 24),
-                          };
+                          rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitle(value, 24) };
                           sections[0] = { ...(sections[0] || {}), rows };
                           const nextAction = { ...(deepClone(content.action) || {}), sections };
                           const nextContent = { ...deepClone(content), action: nextAction };
@@ -975,9 +892,7 @@ export default function NodeConfigPanel({
                         value={item.description}
                         placeholder="Descrição"
                         onChange={(e) => {
-                          const sections = deepClone(
-                            content.action?.sections || [{ title: "Seção 1", rows: [] }]
-                          );
+                          const sections = deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
                           rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
                           sections[0] = { ...(sections[0] || {}), rows };
@@ -991,9 +906,7 @@ export default function NodeConfigPanel({
                         size={18}
                         className={styles.trashIcon}
                         onClick={() => {
-                          const sections = deepClone(
-                            content.action?.sections || [{ title: "", rows: [] }]
-                          );
+                          const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
                           rows.splice(idx, 1);
                           sections[0] = { ...(sections[0] || {}), rows };
@@ -1083,9 +996,7 @@ export default function NodeConfigPanel({
 
         {type === "media" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeader}>
-              <h4 className={styles.sectionTitle}>Mídia</h4>
-            </div>
+            <div className={styles.sectionHeader}><h4 className={styles.sectionTitle}>Mídia</h4></div>
             <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
@@ -1100,25 +1011,13 @@ export default function NodeConfigPanel({
                   <option value="video">Vídeo</option>
                 </select>
               </div>
-
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>URL</label>
-                <input
-                  type="text"
-                  value={content.url || ""}
-                  onChange={(e) => updateContent("url", e.target.value)}
-                  className={styles.inputStyle}
-                />
+                <input type="text" value={content.url || ""} onChange={(e) => updateContent("url", e.target.value)} className={styles.inputStyle}/>
               </div>
-
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Legenda</label>
-                <input
-                  type="text"
-                  value={content.caption || ""}
-                  onChange={(e) => updateContent("caption", e.target.value)}
-                  className={styles.inputStyle}
-                />
+                <input type="text" value={content.caption || ""} onChange={(e) => updateContent("caption", e.target.value)} className={styles.inputStyle}/>
               </div>
             </div>
           </div>
@@ -1126,179 +1025,39 @@ export default function NodeConfigPanel({
 
         {type === "location" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeader}>
-              <h4 className={styles.sectionTitle}>Localização</h4>
-            </div>
+            <div className={styles.sectionHeader}><h4 className={styles.sectionTitle}>Localização</h4></div>
             <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Nome</label>
-                <input
-                  type="text"
-                  value={content.name || ""}
-                  onChange={(e) => updateContent("name", e.target.value)}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Endereço</label>
-                <input
-                  type="text"
-                  value={content.address || ""}
-                  onChange={(e) => updateContent("address", e.target.value)}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Latitude</label>
-                <input
-                  type="text"
-                  value={content.latitude || ""}
-                  onChange={(e) => updateContent("latitude", e.target.value)}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Longitude</label>
-                <input
-                  type="text"
-                  value={content.longitude || ""}
-                  onChange={(e) => updateContent("longitude", e.target.value)}
-                  className={styles.inputStyle}
-                />
-              </div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
+                <input type="text" value={content.name || ""} onChange={(e) => updateContent("name", e.target.value)} className={styles.inputStyle}/></div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
+                <input type="text" value={content.address || ""} onChange={(e) => updateContent("address", e.target.value)} className={styles.inputStyle}/></div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
+                <input type="text" value={content.latitude || ""} onChange={(e) => updateContent("latitude", e.target.value)} className={styles.inputStyle}/></div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
+                <input type="text" value={content.longitude || ""} onChange={(e) => updateContent("longitude", e.target.value)} className={styles.inputStyle}/></div>
             </div>
           </div>
         )}
 
         {type === "script" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeader}>
-              <h4 className={styles.sectionTitle}>Script</h4>
-            </div>
+            <div className={styles.sectionHeader}><h4 className={styles.sectionTitle}>Script</h4></div>
             <div className={styles.sectionContent}>
               <button
-                onClick={() => {
-                  setScriptCode(selectedNode?.data?.block?.code || "");
-                  setShowScriptEditor(true);
-                }}
+                onClick={() => { setScriptCode(selectedNode?.data?.block?.code || ""); setShowScriptEditor(true); }}
                 className={styles.addButtonSmall}
               >
                 Abrir editor de código
               </button>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Função</label>
-                <input
-                  type="text"
-                  value={block.function || ""}
-                  onChange={(e) => updateBlock({ function: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Variável de saída</label>
-                <input
-                  type="text"
-                  value={block.outputVar || ""}
-                  onChange={(e) => updateBlock({ outputVar: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Função</label>
+                <input type="text" value={block.function || ""} onChange={(e) => updateBlock({ function: e.target.value })} className={styles.inputStyle}/></div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Variável de saída</label>
+                <input type="text" value={block.outputVar || ""} onChange={(e) => updateBlock({ outputVar: e.target.value })} className={styles.inputStyle}/></div>
             </div>
           </div>
         )}
 
-        {type === "api_call" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeader}>
-              <h4 className={styles.sectionTitle}>Requisição HTTP</h4>
-            </div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Método</label>
-                <select
-                  value={method || "GET"}
-                  onChange={(e) => updateBlock({ method: e.target.value })}
-                  className={styles.selectStyle}
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="DELETE">DELETE</option>
-                  <option value="PATCH">PATCH</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>URL</label>
-                <input
-                  type="text"
-                  value={url || ""}
-                  onChange={(e) => updateBlock({ url: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Headers (JSON)</label>
-                <textarea
-                  rows={3}
-                  defaultValue={pretty(headers)}
-                  onBlur={(e) => updateBlock({ headers: safeParseJson(e.target.value, headers || {}) })}
-                  className={styles.textareaStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Body (JSON)</label>
-                <textarea
-                  rows={4}
-                  defaultValue={pretty(body)}
-                  onBlur={(e) => updateBlock({ body: safeParseJson(e.target.value, body || {}) })}
-                  className={styles.textareaStyle}
-                />
-              </div>
-
-              <div className={styles.rowTwoCols}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Timeout (ms)</label>
-                  <input
-                    type="number"
-                    value={timeout ?? 10000}
-                    onChange={(e) => updateBlock({ timeout: parseInt(e.target.value || "0", 10) })}
-                    className={styles.inputStyle}
-                  />
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de saída</label>
-                  <input
-                    type="text"
-                    value={outputVar || "apiResponse"}
-                    onChange={(e) => updateBlock({ outputVar: e.target.value })}
-                    className={styles.inputStyle}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Variável de status</label>
-                <input
-                  type="text"
-                  value={statusVar || "apiStatus"}
-                  onChange={(e) => updateBlock({ statusVar: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Card "Aguardar resposta" — único lugar para configurar await */}
+        {/* Card "Aguardar resposta" — abre também pelo chip */}
         {renderAwaitCard()}
       </div>
     );
@@ -1313,9 +1072,7 @@ export default function NodeConfigPanel({
     >
       <div className={styles.panelHeader}>
         <h3 className={styles.panelTitle}>
-          {selectedNode.data.type === "human"
-            ? "atendimento humano"
-            : (selectedNode.data.label || "Novo Bloco")}
+          {selectedNode.data.type === "human" ? "atendimento humano" : (selectedNode.data.label || "Novo Bloco")}
         </h3>
         <button onClick={onClose} className={styles.closeButton} title="Fechar">
           <X size={20} />
@@ -1327,8 +1084,7 @@ export default function NodeConfigPanel({
           <label className={styles.inputLabel}>Nome do Bloco</label>
           {selectedNode.data.nodeType === "start" ? (
             <div className={styles.startNodeInfo}>
-              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com
-              redirecionamento automático para o próximo bloco configurado.
+              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
             </div>
           ) : selectedNode.data.type === "human" ? (
             <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
@@ -1336,9 +1092,7 @@ export default function NodeConfigPanel({
             <input
               type="text"
               value={selectedNode.data.label}
-              onChange={(e) =>
-                onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })
-              }
+              onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
               className={styles.inputStyle}
               placeholder="Nomeie este bloco"
             />
@@ -1347,32 +1101,16 @@ export default function NodeConfigPanel({
 
         {selectedNode.data.nodeType === "start" ? (
           <div className={styles.tabButtons}>
-            <button className={`${styles.tabButton} ${styles.tabButtonActive}`} disabled>
-              Ações
-            </button>
+            <button className={`${styles.tabButton} ${styles.tabButtonActive}`} disabled>Ações</button>
           </div>
         ) : (
           <div className={styles.tabButtons}>
-            <button
-              className={`${styles.tabButton} ${tab === "conteudo" ? styles.tabButtonActive : ""}`}
-              onClick={() => setTab("conteudo")}
-            >
-              Conteúdo
-            </button>
-            <button
-              className={`${styles.tabButton} ${tab === "acoes" ? styles.tabButtonActive : ""}`}
-              onClick={() => setTab("acoes")}
-            >
-              Condições de saída
-            </button>
+            <button className={`${styles.tabButton} ${tab === "conteudo" ? styles.tabButtonActive : ""}`} onClick={() => setTab("conteudo")}>Conteúdo</button>
+            <button className={`${styles.tabButton} ${tab === "acoes" ? styles.tabButtonActive : ""}`} onClick={() => setTab("acoes")}>Condições de saída</button>
           </div>
         )}
 
-        {selectedNode.data.nodeType === "start"
-          ? renderActionsTab()
-          : tab === "conteudo"
-          ? renderContentTab()
-          : renderActionsTab()}
+        {selectedNode.data.nodeType === "start" ? renderActionsTab() : tab === "conteudo" ? renderContentTab() : renderActionsTab()}
       </div>
     </aside>
   );
