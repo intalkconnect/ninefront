@@ -146,6 +146,45 @@
 }
 .overlayBody{ padding:12px 14px 20px; overflow:auto; }
 
+/* ===== Ações especiais (versão clara e explicativa) ===== */
+
+/* Cartão principal da ação (onEnter/onExit) */
+.specialCard{
+  background:#fff; border:1px solid #ececec; border-radius:12px;
+  padding:12px; margin-bottom:12px;
+  box-shadow: 0 1px 0 rgba(0,0,0,.02);
+}
+
+/* Linha dos 3 campos (scope, key, value) + botão remover */
+.specialInline{
+  display:grid; grid-template-columns: 160px 1fr 1fr auto;
+  gap:8px; align-items:center; margin-bottom:10px;
+}
+.specialInline .inputStyle, .specialInline .selectStyle{ height:38px; }
+
+/* Título pequeno para a região das condições opcionais */
+.conditionHeaderMini{
+  font-size:11px; font-weight:900; color:#444; letter-spacing:.02em;
+  background:#fafafa; border:1px solid #efefef; border-radius:8px;
+  padding:6px 8px; margin-bottom:8px;
+}
+
+/* Linha de cada condição extra */
+.specialCondRow{
+  display:grid; grid-template-columns: 190px 1fr 160px 1fr auto;
+  gap:8px; align-items:center; background:#ffffff;
+  border:1px dashed #e8e8e8; border-radius:10px; padding:8px 10px; margin-bottom:8px;
+}
+.specialCondRow .selectStyle, .specialCondRow .inputStyle{ height:36px; }
+
+/* ====== Paleta/controles do mini-toolbar da prévia ====== */
+.floatingBtns .iconGhost{
+  background:#fff; border-color:#e6e6e6; color:#333;
+}
+.floatingBtns .iconGhost:hover{
+  background:#f6f6f6; border-color:#dadada;
+}
+
 /* Scrollbar claro */
 .asidePanel::-webkit-scrollbar,
 .overlayBody::-webkit-scrollbar{ width:10px; }
@@ -158,4 +197,6 @@
 @media (max-width: 860px){
   .asidePanel{ width:100vw; }
   .rowTwoCols{ grid-template-columns:1fr; }
+  .specialInline{ grid-template-columns: 1fr; }
+  .specialCondRow{ grid-template-columns: 1fr; }
 }
