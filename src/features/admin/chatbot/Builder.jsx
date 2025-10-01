@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+// Builder.jsx
+import React, { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import ReactFlow, {
   Controls,
   Background,
@@ -66,16 +67,50 @@ const iconMap = {
 const nodeTypes = { quadrado: NodeQuadrado };
 
 /* =========================
- * Estilos
+ * Tema/estilos base
  * ========================= */
 const nodeStyle = {
   border: "2px solid",
   borderRadius: "8px",
-  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+  boxShadow: "0 4px 6px rgba(0, 0, 0, 0.08)",
+  background: "#fff",
 };
 
 const selectedNodeStyle = {
-  boxShadow: "0 0 0 2px #00e676, 0 4px 6px rgba(0, 0, 0, 0.1)",
+  boxShadow:
+    "0 0 0 2px rgba(16,185,129,0.65), 0 6px 12px rgba(0, 0, 0, 0.08)",
+};
+
+const THEME = {
+  bg: "#f9fafb", // background geral
+  panelBg: "#ffffff",
+  text: "#0f172a",
+  textMuted: "#334155",
+  border: "#e2e8f0",
+  borderHover: "#cbd5e1",
+  subtle: "#f8fafc",
+  subtle2: "#f1f5f9",
+  icon: "#334155",
+  iconMuted: "#64748b",
+  shadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
+  ring: "0 0 0 3px rgba(99, 102, 241, 0.08)",
+};
+
+/* Botão redondo neutro (paleta) */
+const baseIconBtn = {
+  background: "#ffffff",
+  color: THEME.icon,
+  border: `1.5px solid ${THEME.border}`,
+  borderRadius: "12px",
+  padding: "8px",
+  width: "38px",
+  height: "38px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  boxShadow: THEME.shadow,
 };
 
 /* =========================
@@ -123,7 +158,8 @@ export default function Builder() {
           color: "#FF4500",
           block: {
             type: "text",
-            content: "⚠️ Algo deu errado. Tente novamente mais tarde.",
+            content:
+              "⚠️ Algo deu errado. Tente novamente mais tarde.",
             awaitResponse: false,
             awaitTimeInSeconds: 0,
             sendDelayInSeconds: 1,
@@ -152,15 +188,25 @@ export default function Builder() {
   const [history, setHistory] = useState({ past: [], future: [] });
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
-  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
-  useEffect(() => { edgesRef.current = edges; }, [edges]);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+  useEffect(() => {
+    edgesRef.current = edges;
+  }, [edges]);
 
   const snapshot = useCallback(
-    () => ({ nodes: deepClone(nodesRef.current), edges: deepClone(edgesRef.current) }),
+    () => ({
+      nodes: deepClone(nodesRef.current),
+      edges: deepClone(edgesRef.current),
+    }),
     []
   );
   const pushHistory = useCallback((prev) => {
-    setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
+    setHistory((h) => ({
+      past: [...h.past, deepClone(prev)],
+      future: [],
+    }));
   }, []);
   const undo = useCallback(() => {
     setHistory((h) => {
@@ -190,7 +236,9 @@ export default function Builder() {
   /* ---------- handlers básicos ---------- */
   const onNodesChange = useCallback(
     (changes) => {
-      const shouldPush = !changes.some((ch) => ch.type === "position" && ch.dragging);
+      const shouldPush = !changes.some(
+        (ch) => ch.type === "position" && ch.dragging
+      );
       setNodes((nds) => {
         if (shouldPush) pushHistory({ nodes: nds, edges: edgesRef.current });
         return applyNodeChanges(changes, nds);
@@ -202,8 +250,12 @@ export default function Builder() {
   // sincroniza ações quando edges são removidos pelo ReactFlow + limpa seleção
   const onEdgesChange = useCallback(
     (changes) => {
-      const removedIds = new Set(changes.filter((c) => c.type === "remove").map((c) => c.id));
-      const removedEdges = edgesRef.current.filter((e) => removedIds.has(e.id));
+      const removedIds = new Set(
+        changes.filter((c) => c.type === "remove").map((c) => c.id)
+      );
+      const removedEdges = edgesRef.current.filter((e) =>
+        removedIds.has(e.id)
+      );
 
       pushHistory({ nodes: nodesRef.current, edges: edgesRef.current });
 
@@ -215,15 +267,21 @@ export default function Builder() {
             const block = node.data.block || {};
             const before = block.actions || [];
             const after = before.filter(
-              (a) => !removedEdges.some((re) => re.source === node.id && re.target === a.next)
+              (a) =>
+                !removedEdges.some(
+                  (re) => re.source === node.id && re.target === a.next
+                )
             );
             if (after.length === before.length) return node;
-            return { ...node, data: { ...node.data, block: { ...block, actions: after } } };
+            return {
+              ...node,
+              data: { ...node.data, block: { ...block, actions: after } },
+            };
           })
         );
       }
 
-      // garante deseleção se a edge removida estava ativa
+      // deseleção se a edge removida estava ativa
       if (removedIds.size) {
         setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
       }
@@ -253,12 +311,26 @@ function run(context) {
         setNodes((nds) =>
           nds.map((n) =>
             n.id === selectedNode.id
-              ? { ...n, data: { ...n.data, block: { ...n.data.block, code: newCode } } }
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    block: { ...n.data.block, code: newCode },
+                  },
+                }
               : n
           )
         );
         setSelectedNode((prev) =>
-          prev ? { ...prev, data: { ...prev.data, block: { ...prev.data.block, code: newCode } } } : null
+          prev
+            ? {
+                ...prev,
+                data: {
+                  ...prev.data,
+                  block: { ...prev.data.block, code: newCode },
+                },
+              }
+            : null
         );
       }
     },
@@ -288,7 +360,16 @@ function run(context) {
                       ...node.data.block,
                       actions: [
                         ...actions,
-                        { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
+                        {
+                          next: target,
+                          conditions: [
+                            {
+                              variable: "lastUserMessage",
+                              type: "exists",
+                              value: "",
+                            },
+                          ],
+                        },
                       ],
                     },
                   },
@@ -302,7 +383,7 @@ function run(context) {
 
   const onNodeDoubleClick = (_, node) => setSelectedNode(node);
 
-  // atualização do nó vinda do painel: reconcilia edges com ações + limpa seleção de edge removida
+  // atualização do nó vinda do painel
   const updateSelectedNode = (updated) => {
     if (!updated) {
       setSelectedNode(null);
@@ -313,31 +394,40 @@ function run(context) {
     pushHistory(prev);
 
     // 1) atualiza nó
-    setNodes((prevNodes) => prevNodes.map((n) => (n.id === updated.id ? updated : n)));
+    setNodes((prevNodes) =>
+      prevNodes.map((n) => (n.id === updated.id ? updated : n))
+    );
 
     // 2) reconcilia edges
-    const desiredTargets = new Set((updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean));
+    const desiredTargets = new Set(
+      (updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean)
+    );
     const prevEdges = edgesRef.current;
 
     // edges removidas por falta de action correspondente
-    const removedEdges = prevEdges.filter((e) => e.source === updated.id && !desiredTargets.has(e.target));
+    const removedEdges = prevEdges.filter(
+      (e) => e.source === updated.id && !desiredTargets.has(e.target)
+    );
     const removedEdgeIds = new Set(removedEdges.map((e) => e.id));
 
     // mantém as demais
-    const keptEdges = prevEdges.filter((e) => !(e.source === updated.id && removedEdgeIds.has(e.id)));
+    const keptEdges = prevEdges.filter(
+      (e) => !(e.source === updated.id && removedEdgeIds.has(e.id))
+    );
 
     // cria as que faltam
     const keptPairs = new Set(keptEdges.map((e) => `${e.source}-${e.target}`));
     const additions = [];
     desiredTargets.forEach((t) => {
       const key = `${updated.id}-${t}`;
-      if (!keptPairs.has(key)) additions.push({ id: genEdgeId(), source: updated.id, target: t });
+      if (!keptPairs.has(key))
+        additions.push({ id: genEdgeId(), source: updated.id, target: t });
     });
 
     const nextEdges = keptEdges.concat(additions);
     setEdges(nextEdges);
 
-    // limpa seleção caso a edge selecionada tenha sido removida nesta atualização
+    // limpa seleção caso a edge selecionada tenha sido removida
     if (removedEdgeIds.size) {
       setSelectedEdgeId((cur) => (cur && removedEdgeIds.has(cur) ? null : cur));
     }
@@ -366,7 +456,16 @@ function run(context) {
                     ...node.data.block,
                     actions: [
                       ...actions,
-                      { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
+                      {
+                        next: target,
+                        conditions: [
+                          {
+                            variable: "lastUserMessage",
+                            type: "exists",
+                            value: "",
+                          },
+                        ],
+                      },
                     ],
                   },
                 },
@@ -381,7 +480,9 @@ function run(context) {
     pushHistory(prev);
 
     // ids das edges que sairão
-    const toRemove = edgesRef.current.filter((e) => e.source === deletedId || e.target === deletedId);
+    const toRemove = edgesRef.current.filter(
+      (e) => e.source === deletedId || e.target === deletedId
+    );
     const removedIds = new Set(toRemove.map((e) => e.id));
 
     setNodes((nds) =>
@@ -389,9 +490,22 @@ function run(context) {
         .filter((n) => n.id !== deletedId)
         .map((n) => {
           const block = n.data.block || {};
-          const cleanedActions = (block.actions || []).filter((a) => a.next !== deletedId);
-          const cleanedDefaultNext = block.defaultNext === deletedId ? undefined : block.defaultNext;
-          return { ...n, data: { ...n.data, block: { ...block, actions: cleanedActions, defaultNext: cleanedDefaultNext } } };
+          const cleanedActions = (block.actions || []).filter(
+            (a) => a.next !== deletedId
+          );
+          const cleanedDefaultNext =
+            block.defaultNext === deletedId ? undefined : block.defaultNext;
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              block: {
+                ...block,
+                actions: cleanedActions,
+                defaultNext: cleanedDefaultNext,
+              },
+            },
+          };
         })
     );
 
@@ -404,7 +518,12 @@ function run(context) {
   };
 
   const handleDelete = useCallback(() => {
-    if (!selectedNode || selectedNode.data.nodeType === "start" || selectedNode.data.label?.toLowerCase()?.includes("onerror")) return;
+    if (
+      !selectedNode ||
+      selectedNode.data.nodeType === "start" ||
+      selectedNode.data.label?.toLowerCase()?.includes("onerror")
+    )
+      return;
     deleteNodeAndCleanup(selectedNode.id);
     setSelectedNode(null);
   }, [selectedNode]);
@@ -429,18 +548,20 @@ function run(context) {
       }
     };
     document.addEventListener("mousedown", handleClickOutside, true);
-    return () => document.removeEventListener("mousedown", handleClickOutside, true);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
   // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // se veio do painel, ignora (o painel já cuida de hotkeys locais)
-      if ((event.target instanceof HTMLElement) && event.target.closest?.("[data-stop-hotkeys='true']")) {
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest?.("[data-stop-hotkeys='true']")
+      ) {
         return;
       }
 
-      // Undo / Redo
       const isZ = event.key.toLowerCase() === "z";
       const isY = event.key.toLowerCase() === "y";
       if ((event.ctrlKey || event.metaKey) && isZ) {
@@ -455,23 +576,36 @@ function run(context) {
         return;
       }
 
-      // Delete
       if (event.key === "Delete") {
         if (selectedEdgeId) {
-          const edgeToRemove = edgesRef.current.find((e) => e.id === selectedEdgeId);
+          const edgeToRemove = edgesRef.current.find(
+            (e) => e.id === selectedEdgeId
+          );
           pushHistory(snapshot());
           setEdges((eds) => eds.filter((e) => e.id !== selectedEdgeId));
           if (edgeToRemove) {
             setNodes((nds) =>
               nds.map((node) => {
                 if (node.id !== edgeToRemove.source) return node;
-                const updatedActions = (node.data.block.actions || []).filter((a) => a.next !== edgeToRemove.target);
-                return { ...node, data: { ...node.data, block: { ...node.data.block, actions: updatedActions } } };
+                const updatedActions = (node.data.block.actions || []).filter(
+                  (a) => a.next !== edgeToRemove.target
+                );
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    block: { ...node.data.block, actions: updatedActions },
+                  },
+                };
               })
             );
           }
           setSelectedEdgeId(null);
-        } else if (selectedNode && selectedNode.data.nodeType !== "start" && !selectedNode.data.label?.toLowerCase()?.includes("onerror")) {
+        } else if (
+          selectedNode &&
+          selectedNode.data.nodeType !== "start" &&
+          !selectedNode.data.label?.toLowerCase()?.includes("onerror")
+        ) {
           deleteNodeAndCleanup(selectedNode.id);
           setSelectedNode(null);
         }
@@ -505,9 +639,13 @@ function run(context) {
             normalized[id] = { ...b, id, label: b?.label || k };
           });
           Object.values(normalized).forEach((b) => {
-            if (b.defaultNext && keyToId[b.defaultNext]) b.defaultNext = keyToId[b.defaultNext];
+            if (b.defaultNext && keyToId[b.defaultNext])
+              b.defaultNext = keyToId[b.defaultNext];
             if (Array.isArray(b.actions)) {
-              b.actions = b.actions.map((a) => ({ ...a, next: keyToId[a.next] || a.next }));
+              b.actions = b.actions.map((a) => ({
+                ...a,
+                next: keyToId[a.next] || a.next,
+              }));
             }
           });
         }
@@ -523,7 +661,11 @@ function run(context) {
           data: {
             label: b.label || "Sem Nome",
             type: b.type,
-            nodeType: b.type === "start" || (b.label || "").toLowerCase() === "início" ? "start" : undefined,
+            nodeType:
+              b.type === "start" ||
+              (b.label || "").toLowerCase() === "início"
+                ? "start"
+                : undefined,
             color: b.color || "#607D8B",
             block: b,
           },
@@ -534,7 +676,11 @@ function run(context) {
         Object.values(blocks).forEach((b) => {
           (b.actions || []).forEach((a) => {
             if (a.next && blocks[a.next]) {
-              loadedEdges.push({ id: genEdgeId(), source: b.id, target: a.next });
+              loadedEdges.push({
+                id: genEdgeId(),
+                source: b.id,
+                target: a.next,
+              });
             }
           });
         });
@@ -557,15 +703,24 @@ function run(context) {
     setIsPublishing(true);
     try {
       const labelToId = {};
-      nodes.forEach((n) => { if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label); labelToId[n.data.label] = n.id; });
+      nodes.forEach((n) => {
+        if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label);
+        labelToId[n.data.label] = n.id;
+      });
       const nodeIds = new Set(nodes.map((n) => n.id));
 
       const blocks = {};
       nodes.forEach((node) => {
         const block = { ...node.data.block };
-        if (block.defaultNext) block.defaultNext = nodeIds.has(block.defaultNext) ? block.defaultNext : labelToId[block.defaultNext] || undefined;
+        if (block.defaultNext)
+          block.defaultNext = nodeIds.has(block.defaultNext)
+            ? block.defaultNext
+            : labelToId[block.defaultNext] || undefined;
         if (Array.isArray(block.actions)) {
-          block.actions = block.actions.map((a) => ({ ...a, next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next }));
+          block.actions = block.actions.map((a) => ({
+            ...a,
+            next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
+          }));
         }
         blocks[node.id] = {
           ...block,
@@ -582,7 +737,9 @@ function run(context) {
       await apiPost("/flows/publish", { data: flowData });
       toast.success("Fluxo publicado com sucesso!");
     } catch (err) {
-      toast.error(`Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`);
+      toast.error(
+        `Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`
+      );
     } finally {
       setIsPublishing(false);
     }
@@ -590,16 +747,25 @@ function run(context) {
 
   const downloadFlow = () => {
     const labelToId = {};
-    nodes.forEach((n) => { if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label); labelToId[n.data.label] = n.id; });
+    nodes.forEach((n) => {
+      if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label);
+      labelToId[n.data.label] = n.id;
+    });
     const nodeIds = new Set(nodes.map((n) => n.id));
 
     const blocks = {};
     nodes.forEach((node) => {
       const originalBlock = node.data.block || {};
       const clonedBlock = { ...originalBlock };
-      if (clonedBlock.defaultNext) clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext) ? clonedBlock.defaultNext : labelToId[clonedBlock.defaultNext] || undefined;
+      if (clonedBlock.defaultNext)
+        clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext)
+          ? clonedBlock.defaultNext
+          : labelToId[clonedBlock.defaultNext] || undefined;
       if (Array.isArray(clonedBlock.actions)) {
-        clonedBlock.actions = clonedBlock.actions.map((a) => ({ ...a, next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next }));
+        clonedBlock.actions = clonedBlock.actions.map((a) => ({
+          ...a,
+          next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
+        }));
       }
       blocks[node.id] = {
         ...clonedBlock,
@@ -611,8 +777,14 @@ function run(context) {
       };
     });
 
-    const flowData = { start: nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id, blocks };
-    const blob = new Blob([JSON.stringify(flowData, null, 2)], { type: "application/json" });
+    const flowData = {
+      start:
+        nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id,
+      blocks,
+    };
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -623,12 +795,17 @@ function run(context) {
 
   /* ---------- add node ---------- */
   const addNodeTemplate = (template) => {
-    const onErrorNode = nodesRef.current.find((n) => n.data.label?.toLowerCase() === "onerror");
+    const onErrorNode = nodesRef.current.find(
+      (n) => n.data.label?.toLowerCase() === "onerror"
+    );
     pushHistory(snapshot());
     const newNode = {
       id: genId(),
       type: "quadrado",
-      position: { x: Math.random() * 250 + 100, y: Math.random() * 250 + 100 },
+      position: {
+        x: Math.random() * 250 + 100,
+        y: Math.random() * 250 + 100,
+      },
       data: {
         label: template.label,
         type: template.type,
@@ -640,12 +817,22 @@ function run(context) {
     setNodes((nds) => nds.concat(newNode));
   };
 
-  /* ---------- render ---------- */
+  /* ---------- destaque de arestas ---------- */
+  const sourceColorById = useMemo(() => {
+    const map = new Map();
+    nodes.forEach((n) => map.set(n.id, n.style?.borderColor || n.data?.color || "#888"));
+    return map;
+  }, [nodes]);
 
-  // mapeia cores dos nós por id (usa data.color; cai para style.borderColor; senão #888)
-  const nodeColorById = new Map(
-    nodes.map(n => [n.id, n.data?.color || n.style?.borderColor || "#888"])
-  );
+  const activeEdges = useMemo(() => {
+    if (selectedEdgeId) return new Set([selectedEdgeId]);
+    if (selectedNode) {
+      return new Set(
+        edges.filter((e) => e.source === selectedNode.id).map((e) => e.id)
+      );
+    }
+    return new Set();
+  }, [edges, selectedNode, selectedEdgeId]);
 
   const styledNodes = nodes.map((node) => ({
     ...node,
@@ -658,52 +845,93 @@ function run(context) {
     },
   }));
 
-  // 🔧 destaca APENAS as conexões que SAEM do nó selecionado; se clicar numa edge, ela fica destacada sozinha
   const styledEdges = edges.map((edge) => {
-    const isOutFromSelected = !!selectedNode && edge.source === selectedNode.id;
-    const isClicked = edge.id === selectedEdgeId;
+    const isActive = activeEdges.has(edge.id);
+    const baseStroke = "#94a3b8"; // cinza neutro
+    const srcColor =
+      sourceColorById.get(edge.source) || "#64748b";
 
-    // cor = cor da borda do nó de origem
-    const srcColor = nodeColorById.get(edge.source) || "#888";
-    const stroke = (isClicked || isOutFromSelected) ? srcColor : "#888";
-    const strokeWidth = isClicked ? 3 : (isOutFromSelected ? 2.5 : 1.5);
-
-    return {
-      ...edge,
-      markerEnd: { type: "arrowclosed", color: stroke, width: 16, height: 16 },
-      style: { stroke, strokeWidth },
+    const common = {
+      markerEnd: {
+        type: "arrowclosed",
+        color: isActive ? srcColor : baseStroke,
+        width: 16,
+        height: 16,
+      },
+      style: {
+        stroke: isActive ? srcColor : baseStroke,
+        strokeWidth: isActive ? 2.75 : 1.5,
+        opacity:
+          selectedEdgeId || selectedNode
+            ? isActive
+              ? 1
+              : 0.35
+            : 0.9,
+        transition: "stroke 120ms ease, opacity 120ms ease, stroke-width 120ms",
+      },
     };
+    return { ...edge, ...common };
   });
 
+  /* ---------- estilos do palette (menu flutuante) ---------- */
   const iconButtonStyle = {
-    background: "#333",
-    color: "#fff",
-    border: "1px solid #555",
-    borderRadius: "50%",
-    padding: "6px",
-    width: "32px",
-    height: "32px",
+    ...baseIconBtn,
+  };
+  const iconButtonHover = {
+    background: THEME.subtle,
+    border: `1.5px solid ${THEME.borderHover}`,
+    transform: "translateY(-1px)",
+  };
+
+  const sideMenuWrapperStyle = {
+    position: "absolute",
+    top: "120px",
+    left: 10,
+    background: "transparent",
+    borderRadius: "12px",
+    padding: "0.25rem",
+    zIndex: 20,
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
+    gap: "10px",
+  };
+
+  const dividerStyle = {
+    width: "80%",
+    height: "1px",
+    backgroundColor: THEME.border,
+    margin: "6px 0",
   };
 
   const edgeOptions = {
     type: "smoothstep",
     animated: false,
-    style: { stroke: "#888", strokeWidth: 2 },
-    markerEnd: { type: "arrowclosed", color: "#888", width: 12, height: 12 },
+    style: { stroke: "#94a3b8", strokeWidth: 2 },
+    markerEnd: { type: "arrowclosed", color: "#94a3b8", width: 12, height: 12 },
   };
 
   return (
-    <div style={{ width: "100%", height: "100vh", position: "relative", backgroundColor: "#f9f9f9", display: "flex", flexDirection: "column" }}>
-
+    <div
+      style={{
+        width: "100%",
+        height: "100vh",
+        position: "relative",
+        backgroundColor: THEME.bg,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       {/* Conteúdo principal */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <div style={{ position: "relative", flex: 1 }}>
-          {itor && <ScriptEditor code={scriptCode} onChange={handleUpdateCode} onClose={() => setitor(false)} />}
+          {itor && (
+            <ScriptEditor
+              code={scriptCode}
+              onChange={handleUpdateCode}
+              onClose={() => setitor(false)}
+            />
+          )}
 
           <ReactFlow
             nodes={styledNodes}
@@ -724,9 +952,13 @@ function run(context) {
               event.stopPropagation();
               setSelectedEdgeId(edge.id);
               setSelectedNode(null);
+              setHighlightedNodeId(null);
             }}
             onPaneClick={(event) => {
-              if (!event.target.closest(".react-flow__node") && !event.target.closest(".react-flow__edge")) {
+              if (
+                !event.target.closest(".react-flow__node") &&
+                !event.target.closest(".react-flow__edge")
+              ) {
                 setSelectedNode(null);
                 setSelectedEdgeId(null);
                 setHighlightedNodeId(null);
@@ -735,8 +967,17 @@ function run(context) {
             fitViewOptions={{ padding: 0.5 }}
             proOptions={{ hideAttribution: true }}
           >
-            <Background color="#555" gap={32} variant="dots" />
-            <Controls style={{ backgroundColor: "white", border: "1px solid #e2e8f0", borderRadius: "6px", boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)" }} />
+            <Background color="#cbd5e1" gap={32} variant="dots" />
+            <Controls
+              style={{
+                backgroundColor: THEME.panelBg,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: "10px",
+                boxShadow: THEME.shadow,
+                overflow: "hidden",
+              }}
+              showInteractive={false}
+            />
 
             <VersionHistoryModal
               visible={showHistory}
@@ -749,26 +990,27 @@ function run(context) {
             />
           </ReactFlow>
 
-          {/* Menu flutuante */}
-          <div
-            ref={nodeMenuRef}
-            style={{
-              position: "absolute",
-              top: "120px",
-              left: 10,
-              background: "#1e1e1e",
-              border: "1px solid #444",
-              borderRadius: "8px",
-              padding: "0.5rem",
-              zIndex: 20,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "10px",
-              boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            <button onClick={() => setShowNodeMenu((p) => !p)} title="Adicionar Blocos" style={{ ...iconButtonStyle, backgroundColor: showNodeMenu ? "#555" : "#333" }}>
+          {/* Paleta / Menu flutuante (tema claro neutro) */}
+          <div ref={nodeMenuRef} style={sideMenuWrapperStyle}>
+            {/* Botão principal (Adicionar Blocos) */}
+            <button
+              onClick={() => setShowNodeMenu((p) => !p)}
+              title="Adicionar Blocos"
+              style={{
+                ...iconButtonStyle,
+                background: showNodeMenu ? THEME.subtle : THEME.panelBg,
+                border:
+                  showNodeMenu
+                    ? `1.5px solid ${THEME.borderHover}`
+                    : `1.5px solid ${THEME.border}`,
+              }}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
               ➕
             </button>
 
@@ -778,14 +1020,16 @@ function run(context) {
                   position: "absolute",
                   left: "60px",
                   top: "0px",
-                  backgroundColor: "#2c2c2c",
-                  borderRadius: "6px",
+                  backgroundColor: THEME.panelBg,
+                  borderRadius: "12px",
                   padding: "0.5rem",
-                  boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+                  boxShadow: THEME.shadow,
                   display: "flex",
                   flexDirection: "column",
                   gap: "0.5rem",
                   zIndex: 30,
+                  border: `1px solid ${THEME.border}`,
+                  minWidth: 52,
                 }}
               >
                 {nodeTemplates.map((template) => (
@@ -795,8 +1039,29 @@ function run(context) {
                       addNodeTemplate(template);
                       setShowNodeMenu(false);
                     }}
-                    style={{ ...iconButtonStyle, backgroundColor: template.color, width: "36px", height: "36px" }}
+                    style={{
+                      ...iconButtonStyle,
+                      width: "36px",
+                      height: "36px",
+                      padding: "6px",
+                      background: "#fff",
+                      border: `1.5px solid ${template.color}`,
+                      color: template.color,
+                      boxShadow: `0 0 0 2px ${template.color}11, ${THEME.shadow}`,
+                    }}
                     title={template.label}
+                    onMouseEnter={(e) =>
+                      Object.assign(e.currentTarget.style, {
+                        background: THEME.subtle,
+                        transform: "translateY(-1px)",
+                      })
+                    }
+                    onMouseLeave={(e) =>
+                      Object.assign(e.currentTarget.style, {
+                        background: "#fff",
+                        transform: "translateY(0)",
+                      })
+                    }
                   >
                     {iconMap[template.iconName] || <Zap size={16} />}
                   </button>
@@ -804,24 +1069,80 @@ function run(context) {
               </div>
             )}
 
-            <div style={{ width: "80%", height: "1px", backgroundColor: "#555", margin: "4px 0" }} />
+            <div style={dividerStyle} />
 
             {/* Undo / Redo */}
-            <button onClick={undo} title="Desfazer (Ctrl/Cmd+Z)" style={iconButtonStyle}>
+            <button
+              onClick={undo}
+              title="Desfazer (Ctrl/Cmd+Z)"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
               <Undo2 size={18} />
             </button>
-            <button onClick={redo} title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)" style={iconButtonStyle}>
+            <button
+              onClick={redo}
+              title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
               <Redo2 size={18} />
             </button>
 
+            <div style={dividerStyle} />
+
             {/* Publicar / Baixar / Histórico */}
-            <button onClick={handlePublish} title="Publicar" style={{ ...iconButtonStyle, opacity: isPublishing ? 0.5 : 1, pointerEvents: isPublishing ? "none" : "auto" }}>
+            <button
+              onClick={handlePublish}
+              title="Publicar"
+              style={{
+                ...iconButtonStyle,
+                opacity: isPublishing ? 0.6 : 1,
+                pointerEvents: isPublishing ? "none" : "auto",
+              }}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
               {isPublishing ? "⏳" : <Rocket size={18} />}
             </button>
-            <button onClick={downloadFlow} title="Baixar JSON" style={iconButtonStyle}>
+            <button
+              onClick={downloadFlow}
+              title="Baixar JSON"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
               <Download size={18} />
             </button>
-            <button onClick={() => setShowHistory(true)} title="Histórico de Versões" style={iconButtonStyle}>
+            <button
+              onClick={() => setShowHistory(true)}
+              title="Histórico de Versões"
+              style={iconButtonStyle}
+              onMouseEnter={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonHover)
+              }
+              onMouseLeave={(e) =>
+                Object.assign(e.currentTarget.style, iconButtonStyle)
+              }
+            >
               🕘
             </button>
           </div>
@@ -835,7 +1156,6 @@ function run(context) {
             onClose={() => setSelectedNode(null)}
             allNodes={nodes}
             onConnectNodes={({ source, target }) => {
-              // conecta via painel (mesma lógica do handleConnectNodes)
               const src = nodesRef.current.find((n) => n.id === source);
               const actions = src?.data?.block?.actions || [];
               const already = actions.some((a) => a.next === target);
@@ -854,7 +1174,16 @@ function run(context) {
                               ...node.data.block,
                               actions: [
                                 ...actions,
-                                { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
+                                {
+                                  next: target,
+                                  conditions: [
+                                    {
+                                      variable: "lastUserMessage",
+                                      type: "exists",
+                                      value: "",
+                                    },
+                                  ],
+                                },
                               ],
                             },
                           },
