@@ -8,6 +8,7 @@ import {
   X,
   PencilLine,
   Info,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import styles from "./styles/NodeConfigPanel.module.css";
@@ -23,7 +24,6 @@ export default function NodeConfigPanel({
 }) {
   const [tab, setTab] = useState("conteudo");
   const [editingBubble, setEditingBubble] = useState(false);
-
   const [expandedSections, setExpandedSections] = useState({
     actions: true,
     default: true,
@@ -31,7 +31,6 @@ export default function NodeConfigPanel({
   });
 
   const panelRef = useRef(null);
-
   if (!selectedNode || !selectedNode.data) return null;
 
   const block = selectedNode.data.block || {};
@@ -49,7 +48,8 @@ export default function NodeConfigPanel({
     timeout,
     outputVar,
     statusVar,
-    saveResponseVar,
+    saveResponseVar,   // <- salvar lastUserMessage
+    saveContentVar,    // <- salvar conteúdo rico (ex.: lastcontentmessage)
   } = block;
 
   const isHuman = type === "human";
@@ -91,10 +91,7 @@ export default function NodeConfigPanel({
       ...selectedNode,
       data: {
         ...selectedNode.data,
-        block: {
-          ...block,
-          ...changes,
-        },
+        block: { ...block, ...changes },
       },
     };
     updateNode(updatedNode);
@@ -110,8 +107,8 @@ export default function NodeConfigPanel({
     updateBlock({ actions: deepClone(newActions) });
   };
 
-  const toggleSection = (key) =>
-    setExpandedSections((s) => ({ ...s, [key]: !s[key] }));
+  const toggleSection = (k) =>
+    setExpandedSections((s) => ({ ...s, [k]: !s[k] }));
 
   /* ---------------- atalhos HUMAN ---------------- */
 
@@ -142,7 +139,6 @@ export default function NodeConfigPanel({
 
   const renderValueInput = (cond, onChangeValue) => {
     if (cond.type === "exists") return null;
-
     if (cond.variable === "offhours") {
       return (
         <div className={styles.inputGroup}>
@@ -158,7 +154,6 @@ export default function NodeConfigPanel({
         </div>
       );
     }
-
     if (cond.variable === "offhours_reason") {
       return (
         <div className={styles.inputGroup}>
@@ -174,7 +169,6 @@ export default function NodeConfigPanel({
         </div>
       );
     }
-
     return (
       <div className={styles.inputGroup}>
         <label className={styles.inputLabel}>Valor</label>
@@ -217,21 +211,16 @@ export default function NodeConfigPanel({
 
   const handleKeyDownCapture = useCallback((e) => {
     if (!panelRef.current || !panelRef.current.contains(e.target)) return;
-
     const k = e.key?.toLowerCase?.() || "";
     if (isEditableTarget(e.target)) {
       const isDelete = e.key === "Delete" || e.key === "Backspace";
       const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && k === "z";
-      const isRedo =
-        (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
-
-      if (isDelete || isUndo || isRedo) {
-        e.stopPropagation();
-      }
+      const isRedo = (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
+      if (isDelete || isUndo || isRedo) e.stopPropagation();
     }
   }, []);
 
-  /* ---------------- UI: Chat bubble preview ---------------- */
+  /* ---------------- UI: chat preview/counters ---------------- */
 
   const bubbleKind =
     type === "text" || type === "interactive" || type === "media"
@@ -257,11 +246,20 @@ export default function NodeConfigPanel({
       ? content?.action?.sections?.[0]?.rows || []
       : [];
 
-  /* ---------------- tabs renders ---------------- */
+  const contentQuota = (() => {
+    if (type === "interactive") {
+      if (content.type === "button") return (previewButtons?.length || 0) || 1;
+      if (content.type === "list") return (previewListItems?.length || 0) || 1;
+    }
+    return 1;
+  })();
+
+  /* ---------------- tabs ---------------- */
 
   const renderActionsTab = () => (
     <div className={styles.tabContentInner}>
-      {/* Condições de Saída */}
+      <div className={styles.cornerCount}>{actions.length}/25</div>
+
       <div className={styles.sectionContainer}>
         <div className={styles.sectionHeader} onClick={() => toggleSection("actions")}>
           <h4 className={styles.sectionTitle}>
@@ -329,10 +327,7 @@ export default function NodeConfigPanel({
                               updated[actionIdx].conditions[condIdx].variable = "";
                             } else {
                               updated[actionIdx].conditions[condIdx].variable = nextVar;
-                              if (
-                                !updated[actionIdx].conditions[condIdx].type ||
-                                updated[actionIdx].conditions[condIdx].type === ""
-                              ) {
+                              if (!updated[actionIdx].conditions[condIdx].type) {
                                 updated[actionIdx].conditions[condIdx].type = "equals";
                               }
                               if (nextVar === "offhours") {
@@ -426,7 +421,6 @@ export default function NodeConfigPanel({
                         const updated = deepClone(actions);
                         updated[actionIdx].next = targetId;
                         updateActions(updated);
-
                         if (onConnectNodes && targetId) {
                           onConnectNodes({ source: selectedNode.id, target: targetId });
                         }
@@ -465,13 +459,11 @@ export default function NodeConfigPanel({
         )}
       </div>
 
-      {/* Saída padrão */}
       <div className={styles.sectionContainer}>
         <div className={styles.sectionHeader} onClick={() => toggleSection("default")}>
           <h4 className={styles.sectionTitle}>Saída padrão</h4>
           {expandedSections.default ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
         </div>
-
         {expandedSections.default && (
           <div className={styles.sectionContent}>
             <div className={styles.inputGroup}>
@@ -497,8 +489,128 @@ export default function NodeConfigPanel({
     </div>
   );
 
+  const renderActionsSpecialTab = () => (
+    <div className={styles.tabContentInner}>
+      <div className={styles.sectionContainer}>
+        <div className={styles.sectionHeader} onClick={() => toggleSection("special")}>
+          <h4 className={styles.sectionTitle}>Ações especiais (variáveis)</h4>
+          {expandedSections.special ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+        </div>
+
+        {expandedSections.special && (
+          <div className={styles.sectionContent}>
+            {/* ENTRADA */}
+            <h5 className={styles.smallTitle}>Ao entrar no bloco</h5>
+            {(block.onEnter || []).map((a, i) => (
+              <div key={`en-${i}`} className={styles.rowItemStyle}>
+                <select
+                  className={styles.selectStyle}
+                  value={a.scope || "context"}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onEnter).slice();
+                    next[i] = { ...next[i], scope: e.target.value };
+                    updateBlock({ onEnter: next });
+                  }}
+                >
+                  <option value="context">context</option>
+                  <option value="contact">contact</option>
+                  <option value="contact.extra">contact.extra</option>
+                </select>
+                <input
+                  className={styles.inputStyle}
+                  placeholder="chave (ex.: protocolo)"
+                  value={a.key || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onEnter).slice();
+                    next[i] = { ...next[i], key: e.target.value };
+                    updateBlock({ onEnter: next });
+                  }}
+                />
+                <input
+                  className={styles.inputStyle}
+                  placeholder="valor (ex.: 12345)"
+                  value={a.value || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onEnter).slice();
+                    next[i] = { ...next[i], value: e.target.value };
+                    updateBlock({ onEnter: next });
+                  }}
+                />
+                <button
+                  className={styles.deleteButtonSmall}
+                  onClick={() => updateBlock({ onEnter: (block.onEnter || []).filter((_, idx) => idx !== i) })}
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button
+              className={styles.addButtonSmall}
+              onClick={() => updateBlock({ onEnter: [...(block.onEnter || []), { scope: "context", key: "", value: "" }] })}
+            >
+              + adicionar na entrada
+            </button>
+
+            <div className={styles.dividerLine} style={{ margin: "14px 0" }} />
+
+            {/* SAÍDA */}
+            <h5 className={styles.smallTitle}>Ao sair do bloco</h5>
+            {(block.onExit || []).map((a, i) => (
+              <div key={`ex-${i}`} className={styles.rowItemStyle}>
+                <select
+                  className={styles.selectStyle}
+                  value={a.scope || "context"}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onExit).slice();
+                    next[i] = { ...next[i], scope: e.target.value };
+                    updateBlock({ onExit: next });
+                  }}
+                >
+                  <option value="context">context</option>
+                  <option value="contact">contact</option>
+                  <option value="contact.extra">contact.extra</option>
+                </select>
+                <input
+                  className={styles.inputStyle}
+                  placeholder="chave (ex.: etapaAtual)"
+                  value={a.key || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onExit).slice();
+                    next[i] = { ...next[i], key: e.target.value };
+                    updateBlock({ onExit: next });
+                  }}
+                />
+                <input
+                  className={styles.inputStyle}
+                  placeholder="valor (ex.: finalizado)"
+                  value={a.value || ""}
+                  onChange={(e) => {
+                    const next = ensureArray(block.onExit).slice();
+                    next[i] = { ...next[i], value: e.target.value };
+                    updateBlock({ onExit: next });
+                  }}
+                />
+                <button
+                  className={styles.deleteButtonSmall}
+                  onClick={() => updateBlock({ onExit: (block.onExit || []).filter((_, idx) => idx !== i) })}
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button
+              className={styles.addButtonSmall}
+              onClick={() => updateBlock({ onExit: [...(block.onExit || []), { scope: "context", key: "", value: "" }] })}
+            >
+              + adicionar na saída
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const renderContentEditors = () => {
-    // Editores completos (reaproveitando sua lógica original)
     if (type === "text") {
       return (
         <>
@@ -545,7 +657,7 @@ export default function NodeConfigPanel({
               </div>
               <div className={styles.cardToggleBody}>
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Nome do destino</label>
+                  <label className={styles.inputLabel}>Destino</label>
                   <input
                     type="text"
                     placeholder="ex.: context.inputMenuPrincipal"
@@ -554,7 +666,7 @@ export default function NodeConfigPanel({
                     className={styles.inputStyle}
                   />
                   <small className={styles.helpText}>
-                    se vazio, a resposta não é salva (o executor usa <code>lastUserMessage</code>)
+                    se vazio, o executor guarda apenas <code>lastUserMessage</code>
                   </small>
                 </div>
               </div>
@@ -648,17 +760,33 @@ export default function NodeConfigPanel({
           </div>
 
           {Boolean(awaitResponse) && (
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Salvar resposta em</label>
-              <input
-                type="text"
-                placeholder="ex.: context.respostaMidia"
-                value={saveResponseVar || ""}
-                onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
-                className={styles.inputStyle}
-              />
-              <small className={styles.helpText}>deixe em branco para não salvar</small>
-            </div>
+            <>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Salvar resposta em</label>
+                <input
+                  type="text"
+                  placeholder="ex.: context.respostaMidia"
+                  value={saveResponseVar || ""}
+                  onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                  className={styles.inputStyle}
+                />
+                <small className={styles.helpText}>deixe em branco para não salvar texto do usuário</small>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Salvar conteúdo rico em</label>
+                <input
+                  type="text"
+                  placeholder="ex.: context.lastcontentmessage"
+                  value={saveContentVar || ""}
+                  onChange={(e) => updateBlock({ saveContentVar: e.target.value })}
+                  className={styles.inputStyle}
+                />
+                <small className={styles.helpText}>
+                  (opcional) útil para armazenar URL/ID de mídia, payload do componente, etc.
+                </small>
+              </div>
+            </>
           )}
         </>
       );
@@ -667,8 +795,7 @@ export default function NodeConfigPanel({
     if (type === "human") {
       return (
         <div className={styles.infoBlock}>
-          Este bloco envia a conversa para <strong>atendimento humano</strong>.
-          Nenhuma configuração adicional é necessária.
+          Este bloco envia a conversa para <strong>atendimento humano</strong>. Nenhuma configuração adicional.
         </div>
       );
     }
@@ -683,10 +810,7 @@ export default function NodeConfigPanel({
           toast.warn("Máximo de 3 botões atingido.");
           return;
         }
-        const newBtn = {
-          type: "reply",
-          reply: { id: "Novo botão", title: "Novo botão" },
-        };
+        const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
         const nextButtons = [...current, newBtn];
         const nextAction = { ...(deepClone(content.action) || {}), buttons: nextButtons };
         const nextContent = { ...deepClone(content), action: nextAction };
@@ -822,17 +946,32 @@ export default function NodeConfigPanel({
           </div>
 
           {Boolean(awaitResponse) && (
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Salvar resposta em</label>
-              <input
-                type="text"
-                placeholder="ex.: context.respostaMenu"
-                value={saveResponseVar || ""}
-                onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
-                className={styles.inputStyle}
-              />
-              <small className={styles.helpText}>deixe em branco para não salvar</small>
-            </div>
+            <>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Salvar resposta em</label>
+                <input
+                  type="text"
+                  placeholder="ex.: context.respostaMenu"
+                  value={saveResponseVar || ""}
+                  onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                  className={styles.inputStyle}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Salvar conteúdo rico em</label>
+                <input
+                  type="text"
+                  placeholder="ex.: context.lastcontentmessage"
+                  value={saveContentVar || ""}
+                  onChange={(e) => updateBlock({ saveContentVar: e.target.value })}
+                  className={styles.inputStyle}
+                />
+                <small className={styles.helpText}>
+                  para guardar id/title/row selecionado, etc.
+                </small>
+              </div>
+            </>
           )}
 
           {content.type === "list" && (
@@ -1077,8 +1216,7 @@ export default function NodeConfigPanel({
         <>
           {legacy && (
             <div className={styles.infoBlock}>
-              Este bloco está no formato antigo <code>http</code>. Clique abaixo para migrar para{" "}
-              <code>api_call</code>.
+              Este bloco está no formato antigo <code>http</code>.
               <button
                 className={styles.addButton}
                 onClick={() => {
@@ -1184,129 +1322,7 @@ export default function NodeConfigPanel({
     return null;
   };
 
-  const renderActionsSpecialTab = () => (
-    <div className={styles.tabContentInner}>
-      {/* Ações de entrada / saída (variáveis) */}
-      <div className={styles.sectionContainer}>
-        <div className={styles.sectionHeader} onClick={() => toggleSection("special")}>
-          <h4 className={styles.sectionTitle}>Ações especiais (variáveis)</h4>
-          {expandedSections.special ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-        </div>
-
-        {expandedSections.special && (
-          <div className={styles.sectionContent}>
-            {/* ENTRADA */}
-            <h5 className={styles.smallTitle}>Ao entrar no bloco</h5>
-            {(block.onEnter || []).map((a, i) => (
-              <div key={`en-${i}`} className={styles.rowItemStyle}>
-                <select
-                  className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(block.onEnter).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: protocolo)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(block.onEnter).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: 12345)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(block.onEnter).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onEnter: (block.onEnter || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onEnter: [...(block.onEnter || []), { scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na entrada
-            </button>
-
-            <div className={styles.dividerLine} style={{ margin: "14px 0" }} />
-
-            {/* SAÍDA */}
-            <h5 className={styles.smallTitle}>Ao sair do bloco</h5>
-            {(block.onExit || []).map((a, i) => (
-              <div key={`ex-${i}`} className={styles.rowItemStyle}>
-                <select
-                  className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(block.onExit).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: etapaAtual)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(block.onExit).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: finalizado)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(block.onExit).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onExit: (block.onExit || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onExit: [...(block.onExit || []), { scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na saída
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  /* ---------------- main render ---------------- */
+  /* ---------------- render ---------------- */
 
   return (
     <aside
@@ -1325,8 +1341,8 @@ export default function NodeConfigPanel({
         </button>
       </div>
 
-      {/* Nome do bloco */}
       <div className={styles.tabContent}>
+        {/* Nome do bloco */}
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Nome do bloco</label>
           {selectedNode.data.nodeType === "start" ? (
@@ -1378,10 +1394,12 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Aba: CONTEÚDO */}
+        {/* Aba CONTEÚDO */}
         {tab === "conteudo" && (
           <div className={styles.tabContentInner}>
-            {/* BUBBLE PREVIEW */}
+            <div className={styles.cornerCount}>{contentQuota}/25</div>
+
+            {/* “•••” balão + preview */}
             <div className={styles.chatPreviewCard}>
               <div className={styles.chatToolbar}>
                 <span className={styles.toolbarBadge}>{bubbleKind}</span>
@@ -1399,8 +1417,10 @@ export default function NodeConfigPanel({
                       title="Limpar conteúdo"
                       onClick={() => {
                         if (type === "text") updateBlock({ content: "" });
-                        else if (type === "interactive") updateBlock({ content: { type: "button", body: { text: "" }, action: { buttons: [] } } });
-                        else if (type === "media") updateBlock({ content: { mediaType: "image", url: "", caption: "" } });
+                        else if (type === "interactive")
+                          updateBlock({ content: { type: "button", body: { text: "" }, action: { buttons: [] } } });
+                        else if (type === "media")
+                          updateBlock({ content: { mediaType: "image", url: "", caption: "" } });
                       }}
                     >
                       <Trash2 size={16} />
@@ -1410,6 +1430,10 @@ export default function NodeConfigPanel({
               </div>
 
               <div className={styles.chatArea}>
+                <div className={styles.typingDot}>
+                  <MoreHorizontal size={16} />
+                </div>
+
                 <div className={styles.bubble}>
                   <div className={styles.bubbleText}>
                     {previewText || <span className={styles.placeholder}>Conteúdo vazio</span>}
@@ -1443,7 +1467,6 @@ export default function NodeConfigPanel({
                   )}
                 </div>
 
-                {/* Input “Entrada do usuário” */}
                 {awaitResponse && (
                   <div className={styles.userInputGhost}>
                     <span>Entrada do usuário</span>
@@ -1453,7 +1476,7 @@ export default function NodeConfigPanel({
               </div>
             </div>
 
-            {/* EDITOR (abre ao clicar no lápis) */}
+            {/* Editor detalhado (abre no lápis) */}
             {!isHuman && editingBubble && (
               <div className={styles.sectionContainer}>
                 <div className={styles.sectionHeader}>
@@ -1463,7 +1486,7 @@ export default function NodeConfigPanel({
               </div>
             )}
 
-            {/* CONTROLES BÁSICOS (sempre visíveis) */}
+            {/* Controles rápidos quando não está editando */}
             {!isHuman && !editingBubble && (
               <div className={styles.sectionContainer}>
                 <div className={styles.sectionHeader}>
@@ -1496,19 +1519,31 @@ export default function NodeConfigPanel({
                   </div>
 
                   {Boolean(awaitResponse) && (
-                    <div className={styles.inputGroup}>
-                      <label className={styles.inputLabel}>Salvar resposta em</label>
-                      <input
-                        type="text"
-                        placeholder="ex.: context.inputMenuPrincipal"
-                        value={saveResponseVar || ""}
-                        onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
-                        className={styles.inputStyle}
-                      />
-                      <small className={styles.helpText}>
-                        (se vazio não salva — o executor usa <code>lastUserMessage</code>)
-                      </small>
-                    </div>
+                    <>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Salvar resposta em</label>
+                        <input
+                          type="text"
+                          placeholder="ex.: context.inputMenuPrincipal"
+                          value={saveResponseVar || ""}
+                          onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                          className={styles.inputStyle}
+                        />
+                      </div>
+
+                      {(type === "interactive" || type === "media") && (
+                        <div className={styles.inputGroup}>
+                          <label className={styles.inputLabel}>Salvar conteúdo rico em</label>
+                          <input
+                            type="text"
+                            placeholder="ex.: context.lastcontentmessage"
+                            value={saveContentVar || ""}
+                            onChange={(e) => updateBlock({ saveContentVar: e.target.value })}
+                            className={styles.inputStyle}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
 
                   <div className={styles.inputGroup}>
@@ -1529,10 +1564,10 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Aba: CONDIÇÕES */}
+        {/* Aba CONDIÇÕES */}
         {tab === "condicoes" && renderActionsTab()}
 
-        {/* Aba: AÇÕES */}
+        {/* Aba AÇÕES */}
         {tab === "acoes" && renderActionsSpecialTab()}
       </div>
     </aside>
