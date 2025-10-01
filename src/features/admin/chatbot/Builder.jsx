@@ -152,12 +152,8 @@ export default function Builder() {
   const [history, setHistory] = useState({ past: [], future: [] });
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
-  useEffect(() => {
-    nodesRef.current = nodes;
-  }, [nodes]);
-  useEffect(() => {
-    edgesRef.current = edges;
-  }, [edges]);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   const snapshot = useCallback(
     () => ({ nodes: deepClone(nodesRef.current), edges: deepClone(edgesRef.current) }),
@@ -203,6 +199,7 @@ export default function Builder() {
     [pushHistory]
   );
 
+  // sincroniza ações quando edges são removidos pelo ReactFlow + limpa seleção
   const onEdgesChange = useCallback(
     (changes) => {
       const removedIds = new Set(changes.filter((c) => c.type === "remove").map((c) => c.id));
@@ -226,6 +223,7 @@ export default function Builder() {
         );
       }
 
+      // garante deseleção se a edge removida estava ativa
       if (removedIds.size) {
         setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
       }
@@ -304,6 +302,7 @@ function run(context) {
 
   const onNodeDoubleClick = (_, node) => setSelectedNode(node);
 
+  // atualização do nó vinda do painel: reconcilia edges com ações + limpa seleção de edge removida
   const updateSelectedNode = (updated) => {
     if (!updated) {
       setSelectedNode(null);
@@ -313,24 +312,21 @@ function run(context) {
     const prev = snapshot();
     pushHistory(prev);
 
-    // normaliza rótulo do human ao atualizar
-    if (updated?.data?.type === "human" && updated?.data?.label !== "atendimento humano") {
-      updated = {
-        ...updated,
-        data: { ...updated.data, label: "atendimento humano", block: { ...updated.data.block, content: {} } },
-      };
-    }
-
+    // 1) atualiza nó
     setNodes((prevNodes) => prevNodes.map((n) => (n.id === updated.id ? updated : n)));
 
+    // 2) reconcilia edges
     const desiredTargets = new Set((updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean));
     const prevEdges = edgesRef.current;
 
+    // edges removidas por falta de action correspondente
     const removedEdges = prevEdges.filter((e) => e.source === updated.id && !desiredTargets.has(e.target));
     const removedEdgeIds = new Set(removedEdges.map((e) => e.id));
 
+    // mantém as demais
     const keptEdges = prevEdges.filter((e) => !(e.source === updated.id && removedEdgeIds.has(e.id)));
 
+    // cria as que faltam
     const keptPairs = new Set(keptEdges.map((e) => `${e.source}-${e.target}`));
     const additions = [];
     desiredTargets.forEach((t) => {
@@ -341,6 +337,7 @@ function run(context) {
     const nextEdges = keptEdges.concat(additions);
     setEdges(nextEdges);
 
+    // limpa seleção caso a edge selecionada tenha sido removida nesta atualização
     if (removedEdgeIds.size) {
       setSelectedEdgeId((cur) => (cur && removedEdgeIds.has(cur) ? null : cur));
     }
@@ -383,6 +380,7 @@ function run(context) {
     const prev = snapshot();
     pushHistory(prev);
 
+    // ids das edges que sairão
     const toRemove = edgesRef.current.filter((e) => e.source === deletedId || e.target === deletedId);
     const removedIds = new Set(toRemove.map((e) => e.id));
 
@@ -399,6 +397,7 @@ function run(context) {
 
     setEdges((eds) => eds.filter((e) => !removedIds.has(e.id)));
 
+    // limpa seleção se a edge removida estava ativa
     if (removedIds.size) {
       setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
     }
@@ -433,12 +432,15 @@ function run(context) {
     return () => document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
+  // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // se veio do painel, ignora (o painel já cuida de hotkeys locais)
       if ((event.target instanceof HTMLElement) && event.target.closest?.("[data-stop-hotkeys='true']")) {
         return;
       }
 
+      // Undo / Redo
       const isZ = event.key.toLowerCase() === "z";
       const isY = event.key.toLowerCase() === "y";
       if ((event.ctrlKey || event.metaKey) && isZ) {
@@ -453,6 +455,7 @@ function run(context) {
         return;
       }
 
+      // Delete
       if (event.key === "Delete") {
         if (selectedEdgeId) {
           const edgeToRemove = edgesRef.current.find((e) => e.id === selectedEdgeId);
@@ -513,24 +516,19 @@ function run(context) {
           ? normalized
           : Object.fromEntries(entries.map(([id, b]) => [id, { ...b, id }]));
 
-        const loadedNodes = Object.values(blocks).map((b) => {
-          const color = b.color || "#607D8B";
-          const label =
-            b.type === "human" ? "atendimento humano" : (b.label || "Sem Nome");
-          return {
-            id: b.id,
-            type: "quadrado",
-            position: b.position || { x: 100, y: 100 },
-            data: {
-              label,
-              type: b.type,
-              nodeType: b.type === "start" || (b.label || "").toLowerCase() === "início" ? "start" : undefined,
-              color,
-              block: { ...b },
-            },
-            style: { ...nodeStyle, borderColor: color },
-          };
-        });
+        const loadedNodes = Object.values(blocks).map((b) => ({
+          id: b.id,
+          type: "quadrado",
+          position: b.position || { x: 100, y: 100 },
+          data: {
+            label: b.label || "Sem Nome",
+            type: b.type,
+            nodeType: b.type === "start" || (b.label || "").toLowerCase() === "início" ? "start" : undefined,
+            color: b.color || "#607D8B",
+            block: b,
+          },
+          style: { ...nodeStyle, borderColor: b.color || "#607D8B" },
+        }));
 
         const loadedEdges = [];
         Object.values(blocks).forEach((b) => {
@@ -572,7 +570,7 @@ function run(context) {
         blocks[node.id] = {
           ...block,
           id: node.id,
-          label: node.data.type === "human" ? "atendimento humano" : node.data.label,
+          label: node.data.label,
           type: node.data.type,
           color: node.data.color,
           position: node.position,
@@ -606,7 +604,7 @@ function run(context) {
       blocks[node.id] = {
         ...clonedBlock,
         id: node.id,
-        label: node.data.type === "human" ? "atendimento humano" : node.data.label,
+        label: node.data.label,
         type: node.data.type,
         position: node.position,
         color: node.data.color,
@@ -626,22 +624,16 @@ function run(context) {
   /* ---------- add node ---------- */
   const addNodeTemplate = (template) => {
     const onErrorNode = nodesRef.current.find((n) => n.data.label?.toLowerCase() === "onerror");
-    const label = template.type === "human" ? "atendimento humano" : template.label;
-
     pushHistory(snapshot());
     const newNode = {
       id: genId(),
       type: "quadrado",
       position: { x: Math.random() * 250 + 100, y: Math.random() * 250 + 100 },
       data: {
-        label,
+        label: template.label,
         type: template.type,
         color: template.color,
-        block: {
-          ...template.block,
-          ...(template.type === "human" ? { content: {}, awaitResponse: false } : {}),
-          defaultNext: onErrorNode?.id,
-        },
+        block: { ...template.block, defaultNext: onErrorNode?.id },
       },
       style: { ...nodeStyle, borderColor: template.color },
     };
@@ -649,14 +641,16 @@ function run(context) {
   };
 
   /* ---------- render ---------- */
+
+  // mapeia cores dos nós por id (usa data.color; cai para style.borderColor; senão #888)
+  const nodeColorById = new Map(
+    nodes.map(n => [n.id, n.data?.color || n.style?.borderColor || "#888"])
+  );
+
   const styledNodes = nodes.map((node) => ({
     ...node,
     selected: selectedNode?.id === node.id,
-    data: {
-      ...node.data,
-      label: node.data.type === "human" ? "atendimento humano" : node.data.label,
-      isHighlighted: node.id === highlightedNodeId,
-    },
+    data: { ...node.data, isHighlighted: node.id === highlightedNodeId },
     style: {
       ...node.style,
       ...(selectedNode?.id === node.id ? selectedNodeStyle : {}),
@@ -664,32 +658,20 @@ function run(context) {
     },
   }));
 
-  // edges com destaque contextual
+  // 🔧 destaca APENAS as conexões que SAEM do nó selecionado; se clicar numa edge, ela fica destacada sozinha
   const styledEdges = edges.map((edge) => {
-    const src = nodes.find((n) => n.id === edge.source);
-    const srcColor = src?.data?.color || src?.style?.borderColor || "#546E7A";
+    const isOutFromSelected = !!selectedNode && edge.source === selectedNode.id;
+    const isClicked = edge.id === selectedEdgeId;
 
-    let stroke = "#888";
-    let strokeWidth = 1.5;
-    let opacity = 1;
-
-    if (selectedEdgeId === edge.id) {
-      stroke = srcColor;
-      strokeWidth = 3;
-    } else if (selectedNode) {
-      const touchesSelected = edge.source === selectedNode.id || edge.target === selectedNode.id;
-      if (touchesSelected) {
-        stroke = selectedNode.data?.color || selectedNode.style?.borderColor || "#546E7A";
-        strokeWidth = 3;
-      } else {
-        opacity = 0.35;
-      }
-    }
+    // cor = cor da borda do nó de origem
+    const srcColor = nodeColorById.get(edge.source) || "#888";
+    const stroke = (isClicked || isOutFromSelected) ? srcColor : "#888";
+    const strokeWidth = isClicked ? 3 : (isOutFromSelected ? 2.5 : 1.5);
 
     return {
       ...edge,
       markerEnd: { type: "arrowclosed", color: stroke, width: 16, height: 16 },
-      style: { stroke, strokeWidth, opacity },
+      style: { stroke, strokeWidth },
     };
   });
 
@@ -853,6 +835,7 @@ function run(context) {
             onClose={() => setSelectedNode(null)}
             allNodes={nodes}
             onConnectNodes={({ source, target }) => {
+              // conecta via painel (mesma lógica do handleConnectNodes)
               const src = nodesRef.current.find((n) => n.id === source);
               const actions = src?.data?.block?.actions || [];
               const already = actions.some((a) => a.next === target);
