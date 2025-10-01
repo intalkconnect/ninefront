@@ -1,29 +1,22 @@
 /* ===== Tema claro, neutro (sem azul) ===== */
 
 .asidePanel{
-  position:fixed;
-  right:0; top:0;
-  width:420px; height:100vh;
-  background:#ffffff; color:#2f2f2f;
-  z-index:9999;
-  border-left:1px solid #e7e7e7;
-  box-shadow:-12px 0 40px rgba(0,0,0,.06);
+  position:fixed; right:0; top:0; width:420px; height:100vh;
+  background:#ffffff; color:#2f2f2f; z-index:9999;
+  border-left:1px solid #e7e7e7; box-shadow:-12px 0 40px rgba(0,0,0,.06);
   overflow:auto;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
 /* Header */
 .panelHeader{
-  position:sticky; top:0;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 16px; background:#fff;
-  border-bottom:1px solid #ececec;
+  position:sticky; top:0; display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; background:#fff; border-bottom:1px solid #ececec;
 }
 .panelTitle{ margin:0; font-size:16px; font-weight:800; color:#111; }
 .closeButton{
   border:1px solid #e5e5e5; background:#fafafa; color:#b00000;
-  width:36px; height:36px; border-radius:10px;
-  display:flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
   cursor:pointer; transition:.15s;
 }
 .closeButton:hover{ background:#ffecec; }
@@ -31,60 +24,40 @@
 /* Tabs */
 .tabContent{ padding:14px 16px 28px; }
 .tabButtons{
-  display:flex; gap:8px; margin:12px 0 16px;
-  background:#f7f7f7; padding:6px;
+  display:flex; gap:8px; margin:12px 0 16px; background:#f7f7f7; padding:6px;
   border-radius:12px; border:1px solid #ececec;
 }
 .tabButton{
-  flex:1; background:transparent; color:#666; border:none;
-  padding:10px 12px; border-radius:10px; cursor:pointer;
-  font-weight:800; transition:.15s;
+  flex:1; background:transparent; color:#666; border:none; padding:10px 12px; border-radius:10px;
+  cursor:pointer; font-weight:800; transition:.15s;
 }
 .tabButton:hover{ background:#f1f1f1; color:#222; }
-.tabButtonActive{
-  color:#111; background:#eaeaea; box-shadow:inset 0 0 0 1px #d9d9d9;
-}
+.tabButtonActive{ color:#111; background:#eaeaea; box-shadow:inset 0 0 0 1px #d9d9d9; }
 
 /* Inputs */
 .inputGroup{ margin-bottom:12px; }
 .inputLabel{ display:block; margin-bottom:6px; font-size:12px; color:#555; font-weight:700; }
-
 .inputStyle, .selectStyle, .textareaStyle{
   width:100%; background:#fff; color:#222; border:1px solid #dfdfdf;
   border-radius:10px; padding:10px 12px; font-size:13px; transition:.15s;
 }
-.inputStyle:focus, .selectStyle:focus, .textareaStyle:focus{
-  outline:none; border-color:#b5b5b5; box-shadow:0 0 0 3px rgba(0,0,0,.04);
-}
+.inputStyle:focus, .selectStyle:focus, .textareaStyle:focus{ outline:none; border-color:#b5b5b5; box-shadow:0 0 0 3px rgba(0,0,0,.04); }
 .textareaStyle{ resize:vertical; min-height:96px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .helpText{ display:block; color:#888; font-size:11px; margin-top:6px; }
 
 /* Seções */
 .sectionContainer{ background:#fff; border:1px solid #ececec; border-radius:14px; margin-bottom:14px; }
-.sectionHeader{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:12px 14px; cursor:pointer;
-  background:#fafafa; border-bottom:1px solid #f1f1f1;
-}
+.sectionHeader{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; cursor:pointer; background:#fafafa; border-bottom:1px solid #f1f1f1; }
 .sectionTitle{ margin:0; font-weight:800; font-size:14px; color:#111; display:flex; align-items:center; gap:8px; }
-.sectionCount{
-  margin-left:8px; font-size:11px; color:#444; background:#efefef; border:1px solid #dedede;
-  padding:2px 8px; border-radius:999px;
-}
+.sectionCount{ margin-left:8px; font-size:11px; color:#444; background:#efefef; border:1px solid #dedede; padding:2px 8px; border-radius:999px; }
 .sectionContent{ padding:12px 14px; }
 .smallTitle{ margin:0 0 10px; font-weight:800; font-size:12px; color:#333; }
 
-/* Preview estilo chat (claro) */
-.chatPreviewCard{ border:1px solid #ececec; border-radius:14px; background:#fff; margin-bottom:14px; }
-.chatToolbar{
-  display:flex; align-items:center; justify-content:space-between;
-  padding:8px 10px; border-bottom:1px solid #f1f1f1; background:#fafafa;
+/* Preview estilo chat */
+.chatPreviewCard{ position:relative; border:1px solid #ececec; border-radius:14px; background:#fff; margin-bottom:14px; }
+.floatingBtns{
+  position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:2;
 }
-.toolbarBadge{
-  font-size:11px; color:#333; background:#efefef; border:1px solid #dedede;
-  padding:2px 8px; border-radius:999px; font-weight:800;
-}
-.toolbarButtons{ display:flex; gap:8px; }
 .iconGhost{
   border:1px solid #e5e5e5; background:#fff; color:#222;
   width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
@@ -98,17 +71,13 @@
   color:#777; border:1px solid #e8e8e8;
 }
 
-.bubble{
-  max-width:100%; background:#f8f8f8; border:1px solid #e9e9e9; color:#222;
-  border-radius:12px; padding:12px 14px; position:relative;
-}
+.bubble{ max-width:100%; background:#f8f8f8; border:1px solid #e9e9e9; color:#222; border-radius:12px; padding:12px 14px; position:relative; }
 .bubbleText{ white-space:pre-wrap; line-height:1.55; font-size:13px; }
 .placeholder{ color:#9a9a9a; font-style:italic; }
 
 .quickReplies{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 .quickReplyChip{
-  background:#efefef; color:#222; font-weight:800; border-radius:999px; padding:8px 12px; font-size:12px;
-  border:1px solid #dbdbdb;
+  background:#efefef; color:#222; font-weight:800; border-radius:999px; padding:8px 12px; font-size:12px; border:1px solid #dbdbdb;
 }
 
 .listPreview{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
@@ -118,12 +87,16 @@
 .listTexts small{ display:block; color:#555; font-size:12px; }
 .moreHint{ color:#777; font-size:12px; margin-top:6px; display:block; }
 
-/* “Entrada do usuário” fantasma */
-.userInputGhost{
+/* Chip “Entrada do usuário” que abre o await */
+.userInputChip{
   align-self:flex-end; display:inline-flex; align-items:center; gap:8px;
   background:#ffffff; color:#111; border-radius:999px; padding:8px 12px; font-size:12px; border:1px solid #e5e5e5;
+  cursor:pointer;
 }
-.inputTail{ width:8px; height:8px; background:#fff; border:1px solid #e5e5e5; transform:rotate(45deg); border-left:0; border-top:0; margin-right:-6px; }
+.caret{
+  width:8px; height:8px; border:1px solid #bfbfbf; border-left:0; border-top:0; transform:rotate(45deg); margin-left:2px;
+}
+.caretUp{ transform:rotate(-135deg); }
 
 /* Cards/ações/condições */
 .actionBox{ background:#fff; border:1px solid #ececec; border-radius:12px; padding:12px; margin-bottom:12px; }
