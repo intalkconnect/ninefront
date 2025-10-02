@@ -15,15 +15,15 @@ import styles from "./styles/NodeConfigPanel.module.css";
 
 /* ===================== PREVIEW COMPONENTS (ajuste os caminhos conforme seu projeto) ===================== */
 // Se os paths forem diferentes no seu repo, só ajustar:
-import TextMessage from "../../../atendimento/components/chat/messageTypes/TextMessage";
-import QuickReplyMessage from "../../../atendimento/components/chat/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../../atendimento/components/chat/messageTypes/InteractiveListMessage";
-import InteractiveButtonsMessage from "../../../atendimento/components/chat/messageTypes/InteractiveButtonsMessage";
-import ImageMessage from "../../../atendimento/components/chat/messageTypes/ImageMessage";
-import DocumentMessage from "../../../atendimento/components/chat/messageTypes/DocumentMessage";
-import AudioMessage from "../../../atendimento/components/chat/messageTypes/AudioMessage";
-import VideoMessage from "../../../atendimento/components/chat/messageTypes/VideoMessage";
-import ContactsMessage from "../../../atendimento/components/chat/messageTypes/ContactsMessage";
+import TextMessage from "../../../atendimento/components/chat/message/messageTypes/TextMessage";
+import QuickReplyMessage from "../../../atendimento/components/chat/message/messageTypes/QuickReplyMessage";
+import InteractiveListMessage from "../../../atendimento/components/chat/message/messageTypes/InteractiveListMessage";
+import InteractiveButtonsMessage from "../../../atendimento/components/chat/message/messageTypes/InteractiveButtonsMessage";
+import ImageMessage from "../../../atendimento/components/chat/message/messageTypes/ImageMessage";
+import DocumentMessage from "../../../atendimento/components/chat/message/messageTypes/DocumentMessage";
+import AudioMessage from "../../../atendimento/components/chat/message/messageTypes/AudioMessage";
+import VideoMessage from "../../../atendimento/components/chat/message/messageTypes/VideoMessage";
+import ContactsMessage from "../../../atendimento/components/chat/message/messageTypes/ContactsMessage";
 
 /* ================= Inputs estáveis ================= */
 function useStableCaret() {
