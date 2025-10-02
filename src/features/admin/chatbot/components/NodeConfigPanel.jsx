@@ -1,4 +1,4 @@
-// NodeConfigPanel.jsx
+// src/features/admin/chatbot/components/NodeConfigPanel.jsx
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   Trash2,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/* ================= Inputs estáveis (mantêm caret e não “puxam” foco) ================= */
+/* ================= Inputs estáveis ================= */
 function useStableCaret() {
   const sel = useRef({ start: null, end: null });
   const onBeforeChange = (el) => {
@@ -27,7 +27,6 @@ function useStableCaret() {
     if (!el) return;
     const { start, end } = sel.current || {};
     if (start == null || end == null) return;
-    // Restaura no próximo frame para não disputar com o reconciliation
     requestAnimationFrame(() => {
       try { el.setSelectionRange(start, end); } catch {}
     });
@@ -39,9 +38,7 @@ export function StableInput({ value, onChange, className, ...rest }) {
   const ref = useRef(null);
   const { onBeforeChange, restore } = useStableCaret();
   const stop = (e) => e.stopPropagation();
-
   useEffect(() => { restore(ref.current); });
-
   return (
     <input
       ref={ref}
@@ -61,9 +58,7 @@ export function StableTextarea({ value, onChange, className, rows = 4, ...rest }
   const ref = useRef(null);
   const { onBeforeChange, restore } = useStableCaret();
   const stop = (e) => e.stopPropagation();
-
   useEffect(() => { restore(ref.current); });
-
   return (
     <textarea
       ref={ref}
@@ -88,10 +83,7 @@ const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
 const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
 
-/* =======================================================================================
-   Overlays (componentes de topo, IDENTIDADE ESTÁVEL)
-======================================================================================= */
-
+/* ================= Overlay header ================= */
 function OverlayHeader({ title, onBack, onClose, right = null }) {
   return (
     <div className={styles.overlayHeader}>
@@ -107,7 +99,7 @@ function OverlayHeader({ title, onBack, onClose, right = null }) {
   );
 }
 
-/* -------- AWAIT -------- */
+/* ================= OverlayAwait ================= */
 function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
   return (
     <>
@@ -179,7 +171,7 @@ function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
   );
 }
 
-/* -------- CONTEÚDO -------- */
+/* ================= OverlayConteudo ================= */
 function OverlayConteudoComp({
   type,
   draft,
@@ -539,7 +531,7 @@ function OverlayConteudoComp({
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
                       setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast é disparado no pai */ }
+                    } catch { /* toast no pai */ }
                   }}
                 />
               </div>
@@ -556,7 +548,7 @@ function OverlayConteudoComp({
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
                       setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast é disparado no pai */ }
+                    } catch { /* toast no pai */ }
                   }}
                 />
               </div>
@@ -595,7 +587,7 @@ function OverlayConteudoComp({
   );
 }
 
-/* -------- REGRAS -------- */
+/* ================= OverlayRegras ================= */
 function OverlayRegrasComp({
   draft,
   setDraft,
@@ -878,7 +870,7 @@ function OverlayRegrasComp({
   );
 }
 
-/* -------- AÇÕES ESPECIAIS (lista + editor overlay interno) -------- */
+/* ================= Especiais (lista + editor overlay) ================= */
 function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
   return (
     <div className={styles.sectionContainer}>
@@ -1138,7 +1130,7 @@ function EditorOverlay({
           </div>
         </div>
       </div>
-    </>
+    </div> {/* <-- CORREÇÃO: antes estava </> */}
   );
 }
 
@@ -1232,7 +1224,12 @@ function OverlayEspeciaisComp({
     else onChangeNode({ onExit: list });
 
     setEditorOpen(false);
-    resetEditing();
+    setEditing({
+      mode: "create",
+      section: "enter",
+      index: -1,
+      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+    });
     showToast("success", "Variável salva com sucesso.");
   };
 
@@ -1266,7 +1263,7 @@ function OverlayEspeciaisComp({
         mode={editing.mode}
         section={editing.section}
         save={saveEditing}
-        cancel={resetEditing}
+        cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
         variableOptions={variableOptions}
         showToast={showToast}
       />
@@ -1274,10 +1271,7 @@ function OverlayEspeciaisComp({
   );
 }
 
-/* =======================================================================================
-   Painel principal
-======================================================================================= */
-
+/* ================= Painel principal ================= */
 export default function NodeConfigPanel({
   selectedNode,
   onChange,
@@ -1324,7 +1318,6 @@ export default function NodeConfigPanel({
 
   const isHuman = type === "human";
 
-  /* bloquear atalhos globais quando digitando dentro do painel */
   const isEditableTarget = (el) => {
     if (!el) return false;
     if (el.isContentEditable) return true;
@@ -1357,8 +1350,7 @@ export default function NodeConfigPanel({
         ]
   ), [isHuman]);
 
-  /* ---------------- drafts por overlay ---------------- */
-  // Await
+  /* drafts */
   const [awaitDraft, setAwaitDraft] = useState({
     awaitResponse: !!awaitResponse,
     awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
@@ -1376,7 +1368,6 @@ export default function NodeConfigPanel({
     }
   }, [overlayMode, awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
-  // Conteúdo — inclui headersText/bodyText como string
   const [conteudoDraft, setConteudoDraft] = useState({
     type,
     text: typeof block.content === "string" ? block.content : "",
@@ -1422,7 +1413,6 @@ export default function NodeConfigPanel({
     }
   }, [overlayMode, type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
 
-  // Regras
   const [regrasDraft, setRegrasDraft] = useState({
     actions: deepClone(actions || []),
     defaultNext: defaultNext || "",
@@ -1433,7 +1423,7 @@ export default function NodeConfigPanel({
     }
   }, [overlayMode, actions, defaultNext]);
 
-  /* ---------------- commits ---------------- */
+  /* commits */
   const updateBlock = (changes) =>
     onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, ...changes } } });
 
@@ -1484,7 +1474,7 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
-  /* ---------------- preview/chat ---------------- */
+  /* preview */
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
       <div className={styles.floatingBtns}>
@@ -1505,20 +1495,17 @@ export default function NodeConfigPanel({
         <div className={styles.bubble}>
           <div className={styles.bubbleText}>
             {type === "text" && (typeof block.content === "string" ? block.content : "")}
-
             {type === "interactive" && (
               <>
                 <div>{conteudoDraft.content?.body?.text || <em className={styles.placeholder}>Sem corpo</em>}</div>
               </>
             )}
-
             {type === "media" && (
               <>
                 <div><strong>Mídia:</strong> {conteudoDraft.media?.mediaType || "image"}</div>
                 <div>{conteudoDraft.media?.caption || <em className={styles.placeholder}>Sem legenda</em>}</div>
               </>
             )}
-
             {type === "location" && (
               <>
                 <div><strong>{conteudoDraft.location?.name || "Local"}</strong></div>
@@ -1541,7 +1528,7 @@ export default function NodeConfigPanel({
     </div>
   );
 
-  /* ---------------- render ---------------- */
+  /* render */
   return (
     <aside
       ref={panelRef}
@@ -1590,7 +1577,7 @@ export default function NodeConfigPanel({
         <ChatPreview />
       </div>
 
-      {/* Overlay principal — agora com componentes de TOPO (identidade estável) */}
+      {/* Overlay principal */}
       <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
         {overlayMode === "await" && (
           <OverlayAwaitComp
@@ -1609,7 +1596,6 @@ export default function NodeConfigPanel({
               setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
             }
             commit={() => {
-              // valida JSON aqui para dar toast, mantendo texto se inválido
               try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); }
               try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); }
               commitConteudo();
