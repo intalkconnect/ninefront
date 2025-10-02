@@ -9,6 +9,19 @@
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
+/* Toasts */
+.toastStack{
+  position:fixed; right:20px; bottom:20px; z-index:9999; display:flex; flex-direction:column; gap:8px;
+}
+.toast{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border-radius:10px; border:1px solid transparent;
+  background:#fff; box-shadow:0 6px 20px rgba(0,0,0,.10); font-size:13px; font-weight:700;
+}
+.toast_success{ border-color:#d2f4d7; background:#f0fff3; color:#14532d; }
+.toast_error{ border-color:#ffd3d3; background:#fff2f2; color:#991b1b; }
+.toast_info{ border-color:#e6e6e6; background:#fafafa; color:#2f2f2f; }
+
 /* Header */
 .panelHeader{
   position:sticky; top:0; display:flex; align-items:center; justify-content:space-between;
@@ -145,7 +158,7 @@
 }
 .overlayBody{ padding:12px 14px 20px; overflow:auto; }
 
-/* ===== Ações especiais (lista + editor) ===== */
+/* ===== Ações especiais (lista) ===== */
 .specialListRow{
   display:flex; align-items:center; justify-content:space-between;
   gap:10px; padding:10px 12px; border:1px solid #ececec; border-radius:10px;
@@ -153,7 +166,7 @@
 }
 .rowMain{ min-width:0; }
 .rowTitle{ font-weight:800; color:#111; font-size:13px; }
-.rowMeta{ display:flex; align-items:center; gap:6px; margin-top:4px; color:#555; font-size:12px; }
+.rowMeta{ display:flex; align-items:center; gap:6px; margin-top:4px; color:#555; font-size:12px; flex-wrap:wrap; }
 .metaSep{ opacity:.6; }
 .metaArrow{ margin:0 2px; opacity:.6; }
 .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -170,34 +183,68 @@
 }
 .pillLight{
   border:1px solid #eee; background:#fafafa; color:#555;
-  border-radius:999px; padding:2px 8px; font-size:11px; margin-left:8px;
+  border-radius:999px; padding:2px 8px; font-size:11px;
 }
 
-/* Editor card */
-.editorCard{
-  margin-top:12px; background:#fff; border:1px solid #ececec; border-radius:12px;
+/* Editor modal */
+.modal{
+  position:fixed; inset:0; display:flex; align-items:flex-end; justify-content:center;
+  pointer-events:none; opacity:0; transition:opacity .2s ease; z-index:10000;
 }
+.modalOpen{ pointer-events:auto; opacity:1; }
+.modalBackdrop{
+  position:fixed; inset:0; background:rgba(0,0,0,.28);
+}
+.modalCard{
+  position:relative; width:min(860px, calc(100vw - 32px));
+  background:#fff; border:1px solid #e9e9e9; border-radius:14px 14px 0 0;
+  box-shadow:0 -16px 60px rgba(0,0,0,.18);
+  transform:translateY(12px); animation:modalUp .2s ease forwards;
+}
+@keyframes modalUp{ to{ transform:translateY(0); } }
+.modalHeader{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 14px; border-bottom:1px solid #efefef; background:#fff; position:sticky; top:0; z-index:2;
+  border-radius:14px 14px 0 0;
+}
+.modalTitle{ margin:0; font-weight:800; font-size:14px; color:#111; display:flex; align-items:center; }
+.modalBody{ padding:12px 14px 16px; max-height:70vh; overflow:auto; }
+
+/* Editor grid */
 .specialInline{
   display:grid; grid-template-columns: 1.2fr .9fr 1fr 1fr;
   gap:8px; align-items:center; margin-bottom:10px;
 }
+
+.specialCondRow{
+  display:grid; grid-template-columns: 190px 1fr 160px 1fr auto;
+  gap:8px; align-items:center; background:#ffffff;
+  border:1px dashed #e8e8e8; border-radius:10px; padding:8px 10px; margin-bottom:8px;
+}
+.specialCondRow .selectStyle, .specialCondRow .inputStyle{ height:36px; }
+
 .helpRow{ margin-top:6px; }
 .emptyHint{
   font-size:12px; color:#666; background:#fafafa; border:1px dashed #e8e8e8;
   padding:10px 12px; border-radius:10px;
 }
 
-/* Scrollbar claro */
+/* Scrollbars */
 .asidePanel::-webkit-scrollbar,
-.overlayBody::-webkit-scrollbar{ width:10px; }
+.overlayBody::-webkit-scrollbar,
+.modalBody::-webkit-scrollbar{ width:10px; }
 .asidePanel::-webkit-scrollbar-thumb,
-.overlayBody::-webkit-scrollbar-thumb{ background:#d8d8d8; border-radius:999px; }
+.overlayBody::-webkit-scrollbar-thumb,
+.modalBody::-webkit-scrollbar-thumb{ background:#d8d8d8; border-radius:999px; }
 .asidePanel::-webkit-scrollbar-track,
-.overlayBody::-webkit-scrollbar-track{ background:#f6f6f6; }
+.overlayBody::-webkit-scrollbar-track,
+.modalBody::-webkit-scrollbar-track{ background:#f6f6f6; }
 
 /* Responsivo */
 @media (max-width: 860px){
   .asidePanel{ width:100vw; }
   .rowTwoCols{ grid-template-columns:1fr; }
   .specialInline{ grid-template-columns: 1fr; }
+  .specialCondRow{ grid-template-columns: 1fr; }
+  .modalCard{ width:calc(100vw - 16px); border-radius:14px 14px 0 0; }
 }
