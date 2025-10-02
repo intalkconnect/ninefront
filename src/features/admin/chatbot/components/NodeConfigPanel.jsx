@@ -13,6 +13,18 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
+/* ===================== PREVIEW COMPONENTS (ajuste os caminhos conforme seu projeto) ===================== */
+// Se os paths forem diferentes no seu repo, só ajustar:
+import TextMessage from "../../../components/ChatWindow/messageTypes/TextMessage";
+import QuickReplyMessage from "../../../components/ChatWindow/messageTypes/QuickReplyMessage";
+import InteractiveListMessage from "../../../components/ChatWindow/messageTypes/InteractiveListMessage";
+import InteractiveButtonsMessage from "../../../components/ChatWindow/messageTypes/InteractiveButtonsMessage";
+import ImageMessage from "../../../components/ChatWindow/messageTypes/ImageMessage";
+import DocumentMessage from "../../../components/ChatWindow/messageTypes/DocumentMessage";
+import AudioMessage from "../../../components/ChatWindow/messageTypes/AudioMessage";
+import VideoMessage from "../../../components/ChatWindow/messageTypes/VideoMessage";
+import ContactsMessage from "../../../components/ChatWindow/messageTypes/ContactsMessage";
+
 /* ================= Inputs estáveis ================= */
 function useStableCaret() {
   const sel = useRef({ start: null, end: null });
@@ -28,7 +40,9 @@ function useStableCaret() {
     const { start, end } = sel.current || {};
     if (start == null || end == null) return;
     requestAnimationFrame(() => {
-      try { el.setSelectionRange(start, end); } catch {}
+      try {
+        el.setSelectionRange(start, end);
+      } catch {}
     });
   };
   return { onBeforeChange, restore };
@@ -38,12 +52,17 @@ export function StableInput({ value, onChange, className, ...rest }) {
   const ref = useRef(null);
   const { onBeforeChange, restore } = useStableCaret();
   const stop = (e) => e.stopPropagation();
-  useEffect(() => { restore(ref.current); });
+  useEffect(() => {
+    restore(ref.current);
+  });
   return (
     <input
       ref={ref}
       value={value ?? ""}
-      onChange={(e) => { onBeforeChange(e.target); onChange?.(e); }}
+      onChange={(e) => {
+        onBeforeChange(e.target);
+        onChange?.(e);
+      }}
       onKeyDownCapture={stop}
       onKeyUpCapture={stop}
       onKeyPressCapture={stop}
@@ -58,13 +77,18 @@ export function StableTextarea({ value, onChange, className, rows = 4, ...rest }
   const ref = useRef(null);
   const { onBeforeChange, restore } = useStableCaret();
   const stop = (e) => e.stopPropagation();
-  useEffect(() => { restore(ref.current); });
+  useEffect(() => {
+    restore(ref.current);
+  });
   return (
     <textarea
       ref={ref}
       rows={rows}
       value={value ?? ""}
-      onChange={(e) => { onBeforeChange(e.target); onChange?.(e); }}
+      onChange={(e) => {
+        onBeforeChange(e.target);
+        onChange?.(e);
+      }}
       onKeyDownCapture={stop}
       onKeyUpCapture={stop}
       onKeyPressCapture={stop}
@@ -81,7 +105,13 @@ const deepClone = (obj) =>
 const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
 const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
-const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
+const pretty = (obj) => {
+  try {
+    return JSON.stringify(obj ?? {}, null, 2);
+  } catch {
+    return "{}";
+  }
+};
 
 /* ================= Overlay header ================= */
 function OverlayHeader({ title, onBack, onClose, right = null }) {
@@ -93,7 +123,9 @@ function OverlayHeader({ title, onBack, onClose, right = null }) {
       <div className={styles.overlayTitle}>{title}</div>
       <div className={styles.buttonGroup}>
         {right}
-        <button className={styles.iconGhost} onClick={onClose} title="Fechar"><X size={16} /></button>
+        <button className={styles.iconGhost} onClick={onClose} title="Fechar">
+          <X size={16} />
+        </button>
       </div>
     </div>
   );
@@ -109,7 +141,7 @@ function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
         onClose={onClose}
         right={
           <button className={styles.addButtonSmall} onClick={commit}>
-            <Check size={14}/> Salvar
+            <Check size={14} /> Salvar
           </button>
         }
       />
@@ -185,8 +217,7 @@ function OverlayConteudoComp({
   clampFn,
   makeIdFromTitleFn,
 }) {
-  const setContent = (patch) =>
-    setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
+  const setContent = (patch) => setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
 
   return (
     <>
@@ -196,14 +227,16 @@ function OverlayConteudoComp({
         onClose={onClose}
         right={
           <button className={styles.addButtonSmall} onClick={commit}>
-            <Check size={14}/> Salvar
+            <Check size={14} /> Salvar
           </button>
         }
       />
       <div className={styles.overlayBody} data-stop-hotkeys="true">
         {type === "text" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Mensagem</h4>
+            </div>
             <div className={styles.sectionContent}>
               <StableTextarea
                 rows={8}
@@ -216,7 +249,9 @@ function OverlayConteudoComp({
 
         {type === "interactive" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Interativo</h4>
+            </div>
             <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
@@ -232,7 +267,15 @@ function OverlayConteudoComp({
                           body: { text: "Escolha um item da lista:" },
                           footer: { text: "Toque para selecionar" },
                           header: { text: "Menu de Opções", type: "text" },
-                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
+                          action: {
+                            button: "Abrir lista",
+                            sections: [
+                              {
+                                title: "Seção 1",
+                                rows: [{ id: "Item 1", title: "Item 1", description: "" }],
+                              },
+                            ],
+                          },
                         }),
                       }));
                     } else {
@@ -332,7 +375,9 @@ function OverlayConteudoComp({
                         const action = {
                           ...(deepClone(draft.content?.action) || {}),
                           button: nextVal,
-                          sections: deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
+                          sections: deepClone(draft.content?.action?.sections || [
+                            { title: "Seção 1", rows: [] },
+                          ]),
                         };
                         setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
                       }}
@@ -348,9 +393,15 @@ function OverlayConteudoComp({
                         placeholder="Título"
                         onChange={(e) => {
                           const value = e.target.value;
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                          const sections = deepClone(
+                            draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]
+                          );
                           const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), title: clampFn(value, 24), id: makeIdFromTitleFn(value, 24) };
+                          rows[idx] = {
+                            ...(rows[idx] || {}),
+                            title: clampFn(value, 24),
+                            id: makeIdFromTitleFn(value, 24),
+                          };
                           sections[0] = { ...(sections[0] || {}), rows };
                           const action = { ...(deepClone(draft.content?.action) || {}), sections };
                           setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
@@ -361,7 +412,9 @@ function OverlayConteudoComp({
                         value={item.description}
                         placeholder="Descrição"
                         onChange={(e) => {
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                          const sections = deepClone(
+                            draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]
+                          );
                           const rows = [...(sections[0]?.rows || [])];
                           rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
                           sections[0] = { ...(sections[0] || {}), rows };
@@ -409,13 +462,15 @@ function OverlayConteudoComp({
 
         {type === "media" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Mídia</h4>
+            </div>
             <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
                 <select
                   value={draft.media?.mediaType || "image"}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), mediaType: e.target.value } }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media || {}), mediaType: e.target.value } }))}
                   className={styles.selectStyle}
                 >
                   <option value="image">Imagem</option>
@@ -429,7 +484,7 @@ function OverlayConteudoComp({
                 <StableInput
                   type="text"
                   value={draft.media?.url || ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), url: e.target.value } }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media || {}), url: e.target.value } }))}
                 />
               </div>
               <div className={styles.inputGroup}>
@@ -437,7 +492,7 @@ function OverlayConteudoComp({
                 <StableInput
                   type="text"
                   value={draft.media?.caption || ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value } }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media || {}), caption: e.target.value } }))}
                 />
               </div>
             </div>
@@ -446,23 +501,57 @@ function OverlayConteudoComp({
 
         {type === "location" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Localização</h4>
+            </div>
             <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
-                <StableInput type="text" value={draft.location?.name || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), name: e.target.value } }))}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
-                <StableInput type="text" value={draft.location?.address || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), address: e.target.value } }))}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
-                <StableInput type="text" value={draft.location?.latitude || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), latitude: e.target.value } }))}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
-                <StableInput type="text" value={draft.location?.longitude || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), longitude: e.target.value } }))}/></div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Nome</label>
+                <StableInput
+                  type="text"
+                  value={draft.location?.name || ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location || {}), name: e.target.value } }))}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Endereço</label>
+                <StableInput
+                  type="text"
+                  value={draft.location?.address || ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, location: { ...(d.location || {}), address: e.target.value } }))
+                  }
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Latitude</label>
+                <StableInput
+                  type="text"
+                  value={draft.location?.latitude || ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, location: { ...(d.location || {}), latitude: e.target.value } }))
+                  }
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Longitude</label>
+                <StableInput
+                  type="text"
+                  value={draft.location?.longitude || ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, location: { ...(d.location || {}), longitude: e.target.value } }))
+                  }
+                />
+              </div>
             </div>
           </div>
         )}
 
         {type === "script" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Script</h4>
+            </div>
             <div className={styles.sectionContent}>
               <button
                 onClick={() => {
@@ -497,16 +586,22 @@ function OverlayConteudoComp({
 
         {type === "api_call" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Requisição HTTP</h4>
+            </div>
             <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Método</label>
                 <select
                   value={draft.api.method}
-                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, api: { ...d.api, method: e.target.value || "GET" } }))}
                   className={styles.selectStyle}
                 >
-                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+                  <option>GET</option>
+                  <option>POST</option>
+                  <option>PUT</option>
+                  <option>DELETE</option>
+                  <option>PATCH</option>
                 </select>
               </div>
 
@@ -515,7 +610,7 @@ function OverlayConteudoComp({
                 <StableInput
                   type="text"
                   value={draft.api.url}
-                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, api: { ...d.api, url: e.target.value } }))}
                 />
               </div>
 
@@ -524,14 +619,15 @@ function OverlayConteudoComp({
                 <StableTextarea
                   rows={3}
                   value={draft.api.headersText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
-                  }
+                  onChange={(e) => setDraft((d) => ({ ...d, api: { ...d.api, headersText: e.target.value } }))}
                   onBlur={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
+                      setDraft((d) => ({
+                        ...d,
+                        api: { ...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2) },
+                      }));
+                    } catch {}
                   }}
                 />
               </div>
@@ -541,14 +637,15 @@ function OverlayConteudoComp({
                 <StableTextarea
                   rows={4}
                   value={draft.api.bodyText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
-                  }
+                  onChange={(e) => setDraft((d) => ({ ...d, api: { ...d.api, bodyText: e.target.value } }))}
                   onBlur={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
+                      setDraft((d) => ({
+                        ...d,
+                        api: { ...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2) },
+                      }));
+                    } catch {}
                   }}
                 />
               </div>
@@ -559,7 +656,7 @@ function OverlayConteudoComp({
                   <StableInput
                     type="number"
                     value={draft.api.timeout}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
+                    onChange={(e) => setDraft((d) => ({ ...d, api: { ...d.api, timeout: e.target.value } }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
@@ -567,7 +664,7 @@ function OverlayConteudoComp({
                   <StableInput
                     type="text"
                     value={draft.api.outputVar}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
+                    onChange={(e) => setDraft((d) => ({ ...d, api: { ...d.api, outputVar: e.target.value } }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
@@ -575,7 +672,7 @@ function OverlayConteudoComp({
                   <StableInput
                     type="text"
                     value={draft.api.statusVar}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
+                    onChange={(e) => setDraft((d) => ({ ...d, api: { ...d.api, statusVar: e.target.value } }))}
                   />
                 </div>
               </div>
@@ -604,8 +701,10 @@ function OverlayRegrasComp({
   const addOffhoursAction = (kind) => {
     let conds = [];
     if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
-    else if (kind === "reason_holiday") conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
-    else if (kind === "reason_closed") conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
+    else if (kind === "reason_holiday")
+      conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
+    else if (kind === "reason_closed")
+      conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
     const next = [...(draft.actions || []), { next: "", conditions: conds }];
     updateActionsLocal(next);
   };
@@ -616,7 +715,11 @@ function OverlayRegrasComp({
       return (
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "true"} onChange={(e) => onChangeValue(e.target.value)}>
+          <select
+            className={styles.selectStyle}
+            value={cond.value ?? "true"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
             <option value="true">true</option>
             <option value="false">false</option>
           </select>
@@ -627,7 +730,11 @@ function OverlayRegrasComp({
       return (
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "holiday"} onChange={(e) => onChangeValue(e.target.value)}>
+          <select
+            className={styles.selectStyle}
+            value={cond.value ?? "holiday"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
             <option value="holiday">holiday</option>
             <option value="closed">closed</option>
           </select>
@@ -655,7 +762,7 @@ function OverlayRegrasComp({
         onClose={onClose}
         right={
           <button className={styles.addButtonSmall} onClick={commit}>
-            <Check size={14}/> Salvar
+            <Check size={14} /> Salvar
           </button>
         }
       />
@@ -667,9 +774,15 @@ function OverlayRegrasComp({
           </div>
           <div className={styles.sectionContent}>
             <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
-              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
-              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
-              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
+              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>
+                + Se offhours = true
+              </button>
+              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>
+                + Se motivo = holiday
+              </button>
+              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>
+                + Se motivo = closed
+              </button>
             </div>
 
             {draft.actions.map((action, actionIdx) => (
@@ -728,7 +841,9 @@ function OverlayRegrasComp({
                           className={styles.selectStyle}
                         >
                           {variableOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -865,7 +980,7 @@ function OverlayRegrasComp({
             </div>
           </div>
         </div>
-      </div> 
+      </div>
     </>
   );
 }
@@ -937,7 +1052,10 @@ function EditorOverlay({
   showToast,
 }) {
   const addCond = () =>
-    setDraft((d) => ({ ...d, conditions: [...(d.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] }));
+    setDraft((d) => ({
+      ...d,
+      conditions: [...(d.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }],
+    }));
   const updateCond = (idx, patch) => {
     const next = deepClone(draft.conditions || []);
     next[idx] = { ...next[idx], ...patch };
@@ -952,7 +1070,14 @@ function EditorOverlay({
   return (
     <div className={`${styles.subOverlay} ${open ? styles.subOverlayOpen : ""}`} data-stop-hotkeys="true">
       <div className={styles.subOverlayHeader}>
-        <button className={styles.backBtn} onClick={() => { setOpen(false); cancel(); }} title="Voltar">
+        <button
+          className={styles.backBtn}
+          onClick={() => {
+            setOpen(false);
+            cancel();
+          }}
+          title="Voltar"
+        >
           <ArrowLeft size={18} />
         </button>
         <div className={styles.overlayTitle}>
@@ -962,11 +1087,23 @@ function EditorOverlay({
           </span>
         </div>
         <div className={styles.buttonGroup}>
-          <button className={styles.deleteButtonSmall} onClick={() => { setOpen(false); cancel(); }}>
-            <X size={14}/> Cancelar
+          <button
+            className={styles.deleteButtonSmall}
+            onClick={() => {
+              setOpen(false);
+              cancel();
+            }}
+          >
+            <X size={14} /> Cancelar
           </button>
-          <button className={styles.addButtonSmall} onClick={() => { save(); setOpen(false); }}>
-            <Check size={14}/> Salvar
+          <button
+            className={styles.addButtonSmall}
+            onClick={() => {
+              save();
+              setOpen(false);
+            }}
+          >
+            <Check size={14} /> Salvar
           </button>
         </div>
       </div>
@@ -977,7 +1114,7 @@ function EditorOverlay({
           <StableInput
             placeholder="Como aparece na lista"
             value={draft.label}
-            onChange={(e) => setDraft((d)=>({ ...d, label: e.target.value }))}
+            onChange={(e) => setDraft((d) => ({ ...d, label: e.target.value }))}
           />
         </div>
 
@@ -986,7 +1123,7 @@ function EditorOverlay({
           <select
             className={styles.selectStyle}
             value={draft.scope || "context"}
-            onChange={(e) => setDraft((d)=>({ ...d, scope: e.target.value || "context" }))}
+            onChange={(e) => setDraft((d) => ({ ...d, scope: e.target.value || "context" }))}
           >
             <option value="context">context</option>
             <option value="contact">contact</option>
@@ -999,7 +1136,7 @@ function EditorOverlay({
           <StableInput
             placeholder="ex.: protocolo"
             value={draft.key}
-            onChange={(e) => setDraft((d)=>({ ...d, key: e.target.value }))}
+            onChange={(e) => setDraft((d) => ({ ...d, key: e.target.value }))}
           />
         </div>
 
@@ -1008,14 +1145,16 @@ function EditorOverlay({
           <StableInput
             placeholder='ex.: 12345 ou {{context.algo}}'
             value={draft.value}
-            onChange={(e) => setDraft((d)=>({ ...d, value: e.target.value }))}
+            onChange={(e) => setDraft((d) => ({ ...d, value: e.target.value }))}
           />
         </div>
 
         <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
           <div className={styles.sectionHeaderStatic}>
             <h4 className={styles.sectionTitle}>Condições (opcional)</h4>
-            <button className={styles.addButtonSmall} onClick={addCond}>+ Adicionar condição</button>
+            <button className={styles.addButtonSmall} onClick={addCond}>
+              + Adicionar condição
+            </button>
           </div>
           <div className={styles.sectionContent}>
             {!(draft.conditions || []).length && (
@@ -1050,7 +1189,9 @@ function EditorOverlay({
                     }}
                   >
                     {variableOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -1096,7 +1237,7 @@ function EditorOverlay({
                       <select
                         className={styles.selectStyle}
                         value={cond.value ?? "true"}
-                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
+                        onChange={(e) => updateCond(idx, { value: e.target.value })}
                       >
                         <option value="true">true</option>
                         <option value="false">false</option>
@@ -1105,7 +1246,7 @@ function EditorOverlay({
                       <select
                         className={styles.selectStyle}
                         value={cond.value ?? "holiday"}
-                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
+                        onChange={(e) => updateCond(idx, { value: e.target.value })}
                       >
                         <option value="holiday">holiday</option>
                         <option value="closed">closed</option>
@@ -1122,7 +1263,7 @@ function EditorOverlay({
 
                 <div className={styles.buttonGroup}>
                   <button className={styles.deleteButtonSmall} onClick={() => removeCond(idx)}>
-                    <Trash2 size={14}/> Remover
+                    <Trash2 size={14} /> Remover
                   </button>
                 </div>
               </div>
@@ -1153,7 +1294,12 @@ function OverlayEspeciaisComp({
   });
 
   const resetEditing = () =>
-    setEditing({ mode: "create", section: "enter", index: -1, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } });
+    setEditing({
+      mode: "create",
+      section: "enter",
+      index: -1,
+      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+    });
 
   const startCreate = (section) => {
     resetEditing();
@@ -1191,14 +1337,27 @@ function OverlayEspeciaisComp({
   };
 
   const validateDraft = (d) => {
-    if (!d.label?.trim()) { showToast("error", "Informe o título da variável."); return false; }
-    if (!d.key?.trim())   { showToast("error", "Informe a chave da variável."); return false; }
+    if (!d.label?.trim()) {
+      showToast("error", "Informe o título da variável.");
+      return false;
+    }
+    if (!d.key?.trim()) {
+      showToast("error", "Informe a chave da variável.");
+      return false;
+    }
     for (let i = 0; i < (d.conditions || []).length; i++) {
       const c = d.conditions[i];
-      if (c.variable === undefined) { showToast("error", `Condição ${i + 1}: selecione a variável.`); return false; }
-      if (!c.type) { showToast("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
+      if (c.variable === undefined) {
+        showToast("error", `Condição ${i + 1}: selecione a variável.`);
+        return false;
+      }
+      if (!c.type) {
+        showToast("error", `Condição ${i + 1}: selecione o tipo.`);
+        return false;
+      }
       if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
-        showToast("error", `Condição ${i + 1}: informe o valor.`); return false;
+        showToast("error", `Condição ${i + 1}: informe o valor.`);
+        return false;
       }
     }
     return true;
@@ -1259,11 +1418,18 @@ function OverlayEspeciaisComp({
         open={editorOpen}
         setOpen={setEditorOpen}
         draft={editing.draft}
-        setDraft={(d) => setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))}
+        setDraft={(d) =>
+          setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))
+        }
         mode={editing.mode}
         section={editing.section}
         save={saveEditing}
-        cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
+        cancel={() =>
+          setEditing((s) => ({
+            ...s,
+            draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+          }))
+        }
         variableOptions={variableOptions}
         showToast={showToast}
       />
@@ -1325,7 +1491,18 @@ export default function NodeConfigPanel({
     if (tag === "TEXTAREA") return true;
     if (tag === "INPUT") {
       const t = (el.type || "").toLowerCase();
-      const tl = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
+      const tl = [
+        "text",
+        "search",
+        "url",
+        "tel",
+        "email",
+        "password",
+        "number",
+        "date",
+        "datetime-local",
+        "time",
+      ];
       if (tl.includes(t)) return !el.readOnly && !el.disabled;
     }
     if (tag === "SELECT") return true;
@@ -1336,19 +1513,21 @@ export default function NodeConfigPanel({
     if (isEditableTarget(e.target)) e.stopPropagation();
   }, []);
 
-  const variableOptions = useMemo(() => (
-    isHuman
-      ? [
-          { value: "lastUserMessage", label: "Resposta do usuário" },
-          { value: "offhours", label: "Fora do expediente" },
-          { value: "offhours_reason", label: "Motivo do off-hours" },
-          { value: "custom", label: "Variável personalizada" },
-        ]
-      : [
-          { value: "lastUserMessage", label: "Resposta do usuário" },
-          { value: "custom", label: "Variável personalizada" },
-        ]
-  ), [isHuman]);
+  const variableOptions = useMemo(
+    () =>
+      isHuman
+        ? [
+            { value: "lastUserMessage", label: "Resposta do usuário" },
+            { value: "offhours", label: "Fora do expediente" },
+            { value: "offhours_reason", label: "Motivo do off-hours" },
+            { value: "custom", label: "Variável personalizada" },
+          ]
+        : [
+            { value: "lastUserMessage", label: "Resposta do usuário" },
+            { value: "custom", label: "Variável personalizada" },
+          ],
+    [isHuman]
+  );
 
   /* drafts */
   const [awaitDraft, setAwaitDraft] = useState({
@@ -1474,7 +1653,71 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
-  /* preview */
+  /* =================================== PREVIEW RENDERER =================================== */
+  const PreviewRenderer = () => {
+    // 1) TEXT
+    if (type === "text") {
+      const text =
+        typeof block.content === "string" ? conteudoDraft.text ?? block.content : conteudoDraft.text;
+      return <TextMessage text={text || ""} small />;
+    }
+
+    // 2) INTERACTIVE
+    if (type === "interactive") {
+      const c = conteudoDraft.content || {};
+      if (c.type === "list") {
+        return <InteractiveListMessage data={c} small />;
+      }
+      // Quick replies (botões):
+      return <QuickReplyMessage data={c} small />;
+      // Se preferir forçar um componente:
+      // return <InteractiveButtonsMessage data={c} small />;
+    }
+
+    // 3) MEDIA
+    if (type === "media") {
+      const m = conteudoDraft.media || {};
+      const cap = m.caption || "";
+      if (m.mediaType === "image" || !m.mediaType) {
+        return <ImageMessage url={m.url || ""} caption={cap} small />;
+      }
+      if (m.mediaType === "document") {
+        return <DocumentMessage url={m.url || ""} filename={cap} small />;
+      }
+      if (m.mediaType === "audio") {
+        return <AudioMessage url={m.url || ""} small />;
+      }
+      if (m.mediaType === "video") {
+        return <VideoMessage url={m.url || ""} caption={cap} small />;
+      }
+    }
+
+    // 4) LOCATION (cartão simples)
+    if (type === "location") {
+      const loc = conteudoDraft.location || {};
+      return (
+        <div className={styles.locationPreview}>
+          <div className={styles.locationTitle}>{loc.name || "Local"}</div>
+          <div className={styles.locationAddr}>{loc.address || "Endereço"}</div>
+          {(loc.latitude || loc.longitude) && (
+            <div className={styles.locationCoords}>
+              {loc.latitude ?? "—"}, {loc.longitude ?? "—"}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // 5) CONTACTS (se usar tipo dedicado)
+    if (type === "contacts") {
+      const d = conteudoDraft.content || {};
+      return <ContactsMessage data={d} small />;
+    }
+
+    // fallback
+    return <div className={styles.placeholder}>Sem prévia disponível</div>;
+  };
+
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
       <div className={styles.floatingBtns}>
@@ -1494,24 +1737,7 @@ export default function NodeConfigPanel({
 
         <div className={styles.bubble}>
           <div className={styles.bubbleText}>
-            {type === "text" && (typeof block.content === "string" ? block.content : "")}
-            {type === "interactive" && (
-              <>
-                <div>{conteudoDraft.content?.body?.text || <em className={styles.placeholder}>Sem corpo</em>}</div>
-              </>
-            )}
-            {type === "media" && (
-              <>
-                <div><strong>Mídia:</strong> {conteudoDraft.media?.mediaType || "image"}</div>
-                <div>{conteudoDraft.media?.caption || <em className={styles.placeholder}>Sem legenda</em>}</div>
-              </>
-            )}
-            {type === "location" && (
-              <>
-                <div><strong>{conteudoDraft.location?.name || "Local"}</strong></div>
-                <small>{conteudoDraft.location?.address || "Endereço"}</small>
-              </>
-            )}
+            <PreviewRenderer />
           </div>
         </div>
 
@@ -1540,7 +1766,7 @@ export default function NodeConfigPanel({
       <div className={styles.toastStack}>
         {toasts.map((t) => (
           <div key={t.id} className={`${styles.toast} ${styles[`toast_${t.type}`]}`}>
-            {t.type === "error" ? <AlertCircle size={16}/> : <Check size={16}/>}
+            {t.type === "error" ? <AlertCircle size={16} /> : <Check size={16} />}
             <span>{t.text}</span>
           </div>
         ))}
@@ -1548,7 +1774,9 @@ export default function NodeConfigPanel({
 
       <div className={styles.panelHeader}>
         <h3 className={styles.panelTitle}>
-          {selectedNode.data.type === "human" ? "atendimento humano" : (selectedNode.data.label || "Novo Bloco")}
+          {selectedNode.data.type === "human"
+            ? "atendimento humano"
+            : selectedNode.data.label || "Novo Bloco"}
         </h3>
         <button onClick={onClose} className={styles.closeButton} title="Fechar">
           <X size={20} />
@@ -1560,7 +1788,8 @@ export default function NodeConfigPanel({
           <label className={styles.inputLabel}>Nome do Bloco</label>
           {selectedNode.data.nodeType === "start" ? (
             <div className={styles.startNodeInfo}>
-              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
+              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático
+              para o próximo bloco configurado.
             </div>
           ) : selectedNode.data.type === "human" ? (
             <StableInput type="text" value="atendimento humano" readOnly />
@@ -1568,7 +1797,9 @@ export default function NodeConfigPanel({
             <StableInput
               type="text"
               value={selectedNode.data.label}
-              onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
+              onChange={(e) =>
+                onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })
+              }
               placeholder="Nomeie este bloco"
             />
           )}
@@ -1592,12 +1823,18 @@ export default function NodeConfigPanel({
           <OverlayConteudoComp
             type={type}
             draft={conteudoDraft}
-            setDraft={(updater) =>
-              setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
-            }
+            setDraft={(updater) => setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))}
             commit={() => {
-              try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); }
-              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); }
+              try {
+                JSON.parse(conteudoDraft.api.headersText || "{}");
+              } catch {
+                showToast("error", "Headers inválidos (JSON).");
+              }
+              try {
+                JSON.parse(conteudoDraft.api.bodyText || "{}");
+              } catch {
+                showToast("error", "Body inválido (JSON).");
+              }
               commitConteudo();
             }}
             onBack={closeOverlay}
@@ -1637,4 +1874,3 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
-
