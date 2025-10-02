@@ -15,15 +15,15 @@ import styles from "./styles/NodeConfigPanel.module.css";
 
 /* ===================== PREVIEW COMPONENTS (ajuste os caminhos conforme seu projeto) ===================== */
 // Se os paths forem diferentes no seu repo, só ajustar:
-import TextMessage from "../../../components/ChatWindow/messageTypes/TextMessage";
-import QuickReplyMessage from "../../../components/ChatWindow/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../../components/ChatWindow/messageTypes/InteractiveListMessage";
-import InteractiveButtonsMessage from "../../../components/ChatWindow/messageTypes/InteractiveButtonsMessage";
-import ImageMessage from "../../../components/ChatWindow/messageTypes/ImageMessage";
-import DocumentMessage from "../../../components/ChatWindow/messageTypes/DocumentMessage";
-import AudioMessage from "../../../components/ChatWindow/messageTypes/AudioMessage";
-import VideoMessage from "../../../components/ChatWindow/messageTypes/VideoMessage";
-import ContactsMessage from "../../../components/ChatWindow/messageTypes/ContactsMessage";
+import TextMessage from "../../components/chat/messageTypes/TextMessage";
+import QuickReplyMessage from "../../components/chat/messageTypes/QuickReplyMessage";
+import InteractiveListMessage from "../../components/chat/messageTypes/InteractiveListMessage";
+import InteractiveButtonsMessage from "../../components/chat/messageTypes/InteractiveButtonsMessage";
+import ImageMessage from "../../components/chat/messageTypes/ImageMessage";
+import DocumentMessage from "../../components/chat/messageTypes/DocumentMessage";
+import AudioMessage from "../../components/chat/messageTypes/AudioMessage";
+import VideoMessage from "../../components/chat/messageTypes/VideoMessage";
+import ContactsMessage from "../../components/chat/messageTypes/ContactsMessage";
 
 /* ================= Inputs estáveis ================= */
 function useStableCaret() {
@@ -1874,3 +1874,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
