@@ -298,7 +298,7 @@ export default function Admin() {
               label: "Ferramentas",
               children: [
                 { to: "development/studio", icon: <Bot size={16} />, label: "Chatbot Studio" },
-                { to: "development/tracker", icon: <RouteIcon size={16} />, label: "Tracker" },
+                { to: "development/tracker", icon: <RouteIcon size={16} />, label: "Flow Tracker" },
               ],
             },
           ],
