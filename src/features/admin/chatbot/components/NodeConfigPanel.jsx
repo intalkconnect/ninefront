@@ -12,77 +12,83 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/* ----------------- inputs autocontrolados (não perdem foco) ----------------- */
-function Field({
-  id,
-  type = "text",
-  initialValue = "",
-  placeholder = "",
-  className = "",
-  onCommit,      // chamado no blur (opcional)
-  onChangeLive,  // se quiser refletir em preview, chamado a cada tecla (opcional)
-}) {
-  const [val, setVal] = useState(initialValue ?? "");
-  const first = useRef(true);
+/* ================= Inputs estáveis ================= */
 
-  // só sincroniza quando a prop initialValue mudar "externamente" (ex.: ao abrir overlay)
-  useEffect(() => {
-    if (!first.current) setVal(initialValue ?? "");
-    first.current = false;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialValue]);
+function useStableCaret() {
+  const sel = useRef({ start: null, end: null });
+  const onBeforeChange = (el) => {
+    if (!el) return;
+    try {
+      sel.current.start = el.selectionStart;
+      sel.current.end = el.selectionEnd;
+    } catch {}
+  };
+  const restore = (el) => {
+    if (!el) return;
+    const { start, end } = sel.current || {};
+    if (start == null || end == null) return;
+    // restaura depois do render
+    requestAnimationFrame(() => {
+      try { el.setSelectionRange(start, end); } catch {}
+    });
+  };
+  return { onBeforeChange, restore };
+}
+
+function StableInput({ value, onChange, className, ...rest }) {
+  const ref = useRef(null);
+  const { onBeforeChange, restore } = useStableCaret();
+  // bloquear hotkeys do builder e evitar mudança de foco
+  const stop = (e) => e.stopPropagation();
+
+  useEffect(() => { restore(ref.current); }); // restaura caret a cada render
 
   return (
     <input
-      id={id}
-      type={type}
-      value={val}
-      placeholder={placeholder}
-      className={`${styles.inputStyle} ${className}`}
+      ref={ref}
+      value={value ?? ""}
       onChange={(e) => {
-        setVal(e.target.value);
-        onChangeLive?.(e.target.value);
+        onBeforeChange(e.target);
+        onChange?.(e);
       }}
-      onBlur={() => onCommit?.(val)}
+      onKeyDownCapture={stop}
+      onKeyUpCapture={stop}
+      onKeyPressCapture={stop}
+      onMouseDownCapture={stop}
+      className={`${styles.inputStyle} ${className || ""}`}
+      {...rest}
     />
   );
 }
 
-function FieldArea({
-  id,
-  rows = 4,
-  initialValue = "",
-  placeholder = "",
-  className = "",
-  onCommit,
-  onChangeLive,
-}) {
-  const [val, setVal] = useState(initialValue ?? "");
-  const first = useRef(true);
+function StableTextarea({ value, onChange, className, rows = 4, ...rest }) {
+  const ref = useRef(null);
+  const { onBeforeChange, restore } = useStableCaret();
+  const stop = (e) => e.stopPropagation();
 
-  useEffect(() => {
-    if (!first.current) setVal(initialValue ?? "");
-    first.current = false;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialValue]);
+  useEffect(() => { restore(ref.current); });
 
   return (
     <textarea
-      id={id}
+      ref={ref}
       rows={rows}
-      value={val}
-      placeholder={placeholder}
-      className={`${styles.textareaStyle} ${className}`}
+      value={value ?? ""}
       onChange={(e) => {
-        setVal(e.target.value);
-        onChangeLive?.(e.target.value);
+        onBeforeChange(e.target);
+        onChange?.(e);
       }}
-      onBlur={() => onCommit?.(val)}
+      onKeyDownCapture={stop}
+      onKeyUpCapture={stop}
+      onKeyPressCapture={stop}
+      onMouseDownCapture={stop}
+      className={`${styles.textareaStyle} ${className || ""}`}
+      {...rest}
     />
   );
 }
 
-/* ----------------- utils ----------------- */
+/* ===== utils ===== */
+
 const deepClone = (obj) =>
   typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj ?? {}));
 const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
@@ -134,10 +140,9 @@ export default function NodeConfigPanel({
     onEnter = [],
     onExit = [],
   } = block;
-
   const isHuman = type === "human";
 
-  // evita que hotkeys do builder capturem delete/undo/redo dentro do painel
+  // Bloquear hotkeys globais do builder quando digita
   const isEditableTarget = (el) => {
     if (!el) return false;
     if (el.isContentEditable) return true;
@@ -152,17 +157,28 @@ export default function NodeConfigPanel({
   };
   const handleKeyDownCapture = useCallback((e) => {
     if (!panelRef.current || !panelRef.current.contains(e.target)) return;
-    const k = e.key?.toLowerCase?.() || "";
     if (isEditableTarget(e.target)) {
-      const isDelete = e.key === "Delete" || e.key === "Backspace";
-      const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && k === "z";
-      const isRedo = (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
-      if (isDelete || isUndo || isRedo) e.stopPropagation();
+      // Bloqueia TODOS os atalhos/propagação quando estiver digitando
+      e.stopPropagation();
     }
   }, []);
 
-  /* ---------------- drafts por overlay ---------------- */
-  // await
+  const variableOptions = useMemo(() => (
+    isHuman
+      ? [
+          { value: "lastUserMessage", label: "Resposta do usuário" },
+          { value: "offhours", label: "Fora do expediente" },
+          { value: "offhours_reason", label: "Motivo do off-hours" },
+          { value: "custom", label: "Variável personalizada" },
+        ]
+      : [
+          { value: "lastUserMessage", label: "Resposta do usuário" },
+          { value: "custom", label: "Variável personalizada" },
+        ]
+  ), [isHuman]);
+
+  /* ------------- drafts por overlay (evita remount) ------------- */
+  // Await
   const [awaitDraft, setAwaitDraft] = useState({
     awaitResponse: !!awaitResponse,
     awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
@@ -180,7 +196,7 @@ export default function NodeConfigPanel({
     }
   }, [overlayMode, awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
-  // conteúdo
+  // Conteúdo
   const [conteudoDraft, setConteudoDraft] = useState({
     type,
     text: typeof block.content === "string" ? block.content : "",
@@ -222,7 +238,7 @@ export default function NodeConfigPanel({
     }
   }, [overlayMode, type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
 
-  // regras
+  // Regras
   const [regrasDraft, setRegrasDraft] = useState({
     actions: deepClone(actions || []),
     defaultNext: defaultNext || "",
@@ -259,7 +275,10 @@ export default function NodeConfigPanel({
     if (type === "interactive") next.content = deepClone(d.content || {});
     if (type === "media") next.content = deepClone(d.media || {});
     if (type === "location") next.content = deepClone(d.location || {});
-    if (type === "script") { next.function = d.fnName || ""; next.outputVar = d.outputVar || ""; }
+    if (type === "script") {
+      next.function = d.fnName || "";
+      next.outputVar = d.outputVar || "";
+    }
     if (type === "api_call") {
       next.method = d.api.method || "GET";
       next.url = d.api.url || "";
@@ -289,8 +308,7 @@ export default function NodeConfigPanel({
     showToast("success", "Regras salvas.");
   };
 
-  const updateActionsLocal = (next) =>
-    setRegrasDraft((r) => ({ ...r, actions: deepClone(next) }));
+  const updateActionsLocal = (next) => setRegrasDraft((r) => ({ ...r, actions: deepClone(next) }));
 
   /* atalhos human */
   const addOffhoursAction = (kind) => {
@@ -301,20 +319,6 @@ export default function NodeConfigPanel({
     const next = [...(regrasDraft.actions || []), { next: "", conditions: conds }];
     updateActionsLocal(next);
   };
-
-  const variableOptions = useMemo(() => (
-    isHuman
-      ? [
-          { value: "lastUserMessage", label: "Resposta do usuário" },
-          { value: "offhours", label: "Fora do expediente" },
-          { value: "offhours_reason", label: "Motivo do off-hours" },
-          { value: "custom", label: "Variável personalizada" },
-        ]
-      : [
-          { value: "lastUserMessage", label: "Resposta do usuário" },
-          { value: "custom", label: "Variável personalizada" },
-        ]
-  ), [isHuman]);
 
   /* ---------------- preview/chat ---------------- */
   const renderQuickReplies = () => {
@@ -332,6 +336,7 @@ export default function NodeConfigPanel({
       </div>
     );
   };
+
   const renderListPreview = () => {
     const c = conteudoDraft.content;
     if (type !== "interactive" || c?.type !== "list") return null;
@@ -445,20 +450,20 @@ export default function NodeConfigPanel({
                 <label className={styles.inputLabel}>Ativar</label>
                 <select
                   value={String(!!awaitDraft.awaitResponse)}
-                  onChange={(e) => setAwaitDraft((d)=>({ ...d, awaitResponse: e.target.value === "true" }))}
+                  onChange={(e) => setAwaitDraft((d) => ({ ...d, awaitResponse: e.target.value === "true" }))}
                   className={styles.selectStyle}
                 >
-                  <option value="true">Sim</option>
-                  <option value="false">Não</option>
+                  <option value="true">true</option>
+                  <option value="false">false</option>
                 </select>
               </div>
 
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Atraso de envio (s)</label>
-                <Field
+                <StableInput
                   type="number"
-                  initialValue={String(awaitDraft.sendDelayInSeconds ?? 0)}
-                  onCommit={(v)=> setAwaitDraft((d)=>({ ...d, sendDelayInSeconds: Number(v||0) }))}
+                  value={awaitDraft.sendDelayInSeconds}
+                  onChange={(e) => setAwaitDraft((d) => ({ ...d, sendDelayInSeconds: e.target.value }))}
                 />
               </div>
             </div>
@@ -466,20 +471,21 @@ export default function NodeConfigPanel({
             <div className={styles.rowTwoCols}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tempo de inatividade (s)</label>
-                <Field
+                <StableInput
                   type="number"
-                  initialValue={String(awaitDraft.awaitTimeInSeconds ?? 0)}
-                  onCommit={(v)=> setAwaitDraft((d)=>({ ...d, awaitTimeInSeconds: Number(v||0) }))}
+                  value={awaitDraft.awaitTimeInSeconds}
+                  onChange={(e) => setAwaitDraft((d) => ({ ...d, awaitTimeInSeconds: e.target.value }))}
                 />
                 <small className={styles.helpText}>0 para desativar</small>
               </div>
 
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
-                <Field
-                  initialValue={awaitDraft.saveResponseVar || ""}
+                <StableInput
+                  type="text"
                   placeholder="ex.: context.inputMenuPrincipal"
-                  onCommit={(v)=> setAwaitDraft((d)=>({ ...d, saveResponseVar: v }))}
+                  value={awaitDraft.saveResponseVar}
+                  onChange={(e) => setAwaitDraft((d) => ({ ...d, saveResponseVar: e.target.value }))}
                 />
                 <small className={styles.helpText}>Se vazio, não salva.</small>
               </div>
@@ -515,10 +521,10 @@ export default function NodeConfigPanel({
             <div className={styles.sectionContainer}>
               <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
               <div className={styles.sectionContent}>
-                <FieldArea
+                <StableTextarea
                   rows={8}
-                  initialValue={c.text}
-                  onCommit={(v)=> setConteudoDraft((d)=>({ ...d, text: v }))}
+                  value={c.text}
+                  onChange={(e) => setConteudoDraft((d) => ({ ...d, text: e.target.value }))}
                 />
               </div>
             </div>
@@ -571,10 +577,11 @@ export default function NodeConfigPanel({
 
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Corpo</label>
-                  <Field
-                    initialValue={c.content?.body?.text || ""}
-                    onCommit={(v) => {
-                      const body = { ...(deepClone(c.content?.body) || {}), text: v };
+                  <StableInput
+                    type="text"
+                    value={c.content?.body?.text || ""}
+                    onChange={(e) => {
+                      const body = { ...(deepClone(c.content?.body) || {}), text: e.target.value };
                       setContent({ body });
                     }}
                   />
@@ -584,15 +591,17 @@ export default function NodeConfigPanel({
                   <>
                     {(c.content?.action?.buttons || []).map((btn, idx) => (
                       <div key={idx} className={styles.rowItemStyle}>
-                        <Field
-                          initialValue={btn?.reply?.title || ""}
+                        <StableInput
+                          type="text"
+                          value={btn?.reply?.title || ""}
+                          maxLength={20}
                           placeholder="Texto do botão"
-                          onCommit={(value) => {
-                            const v = clamp(value, 20);
+                          onChange={(e) => {
+                            const value = clamp(e.target.value, 20);
                             const buttons = deepClone(c.content?.action?.buttons || []);
                             buttons[idx] = {
                               ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
-                              reply: { ...(buttons[idx]?.reply || {}), title: v, id: v },
+                              reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
                             };
                             const action = { ...(deepClone(c.content?.action) || {}), buttons };
                             setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
@@ -630,12 +639,15 @@ export default function NodeConfigPanel({
                   <>
                     <div className={styles.inputGroup}>
                       <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
-                      <Field
-                        initialValue={c.content?.action?.button || ""}
-                        onCommit={(v) => {
+                      <StableInput
+                        type="text"
+                        maxLength={20}
+                        value={c.content?.action?.button || ""}
+                        onChange={(e) => {
+                          const nextVal = (e.target.value || "").slice(0, 20);
                           const action = {
                             ...(deepClone(c.content?.action) || {}),
-                            button: (v || "").slice(0, 20),
+                            button: nextVal,
                             sections: deepClone(c.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
                           };
                           setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
@@ -645,11 +657,13 @@ export default function NodeConfigPanel({
 
                     {(c.content?.action?.sections?.[0]?.rows || []).map((item, idx) => (
                       <div key={idx} className={styles.rowItemStyle}>
-                        <Field
-                          initialValue={item.title}
+                        <StableInput
+                          type="text"
+                          value={item.title}
+                          maxLength={24}
                           placeholder="Título"
-                          onCommit={(v) => {
-                            const value = v;
+                          onChange={(e) => {
+                            const value = e.target.value;
                             const sections = deepClone(c.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
                             const rows = [...(sections[0]?.rows || [])];
                             rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitle(value, 24) };
@@ -658,13 +672,14 @@ export default function NodeConfigPanel({
                             setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
                           }}
                         />
-                        <Field
-                          initialValue={item.description}
+                        <StableInput
+                          type="text"
+                          value={item.description}
                           placeholder="Descrição"
-                          onCommit={(v) => {
+                          onChange={(e) => {
                             const sections = deepClone(c.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
                             const rows = [...(sections[0]?.rows || [])];
-                            rows[idx] = { ...(rows[idx] || {}), description: v };
+                            rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
                             sections[0] = { ...(sections[0] || {}), rows };
                             const action = { ...(deepClone(c.content?.action) || {}), sections };
                             setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
@@ -716,7 +731,7 @@ export default function NodeConfigPanel({
                   <label className={styles.inputLabel}>Tipo</label>
                   <select
                     value={c.media?.mediaType || "image"}
-                    onChange={(e)=> setConteudoDraft((d)=>({ ...d, media: { ...(d.media||{}), mediaType: e.target.value } }))}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, media: { ...(d.media||{}), mediaType: e.target.value } }))}
                     className={styles.selectStyle}
                   >
                     <option value="image">Imagem</option>
@@ -727,16 +742,18 @@ export default function NodeConfigPanel({
                 </div>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>URL</label>
-                  <Field
-                    initialValue={c.media?.url || ""}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, media: { ...(d.media||{}), url: v } }))}
+                  <StableInput
+                    type="text"
+                    value={c.media?.url || ""}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, media: { ...(d.media||{}), url: e.target.value } }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Legenda</label>
-                  <Field
-                    initialValue={c.media?.caption || ""}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, media: { ...(d.media||{}), caption: v } }))}
+                  <StableInput
+                    type="text"
+                    value={c.media?.caption || ""}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value } }))}
                   />
                 </div>
               </div>
@@ -749,30 +766,34 @@ export default function NodeConfigPanel({
               <div className={styles.sectionContent}>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Nome</label>
-                  <Field
-                    initialValue={c.location?.name || ""}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, location: { ...(d.location||{}), name: v } }))}
+                  <StableInput
+                    type="text"
+                    value={c.location?.name || ""}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), name: e.target.value } }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Endereço</label>
-                  <Field
-                    initialValue={c.location?.address || ""}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, location: { ...(d.location||{}), address: v } }))}
+                  <StableInput
+                    type="text"
+                    value={c.location?.address || ""}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), address: e.target.value } }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Latitude</label>
-                  <Field
-                    initialValue={c.location?.latitude || ""}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, location: { ...(d.location||{}), latitude: v } }))}
+                  <StableInput
+                    type="text"
+                    value={c.location?.latitude || ""}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), latitude: e.target.value } }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Longitude</label>
-                  <Field
-                    initialValue={c.location?.longitude || ""}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, location: { ...(d.location||{}), longitude: v } }))}
+                  <StableInput
+                    type="text"
+                    value={c.location?.longitude || ""}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), longitude: e.target.value } }))}
                   />
                 </div>
               </div>
@@ -795,17 +816,19 @@ export default function NodeConfigPanel({
 
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Função</label>
-                  <Field
-                    initialValue={conteudoDraft.fnName}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, fnName: v }))}
+                  <StableInput
+                    type="text"
+                    value={conteudoDraft.fnName}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, fnName: e.target.value }))}
                   />
                 </div>
 
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Variável de saída</label>
-                  <Field
-                    initialValue={conteudoDraft.outputVar}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, outputVar: v }))}
+                  <StableInput
+                    type="text"
+                    value={conteudoDraft.outputVar}
+                    onChange={(e) => setConteudoDraft((d) => ({ ...d, outputVar: e.target.value }))}
                   />
                 </div>
               </div>
@@ -820,7 +843,7 @@ export default function NodeConfigPanel({
                   <label className={styles.inputLabel}>Método</label>
                   <select
                     value={conteudoDraft.api.method}
-                    onChange={(e)=> setConteudoDraft((d)=>({ ...d, api:{...d.api, method: e.target.value} }))}
+                    onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
                     className={styles.selectStyle}
                   >
                     <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
@@ -829,20 +852,25 @@ export default function NodeConfigPanel({
 
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>URL</label>
-                  <Field
-                    initialValue={conteudoDraft.api.url}
-                    onCommit={(v)=> setConteudoDraft((d)=>({ ...d, api:{...d.api, url: v} }))}
+                  <StableInput
+                    type="text"
+                    value={conteudoDraft.api.url}
+                    onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
                   />
                 </div>
 
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Headers (JSON)</label>
-                  <FieldArea
+                  <StableTextarea
                     rows={3}
-                    initialValue={pretty(conteudoDraft.api.headers)}
-                    onCommit={(v) => {
+                    value={pretty(conteudoDraft.api.headers)}
+                    onChange={(e) => {
+                      // edita localmente como string; parse no blur
+                      setConteudoDraft((d)=>({ ...d, api:{...d.api, headers: (()=>{ try{return JSON.parse(e.target.value)}catch{return d.api.headers} })()} }));
+                    }}
+                    onBlur={(e) => {
                       try {
-                        const parsed = JSON.parse(v || "{}");
+                        const parsed = JSON.parse(e.target.value || "{}");
                         setConteudoDraft((d)=>({ ...d, api:{...d.api, headers: parsed} }));
                       } catch {
                         showToast("error", "Headers inválidos (JSON).");
@@ -853,12 +881,15 @@ export default function NodeConfigPanel({
 
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Body (JSON)</label>
-                  <FieldArea
+                  <StableTextarea
                     rows={4}
-                    initialValue={pretty(conteudoDraft.api.body)}
-                    onCommit={(v) => {
+                    value={pretty(conteudoDraft.api.body)}
+                    onChange={(e) => {
+                      setConteudoDraft((d)=>({ ...d, api:{...d.api, body: (()=>{ try{return JSON.parse(e.target.value)}catch{return d.api.body} })()} }));
+                    }}
+                    onBlur={(e) => {
                       try {
-                        const parsed = JSON.parse(v || "{}");
+                        const parsed = JSON.parse(e.target.value || "{}");
                         setConteudoDraft((d)=>({ ...d, api:{...d.api, body: parsed} }));
                       } catch {
                         showToast("error", "Body inválido (JSON).");
@@ -870,24 +901,26 @@ export default function NodeConfigPanel({
                 <div className={styles.rowTwoCols}>
                   <div className={styles.inputGroup}>
                     <label className={styles.inputLabel}>Timeout (ms)</label>
-                    <Field
+                    <StableInput
                       type="number"
-                      initialValue={String(conteudoDraft.api.timeout)}
-                      onCommit={(v)=> setConteudoDraft((d)=>({ ...d, api:{...d.api, timeout: Number(v||0)} }))}
+                      value={conteudoDraft.api.timeout}
+                      onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
                     />
                   </div>
                   <div className={styles.inputGroup}>
                     <label className={styles.inputLabel}>Variável de saída</label>
-                    <Field
-                      initialValue={conteudoDraft.api.outputVar}
-                      onCommit={(v)=> setConteudoDraft((d)=>({ ...d, api:{...d.api, outputVar: v} }))}
+                    <StableInput
+                      type="text"
+                      value={conteudoDraft.api.outputVar}
+                      onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
                     />
                   </div>
                   <div className={styles.inputGroup}>
                     <label className={styles.inputLabel}>Variável de status</label>
-                    <Field
-                      initialValue={conteudoDraft.api.statusVar}
-                      onCommit={(v)=> setConteudoDraft((d)=>({ ...d, api:{...d.api, statusVar: v} }))}
+                    <StableInput
+                      type="text"
+                      value={conteudoDraft.api.statusVar}
+                      onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
                     />
                   </div>
                 </div>
@@ -991,12 +1024,13 @@ export default function NodeConfigPanel({
                       {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
                         <div className={styles.inputGroup}>
                           <label className={styles.inputLabel}>Nome da variável</label>
-                          <Field
-                            initialValue={cond.variable || ""}
+                          <StableInput
+                            type="text"
                             placeholder="ex.: meuCampo"
-                            onCommit={(v) => {
+                            value={cond.variable || ""}
+                            onChange={(e) => {
                               const updated = deepClone(regrasDraft.actions);
-                              updated[actionIdx].conditions[condIdx].variable = v;
+                              updated[actionIdx].conditions[condIdx].variable = e.target.value;
                               updateActionsLocal(updated);
                             }}
                           />
@@ -1033,37 +1067,38 @@ export default function NodeConfigPanel({
                           <label className={styles.inputLabel}>Valor</label>
                           {cond.variable === "offhours" ? (
                             <select
+                              className={styles.selectStyle}
                               value={cond.value ?? "true"}
                               onChange={(e) => {
                                 const updated = deepClone(regrasDraft.actions);
                                 updated[actionIdx].conditions[condIdx].value = e.target.value;
                                 updateActionsLocal(updated);
                               }}
-                              className={styles.selectStyle}
                             >
                               <option value="true">true</option>
                               <option value="false">false</option>
                             </select>
                           ) : cond.variable === "offhours_reason" ? (
                             <select
+                              className={styles.selectStyle}
                               value={cond.value ?? "holiday"}
                               onChange={(e) => {
                                 const updated = deepClone(regrasDraft.actions);
                                 updated[actionIdx].conditions[condIdx].value = e.target.value;
                                 updateActionsLocal(updated);
                               }}
-                              className={styles.selectStyle}
                             >
                               <option value="holiday">holiday</option>
                               <option value="closed">closed</option>
                             </select>
                           ) : (
-                            <Field
-                              initialValue={cond.value ?? ""}
+                            <StableInput
+                              type="text"
                               placeholder="Valor para comparação"
-                              onCommit={(v) => {
+                              value={cond.value ?? ""}
+                              onChange={(e) => {
                                 const updated = deepClone(regrasDraft.actions);
-                                updated[actionIdx].conditions[condIdx].value = v;
+                                updated[actionIdx].conditions[condIdx].value = e.target.value;
                                 updateActionsLocal(updated);
                               }}
                             />
@@ -1114,9 +1149,13 @@ export default function NodeConfigPanel({
                       className={styles.selectStyle}
                     >
                       <option value="">Selecione um bloco...</option>
-                      {allNodes.filter(n => n.id !== selectedNode.id).map((n) => (
-                        <option key={n.id} value={n.id}>{n.data.label || n.id}</option>
-                      ))}
+                      {allNodes
+                        .filter((n) => n.id !== selectedNode.id)
+                        .map((node) => (
+                          <option key={node.id} value={node.id}>
+                            {node.data.label || node.id}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>
@@ -1143,14 +1182,18 @@ export default function NodeConfigPanel({
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Próximo bloco</label>
                   <select
-                    value={regrasDraft.defaultNext || ""}
+                    value={regrasDraft.defaultNext}
                     onChange={(e) => setRegrasDraft((r)=>({ ...r, defaultNext: e.target.value }))}
                     className={styles.selectStyle}
                   >
                     <option value="">Selecione um bloco...</option>
-                    {allNodes.filter(n => n.id !== selectedNode.id).map((n) => (
-                      <option key={n.id} value={n.id}>{n.data.label || n.id}</option>
-                    ))}
+                    {allNodes
+                      .filter((n) => n.id !== selectedNode.id)
+                      .map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.data.label || node.id}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -1161,7 +1204,7 @@ export default function NodeConfigPanel({
     </>
   );
 
-  /* ---------------- overlay: ESPECIAIS (lista + editor overlay) ---------------- */
+  /* ---------------- overlay: AÇÕES ESPECIAIS ---------------- */
   const OverlayEspeciais = () => {
     const [editorOpen, setEditorOpen] = useState(false);
     const [editing, setEditing] = useState({
@@ -1201,13 +1244,16 @@ export default function NodeConfigPanel({
     const removeItem = (section, index) => {
       const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
       list.splice(index, 1);
-      const changes = section === "enter" ? { onEnter: list } : { onExit: list };
-      onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, ...changes } } });
+      if (section === "enter") {
+        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onEnter: list } } });
+      } else {
+        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onExit: list } } });
+      }
       showToast("success", "Variável removida.");
     };
 
     const validateDraft = (d) => {
-      if (!d.label?.trim()) { showToast("error", "Título é obrigatório."); return false; }
+      if (!d.label?.trim()) { showToast("error", "Informe o título da variável."); return false; }
       if (!d.key?.trim()) { showToast("error", "Informe a chave da variável."); return false; }
       for (let i = 0; i < (d.conditions || []).length; i++) {
         const c = d.conditions[i];
@@ -1236,8 +1282,11 @@ export default function NodeConfigPanel({
       if (mode === "create") list.push(clean);
       else list[index] = { ...list[index], ...clean };
 
-      const changes = section === "enter" ? { onEnter: list } : { onExit: list };
-      onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, ...changes } } });
+      if (section === "enter") {
+        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onEnter: list } } });
+      } else {
+        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onExit: list } } });
+      }
 
       setEditorOpen(false);
       resetEditing();
@@ -1336,19 +1385,19 @@ export default function NodeConfigPanel({
           <div className={styles.subOverlayBody}>
             <div className={styles.inputGroup}>
               <label className={styles.inputLabel}>Título *</label>
-              <Field
-                initialValue={draft.label}
+              <StableInput
                 placeholder="Como aparece na lista"
-                onCommit={(v)=> setDraft({ label: v })}
+                value={draft.label}
+                onChange={(e) => setDraft({ label: e.target.value })}
               />
             </div>
 
             <div className={styles.inputGroup}>
               <label className={styles.inputLabel}>Escopo</label>
               <select
-                value={draft.scope || "context"}
-                onChange={(e)=> setDraft({ scope: e.target.value })}
                 className={styles.selectStyle}
+                value={draft.scope || "context"}
+                onChange={(e) => setDraft({ scope: e.target.value || "context" })}
               >
                 <option value="context">context</option>
                 <option value="contact">contact</option>
@@ -1358,19 +1407,19 @@ export default function NodeConfigPanel({
 
             <div className={styles.inputGroup}>
               <label className={styles.inputLabel}>Chave *</label>
-              <Field
-                initialValue={draft.key}
+              <StableInput
                 placeholder="ex.: protocolo"
-                onCommit={(v)=> setDraft({ key: v })}
+                value={draft.key}
+                onChange={(e) => setDraft({ key: e.target.value })}
               />
             </div>
 
             <div className={styles.inputGroup}>
               <label className={styles.inputLabel}>Valor</label>
-              <Field
-                initialValue={draft.value}
+              <StableInput
                 placeholder='ex.: 12345 ou {{context.algo}}'
-                onCommit={(v)=> setDraft({ value: v })}
+                value={draft.value}
+                onChange={(e) => setDraft({ value: e.target.value })}
               />
             </div>
 
@@ -1395,6 +1444,7 @@ export default function NodeConfigPanel({
                     <div className={styles.inputGroup}>
                       <label className={styles.inputLabel}>Variável</label>
                       <select
+                        className={styles.selectStyle}
                         value={
                           variableOptions.some((v) => v.value === cond.variable)
                             ? cond.variable
@@ -1413,7 +1463,6 @@ export default function NodeConfigPanel({
                             updateCond(idx, patch);
                           }
                         }}
-                        className={styles.selectStyle}
                       >
                         {variableOptions.map((opt) => (
                           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1424,10 +1473,10 @@ export default function NodeConfigPanel({
                     {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
                       <div className={styles.inputGroup}>
                         <label className={styles.inputLabel}>Nome</label>
-                        <Field
-                          initialValue={cond.variable || ""}
+                        <StableInput
                           placeholder="ex.: meuCampo"
-                          onCommit={(v)=> updateCond(idx, { variable: v })}
+                          value={cond.variable || ""}
+                          onChange={(e) => updateCond(idx, { variable: e.target.value })}
                         />
                       </div>
                     )}
@@ -1435,6 +1484,7 @@ export default function NodeConfigPanel({
                     <div className={styles.inputGroup}>
                       <label className={styles.inputLabel}>Tipo</label>
                       <select
+                        className={styles.selectStyle}
                         value={cond.type || ""}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -1442,7 +1492,6 @@ export default function NodeConfigPanel({
                           if (v === "exists") patch.value = "";
                           updateCond(idx, patch);
                         }}
-                        className={styles.selectStyle}
                       >
                         <option value="">Selecione...</option>
                         <option value="exists">Existe</option>
@@ -1460,27 +1509,27 @@ export default function NodeConfigPanel({
                         <label className={styles.inputLabel}>Valor</label>
                         {cond.variable === "offhours" ? (
                           <select
-                            value={cond.value ?? "true"}
-                            onChange={(e)=> updateCond(idx, { value: e.target.value })}
                             className={styles.selectStyle}
+                            value={cond.value ?? "true"}
+                            onChange={(e)=>updateCond(idx,{value:e.target.value})}
                           >
                             <option value="true">true</option>
                             <option value="false">false</option>
                           </select>
                         ) : cond.variable === "offhours_reason" ? (
                           <select
-                            value={cond.value ?? "holiday"}
-                            onChange={(e)=> updateCond(idx, { value: e.target.value })}
                             className={styles.selectStyle}
+                            value={cond.value ?? "holiday"}
+                            onChange={(e)=>updateCond(idx,{value:e.target.value})}
                           >
                             <option value="holiday">holiday</option>
                             <option value="closed">closed</option>
                           </select>
                         ) : (
-                          <Field
-                            initialValue={cond.value ?? ""}
+                          <StableInput
                             placeholder="Valor para comparação"
-                            onCommit={(v)=> updateCond(idx, { value: v })}
+                            value={cond.value ?? ""}
+                            onChange={(e) => updateCond(idx, { value: e.target.value })}
                           />
                         )}
                       </div>
@@ -1517,7 +1566,7 @@ export default function NodeConfigPanel({
           <SpecialList title="Ao sair do bloco" section="exit" items={ensureArray(onExit)} />
         </div>
 
-        {/* overlay interno para criar/editar variável */}
+        {/* Drawer (overlay interno) para criar/editar variável */}
         <EditorOverlay />
       </>
     );
@@ -1559,17 +1608,17 @@ export default function NodeConfigPanel({
               Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
             </div>
           ) : selectedNode.data.type === "human" ? (
-            <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
+            <StableInput type="text" value="atendimento humano" readOnly />
           ) : (
-            <Field
-              initialValue={selectedNode.data.label}
+            <StableInput
+              type="text"
+              value={selectedNode.data.label}
+              onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
               placeholder="Nomeie este bloco"
-              onCommit={(v)=> onChange({ ...selectedNode, data: { ...selectedNode.data, label: v } })}
             />
           )}
         </div>
 
-        {/* Prévia e acionadores */}
         <ChatPreview />
       </div>
 
