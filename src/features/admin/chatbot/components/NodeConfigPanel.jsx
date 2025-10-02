@@ -15,15 +15,15 @@ import styles from "./styles/NodeConfigPanel.module.css";
 
 /* ===================== PREVIEW COMPONENTS (ajuste os caminhos conforme seu projeto) ===================== */
 // Se os paths forem diferentes no seu repo, só ajustar:
-import TextMessage from "../../../components/chat/messageTypes/TextMessage";
-import QuickReplyMessage from "../../../components/chat/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../../components/chat/messageTypes/InteractiveListMessage";
-import InteractiveButtonsMessage from "../../../components/chat/messageTypes/InteractiveButtonsMessage";
-import ImageMessage from "../../../components/chat/messageTypes/ImageMessage";
-import DocumentMessage from "../../../components/chat/messageTypes/DocumentMessage";
-import AudioMessage from "../../../components/chat/messageTypes/AudioMessage";
-import VideoMessage from "../../../components/chat/messageTypes/VideoMessage";
-import ContactsMessage from "../../../components/chat/messageTypes/ContactsMessage";
+import TextMessage from "../../../atendimento/components/chat/messageTypes/TextMessage";
+import QuickReplyMessage from "../../../atendimento/components/chat/messageTypes/QuickReplyMessage";
+import InteractiveListMessage from "../../../atendimento/components/chat/messageTypes/InteractiveListMessage";
+import InteractiveButtonsMessage from "../../../atendimento/components/chat/messageTypes/InteractiveButtonsMessage";
+import ImageMessage from "../../../atendimento/components/chat/messageTypes/ImageMessage";
+import DocumentMessage from "../../../atendimento/components/chat/messageTypes/DocumentMessage";
+import AudioMessage from "../../../atendimento/components/chat/messageTypes/AudioMessage";
+import VideoMessage from "../../../atendimento/components/chat/messageTypes/VideoMessage";
+import ContactsMessage from "../../../atendimento/components/chat/messageTypes/ContactsMessage";
 
 /* ================= Inputs estáveis ================= */
 function useStableCaret() {
@@ -1874,5 +1874,6 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
 
 
