@@ -553,11 +553,25 @@ function run(context) {
   }, []);
 
   // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
+    // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
   useEffect(() => {
     const handleKeyDown = (event) => {
+      const el = event.target;
+
+      // 1) early return se estiver em qualquer campo editável
+      const tag = el?.tagName?.toUpperCase?.();
+      const isEditableTag =
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      const isContentEditable = el?.isContentEditable;
+
+      if (isEditableTag || isContentEditable) {
+        return; // não trata atalhos globais mientras digita
+      }
+
+      // 2) ou se está dentro de qualquer container que bloqueie hotkeys
       if (
-        event.target instanceof HTMLElement &&
-        event.target.closest?.("[data-stop-hotkeys='true']")
+        el instanceof HTMLElement &&
+        el.closest?.("[data-stop-hotkeys='true']")
       ) {
         return;
       }
@@ -615,6 +629,7 @@ function run(context) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedEdgeId, selectedNode, undo, redo, pushHistory, snapshot]);
+
 
   /* ---------- carregar fluxo ativo ---------- */
   useEffect(() => {
