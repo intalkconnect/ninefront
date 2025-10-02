@@ -6,7 +6,7 @@ import {
   MoreHorizontal,
   PencilLine,
   ArrowLeft,
-  SlidersHorizontal
+  SlidersHorizontal,
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
@@ -68,7 +68,13 @@ export default function NodeConfigPanel({
       return fallback;
     }
   };
-  const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
+  const pretty = (obj) => {
+    try {
+      return JSON.stringify(obj ?? {}, null, 2);
+    } catch {
+      return "{}";
+    }
+  };
   const ensureArray = (v) => (Array.isArray(v) ? v : []);
 
   const updateBlock = (changes) =>
@@ -98,7 +104,18 @@ export default function NodeConfigPanel({
     if (tag === "TEXTAREA") return true;
     if (tag === "INPUT") {
       const t = (el.type || "").toLowerCase();
-      const tl = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
+      const tl = [
+        "text",
+        "search",
+        "url",
+        "tel",
+        "email",
+        "password",
+        "number",
+        "date",
+        "datetime-local",
+        "time",
+      ];
       if (tl.includes(t)) return !el.readOnly && !el.disabled;
     }
     return false;
@@ -133,7 +150,11 @@ export default function NodeConfigPanel({
       return (
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "true"} onChange={(e) => onChangeValue(e.target.value)}>
+          <select
+            className={styles.selectStyle}
+            value={cond.value ?? "true"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
             <option value="true">true</option>
             <option value="false">false</option>
           </select>
@@ -144,7 +165,11 @@ export default function NodeConfigPanel({
       return (
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "holiday"} onChange={(e) => onChangeValue(e.target.value)}>
+          <select
+            className={styles.selectStyle}
+            value={cond.value ?? "holiday"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
             <option value="holiday">holiday</option>
             <option value="closed">closed</option>
           </select>
@@ -205,7 +230,7 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
-  useEffect(() => { /* placeholder p/ futuros efeitos */ }, [overlayMode]);
+  useEffect(() => {}, [overlayMode]);
 
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
@@ -238,14 +263,18 @@ export default function NodeConfigPanel({
 
             {type === "media" && (
               <>
-                <div><strong>Mídia:</strong> {content?.mediaType || "image"}</div>
+                <div>
+                  <strong>Mídia:</strong> {content?.mediaType || "image"}
+                </div>
                 <div>{content?.caption || <em className={styles.placeholder}>Sem legenda</em>}</div>
               </>
             )}
 
             {type === "location" && (
               <>
-                <div><strong>{content?.name || "Local"}</strong></div>
+                <div>
+                  <strong>{content?.name || "Local"}</strong>
+                </div>
                 <small>{content?.address || "Endereço"}</small>
               </>
             )}
@@ -271,7 +300,7 @@ export default function NodeConfigPanel({
     </div>
   );
 
-  /* ---------------- overlay: AWAIT (somente opções de resposta) ---------------- */
+  /* ---------------- overlay: AWAIT ---------------- */
 
   const OverlayAwait = () => (
     <>
@@ -280,7 +309,9 @@ export default function NodeConfigPanel({
           <ArrowLeft size={18} />
         </button>
         <div className={styles.overlayTitle}>Entrada do usuário</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar">
+          <X size={16} />
+        </button>
       </div>
       <div className={styles.overlayBody}>
         <div className={styles.sectionContainer}>
@@ -342,7 +373,7 @@ export default function NodeConfigPanel({
     </>
   );
 
-  /* ---------------- overlay: CONTEÚDO (somente editor do conteúdo) ---------------- */
+  /* ---------------- overlay: CONTEÚDO ---------------- */
 
   const OverlayConteudo = () => (
     <>
@@ -351,13 +382,17 @@ export default function NodeConfigPanel({
           <ArrowLeft size={18} />
         </button>
         <div className={styles.overlayTitle}>Conteúdo</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar">
+          <X size={16} />
+        </button>
       </div>
 
       <div className={styles.overlayBody}>
         {type === "text" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Mensagem</h4>
+            </div>
             <div className={styles.sectionContent}>
               <textarea
                 rows={8}
@@ -371,7 +406,9 @@ export default function NodeConfigPanel({
 
         {type === "interactive" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Interativo</h4>
+            </div>
             <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
@@ -386,7 +423,10 @@ export default function NodeConfigPanel({
                           body: { text: "Escolha um item da lista:" },
                           footer: { text: "Toque para selecionar" },
                           header: { text: "Menu de Opções", type: "text" },
-                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
+                          action: {
+                            button: "Abrir lista",
+                            sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }] }],
+                          },
                         }),
                       });
                     } else {
@@ -417,9 +457,7 @@ export default function NodeConfigPanel({
                 <input
                   type="text"
                   value={content.body?.text || ""}
-                  onChange={(e) =>
-                    updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })
-                  }
+                  onChange={(e) => updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })}
                   className={styles.inputStyle}
                 />
               </div>
@@ -574,7 +612,9 @@ export default function NodeConfigPanel({
 
         {type === "media" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Mídia</h4>
+            </div>
             <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
@@ -591,11 +631,21 @@ export default function NodeConfigPanel({
               </div>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>URL</label>
-                <input type="text" value={content.url || ""} onChange={(e) => updateContent("url", e.target.value)} className={styles.inputStyle}/>
+                <input
+                  type="text"
+                  value={content.url || ""}
+                  onChange={(e) => updateContent("url", e.target.value)}
+                  className={styles.inputStyle}
+                />
               </div>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Legenda</label>
-                <input type="text" value={content.caption || ""} onChange={(e) => updateContent("caption", e.target.value)} className={styles.inputStyle}/>
+                <input
+                  type="text"
+                  value={content.caption || ""}
+                  onChange={(e) => updateContent("caption", e.target.value)}
+                  className={styles.inputStyle}
+                />
               </div>
             </div>
           </div>
@@ -603,23 +653,55 @@ export default function NodeConfigPanel({
 
         {type === "location" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Localização</h4>
+            </div>
             <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
-                <input type="text" value={content.name || ""} onChange={(e) => updateContent("name", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
-                <input type="text" value={content.address || ""} onChange={(e) => updateContent("address", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
-                <input type="text" value={content.latitude || ""} onChange={(e) => updateContent("latitude", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
-                <input type="text" value={content.longitude || ""} onChange={(e) => updateContent("longitude", e.target.value)} className={styles.inputStyle}/></div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Nome</label>
+                <input
+                  type="text"
+                  value={content.name || ""}
+                  onChange={(e) => updateContent("name", e.target.value)}
+                  className={styles.inputStyle}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Endereço</label>
+                <input
+                  type="text"
+                  value={content.address || ""}
+                  onChange={(e) => updateContent("address", e.target.value)}
+                  className={styles.inputStyle}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Latitude</label>
+                <input
+                  type="text"
+                  value={content.latitude || ""}
+                  onChange={(e) => updateContent("latitude", e.target.value)}
+                  className={styles.inputStyle}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Longitude</label>
+                <input
+                  type="text"
+                  value={content.longitude || ""}
+                  onChange={(e) => updateContent("longitude", e.target.value)}
+                  className={styles.inputStyle}
+                />
+              </div>
             </div>
           </div>
         )}
 
         {type === "script" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Script</h4>
+            </div>
             <div className={styles.sectionContent}>
               <button
                 onClick={() => {
@@ -656,7 +738,9 @@ export default function NodeConfigPanel({
 
         {type === "api_call" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Requisição HTTP</h4>
+            </div>
             <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Método</label>
@@ -738,7 +822,9 @@ export default function NodeConfigPanel({
 
         {type === "http" && (
           <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Formato antigo</h4></div>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Formato antigo</h4>
+            </div>
             <div className={styles.sectionContent}>
               <button
                 className={styles.addButton}
@@ -766,7 +852,7 @@ export default function NodeConfigPanel({
     </>
   );
 
-  /* ---------------- overlay: REGRAS (somente regras de saída) ---------------- */
+  /* ---------------- overlay: REGRAS ---------------- */
 
   const OverlayRegras = () => (
     <>
@@ -775,7 +861,9 @@ export default function NodeConfigPanel({
           <ArrowLeft size={18} />
         </button>
         <div className={styles.overlayTitle}>Regras de saída</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar">
+          <X size={16} />
+        </button>
       </div>
       <div className={styles.overlayBody}>
         <div className={styles.sectionContainer}>
@@ -786,9 +874,15 @@ export default function NodeConfigPanel({
           <div className={styles.sectionContent}>
             {isHuman && (
               <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>
+                  + Se offhours = true
+                </button>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>
+                  + Se motivo = holiday
+                </button>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>
+                  + Se motivo = closed
+                </button>
               </div>
             )}
 
@@ -849,7 +943,9 @@ export default function NodeConfigPanel({
                           className={styles.selectStyle}
                         >
                           {variableOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -992,140 +1088,223 @@ export default function NodeConfigPanel({
             </div>
           </div>
         </div>
-      </div> 
+      </div>
     </>
   );
 
-  /* ---------------- overlay: AÇÕES ESPECIAIS (onEnter / onExit) ---------------- */
+  /* ---------------- overlay: AÇÕES ESPECIAIS (lista + editor fluido) ---------------- */
 
-  const OverlayEspeciais = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Ações especiais</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+  const OverlayEspeciais = () => {
+    const [editing, setEditing] = useState({
+      mode: "create", // 'create' | 'edit'
+      section: "enter", // 'enter' | 'exit'
+      index: -1,
+      draft: { label: "", scope: "context", key: "", value: "" },
+    });
+
+    const resetEditing = () =>
+      setEditing({
+        mode: "create",
+        section: "enter",
+        index: -1,
+        draft: { label: "", scope: "context", key: "", value: "" },
+      });
+
+    const startCreate = (section) =>
+      setEditing({
+        mode: "create",
+        section,
+        index: -1,
+        draft: { label: "", scope: "context", key: "", value: "" },
+      });
+
+    const startEdit = (section, index) => {
+      const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
+      const item = deepClone(list[index] || {});
+      setEditing({
+        mode: "edit",
+        section,
+        index,
+        draft: {
+          label: item.label || "",
+          scope: item.scope || "context",
+          key: item.key || "",
+          value: item.value ?? "",
+        },
+      });
+    };
+
+    const removeItem = (section, index) => {
+      const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+      list.splice(index, 1);
+      if (section === "enter") updateBlock({ onEnter: list });
+      else updateBlock({ onExit: list });
+      if (editing.section === section && editing.index === index) resetEditing();
+    };
+
+    const saveEditing = () => {
+      const { section, index, mode, draft } = editing;
+      const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+
+      const clean = {
+        ...(draft.label ? { label: draft.label } : {}),
+        scope: draft.scope || "context",
+        key: (draft.key || "").trim(),
+        value: draft.value ?? "",
+      };
+      if (!clean.key) return;
+
+      if (mode === "create") list.push(clean);
+      else list[index] = { ...list[index], ...clean };
+
+      if (section === "enter") updateBlock({ onEnter: list });
+      else updateBlock({ onExit: list });
+
+      resetEditing();
+    };
+
+    const SpecialList = ({ title, section, items }) => (
+      <div className={styles.sectionContainer}>
+        <div className={styles.sectionHeaderStatic}>
+          <h4 className={styles.sectionTitle}>{title}</h4>
+          <button className={styles.addButtonSmall} onClick={() => startCreate(section)}>
+            + Nova variável
+          </button>
+        </div>
+
+        <div className={styles.sectionContent}>
+          {!items?.length && (
+            <div className={styles.emptyHint}>
+              Nenhuma variável ainda. Clique em <strong>Nova variável</strong> para adicionar.
+            </div>
+          )}
+
+          {items?.map((a, i) => (
+            <div key={`${section}-${i}`} className={styles.specialListRow}>
+              <div className={styles.rowMain}>
+                <div className={styles.rowTitle}>{a.label || a.key || "(sem nome)"}</div>
+                <div className={styles.rowMeta}>
+                  <span className={styles.pill}>{a.scope || "context"}</span>
+                  <span className={styles.metaSep}>•</span>
+                  <span className={styles.mono}>{a.key || "-"}</span>
+                  <span className={styles.metaArrow}>→</span>
+                  <span className={styles.monoTrunc} title={String(a.value ?? "")}>
+                    {String(a.value ?? "") || "—"}
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.rowActions}>
+                <button className={styles.iconGhost} title="Editar" onClick={() => startEdit(section, i)}>
+                  <PencilLine size={16} />
+                </button>
+                <button className={styles.iconGhost} title="Remover" onClick={() => removeItem(section, i)}>
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className={styles.overlayBody}>
-        {/* ENTRADA */}
-        <div className={styles.sectionContainer}>
+    );
+
+    const Editor = () => {
+      const { draft, mode, section } = editing;
+      const isEditing = mode === "edit";
+
+      return (
+        <div className={styles.editorCard}>
           <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Ao entrar no bloco</h4>
+            <h4 className={styles.sectionTitle}>
+              {isEditing ? "Editar variável" : "Nova variável"}{" "}
+              <span className={styles.pillLight}>{section === "enter" ? "Ao entrar" : "Ao sair"}</span>
+            </h4>
+            <div className={styles.buttonGroup}>
+              <button className={styles.deleteButtonSmall} onClick={resetEditing}>
+                <X size={14} /> Cancelar
+              </button>
+              <button className={styles.addButtonSmall} onClick={saveEditing}>
+                <Plus size={14} /> Salvar
+              </button>
+            </div>
           </div>
+
           <div className={styles.sectionContent}>
-            {(onEnter || []).map((a, i) => (
-              <div key={`en-${i}`} className={styles.rowItemStyle}>
+            <div className={styles.specialInline}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Título (opcional)</label>
+                <input
+                  className={styles.inputStyle}
+                  placeholder="Como isto aparece na lista"
+                  value={draft.label || ""}
+                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, label: e.target.value } }))}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Escopo</label>
                 <select
                   className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
+                  value={draft.scope || "context"}
+                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, scope: e.target.value } }))}
                 >
                   <option value="context">context</option>
                   <option value="contact">contact</option>
                   <option value="contact.extra">contact.extra</option>
                 </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: protocolo)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: 12345)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onEnter: (onEnter || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
               </div>
-            ))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onEnter: [...(onEnter || []), { scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na entrada
-            </button>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Chave</label>
+                <input
+                  className={styles.inputStyle}
+                  placeholder="ex.: protocolo"
+                  value={draft.key || ""}
+                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, key: e.target.value } }))}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Valor</label>
+                <input
+                  className={styles.inputStyle}
+                  placeholder='ex.: 12345 ou {{context.algumaCoisa}}'
+                  value={draft.value || ""}
+                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, value: e.target.value } }))}
+                />
+              </div>
+            </div>
+
+            <div className={styles.helpRow}>
+              <small className={styles.helpText}>
+                Dica: você pode usar <code className={styles.mono}>{"{{context.nome}}"}</code> para interpolar valores.
+              </small>
+            </div>
           </div>
+        </div>
+      );
+    };
+
+    return (
+      <>
+        <div className={styles.overlayHeader}>
+          <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
+            <ArrowLeft size={18} />
+          </button>
+          <div className={styles.overlayTitle}>Ações especiais</div>
+          <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar">
+            <X size={16} />
+          </button>
         </div>
 
-        {/* SAÍDA */}
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Ao sair do bloco</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            {(onExit || []).map((a, i) => (
-              <div key={`ex-${i}`} className={styles.rowItemStyle}>
-                <select
-                  className={styles.selectStyle}
-                  value={a.scope || "context"}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], scope: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="chave (ex.: etapaAtual)"
-                  value={a.key || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], key: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <input
-                  className={styles.inputStyle}
-                  placeholder="valor (ex.: finalizado)"
-                  value={a.value || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(onExit).slice();
-                    next[i] = { ...next[i], value: e.target.value };
-                    updateBlock({ onExit: next });
-                  }}
-                />
-                <button
-                  className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onExit: (onExit || []).filter((_, idx) => idx !== i) })}
-                >
-                  Remover
-                </button>
-              </div>
-            ))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onExit: [...(onExit || []), { scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na saída
-            </button>
-          </div>
+        <div className={styles.overlayBody}>
+          <SpecialList title="Ao entrar no bloco" section="enter" items={ensureArray(onEnter)} />
+          <SpecialList title="Ao sair do bloco" section="exit" items={ensureArray(onExit)} />
+          {(editing.mode === "create" || editing.mode === "edit") && <Editor />}
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  };
 
   /* ---------------- render ---------------- */
 
@@ -1138,7 +1317,9 @@ export default function NodeConfigPanel({
     >
       <div className={styles.panelHeader}>
         <h3 className={styles.panelTitle}>
-          {selectedNode.data.type === "human" ? "atendimento humano" : (selectedNode.data.label || "Novo Bloco")}
+          {selectedNode.data.type === "human"
+            ? "atendimento humano"
+            : selectedNode.data.label || "Novo Bloco"}
         </h3>
         <button onClick={onClose} className={styles.closeButton} title="Fechar">
           <X size={20} />
@@ -1165,11 +1346,9 @@ export default function NodeConfigPanel({
           )}
         </div>
 
-        {/* Prévia e acionadores */}
         <ChatPreview />
       </div>
 
-      {/* -------- Overlay interno ao componente -------- */}
       <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
         {overlayMode === "await" && <OverlayAwait />}
         {overlayMode === "conteudo" && <OverlayConteudo />}
