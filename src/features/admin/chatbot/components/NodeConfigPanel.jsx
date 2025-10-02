@@ -15,14 +15,14 @@ import styles from "./styles/NodeConfigPanel.module.css";
 
 /* ===================== PREVIEW COMPONENTS (ajuste os caminhos conforme seu projeto) ===================== */
 // Se os paths forem diferentes no seu repo, só ajustar:
-import TextMessage from "../../../atendimento/components/chat/message/messageTypes/TextMessage";
-import QuickReplyMessage from "../../../atendimento/components/chat/message/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../../atendimento/components/chat/message/messageTypes/ListMessage";
-import ImageMessage from "../../../atendimento/components/chat/message/messageTypes/ImageMessage";
-import DocumentMessage from "../../../atendimento/components/chat/message/messageTypes/DocumentMessage";
-import AudioMessage from "../../../atendimento/components/chat/message/messageTypes/AudioMessage";
-import VideoMessage from "../../../atendimento/components/chat/message/messageTypes/VideoMessage";
-import ContactsMessage from "../../../atendimento/components/chat/message/messageTypes/ContactsMessage";
+import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
+import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
+import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
+import ImageMessage from "../../atendimento/history/messageTypes/ImageMessage";
+import DocumentMessage from "../../atendimento/history/messageTypes/DocumentMessage";
+import AudioMessage from "../../atendimento/history/messageTypes/AudioMessage";
+import VideoMessage from "../../atendimento/history/messageTypes/VideoMessage";
+import ContactsMessage from "../../atendimento/history/messageTypes/ContactsMessage";
 
 /* ================= Inputs estáveis ================= */
 function useStableCaret() {
