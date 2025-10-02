@@ -1130,7 +1130,7 @@ function EditorOverlay({
           </div>
         </div>
       </div>
-    </div> {/* <-- CORREÇÃO: antes estava </> */}
+    </div>
   );
 }
 
@@ -1637,3 +1637,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
