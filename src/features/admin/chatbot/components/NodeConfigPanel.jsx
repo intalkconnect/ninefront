@@ -16,7 +16,7 @@ import styles from "./styles/NodeConfigPanel.module.css";
 /* ========= MESSAGE TYPES (ajuste os caminhos se preciso) ========= */
 import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
 import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
+import InteractiveListMessage from "../../atendimento/history/messageTypes/InteractiveListMessage";
 import ImageMessage from "../../atendimento/history/messageTypes/ImageMessage";
 import DocumentMessage from "../../atendimento/history/messageTypes/DocumentMessage";
 import AudioMessage from "../../atendimento/history/messageTypes/AudioMessage";
@@ -1753,3 +1753,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
