@@ -1,14 +1,12 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   Trash2,
-  ChevronDown,
-  ChevronUp,
   Plus,
   X,
   MoreHorizontal,
   PencilLine,
-  Square,
-  CheckSquare
+  ArrowLeft,
+  SlidersHorizontal
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
@@ -21,25 +19,13 @@ export default function NodeConfigPanel({
   setShowScriptEditor,
   setScriptCode,
 }) {
-  const [tab, setTab] = useState("conteudo");
-  const [expandedSections, setExpandedSections] = useState({
-    actions: true,
-    default: true,
-    special: true,
-  });
+  if (!selectedNode || !selectedNode.data) return null;
 
-  // editor deslizante
-  const [editingOpen, setEditingOpen] = useState(false);
-
-  // card "Aguardar resposta"
-  const [awaitOpen, setAwaitOpen] = useState(false);
-
-  // estados para seleção de ações
-  const [selectedActions, setSelectedActions] = useState(new Set());
-
+  /* ---------------- state ---------------- */
+  // overlay: 'none' | 'conteudo' | 'regras' | 'await' | 'especiais'
+  const [overlayMode, setOverlayMode] = useState("none");
   const panelRef = useRef(null);
 
-  if (!selectedNode || !selectedNode.data) return null;
   const block = selectedNode.data.block || {};
   const {
     type,
@@ -55,15 +41,21 @@ export default function NodeConfigPanel({
     timeout,
     outputVar,
     statusVar,
+    function: fnName,
     saveResponseVar,
-    saveContentVar,
+    defaultNext,
+    onEnter = [],
+    onExit = [],
   } = block;
 
   const isHuman = type === "human";
 
   /* ---------------- helpers ---------------- */
+
   const deepClone = (obj) =>
-    typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj ?? {}));
+    typeof structuredClone === "function"
+      ? structuredClone(obj)
+      : JSON.parse(JSON.stringify(obj ?? {}));
 
   const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
   const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
@@ -76,13 +68,8 @@ export default function NodeConfigPanel({
       return fallback;
     }
   };
-  const pretty = (obj) => {
-    try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; }
-  };
+  const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
   const ensureArray = (v) => (Array.isArray(v) ? v : []);
-
-  const toggleSection = (k) =>
-    setExpandedSections((p) => ({ ...p, [k]: !p[k] }));
 
   const updateBlock = (changes) =>
     onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, ...changes } } });
@@ -92,29 +79,9 @@ export default function NodeConfigPanel({
     cloned[field] = value;
     updateBlock({ content: cloned });
   };
-
   const updateActions = (newActions) => updateBlock({ actions: deepClone(newActions) });
 
-  /* ---- seleção de ações ---- */
-  const toggleSelectAll = () => {
-    if (selectedActions.size === actions.length) {
-      setSelectedActions(new Set());
-    } else {
-      setSelectedActions(new Set(actions.map((_, index) => index)));
-    }
-  };
-
-  const toggleSelectAction = (index) => {
-    const newSelected = new Set(selectedActions);
-    if (newSelected.has(index)) {
-      newSelected.delete(index);
-    } else {
-      newSelected.add(index);
-    }
-    setSelectedActions(newSelected);
-  };
-
-  /* ---- atalhos human ---- */
+  /* atalhos human */
   const addOffhoursAction = (kind) => {
     let conds = [];
     if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
@@ -123,7 +90,7 @@ export default function NodeConfigPanel({
     updateActions([...(actions || []), { next: "", conditions: conds }]);
   };
 
-  /* ---- evitar hotkeys do builder ---- */
+  /* bloquear hotkeys do builder quando digita */
   const isEditableTarget = (el) => {
     if (!el) return false;
     if (el.isContentEditable) return true;
@@ -131,8 +98,8 @@ export default function NodeConfigPanel({
     if (tag === "TEXTAREA") return true;
     if (tag === "INPUT") {
       const t = (el.type || "").toLowerCase();
-      const textLike = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
-      if (textLike.includes(t)) return !el.readOnly && !el.disabled;
+      const tl = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
+      if (tl.includes(t)) return !el.readOnly && !el.disabled;
     }
     return false;
   };
@@ -147,8 +114,7 @@ export default function NodeConfigPanel({
     }
   }, []);
 
-  /* ---------------- Variáveis p/ condições ---------------- */
-
+  /* ---------------- variável para “regras” ---------------- */
   const variableOptions = isHuman
     ? [
         { value: "lastUserMessage", label: "Resposta do usuário" },
@@ -199,128 +165,7 @@ export default function NodeConfigPanel({
     );
   };
 
-  /* ---------------- BIBLIOTECA DE FUNÇÕES ---------------- */
-  const renderFunctionLibrary = () => (
-    <div className={styles.sectionContainer}>
-      <div className={styles.sectionHeader}>
-        <h4 className={styles.sectionTitle}>BIBLIOTECA DE FUNÇÕES</h4>
-        <button className={styles.newButton}>Novo</button>
-      </div>
-      <div className={styles.sectionContent}>
-        <p className={styles.sectionDescription}>
-          Crie e gerencie funções globais para serem chamadas sempre que necessário nos chatbots do seu contrato
-        </p>
-        <div className={styles.checkboxGroup}>
-          <label className={styles.checkboxLabel}>
-            <input type="checkbox" />
-            <span className={styles.checkboxCustom}></span>
-            Gerenciar funções
-          </label>
-          <label className={styles.checkboxLabel}>
-            <input type="checkbox" />
-            <span className={styles.checkboxCustom}></span>
-            Criar função
-          </label>
-        </div>
-      </div>
-    </div>
-  );
-
-  /* ---------------- AÇÕES DE ENTRADA ---------------- */
-  const renderInputActions = () => (
-    <div className={styles.sectionContainer}>
-      <div className={styles.sectionHeader}>
-        <h4 className={styles.sectionTitle}>
-          AÇÕES DE ENTRADA
-          <span className={styles.sectionCount}>(1/15)</span>
-        </h4>
-      </div>
-      <div className={styles.sectionContent}>
-        <p className={styles.sectionDescription}>
-          Inclua ações que serão executadas antes do envio do primeiro conteúdo
-          <a href="#" className={styles.helpLink}>Entenda como funcionam as ações de entrada</a>
-        </p>
-        <div className={styles.checkboxGroup}>
-          <label className={styles.checkboxLabel}>
-            <input 
-              type="checkbox" 
-              onChange={toggleSelectAll}
-              checked={selectedActions.size === actions.length && actions.length > 0}
-            />
-            <span className={styles.checkboxCustom}>
-              {selectedActions.size === actions.length && actions.length > 0 ? <CheckSquare size={14} /> : <Square size={14} />}
-            </span>
-            Selecionar todos
-          </label>
-          <label className={styles.checkboxLabel}>
-            <input type="checkbox" />
-            <span className={styles.checkboxCustom}></span>
-            Colar ação
-          </label>
-        </div>
-        
-        <div className={styles.actionList}>
-          {actions.map((action, index) => (
-            <div key={index} className={styles.actionItem}>
-              <label className={styles.checkboxLabel}>
-                <input 
-                  type="checkbox" 
-                  checked={selectedActions.has(index)}
-                  onChange={() => toggleSelectAction(index)}
-                />
-                <span className={styles.checkboxCustom}>
-                  {selectedActions.has(index) ? <CheckSquare size={14} /> : <Square size={14} />}
-                </span>
-              </label>
-              <span className={styles.actionName}>Condição {index + 1}</span>
-            </div>
-          ))}
-        </div>
-
-        <button className={styles.addActionButton}>
-          <Plus size={16} />
-          Adicionar ação de entrada
-        </button>
-      </div>
-    </div>
-  );
-
-  /* ---------------- AÇÕES DE SAÍDA ---------------- */
-  const renderOutputActions = () => (
-    <div className={styles.sectionContainer}>
-      <div className={styles.sectionHeader}>
-        <h4 className={styles.sectionTitle}>
-          AÇÕES DE SAÍDA
-          <span className={styles.sectionCount}>(3/15)</span>
-        </h4>
-      </div>
-      <div className={styles.sectionContent}>
-        <p className={styles.sectionDescription}>
-          Inclua ações que serão executadas após o envio do último conteúdo ou resposta do usuário
-          <a href="#" className={styles.helpLink}>Entenda como funcionam as ações de saída</a>
-        </p>
-        <div className={styles.checkboxGroup}>
-          <label className={styles.checkboxLabel}>
-            <input type="checkbox" />
-            <span className={styles.checkboxCustom}></span>
-            Selecionar todos
-          </label>
-          <label className={styles.checkboxLabel}>
-            <input type="checkbox" />
-            <span className={styles.checkboxCustom}></span>
-            Colar ação
-          </label>
-        </div>
-        
-        <button className={styles.addActionButton}>
-          <Plus size={16} />
-          Adicionar ação de saída
-        </button>
-      </div>
-    </div>
-  );
-
-  /* ---------------- PREVIEW estilo chat ---------------- */
+  /* ---------------- preview estilo chat ---------------- */
 
   const renderQuickReplies = () => {
     if (type !== "interactive" || content?.type !== "button") return null;
@@ -357,19 +202,22 @@ export default function NodeConfigPanel({
     );
   };
 
+  const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
+  const closeOverlay = () => setOverlayMode("none");
+
+  useEffect(() => { /* placeholder p/ futuros efeitos */ }, [overlayMode]);
+
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
-      {/* botões flutuantes no topo direito */}
       <div className={styles.floatingBtns}>
-        <button
-          className={styles.iconGhost}
-          title="Editar conteúdo"
-          onClick={() => setEditingOpen(true)}
-        >
+        <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
           <PencilLine size={16} />
         </button>
-        <button className={styles.iconGhost} title="Mais opções">
+        <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
           <MoreHorizontal size={16} />
+        </button>
+        <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
+          <SlidersHorizontal size={16} />
         </button>
       </div>
 
@@ -382,11 +230,7 @@ export default function NodeConfigPanel({
 
             {type === "interactive" && (
               <>
-                <div>
-                  {(content?.body?.text || "").length
-                    ? content?.body?.text
-                    : <em className={styles.placeholder}>Sem corpo</em>}
-                </div>
+                <div>{content?.body?.text || <em className={styles.placeholder}>Sem corpo</em>}</div>
                 {renderQuickReplies()}
                 {renderListPreview()}
               </>
@@ -414,40 +258,49 @@ export default function NodeConfigPanel({
           </div>
         </div>
 
-        {/* Chip: Entrada do usuário — abre o card do await */}
         <button
           type="button"
           className={styles.userInputChip}
-          onClick={() => setAwaitOpen((v) => !v)}
+          onClick={() => openOverlay("await")}
           title="Configurar aguardar resposta"
         >
           Entrada do usuário
-          <span className={`${styles.caret} ${awaitOpen ? styles.caretUp : ""}`} />
+          <span className={styles.caret} />
         </button>
       </div>
+    </div>
+  );
 
-      {/* ---- Editor Deslizante sobre a prévia ---- */}
-      <div className={`${styles.slideOverlay} ${editingOpen ? styles.open : ""}`}>
-        <div className={styles.slideHeader}>
-          <strong>Editar conteúdo</strong>
-          <button className={styles.iconGhost} onClick={() => setEditingOpen(false)} title="Fechar">
-            <X size={16} />
-          </button>
-        </div>
+  /* ---------------- overlay: AWAIT (somente opções de resposta) ---------------- */
 
-        <div className={styles.slideBody}>
-          {/* Editor por tipo (mesmo conjunto que você já usa) */}
-          {type === "text" && (
-            <>
+  const OverlayAwait = () => (
+    <>
+      <div className={styles.overlayHeader}>
+        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
+          <ArrowLeft size={18} />
+        </button>
+        <div className={styles.overlayTitle}>Entrada do usuário</div>
+        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+      </div>
+      <div className={styles.overlayBody}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Aguardar resposta</h4>
+          </div>
+          <div className={styles.sectionContent}>
+            <div className={styles.rowTwoCols}>
               <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Mensagem</label>
-                <textarea
-                  rows={8}
-                  value={block.content || ""}
-                  onChange={(e) => updateBlock({ content: e.target.value })}
-                  className={styles.textareaStyle}
-                />
+                <label className={styles.inputLabel}>Ativar</label>
+                <select
+                  value={String(!!awaitResponse)}
+                  onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
+                  className={styles.selectStyle}
+                >
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
               </div>
+
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Atraso de envio (s)</label>
                 <input
@@ -457,11 +310,69 @@ export default function NodeConfigPanel({
                   className={styles.inputStyle}
                 />
               </div>
-            </>
-          )}
+            </div>
 
-          {type === "interactive" && (
-            <>
+            <div className={styles.rowTwoCols}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Tempo de inatividade (s)</label>
+                <input
+                  type="number"
+                  value={awaitTimeInSeconds ?? 0}
+                  onChange={(e) => updateBlock({ awaitTimeInSeconds: parseInt(e.target.value || "0", 10) })}
+                  className={styles.inputStyle}
+                />
+                <small className={styles.helpText}>0 para desativar</small>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
+                <input
+                  type="text"
+                  placeholder="ex.: context.inputMenuPrincipal"
+                  value={saveResponseVar || ""}
+                  onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                  className={styles.inputStyle}
+                />
+                <small className={styles.helpText}>Se vazio, não salva.</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  /* ---------------- overlay: CONTEÚDO (somente editor do conteúdo) ---------------- */
+
+  const OverlayConteudo = () => (
+    <>
+      <div className={styles.overlayHeader}>
+        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
+          <ArrowLeft size={18} />
+        </button>
+        <div className={styles.overlayTitle}>Conteúdo</div>
+        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+      </div>
+
+      <div className={styles.overlayBody}>
+        {type === "text" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
+            <div className={styles.sectionContent}>
+              <textarea
+                rows={8}
+                value={block.content || ""}
+                onChange={(e) => updateBlock({ content: e.target.value })}
+                className={styles.textareaStyle}
+              />
+            </div>
+          </div>
+        )}
+
+        {type === "interactive" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
+            <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
                 <select
@@ -506,7 +417,9 @@ export default function NodeConfigPanel({
                 <input
                   type="text"
                   value={content.body?.text || ""}
-                  onChange={(e) => updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })}
+                  onChange={(e) =>
+                    updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })
+                  }
                   className={styles.inputStyle}
                 />
               </div>
@@ -655,11 +568,14 @@ export default function NodeConfigPanel({
                   </button>
                 </>
               )}
-            </>
-          )}
+            </div>
+          </div>
+        )}
 
-          {type === "media" && (
-            <>
+        {type === "media" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
+            <div className={styles.sectionContent}>
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
                 <select
@@ -681,11 +597,14 @@ export default function NodeConfigPanel({
                 <label className={styles.inputLabel}>Legenda</label>
                 <input type="text" value={content.caption || ""} onChange={(e) => updateContent("caption", e.target.value)} className={styles.inputStyle}/>
               </div>
-            </>
-          )}
+            </div>
+          </div>
+        )}
 
-          {type === "location" && (
-            <>
+        {type === "location" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
+            <div className={styles.sectionContent}>
               <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
                 <input type="text" value={content.name || ""} onChange={(e) => updateContent("name", e.target.value)} className={styles.inputStyle}/></div>
               <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
@@ -694,129 +613,176 @@ export default function NodeConfigPanel({
                 <input type="text" value={content.latitude || ""} onChange={(e) => updateContent("latitude", e.target.value)} className={styles.inputStyle}/></div>
               <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
                 <input type="text" value={content.longitude || ""} onChange={(e) => updateContent("longitude", e.target.value)} className={styles.inputStyle}/></div>
-            </>
-          )}
+            </div>
+          </div>
+        )}
 
-          {type === "script" && (
-            <>
+        {type === "script" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
+            <div className={styles.sectionContent}>
               <button
-                onClick={() => { setScriptCode(selectedNode?.data?.block?.code || ""); setShowScriptEditor(true); }}
+                onClick={() => {
+                  setScriptCode(selectedNode?.data?.block?.code || "");
+                  setShowScriptEditor(true);
+                }}
                 className={styles.addButton}
               >
                 Abrir editor de código
               </button>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Função</label>
-                <input type="text" value={block.function || ""} onChange={(e) => updateBlock({ function: e.target.value })} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Variável de saída</label>
-                <input type="text" value={block.outputVar || ""} onChange={(e) => updateBlock({ outputVar: e.target.value })} className={styles.inputStyle}/></div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
-  /* ---------------- Card "Aguardar resposta" ---------------- */
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Função</label>
+                <input
+                  type="text"
+                  value={fnName || ""}
+                  onChange={(e) => updateBlock({ function: e.target.value })}
+                  className={styles.inputStyle}
+                />
+              </div>
 
-  const renderAwaitCard = () => (
-    <div className={styles.cardToggle}>
-      <button
-        type="button"
-        className={styles.cardToggleHeaderBtn}
-        onClick={() => setAwaitOpen((v) => !v)}
-      >
-        <span className={styles.cardTitleStrong}>Aguardar resposta</span>
-        {awaitOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-      </button>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Variável de saída</label>
+                <input
+                  type="text"
+                  value={outputVar || ""}
+                  onChange={(e) => updateBlock({ outputVar: e.target.value })}
+                  className={styles.inputStyle}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
-      {awaitOpen && (
-        <div className={styles.cardToggleBody}>
-          <div className={styles.rowTwoCols}>
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Ativar</label>
-              <select
-                value={String(!!awaitResponse)}
-                onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
-                className={styles.selectStyle}
+        {type === "api_call" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
+            <div className={styles.sectionContent}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Método</label>
+                <select
+                  value={method || "GET"}
+                  onChange={(e) => updateBlock({ method: e.target.value })}
+                  className={styles.selectStyle}
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="PATCH">PATCH</option>
+                </select>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>URL</label>
+                <input
+                  type="text"
+                  value={url || ""}
+                  onChange={(e) => updateBlock({ url: e.target.value })}
+                  className={styles.inputStyle}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Headers (JSON)</label>
+                <textarea
+                  rows={3}
+                  defaultValue={pretty(headers)}
+                  onBlur={(e) => updateBlock({ headers: safeParseJson(e.target.value, headers || {}) })}
+                  className={styles.textareaStyle}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Body (JSON)</label>
+                <textarea
+                  rows={4}
+                  defaultValue={pretty(body)}
+                  onBlur={(e) => updateBlock({ body: safeParseJson(e.target.value, body || {}) })}
+                  className={styles.textareaStyle}
+                />
+              </div>
+
+              <div className={styles.rowTwoCols}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Timeout (ms)</label>
+                  <input
+                    type="number"
+                    value={timeout ?? 10000}
+                    onChange={(e) => updateBlock({ timeout: parseInt(e.target.value || "0", 10) })}
+                    className={styles.inputStyle}
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável de saída</label>
+                  <input
+                    type="text"
+                    value={outputVar || "apiResponse"}
+                    onChange={(e) => updateBlock({ outputVar: e.target.value })}
+                    className={styles.inputStyle}
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável de status</label>
+                  <input
+                    type="text"
+                    value={statusVar || "apiStatus"}
+                    onChange={(e) => updateBlock({ statusVar: e.target.value })}
+                    className={styles.inputStyle}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {type === "http" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Formato antigo</h4></div>
+            <div className={styles.sectionContent}>
+              <button
+                className={styles.addButton}
+                onClick={() => {
+                  const c = deepClone(content || {});
+                  updateBlock({
+                    type: "api_call",
+                    method: c.method || "GET",
+                    url: c.url || "",
+                    headers: safeParseJson(c.headers, {}),
+                    body: safeParseJson(c.body, {}),
+                    timeout: c.timeout ?? 10000,
+                    outputVar: c.outputVar || "apiResponse",
+                    statusVar: c.statusVar || "apiStatus",
+                    content: undefined,
+                  });
+                }}
               >
-                <option value="true">Sim</option>
-                <option value="false">Não</option>
-              </select>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Atraso de envio (s)</label>
-              <input
-                type="number"
-                value={sendDelayInSeconds ?? 0}
-                onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || "0", 10) })}
-                className={styles.inputStyle}
-              />
+                Migrar para api_call
+              </button>
             </div>
           </div>
-
-          <div className={styles.rowTwoCols}>
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Tempo de inatividade (s)</label>
-              <input
-                type="number"
-                value={awaitTimeInSeconds ?? 0}
-                onChange={(e) => updateBlock({ awaitTimeInSeconds: parseInt(e.target.value || "0", 10) })}
-                className={styles.inputStyle}
-              />
-              <small className={styles.helpText}>0 para desativar</small>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
-              <input
-                type="text"
-                placeholder="ex.: context.inputMenuPrincipal"
-                value={saveResponseVar || ""}
-                onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
-                className={styles.inputStyle}
-              />
-              <small className={styles.helpText}>Se vazio, não salva.</small>
-            </div>
-          </div>
-
-          {(type === "interactive" || type === "media") && (
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Salvar conteúdo rico em</label>
-              <input
-                type="text"
-                placeholder="ex.: context.lastcontentmessage"
-                value={saveContentVar || ""}
-                onChange={(e) => updateBlock({ saveContentVar: e.target.value })}
-                className={styles.inputStyle}
-              />
-              <small className={styles.helpText}>Guarda o payload/ID/URL escolhido.</small>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 
-  /* ---------------- AÇÕES (condições de saída) ---------------- */
+  /* ---------------- overlay: REGRAS (somente regras de saída) ---------------- */
 
-  const renderActionsTab = () => (
-    <div className={styles.tabContent}>
-      {renderFunctionLibrary()}
-      {renderInputActions()}
-      {renderOutputActions()}
-
-      {/* Seções originais de condições */}
-      <div className={styles.sectionContainer}>
-        <div className={styles.sectionHeader} onClick={() => toggleSection("actions")}>
-          <h4 className={styles.sectionTitle}>
-            Condições de Saída
+  const OverlayRegras = () => (
+    <>
+      <div className={styles.overlayHeader}>
+        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
+          <ArrowLeft size={18} />
+        </button>
+        <div className={styles.overlayTitle}>Regras de saída</div>
+        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+      </div>
+      <div className={styles.overlayBody}>
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Regras</h4>
             <span className={styles.sectionCount}>({actions.length}/25)</span>
-          </h4>
-          {expandedSections.actions ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </div>
-
-        {expandedSections.actions && (
+          </div>
           <div className={styles.sectionContent}>
             {isHuman && (
               <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
@@ -837,7 +803,7 @@ export default function NodeConfigPanel({
 
                 <div className={styles.actionBox}>
                   <div className={styles.actionHeader}>
-                    <strong className={styles.actionTitle}>Condição {actionIdx + 1}</strong>
+                    <strong className={styles.actionTitle}>Regra {actionIdx + 1}</strong>
                     <Trash2
                       size={16}
                       className={styles.trashIcon}
@@ -956,7 +922,7 @@ export default function NodeConfigPanel({
 
                   {/* Próximo bloco */}
                   <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Próximo Bloco</label>
+                    <label className={styles.inputLabel}>Ir para</label>
                     <select
                       value={action.next || ""}
                       onChange={(e) => {
@@ -995,31 +961,66 @@ export default function NodeConfigPanel({
                 }}
                 className={styles.addButton}
               >
-                <Plus size={16} /> Adicionar condição
+                <Plus size={16} /> Adicionar regra
               </button>
             </div>
+
+            {/* Saída padrão */}
+            <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
+              <div className={styles.sectionHeaderStatic}>
+                <h4 className={styles.sectionTitle}>Saída padrão</h4>
+              </div>
+              <div className={styles.sectionContent}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Próximo bloco</label>
+                  <select
+                    value={defaultNext || ""}
+                    onChange={(e) => updateBlock({ defaultNext: e.target.value })}
+                    className={styles.selectStyle}
+                  >
+                    <option value="">Selecione um bloco...</option>
+                    {allNodes
+                      .filter((n) => n.id !== selectedNode.id)
+                      .map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.data.label || node.id}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-
-      {/* Ações especiais */}
-      <div className={styles.sectionContainer}>
-        <div className={styles.sectionHeader} onClick={() => toggleSection("special")}>
-          <h4 className={styles.sectionTitle}>Ações especiais (variáveis)</h4>
-          {expandedSections.special ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
+      </div> 
+    </>
+  );
 
-        {expandedSections.special && (
+  /* ---------------- overlay: AÇÕES ESPECIAIS (onEnter / onExit) ---------------- */
+
+  const OverlayEspeciais = () => (
+    <>
+      <div className={styles.overlayHeader}>
+        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
+          <ArrowLeft size={18} />
+        </button>
+        <div className={styles.overlayTitle}>Ações especiais</div>
+        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
+      </div>
+      <div className={styles.overlayBody}>
+        {/* ENTRADA */}
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Ao entrar no bloco</h4>
+          </div>
           <div className={styles.sectionContent}>
-            {/* ENTRADA */}
-            <h5 className={styles.smallTitle}>Ao entrar no bloco</h5>
-            {(block.onEnter || []).map((a, i) => (
+            {(onEnter || []).map((a, i) => (
               <div key={`en-${i}`} className={styles.rowItemStyle}>
                 <select
                   className={styles.selectStyle}
                   value={a.scope || "context"}
                   onChange={(e) => {
-                    const next = ensureArray(block.onEnter).slice();
+                    const next = ensureArray(onEnter).slice();
                     next[i] = { ...next[i], scope: e.target.value };
                     updateBlock({ onEnter: next });
                   }}
@@ -1033,7 +1034,7 @@ export default function NodeConfigPanel({
                   placeholder="chave (ex.: protocolo)"
                   value={a.key || ""}
                   onChange={(e) => {
-                    const next = ensureArray(block.onEnter).slice();
+                    const next = ensureArray(onEnter).slice();
                     next[i] = { ...next[i], key: e.target.value };
                     updateBlock({ onEnter: next });
                   }}
@@ -1043,14 +1044,14 @@ export default function NodeConfigPanel({
                   placeholder="valor (ex.: 12345)"
                   value={a.value || ""}
                   onChange={(e) => {
-                    const next = ensureArray(block.onEnter).slice();
+                    const next = ensureArray(onEnter).slice();
                     next[i] = { ...next[i], value: e.target.value };
                     updateBlock({ onEnter: next });
                   }}
                 />
                 <button
                   className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onEnter: (block.onEnter || []).filter((_, idx) => idx !== i) })}
+                  onClick={() => updateBlock({ onEnter: (onEnter || []).filter((_, idx) => idx !== i) })}
                 >
                   Remover
                 </button>
@@ -1058,22 +1059,26 @@ export default function NodeConfigPanel({
             ))}
             <button
               className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onEnter: [...(block.onEnter || []), { scope: "context", key: "", value: "" }] })}
+              onClick={() => updateBlock({ onEnter: [...(onEnter || []), { scope: "context", key: "", value: "" }] })}
             >
               + adicionar na entrada
             </button>
+          </div>
+        </div>
 
-            <div className={styles.dividerLine} style={{ margin: "12px 0" }} />
-
-            {/* SAÍDA */}
-            <h5 className={styles.smallTitle}>Ao sair do bloco</h5>
-            {(block.onExit || []).map((a, i) => (
+        {/* SAÍDA */}
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Ao sair do bloco</h4>
+          </div>
+          <div className={styles.sectionContent}>
+            {(onExit || []).map((a, i) => (
               <div key={`ex-${i}`} className={styles.rowItemStyle}>
                 <select
                   className={styles.selectStyle}
                   value={a.scope || "context"}
                   onChange={(e) => {
-                    const next = ensureArray(block.onExit).slice();
+                    const next = ensureArray(onExit).slice();
                     next[i] = { ...next[i], scope: e.target.value };
                     updateBlock({ onExit: next });
                   }}
@@ -1087,7 +1092,7 @@ export default function NodeConfigPanel({
                   placeholder="chave (ex.: etapaAtual)"
                   value={a.key || ""}
                   onChange={(e) => {
-                    const next = ensureArray(block.onExit).slice();
+                    const next = ensureArray(onExit).slice();
                     next[i] = { ...next[i], key: e.target.value };
                     updateBlock({ onExit: next });
                   }}
@@ -1097,14 +1102,14 @@ export default function NodeConfigPanel({
                   placeholder="valor (ex.: finalizado)"
                   value={a.value || ""}
                   onChange={(e) => {
-                    const next = ensureArray(block.onExit).slice();
+                    const next = ensureArray(onExit).slice();
                     next[i] = { ...next[i], value: e.target.value };
                     updateBlock({ onExit: next });
                   }}
                 />
                 <button
                   className={styles.deleteButtonSmall}
-                  onClick={() => updateBlock({ onExit: (block.onExit || []).filter((_, idx) => idx !== i) })}
+                  onClick={() => updateBlock({ onExit: (onExit || []).filter((_, idx) => idx !== i) })}
                 >
                   Remover
                 </button>
@@ -1112,47 +1117,17 @@ export default function NodeConfigPanel({
             ))}
             <button
               className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onExit: [...(block.onExit || []), { scope: "context", key: "", value: "" }] })}
+              onClick={() => updateBlock({ onExit: [...(onExit || []), { scope: "context", key: "", value: "" }] })}
             >
               + adicionar na saída
             </button>
           </div>
-        )}
-      </div>
-
-      {/* Saída padrão */}
-      <div className={styles.sectionContainer}>
-        <div className={styles.sectionHeader} onClick={() => toggleSection("default")}>
-          <h4 className={styles.sectionTitle}>Saída Padrão</h4>
-          {expandedSections.default ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
-
-        {expandedSections.default && (
-          <div className={styles.sectionContent}>
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Próximo Bloco</label>
-              <select
-                value={block.defaultNext || ""}
-                onChange={(e) => updateBlock({ defaultNext: e.target.value })}
-                className={styles.selectStyle}
-              >
-                <option value="">Selecione um bloco...</option>
-                {allNodes
-                  .filter((n) => n.id !== selectedNode.id)
-                  .map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.data.label || node.id}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
+    </>
   );
 
-  /* ---------------- Conteúdo vs Ações ---------------- */
+  /* ---------------- render ---------------- */
 
   return (
     <aside
@@ -1162,65 +1137,44 @@ export default function NodeConfigPanel({
       onKeyDownCapture={handleKeyDownCapture}
     >
       <div className={styles.panelHeader}>
-        <div className={styles.headerTabs}>
-          <button 
-            className={`${styles.headerTab} ${tab === "conteudo" ? styles.headerTabActive : ""}`}
-            onClick={() => setTab("conteudo")}
-          >
-            Conteúdo
-          </button>
-          <button 
-            className={`${styles.headerTab} ${tab === "condicoes" ? styles.headerTabActive : ""}`}
-            onClick={() => setTab("condicoes")}
-          >
-            Condições de saída
-          </button>
-          <button 
-            className={`${styles.headerTab} ${tab === "acoes" ? styles.headerTabActive : ""}`}
-            onClick={() => setTab("acoes")}
-          >
-            Ações
-          </button>
-        </div>
+        <h3 className={styles.panelTitle}>
+          {selectedNode.data.type === "human" ? "atendimento humano" : (selectedNode.data.label || "Novo Bloco")}
+        </h3>
         <button onClick={onClose} className={styles.closeButton} title="Fechar">
           <X size={20} />
         </button>
       </div>
 
-      <div className={styles.panelContent}>
-        <div className={styles.tabContent}>
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Nome do Bloco</label>
-            {selectedNode.data.nodeType === "start" ? (
-              <div className={styles.startNodeInfo}>
-                Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
-              </div>
-            ) : selectedNode.data.type === "human" ? (
-              <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
-            ) : (
-              <input
-                type="text"
-                value={selectedNode.data.label}
-                onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
-                className={styles.inputStyle}
-                placeholder="Nomeie este bloco"
-              />
-            )}
-          </div>
-
-          {selectedNode.data.nodeType === "start" ? renderActionsTab() : tab === "conteudo" ? (
-            <>
-              <ChatPreview />
-              {renderAwaitCard()}
-            </>
-          ) : tab === "condicoes" ? (
-            renderActionsTab()
-          ) : (
-            <div className={styles.tabContent}>
-              <p>Conteúdo da aba Ações</p>
+      <div className={styles.tabContent}>
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Nome do Bloco</label>
+          {selectedNode.data.nodeType === "start" ? (
+            <div className={styles.startNodeInfo}>
+              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
             </div>
+          ) : selectedNode.data.type === "human" ? (
+            <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
+          ) : (
+            <input
+              type="text"
+              value={selectedNode.data.label}
+              onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
+              className={styles.inputStyle}
+              placeholder="Nomeie este bloco"
+            />
           )}
         </div>
+
+        {/* Prévia e acionadores */}
+        <ChatPreview />
+      </div>
+
+      {/* -------- Overlay interno ao componente -------- */}
+      <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
+        {overlayMode === "await" && <OverlayAwait />}
+        {overlayMode === "conteudo" && <OverlayConteudo />}
+        {overlayMode === "regras" && <OverlayRegras />}
+        {overlayMode === "especiais" && <OverlayEspeciais />}
       </div>
     </aside>
   );
