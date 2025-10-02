@@ -1,8 +1,8 @@
 /* ===== Tema claro, minimalista (sem azul) ===== */
 
 .asidePanel{
-  position:relative;
-  right:0; top:0; width:480px; height:100vh;
+  position:relative; /* <- importante p/ overlay interno */
+  right:0; top:0; width:420px; height:100vh;
   background:#ffffff; color:#2f2f2f; z-index:9;
   border-left:1px solid #e7e7e7; box-shadow:-12px 0 40px rgba(0,0,0,.06);
   overflow:auto;
@@ -12,54 +12,56 @@
 /* Header */
 .panelHeader{
   position:sticky; top:0; display:flex; align-items:center; justify-content:space-between;
-  padding:16px 18px; background:#fff; border-bottom:1px solid #ececec; z-index:2;
+  padding:14px 16px; background:#fff; border-bottom:1px solid #ececec; z-index:2;
 }
-.panelTitle{ margin:0; font-size:17px; font-weight:800; color:#111; }
+.panelTitle{ margin:0; font-size:16px; font-weight:800; color:#111; }
 .closeButton{
   border:1px solid #e5e5e5; background:#fafafa; color:#b00000;
-  width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
   cursor:pointer; transition:.15s;
 }
 .closeButton:hover{ background:#ffecec; }
 
 /* Conteúdo */
-.tabContent{ padding:16px 18px 28px; }
-.inputGroup{ margin-bottom:14px; }
+.tabContent{ padding:14px 16px 28px; }
+.inputGroup{ margin-bottom:12px; }
 .inputLabel{ display:block; margin-bottom:6px; font-size:12px; color:#555; font-weight:700; }
 .inputStyle, .selectStyle, .textareaStyle{
   width:100%; background:#fff; color:#222; border:1px solid #dfdfdf;
-  border-radius:12px; padding:12px 14px; font-size:14px; transition:.15s;
+  border-radius:10px; padding:10px 12px; font-size:13px; transition:.15s;
 }
 .inputStyle:focus, .selectStyle:focus, .textareaStyle:focus{ outline:none; border-color:#b5b5b5; box-shadow:0 0 0 3px rgba(0,0,0,.04); }
-.textareaStyle{ resize:vertical; min-height:120px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.textareaStyle{ resize:vertical; min-height:96px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .helpText{ display:block; color:#888; font-size:11px; margin-top:6px; }
 
 /* Seções genéricas */
-.sectionContainer{ background:#fff; border:1px solid #ececec; border-radius:14px; margin-bottom:16px; }
-.sectionHeaderStatic{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:#fafafa; border-bottom:1px solid #f1f1f1; }
+.sectionContainer{ background:#fff; border:1px solid #ececec; border-radius:14px; margin-bottom:14px; }
+.sectionHeaderStatic{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:#fafafa; border-bottom:1px solid #f1f1f1; }
 .sectionTitle{ margin:0; font-weight:800; font-size:14px; color:#111; display:flex; align-items:center; gap:8px; }
 .sectionCount{ margin-left:8px; font-size:11px; color:#444; background:#efefef; border:1px solid #dedede; padding:2px 8px; border-radius:999px; }
-.sectionContent{ padding:14px 16px; }
+.sectionContent{ padding:12px 14px; }
 .smallTitle{ margin:0 0 10px; font-weight:800; font-size:12px; color:#333; }
 
 /* Preview estilo chat */
-.chatPreviewCard{ position:relative; border:1px solid #ececec; border-radius:14px; background:#fff; margin-bottom:16px; overflow:hidden; }
-.floatingBtns{ position:absolute; top:10px; right:10px; display:flex; gap:8px; z-index:3; }
+.chatPreviewCard{ position:relative; border:1px solid #ececec; border-radius:14px; background:#fff; margin-bottom:14px; overflow:hidden; }
+.floatingBtns{
+  position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:3;
+}
 .iconGhost{
   border:1px solid #e5e5e5; background:#fff; color:#222;
-  width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
   cursor:pointer; transition:.15s;
 }
 .iconGhost:hover{ background:#f5f5f5; }
 
-.chatArea{ padding:16px; display:flex; flex-direction:column; gap:12px; }
+.chatArea{ padding:14px; display:flex; flex-direction:column; gap:10px; }
 .typingDot{
-  width:42px; height:30px; border-radius:16px; background:#f1f1f1; display:flex; align-items:center; justify-content:center;
+  width:40px; height:28px; border-radius:14px; background:#f1f1f1; display:flex; align-items:center; justify-content:center;
   color:#777; border:1px solid #e8e8e8;
 }
 
 .bubble{ max-width:100%; background:#f8f8f8; border:1px solid #e9e9e9; color:#222; border-radius:12px; padding:12px 14px; }
-.bubbleText{ white-space:pre-wrap; line-height:1.55; font-size:14px; }
+.bubbleText{ white-space:pre-wrap; line-height:1.55; font-size:13px; }
 .placeholder{ color:#9a9a9a; font-style:italic; }
 
 .quickReplies{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
@@ -73,6 +75,20 @@
 .listTexts strong{ display:block; font-size:13px; color:#111; }
 .listTexts small{ display:block; color:#555; font-size:12px; }
 .moreHint{ color:#777; font-size:12px; margin-top:6px; display:block; }
+
+/* Chips de ações especiais visíveis na prévia */
+.specialStrip{
+  display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;
+}
+.specialChip{
+  background:#fbfbfb; border:1px solid #e8e8e8; color:#333;
+  border-radius:999px; padding:6px 10px; font-size:11px; font-weight:800; cursor:pointer;
+}
+.specialChip:hover{ background:#f4f4f4; }
+.specialChipMuted{
+  background:#f7f7f7; border:1px dashed #e1e1e1; color:#666;
+  border-radius:999px; padding:6px 10px; font-size:11px; cursor:pointer;
+}
 
 /* Chip “Entrada do usuário” */
 .userInputChip{
@@ -88,25 +104,19 @@
 .actionTitle{ color:#111; font-weight:800; font-size:14px; }
 
 .conditionRow{ margin-top:10px; padding-top:10px; border-top:1px dashed #ededed; display:grid; gap:10px; }
-.conditionRowWide{ margin-top:10px; padding:12px; border:1px dashed #e6e6e6; border-radius:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.conditionRowWide .inputGroup{ margin-bottom:0; }
-
-.rowItemStyle{ display:flex; gap:10px; align-items:center; padding:12px; background:#fff; border:1px solid #ececec; border-radius:12px; margin-bottom:12px; }
+.rowItemStyle{ display:flex; gap:8px; align-items:center; padding:10px; background:#fff; border:1px solid #ececec; border-radius:10px; margin-bottom:10px; }
 .rowItemStyle input{ flex:1; min-width:0; }
-
-.kvShow{ display:flex; gap:8px; align-items:center; background:#fafafa; border:1px solid #ededed; padding:8px 10px; border-radius:10px; flex:1; }
-.tagMuted{ padding:6px 10px; border:1px solid #e9e9e9; border-radius:999px; background:#f8f8f8; color:#444; font-size:12px; }
 
 .buttonGroup{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 
 /* Botões */
 .addButton{
-  width:100%; background:#16a34a; color:#fff; border:none; padding:12px 14px;
+  width:100%; background:#16a34a; color:#fff; border:none; padding:11px 12px;
   border-radius:12px; font-weight:900; cursor:pointer; box-shadow:0 6px 18px rgba(22,163,74,.25);
 }
 .addButton:hover{ filter:brightness(1.03); }
 .addButtonSmall, .deleteButtonSmall{
-  background:#fff; border:1px solid #dbdbdb; padding:10px 12px; border-radius:10px; color:#333; cursor:pointer; font-weight:800; font-size:12px;
+  background:#fff; border:1px solid #dbdbdb; padding:9px 10px; border-radius:10px; color:#333; cursor:pointer; font-weight:800; font-size:12px;
 }
 .addButtonSmall:hover{ background:#f7f7f7; }
 .deleteButtonSmall{ border-color:#e9b4b4; color:#b00000; }
@@ -117,7 +127,7 @@
 
 /* Info banners */
 .infoBlock{ background:#fff9e6; border:1px solid #ffe3a1; color:#7a5d00; padding:12px; border-radius:12px; margin-bottom:12px; }
-.startNodeInfo{ padding:12px 14px; border-radius:12px; background:#f7f7f7; color:#333; border:1px solid #ececec; }
+.startNodeInfo{ padding:10px 12px; border-radius:10px; background:#f7f7f7; color:#333; border:1px solid #ececec; }
 
 /* Divisores */
 .dividerContainer{ position:relative; text-align:center; margin:10px 0; }
@@ -129,11 +139,24 @@
 }
 
 /* Layout auxiliar */
-.rowTwoCols{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.rowTwoCols{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.rowColsAdaptive{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap:10px;
+}
 
-/* -------- Overlay deslizante -------- */
+/* Bloco de ajuda no especiais */
+.headHelp{
+  margin-top:8px; font-size:12px; color:#555; background:#fbfbfb; border:1px dashed #e8e8e8; padding:10px; border-radius:10px;
+}
+.specialRow{
+  border:1px solid #ececec; border-radius:12px; padding:12px; margin-bottom:12px; background:#fff;
+}
+
+/* -------- Overlay deslizante (interno ao painel) -------- */
 .overlay{
-  position:absolute; inset:0;
+  position:absolute; inset:0; /* dentro do aside */
   background:#fff;
   border-left:1px solid #e9e9e9; box-shadow:-8px 0 28px rgba(0,0,0,.06);
   transform:translateX(100%); opacity:0; pointer-events:none; transition:transform .28s ease, opacity .28s ease;
@@ -141,16 +164,14 @@
 }
 .overlayOpen{ transform:translateX(0); opacity:1; pointer-events:auto; }
 .overlayHeader{
-  height:64px; min-height:64px; display:flex; align-items:center; gap:10px;
-  padding:0 16px; border-bottom:1px solid #efefef; background:#fff; position:sticky; top:0; z-index:2;
+  height:56px; min-height:56px; display:flex; align-items:center; gap:8px;
+  padding:0 12px; border-bottom:1px solid #efefef; background:#fff; position:sticky; top:0; z-index:2;
 }
-.overlayTitle{ font-weight:800; font-size:15px; color:#111; flex:1; }
+.overlayTitle{ font-weight:800; font-size:14px; color:#111; flex:1; }
 .backBtn{
-  width:38px; height:38px; border-radius:10px; border:1px solid #e5e5e5; background:#fafafa; color:#222; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  width:36px; height:36px; border-radius:10px; border:1px solid #e5e5e5; background:#fafafa; color:#222; display:flex; align-items:center; justify-content:center; cursor:pointer;
 }
-.overlayBody{ padding:16px 18px 22px; overflow:auto; }
-.headHelp{ font-size:13px; color:#444; background:#fafafa; border:1px solid #eee; padding:12px 14px; border-radius:12px; margin-bottom:12px; }
-.footerActions{ margin-top:12px; }
+.overlayBody{ padding:12px 14px 20px; overflow:auto; }
 
 /* Scrollbar claro */
 .asidePanel::-webkit-scrollbar,
@@ -164,5 +185,5 @@
 @media (max-width: 860px){
   .asidePanel{ width:100vw; }
   .rowTwoCols{ grid-template-columns:1fr; }
-  .conditionRowWide{ grid-template-columns:1fr; }
+  .rowColsAdaptive{ grid-template-columns:1fr; }
 }
