@@ -1134,7 +1134,8 @@ export default function NodeConfigPanel({
         <div className={styles.overlayBody}>
           <div className={styles.headHelp}>
             Essa ação define o valor de uma variável em <strong>{draft.scope}</strong>.  
-            Para usar no fluxo: <code>{{`{{${draft.scope}.${draft.key || "nome"}}}`}}</code>
+            Para usar no fluxo: <code>{`{{${draft.scope}.${draft.key || "nome"}}}`}</code>
+
           </div>
 
           <div className={styles.sectionContainer}>
@@ -1361,3 +1362,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
