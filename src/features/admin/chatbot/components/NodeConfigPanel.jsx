@@ -1,13 +1,21 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import {
   Trash2,
+  ChevronDown,
+  ChevronUp,
   Plus,
   X,
-  MoreHorizontal,
-  PencilLine,
-  ArrowLeft,
-  SlidersHorizontal
+  Edit3,
+  MessageSquare,
+  Image as ImageIcon,
+  MapPin,
+  Code,
+  Network,
+  Timer,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
+import { toast } from "react-toastify";
 import styles from "./styles/NodeConfigPanel.module.css";
 
 export default function NodeConfigPanel({
@@ -19,19 +27,23 @@ export default function NodeConfigPanel({
   setShowScriptEditor,
   setScriptCode,
 }) {
-  if (!selectedNode || !selectedNode.data) return null;
+  const [tab, setTab] = useState("visual"); // visual | acoes
+  const [editOpen, setEditOpen] = useState(true); // editor expandido dentro da pré-visualização
+  const [expandedSections, setExpandedSections] = useState({
+    actions: true,
+    default: true,
+    special: true,
+  });
 
-  /* ---------------- state ---------------- */
-  // overlay: 'none' | 'conteudo' | 'regras' | 'await' | 'especiais'
-  const [overlayMode, setOverlayMode] = useState("none");
   const panelRef = useRef(null);
 
-  const block = selectedNode.data.block || {};
+  if (!selectedNode || !selectedNode.data) return null;
+
+  const { block = {} } = selectedNode.data;
   const {
-    type,
+    type = "text",
     content = {},
     awaitResponse,
-    awaitTimeInSeconds,
     sendDelayInSeconds,
     actions = [],
     method,
@@ -41,24 +53,21 @@ export default function NodeConfigPanel({
     timeout,
     outputVar,
     statusVar,
-    function: fnName,
     saveResponseVar,
-    defaultNext,
-    onEnter = [],
-    onExit = [],
   } = block;
 
   const isHuman = type === "human";
 
-  /* ---------------- helpers ---------------- */
+  /* --------------------------------- helpers --------------------------------- */
 
-  const deepClone = (obj) =>
-    typeof structuredClone === "function"
-      ? structuredClone(obj)
-      : JSON.parse(JSON.stringify(obj ?? {}));
+  const deepClone = (obj) => {
+    if (typeof structuredClone === "function") return structuredClone(obj);
+    return JSON.parse(JSON.stringify(obj ?? {}));
+  };
 
   const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
-  const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
+  const makeIdFromTitle = (title, max = 24) =>
+    clamp((title || "").toString().trim(), max);
 
   const safeParseJson = (txt, fallback) => {
     try {
@@ -68,29 +77,46 @@ export default function NodeConfigPanel({
       return fallback;
     }
   };
-  const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
+
+  const pretty = (obj) => {
+    try {
+      return JSON.stringify(obj ?? {}, null, 2);
+    } catch {
+      return "{}";
+    }
+  };
+
   const ensureArray = (v) => (Array.isArray(v) ? v : []);
 
-  const updateBlock = (changes) =>
-    onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, ...changes } } });
+  const toggleSection = (k) =>
+    setExpandedSections((p) => ({ ...p, [k]: !p[k] }));
 
-  const updateContent = (field, value) => {
+  const updateNode = (updatedNode) => onChange(updatedNode);
+
+  const updateBlock = (changes) => {
+    const updatedNode = {
+      ...selectedNode,
+      data: {
+        ...selectedNode.data,
+        block: {
+          ...block,
+          ...changes,
+        },
+      },
+    };
+    updateNode(updatedNode);
+  };
+
+  const updateContentField = (field, value) => {
     const cloned = deepClone(content);
     cloned[field] = value;
     updateBlock({ content: cloned });
   };
-  const updateActions = (newActions) => updateBlock({ actions: deepClone(newActions) });
 
-  /* atalhos human */
-  const addOffhoursAction = (kind) => {
-    let conds = [];
-    if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
-    else if (kind === "reason_holiday") conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
-    else if (kind === "reason_closed") conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
-    updateActions([...(actions || []), { next: "", conditions: conds }]);
+  const updateActions = (newActions) => {
+    updateBlock({ actions: deepClone(newActions) });
   };
 
-  /* bloquear hotkeys do builder quando digita */
   const isEditableTarget = (el) => {
     if (!el) return false;
     if (el.isContentEditable) return true;
@@ -98,23 +124,108 @@ export default function NodeConfigPanel({
     if (tag === "TEXTAREA") return true;
     if (tag === "INPUT") {
       const t = (el.type || "").toLowerCase();
-      const tl = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
-      if (tl.includes(t)) return !el.readOnly && !el.disabled;
+      const textLike = [
+        "text",
+        "search",
+        "url",
+        "tel",
+        "email",
+        "password",
+        "number",
+        "date",
+        "datetime-local",
+        "time",
+      ];
+      if (textLike.includes(t)) return !el.readOnly && !el.disabled;
     }
     return false;
   };
+
   const handleKeyDownCapture = useCallback((e) => {
     if (!panelRef.current || !panelRef.current.contains(e.target)) return;
     const k = e.key?.toLowerCase?.() || "";
     if (isEditableTarget(e.target)) {
       const isDelete = e.key === "Delete" || e.key === "Backspace";
       const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && k === "z";
-      const isRedo = (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
-      if (isDelete || isUndo || isRedo) e.stopPropagation();
+      const isRedo =
+        (e.ctrlKey || e.metaKey) && (k === "y" || (k === "z" && e.shiftKey));
+      if (isDelete || isUndo || isRedo) {
+        e.stopPropagation();
+      }
     }
   }, []);
 
-  /* ---------------- variável para “regras” ---------------- */
+  /* --------------------------------- chips --------------------------------- */
+
+  const Chip = ({ icon: Icon, children, active, onClick, title, tone = "blue" }) => {
+    return (
+      <button
+        className={`${styles.chip} ${active ? styles[`chipActive_${tone}`] : styles[`chip_${tone}`]}`}
+        onClick={onClick}
+        title={title}
+        type="button"
+      >
+        {Icon && <Icon size={14} />}
+        <span>{children}</span>
+      </button>
+    );
+  };
+
+  const Field = ({ label, children, hint }) => (
+    <div className={styles.field}>
+      <label className={styles.fieldLabel}>{label}</label>
+      {children}
+      {hint ? <small className={styles.hint}>{hint}</small> : null}
+    </div>
+  );
+
+  const Divider = ({ label }) => (
+    <div className={styles.dividerRow}>
+      <div className={styles.dividerLine} />
+      {label ? <span className={styles.dividerText}>{label}</span> : null}
+      <div className={styles.dividerLine} />
+    </div>
+  );
+
+  /* ------------------------------- chat preview ------------------------------ */
+
+  // avatar do bloco (varia com o tipo)
+  const iconForType = () => {
+    if (type === "text" || type === "interactive") return MessageSquare;
+    if (type === "media") return ImageIcon;
+    if (type === "location") return MapPin;
+    if (type === "script") return Code;
+    if (type === "api_call" || type === "http") return Network;
+    if (type === "human") return CheckCircle2;
+    return MessageSquare;
+  };
+
+  const ChatBubble = ({ side = "bot", children }) => (
+    <div className={`${styles.msgRow} ${side === "bot" ? styles.msgRowBot : styles.msgRowUser}`}>
+      <div className={styles.avatar}>
+        {React.createElement(iconForType(), { size: 16 })}
+      </div>
+      <div className={styles.bubble}>{children}</div>
+    </div>
+  );
+
+  const Kbd = ({ children }) => <kbd className={styles.kbd}>{children}</kbd>;
+
+  /* ------------------------------- OFFHOURS UI ------------------------------- */
+
+  const addOffhoursAction = (kind) => {
+    let conds = [];
+    if (kind === "offhours_true") {
+      conds = [{ variable: "offhours", type: "equals", value: "true" }];
+    } else if (kind === "reason_holiday") {
+      conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
+    } else if (kind === "reason_closed") {
+      conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
+    }
+    const newAction = { next: "", conditions: conds };
+    updateActions([...(actions || []), newAction]);
+  };
+
   const variableOptions = isHuman
     ? [
         { value: "lastUserMessage", label: "Resposta do usuário" },
@@ -131,700 +242,893 @@ export default function NodeConfigPanel({
     if (cond.type === "exists") return null;
     if (cond.variable === "offhours") {
       return (
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "true"} onChange={(e) => onChangeValue(e.target.value)}>
+        <Field label="Valor">
+          <select
+            className={styles.input}
+            value={cond.value ?? "true"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
             <option value="true">true</option>
             <option value="false">false</option>
           </select>
-        </div>
+        </Field>
       );
     }
     if (cond.variable === "offhours_reason") {
       return (
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Valor</label>
-          <select className={styles.selectStyle} value={cond.value ?? "holiday"} onChange={(e) => onChangeValue(e.target.value)}>
+        <Field label="Valor">
+          <select
+            className={styles.input}
+            value={cond.value ?? "holiday"}
+            onChange={(e) => onChangeValue(e.target.value)}
+          >
             <option value="holiday">holiday</option>
             <option value="closed">closed</option>
           </select>
-        </div>
+        </Field>
       );
     }
     return (
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>Valor</label>
+      <Field label="Valor">
         <input
           type="text"
           placeholder="Valor para comparação"
           value={cond.value ?? ""}
           onChange={(e) => onChangeValue(e.target.value)}
-          className={styles.inputStyle}
+          className={styles.input}
         />
-      </div>
+      </Field>
     );
   };
 
-  /* ---------------- preview estilo chat ---------------- */
+  /* ------------------------------ visual (chat) ------------------------------ */
 
-  const renderQuickReplies = () => {
-    if (type !== "interactive" || content?.type !== "button") return null;
-    const buttons = content?.action?.buttons || [];
-    if (!buttons.length) return null;
-    return (
-      <div className={styles.quickReplies}>
-        {buttons.map((btn, i) => (
-          <span key={i} className={styles.quickReplyChip}>
-            {btn?.reply?.title || "Botão"}
-          </span>
-        ))}
-      </div>
-    );
-  };
-
-  const renderListPreview = () => {
-    if (type !== "interactive" || content?.type !== "list") return null;
-    const rows = content?.action?.sections?.[0]?.rows || [];
-    if (!rows.length) return null;
-    return (
-      <div className={styles.listPreview}>
-        {rows.slice(0, 3).map((row, i) => (
-          <div key={i} className={styles.listRow}>
-            <span className={styles.listDot} />
-            <div className={styles.listTexts}>
-              <strong>{row?.title || "Item"}</strong>
-              {row?.description ? <small>{row.description}</small> : null}
-            </div>
-          </div>
-        ))}
-        {rows.length > 3 && <small className={styles.moreHint}>e mais {rows.length - 3}…</small>}
-      </div>
-    );
-  };
-
-  const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
-  const closeOverlay = () => setOverlayMode("none");
-
-  useEffect(() => { /* placeholder p/ futuros efeitos */ }, [overlayMode]);
-
-  const SpecialChips = () => {
-    const list = [...(onEnter || []), ...(onExit || [])];
-    if (!list.length) return null;
-    const max = 3;
-    const extra = list.length - max;
-    return (
-      <div className={styles.specialStrip} title="Ações especiais">
-        {list.slice(0, max).map((a, i) => (
-          <span key={i} className={styles.specialChip} onClick={() => openOverlay("especiais")}>
-            {a.title || a.key || "Ação"}
-          </span>
-        ))}
-        {extra > 0 && (
-          <span className={styles.specialChipMuted} onClick={() => openOverlay("especiais")}>+{extra}</span>
-        )}
-      </div>
-    );
-  };
-
-  const ChatPreview = () => (
-    <div className={styles.chatPreviewCard}>
-      <div className={styles.floatingBtns}>
-        <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
-          <PencilLine size={16} />
-        </button>
-        <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
-          <MoreHorizontal size={16} />
-        </button>
-        <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
-          <SlidersHorizontal size={16} />
-        </button>
-      </div>
-
-      <div className={styles.chatArea}>
-        <div className={styles.typingDot}>•••</div>
-
-        <div className={styles.bubble}>
-          <div className={styles.bubbleText}>
-            {type === "text" && (block.content || <em className={styles.placeholder}>Sem mensagem</em>)}
-
-            {type === "interactive" && (
-              <>
-                <div>{content?.body?.text || <em className={styles.placeholder}>Sem corpo</em>}</div>
-                {renderQuickReplies()}
-                {renderListPreview()}
-              </>
-            )}
-
-            {type === "media" && (
-              <>
-                <div><strong>Mídia:</strong> {content?.mediaType || "image"}</div>
-                <div>{content?.caption || <em className={styles.placeholder}>Sem legenda</em>}</div>
-              </>
-            )}
-
-            {type === "location" && (
-              <>
-                <div><strong>{content?.name || "Local"}</strong></div>
-                <small>{content?.address || "Endereço"}</small>
-              </>
-            )}
-
-            {isHuman && (
-              <div className={styles.infoBlock}>
-                Este bloco transfere a conversa para <strong>atendimento humano</strong>.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <SpecialChips />
-
-        <button
-          type="button"
-          className={styles.userInputChip}
-          onClick={() => openOverlay("await")}
-          title="Configurar aguardar resposta"
+  const VisualEditor = () => {
+    // chips topo
+    const chips = (
+      <div className={styles.chipsBar}>
+        <Chip
+          icon={awaitResponse ? CheckCircle2 : Circle}
+          active={!!awaitResponse}
+          onClick={() => updateBlock({ awaitResponse: !awaitResponse })}
+          title="Alternar aguardar resposta"
+          tone="green"
         >
-          Entrada do usuário
-          <span className={styles.caret} />
-        </button>
-      </div>
-    </div>
-  );
+          {awaitResponse ? "Aguardando resposta" : "Sem espera"}
+        </Chip>
 
-  /* ---------------- overlay: AWAIT (somente opções de resposta) ---------------- */
-
-  const OverlayAwait = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Entrada do usuário</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-      <div className={styles.overlayBody}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Aguardar resposta</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            <div className={styles.rowTwoCols}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Ativar</label>
-                <select
-                  value={String(!!awaitResponse)}
-                  onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
-                  className={styles.selectStyle}
-                >
-                  <option value="true">Sim</option>
-                  <option value="false">Não</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Atraso de envio (s)</label>
-                <input
-                  type="number"
-                  value={sendDelayInSeconds ?? 0}
-                  onChange={(e) => updateBlock({ sendDelayInSeconds: parseInt(e.target.value || "0", 10) })}
-                  className={styles.inputStyle}
-                />
-              </div>
-            </div>
-
-            <div className={styles.rowTwoCols}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tempo de inatividade (s)</label>
-                <input
-                  type="number"
-                  value={awaitTimeInSeconds ?? 0}
-                  onChange={(e) => updateBlock({ awaitTimeInSeconds: parseInt(e.target.value || "0", 10) })}
-                  className={styles.inputStyle}
-                />
-                <small className={styles.helpText}>0 para desativar</small>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
-                <input
-                  type="text"
-                  placeholder="ex.: context.inputMenuPrincipal"
-                  value={saveResponseVar || ""}
-                  onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
-                  className={styles.inputStyle}
-                />
-                <small className={styles.helpText}>Se vazio, não salva.</small>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  /* ---------------- overlay: CONTEÚDO (somente editor do conteúdo) ---------------- */
-
-  const OverlayConteudo = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Conteúdo</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-
-      <div className={styles.overlayBody}>
-        {type === "text" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
-            <div className={styles.sectionContent}>
-              <textarea
-                rows={8}
-                value={block.content || ""}
-                onChange={(e) => updateBlock({ content: e.target.value })}
-                className={styles.textareaStyle}
-              />
-            </div>
-          </div>
-        )}
-
-        {type === "interactive" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tipo</label>
-                <select
-                  value={content.type || "button"}
-                  onChange={(e) => {
-                    const newType = e.target.value;
-                    if (newType === "list") {
-                      updateBlock({
-                        content: deepClone({
-                          type: "list",
-                          body: { text: "Escolha um item da lista:" },
-                          footer: { text: "Toque para selecionar" },
-                          header: { text: "Menu de Opções", type: "text" },
-                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
-                        }),
-                      });
-                    } else {
-                      updateBlock({
-                        content: deepClone({
-                          type: "button",
-                          body: { text: "Escolha uma opção:" },
-                          footer: { text: "" },
-                          action: {
-                            buttons: [
-                              { type: "reply", reply: { id: "Opção 1", title: "Opção 1" } },
-                              { type: "reply", reply: { id: "Opção 2", title: "Opção 2" } },
-                            ],
-                          },
-                        }),
-                      });
-                    }
-                  }}
-                  className={styles.selectStyle}
-                >
-                  <option value="button">Quick Reply</option>
-                  <option value="list">Menu List</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Corpo</label>
-                <input
-                  type="text"
-                  value={content.body?.text || ""}
-                  onChange={(e) =>
-                    updateContent("body", { ...(deepClone(content.body) || {}), text: e.target.value })
-                  }
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              {content.type === "button" && (
-                <>
-                  {(content.action?.buttons || []).map((btn, idx) => (
-                    <div key={idx} className={styles.rowItemStyle}>
-                      <input
-                        type="text"
-                        value={btn.reply?.title || ""}
-                        maxLength={20}
-                        placeholder="Texto do botão"
-                        onChange={(e) => {
-                          const value = clamp(e.target.value, 20);
-                          const buttons = deepClone(content.action?.buttons || []);
-                          buttons[idx] = {
-                            ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
-                            reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
-                          };
-                          const nextAction = { ...(deepClone(content.action) || {}), buttons };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        className={styles.inputStyle}
-                      />
-                      <Trash2
-                        size={18}
-                        className={styles.trashIcon}
-                        onClick={() => {
-                          const current = deepClone(content.action?.buttons || []);
-                          current.splice(idx, 1);
-                          const nextAction = { ...(deepClone(content.action) || {}), buttons: current };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        title="Remover botão"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      const current = deepClone(content.action?.buttons || []);
-                      if (current.length >= 3) return;
-                      const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
-                      const nextAction = { ...(deepClone(content.action) || {}), buttons: [...current, newBtn] };
-                      const nextContent = { ...deepClone(content), action: nextAction };
-                      updateBlock({ content: nextContent });
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar botão
-                  </button>
-                </>
-              )}
-
-              {content.type === "list" && (
-                <>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
-                    <input
-                      type="text"
-                      maxLength={20}
-                      value={content.action?.button || ""}
-                      onChange={(e) => {
-                        const nextVal = (e.target.value || "").slice(0, 20);
-                        const nextAction = {
-                          ...(deepClone(content.action) || {}),
-                          button: nextVal,
-                          sections: deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]),
-                        };
-                        const nextContent = { ...deepClone(content), action: nextAction };
-                        updateBlock({ content: nextContent });
-                      }}
-                      className={styles.inputStyle}
-                    />
-                  </div>
-
-                  {(content.action?.sections?.[0]?.rows || []).map((item, idx) => (
-                    <div key={idx} className={styles.rowItemStyle}>
-                      <input
-                        type="text"
-                        value={item.title}
-                        maxLength={24}
-                        placeholder="Título"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const sections = deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitle(value, 24) };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const nextAction = { ...(deepClone(content.action) || {}), sections };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        className={styles.inputStyle}
-                      />
-                      <input
-                        type="text"
-                        value={item.description}
-                        placeholder="Descrição"
-                        onChange={(e) => {
-                          const sections = deepClone(content.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const nextAction = { ...(deepClone(content.action) || {}), sections };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        className={styles.inputStyle}
-                      />
-                      <Trash2
-                        size={18}
-                        className={styles.trashIcon}
-                        onClick={() => {
-                          const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows.splice(idx, 1);
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const nextAction = { ...(deepClone(content.action) || {}), sections };
-                          const nextContent = { ...deepClone(content), action: nextAction };
-                          updateBlock({ content: nextContent });
-                        }}
-                        title="Remover item"
-                      />
-                    </div>
-                  ))}
-
-                  <button
-                    onClick={() => {
-                      const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
-                      const rows = sections[0]?.rows || [];
-                      const n = rows.length + 1;
-                      const title = `Item ${n}`;
-                      const newItem = { id: makeIdFromTitle(title, 24), title, description: "" };
-                      const nextRows = [...rows, newItem];
-                      const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
-                      const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
-                      const nextContent = { ...deepClone(content), action: nextAction };
-                      updateBlock({ content: nextContent });
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar item
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {type === "media" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tipo</label>
-                <select
-                  value={content.mediaType || "image"}
-                  onChange={(e) => updateContent("mediaType", e.target.value)}
-                  className={styles.selectStyle}
-                >
-                  <option value="image">Imagem</option>
-                  <option value="document">Documento</option>
-                  <option value="audio">Áudio</option>
-                  <option value="video">Vídeo</option>
-                </select>
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>URL</label>
-                <input type="text" value={content.url || ""} onChange={(e) => updateContent("url", e.target.value)} className={styles.inputStyle}/>
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Legenda</label>
-                <input type="text" value={content.caption || ""} onChange={(e) => updateContent("caption", e.target.value)} className={styles.inputStyle}/>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {type === "location" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
-                <input type="text" value={content.name || ""} onChange={(e) => updateContent("name", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
-                <input type="text" value={content.address || ""} onChange={(e) => updateContent("address", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
-                <input type="text" value={content.latitude || ""} onChange={(e) => updateContent("latitude", e.target.value)} className={styles.inputStyle}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
-                <input type="text" value={content.longitude || ""} onChange={(e) => updateContent("longitude", e.target.value)} className={styles.inputStyle}/></div>
-            </div>
-          </div>
-        )}
+        <Chip icon={Timer} active={!!sendDelayInSeconds} title="Atraso de envio" onClick={() => {
+          if (!sendDelayInSeconds) updateBlock({ sendDelayInSeconds: 1 });
+          setEditOpen(true);
+        }}>
+          {`${sendDelayInSeconds || 0}s`}
+        </Chip>
 
         {type === "script" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
-            <div className={styles.sectionContent}>
+          <Chip icon={Code} title="Abrir editor de código" onClick={() => {
+            setScriptCode(selectedNode?.data?.block?.code || "");
+            setShowScriptEditor(true);
+          }}>
+            Código
+          </Chip>
+        )}
+
+        {type === "api_call" && (
+          <Chip icon={Network} title="Configurar requisição" onClick={() => setEditOpen(true)}>
+            API
+          </Chip>
+        )}
+      </div>
+    );
+
+    // bubble: render por tipo
+    const bubbleBody = (() => {
+      if (type === "text") {
+        return (
+          <>
+            <div className={styles.msgText}>
+              {(typeof block.content === "string" && block.content) || "Escreva a mensagem…"}
+            </div>
+            <button
+              className={styles.editInline}
+              onClick={() => setEditOpen((v) => !v)}
+              title="Editar conteúdo"
+            >
+              <Edit3 size={16} /> {editOpen ? "Fechar edição" : "Editar"}
+            </button>
+            {editOpen && (
+              <div className={styles.inlineEditor}>
+                <Field label="Mensagem">
+                  <textarea
+                    rows={4}
+                    className={styles.textarea}
+                    value={block.content || ""}
+                    onChange={(e) => updateBlock({ content: e.target.value })}
+                  />
+                </Field>
+
+                <div className={styles.inlineRow}>
+                  <Field label="Aguardar resposta?">
+                    <select
+                      className={styles.input}
+                      value={String(!!awaitResponse)}
+                      onChange={(e) =>
+                        updateBlock({ awaitResponse: e.target.value === "true" })
+                      }
+                    >
+                      <option value="true">Sim</option>
+                      <option value="false">Não</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Atraso de envio (s)">
+                    <input
+                      type="number"
+                      className={styles.input}
+                      value={sendDelayInSeconds ?? 0}
+                      onChange={(e) =>
+                        updateBlock({
+                          sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                        })
+                      }
+                    />
+                  </Field>
+                </div>
+
+                {Boolean(awaitResponse) && (
+                  <Field label="Salvar resposta do usuário em">
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="ex.: context.respostaTexto"
+                      value={saveResponseVar || ""}
+                      onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                    />
+                    <small className={styles.hint}>Deixe em branco para não salvar</small>
+                  </Field>
+                )}
+              </div>
+            )}
+          </>
+        );
+      }
+
+      if (type === "media") {
+        return (
+          <>
+            <div className={styles.msgText}>
+              <strong>Mídia</strong> {content.mediaType ? `(${content.mediaType})` : ""} • {content.url || "URL não definida"}
+              {content.caption ? <><br/><em>{content.caption}</em></> : null}
+            </div>
+            <button className={styles.editInline} onClick={() => setEditOpen((v) => !v)}>
+              <Edit3 size={16} /> {editOpen ? "Fechar edição" : "Editar"}
+            </button>
+            {editOpen && (
+              <div className={styles.inlineEditor}>
+                <div className={styles.inlineRow}>
+                  <Field label="Tipo de mídia">
+                    <select
+                      className={styles.input}
+                      value={content.mediaType || "image"}
+                      onChange={(e) => updateContentField("mediaType", e.target.value)}
+                    >
+                      <option value="image">Imagem</option>
+                      <option value="document">Documento</option>
+                      <option value="audio">Áudio</option>
+                      <option value="video">Vídeo</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Aguardar resposta?">
+                    <select
+                      className={styles.input}
+                      value={String(!!awaitResponse)}
+                      onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
+                    >
+                      <option value="true">Sim</option>
+                      <option value="false">Não</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <Field label="URL">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={content.url || ""}
+                    onChange={(e) => updateContentField("url", e.target.value)}
+                  />
+                </Field>
+
+                <Field label="Legenda">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={content.caption || ""}
+                    onChange={(e) => updateContentField("caption", e.target.value)}
+                  />
+                </Field>
+
+                {Boolean(awaitResponse) && (
+                  <Field label="Salvar resposta do usuário em">
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="ex.: context.respostaMidia"
+                      value={saveResponseVar || ""}
+                      onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                    />
+                  </Field>
+                )}
+
+                <Field label="Atraso de envio (s)">
+                  <input
+                    type="number"
+                    className={styles.input}
+                    value={sendDelayInSeconds ?? 0}
+                    onChange={(e) =>
+                      updateBlock({
+                        sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                      })
+                    }
+                  />
+                </Field>
+              </div>
+            )}
+          </>
+        );
+      }
+
+      if (type === "interactive") {
+        const isList = content.type === "list";
+        const isQuickReply = content.type !== "list"; // default button
+
+        const handleAddButton = () => {
+          const current = deepClone(content.action?.buttons || []);
+          if (current.length >= 3) {
+            toast.warn("Máximo de 3 botões atingido.");
+            return;
+          }
+          const newBtn = {
+            type: "reply",
+            reply: { id: "Novo botão", title: "Novo botão" },
+          };
+          const nextButtons = [...current, newBtn];
+          const nextAction = {
+            ...(deepClone(content.action) || {}),
+            buttons: nextButtons,
+          };
+          const nextContent = { ...deepClone(content), action: nextAction };
+          updateBlock({ content: nextContent });
+        };
+
+        const handleRemoveButton = (index) => {
+          const current = deepClone(content.action?.buttons || []);
+          current.splice(index, 1);
+          const nextAction = { ...(deepClone(content.action) || {}), buttons: current };
+          const nextContent = { ...deepClone(content), action: nextAction };
+          updateBlock({ content: nextContent });
+        };
+
+        const handleAddListItem = () => {
+          const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+          const rows = sections[0]?.rows || [];
+          if (rows.length >= 10) {
+            toast.warn("Máximo de 10 itens atingido.");
+            return;
+          }
+          const n = rows.length + 1;
+          const title = `Item ${n}`;
+          const newItem = { id: makeIdFromTitle(title, 24), title, description: "" };
+          const nextRows = [...rows, newItem];
+          const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
+          const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
+          const nextContent = { ...deepClone(content), action: nextAction };
+          updateBlock({ content: nextContent });
+        };
+
+        const handleRemoveListItem = (index) => {
+          const sections = deepClone(content.action?.sections || [{ title: "", rows: [] }]);
+          const rows = [...(sections[0]?.rows || [])];
+          rows.splice(index, 1);
+          const nextSections = [{ ...(sections[0] || {}), rows }];
+          const nextAction = { ...(deepClone(content.action) || {}), sections: nextSections };
+          const nextContent = { ...deepClone(content), action: nextAction };
+          updateBlock({ content: nextContent });
+        };
+
+        return (
+          <>
+            <div className={styles.msgText}>
+              <strong>Mensagem interativa</strong>
+              <br />
+              <div className={styles.previewInteractive}>
+                <div className={styles.previewBody}>
+                  {content.body?.text || "Corpo da mensagem…"}
+                </div>
+                {isQuickReply && (
+                  <div className={styles.previewButtons}>
+                    {(content.action?.buttons || []).map((b, i) => (
+                      <span key={i} className={styles.previewBtn}>{b.reply?.title || "Botão"}</span>
+                    ))}
+                    {(content.action?.buttons || []).length === 0 && (
+                      <span className={styles.previewBtnMuted}>+ botão</span>
+                    )}
+                  </div>
+                )}
+                {isList && (
+                  <div className={styles.previewList}>
+                    {(content.action?.sections?.[0]?.rows || []).map((r, i) => (
+                      <div key={i} className={styles.previewListItem}>
+                        <div className={styles.previewListTitle}>{r.title}</div>
+                        {r.description ? (
+                          <div className={styles.previewListDesc}>{r.description}</div>
+                        ) : null}
+                      </div>
+                    ))}
+                    {(content.action?.sections?.[0]?.rows || []).length === 0 && (
+                      <div className={styles.previewListEmpty}>+ item de lista</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button className={styles.editInline} onClick={() => setEditOpen((v) => !v)}>
+              <Edit3 size={16} /> {editOpen ? "Fechar edição" : "Editar"}
+            </button>
+
+            {editOpen && (
+              <div className={styles.inlineEditor}>
+                <div className={styles.inlineRow}>
+                  <Field label="Tipo">
+                    <select
+                      className={styles.input}
+                      value={content.type || "button"}
+                      onChange={(e) => {
+                        const newType = e.target.value;
+                        if (newType === "list") {
+                          updateBlock({
+                            content: deepClone({
+                              type: "list",
+                              body: { text: "Escolha um item da lista:" },
+                              footer: { text: "Toque para selecionar" },
+                              header: { text: "🎯 Menu de Opções", type: "text" },
+                              action: {
+                                button: "Abrir lista",
+                                sections: [
+                                  { title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }] },
+                                ],
+                              },
+                            }),
+                          });
+                        } else {
+                          updateBlock({
+                            content: deepClone({
+                              type: "button",
+                              body: { text: "Deseja continuar?" },
+                              footer: { text: "Selecione uma opção" },
+                              action: {
+                                buttons: [
+                                  { type: "reply", reply: { id: "👍 Sim", title: "👍 Sim" } },
+                                  { type: "reply", reply: { id: "👎 Não", title: "👎 Não" } },
+                                ],
+                              },
+                            }),
+                          });
+                        }
+                      }}
+                    >
+                      <option value="button">Quick Reply</option>
+                      <option value="list">Menu List</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Aguardar resposta?">
+                    <select
+                      className={styles.input}
+                      value={String(!!awaitResponse)}
+                      onChange={(e) => updateBlock({ awaitResponse: e.target.value === "true" })}
+                    >
+                      <option value="true">Sim</option>
+                      <option value="false">Não</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <Field label="Corpo">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={content.body?.text || ""}
+                    onChange={(e) =>
+                      updateContentField("body", {
+                        ...(deepClone(content.body) || {}),
+                        text: e.target.value,
+                      })
+                    }
+                  />
+                </Field>
+
+                <Field label="Rodapé">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={content.footer?.text || ""}
+                    onChange={(e) =>
+                      updateContentField("footer", {
+                        ...(deepClone(content.footer) || {}),
+                        text: e.target.value,
+                      })
+                    }
+                  />
+                </Field>
+
+                {content.type === "list" ? (
+                  <>
+                    <Field label="Texto do botão (abrir lista)">
+                      <input
+                        type="text"
+                        maxLength={20}
+                        className={styles.input}
+                        value={content.action?.button || ""}
+                        onChange={(e) => {
+                          const nextVal = (e.target.value || "").slice(0, 20);
+                          const nextAction = {
+                            ...(deepClone(content.action) || {}),
+                            button: nextVal,
+                            sections: deepClone(
+                              content.action?.sections || [{ title: "Seção 1", rows: [] }]
+                            ),
+                          };
+                          const nextContent = { ...deepClone(content), action: nextAction };
+                          updateBlock({ content: nextContent });
+                        }}
+                        placeholder="Ex.: Abrir opções"
+                      />
+                      <small className={styles.hint}>
+                        máx. 20 caracteres
+                      </small>
+                    </Field>
+
+                    {(content.action?.sections?.[0]?.rows || []).map((item, idx) => (
+                      <div key={idx} className={styles.rowItem}>
+                        <input
+                          type="text"
+                          className={styles.input}
+                          value={item.title}
+                          maxLength={24}
+                          placeholder="Título"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const sections = deepClone(
+                              content.action?.sections || [{ title: "Seção 1", rows: [] }]
+                            );
+                            const rows = [...(sections[0]?.rows || [])];
+                            rows[idx] = {
+                              ...(rows[idx] || {}),
+                              title: clamp(value, 24),
+                              id: makeIdFromTitle(value, 24),
+                            };
+                            sections[0] = { ...(sections[0] || {}), rows };
+                            const nextAction = { ...(deepClone(content.action) || {}), sections };
+                            const nextContent = { ...deepClone(content), action: nextAction };
+                            updateBlock({ content: nextContent });
+                          }}
+                        />
+                        <input
+                          type="text"
+                          className={styles.input}
+                          value={item.description}
+                          placeholder="Descrição"
+                          onChange={(e) => {
+                            const sections = deepClone(
+                              content.action?.sections || [{ title: "Seção 1", rows: [] }]
+                            );
+                            const rows = [...(sections[0]?.rows || [])];
+                            rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
+                            sections[0] = { ...(sections[0] || {}), rows };
+                            const nextAction = { ...(deepClone(content.action) || {}), sections };
+                            const nextContent = { ...deepClone(content), action: nextAction };
+                            updateBlock({ content: nextContent });
+                          }}
+                        />
+                        <Trash2
+                          size={18}
+                          className={styles.trashIcon}
+                          onClick={() => handleRemoveListItem(idx)}
+                          title="Remover item"
+                        />
+                      </div>
+                    ))}
+
+                    <button onClick={handleAddListItem} className={styles.btnSecondary}>
+                      + Adicionar item
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {(content.action?.buttons || []).map((btn, idx) => (
+                      <div key={idx} className={styles.rowItem}>
+                        <input
+                          type="text"
+                          className={styles.input}
+                          value={btn.reply?.title || ""}
+                          maxLength={20}
+                          placeholder="Texto do botão"
+                          onChange={(e) => {
+                            const value = clamp(e.target.value, 20);
+                            const buttons = deepClone(content.action?.buttons || []);
+                            buttons[idx] = {
+                              ...(buttons[idx] || {
+                                type: "reply",
+                                reply: { id: "", title: "" },
+                              }),
+                              reply: {
+                                ...(buttons[idx]?.reply || {}),
+                                title: value,
+                                id: value,
+                              },
+                            };
+                            const nextAction = {
+                              ...(deepClone(content.action) || {}),
+                              buttons,
+                            };
+                            const nextContent = { ...deepClone(content), action: nextAction };
+                            updateBlock({ content: nextContent });
+                          }}
+                        />
+                        <Trash2
+                          size={18}
+                          className={styles.trashIcon}
+                          onClick={() => handleRemoveButton(idx)}
+                          title="Remover botão"
+                        />
+                      </div>
+                    ))}
+                    <button onClick={handleAddButton} className={styles.btnSecondary}>
+                      + Adicionar botão
+                    </button>
+                  </>
+                )}
+
+                {Boolean(awaitResponse) && (
+                  <Field label="Salvar resposta do usuário em">
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="ex.: context.respostaMenu"
+                      value={saveResponseVar || ""}
+                      onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                    />
+                  </Field>
+                )}
+
+                <Field label="Atraso de envio (s)">
+                  <input
+                    type="number"
+                    className={styles.input}
+                    value={sendDelayInSeconds ?? 0}
+                    onChange={(e) =>
+                      updateBlock({
+                        sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                      })
+                    }
+                  />
+                </Field>
+              </div>
+            )}
+          </>
+        );
+      }
+
+      if (type === "location") {
+        return (
+          <>
+            <div className={styles.msgText}>
+              <strong>Localização</strong>
+              <br />
+              {(content.name || content.address) ? (
+                <>
+                  {content.name ? <>{content.name}<br/></> : null}
+                  {content.address ? <>{content.address}<br/></> : null}
+                </>
+              ) : (
+                "Defina nome/endereço/lat/long…"
+              )}
+            </div>
+            <button className={styles.editInline} onClick={() => setEditOpen((v) => !v)}>
+              <Edit3 size={16} /> {editOpen ? "Fechar edição" : "Editar"}
+            </button>
+
+            {editOpen && (
+              <div className={styles.inlineEditor}>
+                <Field label="Nome">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={content.name || ""}
+                    onChange={(e) => updateContentField("name", e.target.value)}
+                  />
+                </Field>
+
+                <Field label="Endereço">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={content.address || ""}
+                    onChange={(e) => updateContentField("address", e.target.value)}
+                  />
+                </Field>
+
+                <div className={styles.inlineRow}>
+                  <Field label="Latitude">
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={content.latitude || ""}
+                      onChange={(e) => updateContentField("latitude", e.target.value)}
+                    />
+                  </Field>
+                  <Field label="Longitude">
+                    <input
+                      type="text"
+                      className={styles.input}
+                      value={content.longitude || ""}
+                      onChange={(e) => updateContentField("longitude", e.target.value)}
+                    />
+                  </Field>
+                </div>
+
+                <div className={styles.inlineRow}>
+                  <Field label="Aguardar resposta?">
+                    <select
+                      className={styles.input}
+                      value={String(!!awaitResponse)}
+                      onChange={(e) =>
+                        updateBlock({ awaitResponse: e.target.value === "true" })
+                      }
+                    >
+                      <option value="true">Sim</option>
+                      <option value="false">Não</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Atraso de envio (s)">
+                    <input
+                      type="number"
+                      className={styles.input}
+                      value={sendDelayInSeconds ?? 0}
+                      onChange={(e) =>
+                        updateBlock({
+                          sendDelayInSeconds: parseInt(e.target.value || "0", 10),
+                        })
+                      }
+                    />
+                  </Field>
+                </div>
+
+                {Boolean(awaitResponse) && (
+                  <Field label="Salvar resposta do usuário em">
+                    <input
+                      type="text"
+                      className={styles.input}
+                      placeholder="ex.: context.localizacao"
+                      value={saveResponseVar || ""}
+                      onChange={(e) => updateBlock({ saveResponseVar: e.target.value })}
+                    />
+                  </Field>
+                )}
+              </div>
+            )}
+          </>
+        );
+      }
+
+      if (type === "script") {
+        return (
+          <>
+            <div className={styles.msgText}>
+              Executa um <strong>Script</strong> e pode armazenar em <Kbd>{outputVar || "outputVar"}</Kbd>.
+            </div>
+            <div className={styles.inlineEditor}>
+              <div className={styles.inlineRow}>
+                <Field label="Função">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={block.function || ""}
+                    onChange={(e) => updateBlock({ function: e.target.value })}
+                  />
+                </Field>
+                <Field label="Variável de saída">
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={block.outputVar || ""}
+                    onChange={(e) => updateBlock({ outputVar: e.target.value })}
+                  />
+                </Field>
+              </div>
+
               <button
+                className={styles.btnCode}
                 onClick={() => {
                   setScriptCode(selectedNode?.data?.block?.code || "");
                   setShowScriptEditor(true);
                 }}
-                className={styles.addButton}
               >
-                Abrir editor de código
+                <Code size={16} /> Abrir editor de código
               </button>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Função</label>
-                <input
-                  type="text"
-                  value={fnName || ""}
-                  onChange={(e) => updateBlock({ function: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Variável de saída</label>
-                <input
-                  type="text"
-                  value={outputVar || ""}
-                  onChange={(e) => updateBlock({ outputVar: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
             </div>
-          </div>
-        )}
+          </>
+        );
+      }
 
-        {type === "api_call" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Método</label>
-                <select
-                  value={method || "GET"}
-                  onChange={(e) => updateBlock({ method: e.target.value })}
-                  className={styles.selectStyle}
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="DELETE">DELETE</option>
-                  <option value="PATCH">PATCH</option>
-                </select>
-              </div>
+      if (type === "api_call" || type === "http") {
+        return (
+          <>
+            <div className={styles.msgText}>
+              Chamada de <strong>API</strong> {method ? `(${method})` : ""} • {url || "URL não definida"}
+            </div>
 
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>URL</label>
-                <input
-                  type="text"
-                  value={url || ""}
-                  onChange={(e) => updateBlock({ url: e.target.value })}
-                  className={styles.inputStyle}
-                />
-              </div>
+            <div className={styles.inlineEditor}>
+              <div className={styles.inlineRow}>
+                <Field label="Método">
+                  <select
+                    className={styles.input}
+                    value={method || "GET"}
+                    onChange={(e) => updateBlock({ method: e.target.value })}
+                  >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="PATCH">PATCH</option>
+                  </select>
+                </Field>
 
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Headers (JSON)</label>
-                <textarea
-                  rows={3}
-                  defaultValue={pretty(headers)}
-                  onBlur={(e) => updateBlock({ headers: safeParseJson(e.target.value, headers || {}) })}
-                  className={styles.textareaStyle}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Body (JSON)</label>
-                <textarea
-                  rows={4}
-                  defaultValue={pretty(body)}
-                  onBlur={(e) => updateBlock({ body: safeParseJson(e.target.value, body || {}) })}
-                  className={styles.textareaStyle}
-                />
-              </div>
-
-              <div className={styles.rowTwoCols}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Timeout (ms)</label>
+                <Field label="Timeout (ms)">
                   <input
                     type="number"
+                    className={styles.input}
                     value={timeout ?? 10000}
-                    onChange={(e) => updateBlock({ timeout: parseInt(e.target.value || "0", 10) })}
-                    className={styles.inputStyle}
+                    onChange={(e) =>
+                      updateBlock({ timeout: parseInt(e.target.value || "0", 10) })
+                    }
                   />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de saída</label>
+                </Field>
+              </div>
+
+              <Field label="URL">
+                <input
+                  type="text"
+                  className={styles.input}
+                  value={url || ""}
+                  onChange={(e) => updateBlock({ url: e.target.value })}
+                />
+              </Field>
+
+              <Field label="Headers (JSON)">
+                <textarea
+                  rows={3}
+                  className={styles.textarea}
+                  defaultValue={pretty(headers)}
+                  onBlur={(e) =>
+                    updateBlock({
+                      headers: safeParseJson(e.target.value, headers || {}),
+                    })
+                  }
+                />
+              </Field>
+
+              <Field label="Body (JSON)">
+                <textarea
+                  rows={4}
+                  className={styles.textarea}
+                  defaultValue={pretty(body)}
+                  onBlur={(e) =>
+                    updateBlock({ body: safeParseJson(e.target.value, body || {}) })
+                  }
+                />
+              </Field>
+
+              <div className={styles.inlineRow}>
+                <Field label="Variável de saída">
                   <input
                     type="text"
+                    className={styles.input}
                     value={outputVar || "apiResponse"}
                     onChange={(e) => updateBlock({ outputVar: e.target.value })}
-                    className={styles.inputStyle}
                   />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de status</label>
+                </Field>
+                <Field label="Variável de status">
                   <input
                     type="text"
+                    className={styles.input}
                     value={statusVar || "apiStatus"}
                     onChange={(e) => updateBlock({ statusVar: e.target.value })}
-                    className={styles.inputStyle}
                   />
+                </Field>
+              </div>
+
+              {type === "http" && (
+                <button
+                  className={styles.btnSecondary}
+                  onClick={() => {
+                    const c = deepClone(content || {});
+                    updateBlock({
+                      type: "api_call",
+                      method: c.method || "GET",
+                      url: c.url || "",
+                      headers: safeParseJson(c.headers, {}),
+                      body: safeParseJson(c.body, {}),
+                      timeout: c.timeout ?? 10000,
+                      outputVar: c.outputVar || "apiResponse",
+                      statusVar: c.statusVar || "apiStatus",
+                      content: undefined,
+                    });
+                  }}
+                >
+                  Migrar para api_call
+                </button>
+              )}
+            </div>
+          </>
+        );
+      }
+
+      if (type === "human") {
+        return (
+          <div className={styles.msgText}>
+            Este bloco envia a conversa para <strong>atendimento humano</strong>.
+            O nome é fixo: <Kbd>atendimento humano</Kbd>.
+          </div>
+        );
+      }
+
+      return <div className={styles.msgText}>Tipo não suportado.</div>;
+    })();
+
+    return (
+      <div className={styles.chatPreview}>
+        {chips}
+        <ChatBubble side="bot">{bubbleBody}</ChatBubble>
+      </div>
+    );
+  };
+
+  /* --------------------------------- ações tab -------------------------------- */
+
+  const ActionsTab = () => {
+    return (
+      <div className={styles.tabBody}>
+        {/* Condições */}
+        <div className={styles.card}>
+          <div className={styles.cardHeader} onClick={() => toggleSection("actions")}>
+            <h4>Condições de Saída <span className={styles.badge}>{actions.length}/25</span></h4>
+            {expandedSections.actions ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+          </div>
+
+          {expandedSections.actions && (
+            <div className={styles.cardBody}>
+              {isHuman && (
+                <div className={styles.inlineRow}>
+                  <button className={styles.btnGhost} onClick={() => addOffhoursAction("offhours_true")}>
+                    + Se offhours = true
+                  </button>
+                  <button className={styles.btnGhost} onClick={() => addOffhoursAction("reason_holiday")}>
+                    + Se offhours_reason = holiday
+                  </button>
+                  <button className={styles.btnGhost} onClick={() => addOffhoursAction("reason_closed")}>
+                    + Se offhours_reason = closed
+                  </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
+              )}
 
-        {type === "http" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Formato antigo</h4></div>
-            <div className={styles.sectionContent}>
-              <button
-                className={styles.addButton}
-                onClick={() => {
-                  const c = deepClone(content || {});
-                  updateBlock({
-                    type: "api_call",
-                    method: c.method || "GET",
-                    url: c.url || "",
-                    headers: safeParseJson(c.headers, {}),
-                    body: safeParseJson(c.body, {}),
-                    timeout: c.timeout ?? 10000,
-                    outputVar: c.outputVar || "apiResponse",
-                    statusVar: c.statusVar || "apiStatus",
-                    content: undefined,
-                  });
-                }}
-              >
-                Migrar para api_call
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  /* ---------------- overlay: REGRAS (somente regras de saída) ---------------- */
-
-  const OverlayRegras = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Regras de saída</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-      <div className={styles.overlayBody}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Regras</h4>
-            <span className={styles.sectionCount}>({actions.length}/25)</span>
-          </div>
-          <div className={styles.sectionContent}>
-            {isHuman && (
-              <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
-                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
-              </div>
-            )}
-
-            {actions.map((action, actionIdx) => (
-              <React.Fragment key={actionIdx}>
-                {actionIdx > 0 && (
-                  <div className={styles.dividerContainer}>
-                    <div className={styles.dividerLine}></div>
-                    <span className={styles.dividerText}>OU</span>
-                  </div>
-                )}
-
-                <div className={styles.actionBox}>
+              {actions.map((action, actionIdx) => (
+                <div key={actionIdx} className={styles.actionBox}>
                   <div className={styles.actionHeader}>
-                    <strong className={styles.actionTitle}>Regra {actionIdx + 1}</strong>
+                    <strong>Condição {actionIdx + 1}</strong>
                     <Trash2
                       size={16}
                       className={styles.trashIcon}
@@ -838,10 +1142,9 @@ export default function NodeConfigPanel({
 
                   {(action.conditions || []).map((cond, condIdx) => (
                     <div key={condIdx} className={styles.conditionRow}>
-                      {/* Variável */}
-                      <div className={styles.inputGroup}>
-                        <label className={styles.inputLabel}>Variável</label>
+                      <Field label="Variável">
                         <select
+                          className={styles.input}
                           value={
                             variableOptions.some((v) => v.value === cond.variable)
                               ? cond.variable
@@ -867,20 +1170,20 @@ export default function NodeConfigPanel({
                             }
                             updateActions(updated);
                           }}
-                          className={styles.selectStyle}
                         >
                           {variableOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </select>
-                      </div>
+                      </Field>
 
-                      {/* Nome var custom */}
                       {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
-                        <div className={styles.inputGroup}>
-                          <label className={styles.inputLabel}>Nome da variável</label>
+                        <Field label="Nome da variável">
                           <input
                             type="text"
+                            className={styles.input}
                             placeholder="ex.: meuCampo"
                             value={cond.variable || ""}
                             onChange={(e) => {
@@ -888,15 +1191,13 @@ export default function NodeConfigPanel({
                               updated[actionIdx].conditions[condIdx].variable = e.target.value;
                               updateActions(updated);
                             }}
-                            className={styles.inputStyle}
                           />
-                        </div>
+                        </Field>
                       )}
 
-                      {/* Tipo */}
-                      <div className={styles.inputGroup}>
-                        <label className={styles.inputLabel}>Tipo de condição</label>
+                      <Field label="Tipo de condição">
                         <select
+                          className={styles.input}
                           value={cond.type || ""}
                           onChange={(e) => {
                             const updated = deepClone(actions);
@@ -906,7 +1207,6 @@ export default function NodeConfigPanel({
                             }
                             updateActions(updated);
                           }}
-                          className={styles.selectStyle}
                         >
                           <option value="">Selecione...</option>
                           <option value="exists">Existe</option>
@@ -917,34 +1217,32 @@ export default function NodeConfigPanel({
                           <option value="starts_with">Começa com</option>
                           <option value="ends_with">Termina com</option>
                         </select>
-                      </div>
+                      </Field>
 
-                      {/* Valor */}
                       {renderValueInput(cond, (v) => {
                         const updated = deepClone(actions);
                         updated[actionIdx].conditions[condIdx].value = v;
                         updateActions(updated);
                       })}
 
-                      <div className={styles.buttonGroup}>
+                      <div className={styles.rowEnd}>
                         <button
-                          className={styles.deleteButtonSmall}
+                          className={styles.btnDanger}
                           onClick={() => {
                             const updated = deepClone(actions);
                             updated[actionIdx].conditions.splice(condIdx, 1);
                             updateActions(updated);
                           }}
                         >
-                          <Trash2 size={14} /> Remover condição
+                          <Trash2 size={14} /> Remover Condição
                         </button>
                       </div>
                     </div>
                   ))}
 
-                  {/* Próximo bloco */}
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Ir para</label>
+                  <Field label="Próximo bloco">
                     <select
+                      className={styles.input}
                       value={action.next || ""}
                       onChange={(e) => {
                         const targetId = e.target.value;
@@ -955,7 +1253,6 @@ export default function NodeConfigPanel({
                           onConnectNodes({ source: selectedNode.id, target: targetId });
                         }
                       }}
-                      className={styles.selectStyle}
                     >
                       <option value="">Selecione um bloco...</option>
                       {allNodes
@@ -966,13 +1263,12 @@ export default function NodeConfigPanel({
                           </option>
                         ))}
                     </select>
-                  </div>
+                  </Field>
                 </div>
-              </React.Fragment>
-            ))}
+              ))}
 
-            <div className={styles.buttonGroup}>
               <button
+                className={styles.btnPrimary}
                 onClick={() => {
                   const newAction = {
                     next: "",
@@ -980,162 +1276,160 @@ export default function NodeConfigPanel({
                   };
                   updateActions([...(actions || []), newAction]);
                 }}
-                className={styles.addButton}
               >
-                <Plus size={16} /> Adicionar regra
+                <Plus size={16} /> Adicionar Ação
               </button>
             </div>
+          )}
+        </div>
 
-            {/* Saída padrão */}
-            <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
-              <div className={styles.sectionHeaderStatic}>
-                <h4 className={styles.sectionTitle}>Saída padrão</h4>
-              </div>
-              <div className={styles.sectionContent}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Próximo bloco</label>
+        {/* especiais */}
+        <div className={styles.card}>
+          <div className={styles.cardHeader} onClick={() => toggleSection("special")}>
+            <h4>Ações especiais (variáveis)</h4>
+            {expandedSections.special ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+          </div>
+          {expandedSections.special && (
+            <div className={styles.cardBody}>
+              <h5 className={styles.smallTitle}>Ao entrar no bloco</h5>
+              {(block.onEnter || []).map((a, i) => (
+                <div key={`en-${i}`} className={styles.rowItem}>
                   <select
-                    value={defaultNext || ""}
-                    onChange={(e) => updateBlock({ defaultNext: e.target.value })}
-                    className={styles.selectStyle}
+                    className={styles.input}
+                    value={a.scope || "context"}
+                    onChange={(e) => {
+                      const next = ensureArray(block.onEnter).slice();
+                      next[i] = { ...next[i], scope: e.target.value };
+                      updateBlock({ onEnter: next });
+                    }}
                   >
-                    <option value="">Selecione um bloco...</option>
-                    {allNodes
-                      .filter((n) => n.id !== selectedNode.id)
-                      .map((node) => (
-                        <option key={node.id} value={node.id}>
-                          {node.data.label || node.id}
-                        </option>
-                      ))}
+                    <option value="context">context</option>
+                    <option value="contact">contact</option>
+                    <option value="contact.extra">contact.extra</option>
                   </select>
+                  <input
+                    className={styles.input}
+                    placeholder="chave (ex.: protocolo)"
+                    value={a.key || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(block.onEnter).slice();
+                      next[i] = { ...next[i], key: e.target.value };
+                      updateBlock({ onEnter: next });
+                    }}
+                  />
+                  <input
+                    className={styles.input}
+                    placeholder="valor (ex.: 12345)"
+                    value={a.value || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(block.onEnter).slice();
+                      next[i] = { ...next[i], value: e.target.value };
+                      updateBlock({ onEnter: next });
+                    }}
+                  />
+                  <button
+                    className={styles.btnDanger}
+                    onClick={() => updateBlock({ onEnter: (block.onEnter || []).filter((_, idx) => idx !== i) })}
+                  >
+                    Remover
+                  </button>
                 </div>
-              </div>
+              ))}
+              <button
+                className={styles.btnSecondary}
+                onClick={() => updateBlock({ onEnter: [...(block.onEnter || []), { scope: "context", key: "", value: "" }] })}
+              >
+                + adicionar na entrada
+              </button>
+
+              <Divider />
+
+              <h5 className={styles.smallTitle}>Ao sair do bloco</h5>
+              {(block.onExit || []).map((a, i) => (
+                <div key={`ex-${i}`} className={styles.rowItem}>
+                  <select
+                    className={styles.input}
+                    value={a.scope || "context"}
+                    onChange={(e) => {
+                      const next = ensureArray(block.onExit).slice();
+                      next[i] = { ...next[i], scope: e.target.value };
+                      updateBlock({ onExit: next });
+                    }}
+                  >
+                    <option value="context">context</option>
+                    <option value="contact">contact</option>
+                    <option value="contact.extra">contact.extra</option>
+                  </select>
+                  <input
+                    className={styles.input}
+                    placeholder="chave (ex.: etapaAtual)"
+                    value={a.key || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(block.onExit).slice();
+                      next[i] = { ...next[i], key: e.target.value };
+                      updateBlock({ onExit: next });
+                    }}
+                  />
+                  <input
+                    className={styles.input}
+                    placeholder="valor (ex.: finalizado)"
+                    value={a.value || ""}
+                    onChange={(e) => {
+                      const next = ensureArray(block.onExit).slice();
+                      next[i] = { ...next[i], value: e.target.value };
+                      updateBlock({ onExit: next });
+                    }}
+                  />
+                  <button
+                    className={styles.btnDanger}
+                    onClick={() => updateBlock({ onExit: (block.onExit || []).filter((_, idx) => idx !== i) })}
+                  >
+                    Remover
+                  </button>
+                </div>
+              ))}
+              <button
+                className={styles.btnSecondary}
+                onClick={() => updateBlock({ onExit: [...(block.onExit || []), { scope: "context", key: "", value: "" }] })}
+              >
+                + adicionar na saída
+              </button>
             </div>
-          </div>
-        </div>
-      </div> 
-    </>
-  );
-
-  /* ---------------- overlay: AÇÕES ESPECIAIS (onEnter / onExit) ---------------- */
-
-  const renderSpecialRow = (list, setKey) => (a, i) => {
-    const update = (patch) => {
-      const next = ensureArray(list).slice();
-      next[i] = { ...next[i], ...patch };
-      updateBlock({ [setKey]: next });
-    };
-    const remove = () => updateBlock({ [setKey]: (list || []).filter((_, idx) => idx !== i) });
-
-    const exampleRef = `{{${a?.scope || "context"}.${a?.key || "nome"}}}`;
-
-    return (
-      <div key={`${setKey}-${i}`} className={styles.specialRow}>
-        {/* Título (exibido na tela principal) */}
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Título (aparece na tela anterior)</label>
-          <input
-            className={styles.inputStyle}
-            placeholder="ex.: Definir protocolo"
-            value={a.title || ""}
-            onChange={(e) => update({ title: e.target.value })}
-          />
+          )}
         </div>
 
-        <div className={styles.rowColsAdaptive}>
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Escopo</label>
-            <select
-              className={styles.selectStyle}
-              value={a.scope || "context"}
-              onChange={(e) => update({ scope: e.target.value })}
-            >
-              <option value="context">context</option>
-              <option value="contact">contact</option>
-              <option value="contact.extra">contact.extra</option>
-            </select>
+        {/* saída padrão */}
+        <div className={styles.card}>
+          <div className={styles.cardHeader} onClick={() => toggleSection("default")}>
+            <h4>Saída Padrão</h4>
+            {expandedSections.default ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
           </div>
-
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Chave</label>
-            <input
-              className={styles.inputStyle}
-              placeholder="ex.: protocolo"
-              value={a.key || ""}
-              onChange={(e) => update({ key: e.target.value })}
-            />
-          </div>
-
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Valor</label>
-            <input
-              className={styles.inputStyle}
-              placeholder="ex.: 12345"
-              value={a.value || ""}
-              onChange={(e) => update({ value: e.target.value })}
-            />
-          </div>
-
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>&nbsp;</label>
-            <button className={styles.deleteButtonSmall} onClick={remove}>Remover</button>
-          </div>
-        </div>
-
-        <div className={styles.headHelp}>
-          Essa ação define o valor de uma variável em <strong>{a?.scope || "context"}</strong>.{" "}
-          Para usar no fluxo: <code>{exampleRef}</code>
+          {expandedSections.default && (
+            <div className={styles.cardBody}>
+              <Field label="Próximo Bloco">
+                <select
+                  className={styles.input}
+                  value={block.defaultNext || ""}
+                  onChange={(e) => updateBlock({ defaultNext: e.target.value })}
+                >
+                  <option value="">Selecione um bloco...</option>
+                  {allNodes
+                    .filter((n) => n.id !== selectedNode.id)
+                    .map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {node.data.label || node.id}
+                      </option>
+                    ))}
+                </select>
+              </Field>
+            </div>
+          )}
         </div>
       </div>
     );
   };
 
-  const OverlayEspeciais = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Ações especiais</div>
-        <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-      </div>
-      <div className={styles.overlayBody}>
-        {/* ENTRADA */}
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Ao entrar no bloco</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            {(onEnter || []).map(renderSpecialRow(onEnter, "onEnter"))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onEnter: [...(onEnter || []), { title: "", scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na entrada
-            </button>
-          </div>
-        </div>
-
-        {/* SAÍDA */}
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Ao sair do bloco</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            {(onExit || []).map(renderSpecialRow(onExit, "onExit"))}
-            <button
-              className={styles.addButtonSmall}
-              onClick={() => updateBlock({ onExit: [...(onExit || []), { title: "", scope: "context", key: "", value: "" }] })}
-            >
-              + adicionar na saída
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  /* ---------------- render ---------------- */
+  /* ----------------------------------- render ----------------------------------- */
 
   return (
     <aside
@@ -1144,46 +1438,79 @@ export default function NodeConfigPanel({
       data-stop-hotkeys="true"
       onKeyDownCapture={handleKeyDownCapture}
     >
+      {/* Header */}
       <div className={styles.panelHeader}>
-        <h3 className={styles.panelTitle}>
-          {selectedNode.data.type === "human" ? "atendimento humano" : (selectedNode.data.label || "Novo Bloco")}
-        </h3>
+        <div className={styles.titleWrap}>
+          <h3 className={styles.panelTitle}>
+            {selectedNode.data.type === "human"
+              ? "atendimento humano"
+              : (selectedNode.data.label || "Novo Bloco")}
+          </h3>
+
+          <div className={styles.blockName}>
+            <label>Nome do bloco</label>
+            {selectedNode.data.nodeType === "start" ? (
+              <div className={styles.startNote}>
+                Bloco inicial fixo – redireciona automaticamente ao próximo configurado.
+              </div>
+            ) : selectedNode.data.type === "human" ? (
+              <input type="text" value="atendimento humano" disabled className={styles.input} />
+            ) : (
+              <input
+                type="text"
+                className={styles.input}
+                value={selectedNode.data.label}
+                onChange={(e) =>
+                  onChange({
+                    ...selectedNode,
+                    data: { ...selectedNode.data, label: e.target.value },
+                  })
+                }
+                placeholder="Nomeie este bloco"
+              />
+            )}
+          </div>
+        </div>
+
         <button onClick={onClose} className={styles.closeButton} title="Fechar">
           <X size={20} />
         </button>
       </div>
 
-      <div className={styles.tabContent}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Nome do Bloco</label>
-          {selectedNode.data.nodeType === "start" ? (
-            <div className={styles.startNodeInfo}>
-              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
-            </div>
-          ) : selectedNode.data.type === "human" ? (
-            <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
-          ) : (
-            <input
-              type="text"
-              value={selectedNode.data.label}
-              onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
-              className={styles.inputStyle}
-              placeholder="Nomeie este bloco"
-            />
-          )}
+      {/* tabs */}
+      <div className={styles.tabsBar}>
+        {selectedNode.data.nodeType === "start" ? (
+          <button className={`${styles.tab} ${styles.tabActive}`} disabled>
+            Ações
+          </button>
+        ) : (
+          <>
+            <button
+              className={`${styles.tab} ${tab === "visual" ? styles.tabActive : ""}`}
+              onClick={() => setTab("visual")}
+            >
+              Visual
+            </button>
+            <button
+              className={`${styles.tab} ${tab === "acoes" ? styles.tabActive : ""}`}
+              onClick={() => setTab("acoes")}
+            >
+              Ações
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* body */}
+      {selectedNode.data.nodeType === "start" ? (
+        <ActionsTab />
+      ) : tab === "visual" ? (
+        <div className={styles.tabBody}>
+          <VisualEditor />
         </div>
-
-        {/* Prévia e acionadores */}
-        <ChatPreview />
-      </div>
-
-      {/* -------- Overlay interno ao componente -------- */}
-      <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
-        {overlayMode === "await" && <OverlayAwait />}
-        {overlayMode === "conteudo" && <OverlayConteudo />}
-        {overlayMode === "regras" && <OverlayRegras />}
-        {overlayMode === "especiais" && <OverlayEspeciais />}
-      </div>
+      ) : (
+        <ActionsTab />
+      )}
     </aside>
   );
 }
