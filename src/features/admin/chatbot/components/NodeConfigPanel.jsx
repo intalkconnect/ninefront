@@ -6,7 +6,9 @@ import {
   Plus,
   X,
   MoreHorizontal,
-  PencilLine
+  PencilLine,
+  Square,
+  CheckSquare
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
@@ -31,6 +33,9 @@ export default function NodeConfigPanel({
 
   // card "Aguardar resposta"
   const [awaitOpen, setAwaitOpen] = useState(false);
+
+  // estados para seleção de ações
+  const [selectedActions, setSelectedActions] = useState(new Set());
 
   const panelRef = useRef(null);
 
@@ -89,6 +94,25 @@ export default function NodeConfigPanel({
   };
 
   const updateActions = (newActions) => updateBlock({ actions: deepClone(newActions) });
+
+  /* ---- seleção de ações ---- */
+  const toggleSelectAll = () => {
+    if (selectedActions.size === actions.length) {
+      setSelectedActions(new Set());
+    } else {
+      setSelectedActions(new Set(actions.map((_, index) => index)));
+    }
+  };
+
+  const toggleSelectAction = (index) => {
+    const newSelected = new Set(selectedActions);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedActions(newSelected);
+  };
 
   /* ---- atalhos human ---- */
   const addOffhoursAction = (kind) => {
@@ -174,6 +198,127 @@ export default function NodeConfigPanel({
       </div>
     );
   };
+
+  /* ---------------- BIBLIOTECA DE FUNÇÕES ---------------- */
+  const renderFunctionLibrary = () => (
+    <div className={styles.sectionContainer}>
+      <div className={styles.sectionHeader}>
+        <h4 className={styles.sectionTitle}>BIBLIOTECA DE FUNÇÕES</h4>
+        <button className={styles.newButton}>Novo</button>
+      </div>
+      <div className={styles.sectionContent}>
+        <p className={styles.sectionDescription}>
+          Crie e gerencie funções globais para serem chamadas sempre que necessário nos chatbots do seu contrato
+        </p>
+        <div className={styles.checkboxGroup}>
+          <label className={styles.checkboxLabel}>
+            <input type="checkbox" />
+            <span className={styles.checkboxCustom}></span>
+            Gerenciar funções
+          </label>
+          <label className={styles.checkboxLabel}>
+            <input type="checkbox" />
+            <span className={styles.checkboxCustom}></span>
+            Criar função
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ---------------- AÇÕES DE ENTRADA ---------------- */
+  const renderInputActions = () => (
+    <div className={styles.sectionContainer}>
+      <div className={styles.sectionHeader}>
+        <h4 className={styles.sectionTitle}>
+          AÇÕES DE ENTRADA
+          <span className={styles.sectionCount}>(1/15)</span>
+        </h4>
+      </div>
+      <div className={styles.sectionContent}>
+        <p className={styles.sectionDescription}>
+          Inclua ações que serão executadas antes do envio do primeiro conteúdo
+          <a href="#" className={styles.helpLink}>Entenda como funcionam as ações de entrada</a>
+        </p>
+        <div className={styles.checkboxGroup}>
+          <label className={styles.checkboxLabel}>
+            <input 
+              type="checkbox" 
+              onChange={toggleSelectAll}
+              checked={selectedActions.size === actions.length && actions.length > 0}
+            />
+            <span className={styles.checkboxCustom}>
+              {selectedActions.size === actions.length && actions.length > 0 ? <CheckSquare size={14} /> : <Square size={14} />}
+            </span>
+            Selecionar todos
+          </label>
+          <label className={styles.checkboxLabel}>
+            <input type="checkbox" />
+            <span className={styles.checkboxCustom}></span>
+            Colar ação
+          </label>
+        </div>
+        
+        <div className={styles.actionList}>
+          {actions.map((action, index) => (
+            <div key={index} className={styles.actionItem}>
+              <label className={styles.checkboxLabel}>
+                <input 
+                  type="checkbox" 
+                  checked={selectedActions.has(index)}
+                  onChange={() => toggleSelectAction(index)}
+                />
+                <span className={styles.checkboxCustom}>
+                  {selectedActions.has(index) ? <CheckSquare size={14} /> : <Square size={14} />}
+                </span>
+              </label>
+              <span className={styles.actionName}>Condição {index + 1}</span>
+            </div>
+          ))}
+        </div>
+
+        <button className={styles.addActionButton}>
+          <Plus size={16} />
+          Adicionar ação de entrada
+        </button>
+      </div>
+    </div>
+  );
+
+  /* ---------------- AÇÕES DE SAÍDA ---------------- */
+  const renderOutputActions = () => (
+    <div className={styles.sectionContainer}>
+      <div className={styles.sectionHeader}>
+        <h4 className={styles.sectionTitle}>
+          AÇÕES DE SAÍDA
+          <span className={styles.sectionCount}>(3/15)</span>
+        </h4>
+      </div>
+      <div className={styles.sectionContent}>
+        <p className={styles.sectionDescription}>
+          Inclua ações que serão executadas após o envio do último conteúdo ou resposta do usuário
+          <a href="#" className={styles.helpLink}>Entenda como funcionam as ações de saída</a>
+        </p>
+        <div className={styles.checkboxGroup}>
+          <label className={styles.checkboxLabel}>
+            <input type="checkbox" />
+            <span className={styles.checkboxCustom}></span>
+            Selecionar todos
+          </label>
+          <label className={styles.checkboxLabel}>
+            <input type="checkbox" />
+            <span className={styles.checkboxCustom}></span>
+            Colar ação
+          </label>
+        </div>
+        
+        <button className={styles.addActionButton}>
+          <Plus size={16} />
+          Adicionar ação de saída
+        </button>
+      </div>
+    </div>
+  );
 
   /* ---------------- PREVIEW estilo chat ---------------- */
 
@@ -657,6 +802,11 @@ export default function NodeConfigPanel({
 
   const renderActionsTab = () => (
     <div className={styles.tabContent}>
+      {renderFunctionLibrary()}
+      {renderInputActions()}
+      {renderOutputActions()}
+
+      {/* Seções originais de condições */}
       <div className={styles.sectionContainer}>
         <div className={styles.sectionHeader} onClick={() => toggleSection("actions")}>
           <h4 className={styles.sectionTitle}>
@@ -1012,65 +1162,65 @@ export default function NodeConfigPanel({
       onKeyDownCapture={handleKeyDownCapture}
     >
       <div className={styles.panelHeader}>
-        <h3 className={styles.panelTitle}>
-          {selectedNode.data.type === "human" ? "atendimento humano" : (selectedNode.data.label || "Novo Bloco")}
-        </h3>
+        <div className={styles.headerTabs}>
+          <button 
+            className={`${styles.headerTab} ${tab === "conteudo" ? styles.headerTabActive : ""}`}
+            onClick={() => setTab("conteudo")}
+          >
+            Conteúdo
+          </button>
+          <button 
+            className={`${styles.headerTab} ${tab === "condicoes" ? styles.headerTabActive : ""}`}
+            onClick={() => setTab("condicoes")}
+          >
+            Condições de saída
+          </button>
+          <button 
+            className={`${styles.headerTab} ${tab === "acoes" ? styles.headerTabActive : ""}`}
+            onClick={() => setTab("acoes")}
+          >
+            Ações
+          </button>
+        </div>
         <button onClick={onClose} className={styles.closeButton} title="Fechar">
           <X size={20} />
         </button>
       </div>
 
-      <div className={styles.tabContent}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Nome do Bloco</label>
-          {selectedNode.data.nodeType === "start" ? (
-            <div className={styles.startNodeInfo}>
-              Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
-            </div>
-          ) : selectedNode.data.type === "human" ? (
-            <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
+      <div className={styles.panelContent}>
+        <div className={styles.tabContent}>
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Nome do Bloco</label>
+            {selectedNode.data.nodeType === "start" ? (
+              <div className={styles.startNodeInfo}>
+                Este é o <strong>bloco inicial</strong> do fluxo. Ele é fixo, com redirecionamento automático para o próximo bloco configurado.
+              </div>
+            ) : selectedNode.data.type === "human" ? (
+              <input type="text" value="atendimento humano" disabled className={styles.inputStyle} />
+            ) : (
+              <input
+                type="text"
+                value={selectedNode.data.label}
+                onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
+                className={styles.inputStyle}
+                placeholder="Nomeie este bloco"
+              />
+            )}
+          </div>
+
+          {selectedNode.data.nodeType === "start" ? renderActionsTab() : tab === "conteudo" ? (
+            <>
+              <ChatPreview />
+              {renderAwaitCard()}
+            </>
+          ) : tab === "condicoes" ? (
+            renderActionsTab()
           ) : (
-            <input
-              type="text"
-              value={selectedNode.data.label}
-              onChange={(e) => onChange({ ...selectedNode, data: { ...selectedNode.data, label: e.target.value } })}
-              className={styles.inputStyle}
-              placeholder="Nomeie este bloco"
-            />
+            <div className={styles.tabContent}>
+              <p>Conteúdo da aba Ações</p>
+            </div>
           )}
         </div>
-
-        {selectedNode.data.nodeType === "start" ? (
-          <div className={styles.tabButtons}>
-            <button className={`${styles.tabButton} ${styles.tabButtonActive}`} disabled>
-              Condições de saída
-            </button>
-          </div>
-        ) : (
-          <div className={styles.tabButtons}>
-            <button
-              className={`${styles.tabButton} ${tab === "conteudo" ? styles.tabButtonActive : ""}`}
-              onClick={() => setTab("conteudo")}
-            >
-              Conteúdo
-            </button>
-            <button
-              className={`${styles.tabButton} ${tab === "acoes" ? styles.tabButtonActive : ""}`}
-              onClick={() => setTab("acoes")}
-            >
-              Condições de saída
-            </button>
-          </div>
-        )}
-
-        {selectedNode.data.nodeType === "start" ? renderActionsTab() : tab === "conteudo" ? (
-          <>
-            <ChatPreview />
-            {renderAwaitCard()}
-          </>
-        ) : (
-          renderActionsTab()
-        )}
       </div>
     </aside>
   );
