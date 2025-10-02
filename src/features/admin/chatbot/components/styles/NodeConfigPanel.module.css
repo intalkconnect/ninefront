@@ -1,69 +1,65 @@
-/* ===== Tema claro e minimalista (sem azul) ===== */
+/* ===== Tema claro, fluido, sem azul ===== */
 .asidePanel{
-  position:relative;
-  right:0; top:0; width:420px; height:100vh;
-  background:#ffffff; color:#2f2f2f; z-index:9;
-  border-left:1px solid #e7e7e7; box-shadow:-12px 0 40px rgba(0,0,0,.06);
+  position:relative; right:0; top:0; width:480px; height:100vh;
+  background:#fff; color:#2f2f2f; border-left:1px solid #e7e7e7;
+  box-shadow:-12px 0 40px rgba(0,0,0,.06);
   overflow:auto;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
 /* Header */
 .panelHeader{
-  position:sticky; top:0; display:flex; align-items:center; justify-content:space-between;
-  padding:14px 16px; background:#fff; border-bottom:1px solid #ececec; z-index:2;
+  position:sticky; top:0; z-index:2;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; background:#fff; border-bottom:1px solid #ececec;
 }
 .panelTitle{ margin:0; font-size:16px; font-weight:800; color:#111; }
 .closeButton{
-  border:1px solid #e5e5e5; background:#fafafa; color:#b00000;
-  width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:.15s;
+  width:36px; height:36px; border-radius:10px; border:1px solid #e5e5e5;
+  background:#fafafa; color:#b00000; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s;
 }
 .closeButton:hover{ background:#ffecec; }
 
-/* Conteúdo */
-.tabContent{ padding:14px 16px 28px; }
+/* Conteúdo base */
+.tabContent{ padding:14px 16px 24px; }
 .inputGroup{ margin-bottom:12px; }
 .inputLabel{ display:block; margin-bottom:6px; font-size:12px; color:#555; font-weight:700; }
 .inputStyle, .selectStyle, .textareaStyle{
   width:100%; background:#fff; color:#222; border:1px solid #dfdfdf;
-  border-radius:10px; padding:10px 12px; font-size:13px; transition:.15s;
+  border-radius:12px; padding:12px 14px; font-size:14px; transition:.15s;
 }
-.inputStyle:focus, .selectStyle:focus, .textareaStyle:focus{ outline:none; border-color:#b5b5b5; box-shadow:0 0 0 3px rgba(0,0,0,.04); }
-.textareaStyle{ resize:vertical; min-height:96px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.inputStyle:focus, .selectStyle:focus, .textareaStyle:focus{ outline:none; border-color:#bfbfbf; box-shadow:0 0 0 3px rgba(0,0,0,.045); }
+.textareaStyle{ resize:vertical; min-height:120px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .helpText{ display:block; color:#888; font-size:11px; margin-top:6px; }
 
-/* Seções genéricas */
-.sectionContainer{ background:#fff; border:1px solid #ececec; border-radius:14px; margin-bottom:14px; }
-.sectionHeaderStatic{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; background:#fafafa; border-bottom:1px solid #f1f1f1; }
+/* Seções */
+.sectionContainer{ background:#fff; border:1px solid #ececec; border-radius:16px; margin-bottom:14px; }
+.sectionHeaderStatic{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 14px; background:#fafafa; border-bottom:1px solid #f1f1f1; border-top-left-radius:16px; border-top-right-radius:16px;
+}
 .sectionTitle{ margin:0; font-weight:800; font-size:14px; color:#111; display:flex; align-items:center; gap:8px; }
 .sectionCount{ margin-left:8px; font-size:11px; color:#444; background:#efefef; border:1px solid #dedede; padding:2px 8px; border-radius:999px; }
 .sectionContent{ padding:12px 14px; }
-.smallTitle{ margin:0 0 10px; font-weight:800; font-size:12px; color:#333; }
 
 /* Preview estilo chat */
-.chatPreviewCard{ position:relative; border:1px solid #ececec; border-radius:14px; background:#fff; margin-bottom:14px; overflow:hidden; }
-.floatingBtns{
-  position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:3;
-}
+.chatPreviewCard{ position:relative; border:1px solid #ececec; border-radius:16px; background:#fff; margin-bottom:14px; overflow:hidden; }
+.floatingBtns{ position:absolute; top:8px; right:8px; display:flex; gap:6px; z-index:3; }
 .iconGhost{
   border:1px solid #e5e5e5; background:#fff; color:#222;
-  width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; transition:.15s;
+  width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s;
 }
 .iconGhost:hover{ background:#f5f5f5; }
 
 .chatArea{ padding:14px; display:flex; flex-direction:column; gap:10px; }
 .typingDot{
-  width:40px; height:28px; border-radius:14px; background:#f1f1f1; display:flex; align-items:center; justify-content:center;
-  color:#777; border:1px solid #e8e8e8;
+  width:42px; height:28px; border-radius:14px; background:#f1f1f1; display:flex; align-items:center; justify-content:center; color:#777; border:1px solid #e8e8e8;
 }
 
-.bubble{ max-width:100%; background:#f8f8f8; border:1px solid #e9e9e9; color:#222; border-radius:12px; padding:12px 14px; }
+.bubble{ background:#f8f8f8; border:1px solid #e9e9e9; color:#222; border-radius:12px; padding:12px 14px; }
 .bubbleText{ white-space:pre-wrap; line-height:1.55; font-size:13px; }
 .placeholder{ color:#9a9a9a; font-style:italic; }
 
-/* Chips especiais (títulos das ações) */
 .specialStrip{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
 .specialChip{
   background:#fbfbfb; border:1px solid #e8e8e8; color:#333;
@@ -75,7 +71,7 @@
   border-radius:999px; padding:6px 10px; font-size:11px; cursor:pointer;
 }
 
-/* Quick replies / List preview */
+/* Quick replies / list */
 .quickReplies{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 .quickReplyChip{
   background:#efefef; color:#222; font-weight:800; border-radius:999px; padding:8px 12px; font-size:12px; border:1px solid #dbdbdb;
@@ -87,70 +83,53 @@
 .listTexts small{ display:block; color:#555; font-size:12px; }
 .moreHint{ color:#777; font-size:12px; margin-top:6px; display:block; }
 
-/* Chip “Entrada do usuário” */
+/* Chip Entrada do usuário */
 .userInputChip{
   align-self:flex-end; display:inline-flex; align-items:center; gap:8px;
-  background:#ffffff; color:#111; border-radius:999px; padding:8px 12px; font-size:12px; border:1px solid #e5e5e5;
-  cursor:pointer;
+  background:#ffffff; color:#111; border-radius:999px; padding:8px 12px; font-size:12px; border:1px solid #e5e5e5; cursor:pointer;
 }
 .caret{ width:8px; height:8px; border:1px solid #bfbfbf; border-left:0; border-top:0; transform:rotate(45deg); }
 
-/* Regras / condições */
+/* Regras */
 .actionBox{ background:#fff; border:1px solid #ececec; border-radius:12px; padding:12px; margin-bottom:12px; }
 .actionHeader{ display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; border-bottom:1px dashed #ededed; }
 .actionTitle{ color:#111; font-weight:800; font-size:14px; }
-
 .conditionRow{ margin-top:10px; padding-top:10px; border-top:1px dashed #ededed; display:grid; gap:10px; }
 
 /* Ações especiais */
 .actionCard{ background:#fff; border:1px solid #ececec; border-radius:12px; padding:12px; margin-bottom:12px; }
-.actionTop{ display:grid; grid-template-columns: 160px 1fr 1fr auto; gap:10px; align-items:center; }
+.cardHeaderRow{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; }
+.cardTitleCol{ min-width:0; }
+.cardTitle{ font-weight:900; font-size:13px; color:#111; }
+.cardSub{ font-size:12px; color:#555; margin-top:2px; }
+.cardActions{ display:flex; gap:8px; align-items:center; }
+.pillRow{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+.pill{ background:#f2f2f2; border:1px solid #e6e6e6; padding:4px 8px; border-radius:999px; font-size:11px; color:#333; }
+.pillMuted{ background:#f7f7f7; border:1px dashed #e2e2e2; padding:4px 8px; border-radius:999px; font-size:11px; color:#666; }
+.cardEditor{ margin-top:10px; border-top:1px dashed #ededed; padding-top:10px; }
+
 .condToggle{
-  margin-top:8px; width:100%; text-align:left; background:#fff; border:1px dashed #dfdfdf; padding:9px 10px; border-radius:10px; color:#333; cursor:pointer; font-weight:800; font-size:12px;
+  margin-top:10px; width:100%; text-align:left; background:#fff; border:1px dashed #dfdfdf;
+  padding:9px 10px; border-radius:10px; color:#333; cursor:pointer; font-weight:800; font-size:12px;
 }
 .condWrap{ border:1px dashed #e5e5e5; border-radius:10px; padding:10px; margin-top:10px; }
-.condHeader{ margin-bottom:6px; }
-.condHeaderLabel{ font-size:12px; color:#444; font-weight:800; }
-
-/* Botões */
-.addButton{
-  width:100%; background:#16a34a; color:#fff; border:none; padding:11px 12px;
-  border-radius:12px; font-weight:900; cursor:pointer; box-shadow:0 6px 18px rgba(22,163,74,.25);
-}
-.addButton:hover{ filter:brightness(1.03); }
-.addButtonSmall, .deleteButtonSmall{
-  background:#fff; border:1px solid #dbdbdb; padding:9px 10px; border-radius:10px; color:#333; cursor:pointer; font-weight:800; font-size:12px;
-}
-.addButtonSmall:hover{ background:#f7f7f7; }
-.deleteButtonSmall{ border-color:#e9b4b4; color:#b00000; }
-.deleteButtonSmall:hover{ background:#ffecec; }
-
-.trashIcon{ color:#b00000; cursor:pointer; padding:6px; border-radius:8px; transition:.15s; }
-.trashIcon:hover{ background:#ffecec; color:#700; }
-
-/* Add menu (especiais) */
 .addRow{ display:flex; gap:8px; align-items:center; position:relative; }
-.addMenu{
-  position:relative; margin-top:6px; border:1px solid #ececec; background:#fff; border-radius:12px; padding:10px;
-}
+
+/* Add menu */
+.addMenu{ position:relative; margin-top:8px; border:1px solid #ececec; background:#fff; border-radius:12px; padding:10px; }
 .addMenuTitle{ font-size:12px; color:#444; font-weight:800; margin-bottom:8px; }
 .addMenuGrid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
 .addMenuItem{
-  background:#fafafa; border:1px solid #e9e9e9; border-radius:10px; padding:10px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px;
+  background:#fafafa; border:1px solid #e9e9e9; border-radius:12px; padding:12px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px;
 }
 .addMenuItem:hover{ background:#f2f2f2; }
 .addMenuLabel{ font-size:12px; font-weight:800; color:#222; }
 
-/* Info banners */
-.infoBlock{ background:#fff9e6; border:1px solid #ffe3a1; color:#7a5d00; padding:12px; border-radius:12px; margin-bottom:12px; }
+/* Banners / infos */
+.infoBlock{ background:#fff9e6; border:1px solid #ffe3a1; color:#7a5d00; padding:12px; border-radius:12px; margin-top:8px; }
 .startNodeInfo{ padding:10px 12px; border-radius:10px; background:#f7f7f7; color:#333; border:1px solid #ececec; }
-.tipBox{
-  margin-top:8px; padding:10px; border-radius:10px; background:#fbfbfb; border:1px solid #ececec; color:#333; font-size:12px;
-}
-.inlineCode{
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background:#f3f3f3; border:1px solid #e7e7e7; padding:2px 6px; border-radius:6px; margin:0 4px;
-}
+.tipBox{ margin-top:8px; padding:10px; border-radius:10px; background:#fbfbfb; border:1px solid #ececec; color:#333; font-size:12px; }
+.inlineCode{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#f3f3f3; border:1px solid #e7e7e7; padding:2px 6px; border-radius:6px; margin:0 4px; }
 
 /* Divisores */
 .dividerContainer{ position:relative; text-align:center; margin:10px 0; }
@@ -161,16 +140,15 @@
   border:1px solid #e5e5e5; border-radius:999px;
 }
 
-/* Layout auxiliar */
+/* Grids */
 .rowTwoCols{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .rowThreeCols{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-.rowItemStyle{ display:flex; gap:8px; align-items:center; padding:10px; background:#fff; border:1px solid #ececec; border-radius:10px; margin-bottom:10px; }
+.rowItemStyle{ display:flex; gap:8px; align-items:center; padding:10px; background:#fff; border:1px solid #ececec; border-radius:12px; margin-bottom:10px; }
 .rowItemStyle input{ flex:1; min-width:0; }
 
-/* -------- Overlay deslizante (interno ao painel) -------- */
+/* Overlay (drawer interno) */
 .overlay{
-  position:absolute; inset:0;
-  background:#fff;
+  position:absolute; inset:0; background:#fff;
   border-left:1px solid #e9e9e9; box-shadow:-8px 0 28px rgba(0,0,0,.06);
   transform:translateX(100%); opacity:0; pointer-events:none; transition:transform .28s ease, opacity .28s ease;
   display:flex; flex-direction:column; z-index:10;
@@ -184,34 +162,31 @@
 .backBtn{
   width:36px; height:36px; border-radius:10px; border:1px solid #e5e5e5; background:#fafafa; color:#222; display:flex; align-items:center; justify-content:center; cursor:pointer;
 }
-.overlayBody{ padding:12px 14px 76px; overflow:auto; flex:1; }
+.overlayBody{ padding:12px 14px 18px; overflow:auto; flex:1; }
 
-/* Footer com Salvar/Cancelar */
-.overlayFooter{
-  position:sticky; bottom:0; display:flex; gap:8px; justify-content:flex-end;
-  padding:10px 12px; background:#fff; border-top:1px solid #efefef;
+/* Botões padrão */
+.addButton{
+  width:100%; background:#16a34a; color:#fff; border:none; padding:12px 14px;
+  border-radius:12px; font-weight:900; cursor:pointer; box-shadow:0 6px 18px rgba(22,163,74,.25);
 }
-.btnSecondary{
-  background:#fff; border:1px solid #dbdbdb; padding:10px 14px; border-radius:10px; color:#333; cursor:pointer; font-weight:800; font-size:12px;
+.addButton:hover{ filter:brightness(1.03); }
+.addButtonSmall, .deleteButtonSmall{
+  background:#fff; border:1px solid #dbdbdb; padding:9px 10px; border-radius:10px; color:#333; cursor:pointer; font-weight:800; font-size:12px;
 }
-.btnSecondary:hover{ background:#f7f7f7; }
-.btnPrimary{
-  background:#111; color:#fff; border:none; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:900; font-size:12px;
-}
-.btnPrimary:hover{ filter:brightness(1.05); }
+.addButtonSmall:hover{ background:#f7f7f7; }
+.deleteButtonSmall{ border-color:#e9b4b4; color:#b00000; }
+.deleteButtonSmall:hover{ background:#ffecec; }
+.trashIcon{ color:#b00000; cursor:pointer; padding:6px; border-radius:8px; transition:.15s; }
+.trashIcon:hover{ background:#ffecec; color:#700; }
 
-/* Scrollbar claro */
-.asidePanel::-webkit-scrollbar,
-.overlayBody::-webkit-scrollbar{ width:10px; }
-.asidePanel::-webkit-scrollbar-thumb,
-.overlayBody::-webkit-scrollbar-thumb{ background:#d8d8d8; border-radius:999px; }
-.asidePanel::-webkit-scrollbar-track,
-.overlayBody::-webkit-scrollbar-track{ background:#f6f6f6; }
+/* Scrollbar */
+.asidePanel::-webkit-scrollbar, .overlayBody::-webkit-scrollbar{ width:10px; }
+.asidePanel::-webkit-scrollbar-thumb, .overlayBody::-webkit-scrollbar-thumb{ background:#d8d8d8; border-radius:999px; }
+.asidePanel::-webkit-scrollbar-track, .overlayBody::-webkit-scrollbar-track{ background:#f6f6f6; }
 
 /* Responsivo */
 @media (max-width: 860px){
   .asidePanel{ width:100vw; }
   .rowTwoCols{ grid-template-columns:1fr; }
   .rowThreeCols{ grid-template-columns:1fr; }
-  .actionTop{ grid-template-columns: 1fr; }
 }
