@@ -17,8 +17,7 @@ import styles from "./styles/NodeConfigPanel.module.css";
 // Se os paths forem diferentes no seu repo, só ajustar:
 import TextMessage from "../../../atendimento/components/chat/message/messageTypes/TextMessage";
 import QuickReplyMessage from "../../../atendimento/components/chat/message/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../../atendimento/components/chat/message/messageTypes/InteractiveListMessage";
-import InteractiveButtonsMessage from "../../../atendimento/components/chat/message/messageTypes/InteractiveButtonsMessage";
+import InteractiveListMessage from "../../../atendimento/components/chat/message/messageTypes/ListMessage";
 import ImageMessage from "../../../atendimento/components/chat/message/messageTypes/ImageMessage";
 import DocumentMessage from "../../../atendimento/components/chat/message/messageTypes/DocumentMessage";
 import AudioMessage from "../../../atendimento/components/chat/message/messageTypes/AudioMessage";
