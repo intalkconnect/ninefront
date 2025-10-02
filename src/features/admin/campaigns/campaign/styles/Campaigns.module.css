@@ -100,16 +100,43 @@
     linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
 }
 
-/* Radios (options) */
-.optionsRow{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.opt{
-  display:inline-flex; align-items:center; gap:8px;
-  border:1px solid var(--qr-border); border-radius:999px; padding:8px 12px; background:#fff;
-  cursor:pointer; font-weight:700; color:var(--qr-text-2); transition:var(--t-fast);
+/* ===================== */
+/*  PÍLULAS DE FILTRO    */
+/*  (estilo da imagem 2) */
+/* ===================== */
+.segmentRow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
 }
-.opt:hover{ background:var(--qr-surface-2); }
-.opt input{ accent-color:#2563eb; width:16px; height:16px; }
-.opt span{ line-height:1; }
+
+.segBtn{
+  appearance:none;
+  border:0;
+  border-radius:12px;
+  padding:8px 12px;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:var(--t-fast);
+  background:#f1f5f9;           /* cinza claro */
+  color:var(--qr-text-2);
+  box-shadow: inset 0 0 0 1px var(--qr-border);
+}
+.segBtn:hover{
+  background:#e5e7eb;
+}
+.segBtn:focus-visible{
+  outline:2px solid #93c5fd;
+  outline-offset:2px;
+  box-shadow: inset 0 0 0 1px #93c5fd;
+}
+.segBtnActive{
+  background:#2563eb;           /* azul cheio */
+  color:#fff;
+  box-shadow:none;
+}
 
 /* Busca */
 .searchGroup{ position:relative; }
@@ -183,7 +210,7 @@
 /* Estados */
 .loading,.empty{ padding:24px; color:var(--qr-muted); text-align:center; }
 
-/* ===== Modal ===== */
+/* ===== Modal (mantido caso usem em outro fluxo) ===== */
 .modalOverlay{
   position:fixed; inset:0; background:rgba(15,23,42,.45);
   display:grid; place-items:center; z-index:50;
@@ -259,14 +286,6 @@
   padding:10px 12px; font-size:14px; outline:none; transition:var(--t-fast);
   appearance:none;
 }
-
-/* Reaproveita seus botões padrão (.btn / .btnPrimary / .alertClose etc.) */
-
-/* Responsivo */
-@media (max-width: 720px){
-  .formGrid{ grid-template-columns:1fr; }
-}
-
 
 /* Responsivo */
 @media (max-width: 900px){
