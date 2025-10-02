@@ -1,3 +1,4 @@
+// NodeConfigPanel.jsx
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   Trash2,
@@ -12,7 +13,7 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/* ================= Inputs estáveis (mantêm caret) ================= */
+/* ================= Inputs estáveis (mantêm caret e não “puxam” foco) ================= */
 function useStableCaret() {
   const sel = useRef({ start: null, end: null });
   const onBeforeChange = (el) => {
@@ -26,6 +27,7 @@ function useStableCaret() {
     if (!el) return;
     const { start, end } = sel.current || {};
     if (start == null || end == null) return;
+    // Restaura no próximo frame para não disputar com o reconciliation
     requestAnimationFrame(() => {
       try { el.setSelectionRange(start, end); } catch {}
     });
@@ -33,11 +35,13 @@ function useStableCaret() {
   return { onBeforeChange, restore };
 }
 
-function StableInput({ value, onChange, className, ...rest }) {
+export function StableInput({ value, onChange, className, ...rest }) {
   const ref = useRef(null);
   const { onBeforeChange, restore } = useStableCaret();
   const stop = (e) => e.stopPropagation();
+
   useEffect(() => { restore(ref.current); });
+
   return (
     <input
       ref={ref}
@@ -53,11 +57,13 @@ function StableInput({ value, onChange, className, ...rest }) {
   );
 }
 
-function StableTextarea({ value, onChange, className, rows = 4, ...rest }) {
+export function StableTextarea({ value, onChange, className, rows = 4, ...rest }) {
   const ref = useRef(null);
   const { onBeforeChange, restore } = useStableCaret();
   const stop = (e) => e.stopPropagation();
+
   useEffect(() => { restore(ref.current); });
+
   return (
     <textarea
       ref={ref}
@@ -74,13 +80,1203 @@ function StableTextarea({ value, onChange, className, rows = 4, ...rest }) {
   );
 }
 
-/* ===== utils ===== */
+/* ================= Utils ================= */
 const deepClone = (obj) =>
   typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj ?? {}));
 const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
 const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
 const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
+
+/* =======================================================================================
+   Overlays (componentes de topo, IDENTIDADE ESTÁVEL)
+======================================================================================= */
+
+function OverlayHeader({ title, onBack, onClose, right = null }) {
+  return (
+    <div className={styles.overlayHeader}>
+      <button className={styles.backBtn} onClick={onBack} title="Voltar">
+        <ArrowLeft size={18} />
+      </button>
+      <div className={styles.overlayTitle}>{title}</div>
+      <div className={styles.buttonGroup}>
+        {right}
+        <button className={styles.iconGhost} onClick={onClose} title="Fechar"><X size={16} /></button>
+      </div>
+    </div>
+  );
+}
+
+/* -------- AWAIT -------- */
+function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
+  return (
+    <>
+      <OverlayHeader
+        title="Entrada do usuário"
+        onBack={onBack}
+        onClose={onClose}
+        right={
+          <button className={styles.addButtonSmall} onClick={commit}>
+            <Check size={14}/> Salvar
+          </button>
+        }
+      />
+      <div className={styles.overlayBody} data-stop-hotkeys="true">
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Aguardar resposta</h4>
+          </div>
+          <div className={styles.sectionContent}>
+            <div className={styles.rowTwoCols}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Ativar</label>
+                <select
+                  value={String(!!draft.awaitResponse)}
+                  onChange={(e) => setDraft((d) => ({ ...d, awaitResponse: e.target.value === "true" }))}
+                  className={styles.selectStyle}
+                >
+                  <option value="true">true</option>
+                  <option value="false">false</option>
+                </select>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Atraso de envio (s)</label>
+                <StableInput
+                  type="number"
+                  value={draft.sendDelayInSeconds}
+                  onChange={(e) => setDraft((d) => ({ ...d, sendDelayInSeconds: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className={styles.rowTwoCols}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Tempo de inatividade (s)</label>
+                <StableInput
+                  type="number"
+                  value={draft.awaitTimeInSeconds}
+                  onChange={(e) => setDraft((d) => ({ ...d, awaitTimeInSeconds: e.target.value }))}
+                />
+                <small className={styles.helpText}>0 para desativar</small>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
+                <StableInput
+                  type="text"
+                  placeholder="ex.: context.inputMenuPrincipal"
+                  value={draft.saveResponseVar}
+                  onChange={(e) => setDraft((d) => ({ ...d, saveResponseVar: e.target.value }))}
+                />
+                <small className={styles.helpText}>Se vazio, não salva.</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* -------- CONTEÚDO -------- */
+function OverlayConteudoComp({
+  type,
+  draft,
+  setDraft,
+  commit,
+  onBack,
+  onClose,
+  selectedNode,
+  setShowScriptEditor,
+  setScriptCode,
+  clampFn,
+  makeIdFromTitleFn,
+}) {
+  const setContent = (patch) =>
+    setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
+
+  return (
+    <>
+      <OverlayHeader
+        title="Conteúdo"
+        onBack={onBack}
+        onClose={onClose}
+        right={
+          <button className={styles.addButtonSmall} onClick={commit}>
+            <Check size={14}/> Salvar
+          </button>
+        }
+      />
+      <div className={styles.overlayBody} data-stop-hotkeys="true">
+        {type === "text" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
+            <div className={styles.sectionContent}>
+              <StableTextarea
+                rows={8}
+                value={draft.text}
+                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+              />
+            </div>
+          </div>
+        )}
+
+        {type === "interactive" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
+            <div className={styles.sectionContent}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Tipo</label>
+                <select
+                  value={draft.content?.type || "button"}
+                  onChange={(e) => {
+                    const newType = e.target.value;
+                    if (newType === "list") {
+                      setDraft((d) => ({
+                        ...d,
+                        content: deepClone({
+                          type: "list",
+                          body: { text: "Escolha um item da lista:" },
+                          footer: { text: "Toque para selecionar" },
+                          header: { text: "Menu de Opções", type: "text" },
+                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
+                        }),
+                      }));
+                    } else {
+                      setDraft((d) => ({
+                        ...d,
+                        content: deepClone({
+                          type: "button",
+                          body: { text: "Escolha uma opção:" },
+                          footer: { text: "" },
+                          action: {
+                            buttons: [
+                              { type: "reply", reply: { id: "Opção 1", title: "Opção 1" } },
+                              { type: "reply", reply: { id: "Opção 2", title: "Opção 2" } },
+                            ],
+                          },
+                        }),
+                      }));
+                    }
+                  }}
+                  className={styles.selectStyle}
+                >
+                  <option value="button">Quick Reply</option>
+                  <option value="list">Menu List</option>
+                </select>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Corpo</label>
+                <StableInput
+                  type="text"
+                  value={draft.content?.body?.text || ""}
+                  onChange={(e) => {
+                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value };
+                    setContent({ body });
+                  }}
+                />
+              </div>
+
+              {draft.content?.type === "button" && (
+                <>
+                  {(draft.content?.action?.buttons || []).map((btn, idx) => (
+                    <div key={idx} className={styles.rowItemStyle}>
+                      <StableInput
+                        type="text"
+                        value={btn?.reply?.title || ""}
+                        maxLength={20}
+                        placeholder="Texto do botão"
+                        onChange={(e) => {
+                          const value = clampFn(e.target.value, 20);
+                          const buttons = deepClone(draft.content?.action?.buttons || []);
+                          buttons[idx] = {
+                            ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
+                            reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
+                          };
+                          const action = { ...(deepClone(draft.content?.action) || {}), buttons };
+                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                        }}
+                      />
+                      <Trash2
+                        size={18}
+                        className={styles.trashIcon}
+                        onClick={() => {
+                          const current = deepClone(draft.content?.action?.buttons || []);
+                          current.splice(idx, 1);
+                          const action = { ...(deepClone(draft.content?.action) || {}), buttons: current };
+                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                        }}
+                        title="Remover botão"
+                      />
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const current = deepClone(draft.content?.action?.buttons || []);
+                      if (current.length >= 3) return;
+                      const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
+                      const action = { ...(deepClone(draft.content?.action) || {}), buttons: [...current, newBtn] };
+                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                    }}
+                    className={styles.addButton}
+                  >
+                    + Adicionar botão
+                  </button>
+                </>
+              )}
+
+              {draft.content?.type === "list" && (
+                <>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
+                    <StableInput
+                      type="text"
+                      maxLength={20}
+                      value={draft.content?.action?.button || ""}
+                      onChange={(e) => {
+                        const nextVal = (e.target.value || "").slice(0, 20);
+                        const action = {
+                          ...(deepClone(draft.content?.action) || {}),
+                          button: nextVal,
+                          sections: deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
+                        };
+                        setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                      }}
+                    />
+                  </div>
+
+                  {(draft.content?.action?.sections?.[0]?.rows || []).map((item, idx) => (
+                    <div key={idx} className={styles.rowItemStyle}>
+                      <StableInput
+                        type="text"
+                        value={item.title}
+                        maxLength={24}
+                        placeholder="Título"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                          const rows = [...(sections[0]?.rows || [])];
+                          rows[idx] = { ...(rows[idx] || {}), title: clampFn(value, 24), id: makeIdFromTitleFn(value, 24) };
+                          sections[0] = { ...(sections[0] || {}), rows };
+                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
+                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                        }}
+                      />
+                      <StableInput
+                        type="text"
+                        value={item.description}
+                        placeholder="Descrição"
+                        onChange={(e) => {
+                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                          const rows = [...(sections[0]?.rows || [])];
+                          rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
+                          sections[0] = { ...(sections[0] || {}), rows };
+                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
+                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                        }}
+                      />
+                      <Trash2
+                        size={18}
+                        className={styles.trashIcon}
+                        onClick={() => {
+                          const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
+                          const rows = [...(sections[0]?.rows || [])];
+                          rows.splice(idx, 1);
+                          sections[0] = { ...(sections[0] || {}), rows };
+                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
+                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                        }}
+                        title="Remover item"
+                      />
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => {
+                      const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
+                      const rows = sections[0]?.rows || [];
+                      const n = rows.length + 1;
+                      const title = `Item ${n}`;
+                      const newItem = { id: makeIdFromTitleFn(title, 24), title, description: "" };
+                      const nextRows = [...rows, newItem];
+                      const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
+                      const action = { ...(deepClone(draft.content?.action) || {}), sections: nextSections };
+                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                    }}
+                    className={styles.addButton}
+                  >
+                    + Adicionar item
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {type === "media" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
+            <div className={styles.sectionContent}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Tipo</label>
+                <select
+                  value={draft.media?.mediaType || "image"}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), mediaType: e.target.value } }))}
+                  className={styles.selectStyle}
+                >
+                  <option value="image">Imagem</option>
+                  <option value="document">Documento</option>
+                  <option value="audio">Áudio</option>
+                  <option value="video">Vídeo</option>
+                </select>
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>URL</label>
+                <StableInput
+                  type="text"
+                  value={draft.media?.url || ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), url: e.target.value } }))}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Legenda</label>
+                <StableInput
+                  type="text"
+                  value={draft.media?.caption || ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value } }))}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {type === "location" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
+            <div className={styles.sectionContent}>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
+                <StableInput type="text" value={draft.location?.name || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), name: e.target.value } }))}/></div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
+                <StableInput type="text" value={draft.location?.address || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), address: e.target.value } }))}/></div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
+                <StableInput type="text" value={draft.location?.latitude || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), latitude: e.target.value } }))}/></div>
+              <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
+                <StableInput type="text" value={draft.location?.longitude || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), longitude: e.target.value } }))}/></div>
+            </div>
+          </div>
+        )}
+
+        {type === "script" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
+            <div className={styles.sectionContent}>
+              <button
+                onClick={() => {
+                  setScriptCode(selectedNode?.data?.block?.code || "");
+                  setShowScriptEditor(true);
+                }}
+                className={styles.addButton}
+              >
+                Abrir editor de código
+              </button>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Função</label>
+                <StableInput
+                  type="text"
+                  value={draft.fnName}
+                  onChange={(e) => setDraft((d) => ({ ...d, fnName: e.target.value }))}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Variável de saída</label>
+                <StableInput
+                  type="text"
+                  value={draft.outputVar}
+                  onChange={(e) => setDraft((d) => ({ ...d, outputVar: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {type === "api_call" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
+            <div className={styles.sectionContent}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Método</label>
+                <select
+                  value={draft.api.method}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
+                  className={styles.selectStyle}
+                >
+                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+                </select>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>URL</label>
+                <StableInput
+                  type="text"
+                  value={draft.api.url}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Headers (JSON)</label>
+                <StableTextarea
+                  rows={3}
+                  value={draft.api.headersText}
+                  onChange={(e) =>
+                    setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
+                  }
+                  onBlur={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value || "{}");
+                      setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
+                    } catch { /* toast é disparado no pai */ }
+                  }}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Body (JSON)</label>
+                <StableTextarea
+                  rows={4}
+                  value={draft.api.bodyText}
+                  onChange={(e) =>
+                    setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
+                  }
+                  onBlur={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value || "{}");
+                      setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
+                    } catch { /* toast é disparado no pai */ }
+                  }}
+                />
+              </div>
+
+              <div className={styles.rowTwoCols}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Timeout (ms)</label>
+                  <StableInput
+                    type="number"
+                    value={draft.api.timeout}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável de saída</label>
+                  <StableInput
+                    type="text"
+                    value={draft.api.outputVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável de status</label>
+                  <StableInput
+                    type="text"
+                    value={draft.api.statusVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* -------- REGRAS -------- */
+function OverlayRegrasComp({
+  draft,
+  setDraft,
+  variableOptions,
+  allNodes,
+  selectedNode,
+  onConnectNodes,
+  onBack,
+  onClose,
+  commit,
+}) {
+  const updateActionsLocal = (next) => setDraft((r) => ({ ...r, actions: deepClone(next) }));
+
+  const addOffhoursAction = (kind) => {
+    let conds = [];
+    if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
+    else if (kind === "reason_holiday") conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
+    else if (kind === "reason_closed") conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
+    const next = [...(draft.actions || []), { next: "", conditions: conds }];
+    updateActionsLocal(next);
+  };
+
+  const renderValueInput = (cond, onChangeValue) => {
+    if (cond.type === "exists") return null;
+    if (cond.variable === "offhours") {
+      return (
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <select className={styles.selectStyle} value={cond.value ?? "true"} onChange={(e) => onChangeValue(e.target.value)}>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+      );
+    }
+    if (cond.variable === "offhours_reason") {
+      return (
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <select className={styles.selectStyle} value={cond.value ?? "holiday"} onChange={(e) => onChangeValue(e.target.value)}>
+            <option value="holiday">holiday</option>
+            <option value="closed">closed</option>
+          </select>
+        </div>
+      );
+    }
+    return (
+      <div className={styles.inputGroup}>
+        <label className={styles.inputLabel}>Valor</label>
+        <StableInput
+          type="text"
+          placeholder="Valor para comparação"
+          value={cond.value ?? ""}
+          onChange={(e) => onChangeValue(e.target.value)}
+        />
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <OverlayHeader
+        title="Regras de saída"
+        onBack={onBack}
+        onClose={onClose}
+        right={
+          <button className={styles.addButtonSmall} onClick={commit}>
+            <Check size={14}/> Salvar
+          </button>
+        }
+      />
+      <div className={styles.overlayBody} data-stop-hotkeys="true">
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Regras</h4>
+            <span className={styles.sectionCount}>({draft.actions.length}/25)</span>
+          </div>
+          <div className={styles.sectionContent}>
+            <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
+              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
+              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
+              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
+            </div>
+
+            {draft.actions.map((action, actionIdx) => (
+              <React.Fragment key={actionIdx}>
+                {actionIdx > 0 && (
+                  <div className={styles.dividerContainer}>
+                    <div className={styles.dividerLine}></div>
+                    <span className={styles.dividerText}>OU</span>
+                  </div>
+                )}
+
+                <div className={styles.actionBox}>
+                  <div className={styles.actionHeader}>
+                    <strong className={styles.actionTitle}>Regra {actionIdx + 1}</strong>
+                    <Trash2
+                      size={16}
+                      className={styles.trashIcon}
+                      onClick={() => {
+                        const updated = deepClone(draft.actions);
+                        updated.splice(actionIdx, 1);
+                        updateActionsLocal(updated);
+                      }}
+                    />
+                  </div>
+
+                  {(action.conditions || []).map((cond, condIdx) => (
+                    <div key={condIdx} className={styles.conditionRow}>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Variável</label>
+                        <select
+                          value={
+                            variableOptions.some((v) => v.value === cond.variable)
+                              ? cond.variable
+                              : cond.variable
+                              ? "custom"
+                              : "lastUserMessage"
+                          }
+                          onChange={(e) => {
+                            const nextVar = e.target.value;
+                            const updated = deepClone(draft.actions);
+                            if (nextVar === "custom") {
+                              updated[actionIdx].conditions[condIdx].variable = "";
+                            } else {
+                              updated[actionIdx].conditions[condIdx].variable = nextVar;
+                              if (!updated[actionIdx].conditions[condIdx].type) {
+                                updated[actionIdx].conditions[condIdx].type = "equals";
+                              }
+                              if (nextVar === "offhours") {
+                                updated[actionIdx].conditions[condIdx].value = "true";
+                              } else if (nextVar === "offhours_reason") {
+                                updated[actionIdx].conditions[condIdx].value = "closed";
+                              }
+                            }
+                            updateActionsLocal(updated);
+                          }}
+                          className={styles.selectStyle}
+                        >
+                          {variableOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
+                        <div className={styles.inputGroup}>
+                          <label className={styles.inputLabel}>Nome da variável</label>
+                          <StableInput
+                            type="text"
+                            placeholder="ex.: meuCampo"
+                            value={cond.variable || ""}
+                            onChange={(e) => {
+                              const updated = deepClone(draft.actions);
+                              updated[actionIdx].conditions[condIdx].variable = e.target.value;
+                              updateActionsLocal(updated);
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Tipo de condição</label>
+                        <select
+                          value={cond.type || ""}
+                          onChange={(e) => {
+                            const updated = deepClone(draft.actions);
+                            updated[actionIdx].conditions[condIdx].type = e.target.value;
+                            if (e.target.value === "exists") {
+                              updated[actionIdx].conditions[condIdx].value = "";
+                            }
+                            updateActionsLocal(updated);
+                          }}
+                          className={styles.selectStyle}
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="exists">Existe</option>
+                          <option value="equals">Igual a</option>
+                          <option value="not_equals">Diferente de</option>
+                          <option value="contains">Contém</option>
+                          <option value="not_contains">Não contém</option>
+                          <option value="starts_with">Começa com</option>
+                          <option value="ends_with">Termina com</option>
+                        </select>
+                      </div>
+
+                      {renderValueInput(cond, (v) => {
+                        const updated = deepClone(draft.actions);
+                        updated[actionIdx].conditions[condIdx].value = v;
+                        updateActionsLocal(updated);
+                      })}
+
+                      <div className={styles.buttonGroup}>
+                        <button
+                          className={styles.deleteButtonSmall}
+                          onClick={() => {
+                            const updated = deepClone(draft.actions);
+                            updated[actionIdx].conditions.splice(condIdx, 1);
+                            updateActionsLocal(updated);
+                          }}
+                        >
+                          <Trash2 size={14} /> Remover condição
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Ir para</label>
+                    <select
+                      value={action.next || ""}
+                      onChange={(e) => {
+                        const targetId = e.target.value;
+                        const updated = deepClone(draft.actions);
+                        updated[actionIdx].next = targetId;
+                        updateActionsLocal(updated);
+                        if (onConnectNodes && targetId) {
+                          onConnectNodes({ source: selectedNode.id, target: targetId });
+                        }
+                      }}
+                      className={styles.selectStyle}
+                    >
+                      <option value="">Selecione um bloco...</option>
+                      {allNodes
+                        .filter((n) => n.id !== selectedNode.id)
+                        .map((node) => (
+                          <option key={node.id} value={node.id}>
+                            {node.data.label || node.id}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+              </React.Fragment>
+            ))}
+
+            <div className={styles.buttonGroup}>
+              <button
+                onClick={() => {
+                  const newAction = {
+                    next: "",
+                    conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }],
+                  };
+                  updateActionsLocal([...(draft.actions || []), newAction]);
+                }}
+                className={styles.addButton}
+              >
+                <Plus size={16} /> Adicionar regra
+              </button>
+            </div>
+
+            <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
+              <div className={styles.sectionHeaderStatic}>
+                <h4 className={styles.sectionTitle}>Saída padrão</h4>
+              </div>
+              <div className={styles.sectionContent}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Próximo bloco</label>
+                  <select
+                    value={draft.defaultNext || ""}
+                    onChange={(e) => setDraft((r) => ({ ...r, defaultNext: e.target.value }))}
+                    className={styles.selectStyle}
+                  >
+                    <option value="">Selecione um bloco...</option>
+                    {allNodes
+                      .filter((n) => n.id !== selectedNode.id)
+                      .map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.data.label || node.id}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> 
+    </>
+  );
+}
+
+/* -------- AÇÕES ESPECIAIS (lista + editor overlay interno) -------- */
+function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
+  return (
+    <div className={styles.sectionContainer}>
+      <div className={styles.sectionHeaderStatic}>
+        <h4 className={styles.sectionTitle}>{title}</h4>
+        <button className={styles.addButtonSmall} onClick={() => onNew(section)}>
+          + Nova variável
+        </button>
+      </div>
+
+      <div className={styles.sectionContent}>
+        {!items?.length && (
+          <div className={styles.emptyHint}>
+            Nenhuma variável ainda. Clique em <strong>Nova variável</strong> para adicionar.
+          </div>
+        )}
+
+        {items?.map((a, i) => (
+          <div key={`${section}-${i}`} className={styles.specialListRow}>
+            <div className={styles.rowMain}>
+              <div className={styles.rowTitle}>{a.label}</div>
+              <div className={styles.rowMeta}>
+                <span className={styles.pill}>{a.scope || "context"}</span>
+                <span className={styles.metaSep}>•</span>
+                <span className={styles.mono}>{a.key || "-"}</span>
+                <span className={styles.metaArrow}>→</span>
+                <span className={styles.monoTrunc} title={String(a.value ?? "")}>
+                  {String(a.value ?? "") || "—"}
+                </span>
+                {a?.conditions?.length ? (
+                  <>
+                    <span className={styles.metaSep}>•</span>
+                    <span className={styles.pillLight}>{a.conditions.length} condição(ões)</span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+
+            <div className={styles.rowActions}>
+              <button className={styles.iconGhost} title="Editar" onClick={() => onEdit(section, i)}>
+                <PencilLine size={16} />
+              </button>
+              <button className={styles.iconGhost} title="Remover" onClick={() => onRemove(section, i)}>
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EditorOverlay({
+  open,
+  setOpen,
+  draft,
+  setDraft,
+  mode,
+  section,
+  save,
+  cancel,
+  variableOptions,
+  showToast,
+}) {
+  const addCond = () =>
+    setDraft((d) => ({ ...d, conditions: [...(d.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] }));
+  const updateCond = (idx, patch) => {
+    const next = deepClone(draft.conditions || []);
+    next[idx] = { ...next[idx], ...patch };
+    setDraft((d) => ({ ...d, conditions: next }));
+  };
+  const removeCond = (idx) => {
+    const next = deepClone(draft.conditions || []);
+    next.splice(idx, 1);
+    setDraft((d) => ({ ...d, conditions: next }));
+  };
+
+  return (
+    <div className={`${styles.subOverlay} ${open ? styles.subOverlayOpen : ""}`} data-stop-hotkeys="true">
+      <div className={styles.subOverlayHeader}>
+        <button className={styles.backBtn} onClick={() => { setOpen(false); cancel(); }} title="Voltar">
+          <ArrowLeft size={18} />
+        </button>
+        <div className={styles.overlayTitle}>
+          {mode === "edit" ? "Editar variável" : "Nova variável"}
+          <span className={styles.pillLight} style={{ marginLeft: 8 }}>
+            {section === "enter" ? "Ao entrar" : "Ao sair"}
+          </span>
+        </div>
+        <div className={styles.buttonGroup}>
+          <button className={styles.deleteButtonSmall} onClick={() => { setOpen(false); cancel(); }}>
+            <X size={14}/> Cancelar
+          </button>
+          <button className={styles.addButtonSmall} onClick={() => { save(); setOpen(false); }}>
+            <Check size={14}/> Salvar
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.subOverlayBody}>
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Título *</label>
+          <StableInput
+            placeholder="Como aparece na lista"
+            value={draft.label}
+            onChange={(e) => setDraft((d)=>({ ...d, label: e.target.value }))}
+          />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Escopo</label>
+          <select
+            className={styles.selectStyle}
+            value={draft.scope || "context"}
+            onChange={(e) => setDraft((d)=>({ ...d, scope: e.target.value || "context" }))}
+          >
+            <option value="context">context</option>
+            <option value="contact">contact</option>
+            <option value="contact.extra">contact.extra</option>
+          </select>
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Chave *</label>
+          <StableInput
+            placeholder="ex.: protocolo"
+            value={draft.key}
+            onChange={(e) => setDraft((d)=>({ ...d, key: e.target.value }))}
+          />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <StableInput
+            placeholder='ex.: 12345 ou {{context.algo}}'
+            value={draft.value}
+            onChange={(e) => setDraft((d)=>({ ...d, value: e.target.value }))}
+          />
+        </div>
+
+        <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Condições (opcional)</h4>
+            <button className={styles.addButtonSmall} onClick={addCond}>+ Adicionar condição</button>
+          </div>
+          <div className={styles.sectionContent}>
+            {!(draft.conditions || []).length && (
+              <div className={styles.emptyHint}>
+                Se adicionar condições, a variável só será definida quando <strong>todas</strong> forem satisfeitas.
+              </div>
+            )}
+
+            {(draft.conditions || []).map((cond, idx) => (
+              <div key={idx} className={styles.specialCondRow}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável</label>
+                  <select
+                    className={styles.selectStyle}
+                    value={
+                      variableOptions.some((v) => v.value === cond.variable)
+                        ? cond.variable
+                        : cond.variable
+                        ? "custom"
+                        : "lastUserMessage"
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "custom") updateCond(idx, { variable: "" });
+                      else {
+                        const patch = { variable: v };
+                        if (!cond.type) patch.type = "equals";
+                        if (v === "offhours") patch.value = "true";
+                        if (v === "offhours_reason") patch.value = "closed";
+                        updateCond(idx, patch);
+                      }
+                    }}
+                  >
+                    {variableOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Nome</label>
+                    <StableInput
+                      placeholder="ex.: meuCampo"
+                      value={cond.variable || ""}
+                      onChange={(e) => updateCond(idx, { variable: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Tipo</label>
+                  <select
+                    className={styles.selectStyle}
+                    value={cond.type || ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const patch = { type: v || "" };
+                      if (v === "exists") patch.value = "";
+                      updateCond(idx, patch);
+                    }}
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="exists">Existe</option>
+                    <option value="equals">Igual a</option>
+                    <option value="not_equals">Diferente de</option>
+                    <option value="contains">Contém</option>
+                    <option value="not_contains">Não contém</option>
+                    <option value="starts_with">Começa com</option>
+                    <option value="ends_with">Termina com</option>
+                  </select>
+                </div>
+
+                {cond.type !== "exists" && (
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Valor</label>
+                    {cond.variable === "offhours" ? (
+                      <select
+                        className={styles.selectStyle}
+                        value={cond.value ?? "true"}
+                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
+                      >
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                      </select>
+                    ) : cond.variable === "offhours_reason" ? (
+                      <select
+                        className={styles.selectStyle}
+                        value={cond.value ?? "holiday"}
+                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
+                      >
+                        <option value="holiday">holiday</option>
+                        <option value="closed">closed</option>
+                      </select>
+                    ) : (
+                      <StableInput
+                        placeholder="Valor para comparação"
+                        value={cond.value ?? ""}
+                        onChange={(e) => updateCond(idx, { value: e.target.value })}
+                      />
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.buttonGroup}>
+                  <button className={styles.deleteButtonSmall} onClick={() => removeCond(idx)}>
+                    <Trash2 size={14}/> Remover
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function OverlayEspeciaisComp({
+  onBack,
+  onClose,
+  onChangeNode,
+  selectedNode,
+  block,
+  variableOptions,
+  showToast,
+}) {
+  const { onEnter = [], onExit = [] } = block || {};
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState({
+    mode: "create",
+    section: "enter",
+    index: -1,
+    draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+  });
+
+  const resetEditing = () =>
+    setEditing({ mode: "create", section: "enter", index: -1, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } });
+
+  const startCreate = (section) => {
+    resetEditing();
+    setEditing((s) => ({ ...s, section, mode: "create" }));
+    setEditorOpen(true);
+  };
+
+  const startEdit = (section, index) => {
+    const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
+    const item = deepClone(list[index] || {});
+    setEditing({
+      mode: "edit",
+      section,
+      index,
+      draft: {
+        label: item.label || "",
+        scope: item.scope || "context",
+        key: item.key || "",
+        value: item.value ?? "",
+        conditions: ensureArray(item.conditions || []),
+      },
+    });
+    setEditorOpen(true);
+  };
+
+  const removeItem = (section, index) => {
+    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+    list.splice(index, 1);
+    if (section === "enter") {
+      onChangeNode({ onEnter: list });
+    } else {
+      onChangeNode({ onExit: list });
+    }
+    showToast("success", "Variável removida.");
+  };
+
+  const validateDraft = (d) => {
+    if (!d.label?.trim()) { showToast("error", "Informe o título da variável."); return false; }
+    if (!d.key?.trim())   { showToast("error", "Informe a chave da variável."); return false; }
+    for (let i = 0; i < (d.conditions || []).length; i++) {
+      const c = d.conditions[i];
+      if (c.variable === undefined) { showToast("error", `Condição ${i + 1}: selecione a variável.`); return false; }
+      if (!c.type) { showToast("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
+      if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
+        showToast("error", `Condição ${i + 1}: informe o valor.`); return false;
+      }
+    }
+    return true;
+  };
+
+  const saveEditing = () => {
+    const { section, index, mode, draft } = editing;
+    if (!validateDraft(draft)) return;
+
+    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+    const clean = {
+      label: draft.label.trim(),
+      scope: draft.scope || "context",
+      key: draft.key.trim(),
+      value: draft.value ?? "",
+      ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
+    };
+
+    if (mode === "create") list.push(clean);
+    else list[index] = { ...list[index], ...clean };
+
+    if (section === "enter") onChangeNode({ onEnter: list });
+    else onChangeNode({ onExit: list });
+
+    setEditorOpen(false);
+    resetEditing();
+    showToast("success", "Variável salva com sucesso.");
+  };
+
+  return (
+    <>
+      <OverlayHeader title="Ações especiais" onBack={onBack} onClose={onClose} />
+      <div className={styles.overlayBody} data-stop-hotkeys="true">
+        <SpecialList
+          title="Ao entrar no bloco"
+          section="enter"
+          items={ensureArray(onEnter)}
+          onNew={startCreate}
+          onEdit={startEdit}
+          onRemove={removeItem}
+        />
+        <SpecialList
+          title="Ao sair do bloco"
+          section="exit"
+          items={ensureArray(onExit)}
+          onNew={startCreate}
+          onEdit={startEdit}
+          onRemove={removeItem}
+        />
+      </div>
+
+      <EditorOverlay
+        open={editorOpen}
+        setOpen={setEditorOpen}
+        draft={editing.draft}
+        setDraft={(d) => setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))}
+        mode={editing.mode}
+        section={editing.section}
+        save={saveEditing}
+        cancel={resetEditing}
+        variableOptions={variableOptions}
+        showToast={showToast}
+      />
+    </>
+  );
+}
+
+/* =======================================================================================
+   Painel principal
+======================================================================================= */
 
 export default function NodeConfigPanel({
   selectedNode,
@@ -238,19 +1434,15 @@ export default function NodeConfigPanel({
   }, [overlayMode, actions, defaultNext]);
 
   /* ---------------- commits ---------------- */
+  const updateBlock = (changes) =>
+    onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, ...changes } } });
+
   const commitAwait = () => {
-    onChange({
-      ...selectedNode,
-      data: {
-        ...selectedNode.data,
-        block: {
-          ...block,
-          awaitResponse: !!awaitDraft.awaitResponse,
-          awaitTimeInSeconds: parseInt(awaitDraft.awaitTimeInSeconds || 0, 10),
-          sendDelayInSeconds: parseInt(awaitDraft.sendDelayInSeconds || 0, 10),
-          saveResponseVar: awaitDraft.saveResponseVar || "",
-        },
-      },
+    updateBlock({
+      awaitResponse: !!awaitDraft.awaitResponse,
+      awaitTimeInSeconds: parseInt(awaitDraft.awaitTimeInSeconds || 0, 10),
+      sendDelayInSeconds: parseInt(awaitDraft.sendDelayInSeconds || 0, 10),
+      saveResponseVar: awaitDraft.saveResponseVar || "",
     });
     showToast("success", "Configurações de entrada salvas.");
   };
@@ -277,41 +1469,22 @@ export default function NodeConfigPanel({
       next.statusVar = d.api.statusVar || "apiStatus";
     }
 
-    onChange({ ...selectedNode, data: { ...selectedNode.data, block: next } });
+    updateBlock(next);
     showToast("success", "Conteúdo salvo.");
   };
 
   const commitRegras = () => {
-    onChange({
-      ...selectedNode,
-      data: {
-        ...selectedNode.data,
-        block: {
-          ...block,
-          actions: deepClone(regrasDraft.actions || []),
-          defaultNext: regrasDraft.defaultNext || "",
-        },
-      },
+    updateBlock({
+      actions: deepClone(regrasDraft.actions || []),
+      defaultNext: regrasDraft.defaultNext || "",
     });
     showToast("success", "Regras salvas.");
   };
 
-  const updateActionsLocal = (next) => setRegrasDraft((r) => ({ ...r, actions: deepClone(next) }));
-
-  /* atalhos human */
-  const addOffhoursAction = (kind) => {
-    let conds = [];
-    if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
-    else if (kind === "reason_holiday") conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
-    else if (kind === "reason_closed") conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
-    const next = [...(regrasDraft.actions || []), { next: "", conditions: conds }];
-    updateActionsLocal(next);
-  };
-
-  /* ---------------- preview/chat ---------------- */
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
+  /* ---------------- preview/chat ---------------- */
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
       <div className={styles.floatingBtns}>
@@ -368,879 +1541,7 @@ export default function NodeConfigPanel({
     </div>
   );
 
-  /* ---------------- overlay: AWAIT ---------------- */
-  const OverlayAwait = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Entrada do usuário</div>
-        <div className={styles.buttonGroup}>
-          <button className={styles.addButtonSmall} onClick={commitAwait}><Check size={14}/> Salvar</button>
-          <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-        </div>
-      </div>
-
-      <div className={styles.overlayBody}>
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Aguardar resposta</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            <div className={styles.rowTwoCols}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Ativar</label>
-                <select
-                  value={String(!!awaitDraft.awaitResponse)}
-                  onChange={(e) => setAwaitDraft((d) => ({ ...d, awaitResponse: e.target.value === "true" }))}
-                  className={styles.selectStyle}
-                >
-                  <option value="true">true</option>
-                  <option value="false">false</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Atraso de envio (s)</label>
-                <StableInput
-                  type="number"
-                  value={awaitDraft.sendDelayInSeconds}
-                  onChange={(e) => setAwaitDraft((d) => ({ ...d, sendDelayInSeconds: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className={styles.rowTwoCols}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tempo de inatividade (s)</label>
-                <StableInput
-                  type="number"
-                  value={awaitDraft.awaitTimeInSeconds}
-                  onChange={(e) => setAwaitDraft((d) => ({ ...d, awaitTimeInSeconds: e.target.value }))}
-                />
-                <small className={styles.helpText}>0 para desativar</small>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Salvar resposta do usuário em</label>
-                <StableInput
-                  type="text"
-                  placeholder="ex.: context.inputMenuPrincipal"
-                  value={awaitDraft.saveResponseVar}
-                  onChange={(e) => setAwaitDraft((d) => ({ ...d, saveResponseVar: e.target.value }))}
-                />
-                <small className={styles.helpText}>Se vazio, não salva.</small>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  /* ---------------- overlay: CONTEÚDO ---------------- */
-  const OverlayConteudo = () => {
-    const c = conteudoDraft;
-    const setContent = (patch) =>
-      setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
-
-    return (
-      <>
-        <div className={styles.overlayHeader}>
-          <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-            <ArrowLeft size={18} />
-          </button>
-          <div className={styles.overlayTitle}>Conteúdo</div>
-          <div className={styles.buttonGroup}>
-            <button className={styles.addButtonSmall} onClick={commitConteudo}><Check size={14}/> Salvar</button>
-            <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-          </div>
-        </div>
-
-        <div className={styles.overlayBody} data-stop-hotkeys="true">
-          {type === "text" && (
-            <div className={styles.sectionContainer}>
-              <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
-              <div className={styles.sectionContent}>
-                <StableTextarea
-                  rows={8}
-                  value={c.text}
-                  onChange={(e) => setConteudoDraft((d) => ({ ...d, text: e.target.value }))}
-                />
-              </div>
-            </div>
-          )}
-
-          {type === "interactive" && (
-            <div className={styles.sectionContainer}>
-              <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
-              <div className={styles.sectionContent}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Tipo</label>
-                  <select
-                    value={c.content?.type || "button"}
-                    onChange={(e) => {
-                      const newType = e.target.value;
-                      if (newType === "list") {
-                        setConteudoDraft((d) => ({
-                          ...d,
-                          content: deepClone({
-                            type: "list",
-                            body: { text: "Escolha um item da lista:" },
-                            footer: { text: "Toque para selecionar" },
-                            header: { text: "Menu de Opções", type: "text" },
-                            action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
-                          }),
-                        }));
-                      } else {
-                        setConteudoDraft((d) => ({
-                          ...d,
-                          content: deepClone({
-                            type: "button",
-                            body: { text: "Escolha uma opção:" },
-                            footer: { text: "" },
-                            action: {
-                              buttons: [
-                                { type: "reply", reply: { id: "Opção 1", title: "Opção 1" } },
-                                { type: "reply", reply: { id: "Opção 2", title: "Opção 2" } },
-                              ],
-                            },
-                          }),
-                        }));
-                      }
-                    }}
-                    className={styles.selectStyle}
-                  >
-                    <option value="button">Quick Reply</option>
-                    <option value="list">Menu List</option>
-                  </select>
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Corpo</label>
-                  <StableInput
-                    type="text"
-                    value={c.content?.body?.text || ""}
-                    onChange={(e) => {
-                      const body = { ...(deepClone(c.content?.body) || {}), text: e.target.value };
-                      setContent({ body });
-                    }}
-                  />
-                </div>
-
-                {c.content?.type === "button" && (
-                  <>
-                    {(c.content?.action?.buttons || []).map((btn, idx) => (
-                      <div key={idx} className={styles.rowItemStyle}>
-                        <StableInput
-                          type="text"
-                          value={btn?.reply?.title || ""}
-                          maxLength={20}
-                          placeholder="Texto do botão"
-                          onChange={(e) => {
-                            const value = clamp(e.target.value, 20);
-                            const buttons = deepClone(c.content?.action?.buttons || []);
-                            buttons[idx] = {
-                              ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
-                              reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
-                            };
-                            const action = { ...(deepClone(c.content?.action) || {}), buttons };
-                            setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                          }}
-                        />
-                        <Trash2
-                          size={18}
-                          className={styles.trashIcon}
-                          onClick={() => {
-                            const current = deepClone(c.content?.action?.buttons || []);
-                            current.splice(idx, 1);
-                            const action = { ...(deepClone(c.content?.action) || {}), buttons: current };
-                            setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                          }}
-                          title="Remover botão"
-                        />
-                      </div>
-                    ))}
-                    <button
-                      onClick={() => {
-                        const current = deepClone(c.content?.action?.buttons || []);
-                        if (current.length >= 3) return;
-                        const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
-                        const action = { ...(deepClone(c.content?.action) || {}), buttons: [...current, newBtn] };
-                        setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                      }}
-                      className={styles.addButton}
-                    >
-                      + Adicionar botão
-                    </button>
-                  </>
-                )}
-
-                {c.content?.type === "list" && (
-                  <>
-                    <div className={styles.inputGroup}>
-                      <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
-                      <StableInput
-                        type="text"
-                        maxLength={20}
-                        value={c.content?.action?.button || ""}
-                        onChange={(e) => {
-                          const nextVal = (e.target.value || "").slice(0, 20);
-                          const action = {
-                            ...(deepClone(c.content?.action) || {}),
-                            button: nextVal,
-                            sections: deepClone(c.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
-                          };
-                          setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
-                    </div>
-
-                    {(c.content?.action?.sections?.[0]?.rows || []).map((item, idx) => (
-                      <div key={idx} className={styles.rowItemStyle}>
-                        <StableInput
-                          type="text"
-                          value={item.title}
-                          maxLength={24}
-                          placeholder="Título"
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            const sections = deepClone(c.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                            const rows = [...(sections[0]?.rows || [])];
-                            rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitle(value, 24) };
-                            sections[0] = { ...(sections[0] || {}), rows };
-                            const action = { ...(deepClone(c.content?.action) || {}), sections };
-                            setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                          }}
-                        />
-                        <StableInput
-                          type="text"
-                          value={item.description}
-                          placeholder="Descrição"
-                          onChange={(e) => {
-                            const sections = deepClone(c.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                            const rows = [...(sections[0]?.rows || [])];
-                            rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
-                            sections[0] = { ...(sections[0] || {}), rows };
-                            const action = { ...(deepClone(c.content?.action) || {}), sections };
-                            setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                          }}
-                        />
-                        <Trash2
-                          size={18}
-                          className={styles.trashIcon}
-                          onClick={() => {
-                            const sections = deepClone(c.content?.action?.sections || [{ title: "", rows: [] }]);
-                            const rows = [...(sections[0]?.rows || [])];
-                            rows.splice(idx, 1);
-                            sections[0] = { ...(sections[0] || {}), rows };
-                            const action = { ...(deepClone(c.content?.action) || {}), sections };
-                            setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                          }}
-                          title="Remover item"
-                        />
-                      </div>
-                    ))}
-
-                    <button
-                      onClick={() => {
-                        const sections = deepClone(c.content?.action?.sections || [{ title: "", rows: [] }]);
-                        const rows = sections[0]?.rows || [];
-                        const n = rows.length + 1;
-                        const title = `Item ${n}`;
-                        const newItem = { id: makeIdFromTitle(title, 24), title, description: "" };
-                        const nextRows = [...rows, newItem];
-                        const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
-                        const action = { ...(deepClone(c.content?.action) || {}), sections: nextSections };
-                        setConteudoDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                      }}
-                      className={styles.addButton}
-                    >
-                      + Adicionar item
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {type === "media" && (
-            <div className={styles.sectionContainer}>
-              <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
-              <div className={styles.sectionContent}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Tipo</label>
-                  <select
-                    value={c.media?.mediaType || "image"}
-                    onChange={(e) => setConteudoDraft((d) => ({ ...d, media: { ...(d.media||{}), mediaType: e.target.value } }))}
-                    className={styles.selectStyle}
-                  >
-                    <option value="image">Imagem</option>
-                    <option value="document">Documento</option>
-                    <option value="audio">Áudio</option>
-                    <option value="video">Vídeo</option>
-                  </select>
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>URL</label>
-                  <StableInput
-                    type="text"
-                    value={c.media?.url || ""}
-                    onChange={(e) => setConteudoDraft((d) => ({ ...d, media: { ...(d.media||{}), url: e.target.value } }))}
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Legenda</label>
-                  <StableInput
-                    type="text"
-                    value={c.media?.caption || ""}
-                    onChange={(e) => setConteudoDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value } }))}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {type === "location" && (
-            <div className={styles.sectionContainer}>
-              <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
-              <div className={styles.sectionContent}>
-                <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
-                  <StableInput type="text" value={c.location?.name || ""} onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), name: e.target.value } }))}/></div>
-                <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
-                  <StableInput type="text" value={c.location?.address || ""} onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), address: e.target.value } }))}/></div>
-                <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
-                  <StableInput type="text" value={c.location?.latitude || ""} onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), latitude: e.target.value } }))}/></div>
-                <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
-                  <StableInput type="text" value={c.location?.longitude || ""} onChange={(e) => setConteudoDraft((d) => ({ ...d, location: { ...(d.location||{}), longitude: e.target.value } }))}/></div>
-              </div>
-            </div>
-          )}
-
-          {type === "script" && (
-            <div className={styles.sectionContainer}>
-              <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
-              <div className={styles.sectionContent}>
-                <button
-                  onClick={() => {
-                    setScriptCode(selectedNode?.data?.block?.code || "");
-                    setShowScriptEditor(true);
-                  }}
-                  className={styles.addButton}
-                >
-                  Abrir editor de código
-                </button>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Função</label>
-                  <StableInput
-                    type="text"
-                    value={conteudoDraft.fnName}
-                    onChange={(e) => setConteudoDraft((d) => ({ ...d, fnName: e.target.value }))}
-                  />
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de saída</label>
-                  <StableInput
-                    type="text"
-                    value={conteudoDraft.outputVar}
-                    onChange={(e) => setConteudoDraft((d) => ({ ...d, outputVar: e.target.value }))}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {type === "api_call" && (
-            <div className={styles.sectionContainer}>
-              <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
-              <div className={styles.sectionContent}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Método</label>
-                  <select
-                    value={conteudoDraft.api.method}
-                    onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
-                    className={styles.selectStyle}
-                  >
-                    <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
-                  </select>
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>URL</label>
-                  <StableInput
-                    type="text"
-                    value={conteudoDraft.api.url}
-                    onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
-                  />
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Headers (JSON)</label>
-                  <StableTextarea
-                    rows={3}
-                    value={conteudoDraft.api.headersText}
-                    onChange={(e) =>
-                      setConteudoDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
-                    }
-                    onBlur={(e) => {
-                      try {
-                        const parsed = JSON.parse(e.target.value || "{}");
-                        setConteudoDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                      } catch {
-                        showToast("error", "Headers inválidos (JSON).");
-                        // mantém texto; não altera objeto
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Body (JSON)</label>
-                  <StableTextarea
-                    rows={4}
-                    value={conteudoDraft.api.bodyText}
-                    onChange={(e) =>
-                      setConteudoDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
-                    }
-                    onBlur={(e) => {
-                      try {
-                        const parsed = JSON.parse(e.target.value || "{}");
-                        setConteudoDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                      } catch {
-                        showToast("error", "Body inválido (JSON).");
-                      }
-                    }}
-                  />
-                </div>
-
-                <div className={styles.rowTwoCols}>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Timeout (ms)</label>
-                    <StableInput
-                      type="number"
-                      value={conteudoDraft.api.timeout}
-                      onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Variável de saída</label>
-                    <StableInput
-                      type="text"
-                      value={conteudoDraft.api.outputVar}
-                      onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
-                    />
-                  </div>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Variável de status</label>
-                    <StableInput
-                      type="text"
-                      value={conteudoDraft.api.statusVar}
-                      onChange={(e) => setConteudoDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </>
-    );
-  };
-
-  /* ---------------- overlay: REGRAS ---------------- */
-  const OverlayRegras = () => (
-    <>
-      <div className={styles.overlayHeader}>
-        <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>Regras de saída</div>
-        <div className={styles.buttonGroup}>
-          <button className={styles.addButtonSmall} onClick={commitRegras}><Check size={14}/> Salvar</button>
-          <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
-        </div>
-      </div>
-      <div className={styles.overlayBody} data-stop-hotkeys="true">
-        {/* ... (igual à versão anterior, sem alterações funcionais) ... */}
-      </div>
-    </>
-  );
-
-  /* ---------------- overlay: AÇÕES ESPECIAIS ---------------- */
-  const OverlayEspeciais = () => {
-    const [editorOpen, setEditorOpen] = useState(false);
-    const [editing, setEditing] = useState({
-      mode: "create",
-      section: "enter",
-      index: -1,
-      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
-    });
-
-    const resetEditing = () =>
-      setEditing({ mode: "create", section: "enter", index: -1, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } });
-
-    const startCreate = (section) => {
-      resetEditing();
-      setEditing((s) => ({ ...s, section, mode: "create" }));
-      setEditorOpen(true);
-    };
-
-    const startEdit = (section, index) => {
-      const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
-      const item = deepClone(list[index] || {});
-      setEditing({
-        mode: "edit",
-        section,
-        index,
-        draft: {
-          label: item.label || "",
-          scope: item.scope || "context",
-          key: item.key || "",
-          value: item.value ?? "",
-          conditions: ensureArray(item.conditions || []),
-        },
-      });
-      setEditorOpen(true);
-    };
-
-    const removeItem = (section, index) => {
-      const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-      list.splice(index, 1);
-      if (section === "enter") {
-        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onEnter: list } } });
-      } else {
-        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onExit: list } } });
-      }
-      showToast("success", "Variável removida.");
-    };
-
-    const validateDraft = (d) => {
-      if (!d.label?.trim()) { showToast("error", "Informe o título da variável."); return false; }
-      if (!d.key?.trim())   { showToast("error", "Informe a chave da variável."); return false; }
-      for (let i = 0; i < (d.conditions || []).length; i++) {
-        const c = d.conditions[i];
-        if (c.variable === undefined) { showToast("error", `Condição ${i + 1}: selecione a variável.`); return false; }
-        if (!c.type) { showToast("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
-        if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
-          showToast("error", `Condição ${i + 1}: informe o valor.`); return false;
-        }
-      }
-      return true;
-    };
-
-    const saveEditing = () => {
-      const { section, index, mode, draft } = editing;
-      if (!validateDraft(draft)) return;
-
-      const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-      const clean = {
-        label: draft.label.trim(),
-        scope: draft.scope || "context",
-        key: draft.key.trim(),
-        value: draft.value ?? "",
-        ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
-      };
-
-      if (mode === "create") list.push(clean);
-      else list[index] = { ...list[index], ...clean };
-
-      if (section === "enter") {
-        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onEnter: list } } });
-      } else {
-        onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, onExit: list } } });
-      }
-
-      setEditorOpen(false);
-      resetEditing();
-      showToast("success", "Variável salva com sucesso.");
-    };
-
-    const SpecialList = ({ title, section, items }) => (
-      <div className={styles.sectionContainer}>
-        <div className={styles.sectionHeaderStatic}>
-          <h4 className={styles.sectionTitle}>{title}</h4>
-          <button className={styles.addButtonSmall} onClick={() => startCreate(section)}>
-            + Nova variável
-          </button>
-        </div>
-
-        <div className={styles.sectionContent}>
-          {!items?.length && (
-            <div className={styles.emptyHint}>
-              Nenhuma variável ainda. Clique em <strong>Nova variável</strong> para adicionar.
-            </div>
-          )}
-
-          {items?.map((a, i) => (
-            <div key={`${section}-${i}`} className={styles.specialListRow}>
-              <div className={styles.rowMain}>
-                <div className={styles.rowTitle}>{a.label}</div>
-                <div className={styles.rowMeta}>
-                  <span className={styles.pill}>{a.scope || "context"}</span>
-                  <span className={styles.metaSep}>•</span>
-                  <span className={styles.mono}>{a.key || "-"}</span>
-                  <span className={styles.metaArrow}>→</span>
-                  <span className={styles.monoTrunc} title={String(a.value ?? "")}>
-                    {String(a.value ?? "") || "—"}
-                  </span>
-                  {a?.conditions?.length ? (
-                    <>
-                      <span className={styles.metaSep}>•</span>
-                      <span className={styles.pillLight}>{a.conditions.length} condição(ões)</span>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className={styles.rowActions}>
-                <button className={styles.iconGhost} title="Editar" onClick={() => startEdit(section, i)}>
-                  <PencilLine size={16} />
-                </button>
-                <button className={styles.iconGhost} title="Remover" onClick={() => removeItem(section, i)}>
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-
-    const EditorOverlay = () => {
-      const [open, setOpen] = useState(editorOpen);
-      useEffect(() => setOpen(editorOpen), [editorOpen]);
-
-      const { draft, mode, section } = editing;
-      const setDraft = (patch) => setEditing((s) => ({ ...s, draft: { ...s.draft, ...patch } }));
-
-      const addCond = () => setDraft({ conditions: [...(draft.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] });
-      const updateCond = (idx, patch) => {
-        const next = deepClone(draft.conditions || []);
-        next[idx] = { ...next[idx], ...patch };
-        setDraft({ conditions: next });
-      };
-      const removeCond = (idx) => {
-        const next = deepClone(draft.conditions || []);
-        next.splice(idx, 1);
-        setDraft({ conditions: next });
-      };
-
-      return (
-        <div
-          className={`${styles.subOverlay} ${open ? styles.subOverlayOpen : ""}`}
-          data-stop-hotkeys="true"
-        >
-          <div className={styles.subOverlayHeader}>
-            <button className={styles.backBtn} onClick={() => { setOpen(false); setEditorOpen(false); }} title="Voltar">
-              <ArrowLeft size={18} />
-            </button>
-            <div className={styles.overlayTitle}>
-              {mode === "edit" ? "Editar variável" : "Nova variável"}
-              <span className={styles.pillLight} style={{ marginLeft: 8 }}>
-                {section === "enter" ? "Ao entrar" : "Ao sair"}
-              </span>
-            </div>
-            <div className={styles.buttonGroup}>
-              <button className={styles.deleteButtonSmall} onClick={() => { setOpen(false); setEditorOpen(false); }}>
-                <X size={14}/> Cancelar
-              </button>
-              <button className={styles.addButtonSmall} onClick={saveEditing}>
-                <Check size={14}/> Salvar
-              </button>
-            </div>
-          </div>
-
-          <div className={styles.subOverlayBody}>
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Título *</label>
-              <StableInput
-                placeholder="Como aparece na lista"
-                value={draft.label}
-                onChange={(e) => setDraft({ label: e.target.value })}
-              />
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Escopo</label>
-              <select
-                className={styles.selectStyle}
-                value={draft.scope || "context"}
-                onChange={(e) => setDraft({ scope: e.target.value || "context" })}
-              >
-                <option value="context">context</option>
-                <option value="contact">contact</option>
-                <option value="contact.extra">contact.extra</option>
-              </select>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Chave *</label>
-              <StableInput
-                placeholder="ex.: protocolo"
-                value={draft.key}
-                onChange={(e) => setDraft({ key: e.target.value })}
-              />
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Valor</label>
-              <StableInput
-                placeholder='ex.: 12345 ou {{context.algo}}'
-                value={draft.value}
-                onChange={(e) => setDraft({ value: e.target.value })}
-              />
-            </div>
-
-            <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
-              <div className={styles.sectionHeaderStatic}>
-                <h4 className={styles.sectionTitle}>Condições (opcional)</h4>
-                <button className={styles.addButtonSmall} onClick={addCond}>+ Adicionar condição</button>
-              </div>
-              <div className={styles.sectionContent}>
-                {!(draft.conditions || []).length && (
-                  <div className={styles.emptyHint}>
-                    Se adicionar condições, a variável só será definida quando <strong>todas</strong> forem satisfeitas.
-                  </div>
-                )}
-
-                {(draft.conditions || []).map((cond, idx) => (
-                  <div key={idx} className={styles.specialCondRow}>
-                    <div className={styles.inputGroup}>
-                      <label className={styles.inputLabel}>Variável</label>
-                      <select
-                        className={styles.selectStyle}
-                        value={
-                          variableOptions.some((v) => v.value === cond.variable)
-                            ? cond.variable
-                            : cond.variable
-                            ? "custom"
-                            : "lastUserMessage"
-                        }
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          if (v === "custom") updateCond(idx, { variable: "" });
-                          else {
-                            const patch = { variable: v };
-                            if (!cond.type) patch.type = "equals";
-                            if (v === "offhours") patch.value = "true";
-                            if (v === "offhours_reason") patch.value = "closed";
-                            updateCond(idx, patch);
-                          }
-                        }}
-                      >
-                        {variableOptions.map((opt) => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
-                      <div className={styles.inputGroup}>
-                        <label className={styles.inputLabel}>Nome</label>
-                        <StableInput
-                          placeholder="ex.: meuCampo"
-                          value={cond.variable || ""}
-                          onChange={(e) => updateCond(idx, { variable: e.target.value })}
-                        />
-                      </div>
-                    )}
-
-                    <div className={styles.inputGroup}>
-                      <label className={styles.inputLabel}>Tipo</label>
-                      <select
-                        className={styles.selectStyle}
-                        value={cond.type || ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          const patch = { type: v || "" };
-                          if (v === "exists") patch.value = "";
-                          updateCond(idx, patch);
-                        }}
-                      >
-                        <option value="">Selecione...</option>
-                        <option value="exists">Existe</option>
-                        <option value="equals">Igual a</option>
-                        <option value="not_equals">Diferente de</option>
-                        <option value="contains">Contém</option>
-                        <option value="not_contains">Não contém</option>
-                        <option value="starts_with">Começa com</option>
-                        <option value="ends_with">Termina com</option>
-                      </select>
-                    </div>
-
-                    {cond.type !== "exists" && (
-                      <div className={styles.inputGroup}>
-                        <label className={styles.inputLabel}>Valor</label>
-                        {cond.variable === "offhours" ? (
-                          <select
-                            className={styles.selectStyle}
-                            value={cond.value ?? "true"}
-                            onChange={(e)=>updateCond(idx,{value:e.target.value})}
-                          >
-                            <option value="true">true</option>
-                            <option value="false">false</option>
-                          </select>
-                        ) : cond.variable === "offhours_reason" ? (
-                          <select
-                            className={styles.selectStyle}
-                            value={cond.value ?? "holiday"}
-                            onChange={(e)=>updateCond(idx,{value:e.target.value})}
-                          >
-                            <option value="holiday">holiday</option>
-                            <option value="closed">closed</option>
-                          </select>
-                        ) : (
-                          <StableInput
-                            placeholder="Valor para comparação"
-                            value={cond.value ?? ""}
-                            onChange={(e) => updateCond(idx, { value: e.target.value })}
-                          />
-                        )}
-                      </div>
-                    )}
-
-                    <div className={styles.buttonGroup}>
-                      <button className={styles.deleteButtonSmall} onClick={() => removeCond(idx)}>
-                        <Trash2 size={14}/> Remover
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-    return (
-      <>
-        <div className={styles.overlayHeader}>
-          <button className={styles.backBtn} onClick={closeOverlay} title="Voltar">
-            <ArrowLeft size={18} />
-          </button>
-          <div className={styles.overlayTitle}>Ações especiais</div>
-          <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className={styles.overlayBody} data-stop-hotkeys="true">
-          <SpecialList title="Ao entrar no bloco" section="enter" items={ensureArray(onEnter)} />
-          <SpecialList title="Ao sair do bloco" section="exit" items={ensureArray(onExit)} />
-        </div>
-
-        {/* Drawer interno (overlay) — agora também com data-stop-hotkeys */}
-        <EditorOverlay />
-      </>
-    );
-  };
-
   /* ---------------- render ---------------- */
-
   return (
     <aside
       ref={panelRef}
@@ -1289,12 +1590,63 @@ export default function NodeConfigPanel({
         <ChatPreview />
       </div>
 
-      {/* Overlay principal */}
+      {/* Overlay principal — agora com componentes de TOPO (identidade estável) */}
       <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
-        {overlayMode === "await" && <OverlayAwait />}
-        {overlayMode === "conteudo" && <OverlayConteudo />}
-        {overlayMode === "regras" && <OverlayRegras />}
-        {overlayMode === "especiais" && <OverlayEspeciais />}
+        {overlayMode === "await" && (
+          <OverlayAwaitComp
+            draft={awaitDraft}
+            setDraft={setAwaitDraft}
+            commit={commitAwait}
+            onBack={closeOverlay}
+            onClose={closeOverlay}
+          />
+        )}
+        {overlayMode === "conteudo" && (
+          <OverlayConteudoComp
+            type={type}
+            draft={conteudoDraft}
+            setDraft={(updater) =>
+              setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
+            }
+            commit={() => {
+              // valida JSON aqui para dar toast, mantendo texto se inválido
+              try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); }
+              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); }
+              commitConteudo();
+            }}
+            onBack={closeOverlay}
+            onClose={closeOverlay}
+            selectedNode={selectedNode}
+            setShowScriptEditor={setShowScriptEditor}
+            setScriptCode={setScriptCode}
+            clampFn={clamp}
+            makeIdFromTitleFn={makeIdFromTitle}
+          />
+        )}
+        {overlayMode === "regras" && (
+          <OverlayRegrasComp
+            draft={regrasDraft}
+            setDraft={setRegrasDraft}
+            variableOptions={variableOptions}
+            allNodes={allNodes}
+            selectedNode={selectedNode}
+            onConnectNodes={onConnectNodes}
+            onBack={closeOverlay}
+            onClose={closeOverlay}
+            commit={commitRegras}
+          />
+        )}
+        {overlayMode === "especiais" && (
+          <OverlayEspeciaisComp
+            onBack={closeOverlay}
+            onClose={closeOverlay}
+            onChangeNode={(patch) => updateBlock(patch)}
+            selectedNode={selectedNode}
+            block={block}
+            variableOptions={variableOptions}
+            showToast={showToast}
+          />
+        )}
       </div>
     </aside>
   );
