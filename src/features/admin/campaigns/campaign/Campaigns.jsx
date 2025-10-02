@@ -116,12 +116,14 @@ export default function Campaigns() {
           <button
             className={styles.btn}
             onClick={async () => { await load(); toast.success('Lista atualizada!'); }}
+            type="button"
           >
             <RefreshCw size={16}/> Atualizar
           </button>
           <button
             className={styles.btnPrimary}
             onClick={() => navigate('/campaigns/campaigns/new')}
+            type="button"
           >
             <Plus size={16}/> Nova campanha
           </button>
@@ -136,21 +138,24 @@ export default function Campaigns() {
 
       {/* Card da lista */}
       <div className={styles.card}>
-        {/* Header do card: radios + busca */}
+        {/* Header do card: filtros (pílulas) + busca */}
         <div className={styles.cardHead}>
-          <div className={styles.optionsRow} role="radiogroup" aria-label="Filtro de status">
-            {FILTERS.map(f => (
-              <label key={f.key} className={styles.opt}>
-                <input
-                  type="radio"
-                  name="filter"
-                  value={f.key}
-                  checked={filter === f.key}
-                  onChange={() => setFilter(f.key)}
-                />
-                <span>{f.label}</span>
-              </label>
-            ))}
+          {/* === NOVO: pílulas no estilo da imagem 2 === */}
+          <div className={styles.segmentRow} role="tablist" aria-label="Filtro de status">
+            {FILTERS.map(opt => {
+              const active = filter === opt.key;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`${styles.segBtn} ${active ? styles.segBtnActive : ''}`}
+                  onClick={() => setFilter(opt.key)}
+                  aria-pressed={active}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
 
           <div className={styles.searchGroup}>
