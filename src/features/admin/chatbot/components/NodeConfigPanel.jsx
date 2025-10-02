@@ -7,6 +7,8 @@ import {
   PencilLine,
   ArrowLeft,
   SlidersHorizontal,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
@@ -25,6 +27,14 @@ export default function NodeConfigPanel({
   // overlay: 'none' | 'conteudo' | 'regras' | 'await' | 'especiais'
   const [overlayMode, setOverlayMode] = useState("none");
   const panelRef = useRef(null);
+
+  // toasts
+  const [toasts, setToasts] = useState([]); // [{id, type:'error'|'success'|'info', text}]
+  const showToast = (type, text, ttl = 2600) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts((t) => [...t, { id, type, text }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), ttl);
+  };
 
   const block = selectedNode.data.block || {};
   const {
@@ -131,7 +141,7 @@ export default function NodeConfigPanel({
     }
   }, []);
 
-  /* ---------------- variável para “regras” ---------------- */
+  /* ---------------- variável para “regras” e para condições de variáveis ---------------- */
   const variableOptions = isHuman
     ? [
         { value: "lastUserMessage", label: "Resposta do usuário" },
@@ -1092,14 +1102,16 @@ export default function NodeConfigPanel({
     </>
   );
 
-  /* ---------------- overlay: AÇÕES ESPECIAIS (lista + editor fluido) ---------------- */
+  /* ---------------- overlay: AÇÕES ESPECIAIS (lista + editor em modal) ---------------- */
 
   const OverlayEspeciais = () => {
+    // estado do modal de edição/criação
+    const [editorOpen, setEditorOpen] = useState(false);
     const [editing, setEditing] = useState({
       mode: "create", // 'create' | 'edit'
       section: "enter", // 'enter' | 'exit'
       index: -1,
-      draft: { label: "", scope: "context", key: "", value: "" },
+      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
     });
 
     const resetEditing = () =>
@@ -1107,16 +1119,14 @@ export default function NodeConfigPanel({
         mode: "create",
         section: "enter",
         index: -1,
-        draft: { label: "", scope: "context", key: "", value: "" },
+        draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
       });
 
-    const startCreate = (section) =>
-      setEditing({
-        mode: "create",
-        section,
-        index: -1,
-        draft: { label: "", scope: "context", key: "", value: "" },
-      });
+    const startCreate = (section) => {
+      resetEditing();
+      setEditing((s) => ({ ...s, section, mode: "create" }));
+      setEditorOpen(true);
+    };
 
     const startEdit = (section, index) => {
       const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
@@ -1130,8 +1140,10 @@ export default function NodeConfigPanel({
           scope: item.scope || "context",
           key: item.key || "",
           value: item.value ?? "",
+          conditions: ensureArray(item.conditions || []),
         },
       });
+      setEditorOpen(true);
     };
 
     const removeItem = (section, index) => {
@@ -1139,11 +1151,37 @@ export default function NodeConfigPanel({
       list.splice(index, 1);
       if (section === "enter") updateBlock({ onEnter: list });
       else updateBlock({ onExit: list });
-      if (editing.section === section && editing.index === index) resetEditing();
+      showToast("success", "Variável removida.");
+    };
+
+    const validateDraft = (d) => {
+      if (!d.key || !d.key.trim()) {
+        showToast("error", "Informe a chave da variável.");
+        return false;
+      }
+      // valida condições
+      for (let i = 0; i < (d.conditions || []).length; i++) {
+        const c = d.conditions[i];
+        if (!c.variable && c.variable !== "") {
+          showToast("error", `Condição ${i + 1}: selecione a variável.`);
+          return false;
+        }
+        if (!c.type) {
+          showToast("error", `Condição ${i + 1}: selecione o tipo.`);
+          return false;
+        }
+        if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
+          showToast("error", `Condição ${i + 1}: informe o valor.`);
+          return false;
+        }
+      }
+      return true;
     };
 
     const saveEditing = () => {
       const { section, index, mode, draft } = editing;
+      if (!validateDraft(draft)) return;
+
       const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
 
       const clean = {
@@ -1151,8 +1189,8 @@ export default function NodeConfigPanel({
         scope: draft.scope || "context",
         key: (draft.key || "").trim(),
         value: draft.value ?? "",
+        ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
       };
-      if (!clean.key) return;
 
       if (mode === "create") list.push(clean);
       else list[index] = { ...list[index], ...clean };
@@ -1160,7 +1198,9 @@ export default function NodeConfigPanel({
       if (section === "enter") updateBlock({ onEnter: list });
       else updateBlock({ onExit: list });
 
+      setEditorOpen(false);
       resetEditing();
+      showToast("success", "Variável salva com sucesso.");
     };
 
     const SpecialList = ({ title, section, items }) => (
@@ -1191,6 +1231,12 @@ export default function NodeConfigPanel({
                   <span className={styles.monoTrunc} title={String(a.value ?? "")}>
                     {String(a.value ?? "") || "—"}
                   </span>
+                  {a?.conditions?.length ? (
+                    <>
+                      <span className={styles.metaSep}>•</span>
+                      <span className={styles.pillLight}>{a.conditions.length} condição(ões)</span>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
@@ -1208,79 +1254,203 @@ export default function NodeConfigPanel({
       </div>
     );
 
-    const Editor = () => {
+    // ---- Modal de edição/criação (overlay central)
+    const EditorModal = () => {
       const { draft, mode, section } = editing;
-      const isEditing = mode === "edit";
+      const setDraft = (patch) => setEditing((s) => ({ ...s, draft: { ...s.draft, ...patch } }));
+
+      const addCond = () => {
+        setDraft({
+          conditions: [
+            ...(draft.conditions || []),
+            { variable: "lastUserMessage", type: "exists", value: "" },
+          ],
+        });
+      };
+      const updateCond = (idx, patch) => {
+        const next = deepClone(draft.conditions || []);
+        next[idx] = { ...next[idx], ...patch };
+        setDraft({ conditions: next });
+      };
+      const removeCond = (idx) => {
+        const next = deepClone(draft.conditions || []);
+        next.splice(idx, 1);
+        setDraft({ conditions: next });
+      };
 
       return (
-        <div className={styles.editorCard}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>
-              {isEditing ? "Editar variável" : "Nova variável"}{" "}
-              <span className={styles.pillLight}>{section === "enter" ? "Ao entrar" : "Ao sair"}</span>
-            </h4>
-            <div className={styles.buttonGroup}>
-              <button className={styles.deleteButtonSmall} onClick={resetEditing}>
-                <X size={14} /> Cancelar
-              </button>
-              <button className={styles.addButtonSmall} onClick={saveEditing}>
-                <Plus size={14} /> Salvar
-              </button>
+        <div className={`${styles.modal} ${editorOpen ? styles.modalOpen : ""}`} role="dialog" aria-modal="true">
+          <div className={styles.modalCard}>
+            <div className={styles.modalHeader}>
+              <h4 className={styles.modalTitle}>
+                {mode === "edit" ? "Editar variável" : "Nova variável"}
+                <span className={styles.pillLight} style={{ marginLeft: 8 }}>
+                  {section === "enter" ? "Ao entrar" : "Ao sair"}
+                </span>
+              </h4>
+              <div className={styles.buttonGroup}>
+                <button className={styles.deleteButtonSmall} onClick={() => { setEditorOpen(false); resetEditing(); }}>
+                  <X size={14} /> Cancelar
+                </button>
+                <button className={styles.addButtonSmall} onClick={saveEditing}>
+                  <Check size={14} /> Salvar
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.specialInline}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Título (opcional)</label>
+                  <input
+                    className={styles.inputStyle}
+                    placeholder="Como isto aparece na lista"
+                    value={draft.label || ""}
+                    onChange={(e) => setDraft({ label: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Escopo</label>
+                  <select
+                    className={styles.selectStyle}
+                    value={draft.scope || "context"}
+                    onChange={(e) => setDraft({ scope: e.target.value })}
+                  >
+                    <option value="context">context</option>
+                    <option value="contact">contact</option>
+                    <option value="contact.extra">contact.extra</option>
+                  </select>
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Chave</label>
+                  <input
+                    className={styles.inputStyle}
+                    placeholder="ex.: protocolo"
+                    value={draft.key || ""}
+                    onChange={(e) => setDraft({ key: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Valor</label>
+                  <input
+                    className={styles.inputStyle}
+                    placeholder='ex.: 12345 ou {{context.algumaCoisa}}'
+                    value={draft.value || ""}
+                    onChange={(e) => setDraft({ value: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.helpRow}>
+                <small className={styles.helpText}>
+                  Dica: use <code className={styles.mono}>{"{{context.nome}}"}</code> para interpolar valores.
+                </small>
+              </div>
+
+              {/* Condições para criar a variável */}
+              <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
+                <div className={styles.sectionHeaderStatic}>
+                  <h4 className={styles.sectionTitle}>Condições (opcional)</h4>
+                  <button className={styles.addButtonSmall} onClick={addCond}>+ Adicionar condição</button>
+                </div>
+                <div className={styles.sectionContent}>
+                  {!(draft.conditions || []).length && (
+                    <div className={styles.emptyHint}>
+                      Se adicionar condições, a variável só será definida quando **todas** forem satisfeitas.
+                    </div>
+                  )}
+
+                  {(draft.conditions || []).map((cond, idx) => (
+                    <div key={idx} className={styles.specialCondRow}>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Variável</label>
+                        <select
+                          className={styles.selectStyle}
+                          value={
+                            variableOptions.some((v) => v.value === cond.variable)
+                              ? cond.variable
+                              : cond.variable
+                              ? "custom"
+                              : "lastUserMessage"
+                          }
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === "custom") updateCond(idx, { variable: "" });
+                            else {
+                              const patch = { variable: v };
+                              if (!cond.type) patch.type = "equals";
+                              if (v === "offhours") patch.value = "true";
+                              if (v === "offhours_reason") patch.value = "closed";
+                              updateCond(idx, patch);
+                            }
+                          }}
+                        >
+                          {variableOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
+                        <div className={styles.inputGroup}>
+                          <label className={styles.inputLabel}>Nome</label>
+                          <input
+                            className={styles.inputStyle}
+                            placeholder="ex.: meuCampo"
+                            value={cond.variable || ""}
+                            onChange={(e) => updateCond(idx, { variable: e.target.value })}
+                          />
+                        </div>
+                      )}
+
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Tipo</label>
+                        <select
+                          className={styles.selectStyle}
+                          value={cond.type || ""}
+                          onChange={(e) => {
+                            const t = e.target.value;
+                            const patch = { type: t };
+                            if (t === "exists") patch.value = "";
+                            updateCond(idx, patch);
+                          }}
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="exists">Existe</option>
+                          <option value="equals">Igual a</option>
+                          <option value="not_equals">Diferente de</option>
+                          <option value="contains">Contém</option>
+                          <option value="not_contains">Não contém</option>
+                          <option value="starts_with">Começa com</option>
+                          <option value="ends_with">Termina com</option>
+                        </select>
+                      </div>
+
+                      {/* valor dinamico */}
+                      {cond.type !== "exists" ? (
+                        <div className={styles.inputGroup}>
+                          <label className={styles.inputLabel}>Valor</label>
+                          {renderValueInput(cond, (v) => updateCond(idx, { value: v }))}
+                        </div>
+                      ) : <div />}
+
+                      <div className={styles.buttonGroup}>
+                        <button className={styles.deleteButtonSmall} onClick={() => removeCond(idx)}>
+                          <Trash2 size={14}/> Remover
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className={styles.sectionContent}>
-            <div className={styles.specialInline}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Título (opcional)</label>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="Como isto aparece na lista"
-                  value={draft.label || ""}
-                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, label: e.target.value } }))}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Escopo</label>
-                <select
-                  className={styles.selectStyle}
-                  value={draft.scope || "context"}
-                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, scope: e.target.value } }))}
-                >
-                  <option value="context">context</option>
-                  <option value="contact">contact</option>
-                  <option value="contact.extra">contact.extra</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Chave</label>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="ex.: protocolo"
-                  value={draft.key || ""}
-                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, key: e.target.value } }))}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Valor</label>
-                <input
-                  className={styles.inputStyle}
-                  placeholder='ex.: 12345 ou {{context.algumaCoisa}}'
-                  value={draft.value || ""}
-                  onChange={(e) => setEditing((s) => ({ ...s, draft: { ...s.draft, value: e.target.value } }))}
-                />
-              </div>
-            </div>
-
-            <div className={styles.helpRow}>
-              <small className={styles.helpText}>
-                Dica: você pode usar <code className={styles.mono}>{"{{context.nome}}"}</code> para interpolar valores.
-              </small>
-            </div>
-          </div>
+          {/* backdrop */}
+          <div className={styles.modalBackdrop} onClick={() => { setEditorOpen(false); resetEditing(); }} />
         </div>
       );
     };
@@ -1300,8 +1470,10 @@ export default function NodeConfigPanel({
         <div className={styles.overlayBody}>
           <SpecialList title="Ao entrar no bloco" section="enter" items={ensureArray(onEnter)} />
           <SpecialList title="Ao sair do bloco" section="exit" items={ensureArray(onExit)} />
-          {(editing.mode === "create" || editing.mode === "edit") && <Editor />}
         </div>
+
+        {/* Modal */}
+        <EditorModal />
       </>
     );
   };
@@ -1315,6 +1487,16 @@ export default function NodeConfigPanel({
       data-stop-hotkeys="true"
       onKeyDownCapture={handleKeyDownCapture}
     >
+      {/* toasts */}
+      <div className={styles.toastStack}>
+        {toasts.map((t) => (
+          <div key={t.id} className={`${styles.toast} ${styles[`toast_${t.type}`]}`}>
+            {t.type === "error" ? <AlertCircle size={16}/> : <Check size={16}/>}
+            <span>{t.text}</span>
+          </div>
+        ))}
+      </div>
+
       <div className={styles.panelHeader}>
         <h3 className={styles.panelTitle}>
           {selectedNode.data.type === "human"
