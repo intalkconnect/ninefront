@@ -224,6 +224,27 @@
 .overlayBody::-webkit-scrollbar-track,
 .subOverlayBody::-webkit-scrollbar-track{ background:#f6f6f6; }
 
+/* ===== Preview de localização (quando não há componente dedicado) ===== */
+.locationPreview{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.locationTitle{
+  font-weight:700;
+  color:#0f172a;
+}
+.locationAddr{
+  color:#64748b;
+  font-size:13px;
+}
+.locationCoords{
+  color:#475569;
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size:12px;
+}
+
+
 /* Responsivo */
 @media (max-width: 860px){
   .asidePanel{ width:100vw; }
