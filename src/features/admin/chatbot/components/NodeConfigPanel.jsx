@@ -6,9 +6,7 @@ import {
   MoreHorizontal,
   PencilLine,
   ArrowLeft,
-  SlidersHorizontal,
-  ChevronDown,
-  ChevronRight
+  SlidersHorizontal
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
@@ -24,12 +22,19 @@ export default function NodeConfigPanel({
   if (!selectedNode || !selectedNode.data) return null;
 
   /* ---------------- state ---------------- */
-  // overlay: 'none' | 'conteudo' | 'regras' | 'await' | 'especiais'
+  // overlay: 'none' | 'conteudo' | 'regras' | 'await' | 'especiais' | 'defVar'
   const [overlayMode, setOverlayMode] = useState("none");
   const panelRef = useRef(null);
 
-  // menu de adicionar (ações especiais)
-  const [addMenuOpen, setAddMenuOpen] = useState(null); // 'enter' | 'exit' | null
+  // rascunho do editor "Definir variável"
+  const [defVarDraft, setDefVarDraft] = useState({
+    phase: "enter",           // 'enter' | 'exit'
+    scope: "context",         // context | contact | contact.extra
+    key: "",
+    value: "",
+    ttl: "",
+    conditions: []            // [{variable,type,value}]
+  });
 
   const block = selectedNode.data.block || {};
   const {
@@ -276,7 +281,7 @@ export default function NodeConfigPanel({
     </div>
   );
 
-  /* ---------------- overlay: AWAIT ---------------- */
+  /* ---------------- overlay: AWAIT (somente opções de resposta) ---------------- */
 
   const OverlayAwait = () => (
     <>
@@ -365,7 +370,7 @@ export default function NodeConfigPanel({
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
             <div className={styles.sectionContent}>
               <textarea
-                rows={8}
+                rows={10}
                 value={block.content || ""}
                 onChange={(e) => updateBlock({ content: e.target.value })}
                 className={styles.textareaStyle}
@@ -691,7 +696,7 @@ export default function NodeConfigPanel({
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Headers (JSON)</label>
                 <textarea
-                  rows={3}
+                  rows={4}
                   defaultValue={pretty(headers)}
                   onBlur={(e) => updateBlock({ headers: safeParseJson(e.target.value, headers || {}) })}
                   className={styles.textareaStyle}
@@ -701,7 +706,7 @@ export default function NodeConfigPanel({
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Body (JSON)</label>
                 <textarea
-                  rows={4}
+                  rows={6}
                   defaultValue={pretty(body)}
                   onBlur={(e) => updateBlock({ body: safeParseJson(e.target.value, body || {}) })}
                   className={styles.textareaStyle}
@@ -1003,176 +1008,17 @@ export default function NodeConfigPanel({
 
   /* ---------------- overlay: AÇÕES ESPECIAIS ---------------- */
 
-  const ConditionEditor = ({ listName, idx, item }) => {
-    const list = listName === "enter" ? onEnter : onExit;
-    const updateList = (next) =>
-      listName === "enter" ? updateBlock({ onEnter: next }) : updateBlock({ onExit: next });
-
-    const conditions = ensureArray(item.conditions);
-
-    return (
-      <div className={styles.condWrap}>
-        <div className={styles.condHeader}>
-          <span className={styles.condHeaderLabel}>Executar somente se (opcional)</span>
-        </div>
-
-        {conditions.map((cond, cIdx) => (
-          <div key={cIdx} className={styles.conditionRow}>
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Variável</label>
-              <select
-                className={styles.selectStyle}
-                value={
-                  variableOptions.some((v) => v.value === cond.variable)
-                    ? cond.variable
-                    : cond.variable
-                    ? "custom"
-                    : "lastUserMessage"
-                }
-                onChange={(e) => {
-                  const nv = e.target.value;
-                  const next = ensureArray(list).slice();
-                  const node = deepClone(next[idx] || {});
-                  const cc = ensureArray(node.conditions);
-                  if (nv === "custom") {
-                    cc[cIdx] = { ...cc[cIdx], variable: "" };
-                  } else {
-                    cc[cIdx] = { ...cc[cIdx], variable: nv };
-                    if (!cc[cIdx].type) cc[cIdx].type = "equals";
-                    if (nv === "offhours") cc[cIdx].value = "true";
-                    if (nv === "offhours_reason") cc[cIdx].value = "closed";
-                  }
-                  node.conditions = cc;
-                  next[idx] = node;
-                  updateList(next);
-                }}
-              >
-                {variableOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Nome da variável</label>
-                <input
-                  className={styles.inputStyle}
-                  placeholder="ex.: context.minhaChave"
-                  value={cond.variable || ""}
-                  onChange={(e) => {
-                    const next = ensureArray(list).slice();
-                    const node = deepClone(next[idx] || {});
-                    const cc = ensureArray(node.conditions);
-                    cc[cIdx] = { ...cc[cIdx], variable: e.target.value };
-                    node.conditions = cc;
-                    next[idx] = node;
-                    updateList(next);
-                  }}
-                />
-              </div>
-            )}
-
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel}>Tipo</label>
-              <select
-                className={styles.selectStyle}
-                value={cond.type || ""}
-                onChange={(e) => {
-                  const next = ensureArray(list).slice();
-                  const node = deepClone(next[idx] || {});
-                  const cc = ensureArray(node.conditions);
-                  cc[cIdx] = { ...cc[cIdx], type: e.target.value };
-                  if (e.target.value === "exists") cc[cIdx].value = "";
-                  node.conditions = cc;
-                  next[idx] = node;
-                  updateList(next);
-                }}
-              >
-                <option value="">Selecione…</option>
-                <option value="exists">Existe</option>
-                <option value="equals">Igual a</option>
-                <option value="not_equals">Diferente de</option>
-                <option value="contains">Contém</option>
-                <option value="not_contains">Não contém</option>
-                <option value="starts_with">Começa com</option>
-                <option value="ends_with">Termina com</option>
-              </select>
-            </div>
-
-            {renderValueInput(cond, (v) => {
-              const next = ensureArray(list).slice();
-              const node = deepClone(next[idx] || {});
-              const cc = ensureArray(node.conditions);
-              cc[cIdx] = { ...cc[cIdx], value: v };
-              node.conditions = cc;
-              next[idx] = node;
-              updateList(next);
-            })}
-
-            <div className={styles.buttonGroup}>
-              <button
-                className={styles.deleteButtonSmall}
-                onClick={() => {
-                  const next = ensureArray(list).slice();
-                  const node = deepClone(next[idx] || {});
-                  const cc = ensureArray(node.conditions);
-                  cc.splice(cIdx, 1);
-                  node.conditions = cc;
-                  next[idx] = node;
-                  updateList(next);
-                }}
-              >
-                <Trash2 size={14} /> Remover condição
-              </button>
-            </div>
-          </div>
-        ))}
-
-        <button
-          className={styles.addButtonSmall}
-          onClick={() => {
-            const next = ensureArray(list).slice();
-            const node = deepClone(next[idx] || {});
-            const cc = ensureArray(node.conditions);
-            cc.push({ variable: "lastUserMessage", type: "exists", value: "" });
-            node.conditions = cc;
-            next[idx] = node;
-            updateList(next);
-          }}
-        >
-          + adicionar condição
-        </button>
-      </div>
-    );
+  const openDefVar = (phase) => {
+    setDefVarDraft({
+      phase,
+      scope: "context",
+      key: "",
+      value: "",
+      ttl: "",
+      conditions: []
+    });
+    setOverlayMode("defVar");
   };
-
-  const AddMenu = ({ where }) => (
-    <div className={styles.addMenu}>
-      <div className={styles.addMenuTitle}>Adicionar em {where === "enter" ? "entrada" : "saída"}</div>
-      <div className={styles.addMenuGrid}>
-        {[
-          { val: "context", label: "context" },
-          { val: "contact", label: "contact" },
-          { val: "contact.extra", label: "contact.extra" },
-        ].map((opt) => (
-          <button
-            key={opt.val}
-            className={styles.addMenuItem}
-            onClick={() => {
-              const base = { scope: opt.val, key: "", value: "", conditions: [] };
-              if (where === "enter") updateBlock({ onEnter: [...(onEnter || []), base] });
-              else updateBlock({ onExit: [...(onExit || []), base] });
-              setAddMenuOpen(null);
-            }}
-          >
-            <span className={styles.addMenuLabel}>{opt.label}</span>
-            <ChevronRight size={14} />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 
   const OverlayEspeciais = () => (
     <>
@@ -1184,41 +1030,31 @@ export default function NodeConfigPanel({
         <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
       </div>
       <div className={styles.overlayBody}>
-
         {/* ENTRADA */}
         <div className={styles.sectionContainer}>
           <div className={styles.sectionHeaderStatic}>
             <h4 className={styles.sectionTitle}>Ao entrar no bloco</h4>
           </div>
           <div className={styles.sectionContent}>
-
-            {(onEnter || []).map((a, i) => {
-              const [openCond, setOpenCond] = useState(false); // local por item com truque: hook em map? NÃO. Então usamos chave estável + componente interno simples
-              return (
-                <ActionCard
-                  key={`en-${i}`}
-                  listName="enter"
-                  idx={i}
-                  item={a}
-                  onRemove={() => updateBlock({ onEnter: (onEnter || []).filter((_, idx) => idx !== i) })}
-                  update={(patch) => {
-                    const next = ensureArray(onEnter).slice();
-                    next[i] = { ...next[i], ...patch };
-                    updateBlock({ onEnter: next });
-                  }}
-                />
-              );
-            })}
-
-            <div className={styles.addRow}>
-              <button
-                className={styles.addButtonSmall}
-                onClick={() => setAddMenuOpen(addMenuOpen === "enter" ? null : "enter")}
-              >
-                + adicionar na entrada
-              </button>
-              {addMenuOpen === "enter" && <AddMenu where="enter" />}
-            </div>
+            {(onEnter || []).map((a, i) => (
+              <div key={`en-${i}`} className={styles.rowItemStyle}>
+                <div className={styles.tagMuted}>{a.scope || "context"}</div>
+                <div className={styles.kvShow}>
+                  <code>{a.key || "chave"}</code>
+                  <span>←</span>
+                  <code>{String(a.value ?? "")}</code>
+                </div>
+                <button
+                  className={styles.deleteButtonSmall}
+                  onClick={() => updateBlock({ onEnter: (onEnter || []).filter((_, idx) => idx !== i) })}
+                >
+                  Remover
+                </button>
+              </div>
+            ))}
+            <button className={styles.addButton} onClick={() => openDefVar("enter")}>
+              + adicionar na entrada
+            </button>
           </div>
         </div>
 
@@ -1228,85 +1064,247 @@ export default function NodeConfigPanel({
             <h4 className={styles.sectionTitle}>Ao sair do bloco</h4>
           </div>
           <div className={styles.sectionContent}>
-
             {(onExit || []).map((a, i) => (
-              <ActionCard
-                key={`ex-${i}`}
-                listName="exit"
-                idx={i}
-                item={a}
-                onRemove={() => updateBlock({ onExit: (onExit || []).filter((_, idx) => idx !== i) })}
-                update={(patch) => {
-                  const next = ensureArray(onExit).slice();
-                  next[i] = { ...next[i], ...patch };
-                  updateBlock({ onExit: next });
-                }}
-              />
+              <div key={`ex-${i}`} className={styles.rowItemStyle}>
+                <div className={styles.tagMuted}>{a.scope || "context"}</div>
+                <div className={styles.kvShow}>
+                  <code>{a.key || "chave"}</code>
+                  <span>←</span>
+                  <code>{String(a.value ?? "")}</code>
+                </div>
+                <button
+                  className={styles.deleteButtonSmall}
+                  onClick={() => updateBlock({ onExit: (onExit || []).filter((_, idx) => idx !== i) })}
+                >
+                  Remover
+                </button>
+              </div>
             ))}
-
-            <div className={styles.addRow}>
-              <button
-                className={styles.addButtonSmall}
-                onClick={() => setAddMenuOpen(addMenuOpen === "exit" ? null : "exit")}
-              >
-                + adicionar na saída
-              </button>
-              {addMenuOpen === "exit" && <AddMenu where="exit" />}
-            </div>
+            <button className={styles.addButton} onClick={() => openDefVar("exit")}>
+              + adicionar na saída
+            </button>
           </div>
         </div>
       </div>
     </>
   );
 
-  // card reutilizável (definir variável + condições)
-  const ActionCard = ({ listName, idx, item, onRemove, update }) => {
-    const [condOpen, setCondOpen] = useState(false);
+  /* ---------------- overlay: DEFINIR VARIÁVEL (novo) ---------------- */
+
+  const OverlayDefVar = () => {
+    const draft = defVarDraft;
+
+    const set = (patch) => setDefVarDraft({ ...draft, ...patch });
+
+    const addCond = () =>
+      set({ conditions: [...(draft.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] });
+
+    const rmCond = (idx) => {
+      const next = [...(draft.conditions || [])];
+      next.splice(idx, 1);
+      set({ conditions: next });
+    };
+
+    const save = () => {
+      const item = {
+        scope: draft.scope,
+        key: draft.key,
+        value: draft.value,
+        ttl: draft.ttl ? Number(draft.ttl) : undefined,
+        if: (draft.conditions || []).length ? draft.conditions : undefined, // opcional
+      };
+      if (draft.phase === "enter") {
+        updateBlock({ onEnter: [...(onEnter || []), item] });
+      } else {
+        updateBlock({ onExit: [...(onExit || []), item] });
+      }
+      closeOverlay();
+    };
+
     return (
-      <div className={styles.actionCard}>
-        <div className={styles.actionTop}>
-          <select
-            className={styles.selectStyle}
-            value={item.scope || "context"}
-            onChange={(e) => update({ scope: e.target.value })}
-          >
-            <option value="context">context</option>
-            <option value="contact">contact</option>
-            <option value="contact.extra">contact.extra</option>
-          </select>
-
-          <input
-            className={styles.inputStyle}
-            placeholder="chave (ex.: protocolo)"
-            value={item.key || ""}
-            onChange={(e) => update({ key: e.target.value })}
-          />
-          <input
-            className={styles.inputStyle}
-            placeholder="valor (ex.: 12345)"
-            value={item.value || ""}
-            onChange={(e) => update({ value: e.target.value })}
-          />
-
-          <button className={styles.deleteButtonSmall} onClick={onRemove}>Remover</button>
+      <>
+        <div className={styles.overlayHeader}>
+          <button className={styles.backBtn} onClick={() => setOverlayMode("especiais")} title="Voltar">
+            <ArrowLeft size={18} />
+          </button>
+          <div className={styles.overlayTitle}>Definir variável</div>
+          <button className={styles.iconGhost} onClick={closeOverlay} title="Fechar"><X size={16} /></button>
         </div>
 
-        <button
-          className={styles.condToggle}
-          onClick={() => setCondOpen((v) => !v)}
-          aria-expanded={condOpen}
-        >
-          {condOpen ? <ChevronDown size={14}/> : <ChevronRight size={14}/>} Executar somente se (opcional)
-        </button>
+        <div className={styles.overlayBody}>
+          <div className={styles.headHelp}>
+            Essa ação define o valor de uma variável em <strong>{draft.scope}</strong>.  
+            Para usar no fluxo: <code>{{`{{${draft.scope}.${draft.key || "nome"}}}`}}</code>
+          </div>
 
-        {condOpen && (
-          <ConditionEditor
-            listName={listName === "enter" ? "enter" : "exit"}
-            idx={idx}
-            item={item}
-          />
-        )}
-      </div>
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>
+                {draft.phase === "enter" ? "Executar ao entrar" : "Executar ao sair"}
+              </h4>
+            </div>
+            <div className={styles.sectionContent}>
+              <div className={styles.rowTwoCols}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Escopo</label>
+                  <select
+                    value={draft.scope}
+                    onChange={(e) => set({ scope: e.target.value })}
+                    className={styles.selectStyle}
+                  >
+                    <option value="context">context</option>
+                    <option value="contact">contact</option>
+                    <option value="contact.extra">contact.extra</option>
+                  </select>
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Expiração (opcional, s)</label>
+                  <input
+                    type="number"
+                    value={draft.ttl || ""}
+                    onChange={(e) => set({ ttl: e.target.value })}
+                    className={styles.inputStyle}
+                    placeholder="ex.: 3600"
+                  />
+                </div>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Nome da variável</label>
+                <input
+                  type="text"
+                  value={draft.key}
+                  onChange={(e) => set({ key: e.target.value })}
+                  className={styles.inputStyle}
+                  placeholder="Apenas letras e números"
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Valor</label>
+                <input
+                  type="text"
+                  value={draft.value}
+                  onChange={(e) => set({ value: e.target.value })}
+                  className={styles.inputStyle}
+                  placeholder="Digite o valor"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}>
+              <h4 className={styles.sectionTitle}>Condição para definir variável</h4>
+            </div>
+            <div className={styles.sectionContent}>
+              {(draft.conditions || []).map((cond, idx) => (
+                <div key={idx} className={styles.conditionRowWide}>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Se</label>
+                    <select
+                      className={styles.selectStyle}
+                      value={
+                        variableOptions.some((v) => v.value === cond.variable)
+                          ? cond.variable
+                          : cond.variable
+                          ? "custom"
+                          : "lastUserMessage"
+                      }
+                      onChange={(e) => {
+                        const nextVar = e.target.value;
+                        const list = [...(draft.conditions || [])];
+                        if (nextVar === "custom") {
+                          list[idx] = { ...list[idx], variable: "" };
+                        } else {
+                          list[idx] = {
+                            ...list[idx],
+                            variable: nextVar,
+                            type: list[idx].type || "equals",
+                            value: nextVar === "offhours" ? "true" : nextVar === "offhours_reason" ? "closed" : (list[idx].value || "")
+                          };
+                        }
+                        set({ conditions: list });
+                      }}
+                    >
+                      {variableOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
+                    <div className={styles.inputGroup}>
+                      <label className={styles.inputLabel}>Nome da variável</label>
+                      <input
+                        className={styles.inputStyle}
+                        value={cond.variable || ""}
+                        placeholder="ex.: context.meuCampo"
+                        onChange={(e) => {
+                          const list = [...(draft.conditions || [])];
+                          list[idx] = { ...list[idx], variable: e.target.value };
+                          set({ conditions: list });
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Condição</label>
+                    <select
+                      className={styles.selectStyle}
+                      value={cond.type || ""}
+                      onChange={(e) => {
+                        const list = [...(draft.conditions || [])];
+                        list[idx] = { ...list[idx], type: e.target.value, value: e.target.value === "exists" ? "" : (list[idx].value || "") };
+                        set({ conditions: list });
+                      }}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="exists">Existe</option>
+                      <option value="equals">Igual a</option>
+                      <option value="not_equals">Diferente de</option>
+                      <option value="contains">Contém</option>
+                      <option value="not_contains">Não contém</option>
+                      <option value="starts_with">Começa com</option>
+                      <option value="ends_with">Termina com</option>
+                    </select>
+                  </div>
+
+                  {cond.type !== "exists" && (
+                    <div className={styles.inputGroup}>
+                      <label className={styles.inputLabel}>Valor</label>
+                      <input
+                        className={styles.inputStyle}
+                        value={cond.value || ""}
+                        onChange={(e) => {
+                          const list = [...(draft.conditions || [])];
+                          list[idx] = { ...list[idx], value: e.target.value };
+                          set({ conditions: list });
+                        }}
+                        placeholder="valor para comparação"
+                      />
+                    </div>
+                  )}
+
+                  <button className={styles.deleteButtonSmall} onClick={() => rmCond(idx)}>
+                    <Trash2 size={14}/> Remover condição
+                  </button>
+                </div>
+              ))}
+
+              <button className={styles.addButton} onClick={addCond}>
+                + Adicionar condição de definição
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.footerActions}>
+            <button className={styles.addButton} onClick={save}>Salvar ação</button>
+          </div>
+        </div>
+      </>
     );
   };
 
@@ -1358,6 +1356,7 @@ export default function NodeConfigPanel({
         {overlayMode === "conteudo" && <OverlayConteudo />}
         {overlayMode === "regras" && <OverlayRegras />}
         {overlayMode === "especiais" && <OverlayEspeciais />}
+        {overlayMode === "defVar" && <OverlayDefVar />}
       </div>
     </aside>
   );
