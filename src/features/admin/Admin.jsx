@@ -297,7 +297,7 @@ export default function Admin() {
               key: "dev-tools",
               label: "Ferramentas",
               children: [
-                { to: "development/builder", icon: <Bot size={16} />, label: "Builder" },
+                { to: "development/studio", icon: <Bot size={16} />, label: "Chatbot Studio" },
                 { to: "development/tracker", icon: <RouteIcon size={16} />, label: "Tracker" },
               ],
             },
@@ -782,7 +782,7 @@ export default function Admin() {
 
           {/* development – admin only */}
           <Route
-            path="development/builder"
+            path="development/studio"
             element={
               <RequireRole allow={isAdmin}>
                 <Builder />
