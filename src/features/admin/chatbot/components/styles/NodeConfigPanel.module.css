@@ -263,6 +263,18 @@
   flex-shrink: 0;
 }
 
+.autoOpenOverlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  background: white;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
 /* Responsivo */
 @media (max-width: 860px){
   .asidePanel{ width:100vw; }
