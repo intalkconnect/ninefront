@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/* ========= MESSAGE TYPES (ajuste os caminhos se preciso) ========= */
+/* ========= MESSAGE TYPES ========= */
 import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
 import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
 import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
@@ -93,7 +93,7 @@ const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
 const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
 
-/* ================= Normalizadores (evitam "reading 'header' of undefined") ================= */
+/* ================= Normalizadores ================= */
 function normalizeInteractive(content) {
   const base = typeof content === "object" && content ? content : {};
   const type = base.type === "list" ? "list" : "button";
@@ -123,7 +123,6 @@ function normalizeInteractive(content) {
     };
   }
 
-  // default: quick reply (buttons)
   return {
     type: "button",
     header: { type: "text", text: base?.header?.text ?? "" },
@@ -258,7 +257,6 @@ function OverlayConteudoComp({
   const setContent = (patch) =>
     setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
 
-  // normalize ao abrir para não quebrar preview
   useEffect(() => {
     if (type === "interactive") {
       setDraft((d) => ({ ...d, content: normalizeInteractive(d.content) }));
@@ -430,7 +428,7 @@ function OverlayConteudoComp({
                           const value = e.target.value;
                           const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), title: clampFn(value, 24), id: makeIdFromTitleFn(value, 24) };
+                          rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitleFn(value, 24) };
                           sections[0] = { ...(sections[0] || {}), rows };
                           const action = { ...(deepClone(draft.content?.action) || {}), sections };
                           setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
@@ -548,7 +546,7 @@ function OverlayConteudoComp({
                 <AlertCircle size={16} />
                 <span>Este bloco executa código JavaScript personalizado.</span>
               </div>
-              
+
               <button
                 onClick={() => {
                   setScriptCode(selectedNode?.data?.block?.code || "");
@@ -625,7 +623,7 @@ function OverlayConteudoComp({
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
                       setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
+                    } catch {}
                   }}
                   placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'
                 />
@@ -643,7 +641,7 @@ function OverlayConteudoComp({
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
                       setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
+                    } catch {}
                   }}
                   placeholder='{"param1": "valor1", "param2": "valor2"}'
                 />
@@ -696,7 +694,7 @@ function OverlayRegrasComp({
   onBack,
   onClose,
   commit,
-  isHuman = false, // Nova prop para identificar se é atendimento humano
+  isHuman = false,
 }) {
   const updateActionsLocal = (next) => setDraft((r) => ({ ...r, actions: deepClone(next) }));
 
@@ -765,7 +763,6 @@ function OverlayRegrasComp({
             <span className={styles.sectionCount}>({draft.actions.length}/25)</span>
           </div>
           <div className={styles.sectionContent}>
-            {/* Botões de templates só para atendimento humano */}
             {isHuman && (
               <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
                 <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
@@ -1373,9 +1370,8 @@ function OverlayEspeciaisComp({
 
 /* ================= Painel principal ================= */
 
-// Função central para renderizar o preview com seus components
+// Preview principal
 function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) {
-  // conteúdo "ao vivo" quando o overlay de conteúdo está aberto
   const liveContent =
     overlayMode === "conteudo"
       ? (conteudoDraft?.content ?? (typeof conteudoDraft?.text === "string" ? { body: { text: conteudoDraft.text } } : {}))
@@ -1425,10 +1421,9 @@ function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) 
   }
 
   if (type === "human") {
-    return <TextMessage content="👨‍💻 Transferindo para atendimento humano..." />;
+    return <TextMessage content="👤 Este é um bloco de atendimento humano." />;
   }
 
-  // fallback
   const fallback = typeof liveContent === "string"
     ? liveContent
     : (liveContent?.text || liveContent?.body?.text || "");
@@ -1449,7 +1444,7 @@ export default function NodeConfigPanel({
   const [overlayMode, setOverlayMode] = useState("none");
   const panelRef = useRef(null);
 
-  // toasts simples
+  // toasts
   const [toasts, setToasts] = useState([]);
   const showToast = (type, text, ttl = 2600) => {
     const id = Math.random().toString(36).slice(2);
@@ -1552,30 +1547,30 @@ export default function NodeConfigPanel({
     media: deepClone(content),
     location: deepClone(content),
   });
+
+  // << Sincroniza SEM depender do overlay — sempre que o bloco mudar.
   useEffect(() => {
-    if (overlayMode === "conteudo") {
-      setConteudoDraft({
-        type,
-        text: typeof block.content === "string" ? block.content : "",
-        content: deepClone(content),
-        fnName: fnName || "",
-        outputVar: outputVar || "",
-        api: {
-          method: method || "GET",
-          url: url || "",
-          headers: deepClone(headers || {}),
-          body: deepClone(body || {}),
-          timeout: timeout ?? 10000,
-          outputVar: outputVar || "apiResponse",
-          statusVar: statusVar || "apiStatus",
-          headersText: pretty(headers || {}),
-          bodyText: pretty(body || {}),
-        },
-        media: deepClone(content),
-        location: deepClone(content),
-      });
-    }
-  }, [overlayMode, type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
+    setConteudoDraft({
+      type,
+      text: typeof block.content === "string" ? block.content : "",
+      content: deepClone(content),
+      fnName: fnName || "",
+      outputVar: outputVar || "",
+      api: {
+        method: method || "GET",
+        url: url || "",
+        headers: deepClone(headers || {}),
+        body: deepClone(body || {}),
+        timeout: timeout ?? 10000,
+        outputVar: outputVar || "apiResponse",
+        statusVar: statusVar || "apiStatus",
+        headersText: pretty(headers || {}),
+        bodyText: pretty(body || {}),
+      },
+      media: deepClone(content),
+      location: deepClone(content),
+    });
+  }, [type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
 
   const [regrasDraft, setRegrasDraft] = useState({
     actions: deepClone(actions || []),
@@ -1612,11 +1607,7 @@ export default function NodeConfigPanel({
     if (type === "script") {
       next.function = d.fnName || "";
       next.outputVar = d.outputVar || "";
-      // Remove campos desnecessários para script
-      delete next.text;
-      delete next.content;
-      delete next.media;
-      delete next.location;
+      delete next.text; delete next.content; delete next.media; delete next.location;
     }
     if (type === "api_call") {
       next.method = d.api.method || "GET";
@@ -1626,11 +1617,7 @@ export default function NodeConfigPanel({
       next.timeout = parseInt(d.api.timeout || 10000, 10);
       next.outputVar = d.api.outputVar || "apiResponse";
       next.statusVar = d.api.statusVar || "apiStatus";
-      // Remove campos desnecessários para api_call
-      delete next.text;
-      delete next.content;
-      delete next.media;
-      delete next.location;
+      delete next.text; delete next.content; delete next.media; delete next.location;
     }
 
     updateBlock(next);
@@ -1652,16 +1639,19 @@ export default function NodeConfigPanel({
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
       <div className={styles.floatingBtns}>
-        {/* Script e API Call já abrem no conteúdo automaticamente */}
-        {!isScriptOrApi && (
+        {/* Conteúdo: só mostra quando NÃO for script/api_call e NÃO for humano */}
+        {!isHuman && !isScriptOrApi && (
           <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
             <PencilLine size={16} />
           </button>
         )}
+
+        {/* Regras: aparece para TODOS os tipos, inclusive atendimento humano */}
         <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
           <MoreHorizontal size={16} />
         </button>
-        {/* Atendimento humano não tem especiais */}
+
+        {/* Ações especiais: não para humano */}
         {!isHuman && (
           <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
             <SlidersHorizontal size={16} />
@@ -1683,15 +1673,18 @@ export default function NodeConfigPanel({
           </div>
         </div>
 
-        <button
-          type="button"
-          className={styles.userInputChip}
-          onClick={() => openOverlay("await")}
-          title="Configurar aguardar resposta"
-        >
-          Entrada do usuário
-          <span className={styles.caret} />
-        </button>
+        {/* Esconde o chip “Entrada do usuário” para atendimento humano */}
+        {!isHuman && (
+          <button
+            type="button"
+            className={styles.userInputChip}
+            onClick={() => openOverlay("await")}
+            title="Configurar aguardar resposta"
+          >
+            Entrada do usuário
+            <span className={styles.caret} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1742,10 +1735,40 @@ export default function NodeConfigPanel({
           )}
         </div>
 
+        {/* Preview */}
         <ChatPreview />
+
+        {/* Para SCRIPT e API_CALL, o editor de conteúdo fica INLINE (sem overlay) */}
+        {isScriptOrApi && (
+          <div style={{ marginTop: 12 }}>
+            <OverlayConteudoComp
+              type={type}
+              draft={conteudoDraft}
+              setDraft={(updater) =>
+                setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
+              }
+              commit={() => {
+                if (type === "api_call") {
+                  try { JSON.parse(conteudoDraft.api.headersText || "{}"); }
+                  catch { showToast("error","Headers inválidos (JSON)."); return; }
+                  try { JSON.parse(conteudoDraft.api.bodyText || "{}"); }
+                  catch { showToast("error","Body inválido (JSON)."); return; }
+                }
+                commitConteudo();
+              }}
+              onBack={() => {}}
+              onClose={() => {}}
+              selectedNode={selectedNode}
+              setShowScriptEditor={setShowScriptEditor}
+              setScriptCode={setScriptCode}
+              clampFn={clamp}
+              makeIdFromTitleFn={makeIdFromTitle}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Overlay principal */}
+      {/* Overlay principal (await / regras / especiais / conteúdo manual) */}
       <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
         {overlayMode === "await" && (
           <OverlayAwaitComp
@@ -1756,7 +1779,8 @@ export default function NodeConfigPanel({
             onClose={closeOverlay}
           />
         )}
-        {overlayMode === "conteudo" && (
+        {/* Conteúdo via overlay só quando NÃO for script/api_call */}
+        {overlayMode === "conteudo" && !isScriptOrApi && (
           <OverlayConteudoComp
             type={type}
             draft={conteudoDraft}
@@ -1791,7 +1815,7 @@ export default function NodeConfigPanel({
             onBack={closeOverlay}
             onClose={closeOverlay}
             commit={commitRegras}
-            isHuman={isHuman} // Passa a informação se é atendimento humano
+            isHuman={isHuman}
           />
         )}
         {overlayMode === "especiais" && (
@@ -1806,33 +1830,6 @@ export default function NodeConfigPanel({
           />
         )}
       </div>
-
-      {/* Script e API Call abrem automaticamente no conteúdo */}
-      {isScriptOrApi && overlayMode === "none" && (
-        <div className={styles.autoOpenOverlay}>
-          <OverlayConteudoComp
-            type={type}
-            draft={conteudoDraft}
-            setDraft={(updater) =>
-              setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
-            }
-            commit={() => {
-              if (type === "api_call") {
-                try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); return; }
-                try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); return; }
-              }
-              commitConteudo();
-            }}
-            onBack={closeOverlay}
-            onClose={closeOverlay}
-            selectedNode={selectedNode}
-            setShowScriptEditor={setShowScriptEditor}
-            setScriptCode={setScriptCode}
-            clampFn={clamp}
-            makeIdFromTitleFn={makeIdFromTitle}
-          />
-        </div>
-      )}
     </aside>
   );
 }
