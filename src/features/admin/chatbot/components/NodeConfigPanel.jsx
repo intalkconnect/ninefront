@@ -685,7 +685,7 @@ function OverlayConteudoComp({
   );
 }
 
-/* ================= OverlayRegras (mesmo do seu arquivo) ================= */
+/* ================= OverlayRegras ================= */
 function OverlayRegrasComp({
   draft,
   setDraft,
@@ -696,6 +696,7 @@ function OverlayRegrasComp({
   onBack,
   onClose,
   commit,
+  isHuman = false, // Nova prop para identificar se é atendimento humano
 }) {
   const updateActionsLocal = (next) => setDraft((r) => ({ ...r, actions: deepClone(next) }));
 
@@ -764,11 +765,14 @@ function OverlayRegrasComp({
             <span className={styles.sectionCount}>({draft.actions.length}/25)</span>
           </div>
           <div className={styles.sectionContent}>
-            <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
-              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
-              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
-              <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
-            </div>
+            {/* Botões de templates só para atendimento humano */}
+            {isHuman && (
+              <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
+              </div>
+            )}
 
             {draft.actions.map((action, actionIdx) => (
               <React.Fragment key={actionIdx}>
@@ -1420,6 +1424,10 @@ function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) 
     return <TextMessage content={`🌐 ${method} ${url}`} />;
   }
 
+  if (type === "human") {
+    return <TextMessage content="👨‍💻 Transferindo para atendimento humano..." />;
+  }
+
   // fallback
   const fallback = typeof liveContent === "string"
     ? liveContent
@@ -1472,6 +1480,7 @@ export default function NodeConfigPanel({
   } = block;
 
   const isHuman = type === "human";
+  const isScriptOrApi = type === "script" || type === "api_call";
 
   const isEditableTarget = (el) => {
     if (!el) return false;
@@ -1643,15 +1652,21 @@ export default function NodeConfigPanel({
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
       <div className={styles.floatingBtns}>
-        <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
-          <PencilLine size={16} />
-        </button>
+        {/* Script e API Call já abrem no conteúdo automaticamente */}
+        {!isScriptOrApi && (
+          <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
+            <PencilLine size={16} />
+          </button>
+        )}
         <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
           <MoreHorizontal size={16} />
         </button>
-        <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
-          <SlidersHorizontal size={16} />
-        </button>
+        {/* Atendimento humano não tem especiais */}
+        {!isHuman && (
+          <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
+            <SlidersHorizontal size={16} />
+          </button>
+        )}
       </div>
 
       <div className={styles.chatArea}>
@@ -1776,6 +1791,7 @@ export default function NodeConfigPanel({
             onBack={closeOverlay}
             onClose={closeOverlay}
             commit={commitRegras}
+            isHuman={isHuman} // Passa a informação se é atendimento humano
           />
         )}
         {overlayMode === "especiais" && (
@@ -1790,6 +1806,33 @@ export default function NodeConfigPanel({
           />
         )}
       </div>
+
+      {/* Script e API Call abrem automaticamente no conteúdo */}
+      {isScriptOrApi && overlayMode === "none" && (
+        <div className={styles.autoOpenOverlay}>
+          <OverlayConteudoComp
+            type={type}
+            draft={conteudoDraft}
+            setDraft={(updater) =>
+              setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
+            }
+            commit={() => {
+              if (type === "api_call") {
+                try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); return; }
+                try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); return; }
+              }
+              commitConteudo();
+            }}
+            onBack={closeOverlay}
+            onClose={closeOverlay}
+            selectedNode={selectedNode}
+            setShowScriptEditor={setShowScriptEditor}
+            setScriptCode={setScriptCode}
+            clampFn={clamp}
+            makeIdFromTitleFn={makeIdFromTitle}
+          />
+        </div>
+      )}
     </aside>
   );
 }
