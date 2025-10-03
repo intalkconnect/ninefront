@@ -6,13 +6,14 @@ import {
   X,
   MoreHorizontal,
   PencilLine,
+  ArrowLeft,
   SlidersHorizontal,
   AlertCircle,
   Check,
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/** ======= MESSAGE TYPES ======= */
+/** ======= IMPORTS DOS MESSAGE TYPES (ajuste os caminhos se necessário) ======= */
 import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
 import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
 import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
@@ -22,23 +23,91 @@ import AudioMessage from "../../atendimento/history/messageTypes/AudioMessage";
 import VideoMessage from "../../atendimento/history/messageTypes/VideoMessage";
 import ContactsMessage from "../../atendimento/history/messageTypes/ContactsMessage";
 
-/** ======= HELPERS (importados, nada local) ======= */
-import {
-  // Inputs & header
-  StableInput,
-  StableTextarea,
-  OverlayHeader,
-  // Utils
-  deepClone,
-  clamp,
-  makeIdFromTitle,
-  pretty,
-  // UI helpers
-  CharHelp,
-  LIMITS,
-  // Keyboard helper
-  isEditableTarget,
-} from "./helpers/nodeHelpers";
+/* ================= Inputs estáveis ================= */
+function useStableCaret() {
+  const sel = useRef({ start: null, end: null });
+  const onBeforeChange = (el) => {
+    if (!el) return;
+    try {
+      sel.current.start = el.selectionStart;
+      sel.current.end = el.selectionEnd;
+    } catch {}
+  };
+  const restore = (el) => {
+    if (!el) return;
+    const { start, end } = sel.current || {};
+    if (start == null || end == null) return;
+    requestAnimationFrame(() => {
+      try { el.setSelectionRange(start, end); } catch {}
+    });
+  };
+  return { onBeforeChange, restore };
+}
+
+export function StableInput({ value, onChange, className, ...rest }) {
+  const ref = useRef(null);
+  const { onBeforeChange, restore } = useStableCaret();
+  const stop = (e) => e.stopPropagation();
+  useEffect(() => { restore(ref.current); });
+  return (
+    <input
+      ref={ref}
+      value={value ?? ""}
+      onChange={(e) => { onBeforeChange(e.target); onChange?.(e); }}
+      onKeyDownCapture={stop}
+      onKeyUpCapture={stop}
+      onKeyPressCapture={stop}
+      onMouseDownCapture={stop}
+      className={`${styles.inputStyle} ${className || ""}`}
+      {...rest}
+    />
+  );
+}
+
+export function StableTextarea({ value, onChange, className, rows = 4, ...rest }) {
+  const ref = useRef(null);
+  const { onBeforeChange, restore } = useStableCaret();
+  const stop = (e) => e.stopPropagation();
+  useEffect(() => { restore(ref.current); });
+  return (
+    <textarea
+      ref={ref}
+      rows={rows}
+      value={value ?? ""}
+      onChange={(e) => { onBeforeChange(e.target); onChange?.(e); }}
+      onKeyDownCapture={stop}
+      onKeyUpCapture={stop}
+      onKeyPressCapture={stop}
+      onMouseDownCapture={stop}
+      className={`${styles.textareaStyle} ${className || ""}`}
+      {...rest}
+    />
+  );
+}
+
+/* ================= Utils ================= */
+const deepClone = (obj) =>
+  typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj ?? {}));
+const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
+const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
+const ensureArray = (v) => (Array.isArray(v) ? v : []);
+const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
+
+/* ================= Overlay header ================= */
+function OverlayHeader({ title, onBack, onClose, right = null }) {
+  return (
+    <div className={styles.overlayHeader}>
+      <button className={styles.backBtn} onClick={onBack} title="Voltar">
+        <ArrowLeft size={18} />
+      </button>
+      <div className={styles.overlayTitle}>{title}</div>
+      <div className={styles.buttonGroup}>
+        {right}
+        <button className={styles.iconGhost} onClick={onClose} title="Fechar"><X size={16} /></button>
+      </div>
+    </div>
+  );
+}
 
 /* ================= OverlayAwait ================= */
 function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
@@ -133,6 +202,22 @@ function OverlayConteudoComp({
   const getListHeader = () => deepClone(draft.content?.header) || { type: "text", text: "" };
   const getListAction = () =>
     deepClone(draft.content?.action) || { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [] }] };
+
+  // contadores/limites
+  const CharHelp = ({ value = "", limit }) => (
+    <small className={styles.helpText}>{value?.length || 0}/{limit}</small>
+  );
+  const LIMITS = {
+    body: 1024,
+    footer: 60,
+    headerText: 60,
+    listButton: 20,
+    rowTitle: 24,
+    rowDesc: 72,
+    qrButton: 20,
+    listMaxRows: 10,
+    qrMaxButtons: 3,
+  };
 
   return (
     <>
@@ -507,6 +592,7 @@ function OverlayConteudoComp({
                     setScriptCode(code);
                     setShowScriptEditor(true);
                   } else {
+                    // feedback caso o pai não tenha injetado handlers
                     alert("Editor de código não foi inicializado no componente pai.");
                   }
                 }}
@@ -514,7 +600,24 @@ function OverlayConteudoComp({
               >
                 Abrir editor de código
               </button>
-              {/* Campos de função/variáveis removidos daqui */}
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Função</label>
+                <StableInput
+                  type="text"
+                  value={draft.fnName}
+                  onChange={(e) => setDraft((d) => ({ ...d, fnName: e.target.value }))}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Variável de saída</label>
+                <StableInput
+                  type="text"
+                  value={draft.outputVar}
+                  onChange={(e) => setDraft((d) => ({ ...d, outputVar: e.target.value }))}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -524,26 +627,15 @@ function OverlayConteudoComp({
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
             <div className={styles.sectionContent}>
-              <div className={styles.rowTwoCols}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Método</label>
-                  <select
-                    value={draft.api.method}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
-                    className={styles.selectStyle}
-                  >
-                    <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
-                  </select>
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Timeout (ms)</label>
-                  <StableInput
-                    type="number"
-                    value={draft.api.timeout}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
-                  />
-                </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Método</label>
+                <select
+                  value={draft.api.method}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
+                  className={styles.selectStyle}
+                >
+                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+                </select>
               </div>
 
               <div className={styles.inputGroup}>
@@ -555,39 +647,62 @@ function OverlayConteudoComp({
                 />
               </div>
 
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Headers (JSON)</label>
+                <StableTextarea
+                  rows={3}
+                  value={draft.api.headersText}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))}
+                  onBlur={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value || "{}");
+                      setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
+                    } catch {}
+                  }}
+                />
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Body (JSON)</label>
+                <StableTextarea
+                  rows={4}
+                  value={draft.api.bodyText}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))}
+                  onBlur={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value || "{}");
+                      setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
+                    } catch {}
+                  }}
+                />
+              </div>
+
               <div className={styles.rowTwoCols}>
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Headers (JSON)</label>
-                  <StableTextarea
-                    rows={3}
-                    value={draft.api.headersText}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))}
-                    onBlur={(e) => {
-                      try {
-                        const parsed = JSON.parse(e.target.value || "{}");
-                        setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                      } catch {}
-                    }}
+                  <label className={styles.inputLabel}>Timeout (ms)</label>
+                  <StableInput
+                    type="number"
+                    value={draft.api.timeout}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
                   />
                 </div>
-
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Body (JSON)</label>
-                  <StableTextarea
-                    rows={4}
-                    value={draft.api.bodyText}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))}
-                    onBlur={(e) => {
-                      try {
-                        const parsed = JSON.parse(e.target.value || "{}");
-                        setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                      } catch {}
-                    }}
+                  <label className={styles.inputLabel}>Variável de saída</label>
+                  <StableInput
+                    type="text"
+                    value={draft.api.outputVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável de status</label>
+                  <StableInput
+                    type="text"
+                    value={draft.api.statusVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
                   />
                 </div>
               </div>
-
-              {/* Intencionalmente sem campos de output/status aqui */}
             </div>
           </div>
         )}
@@ -915,12 +1030,28 @@ export default function NodeConfigPanel({
     headers,
     body,
     timeout,
+    outputVar,
+    statusVar,
+    function: fnName,
     saveResponseVar,
     defaultNext,
   } = block;
 
   const isHuman = type === "human";
 
+  const isEditableTarget = (el) => {
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    const tag = el.tagName?.toUpperCase?.();
+    if (tag === "TEXTAREA") return true;
+    if (tag === "INPUT") {
+      const t = (el.type || "").toLowerCase();
+      const tl = ["text","search","url","tel","email","password","number","date","datetime-local","time"];
+      if (tl.includes(t)) return !el.readOnly && !el.disabled;
+    }
+    if (tag === "SELECT") return true;
+    return false;
+  };
   const handleKeyDownCapture = useCallback((e) => {
     if (!panelRef.current || !panelRef.current.contains(e.target)) return;
     if (isEditableTarget(e.target)) e.stopPropagation();
@@ -960,12 +1091,16 @@ export default function NodeConfigPanel({
     type,
     text: typeof block.content === "string" ? block.content : "",
     content: deepClone(content),
+    fnName: fnName || "",
+    outputVar: outputVar || "",
     api: {
       method: method || "GET",
       url: url || "",
       headers: deepClone(headers || {}),
       body: deepClone(body || {}),
       timeout: timeout ?? 10000,
+      outputVar: outputVar || "apiResponse",
+      statusVar: statusVar || "apiStatus",
       headersText: pretty(headers || {}),
       bodyText: pretty(body || {}),
     },
@@ -973,24 +1108,29 @@ export default function NodeConfigPanel({
     location: deepClone(content),
   });
 
+  // mantém o draft sincronizado quando o bloco muda
   useEffect(() => {
     setConteudoDraft({
       type,
       text: typeof block.content === "string" ? block.content : "",
       content: deepClone(content),
+      fnName: fnName || "",
+      outputVar: outputVar || "",
       api: {
         method: method || "GET",
         url: url || "",
         headers: deepClone(headers || {}),
         body: deepClone(body || {}),
         timeout: timeout ?? 10000,
+        outputVar: outputVar || "apiResponse",
+        statusVar: statusVar || "apiStatus",
         headersText: pretty(headers || {}),
         bodyText: pretty(body || {}),
       },
       media: deepClone(content),
       location: deepClone(content),
     });
-  }, [type, block.content, content, method, url, headers, body, timeout]);
+  }, [type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
 
   const [regrasDraft, setRegrasDraft] = useState({
     actions: deepClone(block.actions || []),
@@ -1023,7 +1163,8 @@ export default function NodeConfigPanel({
     if (type === "media") next.content = deepClone(d.media || {});
     if (type === "location") next.content = deepClone(d.location || {});
     if (type === "script") {
-      // script: apenas código no editor externo
+      next.function = d.fnName || "";
+      next.outputVar = d.outputVar || "";
     }
     if (type === "api_call") {
       next.method = d.api.method || "GET";
@@ -1031,6 +1172,8 @@ export default function NodeConfigPanel({
       next.headers = deepClone(d.api.headers || {});
       next.body = deepClone(d.api.body || {});
       next.timeout = parseInt(d.api.timeout || 10000, 10);
+      next.outputVar = d.api.outputVar || "apiResponse";
+      next.statusVar = d.api.statusVar || "apiStatus";
     }
 
     updateBlock(next);
@@ -1066,16 +1209,12 @@ export default function NodeConfigPanel({
         <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
           <PencilLine size={16} />
         </button>
-        {previewType !== "script" && previewType !== "api_call" && (
-          <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
-            <MoreHorizontal size={16} />
-          </button>
-        )}
-        {previewType !== "script" && previewType !== "api_call" && (
-          <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
-            <SlidersHorizontal size={16} />
-          </button>
-        )}
+        <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
+          <MoreHorizontal size={16} />
+        </button>
+        <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
+          <SlidersHorizontal size={16} />
+        </button>
       </div>
 
       <div className={styles.chatArea}>
@@ -1126,23 +1265,21 @@ export default function NodeConfigPanel({
 
             {previewType === "script" && (
               <div style={{ fontSize: 14 }}>
-                <em>Bloco de script</em>
+                <strong>Função:</strong> {conteudoDraft.fnName || "—"}
               </div>
             )}
           </div>
         </div>
 
-        {previewType !== "script" && previewType !== "api_call" && (
-          <button
-            type="button"
-            className={styles.userInputChip}
-            onClick={() => openOverlay("await")}
-            title="Configurar aguardar resposta"
-          >
-            Entrada do usuário
-            <span className={styles.caret} />
-          </button>
-        )}
+        <button
+          type="button"
+          className={styles.userInputChip}
+          onClick={() => openOverlay("await")}
+          title="Configurar aguardar resposta"
+        >
+          Entrada do usuário
+          <span className={styles.caret} />
+        </button>
       </div>
     </div>
   );
@@ -1250,7 +1387,17 @@ export default function NodeConfigPanel({
             commit={commitRegras}
           />
         )}
-        {/* OverlayEspeciaisComp é referenciado em outros arquivos; mantenha o import/uso conforme seu projeto */}
+        {overlayMode === "especiais" && (
+          <OverlayEspeciaisComp
+            onBack={closeOverlay}
+            onClose={closeOverlay}
+            onChangeNode={(patch) => updateBlock(patch)}
+            selectedNode={selectedNode}
+            block={block}
+            variableOptions={variableOptions}
+            showToast={showToast}
+          />
+        )}
       </div>
     </aside>
   );
