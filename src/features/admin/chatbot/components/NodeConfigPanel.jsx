@@ -1541,7 +1541,7 @@ export default function NodeConfigPanel({
               previewContent?.type === "button" ? (
                 <QuickReplyMessage data={previewContent} />
               ) : (
-                <InteractiveListMessage data={previewContent} />
+                <InteractiveListMessage quickData={previewContent} />
               )
             )}
 
@@ -1704,3 +1704,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
