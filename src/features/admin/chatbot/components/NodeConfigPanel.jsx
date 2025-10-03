@@ -1738,7 +1738,6 @@ export default function NodeConfigPanel({
   const closeOverlay = () => setOverlayMode("none");
 
   /* preview — oculto para script/api_call */
- const isStart = selectedNode?.data?.nodeType === "start";
 
 const ChatPreview = () => {
   // não mostrar preview para start, script e api_call
@@ -1935,5 +1934,6 @@ const ChatPreview = () => {
     </aside>
   );
 }
+
 
 
