@@ -13,10 +13,11 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/* ========= MESSAGE TYPES (ajuste os caminhos se preciso) ========= */
+/** ======= IMPORTS DOS MESSAGE TYPES (ajuste os caminhos) ======= */
+// Exemplos de caminhos. Troque pelos seus reais:
 import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
 import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../atendimento/history/messageTypes/InteractiveListMessage";
+import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
 import ImageMessage from "../../atendimento/history/messageTypes/ImageMessage";
 import DocumentMessage from "../../atendimento/history/messageTypes/DocumentMessage";
 import AudioMessage from "../../atendimento/history/messageTypes/AudioMessage";
@@ -92,66 +93,6 @@ const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
 const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
 const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
-
-/* ================= Normalizadores (evitam "reading 'header' of undefined") ================= */
-function normalizeInteractive(content) {
-  const base = typeof content === "object" && content ? content : {};
-  const type = base.type === "list" ? "list" : "button";
-
-  if (type === "list") {
-    return {
-      type: "list",
-      header: { type: "text", text: base?.header?.text ?? "" },
-      body:   { text: base?.body?.text ?? "" },
-      footer: { text: base?.footer?.text ?? "" },
-      action: {
-        button: base?.action?.button ?? "",
-        sections: Array.isArray(base?.action?.sections) && base.action.sections.length
-          ? base.action.sections.map((sec) => ({
-              title: sec?.title ?? "",
-              rows: Array.isArray(sec?.rows)
-                ? sec.rows.map((r) => ({
-                    id: r?.id ?? (r?.title ?? ""),
-                    title: r?.title ?? "",
-                    description: r?.description ?? "",
-                  }))
-                : [],
-            }))
-          : [{ title: "", rows: [] }],
-      },
-      ...base,
-    };
-  }
-
-  // default: quick reply (buttons)
-  return {
-    type: "button",
-    header: { type: "text", text: base?.header?.text ?? "" },
-    body:   { text: base?.body?.text ?? "" },
-    footer: { text: base?.footer?.text ?? "" },
-    action: {
-      buttons: Array.isArray(base?.action?.buttons)
-        ? base.action.buttons.map((b) => ({
-            type: "reply",
-            reply: {
-              id: b?.reply?.id ?? b?.reply?.title ?? "",
-              title: b?.reply?.title ?? "",
-            },
-          }))
-        : [],
-    },
-    ...base,
-  };
-}
-
-function normalizeMedia(content) {
-  const m = typeof content === "object" && content ? content : {};
-  return {
-    mediaType: m.mediaType || m.type || "image",
-    url: m.url || "",
-    caption: m.caption || "",
-  };
-}
 
 /* ================= Overlay header ================= */
 function OverlayHeader({ title, onBack, onClose, right = null }) {
@@ -258,16 +199,6 @@ function OverlayConteudoComp({
   const setContent = (patch) =>
     setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
 
-  // normalize ao abrir para não quebrar preview
-  useEffect(() => {
-    if (type === "interactive") {
-      setDraft((d) => ({ ...d, content: normalizeInteractive(d.content) }));
-    } else if (type === "media") {
-      setDraft((d) => ({ ...d, media: normalizeMedia(d.media) }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <>
       <OverlayHeader
@@ -307,18 +238,23 @@ function OverlayConteudoComp({
                     if (newType === "list") {
                       setDraft((d) => ({
                         ...d,
-                        content: normalizeInteractive({
+                        content: deepClone({
                           type: "list",
                           body: { text: "Escolha um item da lista:" },
                           footer: { text: "Toque para selecionar" },
                           header: { text: "Menu de Opções", type: "text" },
-                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
+                          action: {
+                            button: "Abrir lista",
+                            sections: [
+                              { title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }] }
+                            ]
+                          }
                         }),
                       }));
                     } else {
                       setDraft((d) => ({
                         ...d,
-                        content: normalizeInteractive({
+                        content: deepClone({
                           type: "button",
                           body: { text: "Escolha uma opção:" },
                           footer: { text: "" },
@@ -667,8 +603,7 @@ function OverlayConteudoComp({
   );
 }
 
-/* ================= OverlayRegras (mesmo do seu arquivo) ================= */
-/*  --- mantém exatamente como você já tinha (sem alterações funcionais) --- */
+/* ================= OverlayRegras ================= */
 function OverlayRegrasComp({
   draft,
   setDraft,
@@ -952,7 +887,6 @@ function OverlayRegrasComp({
 }
 
 /* ================= Especiais (lista + editor overlay) ================= */
-/*  --- igual ao seu, sem mudanças além de organização --- */
 function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
   return (
     <div className={styles.sectionContainer}>
@@ -1016,6 +950,7 @@ function EditorOverlay({
   save,
   cancel,
   variableOptions,
+  showToast,
 }) {
   const addCond = () =>
     setDraft((d) => ({ ...d, conditions: [...(d.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] }));
@@ -1346,60 +1281,13 @@ function OverlayEspeciaisComp({
         save={saveEditing}
         cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
         variableOptions={variableOptions}
+        showToast={showToast}
       />
     </>
   );
 }
 
 /* ================= Painel principal ================= */
-
-// Função central para renderizar o preview com seus components
-function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) {
-  // conteúdo "ao vivo" quando o overlay de conteúdo está aberto
-  const liveContent =
-    overlayMode === "conteudo"
-      ? (conteudoDraft?.content ?? (typeof conteudoDraft?.text === "string" ? { body: { text: conteudoDraft.text } } : {}))
-      : blockContent;
-
-  if (type === "text" || type === "error") {
-    const text = typeof liveContent === "string"
-      ? liveContent
-      : (liveContent?.text || liveContent?.body?.text || "");
-    return <TextMessage content={text} />;
-  }
-
-  if (type === "interactive") {
-    const safe = normalizeInteractive(liveContent);
-    if (safe.type === "list") return <InteractiveListMessage data={safe} />;
-    return <QuickReplyMessage data={safe} />;
-  }
-
-  if (type === "media") {
-    const m = normalizeMedia(liveContent);
-    if (m.mediaType === "image")    return <ImageMessage url={m.url} caption={m.caption} />;
-    if (m.mediaType === "document") return <DocumentMessage url={m.url} caption={m.caption} />;
-    if (m.mediaType === "audio")    return <AudioMessage url={m.url} />;
-    if (m.mediaType === "video")    return <VideoMessage url={m.url} caption={m.caption} />;
-    return <TextMessage content="(mídia não suportada)" />;
-  }
-
-  if (type === "contacts") {
-    return <ContactsMessage data={liveContent || {}} />;
-  }
-
-  if (type === "location") {
-    const loc = liveContent || {};
-    const txt = `${loc?.name || "Local"} — ${loc?.address || ""}`;
-    return <TextMessage content={txt} />;
-  }
-
-  // fallback
-  const fallback = typeof liveContent === "string"
-    ? liveContent
-    : (liveContent?.text || liveContent?.body?.text || "");
-  return <TextMessage content={fallback} />;
-}
-
 export default function NodeConfigPanel({
   selectedNode,
   onChange,
@@ -1486,15 +1374,14 @@ export default function NodeConfigPanel({
     saveResponseVar: saveResponseVar || "",
   });
   useEffect(() => {
-    if (overlayMode === "await") {
-      setAwaitDraft({
-        awaitResponse: !!awaitResponse,
-        awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
-        sendDelayInSeconds: sendDelayInSeconds ?? 0,
-        saveResponseVar: saveResponseVar || "",
-      });
-    }
-  }, [overlayMode, awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
+    setAwaitDraft({
+      awaitResponse: !!awaitResponse,
+      awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
+      sendDelayInSeconds: sendDelayInSeconds ?? 0,
+      saveResponseVar: saveResponseVar || "",
+    });
+  // sempre que o bloco mudar
+  }, [awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
   const [conteudoDraft, setConteudoDraft] = useState({
     type,
@@ -1516,40 +1403,40 @@ export default function NodeConfigPanel({
     media: deepClone(content),
     location: deepClone(content),
   });
+
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // SINCRONIZA o draft SEM depender do overlay estar aberto
   useEffect(() => {
-    if (overlayMode === "conteudo") {
-      setConteudoDraft({
-        type,
-        text: typeof block.content === "string" ? block.content : "",
-        content: deepClone(content),
-        fnName: fnName || "",
-        outputVar: outputVar || "",
-        api: {
-          method: method || "GET",
-          url: url || "",
-          headers: deepClone(headers || {}),
-          body: deepClone(body || {}),
-          timeout: timeout ?? 10000,
-          outputVar: outputVar || "apiResponse",
-          statusVar: statusVar || "apiStatus",
-          headersText: pretty(headers || {}),
-          bodyText: pretty(body || {}),
-        },
-        media: deepClone(content),
-        location: deepClone(content),
-      });
-    }
-  }, [overlayMode, type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
+    setConteudoDraft({
+      type,
+      text: typeof block.content === "string" ? block.content : "",
+      content: deepClone(content),
+      fnName: fnName || "",
+      outputVar: outputVar || "",
+      api: {
+        method: method || "GET",
+        url: url || "",
+        headers: deepClone(headers || {}),
+        body: deepClone(body || {}),
+        timeout: timeout ?? 10000,
+        outputVar: outputVar || "apiResponse",
+        statusVar: statusVar || "apiStatus",
+        headersText: pretty(headers || {}),
+        bodyText: pretty(body || {}),
+      },
+      media: deepClone(content),
+      location: deepClone(content),
+    });
+  }, [type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
+  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   const [regrasDraft, setRegrasDraft] = useState({
     actions: deepClone(actions || []),
     defaultNext: defaultNext || "",
   });
   useEffect(() => {
-    if (overlayMode === "regras") {
-      setRegrasDraft({ actions: deepClone(actions || []), defaultNext: defaultNext || "" });
-    }
-  }, [overlayMode, actions, defaultNext]);
+    setRegrasDraft({ actions: deepClone(actions || []), defaultNext: defaultNext || "" });
+  }, [actions, defaultNext]);
 
   /* commits */
   const updateBlock = (changes) =>
@@ -1569,9 +1456,9 @@ export default function NodeConfigPanel({
     const d = conteudoDraft;
     const next = deepClone(block);
 
-    if (type === "text" || type === "error") next.content = d.text || "";
-    if (type === "interactive") next.content = deepClone(normalizeInteractive(d.content || {}));
-    if (type === "media") next.content = deepClone(normalizeMedia(d.media || {}));
+    if (type === "text") next.content = d.text || "";
+    if (type === "interactive") next.content = deepClone(d.content || {});
+    if (type === "media") next.content = deepClone(d.media || {});
     if (type === "location") next.content = deepClone(d.location || {});
     if (type === "script") {
       next.function = d.fnName || "";
@@ -1602,6 +1489,29 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
+  /* ===== PREVIEW SOURCE =====
+     - quando o overlay de conteúdo estiver aberto, mostramos o draft;
+     - caso contrário, mostramos o conteúdo do bloco persistido. */
+  const previewType = overlayMode === "conteudo" ? conteudoDraft.type : type;
+  const previewContent =
+    overlayMode === "conteudo"
+      ? (conteudoDraft.content ?? {})
+      : (content ?? {});
+  const previewText =
+    overlayMode === "conteudo"
+      ? conteudoDraft.text
+      : (typeof block.content === "string" ? block.content : "");
+
+  const previewMedia =
+    overlayMode === "conteudo"
+      ? (conteudoDraft.media ?? {})
+      : (typeof content === "object" ? content : {});
+
+  const previewLocation =
+    overlayMode === "conteudo"
+      ? (conteudoDraft.location ?? {})
+      : (typeof content === "object" ? content : {});
+
   /* preview */
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
@@ -1618,16 +1528,57 @@ export default function NodeConfigPanel({
       </div>
 
       <div className={styles.chatArea}>
+        {/* bolha de "digitando" */}
         <div className={styles.typingDot}>•••</div>
 
         <div className={styles.bubble}>
           <div className={styles.bubbleText}>
-            <RenderBlockPreview
-              type={type}
-              blockContent={block.content}
-              conteudoDraft={conteudoDraft}
-              overlayMode={overlayMode}
-            />
+            {previewType === "text" && (
+              <TextMessage data={{ text: previewText }} />
+            )}
+
+            {previewType === "interactive" && (
+              previewContent?.type === "button" ? (
+                <QuickReplyMessage data={previewContent} />
+              ) : (
+                <InteractiveListMessage data={previewContent} />
+              )
+            )}
+
+            {previewType === "media" && (() => {
+              const t = (previewMedia?.mediaType || "image").toLowerCase();
+              if (t === "image") return <ImageMessage data={previewMedia} />;
+              if (t === "document") return <DocumentMessage data={previewMedia} />;
+              if (t === "audio") return <AudioMessage data={previewMedia} />;
+              if (t === "video") return <VideoMessage data={previewMedia} />;
+              return <ImageMessage data={previewMedia} />;
+            })()}
+
+            {previewType === "location" && (
+              <div style={{ fontSize: 14 }}>
+                <strong>{previewLocation?.name || "Local"}</strong><br />
+                <small>{previewLocation?.address || "Endereço"}</small>
+              </div>
+            )}
+
+            {previewType === "human" && (
+              <div style={{ fontSize: 14 }}>
+                Encaminhando para atendimento humano…
+              </div>
+            )}
+
+            {previewType === "api_call" && (
+              <div style={{ fontSize: 14 }}>
+                <strong>HTTP {conteudoDraft.api?.method || "GET"}</strong>
+                <div>{conteudoDraft.api?.url || "— URL —"}</div>
+              </div>
+            )}
+
+            {previewType === "script" && (
+              <div style={{ fontSize: 14 }}>
+                <strong>Função:</strong> {conteudoDraft.fnName || "—"}
+              </div>
+            )}
           </div>
         </div>
 
@@ -1753,4 +1704,3 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
-
