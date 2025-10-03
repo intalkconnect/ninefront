@@ -101,7 +101,10 @@ function normalizeInteractive(content) {
   if (type === "list") {
     return {
       type: "list",
-      header: { type: "text", text: base?.header?.text ?? "" },
+      header: {
+        type: base?.header?.type === "none" ? "none" : "text",
+        text: base?.header?.text ?? ""
+      },
       body:   { text: base?.body?.text ?? "" },
       footer: { text: base?.footer?.text ?? "" },
       action: {
@@ -125,7 +128,10 @@ function normalizeInteractive(content) {
 
   return {
     type: "button",
-    header: { type: "text", text: base?.header?.text ?? "" },
+    header: {
+      type: base?.header?.type === "none" ? "none" : "text",
+      text: base?.header?.text ?? ""
+    },
     body:   { text: base?.body?.text ?? "" },
     footer: { text: base?.footer?.text ?? "" },
     action: {
@@ -296,6 +302,49 @@ function OverlayConteudoComp({
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
             <div className={styles.sectionContent}>
+
+              {/* ===== HEADER (NOVO) ===== */}
+              <div className={styles.rowTwoCols}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Header (tipo)</label>
+                  <select
+                    className={styles.selectStyle}
+                    value={draft.content?.header?.type ?? "text"}
+                    onChange={(e) => {
+                      const header = { ...(deepClone(draft.content?.header) || {}), type: e.target.value };
+                      setContent({ header });
+                    }}
+                  >
+                    <option value="text">text</option>
+                    <option value="none">none</option>
+                  </select>
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Header (texto)</label>
+                  <StableInput
+                    type="text"
+                    value={draft.content?.header?.text || ""}
+                    onChange={(e) => {
+                      const header = { ...(deepClone(draft.content?.header) || { type: "text" }), text: e.target.value };
+                      setContent({ header });
+                    }}
+                  />
+                </div>
+              </div>
+              {/* ======================== */}
+
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Corpo</label>
+                <StableInput
+                  type="text"
+                  value={draft.content?.body?.text || ""}
+                  onChange={(e) => {
+                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value };
+                    setContent({ body });
+                  }}
+                />
+              </div>
+
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
                 <select
@@ -307,9 +356,9 @@ function OverlayConteudoComp({
                         ...d,
                         content: normalizeInteractive({
                           type: "list",
-                          body: { text: "Escolha um item da lista:" },
-                          footer: { text: "Toque para selecionar" },
-                          header: { text: "Menu de Opções", type: "text" },
+                          header: { type: d.content?.header?.type || "text", text: d.content?.header?.text || "" },
+                          body: { text: d.content?.body?.text || "Escolha um item da lista:" },
+                          footer: { text: d.content?.footer?.text || "Toque para selecionar" },
                           action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
                         }),
                       }));
@@ -318,8 +367,9 @@ function OverlayConteudoComp({
                         ...d,
                         content: normalizeInteractive({
                           type: "button",
-                          body: { text: "Escolha uma opção:" },
-                          footer: { text: "" },
+                          header: { type: d.content?.header?.type || "text", text: d.content?.header?.text || "" },
+                          body: { text: d.content?.body?.text || "Escolha uma opção:" },
+                          footer: { text: d.content?.footer?.text || "" },
                           action: {
                             buttons: [
                               { type: "reply", reply: { id: "Opção 1", title: "Opção 1" } },
@@ -335,18 +385,6 @@ function OverlayConteudoComp({
                   <option value="button">Quick Reply</option>
                   <option value="list">Menu List</option>
                 </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Corpo</label>
-                <StableInput
-                  type="text"
-                  value={draft.content?.body?.text || ""}
-                  onChange={(e) => {
-                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value };
-                    setContent({ body });
-                  }}
-                />
               </div>
 
               {draft.content?.type === "button" && (
@@ -763,6 +801,7 @@ function OverlayRegrasComp({
             <span className={styles.sectionCount}>({draft.actions.length}/25)</span>
           </div>
           <div className={styles.sectionContent}>
+
             {isHuman && (
               <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
                 <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
@@ -970,6 +1009,7 @@ function OverlayRegrasComp({
 }
 
 /* ================= Especiais (lista + editor overlay) ================= */
+// (sem mudanças relevantes — mantido do arquivo anterior)
 function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
   return (
     <div className={styles.sectionContainer}>
@@ -1232,145 +1272,7 @@ function EditorOverlay({
   );
 }
 
-function OverlayEspeciaisComp({
-  onBack,
-  onClose,
-  onChangeNode,
-  selectedNode,
-  block,
-  variableOptions,
-  showToast,
-}) {
-  const { onEnter = [], onExit = [] } = block || {};
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState({
-    mode: "create",
-    section: "enter",
-    index: -1,
-    draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
-  });
-
-  const resetEditing = () =>
-    setEditing({ mode: "create", section: "enter", index: -1, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } });
-
-  const startCreate = (section) => {
-    resetEditing();
-    setEditing((s) => ({ ...s, section, mode: "create" }));
-    setEditorOpen(true);
-  };
-
-  const startEdit = (section, index) => {
-    const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
-    const item = deepClone(list[index] || {});
-    setEditing({
-      mode: "edit",
-      section,
-      index,
-      draft: {
-        label: item.label || "",
-        scope: item.scope || "context",
-        key: item.key || "",
-        value: item.value ?? "",
-        conditions: ensureArray(item.conditions || []),
-      },
-    });
-    setEditorOpen(true);
-  };
-
-  const removeItem = (section, index) => {
-    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-    list.splice(index, 1);
-    if (section === "enter") {
-      onChangeNode({ onEnter: list });
-    } else {
-      onChangeNode({ onExit: list });
-    }
-    showToast("success", "Variável removida.");
-  };
-
-  const validateDraft = (d) => {
-    if (!d.label?.trim()) { showToast("error", "Informe o título da variável."); return false; }
-    if (!d.key?.trim())   { showToast("error", "Informe a chave da variável."); return false; }
-    for (let i = 0; i < (d.conditions || []).length; i++) {
-      const c = d.conditions[i];
-      if (c.variable === undefined) { showToast("error", `Condição ${i + 1}: selecione a variável.`); return false; }
-      if (!c.type) { showToast("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
-      if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
-        showToast("error", `Condição ${i + 1}: informe o valor.`); return false;
-      }
-    }
-    return true;
-  };
-
-  const saveEditing = () => {
-    const { section, index, mode, draft } = editing;
-    if (!validateDraft(draft)) return;
-
-    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-    const clean = {
-      label: draft.label.trim(),
-      scope: draft.scope || "context",
-      key: draft.key.trim(),
-      value: draft.value ?? "",
-      ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
-    };
-
-    if (mode === "create") list.push(clean);
-    else list[index] = { ...list[index], ...clean };
-
-    if (section === "enter") onChangeNode({ onEnter: list });
-    else onChangeNode({ onExit: list });
-
-    setEditorOpen(false);
-    setEditing({
-      mode: "create",
-      section: "enter",
-      index: -1,
-      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
-    });
-    showToast("success", "Variável salva com sucesso.");
-  };
-
-  return (
-    <>
-      <OverlayHeader title="Ações especiais" onBack={onBack} onClose={onClose} />
-      <div className={styles.overlayBody} data-stop-hotkeys="true">
-        <SpecialList
-          title="Ao entrar no bloco"
-          section="enter"
-          items={ensureArray(onEnter)}
-          onNew={startCreate}
-          onEdit={startEdit}
-          onRemove={removeItem}
-        />
-        <SpecialList
-          title="Ao sair do bloco"
-          section="exit"
-          items={ensureArray(onExit)}
-          onNew={startCreate}
-          onEdit={startEdit}
-          onRemove={removeItem}
-        />
-      </div>
-
-      <EditorOverlay
-        open={editorOpen}
-        setOpen={setEditorOpen}
-        draft={editing.draft}
-        setDraft={(d) => setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))}
-        mode={editing.mode}
-        section={editing.section}
-        save={saveEditing}
-        cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
-        variableOptions={variableOptions}
-      />
-    </>
-  );
-}
-
-/* ================= Painel principal ================= */
-
-// Preview principal
+/* ================= Preview (usado apenas quando não for script) ================= */
 function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) {
   const liveContent =
     overlayMode === "conteudo"
@@ -1407,11 +1309,6 @@ function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) 
     const loc = liveContent || {};
     const txt = `${loc?.name || "Local"} — ${loc?.address || ""}`;
     return <TextMessage content={txt} />;
-  }
-
-  if (type === "script") {
-    const fnName = conteudoDraft?.fnName || "função não definida";
-    return <TextMessage content={`🤖 Executando script: ${fnName}`} />;
   }
 
   if (type === "api_call") {
@@ -1470,12 +1367,11 @@ export default function NodeConfigPanel({
     function: fnName,
     saveResponseVar,
     defaultNext,
-    onEnter = [],
-    onExit = [],
   } = block;
 
   const isHuman = type === "human";
-  const isScriptOrApi = type === "script" || type === "api_call";
+  const isScript = type === "script";
+  const isScriptOrApi = isScript || type === "api_call";
 
   const isEditableTarget = (el) => {
     if (!el) return false;
@@ -1516,16 +1412,6 @@ export default function NodeConfigPanel({
     sendDelayInSeconds: sendDelayInSeconds ?? 0,
     saveResponseVar: saveResponseVar || "",
   });
-  useEffect(() => {
-    if (overlayMode === "await") {
-      setAwaitDraft({
-        awaitResponse: !!awaitResponse,
-        awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
-        sendDelayInSeconds: sendDelayInSeconds ?? 0,
-        saveResponseVar: saveResponseVar || "",
-      });
-    }
-  }, [overlayMode, awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
   const [conteudoDraft, setConteudoDraft] = useState({
     type,
@@ -1548,7 +1434,7 @@ export default function NodeConfigPanel({
     location: deepClone(content),
   });
 
-  // << Sincroniza SEM depender do overlay — sempre que o bloco mudar.
+  // Sincroniza drafts sempre que o bloco mudar
   useEffect(() => {
     setConteudoDraft({
       type,
@@ -1572,15 +1458,16 @@ export default function NodeConfigPanel({
     });
   }, [type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
 
-  const [regrasDraft, setRegrasDraft] = useState({
-    actions: deepClone(actions || []),
-    defaultNext: defaultNext || "",
-  });
   useEffect(() => {
-    if (overlayMode === "regras") {
-      setRegrasDraft({ actions: deepClone(actions || []), defaultNext: defaultNext || "" });
+    if (overlayMode === "await") {
+      setAwaitDraft({
+        awaitResponse: !!awaitResponse,
+        awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
+        sendDelayInSeconds: sendDelayInSeconds ?? 0,
+        saveResponseVar: saveResponseVar || "",
+      });
     }
-  }, [overlayMode, actions, defaultNext]);
+  }, [overlayMode, awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
   /* commits */
   const updateBlock = (changes) =>
@@ -1626,8 +1513,8 @@ export default function NodeConfigPanel({
 
   const commitRegras = () => {
     updateBlock({
-      actions: deepClone(regrasDraft.actions || []),
-      defaultNext: regrasDraft.defaultNext || "",
+      actions: deepClone((block.actions || [])),
+      defaultNext: block.defaultNext || "",
     });
     showToast("success", "Regras salvas.");
   };
@@ -1635,66 +1522,63 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
-  /* preview */
-  const ChatPreview = () => (
-    <div className={styles.chatPreviewCard}>
-      <div className={styles.floatingBtns}>
-        {/* Conteúdo: só mostra quando NÃO for script/api_call e NÃO for humano */}
-        {!isHuman && !isScriptOrApi && (
-          <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
-            <PencilLine size={16} />
+  /* preview (não renderiza para SCRIPT) */
+  const ChatPreview = () => {
+    if (isScript) return null; // <<< remove os itens da imagem para SCRIPT
+    return (
+      <div className={styles.chatPreviewCard}>
+        <div className={styles.floatingBtns}>
+          {!isHuman && !isScriptOrApi && (
+            <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
+              <PencilLine size={16} />
+            </button>
+          )}
+          <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
+            <MoreHorizontal size={16} />
           </button>
-        )}
-
-        {/* Regras: aparece para TODOS os tipos, inclusive atendimento humano */}
-        <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
-          <MoreHorizontal size={16} />
-        </button>
-
-        {/* Ações especiais: não para humano */}
-        {!isHuman && (
-          <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
-            <SlidersHorizontal size={16} />
-          </button>
-        )}
-      </div>
-
-      <div className={styles.chatArea}>
-        <div className={styles.typingDot}>•••</div>
-
-        <div className={styles.bubble}>
-          <div className={styles.bubbleText}>
-            <RenderBlockPreview
-              type={type}
-              blockContent={block.content}
-              conteudoDraft={conteudoDraft}
-              overlayMode={overlayMode}
-            />
-          </div>
+          {!isHuman && (
+            <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
+              <SlidersHorizontal size={16} />
+            </button>
+          )}
         </div>
 
-        {/* Esconde o chip “Entrada do usuário” para atendimento humano */}
-        {!isHuman && (
-          <button
-            type="button"
-            className={styles.userInputChip}
-            onClick={() => openOverlay("await")}
-            title="Configurar aguardar resposta"
-          >
-            Entrada do usuário
-            <span className={styles.caret} />
-          </button>
-        )}
+        <div className={styles.chatArea}>
+          <div className={styles.typingDot}>•••</div>
+
+          <div className={styles.bubble}>
+            <div className={styles.bubbleText}>
+              <RenderBlockPreview
+                type={type}
+                blockContent={block.content}
+                conteudoDraft={conteudoDraft}
+                overlayMode={overlayMode}
+              />
+            </div>
+          </div>
+
+          {!isHuman && (
+            <button
+              type="button"
+              className={styles.userInputChip}
+              onClick={() => openOverlay("await")}
+              title="Configurar aguardar resposta"
+            >
+              Entrada do usuário
+              <span className={styles.caret} />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   /* render */
   return (
     <aside
       ref={panelRef}
       className={styles.asidePanel}
-      data-stop-hotkeys="true"
+      data-stop_hotkeys="true"
       onKeyDownCapture={handleKeyDownCapture}
     >
       {/* toasts */}
@@ -1735,10 +1619,19 @@ export default function NodeConfigPanel({
           )}
         </div>
 
-        {/* Preview */}
+        {/* Toolbar para SCRIPT (com Regras de saída) */}
+        {isScript && (
+          <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
+            <button className={styles.addButtonSmall} onClick={() => openOverlay("regras")}>
+              <MoreHorizontal size={14}/> Regras de saída
+            </button>
+          </div>
+        )}
+
+        {/* Preview (some para script) */}
         <ChatPreview />
 
-        {/* Para SCRIPT e API_CALL, o editor de conteúdo fica INLINE (sem overlay) */}
+        {/* Editores inline */}
         {isScriptOrApi && (
           <div style={{ marginTop: 12 }}>
             <OverlayConteudoComp
@@ -1768,7 +1661,7 @@ export default function NodeConfigPanel({
         )}
       </div>
 
-      {/* Overlay principal (await / regras / especiais / conteúdo manual) */}
+      {/* Overlays */}
       <div className={`${styles.overlay} ${overlayMode !== "none" ? styles.overlayOpen : ""}`}>
         {overlayMode === "await" && (
           <OverlayAwaitComp
@@ -1779,7 +1672,6 @@ export default function NodeConfigPanel({
             onClose={closeOverlay}
           />
         )}
-        {/* Conteúdo via overlay só quando NÃO for script/api_call */}
         {overlayMode === "conteudo" && !isScriptOrApi && (
           <OverlayConteudoComp
             type={type}
@@ -1788,10 +1680,6 @@ export default function NodeConfigPanel({
               setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
             }
             commit={() => {
-              if (type === "api_call") {
-                try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); return; }
-                try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); return; }
-              }
               commitConteudo();
               closeOverlay();
             }}
@@ -1806,15 +1694,18 @@ export default function NodeConfigPanel({
         )}
         {overlayMode === "regras" && (
           <OverlayRegrasComp
-            draft={regrasDraft}
-            setDraft={setRegrasDraft}
+            draft={{ actions: deepClone(block.actions || []), defaultNext: block.defaultNext || "" }}
+            setDraft={(d) => {
+              const v = typeof d === "function" ? d({ actions: deepClone(block.actions || []), defaultNext: block.defaultNext || "" }) : d;
+              onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, actions: v.actions, defaultNext: v.defaultNext } } });
+            }}
             variableOptions={variableOptions}
             allNodes={allNodes}
             selectedNode={selectedNode}
             onConnectNodes={onConnectNodes}
             onBack={closeOverlay}
             onClose={closeOverlay}
-            commit={commitRegras}
+            commit={() => { commitRegras(); closeOverlay(); }}
             isHuman={isHuman}
           />
         )}
