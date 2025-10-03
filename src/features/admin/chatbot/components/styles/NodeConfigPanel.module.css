@@ -244,6 +244,24 @@
   font-size:12px;
 }
 
+/* Adicione estas classes ao seu CSS existente */
+.infoBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #495057;
+}
+
+.infoBox svg {
+  color: #6c757d;
+  flex-shrink: 0;
+}
 
 /* Responsivo */
 @media (max-width: 860px){
