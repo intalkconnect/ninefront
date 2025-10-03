@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/* ========= MESSAGE TYPES (ajuste os caminhos se preciso) ========= */
+/** ======= IMPORTS DOS MESSAGE TYPES (ajuste os caminhos se necessário) ======= */
 import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
 import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
 import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
@@ -92,66 +92,6 @@ const clamp = (str = "", max = 100) => (str || "").toString().slice(0, max);
 const makeIdFromTitle = (title, max = 24) => clamp((title || "").toString().trim(), max);
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
 const pretty = (obj) => { try { return JSON.stringify(obj ?? {}, null, 2); } catch { return "{}"; } };
-
-/* ================= Normalizadores (evitam "reading 'header' of undefined") ================= */
-function normalizeInteractive(content) {
-  const base = typeof content === "object" && content ? content : {};
-  const type = base.type === "list" ? "list" : "button";
-
-  if (type === "list") {
-    return {
-      type: "list",
-      header: { type: "text", text: base?.header?.text ?? "" },
-      body:   { text: base?.body?.text ?? "" },
-      footer: { text: base?.footer?.text ?? "" },
-      action: {
-        button: base?.action?.button ?? "",
-        sections: Array.isArray(base?.action?.sections) && base.action.sections.length
-          ? base.action.sections.map((sec) => ({
-              title: sec?.title ?? "",
-              rows: Array.isArray(sec?.rows)
-                ? sec.rows.map((r) => ({
-                    id: r?.id ?? (r?.title ?? ""),
-                    title: r?.title ?? "",
-                    description: r?.description ?? "",
-                  }))
-                : [],
-            }))
-          : [{ title: "", rows: [] }],
-      },
-      ...base,
-    };
-  }
-
-  // default: quick reply (buttons)
-  return {
-    type: "button",
-    header: { type: "text", text: base?.header?.text ?? "" },
-    body:   { text: base?.body?.text ?? "" },
-    footer: { text: base?.footer?.text ?? "" },
-    action: {
-      buttons: Array.isArray(base?.action?.buttons)
-        ? base.action.buttons.map((b) => ({
-            type: "reply",
-            reply: {
-              id: b?.reply?.id ?? b?.reply?.title ?? "",
-              title: b?.reply?.title ?? "",
-            },
-          }))
-        : [],
-    },
-    ...base,
-  };
-}
-
-function normalizeMedia(content) {
-  const m = typeof content === "object" && content ? content : {};
-  return {
-    mediaType: m.mediaType || m.type || "image",
-    url: m.url || "",
-    caption: m.caption || "",
-  };
-}
 
 /* ================= Overlay header ================= */
 function OverlayHeader({ title, onBack, onClose, right = null }) {
@@ -258,15 +198,26 @@ function OverlayConteudoComp({
   const setContent = (patch) =>
     setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
 
-  // normalize ao abrir para não quebrar preview
-  useEffect(() => {
-    if (type === "interactive") {
-      setDraft((d) => ({ ...d, content: normalizeInteractive(d.content) }));
-    } else if (type === "media") {
-      setDraft((d) => ({ ...d, media: normalizeMedia(d.media) }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // helpers LIST
+  const getListHeader = () => deepClone(draft.content?.header) || { type: "text", text: "" };
+  const getListAction = () =>
+    deepClone(draft.content?.action) || { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [] }] };
+
+  // contadores/limites
+  const CharHelp = ({ value = "", limit }) => (
+    <small className={styles.helpText}>{value?.length || 0}/{limit}</small>
+  );
+  const LIMITS = {
+    body: 1024,
+    footer: 60,
+    headerText: 60,
+    listButton: 20,
+    rowTitle: 24,
+    rowDesc: 72,
+    qrButton: 20,
+    listMaxRows: 10,
+    qrMaxButtons: 3,
+  };
 
   return (
     <>
@@ -280,7 +231,10 @@ function OverlayConteudoComp({
           </button>
         }
       />
+
       <div className={styles.overlayBody} data-stop-hotkeys="true">
+
+        {/* ========= TEXT ========= */}
         {type === "text" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
@@ -288,12 +242,15 @@ function OverlayConteudoComp({
               <StableTextarea
                 rows={8}
                 value={draft.text}
-                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+                maxLength={LIMITS.body}
+                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value?.slice(0, LIMITS.body) }))}
               />
+              <CharHelp value={draft.text} limit={LIMITS.body} />
             </div>
           </div>
         )}
 
+        {/* ========= INTERACTIVE ========= */}
         {type === "interactive" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
@@ -307,18 +264,21 @@ function OverlayConteudoComp({
                     if (newType === "list") {
                       setDraft((d) => ({
                         ...d,
-                        content: normalizeInteractive({
+                        content: deepClone({
                           type: "list",
                           body: { text: "Escolha um item da lista:" },
                           footer: { text: "Toque para selecionar" },
-                          header: { text: "Menu de Opções", type: "text" },
-                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
+                          header: { type: "text", text: "🎯 Menu de Opções" },
+                          action: {
+                            button: "Abrir lista",
+                            sections: [{ title: "Seção 1", rows: [{ id: "item_1", title: "Item 1", description: "" }]}]
+                          }
                         }),
                       }));
                     } else {
                       setDraft((d) => ({
                         ...d,
-                        content: normalizeInteractive({
+                        content: deepClone({
                           type: "button",
                           body: { text: "Escolha uma opção:" },
                           footer: { text: "" },
@@ -339,38 +299,61 @@ function OverlayConteudoComp({
                 </select>
               </div>
 
+              {/* BODY */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Corpo</label>
                 <StableInput
                   type="text"
                   value={draft.content?.body?.text || ""}
+                  maxLength={LIMITS.body}
                   onChange={(e) => {
-                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value };
+                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value?.slice(0, LIMITS.body) };
                     setContent({ body });
                   }}
                 />
+                <CharHelp value={draft.content?.body?.text} limit={LIMITS.body} />
               </div>
 
+              {/* FOOTER (comum) */}
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Rodapé (opcional)</label>
+                <StableInput
+                  type="text"
+                  value={draft.content?.footer?.text || ""}
+                  maxLength={LIMITS.footer}
+                  onChange={(e) => {
+                    const footer = { ...(deepClone(draft.content?.footer) || {}), text: e.target.value?.slice(0, LIMITS.footer) };
+                    setContent({ footer });
+                  }}
+                />
+                <CharHelp value={draft.content?.footer?.text} limit={LIMITS.footer} />
+              </div>
+
+              {/* ====== QUICK REPLY ====== */}
               {draft.content?.type === "button" && (
                 <>
                   {(draft.content?.action?.buttons || []).map((btn, idx) => (
                     <div key={idx} className={styles.rowItemStyle}>
-                      <StableInput
-                        type="text"
-                        value={btn?.reply?.title || ""}
-                        maxLength={20}
-                        placeholder="Texto do botão"
-                        onChange={(e) => {
-                          const value = clampFn(e.target.value, 20);
-                          const buttons = deepClone(draft.content?.action?.buttons || []);
-                          buttons[idx] = {
-                            ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
-                            reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
-                          };
-                          const action = { ...(deepClone(draft.content?.action) || {}), buttons };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
+                      <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.inputLabel}>Botão {idx + 1}</label>
+                        <StableInput
+                          type="text"
+                          value={btn?.reply?.title || ""}
+                          maxLength={LIMITS.qrButton}
+                          placeholder="Texto do botão"
+                          onChange={(e) => {
+                            const value = (e.target.value || "").slice(0, LIMITS.qrButton);
+                            const buttons = deepClone(draft.content?.action?.buttons || []);
+                            buttons[idx] = {
+                              ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
+                              reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
+                            };
+                            const action = { ...(deepClone(draft.content?.action) || {}), buttons };
+                            setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                          }}
+                        />
+                        <CharHelp value={btn?.reply?.title || ""} limit={LIMITS.qrButton} />
+                      </div>
                       <Trash2
                         size={18}
                         className={styles.trashIcon}
@@ -384,109 +367,163 @@ function OverlayConteudoComp({
                       />
                     </div>
                   ))}
-                  <button
-                    onClick={() => {
-                      const current = deepClone(draft.content?.action?.buttons || []);
-                      if (current.length >= 3) return;
-                      const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
-                      const action = { ...(deepClone(draft.content?.action) || {}), buttons: [...current, newBtn] };
-                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar botão
-                  </button>
+
+                  <div className={styles.buttonGroup}>
+                    <button
+                      onClick={() => {
+                        const current = deepClone(draft.content?.action?.buttons || []);
+                        if (current.length >= LIMITS.qrMaxButtons) return;
+                        const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
+                        const action = { ...(deepClone(draft.content?.action) || {}), buttons: [...current, newBtn] };
+                        setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                      }}
+                      className={styles.addButton}
+                      disabled={(draft.content?.action?.buttons || []).length >= LIMITS.qrMaxButtons}
+                    >
+                      + Adicionar botão ({(draft.content?.action?.buttons || []).length}/{LIMITS.qrMaxButtons})
+                    </button>
+                  </div>
                 </>
               )}
 
+              {/* ====== MENU LIST ====== */}
               {draft.content?.type === "list" && (
                 <>
+                  {/* HEADER EDITÁVEL */}
+                  <div className={styles.rowTwoCols}>
+                    <div className={styles.inputGroup}>
+                      <label className={styles.inputLabel}>Header — tipo</label>
+                      <select
+                        className={styles.selectStyle}
+                        value={getListHeader().type || "text"}
+                        onChange={(e) => {
+                          const header = { ...getListHeader(), type: e.target.value || "text" };
+                          setContent({ header });
+                        }}
+                      >
+                        <option value="text">text</option>
+                        <option value="">(sem header)</option>
+                      </select>
+                      <small className={styles.helpText}>Recomendado: “text”</small>
+                    </div>
+
+                    <div className={styles.inputGroup}>
+                      <label className={styles.inputLabel}>Header — texto</label>
+                      <StableInput
+                        type="text"
+                        value={getListHeader().text || ""}
+                        maxLength={LIMITS.headerText}
+                        onChange={(e) => {
+                          const header = { ...getListHeader(), text: (e.target.value || "").slice(0, LIMITS.headerText) };
+                          setContent({ header });
+                        }}
+                        placeholder="ex.: 🎯 Menu de Opções"
+                      />
+                      <CharHelp value={getListHeader().text || ""} limit={LIMITS.headerText} />
+                    </div>
+                  </div>
+
+                  {/* BOTÃO ABRIR LISTA */}
                   <div className={styles.inputGroup}>
                     <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
                     <StableInput
                       type="text"
-                      maxLength={20}
-                      value={draft.content?.action?.button || ""}
+                      maxLength={LIMITS.listButton}
+                      value={getListAction().button || ""}
                       onChange={(e) => {
-                        const nextVal = (e.target.value || "").slice(0, 20);
-                        const action = {
-                          ...(deepClone(draft.content?.action) || {}),
-                          button: nextVal,
-                          sections: deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
-                        };
-                        setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                        const nextVal = (e.target.value || "").slice(0, LIMITS.listButton);
+                        const action = { ...getListAction(), button: nextVal };
+                        setContent({ action });
                       }}
                     />
+                    <CharHelp value={getListAction().button || ""} limit={LIMITS.listButton} />
                   </div>
 
-                  {(draft.content?.action?.sections?.[0]?.rows || []).map((item, idx) => (
+                  {/* SEÇÕES/ROWS */}
+                  {((getListAction().sections?.[0]?.rows) || []).map((item, idx) => (
                     <div key={idx} className={styles.rowItemStyle}>
-                      <StableInput
-                        type="text"
-                        value={item.title}
-                        maxLength={24}
-                        placeholder="Título"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), title: clampFn(value, 24), id: makeIdFromTitleFn(value, 24) };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
-                      <StableInput
-                        type="text"
-                        value={item.description}
-                        placeholder="Descrição"
-                        onChange={(e) => {
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
+                      <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.inputLabel}>Opção do menu (título)</label>
+                        <StableInput
+                          type="text"
+                          value={item.title}
+                          maxLength={LIMITS.rowTitle}
+                          placeholder="Ex.: Agendamento"
+                          onChange={(e) => {
+                            const value = (e.target.value || "").slice(0, LIMITS.rowTitle);
+                            const action = getListAction();
+                            const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
+                            const rows = [...(sections[0]?.rows || [])];
+                            rows[idx] = { ...(rows[idx] || {}), title: value, id: makeIdFromTitleFn(value, LIMITS.rowTitle) };
+                            sections[0] = { ...(sections[0] || {}), rows };
+                            setContent({ action: { ...action, sections } });
+                          }}
+                        />
+                        <CharHelp value={item.title || ""} limit={LIMITS.rowTitle} />
+                      </div>
+
+                      <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.inputLabel}>Descrição (opcional)</label>
+                        <StableInput
+                          type="text"
+                          value={item.description}
+                          maxLength={LIMITS.rowDesc}
+                          placeholder="Texto explicativo mostrado abaixo da opção"
+                          onChange={(e) => {
+                            const action = getListAction();
+                            const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
+                            const rows = [...(sections[0]?.rows || [])];
+                            rows[idx] = { ...(rows[idx] || {}), description: (e.target.value || "").slice(0, LIMITS.rowDesc) };
+                            sections[0] = { ...(sections[0] || {}), rows };
+                            setContent({ action: { ...action, sections } });
+                          }}
+                        />
+                        <CharHelp value={item.description || ""} limit={LIMITS.rowDesc} />
+                      </div>
+
                       <Trash2
                         size={18}
                         className={styles.trashIcon}
                         onClick={() => {
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
+                          const action = getListAction();
+                          const sections = deepClone(action.sections || [{ title: "", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
                           rows.splice(idx, 1);
                           sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                          setContent({ action: { ...action, sections } });
                         }}
                         title="Remover item"
                       />
                     </div>
                   ))}
 
-                  <button
-                    onClick={() => {
-                      const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
-                      const rows = sections[0]?.rows || [];
-                      const n = rows.length + 1;
-                      const title = `Item ${n}`;
-                      const newItem = { id: makeIdFromTitleFn(title, 24), title, description: "" };
-                      const nextRows = [...rows, newItem];
-                      const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
-                      const action = { ...(deepClone(draft.content?.action) || {}), sections: nextSections };
-                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar item
-                  </button>
+                  <div className={styles.buttonGroup}>
+                    <button
+                      onClick={() => {
+                        const action = getListAction();
+                        const sections = deepClone(action.sections || [{ title: "", rows: [] }]);
+                        const rows = sections[0]?.rows || [];
+                        if (rows.length >= LIMITS.listMaxRows) return;
+                        const n = rows.length + 1;
+                        const title = `Item ${n}`;
+                        const newItem = { id: makeIdFromTitleFn(title, LIMITS.rowTitle), title, description: "" };
+                        const nextRows = [...rows, newItem];
+                        const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
+                        setContent({ action: { ...action, sections: nextSections } });
+                      }}
+                      className={styles.addButton}
+                      disabled={(getListAction().sections?.[0]?.rows?.length || 0) >= LIMITS.listMaxRows}
+                    >
+                      + Adicionar item ({(getListAction().sections?.[0]?.rows?.length || 0)}/{LIMITS.listMaxRows})
+                    </button>
+                  </div>
                 </>
               )}
             </div>
           </div>
         )}
 
+        {/* ========= MEDIA ========= */}
         {type === "media" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
@@ -517,13 +554,16 @@ function OverlayConteudoComp({
                 <StableInput
                   type="text"
                   value={draft.media?.caption || ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value } }))}
+                  maxLength={LIMITS.footer}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value?.slice(0, LIMITS.footer) } }))}
                 />
+                <CharHelp value={draft.media?.caption || ""} limit={LIMITS.footer} />
               </div>
             </div>
           </div>
         )}
 
+        {/* ========= LOCATION ========= */}
         {type === "location" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
@@ -540,54 +580,55 @@ function OverlayConteudoComp({
           </div>
         )}
 
+        {/* ========= SCRIPT ========= */}
         {type === "script" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
             <div className={styles.sectionContent}>
               <button
                 onClick={() => {
-                  setScriptCode(selectedNode?.data?.block?.code || "");
-                  setShowScriptEditor(true);
+                  const code = selectedNode?.data?.block?.code || "";
+                  if (typeof setScriptCode === "function" && typeof setShowScriptEditor === "function") {
+                    setScriptCode(code);
+                    setShowScriptEditor(true);
+                  } else {
+                    alert("Editor de código não foi inicializado no componente pai.");
+                  }
                 }}
                 className={styles.addButton}
               >
                 Abrir editor de código
               </button>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Função</label>
-                <StableInput
-                  type="text"
-                  value={draft.fnName}
-                  onChange={(e) => setDraft((d) => ({ ...d, fnName: e.target.value }))}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Variável de saída</label>
-                <StableInput
-                  type="text"
-                  value={draft.outputVar}
-                  onChange={(e) => setDraft((d) => ({ ...d, outputVar: e.target.value }))}
-                />
-              </div>
+              {/* Intencionalmente sem campos de Função/Variáveis aqui */}
             </div>
           </div>
         )}
 
+        {/* ========= API ========= */}
         {type === "api_call" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
             <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Método</label>
-                <select
-                  value={draft.api.method}
-                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
-                  className={styles.selectStyle}
-                >
-                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
-                </select>
+              <div className={styles.rowTwoCols}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Método</label>
+                  <select
+                    value={draft.api.method}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
+                    className={styles.selectStyle}
+                  >
+                    <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+                  </select>
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Timeout (ms)</label>
+                  <StableInput
+                    type="number"
+                    value={draft.api.timeout}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
+                  />
+                </div>
               </div>
 
               <div className={styles.inputGroup}>
@@ -599,66 +640,39 @@ function OverlayConteudoComp({
                 />
               </div>
 
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Headers (JSON)</label>
-                <StableTextarea
-                  rows={3}
-                  value={draft.api.headersText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
-                  }
-                  onBlur={(e) => {
-                    try {
-                      const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
-                  }}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Body (JSON)</label>
-                <StableTextarea
-                  rows={4}
-                  value={draft.api.bodyText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
-                  }
-                  onBlur={(e) => {
-                    try {
-                      const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
-                  }}
-                />
-              </div>
-
               <div className={styles.rowTwoCols}>
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Timeout (ms)</label>
-                  <StableInput
-                    type="number"
-                    value={draft.api.timeout}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
+                  <label className={styles.inputLabel}>Headers (JSON)</label>
+                  <StableTextarea
+                    rows={3}
+                    value={draft.api.headersText}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))}
+                    onBlur={(e) => {
+                      try {
+                        const parsed = JSON.parse(e.target.value || "{}");
+                        setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
+                      } catch {}
+                    }}
                   />
                 </div>
+
                 <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de saída</label>
-                  <StableInput
-                    type="text"
-                    value={draft.api.outputVar}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de status</label>
-                  <StableInput
-                    type="text"
-                    value={draft.api.statusVar}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
+                  <label className={styles.inputLabel}>Body (JSON)</label>
+                  <StableTextarea
+                    rows={4}
+                    value={draft.api.bodyText}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))}
+                    onBlur={(e) => {
+                      try {
+                        const parsed = JSON.parse(e.target.value || "{}");
+                        setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
+                      } catch {}
+                    }}
                   />
                 </div>
               </div>
+
+              {/* Intencionalmente sem campos de variáveis de saída/status aqui para simplificar como o de script */}
             </div>
           </div>
         )}
@@ -667,8 +681,7 @@ function OverlayConteudoComp({
   );
 }
 
-/* ================= OverlayRegras (mesmo do seu arquivo) ================= */
-/*  --- mantém exatamente como você já tinha (sem alterações funcionais) --- */
+/* ================= OverlayRegras ================= */
 function OverlayRegrasComp({
   draft,
   setDraft,
@@ -951,455 +964,7 @@ function OverlayRegrasComp({
   );
 }
 
-/* ================= Especiais (lista + editor overlay) ================= */
-/*  --- igual ao seu, sem mudanças além de organização --- */
-function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
-  return (
-    <div className={styles.sectionContainer}>
-      <div className={styles.sectionHeaderStatic}>
-        <h4 className={styles.sectionTitle}>{title}</h4>
-        <button className={styles.addButtonSmall} onClick={() => onNew(section)}>
-          + Nova variável
-        </button>
-      </div>
-
-      <div className={styles.sectionContent}>
-        {!items?.length && (
-          <div className={styles.emptyHint}>
-            Nenhuma variável ainda. Clique em <strong>Nova variável</strong> para adicionar.
-          </div>
-        )}
-
-        {items?.map((a, i) => (
-          <div key={`${section}-${i}`} className={styles.specialListRow}>
-            <div className={styles.rowMain}>
-              <div className={styles.rowTitle}>{a.label}</div>
-              <div className={styles.rowMeta}>
-                <span className={styles.pill}>{a.scope || "context"}</span>
-                <span className={styles.metaSep}>•</span>
-                <span className={styles.mono}>{a.key || "-"}</span>
-                <span className={styles.metaArrow}>→</span>
-                <span className={styles.monoTrunc} title={String(a.value ?? "")}>
-                  {String(a.value ?? "") || "—"}
-                </span>
-                {a?.conditions?.length ? (
-                  <>
-                    <span className={styles.metaSep}>•</span>
-                    <span className={styles.pillLight}>{a.conditions.length} condição(ões)</span>
-                  </>
-                ) : null}
-              </div>
-            </div>
-
-            <div className={styles.rowActions}>
-              <button className={styles.iconGhost} title="Editar" onClick={() => onEdit(section, i)}>
-                <PencilLine size={16} />
-              </button>
-              <button className={styles.iconGhost} title="Remover" onClick={() => onRemove(section, i)}>
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function EditorOverlay({
-  open,
-  setOpen,
-  draft,
-  setDraft,
-  mode,
-  section,
-  save,
-  cancel,
-  variableOptions,
-}) {
-  const addCond = () =>
-    setDraft((d) => ({ ...d, conditions: [...(d.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] }));
-  const updateCond = (idx, patch) => {
-    const next = deepClone(draft.conditions || []);
-    next[idx] = { ...next[idx], ...patch };
-    setDraft((d) => ({ ...d, conditions: next }));
-  };
-  const removeCond = (idx) => {
-    const next = deepClone(draft.conditions || []);
-    next.splice(idx, 1);
-    setDraft((d) => ({ ...d, conditions: next }));
-  };
-
-  return (
-    <div className={`${styles.subOverlay} ${open ? styles.subOverlayOpen : ""}`} data-stop-hotkeys="true">
-      <div className={styles.subOverlayHeader}>
-        <button className={styles.backBtn} onClick={() => { setOpen(false); cancel(); }} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>
-          {mode === "edit" ? "Editar variável" : "Nova variável"}
-          <span className={styles.pillLight} style={{ marginLeft: 8 }}>
-            {section === "enter" ? "Ao entrar" : "Ao sair"}
-          </span>
-        </div>
-        <div className={styles.buttonGroup}>
-          <button className={styles.deleteButtonSmall} onClick={() => { setOpen(false); cancel(); }}>
-            <X size={14}/> Cancelar
-          </button>
-          <button className={styles.addButtonSmall} onClick={() => { save(); setOpen(false); }}>
-            <Check size={14}/> Salvar
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.subOverlayBody}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Título *</label>
-          <StableInput
-            placeholder="Como aparece na lista"
-            value={draft.label}
-            onChange={(e) => setDraft((d)=>({ ...d, label: e.target.value }))}
-          />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Escopo</label>
-          <select
-            className={styles.selectStyle}
-            value={draft.scope || "context"}
-            onChange={(e) => setDraft((d)=>({ ...d, scope: e.target.value || "context" }))}
-          >
-            <option value="context">context</option>
-            <option value="contact">contact</option>
-            <option value="contact.extra">contact.extra</option>
-          </select>
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Chave *</label>
-          <StableInput
-            placeholder="ex.: protocolo"
-            value={draft.key}
-            onChange={(e) => setDraft((d)=>({ ...d, key: e.target.value }))}
-          />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Valor</label>
-          <StableInput
-            placeholder='ex.: 12345 ou {{context.algo}}'
-            value={draft.value}
-            onChange={(e) => setDraft((d)=>({ ...d, value: e.target.value }))}
-          />
-        </div>
-
-        <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Condições (opcional)</h4>
-            <button className={styles.addButtonSmall} onClick={addCond}>+ Adicionar condição</button>
-          </div>
-          <div className={styles.sectionContent}>
-            {!(draft.conditions || []).length && (
-              <div className={styles.emptyHint}>
-                Se adicionar condições, a variável só será definida quando <strong>todas</strong> forem satisfeitas.
-              </div>
-            )}
-
-            {(draft.conditions || []).map((cond, idx) => (
-              <div key={idx} className={styles.specialCondRow}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável</label>
-                  <select
-                    className={styles.selectStyle}
-                    value={
-                      variableOptions.some((v) => v.value === cond.variable)
-                        ? cond.variable
-                        : cond.variable
-                        ? "custom"
-                        : "lastUserMessage"
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "custom") updateCond(idx, { variable: "" });
-                      else {
-                        const patch = { variable: v };
-                        if (!cond.type) patch.type = "equals";
-                        if (v === "offhours") patch.value = "true";
-                        if (v === "offhours_reason") patch.value = "closed";
-                        updateCond(idx, patch);
-                      }
-                    }}
-                  >
-                    {variableOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Nome</label>
-                    <StableInput
-                      placeholder="ex.: meuCampo"
-                      value={cond.variable || ""}
-                      onChange={(e) => updateCond(idx, { variable: e.target.value })}
-                    />
-                  </div>
-                )}
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Tipo</label>
-                  <select
-                    className={styles.selectStyle}
-                    value={cond.type || ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const patch = { type: v || "" };
-                      if (v === "exists") patch.value = "";
-                      updateCond(idx, patch);
-                    }}
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="exists">Existe</option>
-                    <option value="equals">Igual a</option>
-                    <option value="not_equals">Diferente de</option>
-                    <option value="contains">Contém</option>
-                    <option value="not_contains">Não contém</option>
-                    <option value="starts_with">Começa com</option>
-                    <option value="ends_with">Termina com</option>
-                  </select>
-                </div>
-
-                {cond.type !== "exists" && (
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Valor</label>
-                    {cond.variable === "offhours" ? (
-                      <select
-                        className={styles.selectStyle}
-                        value={cond.value ?? "true"}
-                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
-                      >
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                      </select>
-                    ) : cond.variable === "offhours_reason" ? (
-                      <select
-                        className={styles.selectStyle}
-                        value={cond.value ?? "holiday"}
-                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
-                      >
-                        <option value="holiday">holiday</option>
-                        <option value="closed">closed</option>
-                      </select>
-                    ) : (
-                      <StableInput
-                        placeholder="Valor para comparação"
-                        value={cond.value ?? ""}
-                        onChange={(e) => updateCond(idx, { value: e.target.value })}
-                      />
-                    )}
-                  </div>
-                )}
-
-                <div className={styles.buttonGroup}>
-                  <button className={styles.deleteButtonSmall} onClick={() => removeCond(idx)}>
-                    <Trash2 size={14}/> Remover
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OverlayEspeciaisComp({
-  onBack,
-  onClose,
-  onChangeNode,
-  selectedNode,
-  block,
-  variableOptions,
-  showToast,
-}) {
-  const { onEnter = [], onExit = [] } = block || {};
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState({
-    mode: "create",
-    section: "enter",
-    index: -1,
-    draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
-  });
-
-  const resetEditing = () =>
-    setEditing({ mode: "create", section: "enter", index: -1, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } });
-
-  const startCreate = (section) => {
-    resetEditing();
-    setEditing((s) => ({ ...s, section, mode: "create" }));
-    setEditorOpen(true);
-  };
-
-  const startEdit = (section, index) => {
-    const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
-    const item = deepClone(list[index] || {});
-    setEditing({
-      mode: "edit",
-      section,
-      index,
-      draft: {
-        label: item.label || "",
-        scope: item.scope || "context",
-        key: item.key || "",
-        value: item.value ?? "",
-        conditions: ensureArray(item.conditions || []),
-      },
-    });
-    setEditorOpen(true);
-  };
-
-  const removeItem = (section, index) => {
-    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-    list.splice(index, 1);
-    if (section === "enter") {
-      onChangeNode({ onEnter: list });
-    } else {
-      onChangeNode({ onExit: list });
-    }
-    showToast("success", "Variável removida.");
-  };
-
-  const validateDraft = (d) => {
-    if (!d.label?.trim()) { showToast("error", "Informe o título da variável."); return false; }
-    if (!d.key?.trim())   { showToast("error", "Informe a chave da variável."); return false; }
-    for (let i = 0; i < (d.conditions || []).length; i++) {
-      const c = d.conditions[i];
-      if (c.variable === undefined) { showToast("error", `Condição ${i + 1}: selecione a variável.`); return false; }
-      if (!c.type) { showToast("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
-      if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
-        showToast("error", `Condição ${i + 1}: informe o valor.`); return false;
-      }
-    }
-    return true;
-  };
-
-  const saveEditing = () => {
-    const { section, index, mode, draft } = editing;
-    if (!validateDraft(draft)) return;
-
-    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-    const clean = {
-      label: draft.label.trim(),
-      scope: draft.scope || "context",
-      key: draft.key.trim(),
-      value: draft.value ?? "",
-      ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
-    };
-
-    if (mode === "create") list.push(clean);
-    else list[index] = { ...list[index], ...clean };
-
-    if (section === "enter") onChangeNode({ onEnter: list });
-    else onChangeNode({ onExit: list });
-
-    setEditorOpen(false);
-    setEditing({
-      mode: "create",
-      section: "enter",
-      index: -1,
-      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
-    });
-    showToast("success", "Variável salva com sucesso.");
-  };
-
-  return (
-    <>
-      <OverlayHeader title="Ações especiais" onBack={onBack} onClose={onClose} />
-      <div className={styles.overlayBody} data-stop-hotkeys="true">
-        <SpecialList
-          title="Ao entrar no bloco"
-          section="enter"
-          items={ensureArray(onEnter)}
-          onNew={startCreate}
-          onEdit={startEdit}
-          onRemove={removeItem}
-        />
-        <SpecialList
-          title="Ao sair do bloco"
-          section="exit"
-          items={ensureArray(onExit)}
-          onNew={startCreate}
-          onEdit={startEdit}
-          onRemove={removeItem}
-        />
-      </div>
-
-      <EditorOverlay
-        open={editorOpen}
-        setOpen={setEditorOpen}
-        draft={editing.draft}
-        setDraft={(d) => setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))}
-        mode={editing.mode}
-        section={editing.section}
-        save={saveEditing}
-        cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
-        variableOptions={variableOptions}
-      />
-    </>
-  );
-}
-
 /* ================= Painel principal ================= */
-
-// Função central para renderizar o preview com seus components
-function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) {
-  // conteúdo "ao vivo" quando o overlay de conteúdo está aberto
-  const liveContent =
-    overlayMode === "conteudo"
-      ? (conteudoDraft?.content ?? (typeof conteudoDraft?.text === "string" ? { body: { text: conteudoDraft.text } } : {}))
-      : blockContent;
-
-  if (type === "text" || type === "error") {
-    const text = typeof liveContent === "string"
-      ? liveContent
-      : (liveContent?.text || liveContent?.body?.text || "");
-    return <TextMessage content={text} />;
-  }
-
-  if (type === "interactive") {
-    const safe = normalizeInteractive(liveContent);
-    if (safe.type === "list") return <InteractiveListMessage data={safe} />;
-    return <QuickReplyMessage data={safe} />;
-  }
-
-  if (type === "media") {
-    const m = normalizeMedia(liveContent);
-    if (m.mediaType === "image")    return <ImageMessage url={m.url} caption={m.caption} />;
-    if (m.mediaType === "document") return <DocumentMessage url={m.url} caption={m.caption} />;
-    if (m.mediaType === "audio")    return <AudioMessage url={m.url} />;
-    if (m.mediaType === "video")    return <VideoMessage url={m.url} caption={m.caption} />;
-    return <TextMessage content="(mídia não suportada)" />;
-  }
-
-  if (type === "contacts") {
-    return <ContactsMessage data={liveContent || {}} />;
-  }
-
-  if (type === "location") {
-    const loc = liveContent || {};
-    const txt = `${loc?.name || "Local"} — ${loc?.address || ""}`;
-    return <TextMessage content={txt} />;
-  }
-
-  // fallback
-  const fallback = typeof liveContent === "string"
-    ? liveContent
-    : (liveContent?.text || liveContent?.body?.text || "");
-  return <TextMessage content={fallback} />;
-}
-
 export default function NodeConfigPanel({
   selectedNode,
   onChange,
@@ -1440,8 +1005,6 @@ export default function NodeConfigPanel({
     function: fnName,
     saveResponseVar,
     defaultNext,
-    onEnter = [],
-    onExit = [],
   } = block;
 
   const isHuman = type === "human";
@@ -1486,70 +1049,59 @@ export default function NodeConfigPanel({
     saveResponseVar: saveResponseVar || "",
   });
   useEffect(() => {
-    if (overlayMode === "await") {
-      setAwaitDraft({
-        awaitResponse: !!awaitResponse,
-        awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
-        sendDelayInSeconds: sendDelayInSeconds ?? 0,
-        saveResponseVar: saveResponseVar || "",
-      });
-    }
-  }, [overlayMode, awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
+    setAwaitDraft({
+      awaitResponse: !!awaitResponse,
+      awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
+      sendDelayInSeconds: sendDelayInSeconds ?? 0,
+      saveResponseVar: saveResponseVar || "",
+    });
+  }, [awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
   const [conteudoDraft, setConteudoDraft] = useState({
     type,
     text: typeof block.content === "string" ? block.content : "",
     content: deepClone(content),
-    fnName: fnName || "",
-    outputVar: outputVar || "",
+    // script não usa mais fnName/outputVar visíveis
     api: {
       method: method || "GET",
       url: url || "",
       headers: deepClone(headers || {}),
       body: deepClone(body || {}),
       timeout: timeout ?? 10000,
-      outputVar: outputVar || "apiResponse",
-      statusVar: statusVar || "apiStatus",
       headersText: pretty(headers || {}),
       bodyText: pretty(body || {}),
     },
     media: deepClone(content),
     location: deepClone(content),
   });
+
+  // mantém o draft sincronizado quando o bloco muda
   useEffect(() => {
-    if (overlayMode === "conteudo") {
-      setConteudoDraft({
-        type,
-        text: typeof block.content === "string" ? block.content : "",
-        content: deepClone(content),
-        fnName: fnName || "",
-        outputVar: outputVar || "",
-        api: {
-          method: method || "GET",
-          url: url || "",
-          headers: deepClone(headers || {}),
-          body: deepClone(body || {}),
-          timeout: timeout ?? 10000,
-          outputVar: outputVar || "apiResponse",
-          statusVar: statusVar || "apiStatus",
-          headersText: pretty(headers || {}),
-          bodyText: pretty(body || {}),
-        },
-        media: deepClone(content),
-        location: deepClone(content),
-      });
-    }
-  }, [overlayMode, type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
+    setConteudoDraft({
+      type,
+      text: typeof block.content === "string" ? block.content : "",
+      content: deepClone(content),
+      api: {
+        method: method || "GET",
+        url: url || "",
+        headers: deepClone(headers || {}),
+        body: deepClone(body || {}),
+        timeout: timeout ?? 10000,
+        headersText: pretty(headers || {}),
+        bodyText: pretty(body || {}),
+      },
+      media: deepClone(content),
+      location: deepClone(content),
+    });
+  }, [type, block.content, content, method, url, headers, body, timeout]);
 
   const [regrasDraft, setRegrasDraft] = useState({
-    actions: deepClone(actions || []),
+    actions: deepClone(block.actions || []),
     defaultNext: defaultNext || "",
   });
   useEffect(() => {
-    if (overlayMode === "regras") {
-      setRegrasDraft({ actions: deepClone(actions || []), defaultNext: defaultNext || "" });
-    }
-  }, [overlayMode, actions, defaultNext]);
+    setRegrasDraft({ actions: deepClone(block.actions || []), defaultNext: defaultNext || "" });
+  }, [block.actions, defaultNext]);
 
   /* commits */
   const updateBlock = (changes) =>
@@ -1569,13 +1121,12 @@ export default function NodeConfigPanel({
     const d = conteudoDraft;
     const next = deepClone(block);
 
-    if (type === "text" || type === "error") next.content = d.text || "";
-    if (type === "interactive") next.content = deepClone(normalizeInteractive(d.content || {}));
-    if (type === "media") next.content = deepClone(normalizeMedia(d.media || {}));
+    if (type === "text") next.content = d.text || "";
+    if (type === "interactive") next.content = deepClone(d.content || {});
+    if (type === "media") next.content = deepClone(d.media || {});
     if (type === "location") next.content = deepClone(d.location || {});
     if (type === "script") {
-      next.function = d.fnName || "";
-      next.outputVar = d.outputVar || "";
+      // script: apenas código é editado no editor externo; nada para salvar aqui além de manter o bloco
     }
     if (type === "api_call") {
       next.method = d.api.method || "GET";
@@ -1583,8 +1134,7 @@ export default function NodeConfigPanel({
       next.headers = deepClone(d.api.headers || {});
       next.body = deepClone(d.api.body || {});
       next.timeout = parseInt(d.api.timeout || 10000, 10);
-      next.outputVar = d.api.outputVar || "apiResponse";
-      next.statusVar = d.api.statusVar || "apiStatus";
+      // sem outputVar/statusVar visíveis aqui
     }
 
     updateBlock(next);
@@ -1602,6 +1152,17 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
+  /* preview source */
+  const previewType = overlayMode === "conteudo" ? conteudoDraft.type : type;
+  const previewContent =
+    overlayMode === "conteudo" ? (conteudoDraft.content ?? {}) : (content ?? {});
+  const previewText =
+    overlayMode === "conteudo" ? conteudoDraft.text : (typeof block.content === "string" ? block.content : "");
+  const previewMedia =
+    overlayMode === "conteudo" ? (conteudoDraft.media ?? {}) : (typeof content === "object" ? content : {});
+  const previewLocation =
+    overlayMode === "conteudo" ? (conteudoDraft.location ?? {}) : (typeof content === "object" ? content : {});
+
   /* preview */
   const ChatPreview = () => (
     <div className={styles.chatPreviewCard}>
@@ -1609,12 +1170,17 @@ export default function NodeConfigPanel({
         <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
           <PencilLine size={16} />
         </button>
-        <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
-          <MoreHorizontal size={16} />
-        </button>
-        <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
-          <SlidersHorizontal size={16} />
-        </button>
+        {/* Esconde "Ações especiais" para script e api_call */}
+        {previewType !== "script" && previewType !== "api_call" && (
+          <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
+            <MoreHorizontal size={16} />
+          </button>
+        )}
+        {previewType !== "script" && previewType !== "api_call" && (
+          <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
+            <SlidersHorizontal size={16} />
+          </button>
+        )}
       </div>
 
       <div className={styles.chatArea}>
@@ -1622,24 +1188,67 @@ export default function NodeConfigPanel({
 
         <div className={styles.bubble}>
           <div className={styles.bubbleText}>
-            <RenderBlockPreview
-              type={type}
-              blockContent={block.content}
-              conteudoDraft={conteudoDraft}
-              overlayMode={overlayMode}
-            />
+            {previewType === "text" && (
+              <TextMessage content={previewText} />
+            )}
+
+            {previewType === "interactive" && (
+              previewContent?.type === "button" ? (
+                <QuickReplyMessage data={previewContent} />
+              ) : (
+                <InteractiveListMessage listData={previewContent} />
+              )
+            )}
+
+            {previewType === "media" && (() => {
+              const t = (previewMedia?.mediaType || "image").toLowerCase();
+              if (t === "image") return <ImageMessage data={previewMedia} />;
+              if (t === "document") return <DocumentMessage data={previewMedia} />;
+              if (t === "audio") return <AudioMessage data={previewMedia} />;
+              if (t === "video") return <VideoMessage data={previewMedia} />;
+              return <ImageMessage data={previewMedia} />;
+            })()}
+
+            {previewType === "location" && (
+              <div style={{ fontSize: 14 }}>
+                <strong>{previewLocation?.name || "Local"}</strong><br />
+                <small>{previewLocation?.address || "Endereço"}</small>
+              </div>
+            )}
+
+            {previewType === "human" && (
+              <div style={{ fontSize: 14 }}>
+                Encaminhando para atendimento humano…
+              </div>
+            )}
+
+            {previewType === "api_call" && (
+              <div style={{ fontSize: 14 }}>
+                <strong>HTTP {conteudoDraft.api?.method || "GET"}</strong>
+                <div>{conteudoDraft.api?.url || "— URL —"}</div>
+              </div>
+            )}
+
+            {previewType === "script" && (
+              <div style={{ fontSize: 14 }}>
+                <em>Bloco de script</em>
+              </div>
+            )}
           </div>
         </div>
 
-        <button
-          type="button"
-          className={styles.userInputChip}
-          onClick={() => openOverlay("await")}
-          title="Configurar aguardar resposta"
-        >
-          Entrada do usuário
-          <span className={styles.caret} />
-        </button>
+        {/* Esconde chip de "Entrada do usuário" para script e api_call */}
+        {previewType !== "script" && previewType !== "api_call" && (
+          <button
+            type="button"
+            className={styles.userInputChip}
+            onClick={() => openOverlay("await")}
+            title="Configurar aguardar resposta"
+          >
+            Entrada do usuário
+            <span className={styles.caret} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1706,14 +1315,23 @@ export default function NodeConfigPanel({
         )}
         {overlayMode === "conteudo" && (
           <OverlayConteudoComp
-            type={type}
+            type={conteudoDraft.type}
             draft={conteudoDraft}
             setDraft={(updater) =>
               setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
             }
             commit={() => {
-              try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); }
-              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); }
+              // valida JSON antes do commit
+              let ok = true;
+              try { JSON.parse(conteudoDraft.api.headersText || "{}"); }
+              catch { ok = false; showToast("error","Headers inválidos (JSON)."); }
+              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); }
+              catch { ok = false; showToast("error","Body inválido (JSON)."); }
+              if (!ok) return;
+              // sincroniza textos parseados
+              const parsedHeaders = (() => { try { return JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { return conteudoDraft.api.headers; }})();
+              const parsedBody = (() => { try { return JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { return conteudoDraft.api.body; }})();
+              setConteudoDraft((d) => ({ ...d, api: { ...d.api, headers: parsedHeaders, body: parsedBody }}));
               commitConteudo();
             }}
             onBack={closeOverlay}
