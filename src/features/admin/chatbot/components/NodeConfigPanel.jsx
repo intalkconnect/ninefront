@@ -183,6 +183,7 @@ function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
 }
 
 /* ================= OverlayConteudo ================= */
+/* ================= OverlayConteudo ================= */
 function OverlayConteudoComp({
   type,
   draft,
@@ -199,10 +200,29 @@ function OverlayConteudoComp({
   const setContent = (patch) =>
     setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
 
-  // helpers seguros para LIST
+  // helpers LIST
   const getListHeader = () => deepClone(draft.content?.header) || { type: "text", text: "" };
   const getListAction = () =>
     deepClone(draft.content?.action) || { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [] }] };
+
+  // ===== small UI helpers =====
+  const CharHelp = ({ value = "", limit }) => (
+    <small className={styles.helpText}>
+      {value?.length || 0}/{limit}
+    </small>
+  );
+
+  const LIMITS = {
+    body: 1024,
+    footer: 60,
+    headerText: 60,
+    listButton: 20,
+    rowTitle: 24,
+    rowDesc: 72,
+    qrButton: 20,
+    listMaxRows: 10,
+    qrMaxButtons: 3,
+  };
 
   return (
     <>
@@ -218,6 +238,8 @@ function OverlayConteudoComp({
       />
 
       <div className={styles.overlayBody} data-stop-hotkeys="true">
+
+        {/* ========= TEXT ========= */}
         {type === "text" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
@@ -225,12 +247,15 @@ function OverlayConteudoComp({
               <StableTextarea
                 rows={8}
                 value={draft.text}
-                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+                maxLength={LIMITS.body}
+                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value?.slice(0, LIMITS.body) }))}
               />
+              <CharHelp value={draft.text} limit={LIMITS.body} />
             </div>
           </div>
         )}
 
+        {/* ========= INTERACTIVE ========= */}
         {type === "interactive" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
@@ -252,7 +277,7 @@ function OverlayConteudoComp({
                           header: { type: "text", text: "🎯 Menu de Opções" },
                           action: {
                             button: "Abrir lista",
-                            sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}]
+                            sections: [{ title: "Seção 1", rows: [{ id: "item_1", title: "Item 1", description: "" }]}]
                           }
                         }),
                       }));
@@ -280,17 +305,34 @@ function OverlayConteudoComp({
                 </select>
               </div>
 
-              {/* corpo comum (button/list) */}
+              {/* BODY */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Corpo</label>
                 <StableInput
                   type="text"
                   value={draft.content?.body?.text || ""}
+                  maxLength={LIMITS.body}
                   onChange={(e) => {
-                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value };
+                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value?.slice(0, LIMITS.body) };
                     setContent({ body });
                   }}
                 />
+                <CharHelp value={draft.content?.body?.text} limit={LIMITS.body} />
+              </div>
+
+              {/* FOOTER (comum) */}
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Rodapé (opcional)</label>
+                <StableInput
+                  type="text"
+                  value={draft.content?.footer?.text || ""}
+                  maxLength={LIMITS.footer}
+                  onChange={(e) => {
+                    const footer = { ...(deepClone(draft.content?.footer) || {}), text: e.target.value?.slice(0, LIMITS.footer) };
+                    setContent({ footer });
+                  }}
+                />
+                <CharHelp value={draft.content?.footer?.text} limit={LIMITS.footer} />
               </div>
 
               {/* ====== QUICK REPLY ====== */}
@@ -298,22 +340,26 @@ function OverlayConteudoComp({
                 <>
                   {(draft.content?.action?.buttons || []).map((btn, idx) => (
                     <div key={idx} className={styles.rowItemStyle}>
-                      <StableInput
-                        type="text"
-                        value={btn?.reply?.title || ""}
-                        maxLength={20}
-                        placeholder="Texto do botão"
-                        onChange={(e) => {
-                          const value = clampFn(e.target.value, 20);
-                          const buttons = deepClone(draft.content?.action?.buttons || []);
-                          buttons[idx] = {
-                            ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
-                            reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
-                          };
-                          const action = { ...(deepClone(draft.content?.action) || {}), buttons };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
+                      <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.inputLabel}>Botão {idx + 1}</label>
+                        <StableInput
+                          type="text"
+                          value={btn?.reply?.title || ""}
+                          maxLength={LIMITS.qrButton}
+                          placeholder="Texto do botão"
+                          onChange={(e) => {
+                            const value = (e.target.value || "").slice(0, LIMITS.qrButton);
+                            const buttons = deepClone(draft.content?.action?.buttons || []);
+                            buttons[idx] = {
+                              ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
+                              reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
+                            };
+                            const action = { ...(deepClone(draft.content?.action) || {}), buttons };
+                            setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                          }}
+                        />
+                        <CharHelp value={btn?.reply?.title || ""} limit={LIMITS.qrButton} />
+                      </div>
                       <Trash2
                         size={18}
                         className={styles.trashIcon}
@@ -327,18 +373,22 @@ function OverlayConteudoComp({
                       />
                     </div>
                   ))}
-                  <button
-                    onClick={() => {
-                      const current = deepClone(draft.content?.action?.buttons || []);
-                      if (current.length >= 3) return;
-                      const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
-                      const action = { ...(deepClone(draft.content?.action) || {}), buttons: [...current, newBtn] };
-                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar botão
-                  </button>
+
+                  <div className={styles.buttonGroup}>
+                    <button
+                      onClick={() => {
+                        const current = deepClone(draft.content?.action?.buttons || []);
+                        if (current.length >= LIMITS.qrMaxButtons) return;
+                        const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
+                        const action = { ...(deepClone(draft.content?.action) || {}), buttons: [...current, newBtn] };
+                        setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                      }}
+                      className={styles.addButton}
+                      disabled={(draft.content?.action?.buttons || []).length >= LIMITS.qrMaxButtons}
+                    >
+                      + Adicionar botão ({(draft.content?.action?.buttons || []).length}/{LIMITS.qrMaxButtons})
+                    </button>
+                  </div>
                 </>
               )}
 
@@ -360,6 +410,7 @@ function OverlayConteudoComp({
                         <option value="text">text</option>
                         <option value="">(sem header)</option>
                       </select>
+                      <small className={styles.helpText}>Recomendado: “text”</small>
                     </div>
 
                     <div className={styles.inputGroup}>
@@ -367,15 +418,14 @@ function OverlayConteudoComp({
                       <StableInput
                         type="text"
                         value={getListHeader().text || ""}
+                        maxLength={LIMITS.headerText}
                         onChange={(e) => {
-                          const val = e.target.value;
-                          // se usuário apagou tudo e escolheu "(sem header)" acima,
-                          // você pode também optar por remover o header do objeto.
-                          const header = { ...getListHeader(), text: val };
+                          const header = { ...getListHeader(), text: (e.target.value || "").slice(0, LIMITS.headerText) };
                           setContent({ header });
                         }}
                         placeholder="ex.: 🎯 Menu de Opções"
                       />
+                      <CharHelp value={getListHeader().text || ""} limit={LIMITS.headerText} />
                     </div>
                   </div>
 
@@ -384,47 +434,59 @@ function OverlayConteudoComp({
                     <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
                     <StableInput
                       type="text"
-                      maxLength={20}
+                      maxLength={LIMITS.listButton}
                       value={getListAction().button || ""}
                       onChange={(e) => {
-                        const nextVal = (e.target.value || "").slice(0, 20);
+                        const nextVal = (e.target.value || "").slice(0, LIMITS.listButton);
                         const action = { ...getListAction(), button: nextVal };
                         setContent({ action });
                       }}
                     />
+                    <CharHelp value={getListAction().button || ""} limit={LIMITS.listButton} />
                   </div>
 
                   {/* SEÇÕES/ROWS */}
                   {((getListAction().sections?.[0]?.rows) || []).map((item, idx) => (
                     <div key={idx} className={styles.rowItemStyle}>
-                      <StableInput
-                        type="text"
-                        value={item.title}
-                        maxLength={24}
-                        placeholder="Título"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const action = getListAction();
-                          const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), title: clampFn(value, 24), id: makeIdFromTitleFn(value, 24) };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          setContent({ action: { ...action, sections } });
-                        }}
-                      />
-                      <StableInput
-                        type="text"
-                        value={item.description}
-                        placeholder="Descrição"
-                        onChange={(e) => {
-                          const action = getListAction();
-                          const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          setContent({ action: { ...action, sections } });
-                        }}
-                      />
+                      <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.inputLabel}>Opção do menu (título)</label>
+                        <StableInput
+                          type="text"
+                          value={item.title}
+                          maxLength={LIMITS.rowTitle}
+                          placeholder="Ex.: Agendamento"
+                          onChange={(e) => {
+                            const value = (e.target.value || "").slice(0, LIMITS.rowTitle);
+                            const action = getListAction();
+                            const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
+                            const rows = [...(sections[0]?.rows || [])];
+                            rows[idx] = { ...(rows[idx] || {}), title: value, id: makeIdFromTitleFn(value, LIMITS.rowTitle) };
+                            sections[0] = { ...(sections[0] || {}), rows };
+                            setContent({ action: { ...action, sections } });
+                          }}
+                        />
+                        <CharHelp value={item.title || ""} limit={LIMITS.rowTitle} />
+                      </div>
+
+                      <div className={styles.inputGroup} style={{ flex: 1 }}>
+                        <label className={styles.inputLabel}>Descrição (opcional)</label>
+                        <StableInput
+                          type="text"
+                          value={item.description}
+                          maxLength={LIMITS.rowDesc}
+                          placeholder="Texto explicativo mostrado abaixo da opção"
+                          onChange={(e) => {
+                            const action = getListAction();
+                            const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
+                            const rows = [...(sections[0]?.rows || [])];
+                            rows[idx] = { ...(rows[idx] || {}), description: (e.target.value || "").slice(0, LIMITS.rowDesc) };
+                            sections[0] = { ...(sections[0] || {}), rows };
+                            setContent({ action: { ...action, sections } });
+                          }}
+                        />
+                        <CharHelp value={item.description || ""} limit={LIMITS.rowDesc} />
+                      </div>
+
                       <Trash2
                         size={18}
                         className={styles.trashIcon}
@@ -441,28 +503,33 @@ function OverlayConteudoComp({
                     </div>
                   ))}
 
-                  <button
-                    onClick={() => {
-                      const action = getListAction();
-                      const sections = deepClone(action.sections || [{ title: "", rows: [] }]);
-                      const rows = sections[0]?.rows || [];
-                      const n = rows.length + 1;
-                      const title = `Item ${n}`;
-                      const newItem = { id: makeIdFromTitleFn(title, 24), title, description: "" };
-                      const nextRows = [...rows, newItem];
-                      const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
-                      setContent({ action: { ...action, sections: nextSections } });
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar item
-                  </button>
+                  <div className={styles.buttonGroup}>
+                    <button
+                      onClick={() => {
+                        const action = getListAction();
+                        const sections = deepClone(action.sections || [{ title: "", rows: [] }]);
+                        const rows = sections[0]?.rows || [];
+                        if (rows.length >= LIMITS.listMaxRows) return;
+                        const n = rows.length + 1;
+                        const title = `Item ${n}`;
+                        const newItem = { id: makeIdFromTitleFn(title, LIMITS.rowTitle), title, description: "" };
+                        const nextRows = [...rows, newItem];
+                        const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
+                        setContent({ action: { ...action, sections: nextSections } });
+                      }}
+                      className={styles.addButton}
+                      disabled={(getListAction().sections?.[0]?.rows?.length || 0) >= LIMITS.listMaxRows}
+                    >
+                      + Adicionar item ({(getListAction().sections?.[0]?.rows?.length || 0)}/{LIMITS.listMaxRows})
+                    </button>
+                  </div>
                 </>
               )}
             </div>
           </div>
         )}
 
+        {/* ========= MEDIA ========= */}
         {type === "media" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
@@ -493,13 +560,16 @@ function OverlayConteudoComp({
                 <StableInput
                   type="text"
                   value={draft.media?.caption || ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value } }))}
+                  maxLength={LIMITS.footer}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value?.slice(0, LIMITS.footer) } }))}
                 />
+                <CharHelp value={draft.media?.caption || ""} limit={LIMITS.footer} />
               </div>
             </div>
           </div>
         )}
 
+        {/* ========= LOCATION ========= */}
         {type === "location" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
@@ -516,6 +586,7 @@ function OverlayConteudoComp({
           </div>
         )}
 
+        {/* ========= SCRIPT ========= */}
         {type === "script" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
@@ -551,6 +622,7 @@ function OverlayConteudoComp({
           </div>
         )}
 
+        {/* ========= API ========= */}
         {type === "api_call" && (
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
