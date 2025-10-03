@@ -1344,6 +1344,148 @@ function EditorOverlay({
   );
 }
 
+function OverlayEspeciaisComp({
+  onBack,
+  onClose,
+  onChangeNode,
+  selectedNode,
+  block,
+  variableOptions,
+  showToast,
+}) {
+  const { onEnter = [], onExit = [] } = block || {};
+  const [editorOpen, setEditorOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState({
+    mode: "create",
+    section: "enter",
+    index: -1,
+    draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+  });
+
+  const ensureArray = (v) => (Array.isArray(v) ? v : []);
+  const deepClone = (obj) =>
+    typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj ?? {}));
+
+  const resetEditing = () =>
+    setEditing({
+      mode: "create",
+      section: "enter",
+      index: -1,
+      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+    });
+
+  const startCreate = (section) => {
+    resetEditing();
+    setEditing((s) => ({ ...s, section, mode: "create" }));
+    setEditorOpen(true);
+  };
+
+  const startEdit = (section, index) => {
+    const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
+    const item = deepClone(list[index] || {});
+    setEditing({
+      mode: "edit",
+      section,
+      index,
+      draft: {
+        label: item.label || "",
+        scope: item.scope || "context",
+        key: item.key || "",
+        value: item.value ?? "",
+        conditions: ensureArray(item.conditions || []),
+      },
+    });
+    setEditorOpen(true);
+  };
+
+  const removeItem = (section, index) => {
+    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+    list.splice(index, 1);
+    if (section === "enter") {
+      onChangeNode({ onEnter: list });
+    } else {
+      onChangeNode({ onExit: list });
+    }
+    showToast?.("success", "Variável removida.");
+  };
+
+  const validateDraft = (d) => {
+    if (!d.label?.trim()) { showToast?.("error", "Informe o título da variável."); return false; }
+    if (!d.key?.trim())   { showToast?.("error", "Informe a chave da variável."); return false; }
+    for (let i = 0; i < (d.conditions || []).length; i++) {
+      const c = d.conditions[i];
+      if (c.variable === undefined) { showToast?.("error", `Condição ${i + 1}: selecione a variável.`); return false; }
+      if (!c.type) { showToast?.("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
+      if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
+        showToast?.("error", `Condição ${i + 1}: informe o valor.`); return false;
+      }
+    }
+    return true;
+  };
+
+  const saveEditing = () => {
+    const { section, index, mode, draft } = editing;
+    if (!validateDraft(draft)) return;
+
+    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+    const clean = {
+      label: draft.label.trim(),
+      scope: draft.scope || "context",
+      key: draft.key.trim(),
+      value: draft.value ?? "",
+      ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
+    };
+
+    if (mode === "create") list.push(clean);
+    else list[index] = { ...list[index], ...clean };
+
+    if (section === "enter") onChangeNode({ onEnter: list });
+    else onChangeNode({ onExit: list });
+
+    setEditorOpen(false);
+    resetEditing();
+    showToast?.("success", "Variável salva com sucesso.");
+  };
+
+  return (
+    <>
+      <OverlayHeader title="Ações especiais" onBack={onBack} onClose={onClose} />
+
+      <div className={styles.overlayBody} data-stop-hotkeys="true">
+        <SpecialList
+          title="Ao entrar no bloco"
+          section="enter"
+          items={ensureArray(onEnter)}
+          onNew={startCreate}
+          onEdit={startEdit}
+          onRemove={removeItem}
+        />
+        <SpecialList
+          title="Ao sair do bloco"
+          section="exit"
+          items={ensureArray(onExit)}
+          onNew={startCreate}
+          onEdit={startEdit}
+          onRemove={removeItem}
+        />
+      </div>
+
+      <EditorOverlay
+        open={editorOpen}
+        setOpen={setEditorOpen}
+        draft={editing.draft}
+        setDraft={(d) => setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))}
+        mode={editing.mode}
+        section={editing.section}
+        save={saveEditing}
+        cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
+        variableOptions={variableOptions}
+      />
+    </>
+  );
+}
+
+
 /* ================= Preview (oculto para script/api_call) ================= */
 function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) {
   const liveContent =
@@ -1595,52 +1737,58 @@ export default function NodeConfigPanel({
   const closeOverlay = () => setOverlayMode("none");
 
   /* preview — oculto para script/api_call */
-  const ChatPreview = () => {
-    if (isScriptOrApi) return null;
-    return (
-      <div className={styles.chatPreviewCard}>
-        <div className={styles.floatingBtns}>
-          <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
-            <PencilLine size={16} />
-          </button>
-          <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
-            <MoreHorizontal size={16} />
-          </button>
-          {!isHuman && (
-            <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
-              <SlidersHorizontal size={16} />
-            </button>
-          )}
-        </div>
+ const isStart = selectedNode?.data?.nodeType === "start";
 
-        <div className={styles.chatArea}>
-          <div className={styles.typingDot}>•••</div>
-          <div className={styles.bubble}>
-            <div className={styles.bubbleText}>
-              <RenderBlockPreview
-                type={type}
-                blockContent={block.content}
-                conteudoDraft={conteudoDraft}
-                overlayMode={overlayMode}
-              />
-            </div>
-          </div>
+const ChatPreview = () => {
+  // não mostrar preview para start, script e api_call
+  if (isStart || isScriptOrApi) return null;
 
-          {!isHuman && (
-            <button
-              type="button"
-              className={styles.userInputChip}
-              onClick={() => openOverlay("await")}
-              title="Configurar aguardar resposta"
-            >
-              Entrada do usuário
-              <span className={styles.caret} />
-            </button>
-          )}
-        </div>
+  return (
+    <div className={styles.chatPreviewCard}>
+      <div className={styles.floatingBtns}>
+        <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
+          <PencilLine size={16} />
+        </button>
+        <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
+          <MoreHorizontal size={16} />
+        </button>
+        {/* nada de especiais para humano e start */}
+        {!isHuman && !isStart && (
+          <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
+            <SlidersHorizontal size={16} />
+          </button>
+        )}
       </div>
-    );
-  };
+
+      <div className={styles.chatArea}>
+        <div className={styles.typingDot}>•••</div>
+        <div className={styles.bubble}>
+          <div className={styles.bubbleText}>
+            <RenderBlockPreview
+              type={type}
+              blockContent={block.content}
+              conteudoDraft={conteudoDraft}
+              overlayMode={overlayMode}
+            />
+          </div>
+        </div>
+
+        {!isHuman && (
+          <button
+            type="button"
+            className={styles.userInputChip}
+            onClick={() => openOverlay("await")}
+            title="Configurar aguardar resposta"
+          >
+            Entrada do usuário
+            <span className={styles.caret} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 
   /* render */
   return (
@@ -1785,3 +1933,4 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
+
