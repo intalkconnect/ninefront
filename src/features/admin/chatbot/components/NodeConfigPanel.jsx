@@ -13,16 +13,15 @@ import {
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/** ======= IMPORTS DOS MESSAGE TYPES (ajuste os caminhos) ======= */
-// Exemplos de caminhos. Troque pelos seus reais:
-import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
-import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
-import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
-import ImageMessage from "../../atendimento/history/messageTypes/ImageMessage";
-import DocumentMessage from "../../atendimento/history/messageTypes/DocumentMessage";
-import AudioMessage from "../../atendimento/history/messageTypes/AudioMessage";
-import VideoMessage from "../../atendimento/history/messageTypes/VideoMessage";
-import ContactsMessage from "../../atendimento/history/messageTypes/ContactsMessage";
+/** ======= IMPORTS DOS MESSAGE TYPES (ajuste os caminhos se necessário) ======= */
+import TextMessage from "../../../atendimento/components/chat/messageTypes/TextMessage";
+import QuickReplyMessage from "../../../atendimento/components/chat/messageTypes/QuickReplyMessage";
+import InteractiveListMessage from "../../../atendimento/components/chat/messageTypes/ListMessage";
+import ImageMessage from "../../../atendimento/components/chat/messageTypes/ImageMessage";
+import DocumentMessage from "../../../atendimento/components/chat/messageTypes/DocumentMessage";
+import AudioMessage from "../../../atendimento/components/chat/messageTypes/AudioMessage";
+import VideoMessage from "../../../atendimento/components/chat/messageTypes/VideoMessage";
+import ContactsMessage from "../../../atendimento/components/chat/messageTypes/ContactsMessage";
 
 /* ================= Inputs estáveis ================= */
 function useStableCaret() {
@@ -183,7 +182,6 @@ function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
 }
 
 /* ================= OverlayConteudo ================= */
-/* ================= OverlayConteudo ================= */
 function OverlayConteudoComp({
   type,
   draft,
@@ -205,13 +203,10 @@ function OverlayConteudoComp({
   const getListAction = () =>
     deepClone(draft.content?.action) || { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [] }] };
 
-  // ===== small UI helpers =====
+  // contadores/limites
   const CharHelp = ({ value = "", limit }) => (
-    <small className={styles.helpText}>
-      {value?.length || 0}/{limit}
-    </small>
+    <small className={styles.helpText}>{value?.length || 0}/{limit}</small>
   );
-
   const LIMITS = {
     body: 1024,
     footer: 60,
@@ -260,7 +255,6 @@ function OverlayConteudoComp({
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
             <div className={styles.sectionContent}>
-              {/* tipo do interativo */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
                 <select
@@ -593,8 +587,14 @@ function OverlayConteudoComp({
             <div className={styles.sectionContent}>
               <button
                 onClick={() => {
-                  setScriptCode(selectedNode?.data?.block?.code || "");
-                  setShowScriptEditor(true);
+                  const code = selectedNode?.data?.block?.code || "";
+                  if (typeof setScriptCode === "function" && typeof setShowScriptEditor === "function") {
+                    setScriptCode(code);
+                    setShowScriptEditor(true);
+                  } else {
+                    // feedback caso o pai não tenha injetado handlers
+                    alert("Editor de código não foi inicializado no componente pai.");
+                  }
                 }}
                 className={styles.addButton}
               >
@@ -652,14 +652,12 @@ function OverlayConteudoComp({
                 <StableTextarea
                   rows={3}
                   value={draft.api.headersText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
-                  }
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))}
                   onBlur={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
                       setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
+                    } catch {}
                   }}
                 />
               </div>
@@ -669,14 +667,12 @@ function OverlayConteudoComp({
                 <StableTextarea
                   rows={4}
                   value={draft.api.bodyText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
-                  }
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))}
                   onBlur={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
                       setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* toast no pai */ }
+                    } catch {}
                   }}
                 />
               </div>
@@ -998,407 +994,6 @@ function OverlayRegrasComp({
   );
 }
 
-/* ================= Especiais (lista + editor overlay) ================= */
-function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
-  return (
-    <div className={styles.sectionContainer}>
-      <div className={styles.sectionHeaderStatic}>
-        <h4 className={styles.sectionTitle}>{title}</h4>
-        <button className={styles.addButtonSmall} onClick={() => onNew(section)}>
-          + Nova variável
-        </button>
-      </div>
-
-      <div className={styles.sectionContent}>
-        {!items?.length && (
-          <div className={styles.emptyHint}>
-            Nenhuma variável ainda. Clique em <strong>Nova variável</strong> para adicionar.
-          </div>
-        )}
-
-        {items?.map((a, i) => (
-          <div key={`${section}-${i}`} className={styles.specialListRow}>
-            <div className={styles.rowMain}>
-              <div className={styles.rowTitle}>{a.label}</div>
-              <div className={styles.rowMeta}>
-                <span className={styles.pill}>{a.scope || "context"}</span>
-                <span className={styles.metaSep}>•</span>
-                <span className={styles.mono}>{a.key || "-"}</span>
-                <span className={styles.metaArrow}>→</span>
-                <span className={styles.monoTrunc} title={String(a.value ?? "")}>
-                  {String(a.value ?? "") || "—"}
-                </span>
-                {a?.conditions?.length ? (
-                  <>
-                    <span className={styles.metaSep}>•</span>
-                    <span className={styles.pillLight}>{a.conditions.length} condição(ões)</span>
-                  </>
-                ) : null}
-              </div>
-            </div>
-
-            <div className={styles.rowActions}>
-              <button className={styles.iconGhost} title="Editar" onClick={() => onEdit(section, i)}>
-                <PencilLine size={16} />
-              </button>
-              <button className={styles.iconGhost} title="Remover" onClick={() => onRemove(section, i)}>
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function EditorOverlay({
-  open,
-  setOpen,
-  draft,
-  setDraft,
-  mode,
-  section,
-  save,
-  cancel,
-  variableOptions,
-  showToast,
-}) {
-  const addCond = () =>
-    setDraft((d) => ({ ...d, conditions: [...(d.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] }));
-  const updateCond = (idx, patch) => {
-    const next = deepClone(draft.conditions || []);
-    next[idx] = { ...next[idx], ...patch };
-    setDraft((d) => ({ ...d, conditions: next }));
-  };
-  const removeCond = (idx) => {
-    const next = deepClone(draft.conditions || []);
-    next.splice(idx, 1);
-    setDraft((d) => ({ ...d, conditions: next }));
-  };
-
-  return (
-    <div className={`${styles.subOverlay} ${open ? styles.subOverlayOpen : ""}`} data-stop-hotkeys="true">
-      <div className={styles.subOverlayHeader}>
-        <button className={styles.backBtn} onClick={() => { setOpen(false); cancel(); }} title="Voltar">
-          <ArrowLeft size={18} />
-        </button>
-        <div className={styles.overlayTitle}>
-          {mode === "edit" ? "Editar variável" : "Nova variável"}
-          <span className={styles.pillLight} style={{ marginLeft: 8 }}>
-            {section === "enter" ? "Ao entrar" : "Ao sair"}
-          </span>
-        </div>
-        <div className={styles.buttonGroup}>
-          <button className={styles.deleteButtonSmall} onClick={() => { setOpen(false); cancel(); }}>
-            <X size={14}/> Cancelar
-          </button>
-          <button className={styles.addButtonSmall} onClick={() => { save(); setOpen(false); }}>
-            <Check size={14}/> Salvar
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.subOverlayBody}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Título *</label>
-          <StableInput
-            placeholder="Como aparece na lista"
-            value={draft.label}
-            onChange={(e) => setDraft((d)=>({ ...d, label: e.target.value }))}
-          />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Escopo</label>
-          <select
-            className={styles.selectStyle}
-            value={draft.scope || "context"}
-            onChange={(e) => setDraft((d)=>({ ...d, scope: e.target.value || "context" }))}
-          >
-            <option value="context">context</option>
-            <option value="contact">contact</option>
-            <option value="contact.extra">contact.extra</option>
-          </select>
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Chave *</label>
-          <StableInput
-            placeholder="ex.: protocolo"
-            value={draft.key}
-            onChange={(e) => setDraft((d)=>({ ...d, key: e.target.value }))}
-          />
-        </div>
-
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Valor</label>
-          <StableInput
-            placeholder='ex.: 12345 ou {{context.algo}}'
-            value={draft.value}
-            onChange={(e) => setDraft((d)=>({ ...d, value: e.target.value }))}
-          />
-        </div>
-
-        <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Condições (opcional)</h4>
-            <button className={styles.addButtonSmall} onClick={addCond}>+ Adicionar condição</button>
-          </div>
-          <div className={styles.sectionContent}>
-            {!(draft.conditions || []).length && (
-              <div className={styles.emptyHint}>
-                Se adicionar condições, a variável só será definida quando <strong>todas</strong> forem satisfeitas.
-              </div>
-            )}
-
-            {(draft.conditions || []).map((cond, idx) => (
-              <div key={idx} className={styles.specialCondRow}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável</label>
-                  <select
-                    className={styles.selectStyle}
-                    value={
-                      variableOptions.some((v) => v.value === cond.variable)
-                        ? cond.variable
-                        : cond.variable
-                        ? "custom"
-                        : "lastUserMessage"
-                    }
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "custom") updateCond(idx, { variable: "" });
-                      else {
-                        const patch = { variable: v };
-                        if (!cond.type) patch.type = "equals";
-                        if (v === "offhours") patch.value = "true";
-                        if (v === "offhours_reason") patch.value = "closed";
-                        updateCond(idx, patch);
-                      }
-                    }}
-                  >
-                    {variableOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Nome</label>
-                    <StableInput
-                      placeholder="ex.: meuCampo"
-                      value={cond.variable || ""}
-                      onChange={(e) => updateCond(idx, { variable: e.target.value })}
-                    />
-                  </div>
-                )}
-
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Tipo</label>
-                  <select
-                    className={styles.selectStyle}
-                    value={cond.type || ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const patch = { type: v || "" };
-                      if (v === "exists") patch.value = "";
-                      updateCond(idx, patch);
-                    }}
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="exists">Existe</option>
-                    <option value="equals">Igual a</option>
-                    <option value="not_equals">Diferente de</option>
-                    <option value="contains">Contém</option>
-                    <option value="not_contains">Não contém</option>
-                    <option value="starts_with">Começa com</option>
-                    <option value="ends_with">Termina com</option>
-                  </select>
-                </div>
-
-                {cond.type !== "exists" && (
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Valor</label>
-                    {cond.variable === "offhours" ? (
-                      <select
-                        className={styles.selectStyle}
-                        value={cond.value ?? "true"}
-                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
-                      >
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                      </select>
-                    ) : cond.variable === "offhours_reason" ? (
-                      <select
-                        className={styles.selectStyle}
-                        value={cond.value ?? "holiday"}
-                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
-                      >
-                        <option value="holiday">holiday</option>
-                        <option value="closed">closed</option>
-                      </select>
-                    ) : (
-                      <StableInput
-                        placeholder="Valor para comparação"
-                        value={cond.value ?? ""}
-                        onChange={(e) => updateCond(idx, { value: e.target.value })}
-                      />
-                    )}
-                  </div>
-                )}
-
-                <div className={styles.buttonGroup}>
-                  <button className={styles.deleteButtonSmall} onClick={() => removeCond(idx)}>
-                    <Trash2 size={14}/> Remover
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OverlayEspeciaisComp({
-  onBack,
-  onClose,
-  onChangeNode,
-  selectedNode,
-  block,
-  variableOptions,
-  showToast,
-}) {
-  const { onEnter = [], onExit = [] } = block || {};
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState({
-    mode: "create",
-    section: "enter",
-    index: -1,
-    draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
-  });
-
-  const resetEditing = () =>
-    setEditing({ mode: "create", section: "enter", index: -1, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } });
-
-  const startCreate = (section) => {
-    resetEditing();
-    setEditing((s) => ({ ...s, section, mode: "create" }));
-    setEditorOpen(true);
-  };
-
-  const startEdit = (section, index) => {
-    const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
-    const item = deepClone(list[index] || {});
-    setEditing({
-      mode: "edit",
-      section,
-      index,
-      draft: {
-        label: item.label || "",
-        scope: item.scope || "context",
-        key: item.key || "",
-        value: item.value ?? "",
-        conditions: ensureArray(item.conditions || []),
-      },
-    });
-    setEditorOpen(true);
-  };
-
-  const removeItem = (section, index) => {
-    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-    list.splice(index, 1);
-    if (section === "enter") {
-      onChangeNode({ onEnter: list });
-    } else {
-      onChangeNode({ onExit: list });
-    }
-    showToast("success", "Variável removida.");
-  };
-
-  const validateDraft = (d) => {
-    if (!d.label?.trim()) { showToast("error", "Informe o título da variável."); return false; }
-    if (!d.key?.trim())   { showToast("error", "Informe a chave da variável."); return false; }
-    for (let i = 0; i < (d.conditions || []).length; i++) {
-      const c = d.conditions[i];
-      if (c.variable === undefined) { showToast("error", `Condição ${i + 1}: selecione a variável.`); return false; }
-      if (!c.type) { showToast("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
-      if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
-        showToast("error", `Condição ${i + 1}: informe o valor.`); return false;
-      }
-    }
-    return true;
-  };
-
-  const saveEditing = () => {
-    const { section, index, mode, draft } = editing;
-    if (!validateDraft(draft)) return;
-
-    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
-    const clean = {
-      label: draft.label.trim(),
-      scope: draft.scope || "context",
-      key: draft.key.trim(),
-      value: draft.value ?? "",
-      ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
-    };
-
-    if (mode === "create") list.push(clean);
-    else list[index] = { ...list[index], ...clean };
-
-    if (section === "enter") onChangeNode({ onEnter: list });
-    else onChangeNode({ onExit: list });
-
-    setEditorOpen(false);
-    setEditing({
-      mode: "create",
-      section: "enter",
-      index: -1,
-      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
-    });
-    showToast("success", "Variável salva com sucesso.");
-  };
-
-  return (
-    <>
-      <OverlayHeader title="Ações especiais" onBack={onBack} onClose={onClose} />
-      <div className={styles.overlayBody} data-stop-hotkeys="true">
-        <SpecialList
-          title="Ao entrar no bloco"
-          section="enter"
-          items={ensureArray(onEnter)}
-          onNew={startCreate}
-          onEdit={startEdit}
-          onRemove={removeItem}
-        />
-        <SpecialList
-          title="Ao sair do bloco"
-          section="exit"
-          items={ensureArray(onExit)}
-          onNew={startCreate}
-          onEdit={startEdit}
-          onRemove={removeItem}
-        />
-      </div>
-
-      <EditorOverlay
-        open={editorOpen}
-        setOpen={setEditorOpen}
-        draft={editing.draft}
-        setDraft={(d) => setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))}
-        mode={editing.mode}
-        section={editing.section}
-        save={saveEditing}
-        cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
-        variableOptions={variableOptions}
-        showToast={showToast}
-      />
-    </>
-  );
-}
-
 /* ================= Painel principal ================= */
 export default function NodeConfigPanel({
   selectedNode,
@@ -1440,8 +1035,6 @@ export default function NodeConfigPanel({
     function: fnName,
     saveResponseVar,
     defaultNext,
-    onEnter = [],
-    onExit = [],
   } = block;
 
   const isHuman = type === "human";
@@ -1492,7 +1085,6 @@ export default function NodeConfigPanel({
       sendDelayInSeconds: sendDelayInSeconds ?? 0,
       saveResponseVar: saveResponseVar || "",
     });
-  // sempre que o bloco mudar
   }, [awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
   const [conteudoDraft, setConteudoDraft] = useState({
@@ -1516,8 +1108,7 @@ export default function NodeConfigPanel({
     location: deepClone(content),
   });
 
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  // SINCRONIZA o draft SEM depender do overlay estar aberto
+  // mantém o draft sincronizado quando o bloco muda
   useEffect(() => {
     setConteudoDraft({
       type,
@@ -1540,15 +1131,14 @@ export default function NodeConfigPanel({
       location: deepClone(content),
     });
   }, [type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
-  // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   const [regrasDraft, setRegrasDraft] = useState({
-    actions: deepClone(actions || []),
+    actions: deepClone(block.actions || []),
     defaultNext: defaultNext || "",
   });
   useEffect(() => {
-    setRegrasDraft({ actions: deepClone(actions || []), defaultNext: defaultNext || "" });
-  }, [actions, defaultNext]);
+    setRegrasDraft({ actions: deepClone(block.actions || []), defaultNext: defaultNext || "" });
+  }, [block.actions, defaultNext]);
 
   /* commits */
   const updateBlock = (changes) =>
@@ -1601,28 +1191,16 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
-  /* ===== PREVIEW SOURCE =====
-     - quando o overlay de conteúdo estiver aberto, mostramos o draft;
-     - caso contrário, mostramos o conteúdo do bloco persistido. */
+  /* preview source */
   const previewType = overlayMode === "conteudo" ? conteudoDraft.type : type;
   const previewContent =
-    overlayMode === "conteudo"
-      ? (conteudoDraft.content ?? {})
-      : (content ?? {});
+    overlayMode === "conteudo" ? (conteudoDraft.content ?? {}) : (content ?? {});
   const previewText =
-    overlayMode === "conteudo"
-      ? conteudoDraft.text
-      : (typeof block.content === "string" ? block.content : "");
-
+    overlayMode === "conteudo" ? conteudoDraft.text : (typeof block.content === "string" ? block.content : "");
   const previewMedia =
-    overlayMode === "conteudo"
-      ? (conteudoDraft.media ?? {})
-      : (typeof content === "object" ? content : {});
-
+    overlayMode === "conteudo" ? (conteudoDraft.media ?? {}) : (typeof content === "object" ? content : {});
   const previewLocation =
-    overlayMode === "conteudo"
-      ? (conteudoDraft.location ?? {})
-      : (typeof content === "object" ? content : {});
+    overlayMode === "conteudo" ? (conteudoDraft.location ?? {}) : (typeof content === "object" ? content : {});
 
   /* preview */
   const ChatPreview = () => (
@@ -1640,20 +1218,19 @@ export default function NodeConfigPanel({
       </div>
 
       <div className={styles.chatArea}>
-        {/* bolha de "digitando" */}
         <div className={styles.typingDot}>•••</div>
 
         <div className={styles.bubble}>
           <div className={styles.bubbleText}>
             {previewType === "text" && (
-              <TextMessage data={{ text: previewText }} />
+              <TextMessage content={previewText} />
             )}
 
             {previewType === "interactive" && (
               previewContent?.type === "button" ? (
                 <QuickReplyMessage data={previewContent} />
               ) : (
-                <InteractiveListMessage quickData={previewContent} />
+                <InteractiveListMessage listData={previewContent} />
               )
             )}
 
@@ -1769,14 +1346,23 @@ export default function NodeConfigPanel({
         )}
         {overlayMode === "conteudo" && (
           <OverlayConteudoComp
-            type={type}
+            type={conteudoDraft.type}
             draft={conteudoDraft}
             setDraft={(updater) =>
               setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
             }
             commit={() => {
-              try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); }
-              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); }
+              // valida JSON antes do commit
+              let ok = true;
+              try { JSON.parse(conteudoDraft.api.headersText || "{}"); }
+              catch { ok = false; showToast("error","Headers inválidos (JSON)."); }
+              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); }
+              catch { ok = false; showToast("error","Body inválido (JSON)."); }
+              if (!ok) return;
+              // sincroniza textos parseados
+              const parsedHeaders = (() => { try { return JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { return conteudoDraft.api.headers; }})();
+              const parsedBody = (() => { try { return JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { return conteudoDraft.api.body; }})();
+              setConteudoDraft((d) => ({ ...d, api: { ...d.api, headers: parsedHeaders, body: parsedBody }}));
               commitConteudo();
             }}
             onBack={closeOverlay}
