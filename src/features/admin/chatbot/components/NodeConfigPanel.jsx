@@ -1586,6 +1586,7 @@ export default function NodeConfigPanel({
   const isHuman = type === "human";
   const isScript = type === "script";
   const isScriptOrApi = isScript || type === "api_call";
+  const isStart = selectedNode?.data?.nodeType === "start";
 
   const isEditableTarget = (el) => {
     if (!el) return false;
@@ -1837,13 +1838,14 @@ const ChatPreview = () => {
         </div>
 
         {/* Botão Regras de saída para SCRIPT e API_CALL */}
-        {isScriptOrApi && (
+        {(isStart || isScriptOrApi) && (
           <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
             <button className={styles.addButtonSmall} onClick={() => openOverlay("regras")}>
               <MoreHorizontal size={14}/> Regras de saída
             </button>
           </div>
         )}
+
 
         {/* Preview escondido para script/api_call */}
         <ChatPreview />
@@ -1933,4 +1935,5 @@ const ChatPreview = () => {
     </aside>
   );
 }
+
 
