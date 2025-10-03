@@ -1,12 +1,19 @@
 // src/features/admin/chatbot/components/NodeConfigPanel.jsx
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
-  Trash2, Plus, X, MoreHorizontal, PencilLine, ArrowLeft,
-  SlidersHorizontal, AlertCircle, Check
+  Trash2,
+  Plus,
+  X,
+  MoreHorizontal,
+  PencilLine,
+  ArrowLeft,
+  SlidersHorizontal,
+  AlertCircle,
+  Check,
 } from "lucide-react";
 import styles from "./styles/NodeConfigPanel.module.css";
 
-/** ======= MESSAGE TYPES ======= */
+/** ======= IMPORTS DOS MESSAGE TYPES (ajuste os caminhos se necessário) ======= */
 import TextMessage from "../../atendimento/history/messageTypes/TextMessage";
 import QuickReplyMessage from "../../atendimento/history/messageTypes/QuickReplyMessage";
 import InteractiveListMessage from "../../atendimento/history/messageTypes/ListMessage";
@@ -196,18 +203,20 @@ function OverlayConteudoComp({
   const getListAction = () =>
     deepClone(draft.content?.action) || { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [] }] };
 
-  // ===== small UI helpers =====
+  // contadores/limites
   const CharHelp = ({ value = "", limit }) => (
-    <small className={styles.helpText}>
-      {value?.length || 0}/{limit}
-    </small>
+    <small className={styles.helpText}>{value?.length || 0}/{limit}</small>
   );
-
-  // Limites Meta
   const LIMITS = {
-    body: 1024, footer: 60, headerText: 60, listButton: 20,
-    rowTitle: 24, rowDesc: 72, qrButton: 20,
-    listMaxRows: 10, qrMaxButtons: 3,
+    body: 1024,
+    footer: 60,
+    headerText: 60,
+    listButton: 20,
+    rowTitle: 24,
+    rowDesc: 72,
+    qrButton: 20,
+    listMaxRows: 10,
+    qrMaxButtons: 3,
   };
 
   return (
@@ -224,6 +233,7 @@ function OverlayConteudoComp({
       />
 
       <div className={styles.overlayBody} data-stop-hotkeys="true">
+
         {/* ========= TEXT ========= */}
         {type === "text" && (
           <div className={styles.sectionContainer}>
@@ -233,7 +243,7 @@ function OverlayConteudoComp({
                 rows={8}
                 value={draft.text}
                 maxLength={LIMITS.body}
-                onChange={(e) => setDraft((d) => ({ ...d, text: (e.target.value || "").slice(0, LIMITS.body) }))}
+                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value?.slice(0, LIMITS.body) }))}
               />
               <CharHelp value={draft.text} limit={LIMITS.body} />
             </div>
@@ -245,7 +255,6 @@ function OverlayConteudoComp({
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
             <div className={styles.sectionContent}>
-              {/* tipo do interativo */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
                 <select
@@ -298,14 +307,14 @@ function OverlayConteudoComp({
                   value={draft.content?.body?.text || ""}
                   maxLength={LIMITS.body}
                   onChange={(e) => {
-                    const body = { ...(deepClone(draft.content?.body) || {}), text: (e.target.value || "").slice(0, LIMITS.body) };
+                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value?.slice(0, LIMITS.body) };
                     setContent({ body });
                   }}
                 />
                 <CharHelp value={draft.content?.body?.text} limit={LIMITS.body} />
               </div>
 
-              {/* FOOTER */}
+              {/* FOOTER (comum) */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Rodapé (opcional)</label>
                 <StableInput
@@ -313,7 +322,7 @@ function OverlayConteudoComp({
                   value={draft.content?.footer?.text || ""}
                   maxLength={LIMITS.footer}
                   onChange={(e) => {
-                    const footer = { ...(deepClone(draft.content?.footer) || {}), text: (e.target.value || "").slice(0, LIMITS.footer) };
+                    const footer = { ...(deepClone(draft.content?.footer) || {}), text: e.target.value?.slice(0, LIMITS.footer) };
                     setContent({ footer });
                   }}
                 />
@@ -546,7 +555,7 @@ function OverlayConteudoComp({
                   type="text"
                   value={draft.media?.caption || ""}
                   maxLength={LIMITS.footer}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: (e.target.value || "").slice(0, LIMITS.footer) } }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value?.slice(0, LIMITS.footer) } }))}
                 />
                 <CharHelp value={draft.media?.caption || ""} limit={LIMITS.footer} />
               </div>
@@ -578,10 +587,14 @@ function OverlayConteudoComp({
             <div className={styles.sectionContent}>
               <button
                 onClick={() => {
-                  // evita undefined
                   const code = selectedNode?.data?.block?.code || "";
-                  setScriptCode(code);
-                  setShowScriptEditor(true);
+                  if (typeof setScriptCode === "function" && typeof setShowScriptEditor === "function") {
+                    setScriptCode(code);
+                    setShowScriptEditor(true);
+                  } else {
+                    // feedback caso o pai não tenha injetado handlers
+                    alert("Editor de código não foi inicializado no componente pai.");
+                  }
                 }}
                 className={styles.addButton}
               >
@@ -592,7 +605,7 @@ function OverlayConteudoComp({
                 <label className={styles.inputLabel}>Função</label>
                 <StableInput
                   type="text"
-                  value={draft.fnName || ""}
+                  value={draft.fnName}
                   onChange={(e) => setDraft((d) => ({ ...d, fnName: e.target.value }))}
                 />
               </div>
@@ -601,7 +614,7 @@ function OverlayConteudoComp({
                 <label className={styles.inputLabel}>Variável de saída</label>
                 <StableInput
                   type="text"
-                  value={draft.outputVar || ""}
+                  value={draft.outputVar}
                   onChange={(e) => setDraft((d) => ({ ...d, outputVar: e.target.value }))}
                 />
               </div>
@@ -617,8 +630,8 @@ function OverlayConteudoComp({
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Método</label>
                 <select
-                  value={draft.api?.method || "GET"}
-                  onChange={(e) => setDraft((d)=>({ ...d, api:{...(d.api||{}), method: e.target.value || "GET"} }))}
+                  value={draft.api.method}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
                   className={styles.selectStyle}
                 >
                   <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
@@ -629,8 +642,8 @@ function OverlayConteudoComp({
                 <label className={styles.inputLabel}>URL</label>
                 <StableInput
                   type="text"
-                  value={draft.api?.url || ""}
-                  onChange={(e) => setDraft((d)=>({ ...d, api:{...(d.api||{}), url: e.target.value} }))}
+                  value={draft.api.url}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
                 />
               </div>
 
@@ -638,15 +651,13 @@ function OverlayConteudoComp({
                 <label className={styles.inputLabel}>Headers (JSON)</label>
                 <StableTextarea
                   rows={3}
-                  value={draft.api?.headersText || "{}"}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...(d.api||{}), headersText: e.target.value} }))
-                  }
+                  value={draft.api.headersText}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))}
                   onBlur={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...(d.api||{}), headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                    } catch { /* feedback visual vem no commit */ }
+                      setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
+                    } catch {}
                   }}
                 />
               </div>
@@ -655,14 +666,12 @@ function OverlayConteudoComp({
                 <label className={styles.inputLabel}>Body (JSON)</label>
                 <StableTextarea
                   rows={4}
-                  value={draft.api?.bodyText || "{}"}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...(d.api||{}), bodyText: e.target.value} }))
-                  }
+                  value={draft.api.bodyText}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))}
                   onBlur={(e) => {
                     try {
                       const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...(d.api||{}), body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
+                      setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
                     } catch {}
                   }}
                 />
@@ -673,24 +682,24 @@ function OverlayConteudoComp({
                   <label className={styles.inputLabel}>Timeout (ms)</label>
                   <StableInput
                     type="number"
-                    value={draft.api?.timeout ?? 10000}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...(d.api||{}), timeout: e.target.value} }))}
+                    value={draft.api.timeout}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Variável de saída</label>
                   <StableInput
                     type="text"
-                    value={draft.api?.outputVar || "apiResponse"}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...(d.api||{}), outputVar: e.target.value} }))}
+                    value={draft.api.outputVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
                   />
                 </div>
                 <div className={styles.inputGroup}>
                   <label className={styles.inputLabel}>Variável de status</label>
                   <StableInput
                     type="text"
-                    value={draft.api?.statusVar || "apiStatus"}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...(d.api||{}), statusVar: e.target.value} }))}
+                    value={draft.api.statusVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
                   />
                 </div>
               </div>
@@ -1026,8 +1035,6 @@ export default function NodeConfigPanel({
     function: fnName,
     saveResponseVar,
     defaultNext,
-    onEnter = [],
-    onExit = [],
   } = block;
 
   const isHuman = type === "human";
@@ -1064,8 +1071,7 @@ export default function NodeConfigPanel({
         ]
   ), [isHuman]);
 
-  /* drafts – SEMPRE sincroniza quando o overlay está fechado,
-     para evitar “travadas” mas não sobrescrever enquanto edita */
+  /* drafts */
   const [awaitDraft, setAwaitDraft] = useState({
     awaitResponse: !!awaitResponse,
     awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
@@ -1073,15 +1079,13 @@ export default function NodeConfigPanel({
     saveResponseVar: saveResponseVar || "",
   });
   useEffect(() => {
-    if (overlayMode !== "await") {
-      setAwaitDraft({
-        awaitResponse: !!awaitResponse,
-        awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
-        sendDelayInSeconds: sendDelayInSeconds ?? 0,
-        saveResponseVar: saveResponseVar || "",
-      });
-    }
-  }, [overlayMode, awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
+    setAwaitDraft({
+      awaitResponse: !!awaitResponse,
+      awaitTimeInSeconds: awaitTimeInSeconds ?? 0,
+      sendDelayInSeconds: sendDelayInSeconds ?? 0,
+      saveResponseVar: saveResponseVar || "",
+    });
+  }, [awaitResponse, awaitTimeInSeconds, sendDelayInSeconds, saveResponseVar]);
 
   const [conteudoDraft, setConteudoDraft] = useState({
     type,
@@ -1103,40 +1107,38 @@ export default function NodeConfigPanel({
     media: deepClone(content),
     location: deepClone(content),
   });
+
+  // mantém o draft sincronizado quando o bloco muda
   useEffect(() => {
-    if (overlayMode !== "conteudo") {
-      setConteudoDraft({
-        type,
-        text: typeof block.content === "string" ? block.content : "",
-        content: deepClone(content),
-        fnName: fnName || "",
-        outputVar: outputVar || "",
-        api: {
-          method: method || "GET",
-          url: url || "",
-          headers: deepClone(headers || {}),
-          body: deepClone(body || {}),
-          timeout: timeout ?? 10000,
-          outputVar: outputVar || "apiResponse",
-          statusVar: statusVar || "apiStatus",
-          headersText: pretty(headers || {}),
-          bodyText: pretty(body || {}),
-        },
-        media: deepClone(content),
-        location: deepClone(content),
-      });
-    }
-  }, [overlayMode, type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
+    setConteudoDraft({
+      type,
+      text: typeof block.content === "string" ? block.content : "",
+      content: deepClone(content),
+      fnName: fnName || "",
+      outputVar: outputVar || "",
+      api: {
+        method: method || "GET",
+        url: url || "",
+        headers: deepClone(headers || {}),
+        body: deepClone(body || {}),
+        timeout: timeout ?? 10000,
+        outputVar: outputVar || "apiResponse",
+        statusVar: statusVar || "apiStatus",
+        headersText: pretty(headers || {}),
+        bodyText: pretty(body || {}),
+      },
+      media: deepClone(content),
+      location: deepClone(content),
+    });
+  }, [type, block.content, content, fnName, outputVar, method, url, headers, body, timeout, statusVar]);
 
   const [regrasDraft, setRegrasDraft] = useState({
-    actions: deepClone(actions || []),
+    actions: deepClone(block.actions || []),
     defaultNext: defaultNext || "",
   });
   useEffect(() => {
-    if (overlayMode !== "regras") {
-      setRegrasDraft({ actions: deepClone(actions || []), defaultNext: defaultNext || "" });
-    }
-  }, [overlayMode, actions, defaultNext]);
+    setRegrasDraft({ actions: deepClone(block.actions || []), defaultNext: defaultNext || "" });
+  }, [block.actions, defaultNext]);
 
   /* commits */
   const updateBlock = (changes) =>
@@ -1153,10 +1155,6 @@ export default function NodeConfigPanel({
   };
 
   const commitConteudo = () => {
-    // valida JSON antes de salvar API
-    try { if (conteudoDraft?.api?.headersText) JSON.parse(conteudoDraft.api.headersText); } catch { return showToast("error","Headers inválidos (JSON)."); }
-    try { if (conteudoDraft?.api?.bodyText) JSON.parse(conteudoDraft.api.bodyText); } catch { return showToast("error","Body inválido (JSON)."); }
-
     const d = conteudoDraft;
     const next = deepClone(block);
 
@@ -1171,8 +1169,8 @@ export default function NodeConfigPanel({
     if (type === "api_call") {
       next.method = d.api.method || "GET";
       next.url = d.api.url || "";
-      next.headers = deepClone(d.api.headers || JSON.parse(d.api.headersText || "{}"));
-      next.body = deepClone(d.api.body || JSON.parse(d.api.bodyText || "{}"));
+      next.headers = deepClone(d.api.headers || {});
+      next.body = deepClone(d.api.body || {});
       next.timeout = parseInt(d.api.timeout || 10000, 10);
       next.outputVar = d.api.outputVar || "apiResponse";
       next.statusVar = d.api.statusVar || "apiStatus";
@@ -1193,7 +1191,7 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
-  /* ===== PREVIEW SOURCE ===== */
+  /* preview source */
   const previewType = overlayMode === "conteudo" ? conteudoDraft.type : type;
   const previewContent =
     overlayMode === "conteudo" ? (conteudoDraft.content ?? {}) : (content ?? {});
@@ -1220,17 +1218,20 @@ export default function NodeConfigPanel({
       </div>
 
       <div className={styles.chatArea}>
-        {/* bolha de "digitando" */}
         <div className={styles.typingDot}>•••</div>
 
         <div className={styles.bubble}>
           <div className={styles.bubbleText}>
-            {previewType === "text" && <TextMessage data={{ text: previewText }} />}
+            {previewType === "text" && (
+              <TextMessage content={previewText} />
+            )}
 
             {previewType === "interactive" && (
-              previewContent?.type === "button"
-                ? <QuickReplyMessage data={previewContent} />
-                : <InteractiveListMessage listData={previewContent} />
+              previewContent?.type === "button" ? (
+                <QuickReplyMessage data={previewContent} />
+              ) : (
+                <InteractiveListMessage listData={previewContent} />
+              )
             )}
 
             {previewType === "media" && (() => {
@@ -1345,12 +1346,25 @@ export default function NodeConfigPanel({
         )}
         {overlayMode === "conteudo" && (
           <OverlayConteudoComp
-            type={type}
+            type={conteudoDraft.type}
             draft={conteudoDraft}
             setDraft={(updater) =>
               setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
             }
-            commit={commitConteudo}
+            commit={() => {
+              // valida JSON antes do commit
+              let ok = true;
+              try { JSON.parse(conteudoDraft.api.headersText || "{}"); }
+              catch { ok = false; showToast("error","Headers inválidos (JSON)."); }
+              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); }
+              catch { ok = false; showToast("error","Body inválido (JSON)."); }
+              if (!ok) return;
+              // sincroniza textos parseados
+              const parsedHeaders = (() => { try { return JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { return conteudoDraft.api.headers; }})();
+              const parsedBody = (() => { try { return JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { return conteudoDraft.api.body; }})();
+              setConteudoDraft((d) => ({ ...d, api: { ...d.api, headers: parsedHeaders, body: parsedBody }}));
+              commitConteudo();
+            }}
             onBack={closeOverlay}
             onClose={closeOverlay}
             selectedNode={selectedNode}
