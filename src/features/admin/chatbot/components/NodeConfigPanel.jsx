@@ -276,21 +276,22 @@ function OverlayConteudoComp({
 
   const Body = (
     <div className={styles.overlayBody} data-stop-hotkeys="true">
-      {type === "text" && (
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
-          <div className={styles.sectionContent}>
-            <StableTextarea
-              rows={8}
-              value={draft.text}
-              onChange={(e) => {
-                setDraft((d) => ({ ...d, text: e.target.value }));
-                inline && onPartialUpdate?.({ content: e.target.value });
-              }}
-            />
-          </div>
-        </div>
-      )}
+      {(type === "text" || type === "error") && (
+  <div className={styles.sectionContainer}>
+    <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
+    <div className={styles.sectionContent}>
+      <StableTextarea
+        rows={8}
+        value={draft.text}
+        onChange={(e) => {
+          setDraft((d) => ({ ...d, text: e.target.value }));
+          inline && onPartialUpdate?.({ content: e.target.value });
+        }}
+      />
+    </div>
+  </div>
+)}
+
 
       {type === "interactive" && (
         <div className={styles.sectionContainer}>
@@ -1746,12 +1747,17 @@ const ChatPreview = () => {
   return (
     <div className={styles.chatPreviewCard}>
       <div className={styles.floatingBtns}>
-        <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
-          <PencilLine size={16} />
-        </button>
+        {/* NÃO mostrar o lápis no bloco de atendimento humano */}
+        {!isHuman && (
+          <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
+            <PencilLine size={16} />
+          </button>
+        )}
+
         <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
           <MoreHorizontal size={16} />
         </button>
+
         {/* nada de especiais para humano e start */}
         {!isHuman && !isStart && (
           <button className={styles.iconGhost} title="Ações especiais" onClick={() => openOverlay("especiais")}>
@@ -1934,6 +1940,7 @@ const ChatPreview = () => {
     </aside>
   );
 }
+
 
 
 
