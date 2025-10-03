@@ -540,155 +540,152 @@ function OverlayConteudoComp({
           </div>
         )}
 
-        // No componente OverlayConteudoComp, modifique as seções "script" e "api_call":
+        {type === "script" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
+            <div className={styles.sectionContent}>
+              <div className={styles.infoBox}>
+                <AlertCircle size={16} />
+                <span>Este bloco executa código JavaScript personalizado.</span>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setScriptCode(selectedNode?.data?.block?.code || "");
+                  setShowScriptEditor(true);
+                }}
+                className={styles.addButton}
+              >
+                Abrir editor de código
+              </button>
 
-{type === "script" && (
-  <div className={styles.sectionContainer}>
-    <div className={styles.sectionHeaderStatic}>
-      <h4 className={styles.sectionTitle}>Script</h4>
-    </div>
-    <div className={styles.sectionContent}>
-      <div className={styles.infoBox}>
-        <AlertCircle size={16} />
-        <span>Este bloco executa código JavaScript personalizado.</span>
-      </div>
-      
-      <button
-        onClick={() => {
-          setScriptCode(selectedNode?.data?.block?.code || "");
-          setShowScriptEditor(true);
-        }}
-        className={styles.addButton}
-      >
-        Abrir editor de código
-      </button>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Função</label>
+                <StableInput
+                  type="text"
+                  value={draft.fnName}
+                  onChange={(e) => setDraft((d) => ({ ...d, fnName: e.target.value }))}
+                  placeholder="Nome da função a ser executada"
+                />
+              </div>
 
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>Função</label>
-        <StableInput
-          type="text"
-          value={draft.fnName}
-          onChange={(e) => setDraft((d) => ({ ...d, fnName: e.target.value }))}
-          placeholder="Nome da função a ser executada"
-        />
-      </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Variável de saída</label>
+                <StableInput
+                  type="text"
+                  value={draft.outputVar}
+                  onChange={(e) => setDraft((d) => ({ ...d, outputVar: e.target.value }))}
+                  placeholder="ex.: context.resultadoScript"
+                />
+                <small className={styles.helpText}>Onde o resultado será salvo (opcional)</small>
+              </div>
+            </div>
+          </div>
+        )}
 
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>Variável de saída</label>
-        <StableInput
-          type="text"
-          value={draft.outputVar}
-          onChange={(e) => setDraft((d) => ({ ...d, outputVar: e.target.value }))}
-          placeholder="ex.: context.resultadoScript"
-        />
-        <small className={styles.helpText}>Onde o resultado será salvo (opcional)</small>
-      </div>
-    </div>
-  </div>
-)}
+        {type === "api_call" && (
+          <div className={styles.sectionContainer}>
+            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
+            <div className={styles.sectionContent}>
+              <div className={styles.infoBox}>
+                <AlertCircle size={16} />
+                <span>Este bloco faz chamadas HTTP para APIs externas.</span>
+              </div>
 
-{type === "api_call" && (
-  <div className={styles.sectionContainer}>
-    <div className={styles.sectionHeaderStatic}>
-      <h4 className={styles.sectionTitle}>Requisição HTTP</h4>
-    </div>
-    <div className={styles.sectionContent}>
-      <div className={styles.infoBox}>
-        <AlertCircle size={16} />
-        <span>Este bloco faz chamadas HTTP para APIs externas.</span>
-      </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Método</label>
+                <select
+                  value={draft.api.method}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
+                  className={styles.selectStyle}
+                >
+                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+                </select>
+              </div>
 
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>Método</label>
-        <select
-          value={draft.api.method}
-          onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
-          className={styles.selectStyle}
-        >
-          <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
-        </select>
-      </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>URL</label>
+                <StableInput
+                  type="text"
+                  value={draft.api.url}
+                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
+                  placeholder="https://api.exemplo.com/endpoint"
+                />
+              </div>
 
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>URL</label>
-        <StableInput
-          type="text"
-          value={draft.api.url}
-          onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
-          placeholder="https://api.exemplo.com/endpoint"
-        />
-      </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Headers (JSON)</label>
+                <StableTextarea
+                  rows={3}
+                  value={draft.api.headersText}
+                  onChange={(e) =>
+                    setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
+                  }
+                  onBlur={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value || "{}");
+                      setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
+                    } catch { /* toast no pai */ }
+                  }}
+                  placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'
+                />
+              </div>
 
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>Headers (JSON)</label>
-        <StableTextarea
-          rows={3}
-          value={draft.api.headersText}
-          onChange={(e) =>
-            setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
-          }
-          onBlur={(e) => {
-            try {
-              const parsed = JSON.parse(e.target.value || "{}");
-              setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-            } catch { /* toast no pai */ }
-          }}
-          placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'
-        />
-      </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Body (JSON)</label>
+                <StableTextarea
+                  rows={4}
+                  value={draft.api.bodyText}
+                  onChange={(e) =>
+                    setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
+                  }
+                  onBlur={(e) => {
+                    try {
+                      const parsed = JSON.parse(e.target.value || "{}");
+                      setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
+                    } catch { /* toast no pai */ }
+                  }}
+                  placeholder='{"param1": "valor1", "param2": "valor2"}'
+                />
+              </div>
 
-      <div className={styles.inputGroup}>
-        <label className={styles.inputLabel}>Body (JSON)</label>
-        <StableTextarea
-          rows={4}
-          value={draft.api.bodyText}
-          onChange={(e) =>
-            setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
-          }
-          onBlur={(e) => {
-            try {
-              const parsed = JSON.parse(e.target.value || "{}");
-              setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-            } catch { /* toast no pai */ }
-          }}
-          placeholder='{"param1": "valor1", "param2": "valor2"}'
-        />
+              <div className={styles.rowTwoCols}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Timeout (ms)</label>
+                  <StableInput
+                    type="number"
+                    value={draft.api.timeout}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável de saída</label>
+                  <StableInput
+                    type="text"
+                    value={draft.api.outputVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
+                    placeholder="ex.: context.apiResponse"
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável de status</label>
+                  <StableInput
+                    type="text"
+                    value={draft.api.statusVar}
+                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
+                    placeholder="ex.: context.apiStatus"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
-      <div className={styles.rowTwoCols}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Timeout (ms)</label>
-          <StableInput
-            type="number"
-            value={draft.api.timeout}
-            onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
-          />
-        </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Variável de saída</label>
-          <StableInput
-            type="text"
-            value={draft.api.outputVar}
-            onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
-            placeholder="ex.: context.apiResponse"
-          />
-        </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Variável de status</label>
-          <StableInput
-            type="text"
-            value={draft.api.statusVar}
-            onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
-            placeholder="ex.: context.apiStatus"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+    </>
+  );
+}
 
 /* ================= OverlayRegras (mesmo do seu arquivo) ================= */
-/*  --- mantém exatamente como você já tinha (sem alterações funcionais) --- */
 function OverlayRegrasComp({
   draft,
   setDraft,
@@ -972,7 +969,6 @@ function OverlayRegrasComp({
 }
 
 /* ================= Especiais (lista + editor overlay) ================= */
-/*  --- igual ao seu, sem mudanças além de organização --- */
 function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
   return (
     <div className={styles.sectionContainer}>
@@ -1413,6 +1409,17 @@ function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) 
     return <TextMessage content={txt} />;
   }
 
+  if (type === "script") {
+    const fnName = conteudoDraft?.fnName || "função não definida";
+    return <TextMessage content={`🤖 Executando script: ${fnName}`} />;
+  }
+
+  if (type === "api_call") {
+    const method = conteudoDraft?.api?.method || "GET";
+    const url = conteudoDraft?.api?.url || "URL não definida";
+    return <TextMessage content={`🌐 ${method} ${url}`} />;
+  }
+
   // fallback
   const fallback = typeof liveContent === "string"
     ? liveContent
@@ -1596,6 +1603,11 @@ export default function NodeConfigPanel({
     if (type === "script") {
       next.function = d.fnName || "";
       next.outputVar = d.outputVar || "";
+      // Remove campos desnecessários para script
+      delete next.text;
+      delete next.content;
+      delete next.media;
+      delete next.location;
     }
     if (type === "api_call") {
       next.method = d.api.method || "GET";
@@ -1605,6 +1617,11 @@ export default function NodeConfigPanel({
       next.timeout = parseInt(d.api.timeout || 10000, 10);
       next.outputVar = d.api.outputVar || "apiResponse";
       next.statusVar = d.api.statusVar || "apiStatus";
+      // Remove campos desnecessários para api_call
+      delete next.text;
+      delete next.content;
+      delete next.media;
+      delete next.location;
     }
 
     updateBlock(next);
@@ -1732,9 +1749,12 @@ export default function NodeConfigPanel({
               setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
             }
             commit={() => {
-              try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); }
-              try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); }
+              if (type === "api_call") {
+                try { JSON.parse(conteudoDraft.api.headersText || "{}"); } catch { showToast("error","Headers inválidos (JSON)."); return; }
+                try { JSON.parse(conteudoDraft.api.bodyText || "{}"); } catch { showToast("error","Body inválido (JSON)."); return; }
+              }
               commitConteudo();
+              closeOverlay();
             }}
             onBack={closeOverlay}
             onClose={closeOverlay}
@@ -1773,4 +1793,3 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
-
