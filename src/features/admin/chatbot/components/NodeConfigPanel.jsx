@@ -199,6 +199,11 @@ function OverlayConteudoComp({
   const setContent = (patch) =>
     setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
 
+  // helpers seguros para LIST
+  const getListHeader = () => deepClone(draft.content?.header) || { type: "text", text: "" };
+  const getListAction = () =>
+    deepClone(draft.content?.action) || { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [] }] };
+
   return (
     <>
       <OverlayHeader
@@ -211,6 +216,7 @@ function OverlayConteudoComp({
           </button>
         }
       />
+
       <div className={styles.overlayBody} data-stop-hotkeys="true">
         {type === "text" && (
           <div className={styles.sectionContainer}>
@@ -229,6 +235,7 @@ function OverlayConteudoComp({
           <div className={styles.sectionContainer}>
             <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
             <div className={styles.sectionContent}>
+              {/* tipo do interativo */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Tipo</label>
                 <select
@@ -242,12 +249,10 @@ function OverlayConteudoComp({
                           type: "list",
                           body: { text: "Escolha um item da lista:" },
                           footer: { text: "Toque para selecionar" },
-                          header: { text: "Menu de Opções", type: "text" },
+                          header: { type: "text", text: "🎯 Menu de Opções" },
                           action: {
                             button: "Abrir lista",
-                            sections: [
-                              { title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }] }
-                            ]
+                            sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}]
                           }
                         }),
                       }));
@@ -275,6 +280,7 @@ function OverlayConteudoComp({
                 </select>
               </div>
 
+              {/* corpo comum (button/list) */}
               <div className={styles.inputGroup}>
                 <label className={styles.inputLabel}>Corpo</label>
                 <StableInput
@@ -287,6 +293,7 @@ function OverlayConteudoComp({
                 />
               </div>
 
+              {/* ====== QUICK REPLY ====== */}
               {draft.content?.type === "button" && (
                 <>
                   {(draft.content?.action?.buttons || []).map((btn, idx) => (
@@ -335,27 +342,60 @@ function OverlayConteudoComp({
                 </>
               )}
 
+              {/* ====== MENU LIST ====== */}
               {draft.content?.type === "list" && (
                 <>
+                  {/* HEADER EDITÁVEL */}
+                  <div className={styles.rowTwoCols}>
+                    <div className={styles.inputGroup}>
+                      <label className={styles.inputLabel}>Header — tipo</label>
+                      <select
+                        className={styles.selectStyle}
+                        value={getListHeader().type || "text"}
+                        onChange={(e) => {
+                          const header = { ...getListHeader(), type: e.target.value || "text" };
+                          setContent({ header });
+                        }}
+                      >
+                        <option value="text">text</option>
+                        <option value="">(sem header)</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.inputGroup}>
+                      <label className={styles.inputLabel}>Header — texto</label>
+                      <StableInput
+                        type="text"
+                        value={getListHeader().text || ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          // se usuário apagou tudo e escolheu "(sem header)" acima,
+                          // você pode também optar por remover o header do objeto.
+                          const header = { ...getListHeader(), text: val };
+                          setContent({ header });
+                        }}
+                        placeholder="ex.: 🎯 Menu de Opções"
+                      />
+                    </div>
+                  </div>
+
+                  {/* BOTÃO ABRIR LISTA */}
                   <div className={styles.inputGroup}>
                     <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
                     <StableInput
                       type="text"
                       maxLength={20}
-                      value={draft.content?.action?.button || ""}
+                      value={getListAction().button || ""}
                       onChange={(e) => {
                         const nextVal = (e.target.value || "").slice(0, 20);
-                        const action = {
-                          ...(deepClone(draft.content?.action) || {}),
-                          button: nextVal,
-                          sections: deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
-                        };
-                        setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                        const action = { ...getListAction(), button: nextVal };
+                        setContent({ action });
                       }}
                     />
                   </div>
 
-                  {(draft.content?.action?.sections?.[0]?.rows || []).map((item, idx) => (
+                  {/* SEÇÕES/ROWS */}
+                  {((getListAction().sections?.[0]?.rows) || []).map((item, idx) => (
                     <div key={idx} className={styles.rowItemStyle}>
                       <StableInput
                         type="text"
@@ -364,12 +404,12 @@ function OverlayConteudoComp({
                         placeholder="Título"
                         onChange={(e) => {
                           const value = e.target.value;
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                          const action = getListAction();
+                          const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
                           rows[idx] = { ...(rows[idx] || {}), title: clampFn(value, 24), id: makeIdFromTitleFn(value, 24) };
                           sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                          setContent({ action: { ...action, sections } });
                         }}
                       />
                       <StableInput
@@ -377,24 +417,24 @@ function OverlayConteudoComp({
                         value={item.description}
                         placeholder="Descrição"
                         onChange={(e) => {
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                          const action = getListAction();
+                          const sections = deepClone(action.sections || [{ title: "Seção 1", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
                           rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
                           sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                          setContent({ action: { ...action, sections } });
                         }}
                       />
                       <Trash2
                         size={18}
                         className={styles.trashIcon}
                         onClick={() => {
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
+                          const action = getListAction();
+                          const sections = deepClone(action.sections || [{ title: "", rows: [] }]);
                           const rows = [...(sections[0]?.rows || [])];
                           rows.splice(idx, 1);
                           sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                          setContent({ action: { ...action, sections } });
                         }}
                         title="Remover item"
                       />
@@ -403,15 +443,15 @@ function OverlayConteudoComp({
 
                   <button
                     onClick={() => {
-                      const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
+                      const action = getListAction();
+                      const sections = deepClone(action.sections || [{ title: "", rows: [] }]);
                       const rows = sections[0]?.rows || [];
                       const n = rows.length + 1;
                       const title = `Item ${n}`;
                       const newItem = { id: makeIdFromTitleFn(title, 24), title, description: "" };
                       const nextRows = [...rows, newItem];
                       const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
-                      const action = { ...(deepClone(draft.content?.action) || {}), sections: nextSections };
-                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
+                      setContent({ action: { ...action, sections: nextSections } });
                     }}
                     className={styles.addButton}
                   >
@@ -1704,4 +1744,3 @@ export default function NodeConfigPanel({
     </aside>
   );
 }
-
