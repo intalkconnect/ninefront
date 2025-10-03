@@ -98,13 +98,15 @@ function normalizeInteractive(content) {
   const base = typeof content === "object" && content ? content : {};
   const type = base.type === "list" ? "list" : "button";
 
+  const header = {
+    type: base?.header?.type === "none" ? "none" : "text",
+    text: base?.header?.text ?? ""
+  };
+
   if (type === "list") {
     return {
       type: "list",
-      header: {
-        type: base?.header?.type === "none" ? "none" : "text",
-        text: base?.header?.text ?? ""
-      },
+      header,
       body:   { text: base?.body?.text ?? "" },
       footer: { text: base?.footer?.text ?? "" },
       action: {
@@ -128,10 +130,7 @@ function normalizeInteractive(content) {
 
   return {
     type: "button",
-    header: {
-      type: base?.header?.type === "none" ? "none" : "text",
-      text: base?.header?.text ?? ""
-    },
+    header,
     body:   { text: base?.body?.text ?? "" },
     footer: { text: base?.footer?.text ?? "" },
     action: {
@@ -247,6 +246,7 @@ function OverlayAwaitComp({ draft, setDraft, commit, onBack, onClose }) {
 }
 
 /* ================= OverlayConteudo ================= */
+/* Agora suporta modo inline (sem cabeçalho/salvar) e auto-update via onPartialUpdate */
 function OverlayConteudoComp({
   type,
   draft,
@@ -259,6 +259,8 @@ function OverlayConteudoComp({
   setScriptCode,
   clampFn,
   makeIdFromTitleFn,
+  inline = false,
+  onPartialUpdate, // (patch) -> atualiza o block no pai
 }) {
   const setContent = (patch) =>
     setDraft((d) => ({ ...d, content: { ...deepClone(d.content || {}), ...patch } }));
@@ -272,6 +274,509 @@ function OverlayConteudoComp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const Body = (
+    <div className={styles.overlayBody} data-stop-hotkeys="true">
+      {type === "text" && (
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
+          <div className={styles.sectionContent}>
+            <StableTextarea
+              rows={8}
+              value={draft.text}
+              onChange={(e) => {
+                setDraft((d) => ({ ...d, text: e.target.value }));
+                inline && onPartialUpdate?.({ content: e.target.value });
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {type === "interactive" && (
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
+          <div className={styles.sectionContent}>
+
+            {/* HEADER */}
+            <div className={styles.rowTwoCols}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Header (tipo)</label>
+                <select
+                  className={styles.selectStyle}
+                  value={draft.content?.header?.type ?? "text"}
+                  onChange={(e) => {
+                    const header = { ...(deepClone(draft.content?.header) || {}), type: e.target.value };
+                    setContent({ header });
+                    inline && onPartialUpdate?.({ content: normalizeInteractive({ ...draft.content, header }) });
+                  }}
+                >
+                  <option value="text">text</option>
+                  <option value="none">none</option>
+                </select>
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Header (texto)</label>
+                <StableInput
+                  type="text"
+                  value={draft.content?.header?.text || ""}
+                  onChange={(e) => {
+                    const header = { ...(deepClone(draft.content?.header) || { type: "text" }), text: e.target.value };
+                    setContent({ header });
+                    inline && onPartialUpdate?.({ content: normalizeInteractive({ ...draft.content, header }) });
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Corpo</label>
+              <StableInput
+                type="text"
+                value={draft.content?.body?.text || ""}
+                onChange={(e) => {
+                  const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value };
+                  setContent({ body });
+                  inline && onPartialUpdate?.({ content: normalizeInteractive({ ...draft.content, body }) });
+                }}
+              />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Tipo</label>
+              <select
+                value={draft.content?.type || "button"}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  let nextContent;
+                  if (newType === "list") {
+                    nextContent = normalizeInteractive({
+                      type: "list",
+                      header: { type: draft.content?.header?.type || "text", text: draft.content?.header?.text || "" },
+                      body: { text: draft.content?.body?.text || "Escolha um item da lista:" },
+                      footer: { text: draft.content?.footer?.text || "Toque para selecionar" },
+                      action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
+                    });
+                  } else {
+                    nextContent = normalizeInteractive({
+                      type: "button",
+                      header: { type: draft.content?.header?.type || "text", text: draft.content?.header?.text || "" },
+                      body: { text: draft.content?.body?.text || "Escolha uma opção:" },
+                      footer: { text: draft.content?.footer?.text || "" },
+                      action: {
+                        buttons: [
+                          { type: "reply", reply: { id: "Opção 1", title: "Opção 1" } },
+                          { type: "reply", reply: { id: "Opção 2", title: "Opção 2" } },
+                        ],
+                      },
+                    });
+                  }
+                  setDraft((d) => ({ ...d, content: nextContent }));
+                  inline && onPartialUpdate?.({ content: nextContent });
+                }}
+                className={styles.selectStyle}
+              >
+                <option value="button">Quick Reply</option>
+                <option value="list">Menu List</option>
+              </select>
+            </div>
+
+            {draft.content?.type === "button" && (
+              <>
+                {(draft.content?.action?.buttons || []).map((btn, idx) => (
+                  <div key={idx} className={styles.rowItemStyle}>
+                    <StableInput
+                      type="text"
+                      value={btn?.reply?.title || ""}
+                      maxLength={20}
+                      placeholder="Texto do botão"
+                      onChange={(e) => {
+                        const value = clampFn(e.target.value, 20);
+                        const buttons = deepClone(draft.content?.action?.buttons || []);
+                        buttons[idx] = {
+                          ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
+                          reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
+                        };
+                        const action = { ...(deepClone(draft.content?.action) || {}), buttons };
+                        const content = { ...deepClone(draft.content), action };
+                        setDraft((d) => ({ ...d, content }));
+                        inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                      }}
+                    />
+                    <Trash2
+                      size={18}
+                      className={styles.trashIcon}
+                      onClick={() => {
+                        const current = deepClone(draft.content?.action?.buttons || []);
+                        current.splice(idx, 1);
+                        const action = { ...(deepClone(draft.content?.action) || {}), buttons: current };
+                        const content = { ...deepClone(draft.content), action };
+                        setDraft((d) => ({ ...d, content }));
+                        inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                      }}
+                      title="Remover botão"
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const current = deepClone(draft.content?.action?.buttons || []);
+                    if (current.length >= 3) return;
+                    const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
+                    const action = { ...(deepClone(draft.content?.action) || {}), buttons: [...current, newBtn] };
+                    const content = { ...deepClone(draft.content), action };
+                    setDraft((d) => ({ ...d, content }));
+                    inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                  }}
+                  className={styles.addButton}
+                >
+                  + Adicionar botão
+                </button>
+              </>
+            )}
+
+            {draft.content?.type === "list" && (
+              <>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
+                  <StableInput
+                    type="text"
+                    maxLength={20}
+                    value={draft.content?.action?.button || ""}
+                    onChange={(e) => {
+                      const nextVal = (e.target.value || "").slice(0, 20);
+                      const action = {
+                        ...(deepClone(draft.content?.action) || {}),
+                        button: nextVal,
+                        sections: deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
+                      };
+                      const content = { ...deepClone(draft.content), action };
+                      setDraft((d) => ({ ...d, content }));
+                      inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                    }}
+                  />
+                </div>
+
+                {(draft.content?.action?.sections?.[0]?.rows || []).map((item, idx) => (
+                  <div key={idx} className={styles.rowItemStyle}>
+                    <StableInput
+                      type="text"
+                      value={item.title}
+                      maxLength={24}
+                      placeholder="Título"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                        const rows = [...(sections[0]?.rows || [])];
+                        rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitleFn(value, 24) };
+                        sections[0] = { ...(sections[0] || {}), rows };
+                        const action = { ...(deepClone(draft.content?.action) || {}), sections };
+                        const content = { ...deepClone(draft.content), action };
+                        setDraft((d) => ({ ...d, content }));
+                        inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                      }}
+                    />
+                    <StableInput
+                      type="text"
+                      value={item.description}
+                      placeholder="Descrição"
+                      onChange={(e) => {
+                        const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
+                        const rows = [...(sections[0]?.rows || [])];
+                        rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
+                        sections[0] = { ...(sections[0] || {}), rows };
+                        const action = { ...(deepClone(draft.content?.action) || {}), sections };
+                        const content = { ...deepClone(draft.content), action };
+                        setDraft((d) => ({ ...d, content }));
+                        inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                      }}
+                    />
+                    <Trash2
+                      size={18}
+                      className={styles.trashIcon}
+                      onClick={() => {
+                        const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
+                        const rows = [...(sections[0]?.rows || [])];
+                        rows.splice(idx, 1);
+                        sections[0] = { ...(sections[0] || {}), rows };
+                        const action = { ...(deepClone(draft.content?.action) || {}), sections };
+                        const content = { ...deepClone(draft.content), action };
+                        setDraft((d) => ({ ...d, content }));
+                        inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                      }}
+                      title="Remover item"
+                    />
+                  </div>
+                ))}
+
+                <button
+                  onClick={() => {
+                    const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
+                    const rows = sections[0]?.rows || [];
+                    const n = rows.length + 1;
+                    const title = `Item ${n}`;
+                    const newItem = { id: makeIdFromTitleFn(title, 24), title, description: "" };
+                    const nextRows = [...rows, newItem];
+                    const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
+                    const action = { ...(deepClone(draft.content?.action) || {}), sections: nextSections };
+                    const content = { ...deepClone(draft.content), action };
+                    setDraft((d) => ({ ...d, content }));
+                    inline && onPartialUpdate?.({ content: normalizeInteractive(content) });
+                  }}
+                  className={styles.addButton}
+                >
+                  + Adicionar item
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {type === "media" && (
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
+          <div className={styles.sectionContent}>
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Tipo</label>
+              <select
+                value={draft.media?.mediaType || "image"}
+                onChange={(e) => {
+                  const media = { ...(draft.media || {}), mediaType: e.target.value };
+                  setDraft((d)=>({ ...d, media }));
+                  inline && onPartialUpdate?.({ content: normalizeMedia(media) });
+                }}
+                className={styles.selectStyle}
+              >
+                <option value="image">Imagem</option>
+                <option value="document">Documento</option>
+                <option value="audio">Áudio</option>
+                <option value="video">Vídeo</option>
+              </select>
+            </div>
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>URL</label>
+              <StableInput
+                type="text"
+                value={draft.media?.url || ""}
+                onChange={(e) => {
+                  const media = { ...(draft.media || {}), url: e.target.value };
+                  setDraft((d)=>({ ...d, media }));
+                  inline && onPartialUpdate?.({ content: normalizeMedia(media) });
+                }}
+              />
+            </div>
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Legenda</label>
+              <StableInput
+                type="text"
+                value={draft.media?.caption || ""}
+                onChange={(e) => {
+                  const media = { ...(draft.media || {}), caption: e.target.value };
+                  setDraft((d)=>({ ...d, media }));
+                  inline && onPartialUpdate?.({ content: normalizeMedia(media) });
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {type === "location" && (
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
+          <div className={styles.sectionContent}>
+            <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
+              <StableInput type="text" value={draft.location?.name || ""} onChange={(e) => {
+                const location = { ...(draft.location||{}), name: e.target.value };
+                setDraft((d)=>({ ...d, location })); inline && onPartialUpdate?.({ content: location });
+              }}/></div>
+            <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
+              <StableInput type="text" value={draft.location?.address || ""} onChange={(e) => {
+                const location = { ...(draft.location||{}), address: e.target.value };
+                setDraft((d)=>({ ...d, location })); inline && onPartialUpdate?.({ content: location });
+              }}/></div>
+            <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
+              <StableInput type="text" value={draft.location?.latitude || ""} onChange={(e) => {
+                const location = { ...(draft.location||{}), latitude: e.target.value };
+                setDraft((d)=>({ ...d, location })); inline && onPartialUpdate?.({ content: location });
+              }}/></div>
+            <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
+              <StableInput type="text" value={draft.location?.longitude || ""} onChange={(e) => {
+                const location = { ...(draft.location||{}), longitude: e.target.value };
+                setDraft((d)=>({ ...d, location })); inline && onPartialUpdate?.({ content: location });
+              }}/></div>
+          </div>
+        </div>
+      )}
+
+      {type === "script" && (
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
+          <div className={styles.sectionContent}>
+            <div className={styles.infoBox}>
+              <AlertCircle size={16} />
+              <span>Este bloco executa código JavaScript personalizado.</span>
+            </div>
+
+            <button
+              onClick={() => {
+                setScriptCode(selectedNode?.data?.block?.code || "");
+                setShowScriptEditor(true);
+              }}
+              className={styles.addButton}
+            >
+              Abrir editor de código
+            </button>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Função</label>
+              <StableInput
+                type="text"
+                value={draft.fnName}
+                onChange={(e) => {
+                  setDraft((d) => ({ ...d, fnName: e.target.value }));
+                  inline && onPartialUpdate?.({ function: e.target.value });
+                }}
+                placeholder="Nome da função a ser executada"
+              />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Variável de saída</label>
+              <StableInput
+                type="text"
+                value={draft.outputVar}
+                onChange={(e) => {
+                  setDraft((d) => ({ ...d, outputVar: e.target.value }));
+                  inline && onPartialUpdate?.({ outputVar: e.target.value });
+                }}
+                placeholder="ex.: context.resultadoScript"
+              />
+              <small className={styles.helpText}>Onde o resultado será salvo (opcional)</small>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {type === "api_call" && (
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
+          <div className={styles.sectionContent}>
+            <div className={styles.infoBox}>
+              <AlertCircle size={16} />
+              <span>Este bloco faz chamadas HTTP para APIs externas.</span>
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Método</label>
+              <select
+                value={draft.api.method}
+                onChange={(e) => {
+                  setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }));
+                  inline && onPartialUpdate?.({ method: e.target.value || "GET" });
+                }}
+                className={styles.selectStyle}
+              >
+                <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
+              </select>
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>URL</label>
+              <StableInput
+                type="text"
+                value={draft.api.url}
+                onChange={(e) => {
+                  setDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }));
+                  inline && onPartialUpdate?.({ url: e.target.value });
+                }}
+                placeholder="https://api.exemplo.com/endpoint"
+              />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Headers (JSON)</label>
+              <StableTextarea
+                rows={3}
+                value={draft.api.headersText}
+                onChange={(e) =>
+                  setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
+                }
+                onBlur={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value || "{}");
+                    setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
+                    inline && onPartialUpdate?.({ headers: parsed });
+                  } catch {}
+                }}
+                placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'
+              />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label className={styles.inputLabel}>Body (JSON)</label>
+              <StableTextarea
+                rows={4}
+                value={draft.api.bodyText}
+                onChange={(e) =>
+                  setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
+                }
+                onBlur={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value || "{}");
+                    setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
+                    inline && onPartialUpdate?.({ body: parsed });
+                  } catch {}
+                }}
+                placeholder='{"param1": "valor1", "param2": "valor2"}'
+              />
+            </div>
+
+            <div className={styles.rowTwoCols}>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Timeout (ms)</label>
+                <StableInput
+                  type="number"
+                  value={draft.api.timeout}
+                  onChange={(e) => {
+                    setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }));
+                    inline && onPartialUpdate?.({ timeout: parseInt(e.target.value || 0, 10) });
+                  }}
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Variável de saída</label>
+                <StableInput
+                  type="text"
+                  value={draft.api.outputVar}
+                  onChange={(e) => {
+                    setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }));
+                    inline && onPartialUpdate?.({ outputVar: e.target.value });
+                  }}
+                  placeholder="ex.: context.apiResponse"
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label className={styles.inputLabel}>Variável de status</label>
+                <StableInput
+                  type="text"
+                  value={draft.api.statusVar}
+                  onChange={(e) => {
+                    setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }));
+                    inline && onPartialUpdate?.({ statusVar: e.target.value });
+                  }}
+                  placeholder="ex.: context.apiStatus"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  if (inline) return Body;
+
   return (
     <>
       <OverlayHeader
@@ -284,439 +789,7 @@ function OverlayConteudoComp({
           </button>
         }
       />
-      <div className={styles.overlayBody} data-stop-hotkeys="true">
-        {type === "text" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mensagem</h4></div>
-            <div className={styles.sectionContent}>
-              <StableTextarea
-                rows={8}
-                value={draft.text}
-                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
-              />
-            </div>
-          </div>
-        )}
-
-        {type === "interactive" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Interativo</h4></div>
-            <div className={styles.sectionContent}>
-
-              {/* ===== HEADER (NOVO) ===== */}
-              <div className={styles.rowTwoCols}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Header (tipo)</label>
-                  <select
-                    className={styles.selectStyle}
-                    value={draft.content?.header?.type ?? "text"}
-                    onChange={(e) => {
-                      const header = { ...(deepClone(draft.content?.header) || {}), type: e.target.value };
-                      setContent({ header });
-                    }}
-                  >
-                    <option value="text">text</option>
-                    <option value="none">none</option>
-                  </select>
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Header (texto)</label>
-                  <StableInput
-                    type="text"
-                    value={draft.content?.header?.text || ""}
-                    onChange={(e) => {
-                      const header = { ...(deepClone(draft.content?.header) || { type: "text" }), text: e.target.value };
-                      setContent({ header });
-                    }}
-                  />
-                </div>
-              </div>
-              {/* ======================== */}
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Corpo</label>
-                <StableInput
-                  type="text"
-                  value={draft.content?.body?.text || ""}
-                  onChange={(e) => {
-                    const body = { ...(deepClone(draft.content?.body) || {}), text: e.target.value };
-                    setContent({ body });
-                  }}
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tipo</label>
-                <select
-                  value={draft.content?.type || "button"}
-                  onChange={(e) => {
-                    const newType = e.target.value;
-                    if (newType === "list") {
-                      setDraft((d) => ({
-                        ...d,
-                        content: normalizeInteractive({
-                          type: "list",
-                          header: { type: d.content?.header?.type || "text", text: d.content?.header?.text || "" },
-                          body: { text: d.content?.body?.text || "Escolha um item da lista:" },
-                          footer: { text: d.content?.footer?.text || "Toque para selecionar" },
-                          action: { button: "Abrir lista", sections: [{ title: "Seção 1", rows: [{ id: "Item 1", title: "Item 1", description: "" }]}] }
-                        }),
-                      }));
-                    } else {
-                      setDraft((d) => ({
-                        ...d,
-                        content: normalizeInteractive({
-                          type: "button",
-                          header: { type: d.content?.header?.type || "text", text: d.content?.header?.text || "" },
-                          body: { text: d.content?.body?.text || "Escolha uma opção:" },
-                          footer: { text: d.content?.footer?.text || "" },
-                          action: {
-                            buttons: [
-                              { type: "reply", reply: { id: "Opção 1", title: "Opção 1" } },
-                              { type: "reply", reply: { id: "Opção 2", title: "Opção 2" } },
-                            ],
-                          },
-                        }),
-                      }));
-                    }
-                  }}
-                  className={styles.selectStyle}
-                >
-                  <option value="button">Quick Reply</option>
-                  <option value="list">Menu List</option>
-                </select>
-              </div>
-
-              {draft.content?.type === "button" && (
-                <>
-                  {(draft.content?.action?.buttons || []).map((btn, idx) => (
-                    <div key={idx} className={styles.rowItemStyle}>
-                      <StableInput
-                        type="text"
-                        value={btn?.reply?.title || ""}
-                        maxLength={20}
-                        placeholder="Texto do botão"
-                        onChange={(e) => {
-                          const value = clampFn(e.target.value, 20);
-                          const buttons = deepClone(draft.content?.action?.buttons || []);
-                          buttons[idx] = {
-                            ...(buttons[idx] || { type: "reply", reply: { id: "", title: "" } }),
-                            reply: { ...(buttons[idx]?.reply || {}), title: value, id: value },
-                          };
-                          const action = { ...(deepClone(draft.content?.action) || {}), buttons };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
-                      <Trash2
-                        size={18}
-                        className={styles.trashIcon}
-                        onClick={() => {
-                          const current = deepClone(draft.content?.action?.buttons || []);
-                          current.splice(idx, 1);
-                          const action = { ...(deepClone(draft.content?.action) || {}), buttons: current };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                        title="Remover botão"
-                      />
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      const current = deepClone(draft.content?.action?.buttons || []);
-                      if (current.length >= 3) return;
-                      const newBtn = { type: "reply", reply: { id: "Novo botão", title: "Novo botão" } };
-                      const action = { ...(deepClone(draft.content?.action) || {}), buttons: [...current, newBtn] };
-                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar botão
-                  </button>
-                </>
-              )}
-
-              {draft.content?.type === "list" && (
-                <>
-                  <div className={styles.inputGroup}>
-                    <label className={styles.inputLabel}>Texto do botão (abrir lista)</label>
-                    <StableInput
-                      type="text"
-                      maxLength={20}
-                      value={draft.content?.action?.button || ""}
-                      onChange={(e) => {
-                        const nextVal = (e.target.value || "").slice(0, 20);
-                        const action = {
-                          ...(deepClone(draft.content?.action) || {}),
-                          button: nextVal,
-                          sections: deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]),
-                        };
-                        setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                      }}
-                    />
-                  </div>
-
-                  {(draft.content?.action?.sections?.[0]?.rows || []).map((item, idx) => (
-                    <div key={idx} className={styles.rowItemStyle}>
-                      <StableInput
-                        type="text"
-                        value={item.title}
-                        maxLength={24}
-                        placeholder="Título"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), title: clamp(value, 24), id: makeIdFromTitleFn(value, 24) };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
-                      <StableInput
-                        type="text"
-                        value={item.description}
-                        placeholder="Descrição"
-                        onChange={(e) => {
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "Seção 1", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows[idx] = { ...(rows[idx] || {}), description: e.target.value };
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                      />
-                      <Trash2
-                        size={18}
-                        className={styles.trashIcon}
-                        onClick={() => {
-                          const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
-                          const rows = [...(sections[0]?.rows || [])];
-                          rows.splice(idx, 1);
-                          sections[0] = { ...(sections[0] || {}), rows };
-                          const action = { ...(deepClone(draft.content?.action) || {}), sections };
-                          setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                        }}
-                        title="Remover item"
-                      />
-                    </div>
-                  ))}
-
-                  <button
-                    onClick={() => {
-                      const sections = deepClone(draft.content?.action?.sections || [{ title: "", rows: [] }]);
-                      const rows = sections[0]?.rows || [];
-                      const n = rows.length + 1;
-                      const title = `Item ${n}`;
-                      const newItem = { id: makeIdFromTitleFn(title, 24), title, description: "" };
-                      const nextRows = [...rows, newItem];
-                      const nextSections = [{ ...(sections[0] || {}), rows: nextRows }];
-                      const action = { ...(deepClone(draft.content?.action) || {}), sections: nextSections };
-                      setDraft((d) => ({ ...d, content: { ...deepClone(d.content), action } }));
-                    }}
-                    className={styles.addButton}
-                  >
-                    + Adicionar item
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {type === "media" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Mídia</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Tipo</label>
-                <select
-                  value={draft.media?.mediaType || "image"}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), mediaType: e.target.value } }))}
-                  className={styles.selectStyle}
-                >
-                  <option value="image">Imagem</option>
-                  <option value="document">Documento</option>
-                  <option value="audio">Áudio</option>
-                  <option value="video">Vídeo</option>
-                </select>
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>URL</label>
-                <StableInput
-                  type="text"
-                  value={draft.media?.url || ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), url: e.target.value } }))}
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Legenda</label>
-                <StableInput
-                  type="text"
-                  value={draft.media?.caption || ""}
-                  onChange={(e) => setDraft((d) => ({ ...d, media: { ...(d.media||{}), caption: e.target.value } }))}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {type === "location" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Localização</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Nome</label>
-                <StableInput type="text" value={draft.location?.name || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), name: e.target.value } }))}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Endereço</label>
-                <StableInput type="text" value={draft.location?.address || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), address: e.target.value } }))}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Latitude</label>
-                <StableInput type="text" value={draft.location?.latitude || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), latitude: e.target.value } }))}/></div>
-              <div className={styles.inputGroup}><label className={styles.inputLabel}>Longitude</label>
-                <StableInput type="text" value={draft.location?.longitude || ""} onChange={(e) => setDraft((d) => ({ ...d, location: { ...(d.location||{}), longitude: e.target.value } }))}/></div>
-            </div>
-          </div>
-        )}
-
-        {type === "script" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Script</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.infoBox}>
-                <AlertCircle size={16} />
-                <span>Este bloco executa código JavaScript personalizado.</span>
-              </div>
-
-              <button
-                onClick={() => {
-                  setScriptCode(selectedNode?.data?.block?.code || "");
-                  setShowScriptEditor(true);
-                }}
-                className={styles.addButton}
-              >
-                Abrir editor de código
-              </button>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Função</label>
-                <StableInput
-                  type="text"
-                  value={draft.fnName}
-                  onChange={(e) => setDraft((d) => ({ ...d, fnName: e.target.value }))}
-                  placeholder="Nome da função a ser executada"
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Variável de saída</label>
-                <StableInput
-                  type="text"
-                  value={draft.outputVar}
-                  onChange={(e) => setDraft((d) => ({ ...d, outputVar: e.target.value }))}
-                  placeholder="ex.: context.resultadoScript"
-                />
-                <small className={styles.helpText}>Onde o resultado será salvo (opcional)</small>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {type === "api_call" && (
-          <div className={styles.sectionContainer}>
-            <div className={styles.sectionHeaderStatic}><h4 className={styles.sectionTitle}>Requisição HTTP</h4></div>
-            <div className={styles.sectionContent}>
-              <div className={styles.infoBox}>
-                <AlertCircle size={16} />
-                <span>Este bloco faz chamadas HTTP para APIs externas.</span>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Método</label>
-                <select
-                  value={draft.api.method}
-                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, method: e.target.value || "GET"} }))}
-                  className={styles.selectStyle}
-                >
-                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>PATCH</option>
-                </select>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>URL</label>
-                <StableInput
-                  type="text"
-                  value={draft.api.url}
-                  onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, url: e.target.value} }))}
-                  placeholder="https://api.exemplo.com/endpoint"
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Headers (JSON)</label>
-                <StableTextarea
-                  rows={3}
-                  value={draft.api.headersText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, headersText: e.target.value} }))
-                  }
-                  onBlur={(e) => {
-                    try {
-                      const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...d.api, headers: parsed, headersText: JSON.stringify(parsed, null, 2)} }));
-                    } catch {}
-                  }}
-                  placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'
-                />
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label className={styles.inputLabel}>Body (JSON)</label>
-                <StableTextarea
-                  rows={4}
-                  value={draft.api.bodyText}
-                  onChange={(e) =>
-                    setDraft((d)=>({ ...d, api:{...d.api, bodyText: e.target.value} }))
-                  }
-                  onBlur={(e) => {
-                    try {
-                      const parsed = JSON.parse(e.target.value || "{}");
-                      setDraft((d)=>({ ...d, api:{...d.api, body: parsed, bodyText: JSON.stringify(parsed, null, 2)} }));
-                    } catch {}
-                  }}
-                  placeholder='{"param1": "valor1", "param2": "valor2"}'
-                />
-              </div>
-
-              <div className={styles.rowTwoCols}>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Timeout (ms)</label>
-                  <StableInput
-                    type="number"
-                    value={draft.api.timeout}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, timeout: e.target.value} }))}
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de saída</label>
-                  <StableInput
-                    type="text"
-                    value={draft.api.outputVar}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, outputVar: e.target.value} }))}
-                    placeholder="ex.: context.apiResponse"
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label className={styles.inputLabel}>Variável de status</label>
-                  <StableInput
-                    type="text"
-                    value={draft.api.statusVar}
-                    onChange={(e) => setDraft((d)=>({ ...d, api:{...d.api, statusVar: e.target.value} }))}
-                    placeholder="ex.: context.apiStatus"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      {Body}
     </>
   );
 }
@@ -1008,8 +1081,7 @@ function OverlayRegrasComp({
   );
 }
 
-/* ================= Especiais (lista + editor overlay) ================= */
-// (sem mudanças relevantes — mantido do arquivo anterior)
+/* ================= Especiais ================= */
 function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
   return (
     <div className={styles.sectionContainer}>
@@ -1272,7 +1344,7 @@ function EditorOverlay({
   );
 }
 
-/* ================= Preview (usado apenas quando não for script) ================= */
+/* ================= Preview (oculto para script/api_call) ================= */
 function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) {
   const liveContent =
     overlayMode === "conteudo"
@@ -1434,7 +1506,7 @@ export default function NodeConfigPanel({
     location: deepClone(content),
   });
 
-  // Sincroniza drafts sempre que o bloco mudar
+  // sincroniza drafts ao mudar bloco
   useEffect(() => {
     setConteudoDraft({
       type,
@@ -1511,10 +1583,10 @@ export default function NodeConfigPanel({
     showToast("success", "Conteúdo salvo.");
   };
 
-  const commitRegras = () => {
+  const commitRegras = (v) => {
     updateBlock({
-      actions: deepClone((block.actions || [])),
-      defaultNext: block.defaultNext || "",
+      actions: deepClone(v.actions || []),
+      defaultNext: v.defaultNext || "",
     });
     showToast("success", "Regras salvas.");
   };
@@ -1522,17 +1594,15 @@ export default function NodeConfigPanel({
   const openOverlay = (mode = "conteudo") => setOverlayMode(mode);
   const closeOverlay = () => setOverlayMode("none");
 
-  /* preview (não renderiza para SCRIPT) */
+  /* preview — oculto para script/api_call */
   const ChatPreview = () => {
-    if (isScript) return null; // <<< remove os itens da imagem para SCRIPT
+    if (isScriptOrApi) return null;
     return (
       <div className={styles.chatPreviewCard}>
         <div className={styles.floatingBtns}>
-          {!isHuman && !isScriptOrApi && (
-            <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
-              <PencilLine size={16} />
-            </button>
-          )}
+          <button className={styles.iconGhost} title="Editar conteúdo" onClick={() => openOverlay("conteudo")}>
+            <PencilLine size={16} />
+          </button>
           <button className={styles.iconGhost} title="Regras de saída" onClick={() => openOverlay("regras")}>
             <MoreHorizontal size={16} />
           </button>
@@ -1545,7 +1615,6 @@ export default function NodeConfigPanel({
 
         <div className={styles.chatArea}>
           <div className={styles.typingDot}>•••</div>
-
           <div className={styles.bubble}>
             <div className={styles.bubbleText}>
               <RenderBlockPreview
@@ -1578,7 +1647,7 @@ export default function NodeConfigPanel({
     <aside
       ref={panelRef}
       className={styles.asidePanel}
-      data-stop_hotkeys="true"
+      data-stop-hotkeys="true"
       onKeyDownCapture={handleKeyDownCapture}
     >
       {/* toasts */}
@@ -1619,8 +1688,8 @@ export default function NodeConfigPanel({
           )}
         </div>
 
-        {/* Toolbar para SCRIPT (com Regras de saída) */}
-        {isScript && (
+        {/* Botão Regras de saída para SCRIPT e API_CALL */}
+        {isScriptOrApi && (
           <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
             <button className={styles.addButtonSmall} onClick={() => openOverlay("regras")}>
               <MoreHorizontal size={14}/> Regras de saída
@@ -1628,10 +1697,10 @@ export default function NodeConfigPanel({
           </div>
         )}
 
-        {/* Preview (some para script) */}
+        {/* Preview escondido para script/api_call */}
         <ChatPreview />
 
-        {/* Editores inline */}
+        {/* Editores inline (sem cabeçalho Conteúdo / sem Salvar) */}
         {isScriptOrApi && (
           <div style={{ marginTop: 12 }}>
             <OverlayConteudoComp
@@ -1640,17 +1709,8 @@ export default function NodeConfigPanel({
               setDraft={(updater) =>
                 setConteudoDraft((prev) => (typeof updater === "function" ? updater(prev) : updater))
               }
-              commit={() => {
-                if (type === "api_call") {
-                  try { JSON.parse(conteudoDraft.api.headersText || "{}"); }
-                  catch { showToast("error","Headers inválidos (JSON)."); return; }
-                  try { JSON.parse(conteudoDraft.api.bodyText || "{}"); }
-                  catch { showToast("error","Body inválido (JSON)."); return; }
-                }
-                commitConteudo();
-              }}
-              onBack={() => {}}
-              onClose={() => {}}
+              inline
+              onPartialUpdate={(patch) => updateBlock(patch)}
               selectedNode={selectedNode}
               setShowScriptEditor={setShowScriptEditor}
               setScriptCode={setScriptCode}
@@ -1696,7 +1756,8 @@ export default function NodeConfigPanel({
           <OverlayRegrasComp
             draft={{ actions: deepClone(block.actions || []), defaultNext: block.defaultNext || "" }}
             setDraft={(d) => {
-              const v = typeof d === "function" ? d({ actions: deepClone(block.actions || []), defaultNext: block.defaultNext || "" }) : d;
+              const base = { actions: deepClone(block.actions || []), defaultNext: block.defaultNext || "" };
+              const v = typeof d === "function" ? d(base) : d;
               onChange({ ...selectedNode, data: { ...selectedNode.data, block: { ...block, actions: v.actions, defaultNext: v.defaultNext } } });
             }}
             variableOptions={variableOptions}
@@ -1705,7 +1766,7 @@ export default function NodeConfigPanel({
             onConnectNodes={onConnectNodes}
             onBack={closeOverlay}
             onClose={closeOverlay}
-            commit={() => { commitRegras(); closeOverlay(); }}
+            commit={() => { commitRegras({ actions: selectedNode.data.block.actions, defaultNext: selectedNode.data.block.defaultNext }); closeOverlay(); }}
             isHuman={isHuman}
           />
         )}
