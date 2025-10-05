@@ -18,9 +18,10 @@ const labelize = (s = '') =>
 
 const fmtTime = (sec = 0) => {
   const s = Math.max(0, Math.floor(Number(sec) || 0));
-  const m = Math.floor(s / 60);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
-  return m > 0 ? `${m}m ${String(r).padStart(2, '0')}s` : `${r}s`;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
 };
 
 /* ---------------- component ---------------- */
