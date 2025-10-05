@@ -70,9 +70,15 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       if (debouncedSearch) params.set('q', debouncedSearch);
       params.set('page', String(currentPage));
       params.set('pageSize', String(itemsPerPage));
+      params.set('exclude_start', 'true');
       const resp = await apiGet(`/tracert/customers?${params.toString()}`);
       const data = resp?.data ?? resp;
-      setRows(Array.isArray(data?.rows) ? data.rows : []);
+      const safeRows = (Array.isArray(data?.rows) ? data.rows : []).filter((r) => {
+      const t = String(r?.current_stage_type || '').toLowerCase();
+      const lbl = String(r?.current_stage || '').toLowerCase();
+      return !['start', 'system_reset'].includes(t) && lbl !== 'início';
+      });
+      setRows(safeRows);
       setTotalRows(Number(data?.total || 0));
     } catch (e) {
       toast.error('Falha ao carregar lista do tracert');
