@@ -44,7 +44,7 @@ import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../app/utils/auth";
 import { stringToColor } from "../../app/utils/color";
-import { apiGet } from "../../shared/apiClient";
+import { apiGet, setActorContext } from "../../shared/apiClient";
 
 import Preferences from "./preferences/settings/Settings";
 import Channels from "./preferences/channels/Channels";
@@ -118,6 +118,11 @@ export default function Admin() {
           console.log('👤 Buscando dados do usuário:', email);
           const res = await apiGet(`/users/${email}`);
           if (mounted) setUserData(res);
+          setActorContext({
+            id:    res?.id || res?.userId || res?.email || email,
+            name:  res?.name || res?.nome || res?.email || email,
+            email: res?.email || email,
+          });
           console.log('✅ Dados do usuário carregados:', res);
         } else {
           if (mounted) setUserData(null);
