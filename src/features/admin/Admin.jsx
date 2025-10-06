@@ -89,7 +89,8 @@ export default function Admin() {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem("token");
-  const { email } = token ? parseJwt(token) : {};
+  const jwt = token ? parseJwt(token) : {};
+  const { email } = jwt || {};
   const [userData, setUserData] = useState(null);
 
   const [authLoading, setAuthLoading] = useState(true);
@@ -110,6 +111,15 @@ export default function Admin() {
   }, [location]);
 
   useEffect(() => {
+
+     // (1) Define um ator inicial a partir do JWT, antes de QUALQUER request
+   if (jwt?.sub || email) {
+     setActorContext({
+       id:    jwt?.sub || email,
+       name:  jwt?.name || email,
+       email: email || jwt?.email || '',
+     });
+   }
     let mounted = true;
     const fetchAdminInfo = async () => {
       setAuthLoading(true);
