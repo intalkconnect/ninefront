@@ -2,12 +2,20 @@ import { getRuntimeConfig } from "./runtimeConfig";
 
 const { apiBaseUrl, tenant } = getRuntimeConfig();
 
+// ator atual (preenchido pelo Admin.jsx)
+let __actor = null; // { id, name, email }
+export function setActorContext(actor) {
+  __actor = actor || null;
+}
+
 // helper p/ juntar headers e garantir X-Tenant
 function withTenantHeaders(extra = {}) {
-  return {
-    "X-Tenant": tenant,
-    ...extra,
-  };
+  const actorHeaders = __actor ? {
+    "X-User-Id": __actor.id   ?? __actor.email ?? __actor.name ?? "",
+    "X-User-Name": __actor.name ?? __actor.email ?? "",
+    "X-User-Email": __actor.email ?? "",
+  } : {};
+  return { "X-Tenant": tenant, ...actorHeaders, ...extra };
 }
 
 // === helpers com fetch (agora COM X-Tenant) ===
@@ -59,3 +67,4 @@ export async function apiDelete(path) {
   if (!res.ok) throw new Error(`DELETE ${path} failed`);
   return res.json();
 }
+
