@@ -41,14 +41,8 @@ function contentToText(content) {
   const uf = extractUrlOrFilename(content);
   return uf ? "[arquivo]" : "[mensagem]";
 }
-// rank atualizado; backcompat com 'error' -> trata como 'failed'
-const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, failed: 1, undefined: 0, null: 0, error: 1 };
-function normalizeStatus(s) {
-  if (!s) return s;
-  const v = String(s).toLowerCase();
-  return v === 'error' ? 'failed' : v;
-}
-function rankStatus(s) { return STATUS_RANK[normalizeStatus(s)] ?? 0; }
+const STATUS_RANK = { read: 5, delivered: 4, sent: 3, pending: 2, error: 1, undefined: 0, null: 0 };
+function rankStatus(s) { return STATUS_RANK[s] ?? 0; }
 function tsOf(m) {
   const t = m?.timestamp || m?.created_at || null;
   const n = t ? new Date(t).getTime() : NaN;
@@ -63,23 +57,19 @@ function findIndexByAnyId(list, msg) {
   });
 }
 function mergeOutgoing(a, b) {
-  // Escolhe o de maior rank de status, mantendo ids e conteúdo
-  const aRank = rankStatus(a.status);
-  const bRank = rankStatus(b.status);
-  const first = aRank >= bRank ? a : b;
+  const first = rankStatus(a.status) >= rankStatus(b.status) ? a : b;
   const second = first === a ? b : a;
   return {
     ...first,
-    status: normalizeStatus(first.status) || normalizeStatus(second.status),
     id: first.id || second.id,
     message_id: first.message_id || second.message_id,
     provider_id: first.provider_id || second.provider_id,
     client_id: first.client_id || second.client_id,
-    pending: normalizeStatus(first.status) === 'pending',
+    pending: (first.pending && !first.id && !first.message_id && !first.provider_id) ? true : false,
     timestamp: first.timestamp || second.timestamp,
     content: first.content ?? second.content,
     channel: first.channel || second.channel,
-    type: (first.type || second.type || '').toLowerCase(),
+    type: first.type || second.type,
     reply_to: first.reply_to ?? second.reply_to,
     reply_direction: first.reply_direction ?? second.reply_direction,
   };
@@ -101,9 +91,8 @@ function insertSortedAsc(list, msg) {
 }
 function upsertByKeySortedAsc(list, msg) {
   const idx = findIndexByAnyId(list, msg);
-  const normalizedMsg = { ...msg, status: normalizeStatus(msg.status) };
   if (idx >= 0) {
-    const merged = mergeOutgoing(list[idx], normalizedMsg);
+    const merged = mergeOutgoing(list[idx], msg);
     if (tsOf(merged) >= tsOf(list[idx])) {
       const copy = list.slice();
       copy[idx] = merged;
@@ -113,7 +102,7 @@ function upsertByKeySortedAsc(list, msg) {
     copy.splice(idx, 1);
     return insertSortedAsc(copy, merged);
   }
-  return insertSortedAsc(list, normalizedMsg);
+  return insertSortedAsc(list, msg);
 }
 
 /* -------------------- componente -------------------- */
@@ -158,14 +147,12 @@ export default function ChatWindow({ userIdSelecionado }) {
       messageCacheRef.current.set(msg.user_id, next);
 
       const ts = msg.timestamp || new Date().toISOString();
-      // ⚠️ NÃO mexe no status do ticket aqui
       mergeConversation(msg.user_id, {
         content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
         direction: msg.direction,
         timestamp: ts,
         type: (msg.type || "text").toLowerCase(),
-        last_message_status: normalizeStatus(msg.status) || undefined,
       });
 
       return next;
@@ -175,21 +162,18 @@ export default function ChatWindow({ userIdSelecionado }) {
   const handleUpdateMessage = useCallback((msg) => {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
-    const normalized = { ...msg, status: normalizeStatus(msg.status) };
-
     setAllMessages((prev) => {
-      const next = upsertByKeySortedAsc(prev, { ...normalized, pending: normalized.status === 'pending' ? true : false });
+      const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
       messageCacheRef.current.set(msg.user_id, next);
 
-      const ts = normalized.timestamp || new Date().toISOString();
-      // ⚠️ NÃO sobrescrever 'status' do ticket; salvar em 'last_message_status'
-      mergeConversation(normalized.user_id, {
-        content: extractText(normalized.content) || extractUrlOrFilename(normalized.content) || "[mensagem]",
-        channel: normalized.channel,
-        direction: normalized.direction,
+      const ts = msg.timestamp || new Date().toISOString();
+      // ⚠️ NÃO enviar `status` aqui (evita sobrescrever status do ticket no sidebar)
+      mergeConversation(msg.user_id, {
+        content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
+        channel: msg.channel,
+        direction: msg.direction,
         timestamp: ts,
-        type: (normalized.type || "text").toLowerCase(),
-        last_message_status: normalized.status,
+        type: (msg.type || "text").toLowerCase(),
       });
 
       return next;
@@ -245,9 +229,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           return;
         }
 
-        const msgsRaw = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
-        // normaliza status das mensagens iniciais (apenas para a lista)
-        const msgs = msgsRaw.map(m => ({ ...m, status: normalizeStatus(m.status) }));
+        const msgs = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
 
         messageCacheRef.current.set(userIdSelecionado, msgs);
         setAllMessages(msgs);
@@ -257,7 +239,6 @@ export default function ChatWindow({ userIdSelecionado }) {
 
         const lastMsg = msgs[msgs.length - 1] || {};
         const lastText = contentToText(lastMsg?.content);
-        // ✅ AQUI SIM: definimos o status do ticket (open/closed/etc.)
         mergeConversation(userIdSelecionado, {
           channel: lastMsg.channel || clienteRes?.channel || "desconhecido",
           ticket_number: clienteRes?.ticket_number || "000000",
@@ -268,11 +249,10 @@ export default function ChatWindow({ userIdSelecionado }) {
           documento: clienteRes?.document || "",
           user_id: clienteRes?.user_id || userIdSelecionado,
           assigned_to,
-          status, // ⚠️ status do ticket, não de mensagem
+          status, // <-- status do ticket (open/closed/etc)
           content: lastText,
           timestamp: lastMsg?.timestamp || lastMsg?.created_at,
           type: (lastMsg?.type || "text").toLowerCase(),
-          last_message_status: normalizeStatus(lastMsg?.status) || undefined,
         });
 
         marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
@@ -293,6 +273,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         console.error("Erro ao buscar cliente/conversa:", err);
       } finally {
         setIsLoading(false);
+        // NÃO faz scroll aqui: a MessageList já inicia no final ao montar.
       }
     })();
   }, [
@@ -321,9 +302,8 @@ export default function ChatWindow({ userIdSelecionado }) {
           before_ts: String(oldestTsRef.current),
           sort: "desc",
         });
-        const olderRes = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
-        const arrRaw = Array.isArray(olderRes) ? olderRes : (olderRes?.data || []);
-        const arr = arrRaw.map(m => ({ ...m, status: normalizeStatus(m.status) }));
+        const older = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
+        const arr = Array.isArray(older) ? older : (older?.data || []);
         arr.reverse(); // mantém ASC
 
         if (arr.length) {
@@ -353,14 +333,13 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [userIdSelecionado]);
 
-  /* ------ envio otimista ------ */
+  /* ------ envio otimista (mantém a visualização no fim) ------ */
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
 
     const client_id = tempMsg.client_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const optimistic = {
       ...tempMsg,
-      status: 'pending',   // status da MENSAGEM
       pending: true,
       direction: "outgoing",
       client_id,
@@ -373,33 +352,20 @@ export default function ChatWindow({ userIdSelecionado }) {
       return next;
     });
 
-    // resumo no painel lateral — NÃO altera status do ticket
     mergeConversation(userIdSelecionado, {
       content: contentToText(tempMsg.content),
       timestamp: tempMsg.timestamp || new Date().toISOString(),
       channel: tempMsg.channel || "whatsapp",
       direction: "outgoing",
       type: (tempMsg.type || "text").toLowerCase(),
-      last_message_status: 'pending',
+      // ⚠️ sem status aqui também
     });
 
     setReplyTo(null);
+
+    // Sem animação: garante que fica no final ao enviar
     messageListRef.current?.scrollToBottomInstant?.();
   }, [mergeConversation, userIdSelecionado]);
-
-  /* ------ retry handler (opcional) ------ */
-  const onRetryMessage = useCallback((failedMsg) => {
-    try {
-      const text =
-        extractText(failedMsg?.content) ||
-        extractUrlOrFilename(failedMsg?.content) ||
-        '';
-      if (text) navigator.clipboard.writeText(text);
-    } catch {}
-
-    setReplyTo(failedMsg || null);
-    messageListRef.current?.scrollToBottomInstant?.();
-  }, []);
 
   /* ------ render ------ */
   if (!userIdSelecionado) {
@@ -434,7 +400,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         onImageClick={setModalImage}
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
-        onRetry={onRetryMessage}
         loaderRef={oldestTsRef.current ? loaderRef : null}
       />
 
