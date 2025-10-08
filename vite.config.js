@@ -24,6 +24,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        waCallback: resolve(__dirname, 'wa-callback.html'),
       },
     },
     commonjsOptions: { include: [/node_modules/] },
