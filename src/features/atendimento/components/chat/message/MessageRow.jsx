@@ -9,7 +9,7 @@ import AudioMessage from './messageTypes/AudioMessage';
 import ContactsMessage from './messageTypes/ContactsMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import './styles/MessageRow.css';
-import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown } from 'lucide-react';
+import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown, RotateCcw } from 'lucide-react';
 
 // -------- helpers para o cabeçalho de resposta --------
 function pickSnippet(c) {
@@ -34,7 +34,6 @@ function pickSnippet(c) {
     const typ = c.type || '';
     const url = String(c.url || '').toLowerCase();
 
-    // tenta pelo mime/type primeiro (cobre casos sem extensão na URL)
     if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
     if (mt.startsWith('audio/') || typ === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(url)) return 'Áudio';
     if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
@@ -73,7 +72,7 @@ function normalizeStatus(s) {
   return v;
 }
 
-export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
+export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onRetry }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
 
@@ -110,7 +109,8 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
           ) : status === 'sent' ? (
             <CheckCheck size={14} className="check sent" />
           ) : status === 'failed' ? (
-            <span className="check error">❌</span>
+            // sem ícone no timestamp quando falha
+            null
           ) : (
             // pending ou indefinido
             <Check size={14} className="check pending" />
@@ -279,58 +279,75 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
       {isSystem ? (
         <div className="system-message-wrapper">{messageContent}</div>
       ) : (
-        <div className={bubbleClass}>
-          <div className="message-bubble-content">
-            <div className="menu-arrow" ref={menuRef}>
-              <button onClick={toggleMenu} className="menu-button" title="Mais opções">
-                <ChevronDown size={16} />
-              </button>
-              {menuOpen && (
-                <div className={`menu-dropdown ${isOutgoing ? 'right' : 'left'}`}>
-                  {onReply && (
-                    <button onClick={() => { onReply(msg); setMenuOpen(false); }}>
-                      <CornerDownLeft size={14} /> Responder
-                    </button>
-                  )}
-                  {(typeof content === 'string' ||
-                    (typeof content === 'object' && (content?.body || content?.text || content?.caption))) && (
-                    <button onClick={handleCopy}>
-                      <Copy size={14} /> Copiar
-                    </button>
-                  )}
-                  {((content?.url && (isImage || isPdf || isVideo))) && (
-                    <button onClick={handleDownload}>
-                      <Download size={14} /> Baixar
-                    </button>
-                  )}
+        <>
+          <div className={bubbleClass}>
+            <div className="message-bubble-content">
+              <div className="menu-arrow" ref={menuRef}>
+                <button onClick={toggleMenu} className="menu-button" title="Mais opções">
+                  <ChevronDown size={16} />
+                </button>
+                {menuOpen && (
+                  <div className={`menu-dropdown ${isOutgoing ? 'right' : 'left'}`}>
+                    {onReply && (
+                      <button onClick={() => { onReply(msg); setMenuOpen(false); }}>
+                        <CornerDownLeft size={14} /> Responder
+                      </button>
+                    )}
+                    {(typeof content === 'string' ||
+                      (typeof content === 'object' && (content?.body || content?.text || content?.caption))) && (
+                      <button onClick={handleCopy}>
+                        <Copy size={14} /> Copiar
+                      </button>
+                    )}
+                    {((content?.url && (isImage || isPdf || isVideo))) && (
+                      <button onClick={handleDownload}>
+                        <Download size={14} /> Baixar
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {replyPreview && (
+                <div className="replied-message">
+                  <div className="replied-bar" />
+                  <div className="replied-content">
+                    <div className="replied-title">
+                      <strong>
+                        {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
+                      </strong>
+                    </div>
+                    <div className="replied-text">
+                      {replyPreview.snippet}
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
 
-            {replyPreview && (
-              <div className="replied-message">
-                <div className="replied-bar" />
-                <div className="replied-content">
-                  <div className="replied-title">
-                    <strong>
-                      {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
-                    </strong>
-                  </div>
-                  <div className="replied-text">
-                    {/* usa o snippet direto, sem "[mensagem]" */}
-                    {replyPreview.snippet}
-                  </div>
-                </div>
+              <div className="message-content">
+                {messageContent}
               </div>
-            )}
 
-            <div className="message-content">
-              {messageContent}
+              {renderTimeAndStatus()}
             </div>
-
-            {renderTimeAndStatus()}
           </div>
-        </div>
+
+          {/* AVISO DE FALHA — abaixo do bubble (sem motivo e com botão) */}
+          {isOutgoing && status === 'failed' && (
+            <div className="delivery-failed-note" role="status" aria-live="polite">
+              <span>Falha ao entregar.</span>
+              <button
+                type="button"
+                className="retry-btn"
+                onClick={() => onRetry?.(msg)}
+                title="Tentar novamente"
+              >
+                <RotateCcw size={14} />
+                Tentar novamente
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
