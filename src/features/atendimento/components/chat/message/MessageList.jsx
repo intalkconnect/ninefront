@@ -2,7 +2,6 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useRef,
-  useEffect,
   useLayoutEffect,
 } from 'react';
 
@@ -37,6 +36,7 @@ const MessageList = forwardRef(
       onImageClick,
       onPdfClick,
       onReply,
+      onRetry,        // <<< NOVO
       loaderRef = null, // sentinel no topo (IntersectionObserver vem do pai)
     },
     ref
@@ -164,6 +164,7 @@ const MessageList = forwardRef(
                 onImageClick={onImageClick}
                 onPdfClick={onPdfClick}
                 onReply={onReply}
+                onRetry={onRetry}  // repassa o handler para o bubble
               />
             </React.Fragment>
           );
