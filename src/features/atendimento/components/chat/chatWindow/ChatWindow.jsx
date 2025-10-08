@@ -105,6 +105,35 @@ function upsertByKeySortedAsc(list, msg) {
   return insertSortedAsc(list, msg);
 }
 
+/* remove chaves com undefined/null (evita wipe no store) */
+function pruneEmpty(obj) {
+  const out = {};
+  Object.entries(obj || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) out[k] = v;
+  });
+  return out;
+}
+
+/* remove campos que não devem ser alterados por update_message */
+function stripTicketFields(obj) {
+  const blocked = new Set([
+    "status",         // status do ticket (open/closed/etc)
+    "assigned_to",
+    "fila",
+    "ticket_number",
+    "name",
+    "email",
+    "phone",
+    "documento",
+    "user_id",        // (nunca mude o user_id do card)
+  ]);
+  const out = {};
+  Object.entries(obj || {}).forEach(([k, v]) => {
+    if (!blocked.has(k)) out[k] = v;
+  });
+  return out;
+}
+
 /* -------------------- componente -------------------- */
 export default function ChatWindow({ userIdSelecionado }) {
   const mergeConversation = useConversationsStore((state) => state.mergeConversation);
@@ -147,14 +176,16 @@ export default function ChatWindow({ userIdSelecionado }) {
       messageCacheRef.current.set(msg.user_id, next);
 
       const ts = msg.timestamp || new Date().toISOString();
-      mergeConversation(msg.user_id, {
+      const mergeData = pruneEmpty({
         content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
         direction: msg.direction,
         timestamp: ts,
         type: (msg.type || "text").toLowerCase(),
+        // sem status aqui
       });
 
+      mergeConversation(msg.user_id, mergeData);
       return next;
     });
   }, [userIdSelecionado, mergeConversation]);
@@ -167,14 +198,17 @@ export default function ChatWindow({ userIdSelecionado }) {
       messageCacheRef.current.set(msg.user_id, next);
 
       const ts = msg.timestamp || new Date().toISOString();
-      // ⚠️ NÃO enviar `status` aqui (evita sobrescrever status do ticket no sidebar)
-      mergeConversation(msg.user_id, {
+      // constrói payload SEM campos de ticket e SEM undefined/null
+      const base = {
         content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
         direction: msg.direction,
         timestamp: ts,
         type: (msg.type || "text").toLowerCase(),
-      });
+        // NUNCA enviar `status` aqui
+      };
+      const safe = pruneEmpty(stripTicketFields(base));
+      mergeConversation(msg.user_id, safe);
 
       return next;
     });
@@ -239,7 +273,8 @@ export default function ChatWindow({ userIdSelecionado }) {
 
         const lastMsg = msgs[msgs.length - 1] || {};
         const lastText = contentToText(lastMsg?.content);
-        mergeConversation(userIdSelecionado, {
+        // carga inicial: AQUI PODE setar status/fila/assigned_to do ticket
+        mergeConversation(userIdSelecionado, pruneEmpty({
           channel: lastMsg.channel || clienteRes?.channel || "desconhecido",
           ticket_number: clienteRes?.ticket_number || "000000",
           fila: clienteRes?.fila || fila || "Orçamento",
@@ -249,11 +284,11 @@ export default function ChatWindow({ userIdSelecionado }) {
           documento: clienteRes?.document || "",
           user_id: clienteRes?.user_id || userIdSelecionado,
           assigned_to,
-          status, // <-- status do ticket (open/closed/etc)
+          status, // status do ticket
           content: lastText,
           timestamp: lastMsg?.timestamp || lastMsg?.created_at,
           type: (lastMsg?.type || "text").toLowerCase(),
-        });
+        }));
 
         marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
 
@@ -352,18 +387,16 @@ export default function ChatWindow({ userIdSelecionado }) {
       return next;
     });
 
-    mergeConversation(userIdSelecionado, {
+    // não tocar em status/fila/assigned_to aqui
+    mergeConversation(userIdSelecionado, pruneEmpty({
       content: contentToText(tempMsg.content),
       timestamp: tempMsg.timestamp || new Date().toISOString(),
       channel: tempMsg.channel || "whatsapp",
       direction: "outgoing",
       type: (tempMsg.type || "text").toLowerCase(),
-      // ⚠️ sem status aqui também
-    });
+    }));
 
     setReplyTo(null);
-
-    // Sem animação: garante que fica no final ao enviar
     messageListRef.current?.scrollToBottomInstant?.();
   }, [mergeConversation, userIdSelecionado]);
 
