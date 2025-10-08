@@ -158,12 +158,14 @@ export default function ChatWindow({ userIdSelecionado }) {
       messageCacheRef.current.set(msg.user_id, next);
 
       const ts = msg.timestamp || new Date().toISOString();
+      // ⚠️ NÃO mexe no status do ticket aqui
       mergeConversation(msg.user_id, {
         content: extractText(msg.content) || extractUrlOrFilename(msg.content) || "[mensagem]",
         channel: msg.channel,
         direction: msg.direction,
         timestamp: ts,
         type: (msg.type || "text").toLowerCase(),
+        last_message_status: normalizeStatus(msg.status) || undefined,
       });
 
       return next;
@@ -180,13 +182,14 @@ export default function ChatWindow({ userIdSelecionado }) {
       messageCacheRef.current.set(msg.user_id, next);
 
       const ts = normalized.timestamp || new Date().toISOString();
+      // ⚠️ NÃO sobrescrever 'status' do ticket; salvar em 'last_message_status'
       mergeConversation(normalized.user_id, {
         content: extractText(normalized.content) || extractUrlOrFilename(normalized.content) || "[mensagem]",
         channel: normalized.channel,
         direction: normalized.direction,
         timestamp: ts,
-        status: normalized.status,
         type: (normalized.type || "text").toLowerCase(),
+        last_message_status: normalized.status,
       });
 
       return next;
@@ -243,7 +246,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         }
 
         const msgsRaw = Array.isArray(msgRes) ? msgRes : (msgRes?.data || []);
-        // normaliza status das mensagens iniciais
+        // normaliza status das mensagens iniciais (apenas para a lista)
         const msgs = msgsRaw.map(m => ({ ...m, status: normalizeStatus(m.status) }));
 
         messageCacheRef.current.set(userIdSelecionado, msgs);
@@ -254,6 +257,7 @@ export default function ChatWindow({ userIdSelecionado }) {
 
         const lastMsg = msgs[msgs.length - 1] || {};
         const lastText = contentToText(lastMsg?.content);
+        // ✅ AQUI SIM: definimos o status do ticket (open/closed/etc.)
         mergeConversation(userIdSelecionado, {
           channel: lastMsg.channel || clienteRes?.channel || "desconhecido",
           ticket_number: clienteRes?.ticket_number || "000000",
@@ -264,10 +268,11 @@ export default function ChatWindow({ userIdSelecionado }) {
           documento: clienteRes?.document || "",
           user_id: clienteRes?.user_id || userIdSelecionado,
           assigned_to,
-          status,
+          status, // ⚠️ status do ticket, não de mensagem
           content: lastText,
           timestamp: lastMsg?.timestamp || lastMsg?.created_at,
           type: (lastMsg?.type || "text").toLowerCase(),
+          last_message_status: normalizeStatus(lastMsg?.status) || undefined,
         });
 
         marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
@@ -288,7 +293,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         console.error("Erro ao buscar cliente/conversa:", err);
       } finally {
         setIsLoading(false);
-        // NÃO faz scroll aqui: a MessageList já inicia no final ao montar.
       }
     })();
   }, [
@@ -349,14 +353,14 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [userIdSelecionado]);
 
-  /* ------ envio otimista (mantém a visualização no fim) ------ */
+  /* ------ envio otimista ------ */
   const onMessageAdded = useCallback((tempMsg) => {
     if (!tempMsg) return;
 
     const client_id = tempMsg.client_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const optimistic = {
       ...tempMsg,
-      status: 'pending',   // já coloca o status que o outgoing vai emitir
+      status: 'pending',   // status da MENSAGEM
       pending: true,
       direction: "outgoing",
       client_id,
@@ -369,27 +373,22 @@ export default function ChatWindow({ userIdSelecionado }) {
       return next;
     });
 
-    // resumo no painel lateral
+    // resumo no painel lateral — NÃO altera status do ticket
     mergeConversation(userIdSelecionado, {
       content: contentToText(tempMsg.content),
       timestamp: tempMsg.timestamp || new Date().toISOString(),
       channel: tempMsg.channel || "whatsapp",
       direction: "outgoing",
       type: (tempMsg.type || "text").toLowerCase(),
+      last_message_status: 'pending',
     });
 
     setReplyTo(null);
-
-    // Sem animação: garante que fica no final ao enviar
     messageListRef.current?.scrollToBottomInstant?.();
   }, [mergeConversation, userIdSelecionado]);
 
-  /* ------ retry handler ------ */
+  /* ------ retry handler (opcional) ------ */
   const onRetryMessage = useCallback((failedMsg) => {
-    // comportamento simples para operador:
-    // 1) copia o conteúdo textual (se tiver) para a área de transferência;
-    // 2) abre como resposta (mostra preview);
-    // 3) desce para o final.
     try {
       const text =
         extractText(failedMsg?.content) ||
@@ -400,15 +399,6 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     setReplyTo(failedMsg || null);
     messageListRef.current?.scrollToBottomInstant?.();
-
-    // Se preferir reenvio automático, substitua por:
-    // onMessageAdded({
-    //   channel: failedMsg.channel,
-    //   type: failedMsg.type,
-    //   content: failedMsg.content,
-    //   reply_to: failedMsg.reply_to,
-    // });
-    // e faça sua chamada de API aqui, se necessário.
   }, []);
 
   /* ------ render ------ */
@@ -444,7 +434,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         onImageClick={setModalImage}
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
-        onRetry={onRetryMessage}   // <<< passa o handler para os balões
+        onRetry={onRetryMessage}
         loaderRef={oldestTsRef.current ? loaderRef : null}
       />
 
