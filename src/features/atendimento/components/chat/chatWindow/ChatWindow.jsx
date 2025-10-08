@@ -369,6 +369,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       return next;
     });
 
+    // resumo no painel lateral
     mergeConversation(userIdSelecionado, {
       content: contentToText(tempMsg.content),
       timestamp: tempMsg.timestamp || new Date().toISOString(),
@@ -382,6 +383,33 @@ export default function ChatWindow({ userIdSelecionado }) {
     // Sem animação: garante que fica no final ao enviar
     messageListRef.current?.scrollToBottomInstant?.();
   }, [mergeConversation, userIdSelecionado]);
+
+  /* ------ retry handler ------ */
+  const onRetryMessage = useCallback((failedMsg) => {
+    // comportamento simples para operador:
+    // 1) copia o conteúdo textual (se tiver) para a área de transferência;
+    // 2) abre como resposta (mostra preview);
+    // 3) desce para o final.
+    try {
+      const text =
+        extractText(failedMsg?.content) ||
+        extractUrlOrFilename(failedMsg?.content) ||
+        '';
+      if (text) navigator.clipboard.writeText(text);
+    } catch {}
+
+    setReplyTo(failedMsg || null);
+    messageListRef.current?.scrollToBottomInstant?.();
+
+    // Se preferir reenvio automático, substitua por:
+    // onMessageAdded({
+    //   channel: failedMsg.channel,
+    //   type: failedMsg.type,
+    //   content: failedMsg.content,
+    //   reply_to: failedMsg.reply_to,
+    // });
+    // e faça sua chamada de API aqui, se necessário.
+  }, []);
 
   /* ------ render ------ */
   if (!userIdSelecionado) {
@@ -416,6 +444,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         onImageClick={setModalImage}
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
+        onRetry={onRetryMessage}   // <<< passa o handler para os balões
         loaderRef={oldestTsRef.current ? loaderRef : null}
       />
 
