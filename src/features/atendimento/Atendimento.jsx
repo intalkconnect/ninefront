@@ -57,6 +57,26 @@ function buildPreview(msg) {
   return "[mensagem]";
 }
 
+/* helpers de segurança para não sobrescrever campos do ticket */
+function prune(obj) {
+  const out = {};
+  Object.entries(obj || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) out[k] = v;
+  });
+  return out;
+}
+function stripTicketFields(obj) {
+  const blocked = new Set([
+    "status", "assigned_to", "fila", "ticket_number",
+    "name", "email", "phone", "documento", "user_id"
+  ]);
+  const out = {};
+  Object.entries(obj || {}).forEach(([k, v]) => {
+    if (!blocked.has(k)) out[k] = v;
+  });
+  return out;
+}
+
 export default function Atendimento() {
   const audioPlayer        = useRef(null);
   const socketRef          = useRef(null);
@@ -80,29 +100,25 @@ export default function Atendimento() {
   const userEmail          = useConversationsStore((s) => s.userEmail);
   const userFilas          = useConversationsStore((s) => s.userFilas);
   const setSocketStatus    = useConversationsStore((s) => s.setSocketStatus);
-  const heartbeatRef = useRef(null);
-  
+  const heartbeatRef       = useRef(null);
 
   const [isWindowActive, setIsWindowActive] = useState(true);
 
-useEffect(() => {
-  const onRoomClosed = (e) => {
-    const rid = e?.detail?.userId;
-    if (!rid) return;
-
-   // opcional: garante leave no servidor também (idempotente)
-   try {
-     const s = getSocket();
-     if (s?.connected) s.emit('leave_room', rid);
-   } catch {}
-
-    if (joinedRoomsRef.current.has(rid)) {
-      joinedRoomsRef.current.delete(rid); // impede re-join futuro
-    }
-  };
-  window.addEventListener('room-closed', onRoomClosed);
-  return () => window.removeEventListener('room-closed', onRoomClosed);
-}, []);
+  useEffect(() => {
+    const onRoomClosed = (e) => {
+      const rid = e?.detail?.userId;
+      if (!rid) return;
+      try {
+        const s = getSocket();
+        if (s?.connected) s.emit('leave_room', rid);
+      } catch {}
+      if (joinedRoomsRef.current.has(rid)) {
+        joinedRoomsRef.current.delete(rid);
+      }
+    };
+    window.addEventListener('room-closed', onRoomClosed);
+    return () => window.removeEventListener('room-closed', onRoomClosed);
+  }, []);
 
   // ————— utils —————
   const joinRoom = useCallback((userId) => {
@@ -141,12 +157,11 @@ useEffect(() => {
       const n = new Notification(title, {
         body,
         icon: "/logo-front.png",
-        tag: "new-messages",  // substitui a anterior
+        tag: "new-messages",
         renotify: true,
         vibrate: [200, 100, 200],
       });
       n.onclick = () => { window.focus(); };
-      // som 1x por flush
       try {
         const player = audioPlayer.current;
         if (player) {
@@ -162,14 +177,11 @@ useEffect(() => {
   }, []);
 
   const queueAggregateNotification = useCallback((msg) => {
-    // só notifica se a aba NÃO estiver ativa
     if (isWindowActiveRef.current) return;
-
     const bucket = notifBucketRef.current;
     const uid    = msg?.user_id;
     bucket.total += 1;
     if (uid) bucket.perUser.set(uid, (bucket.perUser.get(uid) || 0) + 1);
-
     if (notifTimerRef.current) clearTimeout(notifTimerRef.current);
     notifTimerRef.current = setTimeout(flushAggregateNotification, 800);
   }, [flushAggregateNotification]);
@@ -239,31 +251,30 @@ useEffect(() => {
 
   const { apiBaseUrl } = getRuntimeConfig();
 
-// encerra sessão ao fechar/atualizar a aba (marca INATIVO no back)
-useEffect(() => {
-  const onBeforeUnload = () => {
-    try {
-      const token = localStorage.getItem("token");
-      const { email } = parseJwt(token) || {};
-      if (!email) return;
+  // encerra sessão ao fechar/atualizar a aba (marca INATIVO no back)
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      try {
+        const token = localStorage.getItem("token");
+        const { email } = parseJwt(token) || {};
+        if (!email) return;
 
-      const url = `${apiBaseUrl}/agents/presence/${encodeURIComponent(email)}`;
-      const body = JSON.stringify({ status: "inativo" }); // Mude para "inativo"
-      const blob = new Blob([body], { type: "application/json" });
+        const url = `${apiBaseUrl}/agents/presence/${encodeURIComponent(email)}`;
+        const body = JSON.stringify({ status: "inativo" });
+        const blob = new Blob([body], { type: "application/json" });
 
-      navigator.sendBeacon?.(url, blob);
-    } catch {
-      const token = localStorage.getItem("token");
-      const { email } = parseJwt(token) || {};
-      if (!email) return;
-      apiPut(`/atendentes/presence/${email}`, { status: "inativo" }).catch(() => {}); // Mude para "inativo"
-    }
-  };
+        navigator.sendBeacon?.(url, blob);
+      } catch {
+        const token = localStorage.getItem("token");
+        const { email } = parseJwt(token) || {};
+        if (!email) return;
+        apiPut(`/atendentes/presence/${email}`, { status: "inativo" }).catch(() => {});
+      }
+    };
 
-  window.addEventListener("beforeunload", onBeforeUnload);
-  return () => window.removeEventListener("beforeunload", onBeforeUnload);
-}, []);
-
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
 
   // ————— handlers de realtime —————
 
@@ -277,8 +288,8 @@ useEffect(() => {
       const ts           = message.timestamp || new Date().toISOString();
       const preview      = buildPreview(message);
 
-      // Atualiza card (preview/horário)
-      mergeConversation(message.user_id, {
+      // Atualiza card (preview/horário) — sem tocar no status do ticket
+      mergeConversation(message.user_id, prune({
         ticket_number: message.ticket_number || message.ticket,
         content: contentToText(message.content),
         channel: message.channel,
@@ -287,7 +298,7 @@ useEffect(() => {
         last_message: preview,
         last_message_at: ts,
         updated_at: ts
-      });
+      }));
 
       // Determina se a conversa é “minha”:
       const state       = useConversationsStore.getState();
@@ -334,7 +345,8 @@ useEffect(() => {
       const ts      = message.timestamp || new Date().toISOString();
       const preview = buildPreview(message);
 
-      mergeConversation(message.user_id, {
+      // ⚠️ NÃO enviar `status` aqui (isso é status da mensagem, não do ticket)
+      const base = {
         content: contentToText(message.content),
         channel: message.channel,
         direction: message.direction,
@@ -342,8 +354,8 @@ useEffect(() => {
         last_message: preview,
         last_message_at: ts,
         updated_at: ts,
-        status: message.status,
-      });
+      };
+      mergeConversation(message.user_id, prune(stripTicketFields(base)));
 
       const state       = useConversationsStore.getState();
       const convStore   = state.conversations?.[message.user_id];
@@ -355,97 +367,94 @@ useEffect(() => {
   );
 
   // ————— bootstrap socket + listeners —————
-useEffect(() => {
-  if (!userEmail || !(userFilas || []).length) return;
-  let mounted = true;
+  useEffect(() => {
+    if (!userEmail || !(userFilas || []).length) return;
+    let mounted = true;
 
-  const startHeartbeat = (socket) => {
-    try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
-    heartbeatRef.current = setInterval(async () => {
-      try {
-        // console.debug('[hb] ping', new Date().toISOString(), socket.id);
-        await apiPut(`/agents/heartbeat`, { session: socket.id, email: userEmail });
-      } catch {
-        // silencioso
-      }
-    }, 30000); // 30s
-  };
+    const startHeartbeat = (socket) => {
+      try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
+      heartbeatRef.current = setInterval(async () => {
+        try {
+          await apiPut(`/agents/heartbeat`, { session: socket.id, email: userEmail });
+        } catch {
+          // silencioso
+        }
+      }, 30000);
+    };
 
-  const onConnect = async () => {
-    if (!mounted) return;
-    setSocketStatus?.("online");
-// marca o atendente como INATIVO no refresh (por EMAIL)
-
-    const sock = getSocket();
-    sock.emit("identify", { email: userEmail, rooms: userFilas });
-
-    // rejoin rooms conhecidos
-    for (const rid of joinedRoomsRef.current) {
-      sock.emit("join_room", rid);
-    }
-
-    startHeartbeat(sock);
-  };
-
-  const onDisconnect = () => {
-    setSocketStatus?.("offline");
-    try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
-  };
-
-  (async () => {
-    try {
-      await Promise.all([
-        fetchConversations(),
-        loadLastReadTimes(),
-        loadUnreadCounts(),
-      ]);
+    const onConnect = async () => {
       if (!mounted) return;
+      setSocketStatus?.("online");
 
-      connectSocket();
-      const socket = getSocket();
-      socketRef.current = socket;
+      const sock = getSocket();
+      sock.emit("identify", { email: userEmail, rooms: userFilas });
 
-      socket.off("connect", onConnect);
-      socket.on("connect", onConnect);
-
-      socket.off("disconnect", onDisconnect);
-      socket.on("disconnect", onDisconnect);
-
-      socket.off("new_message", handleNewMessage);
-      socket.on("new_message", handleNewMessage);
-
-      socket.off("update_message", handleUpdateMessage);
-      socket.on("update_message", handleUpdateMessage);
-
-      // se já estiver conectado, roda o fluxo agora
-      if (socket.connected) {
-        await onConnect();
+      // rejoin rooms conhecidos
+      for (const rid of joinedRoomsRef.current) {
+        sock.emit("join_room", rid);
       }
-    } catch (err) {
-      console.error("Erro na inicialização:", err);
-    }
-  })();
 
-  return () => {
-    mounted = false;
-    const socket = getSocket();
-    if (socket) {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("new_message", handleNewMessage);
-      socket.off("update_message", handleUpdateMessage);
-    }
-    try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
-  };
-}, [
-  userEmail,
-  userFilas,
-  handleNewMessage,
-  handleUpdateMessage,
-  loadUnreadCounts,
-  loadLastReadTimes,
-  setSocketStatus,
-]);
+      startHeartbeat(sock);
+    };
+
+    const onDisconnect = () => {
+      setSocketStatus?.("offline");
+      try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
+    };
+
+    (async () => {
+      try {
+        await Promise.all([
+          fetchConversations(),
+          loadLastReadTimes(),
+          loadUnreadCounts(),
+        ]);
+        if (!mounted) return;
+
+        connectSocket();
+        const socket = getSocket();
+        socketRef.current = socket;
+
+        socket.off("connect", onConnect);
+        socket.on("connect", onConnect);
+
+        socket.off("disconnect", onDisconnect);
+        socket.on("disconnect", onDisconnect);
+
+        socket.off("new_message", handleNewMessage);
+        socket.on("new_message", handleNewMessage);
+
+        socket.off("update_message", handleUpdateMessage);
+        socket.on("update_message", handleUpdateMessage);
+
+        if (socket.connected) {
+          await onConnect();
+        }
+      } catch (err) {
+        console.error("Erro na inicialização:", err);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      const socket = getSocket();
+      if (socket) {
+        socket.off("connect", onConnect);
+        socket.off("disconnect", onDisconnect);
+        socket.off("new_message", handleNewMessage);
+        socket.off("update_message", handleUpdateMessage);
+      }
+      try { if (heartbeatRef.current) clearInterval(heartbeatRef.current); } catch {}
+    };
+  }, [
+    userEmail,
+    userFilas,
+    handleNewMessage,
+    handleUpdateMessage,
+    loadUnreadCounts,
+    loadLastReadTimes,
+    setSocketStatus,
+  ]);
 
   // ————— carga inicial de conversas + auto-join rooms atribuídos —————
   const fetchConversations = async () => {
@@ -461,15 +470,14 @@ useEffect(() => {
       (data || []).forEach((conv) => {
         const ts = conv.timestamp || conv.updated_at || new Date().toISOString();
 
-// já vem com last_message e last_message_at do backend
-mergeConversation(conv.user_id, {
-  ...conv,
-  content: conv.last_message,        // opcional manter compat
-  last_message: conv.last_message,   // já pronto do back
-  last_message_at: conv.last_message_at,
-  updated_at: conv.last_message_at || conv.updated_at
-});
-
+        // já vem com last_message e last_message_at do backend
+        mergeConversation(conv.user_id, {
+          ...conv,
+          content: conv.last_message,
+          last_message: conv.last_message,
+          last_message_at: conv.last_message_at,
+          updated_at: conv.last_message_at || conv.updated_at
+        });
 
         // se está atribuído e aberto, entra no room
         const isMine = conv.assigned_to === userEmail;
@@ -496,12 +504,12 @@ mergeConversation(conv.user_id, {
             </div>
           </aside>
 
-          <main className="chat-container">
-            <ChatWindow
-              userIdSelecionado={selectedUserId}
-              conversaSelecionada={conversaSelecionada}
-            />
-          </main>
+        <main className="chat-container">
+          <ChatWindow
+            userIdSelecionado={selectedUserId}
+            conversaSelecionada={conversaSelecionada}
+          />
+        </main>
 
           <aside className="details-panel">
             <DetailsPanel
