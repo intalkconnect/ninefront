@@ -149,7 +149,7 @@ export default function Channels() {
               // caso tenha várias páginas, pegue a primeira com instagram ou peça UI para escolha
               const pick = res.pages.find(p => p.has_instagram) || res.pages[0];
               if (!pick) throw new Error("Nenhuma Página disponível");
-              const res2 = await apiPost("/instagram/finalize", { subdomain: sub, code, redirect_uri, page_id: pick.id });
+              const res2 = await apiPost("/instagram/finalize", { subdomain: sub, redirect_uri, page_id: pick.id, user_token: res.user_token });
               if (res2?.ok) {
                 setIg((s) => ({
                   ...s, connected: true, loading:false,
