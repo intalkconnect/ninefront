@@ -121,17 +121,55 @@ export default function Channels() {
 
         toast.loading("Conectando Facebook…", { toastId: "fb-connecting" });
         apiPost("/facebook/finalize", { subdomain: sub, code, redirect_uri })
-          .then((res) => {
-            if (res?.ok) {
-              setFb((s) => ({ ...s, connected: true, pageId: res.page_id || s.pageId, pageName: res.page_name || s.pageName, loading: false }));
-              toast.update("fb-connecting", { render: "Facebook conectado.", type: "success", isLoading: false, autoClose: 2500 });
-            } else {
-              throw new Error(res?.error || "Falha ao conectar Facebook");
-            }
-          })
-          .catch((err) => {
-            toast.update("fb-connecting", { render: err?.message || "Falha ao conectar Facebook", type: "error", isLoading: false, autoClose: 4000 });
-          });
+         .then(async (res) => {
+           // PASSO 1: a API retorna a lista de páginas + user_token
+           if (res?.ok && res?.step === "pages_list") {
+             const pages = Array.isArray(res.pages) ? res.pages : [];
+             if (!pages.length) throw new Error("Nenhuma Página disponível nesta conta.");
+
+             // escolha simples: primeira página (ou abra um modal para o usuário escolher)
+             const pick = pages[0];
+
+             // PASSO 2: finalizar de verdade com page_id + user_token
+             const r2 = await apiPost("/facebook/finalize", {
+               subdomain: sub,
+               redirect_uri,
+               page_id: pick.id,
+               user_token: res.user_token
+             });
+
+             if (r2?.ok && r2?.connected) {
+               setFb((s) => ({
+                 ...s,
+                 connected: true,
+                 loading: false,
+                 pageId: r2.page_id || s.pageId,
+                 pageName: r2.page_name || s.pageName
+               }));
+               toast.update("fb-connecting", { render: "Facebook conectado.", type: "success", isLoading: false, autoClose: 2500 });
+               return;
+             }
+             throw new Error(r2?.error || "Falha ao concluir conexão do Facebook");
+           }
+
+           // Alguns ambientes podem já retornar conectado (caso só haja 1 página)
+           if (res?.ok && res?.connected) {
+             setFb((s) => ({
+               ...s,
+               connected: true,
+               loading: false,
+               pageId: res.page_id || s.pageId,
+               pageName: res.page_name || s.pageName
+             }));
+             toast.update("fb-connecting", { render: "Facebook conectado.", type: "success", isLoading: false, autoClose: 2500 });
+             return;
+           }
+
+           throw new Error(res?.error || "Falha ao conectar Facebook");
+         })
+         .catch((err) => {
+           toast.update("fb-connecting", { render: err?.message || "Falha ao conectar Facebook", type: "error", isLoading: false, autoClose: 4000 });
+         });
       }
 
       // Instagram: receber code e finalizar (1ª chamada retorna lista de páginas)
