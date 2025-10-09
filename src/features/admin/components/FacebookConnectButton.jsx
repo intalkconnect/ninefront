@@ -11,7 +11,13 @@ export default function FacebookConnectButton({ tenant, label = "Conectar Facebo
     if (!AUTH_ORIG) return alert("VITE_EMBED_ORIGIN ausente");
 
     const redirectUri = `${AUTH_ORIG}/oauth/fb`;
-    const scope = ["pages_show_list","pages_manage_metadata","pages_messaging"].join(",");
+    const scope = [
+    "pages_show_list",
+    "pages_manage_metadata",
+    "pages_messaging",
+    "pages_read_engagement",
+    "business_management"
+    ].join(",");
 
     const state = btoa(JSON.stringify({ tenant, origin: window.location.origin, redirectUri }));
 
