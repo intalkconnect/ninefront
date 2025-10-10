@@ -135,7 +135,8 @@ export default function Channels() {
                subdomain: sub,
                redirect_uri,
                page_id: pick.id,
-               user_token: res.user_token
+               user_token: res.user_token,
+               persist_token: true
              });
 
              if (r2?.ok && r2?.connected) {
