@@ -4,7 +4,7 @@
 export const InteractiveNodeTemplate = {
   type: 'interactive',
   label: 'Interativo',
-  iconName: 'ListEnd',
+  iconName: 'Pointer',
   color: '#00796B',
   block: {
     type: 'interactive',
@@ -35,7 +35,7 @@ export const InteractiveNodeTemplate = {
 export const QuickReplyTemplate = {
   type: 'interactive',
   label: 'Botões',
-  iconName: 'HelpCircle',
+  iconName: 'Pointer',
   color: '#388E3C',
   block: {
     type: 'interactive',
@@ -88,3 +88,4 @@ export const MenuListTemplate = {
     }
   }
 };
+
