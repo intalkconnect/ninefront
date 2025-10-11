@@ -60,7 +60,7 @@ export const QuickReplyTemplate = {
 export const MenuListTemplate = {
   type: 'interactive',
   label: 'Lista',
-  iconName: 'ListEnd',
+  iconName: 'Pointer',
   color: '#00796B',
   block: {
     type: 'interactive',
@@ -88,4 +88,5 @@ export const MenuListTemplate = {
     }
   }
 };
+
 
