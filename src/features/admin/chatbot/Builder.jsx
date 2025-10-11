@@ -689,6 +689,9 @@ function run(context) {
 
         const loadedEdges = [];
         Object.values(blocks).forEach((b) => {
+            if (b.type === 'interactive' && b.content?.interactive) {
+            b.content = b.content.interactive; // 🔧 desembrulha legado
+          }
           (b.actions || []).forEach((a) => {
             if (a.next && blocks[a.next]) {
               loadedEdges.push({
@@ -727,6 +730,10 @@ function run(context) {
       const blocks = {};
       nodes.forEach((node) => {
         const block = { ...node.data.block };
+
+        if (block.type === 'interactive' && block.content?.interactive) {
+        block.content = block.content.interactive;
+        }
         if (block.defaultNext)
           block.defaultNext = nodeIds.has(block.defaultNext)
             ? block.defaultNext
