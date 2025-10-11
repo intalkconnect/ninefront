@@ -1,4 +1,4 @@
-// Builder.jsx
+// src/features/admin/chatbot/Builder.jsx
 import React, { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import ReactFlow, {
   Controls,
@@ -82,7 +82,7 @@ const selectedNodeStyle = {
 };
 
 const THEME = {
-  bg: "#f9fafb", // background geral
+  bg: "#f9fafb",
   panelBg: "#ffffff",
   text: "#0f172a",
   textMuted: "#334155",
@@ -188,25 +188,15 @@ export default function Builder() {
   const [history, setHistory] = useState({ past: [], future: [] });
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
-  useEffect(() => {
-    nodesRef.current = nodes;
-  }, [nodes]);
-  useEffect(() => {
-    edgesRef.current = edges;
-  }, [edges]);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   const snapshot = useCallback(
-    () => ({
-      nodes: deepClone(nodesRef.current),
-      edges: deepClone(edgesRef.current),
-    }),
+    () => ({ nodes: deepClone(nodesRef.current), edges: deepClone(edgesRef.current) }),
     []
   );
   const pushHistory = useCallback((prev) => {
-    setHistory((h) => ({
-      past: [...h.past, deepClone(prev)],
-      future: [],
-    }));
+    setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
   }, []);
   const undo = useCallback(() => {
     setHistory((h) => {
@@ -236,9 +226,7 @@ export default function Builder() {
   /* ---------- handlers básicos ---------- */
   const onNodesChange = useCallback(
     (changes) => {
-      const shouldPush = !changes.some(
-        (ch) => ch.type === "position" && ch.dragging
-      );
+      const shouldPush = !changes.some((ch) => ch.type === "position" && ch.dragging);
       setNodes((nds) => {
         if (shouldPush) pushHistory({ nodes: nds, edges: edgesRef.current });
         return applyNodeChanges(changes, nds);
@@ -247,18 +235,12 @@ export default function Builder() {
     [pushHistory]
   );
 
-  // sincroniza ações quando edges são removidos pelo ReactFlow + limpa seleção
   const onEdgesChange = useCallback(
     (changes) => {
-      const removedIds = new Set(
-        changes.filter((c) => c.type === "remove").map((c) => c.id)
-      );
-      const removedEdges = edgesRef.current.filter((e) =>
-        removedIds.has(e.id)
-      );
+      const removedIds = new Set(changes.filter((c) => c.type === "remove").map((c) => c.id));
+      const removedEdges = edgesRef.current.filter((e) => removedIds.has(e.id));
 
       pushHistory({ nodes: nodesRef.current, edges: edgesRef.current });
-
       setEdges((eds) => applyEdgeChanges(changes, eds));
 
       if (removedEdges.length) {
@@ -267,21 +249,14 @@ export default function Builder() {
             const block = node.data.block || {};
             const before = block.actions || [];
             const after = before.filter(
-              (a) =>
-                !removedEdges.some(
-                  (re) => re.source === node.id && re.target === a.next
-                )
+              (a) => !removedEdges.some((re) => re.source === node.id && re.target === a.next)
             );
             if (after.length === before.length) return node;
-            return {
-              ...node,
-              data: { ...node.data, block: { ...block, actions: after } },
-            };
+            return { ...node, data: { ...node.data, block: { ...block, actions: after } } };
           })
         );
       }
 
-      // deseleção se a edge removida estava ativa
       if (removedIds.size) {
         setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
       }
@@ -311,26 +286,12 @@ function run(context) {
         setNodes((nds) =>
           nds.map((n) =>
             n.id === selectedNode.id
-              ? {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    block: { ...n.data.block, code: newCode },
-                  },
-                }
+              ? { ...n, data: { ...n.data, block: { ...n.data.block, code: newCode } } }
               : n
           )
         );
         setSelectedNode((prev) =>
-          prev
-            ? {
-                ...prev,
-                data: {
-                  ...prev.data,
-                  block: { ...prev.data.block, code: newCode },
-                },
-              }
-            : null
+          prev ? { ...prev, data: { ...prev.data, block: { ...prev.data.block, code: newCode } } } : null
         );
       }
     },
@@ -360,16 +321,7 @@ function run(context) {
                       ...node.data.block,
                       actions: [
                         ...actions,
-                        {
-                          next: target,
-                          conditions: [
-                            {
-                              variable: "lastUserMessage",
-                              type: "exists",
-                              value: "",
-                            },
-                          ],
-                        },
+                        { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
                       ],
                     },
                   },
@@ -383,51 +335,32 @@ function run(context) {
 
   const onNodeDoubleClick = (_, node) => setSelectedNode(node);
 
-  // atualização do nó vinda do painel
   const updateSelectedNode = (updated) => {
-    if (!updated) {
-      setSelectedNode(null);
-      return;
-    }
+    if (!updated) { setSelectedNode(null); return; }
 
     const prev = snapshot();
     pushHistory(prev);
 
-    // 1) atualiza nó
-    setNodes((prevNodes) =>
-      prevNodes.map((n) => (n.id === updated.id ? updated : n))
-    );
+    setNodes((prevNodes) => prevNodes.map((n) => (n.id === updated.id ? updated : n)));
 
-    // 2) reconcilia edges
-    const desiredTargets = new Set(
-      (updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean)
-    );
+    const desiredTargets = new Set((updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean));
     const prevEdges = edgesRef.current;
 
-    // edges removidas por falta de action correspondente
-    const removedEdges = prevEdges.filter(
-      (e) => e.source === updated.id && !desiredTargets.has(e.target)
-    );
+    const removedEdges = prevEdges.filter((e) => e.source === updated.id && !desiredTargets.has(e.target));
     const removedEdgeIds = new Set(removedEdges.map((e) => e.id));
 
-    // mantém as demais
-    const keptEdges = prevEdges.filter(
-      (e) => !(e.source === updated.id && removedEdgeIds.has(e.id))
-    );
+    const keptEdges = prevEdges.filter((e) => !(e.source === updated.id && removedEdgeIds.has(e.id)));
 
-    // cria as que faltam
     const keptPairs = new Set(keptEdges.map((e) => `${e.source}-${e.target}`));
     const additions = [];
     desiredTargets.forEach((t) => {
       const key = `${updated.id}-${t}`;
-      if (!keptPairs.has(key))
-        additions.push({ id: genEdgeId(), source: updated.id, target: t });
+      if (!keptPairs.has(key)) additions.push({ id: genEdgeId(), source: updated.id, target: t });
     });
 
     const nextEdges = keptEdges.concat(additions);
     setEdges(nextEdges);
 
-    // limpa seleção caso a edge selecionada tenha sido removida
     if (removedEdgeIds.size) {
       setSelectedEdgeId((cur) => (cur && removedEdgeIds.has(cur) ? null : cur));
     }
@@ -456,16 +389,7 @@ function run(context) {
                     ...node.data.block,
                     actions: [
                       ...actions,
-                      {
-                        next: target,
-                        conditions: [
-                          {
-                            variable: "lastUserMessage",
-                            type: "exists",
-                            value: "",
-                          },
-                        ],
-                      },
+                      { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
                     ],
                   },
                 },
@@ -479,10 +403,7 @@ function run(context) {
     const prev = snapshot();
     pushHistory(prev);
 
-    // ids das edges que sairão
-    const toRemove = edgesRef.current.filter(
-      (e) => e.source === deletedId || e.target === deletedId
-    );
+    const toRemove = edgesRef.current.filter((e) => e.source === deletedId || e.target === deletedId);
     const removedIds = new Set(toRemove.map((e) => e.id));
 
     setNodes((nds) =>
@@ -490,40 +411,21 @@ function run(context) {
         .filter((n) => n.id !== deletedId)
         .map((n) => {
           const block = n.data.block || {};
-          const cleanedActions = (block.actions || []).filter(
-            (a) => a.next !== deletedId
-          );
-          const cleanedDefaultNext =
-            block.defaultNext === deletedId ? undefined : block.defaultNext;
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              block: {
-                ...block,
-                actions: cleanedActions,
-                defaultNext: cleanedDefaultNext,
-              },
-            },
-          };
+          const cleanedActions = (block.actions || []).filter((a) => a.next !== deletedId);
+          const cleanedDefaultNext = block.defaultNext === deletedId ? undefined : block.defaultNext;
+          return { ...n, data: { ...n.data, block: { ...block, actions: cleanedActions, defaultNext: cleanedDefaultNext } } };
         })
     );
 
     setEdges((eds) => eds.filter((e) => !removedIds.has(e.id)));
 
-    // limpa seleção se a edge removida estava ativa
     if (removedIds.size) {
       setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
     }
   };
 
   const handleDelete = useCallback(() => {
-    if (
-      !selectedNode ||
-      selectedNode.data.nodeType === "start" ||
-      selectedNode.data.label?.toLowerCase()?.includes("onerror")
-    )
-      return;
+    if (!selectedNode || selectedNode.data.nodeType === "start" || selectedNode.data.label?.toLowerCase()?.includes("onerror")) return;
     deleteNodeAndCleanup(selectedNode.id);
     setSelectedNode(null);
   }, [selectedNode]);
@@ -543,38 +445,21 @@ function run(context) {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) {
-        setShowNodeMenu(false);
-      }
+      if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) setShowNodeMenu(false);
     };
     document.addEventListener("mousedown", handleClickOutside, true);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside, true);
+    return () => document.removeEventListener("mousedown", handleClickOutside, true);
   }, []);
 
-  // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
-    // Keyboard global: ignora quando vindo do painel (data-stop-hotkeys), Undo/Redo, Delete selecionados
   useEffect(() => {
     const handleKeyDown = (event) => {
       const el = event.target;
-
-      // 1) early return se estiver em qualquer campo editável
       const tag = el?.tagName?.toUpperCase?.();
-      const isEditableTag =
-        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      const isEditableTag = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       const isContentEditable = el?.isContentEditable;
+      if (isEditableTag || isContentEditable) return;
 
-      if (isEditableTag || isContentEditable) {
-        return; // não trata atalhos globais mientras digita
-      }
-
-      // 2) ou se está dentro de qualquer container que bloqueie hotkeys
-      if (
-        el instanceof HTMLElement &&
-        el.closest?.("[data-stop-hotkeys='true']")
-      ) {
-        return;
-      }
+      if (el instanceof HTMLElement && el.closest?.("[data-stop-hotkeys='true']")) return;
 
       const isZ = event.key.toLowerCase() === "z";
       const isY = event.key.toLowerCase() === "y";
@@ -592,34 +477,20 @@ function run(context) {
 
       if (event.key === "Delete") {
         if (selectedEdgeId) {
-          const edgeToRemove = edgesRef.current.find(
-            (e) => e.id === selectedEdgeId
-          );
+          const edgeToRemove = edgesRef.current.find((e) => e.id === selectedEdgeId);
           pushHistory(snapshot());
           setEdges((eds) => eds.filter((e) => e.id !== selectedEdgeId));
           if (edgeToRemove) {
             setNodes((nds) =>
               nds.map((node) => {
                 if (node.id !== edgeToRemove.source) return node;
-                const updatedActions = (node.data.block.actions || []).filter(
-                  (a) => a.next !== edgeToRemove.target
-                );
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    block: { ...node.data.block, actions: updatedActions },
-                  },
-                };
+                const updatedActions = (node.data.block.actions || []).filter((a) => a.next !== edgeToRemove.target);
+                return { ...node, data: { ...node.data, block: { ...node.data.block, actions: updatedActions } } };
               })
             );
           }
           setSelectedEdgeId(null);
-        } else if (
-          selectedNode &&
-          selectedNode.data.nodeType !== "start" &&
-          !selectedNode.data.label?.toLowerCase()?.includes("onerror")
-        ) {
+        } else if (selectedNode && selectedNode.data.nodeType !== "start" && !selectedNode.data.label?.toLowerCase()?.includes("onerror")) {
           deleteNodeAndCleanup(selectedNode.id);
           setSelectedNode(null);
         }
@@ -629,7 +500,6 @@ function run(context) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedEdgeId, selectedNode, undo, redo, pushHistory, snapshot]);
-
 
   /* ---------- carregar fluxo ativo ---------- */
   useEffect(() => {
@@ -654,13 +524,9 @@ function run(context) {
             normalized[id] = { ...b, id, label: b?.label || k };
           });
           Object.values(normalized).forEach((b) => {
-            if (b.defaultNext && keyToId[b.defaultNext])
-              b.defaultNext = keyToId[b.defaultNext];
+            if (b.defaultNext && keyToId[b.defaultNext]) b.defaultNext = keyToId[b.defaultNext];
             if (Array.isArray(b.actions)) {
-              b.actions = b.actions.map((a) => ({
-                ...a,
-                next: keyToId[a.next] || a.next,
-              }));
+              b.actions = b.actions.map((a) => ({ ...a, next: keyToId[a.next] || a.next }));
             }
           });
         }
@@ -669,6 +535,13 @@ function run(context) {
           ? normalized
           : Object.fromEntries(entries.map(([id, b]) => [id, { ...b, id }]));
 
+        // 🔧 desembrulha legado ANTES de montar nós/arestas
+        Object.values(blocks).forEach((b) => {
+          if (b?.type === "interactive" && b?.content?.interactive) {
+            b.content = b.content.interactive;
+          }
+        });
+
         const loadedNodes = Object.values(blocks).map((b) => ({
           id: b.id,
           type: "quadrado",
@@ -676,11 +549,7 @@ function run(context) {
           data: {
             label: b.label || "Sem Nome",
             type: b.type,
-            nodeType:
-              b.type === "start" ||
-              (b.label || "").toLowerCase() === "início"
-                ? "start"
-                : undefined,
+            nodeType: b.type === "start" || (b.label || "").toLowerCase() === "início" ? "start" : undefined,
             color: b.color || "#607D8B",
             block: b,
           },
@@ -689,16 +558,9 @@ function run(context) {
 
         const loadedEdges = [];
         Object.values(blocks).forEach((b) => {
-            if (b.type === 'interactive' && b.content?.interactive) {
-            b.content = b.content.interactive; // 🔧 desembrulha legado
-          }
           (b.actions || []).forEach((a) => {
             if (a.next && blocks[a.next]) {
-              loadedEdges.push({
-                id: genEdgeId(),
-                source: b.id,
-                target: a.next,
-              });
+              loadedEdges.push({ id: genEdgeId(), source: b.id, target: a.next });
             }
           });
         });
@@ -730,9 +592,9 @@ function run(context) {
       const blocks = {};
       nodes.forEach((node) => {
         const block = { ...node.data.block };
-
-        if (block.type === 'interactive' && block.content?.interactive) {
-        block.content = block.content.interactive;
+        // 🔧 desembrulha legado
+        if (block?.type === "interactive" && block?.content?.interactive) {
+          block.content = block.content.interactive;
         }
         if (block.defaultNext)
           block.defaultNext = nodeIds.has(block.defaultNext)
@@ -759,9 +621,7 @@ function run(context) {
       await apiPost("/flows/publish", { data: flowData });
       toast.success("Fluxo publicado com sucesso!");
     } catch (err) {
-      toast.error(
-        `Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`
-      );
+      toast.error(`Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`);
     } finally {
       setIsPublishing(false);
     }
@@ -779,6 +639,10 @@ function run(context) {
     nodes.forEach((node) => {
       const originalBlock = node.data.block || {};
       const clonedBlock = { ...originalBlock };
+      // 🔧 desembrulha legado
+      if (clonedBlock?.type === "interactive" && clonedBlock?.content?.interactive) {
+        clonedBlock.content = clonedBlock.content.interactive;
+      }
       if (clonedBlock.defaultNext)
         clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext)
           ? clonedBlock.defaultNext
@@ -800,13 +664,10 @@ function run(context) {
     });
 
     const flowData = {
-      start:
-        nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id,
+      start: nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id,
       blocks,
     };
-    const blob = new Blob([JSON.stringify(flowData, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -817,17 +678,12 @@ function run(context) {
 
   /* ---------- add node ---------- */
   const addNodeTemplate = (template) => {
-    const onErrorNode = nodesRef.current.find(
-      (n) => n.data.label?.toLowerCase() === "onerror"
-    );
+    const onErrorNode = nodesRef.current.find((n) => n.data.label?.toLowerCase() === "onerror");
     pushHistory(snapshot());
     const newNode = {
       id: genId(),
       type: "quadrado",
-      position: {
-        x: Math.random() * 250 + 100,
-        y: Math.random() * 250 + 100,
-      },
+      position: { x: Math.random() * 250 + 100, y: Math.random() * 250 + 100 },
       data: {
         label: template.label,
         type: template.type,
@@ -849,9 +705,7 @@ function run(context) {
   const activeEdges = useMemo(() => {
     if (selectedEdgeId) return new Set([selectedEdgeId]);
     if (selectedNode) {
-      return new Set(
-        edges.filter((e) => e.source === selectedNode.id).map((e) => e.id)
-      );
+      return new Set(edges.filter((e) => e.source === selectedNode.id).map((e) => e.id));
     }
     return new Set();
   }, [edges, selectedNode, selectedEdgeId]);
@@ -869,36 +723,23 @@ function run(context) {
 
   const styledEdges = edges.map((edge) => {
     const isActive = activeEdges.has(edge.id);
-    const baseStroke = "#94a3b8"; // cinza neutro
-    const srcColor =
-      sourceColorById.get(edge.source) || "#64748b";
+    const baseStroke = "#94a3b8";
+    const srcColor = sourceColorById.get(edge.source) || "#64748b";
 
     const common = {
-      markerEnd: {
-        type: "arrowclosed",
-        color: isActive ? srcColor : baseStroke,
-        width: 16,
-        height: 16,
-      },
+      markerEnd: { type: "arrowclosed", color: isActive ? srcColor : baseStroke, width: 16, height: 16 },
       style: {
         stroke: isActive ? srcColor : baseStroke,
         strokeWidth: isActive ? 2.75 : 1.5,
-        opacity:
-          selectedEdgeId || selectedNode
-            ? isActive
-              ? 1
-              : 0.35
-            : 0.9,
+        opacity: selectedEdgeId || selectedNode ? (isActive ? 1 : 0.35) : 0.9,
         transition: "stroke 120ms ease, opacity 120ms ease, stroke-width 120ms",
       },
     };
     return { ...edge, ...common };
   });
 
-  /* ---------- estilos do palette (menu flutuante) ---------- */
-  const iconButtonStyle = {
-    ...baseIconBtn,
-  };
+  /* ---------- estilos do palette ---------- */
+  const iconButtonStyle = { ...baseIconBtn };
   const iconButtonHover = {
     background: THEME.subtle,
     border: `1.5px solid ${THEME.borderHover}`,
@@ -977,10 +818,7 @@ function run(context) {
               setHighlightedNodeId(null);
             }}
             onPaneClick={(event) => {
-              if (
-                !event.target.closest(".react-flow__node") &&
-                !event.target.closest(".react-flow__edge")
-              ) {
+              if (!event.target.closest(".react-flow__node") && !event.target.closest(".react-flow__edge")) {
                 setSelectedNode(null);
                 setSelectedEdgeId(null);
                 setHighlightedNodeId(null);
@@ -1012,26 +850,18 @@ function run(context) {
             />
           </ReactFlow>
 
-          {/* Paleta / Menu flutuante (tema claro neutro) */}
+          {/* Paleta / Menu flutuante */}
           <div ref={nodeMenuRef} style={sideMenuWrapperStyle}>
-            {/* Botão principal (Adicionar Blocos) */}
             <button
               onClick={() => setShowNodeMenu((p) => !p)}
               title="Adicionar Blocos"
               style={{
                 ...iconButtonStyle,
                 background: showNodeMenu ? THEME.subtle : THEME.panelBg,
-                border:
-                  showNodeMenu
-                    ? `1.5px solid ${THEME.borderHover}`
-                    : `1.5px solid ${THEME.border}`,
+                border: showNodeMenu ? `1.5px solid ${THEME.borderHover}` : `1.5px solid ${THEME.border}`,
               }}
-              onMouseEnter={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonHover)
-              }
-              onMouseLeave={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonStyle)
-              }
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
               ➕
             </button>
@@ -1050,17 +880,14 @@ function run(context) {
                   flexDirection: "column",
                   gap: "0.5rem",
                   zIndex: 30,
-                  border: `1px solid ${THEME.border}`,
+                  border: `1x solid ${THEME.border}`,
                   minWidth: 52,
                 }}
               >
                 {nodeTemplates.map((template) => (
                   <button
                     key={template.type + template.label}
-                    onClick={() => {
-                      addNodeTemplate(template);
-                      setShowNodeMenu(false);
-                    }}
+                    onClick={() => { addNodeTemplate(template); setShowNodeMenu(false); }}
                     style={{
                       ...iconButtonStyle,
                       width: "36px",
@@ -1072,18 +899,8 @@ function run(context) {
                       boxShadow: `0 0 0 2px ${template.color}11, ${THEME.shadow}`,
                     }}
                     title={template.label}
-                    onMouseEnter={(e) =>
-                      Object.assign(e.currentTarget.style, {
-                        background: THEME.subtle,
-                        transform: "translateY(-1px)",
-                      })
-                    }
-                    onMouseLeave={(e) =>
-                      Object.assign(e.currentTarget.style, {
-                        background: "#fff",
-                        transform: "translateY(0)",
-                      })
-                    }
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: THEME.subtle, transform: "translateY(-1px)" })}
+                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: "#fff", transform: "translateY(0)" })}
                   >
                     {iconMap[template.iconName] || <Zap size={16} />}
                   </button>
@@ -1098,12 +915,8 @@ function run(context) {
               onClick={undo}
               title="Desfazer (Ctrl/Cmd+Z)"
               style={iconButtonStyle}
-              onMouseEnter={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonHover)
-              }
-              onMouseLeave={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonStyle)
-              }
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
               <Undo2 size={18} />
             </button>
@@ -1111,12 +924,8 @@ function run(context) {
               onClick={redo}
               title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)"
               style={iconButtonStyle}
-              onMouseEnter={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonHover)
-              }
-              onMouseLeave={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonStyle)
-              }
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
               <Redo2 size={18} />
             </button>
@@ -1127,17 +936,9 @@ function run(context) {
             <button
               onClick={handlePublish}
               title="Publicar"
-              style={{
-                ...iconButtonStyle,
-                opacity: isPublishing ? 0.6 : 1,
-                pointerEvents: isPublishing ? "none" : "auto",
-              }}
-              onMouseEnter={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonHover)
-              }
-              onMouseLeave={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonStyle)
-              }
+              style={{ ...iconButtonStyle, opacity: isPublishing ? 0.6 : 1, pointerEvents: isPublishing ? "none" : "auto" }}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
               {isPublishing ? "⏳" : <Rocket size={18} />}
             </button>
@@ -1145,12 +946,8 @@ function run(context) {
               onClick={downloadFlow}
               title="Baixar JSON"
               style={iconButtonStyle}
-              onMouseEnter={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonHover)
-              }
-              onMouseLeave={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonStyle)
-              }
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
               <Download size={18} />
             </button>
@@ -1158,12 +955,8 @@ function run(context) {
               onClick={() => setShowHistory(true)}
               title="Histórico de Versões"
               style={iconButtonStyle}
-              onMouseEnter={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonHover)
-              }
-              onMouseLeave={(e) =>
-                Object.assign(e.currentTarget.style, iconButtonStyle)
-              }
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
             >
               🕘
             </button>
@@ -1196,16 +989,7 @@ function run(context) {
                               ...node.data.block,
                               actions: [
                                 ...actions,
-                                {
-                                  next: target,
-                                  conditions: [
-                                    {
-                                      variable: "lastUserMessage",
-                                      type: "exists",
-                                      value: "",
-                                    },
-                                  ],
-                                },
+                                { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
                               ],
                             },
                           },
