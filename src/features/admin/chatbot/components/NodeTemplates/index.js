@@ -5,16 +5,16 @@ import { CodeNodeTemplate } from './CodeNodeTemplate';
 import { HttpNodeTemplate } from './HttpNodeTemplate';
 import { HumanNodeTemplate } from './HumanNodeTemplate';
 import { DespedidaNodeTemplate } from './DespedidaNodeTemplate';
-import { QuickReplyTemplate, MenuListTemplate } from './InteractiveNodeTemplate';
+import { InteractiveNodeTemplate } from './InteractiveNodeTemplate';
 
 export const nodeTemplates = [
   TextNodeTemplate,
   MediaNodeTemplate,
-  QuickReplyTemplate,
-  MenuListTemplate,
+  InteractiveNodeTemplate,
   LocationNodeTemplate,
   CodeNodeTemplate,
   HttpNodeTemplate,
   HumanNodeTemplate,
   DespedidaNodeTemplate
 ];
+
