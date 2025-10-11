@@ -54,7 +54,6 @@ const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
  * ========================= */
 const iconMap = {
   Zap: <Zap size={16} />,
-  HelpCircle: <HelpCircle size={16} />,
   MessageCircle: <MessageCircle size={16} />,
   Code: <Code size={16} />,
   Globe: <Globe size={16} />,
