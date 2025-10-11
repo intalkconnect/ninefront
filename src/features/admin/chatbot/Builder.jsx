@@ -61,7 +61,8 @@ const iconMap = {
   Image: <Image size={16} />,
   MapPin: <MapPin size={16} />,
   Headset: <Headset size={16} />,
-  ListEnd: <MousePointerClick size={16} />,
+  Pointer: <MousePointerClick size={16} />,
+  ListEnd: <ArrowDownCircleIcon size={16} />,
 };
 
 const nodeTypes = { quadrado: NodeQuadrado };
