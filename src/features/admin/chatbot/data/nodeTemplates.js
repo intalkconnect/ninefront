@@ -63,7 +63,44 @@ export const nodeTemplates = [
       sendDelayInSeconds: 1
     }
   },
-    {
+  {
+    type: 'interactive',
+    label: 'Lista',
+    iconName: 'Zap',
+    color: '#00796B',
+    block: {
+      type: 'interactive',
+      content: {
+        body: {
+          text: 'Escolha um item da lista:'
+        },
+        type: 'list',
+        action: {
+          button: 'Abrir lista',
+          sections: [
+            {
+              title: 'Seção 1',
+              rows: [
+                { id: 'item_1', title: 'Item 1', description: 'Descrição do item 1' },
+                { id: 'item_2', title: 'Item 2', description: 'Descrição do item 2' }
+              ]
+            }
+          ]
+        },
+        footer: {
+          text: 'Toque para selecionar'
+        },
+        header: {
+          text: '🎯 Menu de Opções',
+          type: 'text'
+        }
+      },
+      awaitResponse: true,
+      awaitTimeInSeconds: 0,
+      sendDelayInSeconds: 0
+    }
+  },
+  {
     type: 'text',
     label: 'Mensagem',
     iconName: 'MessageCircle',
@@ -132,5 +169,3 @@ export const nodeTemplates = [
     }
   }
 ];
-
-
