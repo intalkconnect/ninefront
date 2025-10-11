@@ -30,6 +30,7 @@ import {
   MapPin,
   Headset,
   ArrowDownCircle as ArrowDownCircleIcon,
+  MousePointerClick,
   Undo2,
   Redo2,
 } from "lucide-react";
@@ -60,7 +61,7 @@ const iconMap = {
   Image: <Image size={16} />,
   MapPin: <MapPin size={16} />,
   Headset: <Headset size={16} />,
-  ListEnd: <ArrowDownCircleIcon size={16} />,
+  ListEnd: <MousePointerClick size={16} />,
 };
 
 const nodeTypes = { quadrado: NodeQuadrado };
