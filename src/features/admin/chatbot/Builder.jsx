@@ -14,25 +14,21 @@ import { apiGet, apiPost } from "../../../shared/apiClient";
 
 import { nodeTemplates } from "./components/NodeTemplates";
 import VersionHistoryModal from "./components/VersionControlModal";
+import MacDock from "./components/MacDock";
 
 import ScriptEditor from "./components/editor/scriptEditor";
 import NodeQuadrado from "./components/NodeQuadrado";
 import NodeConfigPanel from "./components/NodeConfigPanel";
 import {
   Zap,
-  HelpCircle,
   MessageCircle,
   Code,
   Globe,
   Image,
-  Rocket,
-  Download,
   MapPin,
   Headset,
   ArrowDownCircle as ArrowDownCircleIcon,
   MousePointerClick,
-  Undo2,
-  Redo2,
 } from "lucide-react";
 
 /* =========================
@@ -97,23 +93,6 @@ const THEME = {
   ring: "0 0 0 3px rgba(99, 102, 241, 0.08)",
 };
 
-/* Botão redondo neutro (paleta) */
-const baseIconBtn = {
-  background: "#ffffff",
-  color: THEME.icon,
-  border: `1.5px solid ${THEME.border}`,
-  borderRadius: "12px",
-  padding: "8px",
-  width: "38px",
-  height: "38px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
-  transition: "all 0.2s ease",
-  boxShadow: THEME.shadow,
-};
-
 /* =========================
  * Componente
  * ========================= */
@@ -159,8 +138,7 @@ export default function Builder() {
           color: "#FF4500",
           block: {
             type: "text",
-            content:
-              "⚠️ Algo deu errado. Tente novamente mais tarde.",
+            content: "⚠️ Algo deu errado. Tente novamente mais tarde.",
             awaitResponse: false,
             awaitTimeInSeconds: 0,
             sendDelayInSeconds: 1,
@@ -181,8 +159,6 @@ export default function Builder() {
   const [scriptCode, setScriptCode] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [flowHistory, setFlowHistory] = useState([]);
-  const [showNodeMenu, setShowNodeMenu] = useState(false);
-  const nodeMenuRef = useRef(null);
   const [isPublishing, setIsPublishing] = useState(false);
 
   /* ---------- Undo / Redo ---------- */
@@ -372,7 +348,7 @@ function run(context) {
   const handleConnectNodes = ({ source, target }) => {
     const src = nodesRef.current.find((n) => n.id === source);
     const actions = src?.data?.block?.actions || [];
-    const already = actions.some((a) => a.next === target);
+    the const already = actions.some((a) => a.next === target);
 
     pushHistory(snapshot());
     setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
@@ -443,14 +419,6 @@ function run(context) {
       }
     })();
   }, [showHistory]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (nodeMenuRef.current && !nodeMenuRef.current.contains(event.target)) setShowNodeMenu(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside, true);
-    return () => document.removeEventListener("mousedown", handleClickOutside, true);
-  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -536,7 +504,7 @@ function run(context) {
           ? normalized
           : Object.fromEntries(entries.map(([id, b]) => [id, { ...b, id }]));
 
-        // 🔧 desembrulha legado ANTES de montar nós/arestas
+        // desembrulha legado
         Object.values(blocks).forEach((b) => {
           if (b?.type === "interactive" && b?.content?.interactive) {
             b.content = b.content.interactive;
@@ -593,7 +561,6 @@ function run(context) {
       const blocks = {};
       nodes.forEach((node) => {
         const block = { ...node.data.block };
-        // 🔧 desembrulha legado
         if (block?.type === "interactive" && block?.content?.interactive) {
           block.content = block.content.interactive;
         }
@@ -640,7 +607,6 @@ function run(context) {
     nodes.forEach((node) => {
       const originalBlock = node.data.block || {};
       const clonedBlock = { ...originalBlock };
-      // 🔧 desembrulha legado
       if (clonedBlock?.type === "interactive" && clonedBlock?.content?.interactive) {
         clonedBlock.content = clonedBlock.content.interactive;
       }
@@ -739,35 +705,6 @@ function run(context) {
     return { ...edge, ...common };
   });
 
-  /* ---------- estilos do palette ---------- */
-  const iconButtonStyle = { ...baseIconBtn };
-  const iconButtonHover = {
-    background: THEME.subtle,
-    border: `1.5px solid ${THEME.borderHover}`,
-    transform: "translateY(-1px)",
-  };
-
-  const sideMenuWrapperStyle = {
-    position: "absolute",
-    top: "120px",
-    left: 10,
-    background: "transparent",
-    borderRadius: "12px",
-    padding: "0.25rem",
-    zIndex: 20,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "10px",
-  };
-
-  const dividerStyle = {
-    width: "80%",
-    height: "1px",
-    backgroundColor: THEME.border,
-    margin: "6px 0",
-  };
-
   const edgeOptions = {
     type: "smoothstep",
     animated: false,
@@ -840,6 +777,19 @@ function run(context) {
               showInteractive={false}
             />
 
+            {/* Dock estilo Mac */}
+            <MacDock
+              templates={nodeTemplates}
+              iconMap={iconMap}
+              onAdd={(tpl) => addNodeTemplate(tpl)}
+              onUndo={undo}
+              onRedo={redo}
+              onPublish={handlePublish}
+              onDownload={downloadFlow}
+              onHistory={() => setShowHistory(true)}
+              isPublishing={isPublishing}
+            />
+
             <VersionHistoryModal
               visible={showHistory}
               onClose={() => setShowHistory(false)}
@@ -850,118 +800,6 @@ function run(context) {
               }}
             />
           </ReactFlow>
-
-          {/* Paleta / Menu flutuante */}
-          <div ref={nodeMenuRef} style={sideMenuWrapperStyle}>
-            <button
-              onClick={() => setShowNodeMenu((p) => !p)}
-              title="Adicionar Blocos"
-              style={{
-                ...iconButtonStyle,
-                background: showNodeMenu ? THEME.subtle : THEME.panelBg,
-                border: showNodeMenu ? `1.5px solid ${THEME.borderHover}` : `1.5px solid ${THEME.border}`,
-              }}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-            >
-              ➕
-            </button>
-
-            {showNodeMenu && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: "60px",
-                  top: "0px",
-                  backgroundColor: THEME.panelBg,
-                  borderRadius: "12px",
-                  padding: "0.5rem",
-                  boxShadow: THEME.shadow,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.5rem",
-                  zIndex: 30,
-                  border: `1x solid ${THEME.border}`,
-                  minWidth: 52,
-                }}
-              >
-                {nodeTemplates.map((template) => (
-                  <button
-                    key={template.type + template.label}
-                    onClick={() => { addNodeTemplate(template); setShowNodeMenu(false); }}
-                    style={{
-                      ...iconButtonStyle,
-                      width: "36px",
-                      height: "36px",
-                      padding: "6px",
-                      background: "#fff",
-                      border: `1.5px solid ${template.color}`,
-                      color: template.color,
-                      boxShadow: `0 0 0 2px ${template.color}11, ${THEME.shadow}`,
-                    }}
-                    title={template.label}
-                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: THEME.subtle, transform: "translateY(-1px)" })}
-                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: "#fff", transform: "translateY(0)" })}
-                  >
-                    {iconMap[template.iconName] || <Zap size={16} />}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div style={dividerStyle} />
-
-            {/* Undo / Redo */}
-            <button
-              onClick={undo}
-              title="Desfazer (Ctrl/Cmd+Z)"
-              style={iconButtonStyle}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-            >
-              <Undo2 size={18} />
-            </button>
-            <button
-              onClick={redo}
-              title="Refazer (Ctrl+Shift+Z ou Ctrl/Cmd+Y)"
-              style={iconButtonStyle}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-            >
-              <Redo2 size={18} />
-            </button>
-
-            <div style={dividerStyle} />
-
-            {/* Publicar / Baixar / Histórico */}
-            <button
-              onClick={handlePublish}
-              title="Publicar"
-              style={{ ...iconButtonStyle, opacity: isPublishing ? 0.6 : 1, pointerEvents: isPublishing ? "none" : "auto" }}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-            >
-              {isPublishing ? "⏳" : <Rocket size={18} />}
-            </button>
-            <button
-              onClick={downloadFlow}
-              title="Baixar JSON"
-              style={iconButtonStyle}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-            >
-              <Download size={18} />
-            </button>
-            <button
-              onClick={() => setShowHistory(true)}
-              title="Histórico de Versões"
-              style={iconButtonStyle}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, iconButtonHover)}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, iconButtonStyle)}
-            >
-              🕘
-            </button>
-          </div>
         </div>
 
         {/* Painel lateral */}
