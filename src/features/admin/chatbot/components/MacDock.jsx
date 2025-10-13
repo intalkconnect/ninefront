@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import styles from "./MacDock.module.css";
+import styles from "./styles/MacDock.module.css";
 import { Undo2, Redo2, Rocket, Download } from "lucide-react";
 
 /**
