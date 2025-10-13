@@ -97,7 +97,6 @@ const THEME = {
  * Componente
  * ========================= */
 export default function Builder() {
-  const reactFlowInstance = useReactFlow();
 
   /* ---------- estado base ---------- */
   const [nodes, setNodes] = useState(() => {
@@ -346,35 +345,36 @@ function run(context) {
   };
 
   const handleConnectNodes = ({ source, target }) => {
-    const src = nodesRef.current.find((n) => n.id === source);
-    const actions = src?.data?.block?.actions || [];
-    the const already = actions.some((a) => a.next === target);
+  const src = nodesRef.current.find((n) => n.id === source);
+  const actions = src?.data?.block?.actions || [];
+  const already = actions.some((a) => a.next === target);
 
-    pushHistory(snapshot());
-    setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
+  pushHistory(snapshot());
+  setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
 
-    if (!already) {
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id !== source
-            ? node
-            : {
-                ...node,
-                data: {
-                  ...node.data,
-                  block: {
-                    ...node.data.block,
-                    actions: [
-                      ...actions,
-                      { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
-                    ],
-                  },
+  if (!already) {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id !== source
+          ? node
+          : {
+              ...node,
+              data: {
+                ...node.data,
+                block: {
+                  ...node.data.block,
+                  actions: [
+                    ...actions,
+                    { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
+                  ],
                 },
-              }
-        )
-      );
-    }
-  };
+              },
+            }
+      )
+    );
+  }
+};
+
 
   const deleteNodeAndCleanup = (deletedId) => {
     const prev = snapshot();
