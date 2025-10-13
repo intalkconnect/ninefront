@@ -767,15 +767,25 @@ function run(context) {
           >
             <Background color="#cbd5e1" gap={32} variant="dots" />
             <Controls
+              position="bottom-left"                 // continua no canto esquerdo
+              showInteractive={false}
               style={{
+                position: 'fixed',                   // fixa no navegador
+                left: 18,                            // mesmo offset lateral que você já usa
+                bottom: 'calc(env(safe-area-inset-bottom, 0px) + 18px)', // respeita notch/iOS
+                top: 'auto',
+                right: 'auto',
+                zIndex: 9999,
+            
+                // mantém o seu visual
                 backgroundColor: THEME.panelBg,
                 border: `1px solid ${THEME.border}`,
-                borderRadius: "10px",
+                borderRadius: '10px',
                 boxShadow: THEME.shadow,
-                overflow: "hidden",
+                overflow: 'hidden',
               }}
-              showInteractive={false}
             />
+
 
             {/* Dock estilo Mac */}
             <MacDock
