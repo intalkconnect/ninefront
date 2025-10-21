@@ -21,6 +21,8 @@ export default function MacDock({
   onDownload,
   onHistory,
   isPublishing = false,
+  canUndo=false,
+  canRedo=false,
 }) {
   const wrapRef = useRef(null);
   const btnRefs = useRef([]);
@@ -33,8 +35,8 @@ export default function MacDock({
 
   const allButtons = useMemo(() => {
     const undoRedo = [
-      { key: "undo", title: "Desfazer (Ctrl/Cmd+Z)", onClick: onUndo, icon: <Undo2 size={18} /> },
-      { key: "redo", title: "Refazer (Ctrl+Shift+Z / Ctrl+Y)", onClick: onRedo, icon: <Redo2 size={18} /> },
+      { key: "undo", title: "Desfazer (Ctrl/Cmd+Z)", onClick: onUndo, icon: <Undo2 size={18} />, disabled: !canUndo },
+      { key: "redo", title: "Refazer (Ctrl+Shift+Z / Ctrl+Y)", onClick: onRedo, icon: <Redo2 size={18} />, disabled: !canRedo },
     ];
 
     const tplBtns = templates.map((t) => ({
@@ -59,7 +61,7 @@ export default function MacDock({
 
     // ordem: undo/redo | divider | templates | divider | publish/download/history
     return [ ...undoRedo, "divider", ...tplBtns, "divider", ...actions ];
-  }, [templates, iconMap, onAdd, onUndo, onRedo, onPublish, onDownload, onHistory, isPublishing]);
+  }, [templates, iconMap, onAdd, onUndo, onRedo, onPublish, onDownload, onHistory, isPublishing, canUndo, canRedo]);
 
   // magnify horizontal
   const onMouseMove = (e) => {
