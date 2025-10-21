@@ -52,6 +52,25 @@ const genEdgeId = () =>
 
 const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
+// compacta o estado relevante para detectar duplicatas de snapshot
+const makeSnapKey = (s) => {
+  const n = (s.nodes || [])
+    .map((x) => ({
+      id: x.id,
+      p: x.position,
+      l: x.data?.label,
+      t: x.data?.type,
+      b: x.data?.block,
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+  const e = (s.edges || [])
+    .map((x) => ({ s: x.source, t: x.target }))
+    .sort((a, b) => (a.s + a.t).localeCompare(b.s + b.t));
+
+  return JSON.stringify({ n, e });
+};
+
 /* =========================
  * Icon map e nodeTypes
  * ========================= */
@@ -167,6 +186,7 @@ export default function Builder() {
   const [history, setHistory] = useState({ past: [], future: [] });
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
+  const lastSnapKeyRef = useRef(null);
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
@@ -184,9 +204,19 @@ export default function Builder() {
     }),
     []
   );
+
   const pushHistory = useCallback((prev) => {
-    setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
+    try {
+      const key = makeSnapKey(prev);
+      if (key === lastSnapKeyRef.current) return; // evita empilhar duplicado
+      setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
+      lastSnapKeyRef.current = key;
+    } catch {
+      // fallback se algo der errado na geração da key
+      setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
+    }
   }, []);
+
   const undo = useCallback(() => {
     setHistory((h) => {
       if (h.past.length === 0) return h;
@@ -196,9 +226,11 @@ export default function Builder() {
       setEdges(prev.edges);
       setSelectedEdgeId(null);
       setSelectedNode(null);
+      lastSnapKeyRef.current = null; // <- permite que o PRÓXIMO pushHistory não seja ignorado
       return { past: h.past.slice(0, -1), future: [...h.future, current] };
     });
   }, [snapshot]);
+
   const redo = useCallback(() => {
     setHistory((h) => {
       if (h.future.length === 0) return h;
@@ -208,6 +240,7 @@ export default function Builder() {
       setEdges(next.edges);
       setSelectedEdgeId(null);
       setSelectedNode(null);
+      lastSnapKeyRef.current = null; // <- idem
       return { past: [...h.past, current], future: h.future.slice(0, -1) };
     });
   }, [snapshot]);
@@ -663,6 +696,8 @@ function run(context) {
         setHistory({ past: [], future: [] });
         setSelectedEdgeId(null);
         setSelectedNode(null);
+        const initial = { nodes: loadedNodes, edges: loadedEdges };
+        lastSnapKeyRef.current = makeSnapKey(initial);
       } catch (err) {
         console.error("Erro ao carregar fluxo ativo", err);
       }
@@ -670,6 +705,16 @@ function run(context) {
 
     loadLatestFlow();
   }, []);
+
+  useEffect(() => {
+    // se ainda não foi setado por loadLatestFlow, registra assinatura inicial
+    if (!lastSnapKeyRef.current) {
+      lastSnapKeyRef.current = makeSnapKey({
+        nodes: nodesRef.current,
+        edges: edgesRef.current,
+      });
+    }
+  }, []); // uma vez no mount
 
   /* ---------- Publicar / Baixar ---------- */
   const handlePublish = async () => {
