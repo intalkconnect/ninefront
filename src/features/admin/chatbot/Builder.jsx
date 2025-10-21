@@ -17,7 +17,7 @@ import VersionHistoryModal from "./components/VersionControlModal";
 import MacDock from "./components/MacDock";
 
 import ScriptEditor from "./components/editor/scriptEditor";
-import NodeQuadrado from "./components/NodeQuadrado";F
+import NodeQuadrado from "./components/NodeQuadrado";
 import NodeConfigPanel from "./components/NodeConfigPanel";
 import {
   Zap,
