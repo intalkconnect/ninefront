@@ -770,94 +770,65 @@ function OverlayConteudoComp({
 }
 
 /* ================= OverlayRegras ================= */
+/* ================= OverlayRegras ================= */
 function OverlayRegrasComp({
   draft,
   setDraft,
   variableOptions,
-  allNodes = [],
+  allNodes,
   selectedNode,
   onConnectNodes,
   onBack,
   onClose,
   commit,
-  isHuman,
+  isHuman = false,
 }) {
-  const stylesLocal = styles; // reaproveita o mesmo CSS module
+  const updateActionsLocal = (next) => setDraft((r) => ({ ...r, actions: deepClone(next) }));
 
-  const nodeOptions = allNodes
-    .filter((n) => n?.id && n.id !== selectedNode?.id)
-    .map((n) => ({ value: n.id, label: n.data?.label || n.id }));
-
-  const updateAction = (idx, patch) => {
-    setDraft((prev) => {
-      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
-      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
-      const current = actions[idx] || { next: "", conditions: [] };
-      actions[idx] = { ...current, ...patch };
-      return { ...base, actions };
-    });
+  const addOffhoursAction = (kind) => {
+    let conds = [];
+    if (kind === "offhours_true") conds = [{ variable: "offhours", type: "equals", value: "true" }];
+    else if (kind === "reason_holiday") conds = [{ variable: "offhours_reason", type: "equals", value: "holiday" }];
+    else if (kind === "reason_closed") conds = [{ variable: "offhours_reason", type: "equals", value: "closed" }];
+    const next = [...(draft.actions || []), { next: "", conditions: conds }];
+    updateActionsLocal(next);
   };
 
-  const updateCondition = (aIdx, cIdx, patch) => {
-    setDraft((prev) => {
-      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
-      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
-      const current = actions[aIdx] || { next: "", conditions: [] };
-      const conds = Array.isArray(current.conditions) ? [...current.conditions] : [];
-      const cur = conds[cIdx] || { variable: "lastUserMessage", type: "exists", value: "" };
-      conds[cIdx] = { ...cur, ...patch };
-      actions[aIdx] = { ...current, conditions: conds };
-      return { ...base, actions };
-    });
-  };
-
-  const addAction = () => {
-    setDraft((prev) => {
-      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
-      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
-      actions.push({
-        next: "",
-        conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }],
-      });
-      return { ...base, actions };
-    });
-  };
-
-  const removeAction = (idx) => {
-    setDraft((prev) => {
-      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
-      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
-      actions.splice(idx, 1);
-      return { ...base, actions };
-    });
-  };
-
-  const addCondition = (aIdx) => {
-    setDraft((prev) => {
-      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
-      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
-      const cur = actions[aIdx] || { next: "", conditions: [] };
-      const conds = Array.isArray(cur.conditions) ? [...cur.conditions] : [];
-      conds.push({ variable: "lastUserMessage", type: "equals", value: "" });
-      actions[aIdx] = { ...cur, conditions: conds };
-      return { ...base, actions };
-    });
-  };
-
-  const removeCondition = (aIdx, cIdx) => {
-    setDraft((prev) => {
-      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
-      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
-      const cur = actions[aIdx] || { next: "", conditions: [] };
-      const conds = Array.isArray(cur.conditions) ? [...cur.conditions] : [];
-      conds.splice(cIdx, 1);
-      actions[aIdx] = { ...cur, conditions: conds };
-      return { ...base, actions };
-    });
-  };
-
-  const onSave = () => {
-    commit?.();
+  const renderValueInput = (cond, onChangeValue) => {
+    if (cond.type === "exists") return null;
+    if (cond.variable === "offhours") {
+      return (
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <select className={styles.selectStyle} value={cond.value ?? "true"} onChange={(e) => onChangeValue(e.target.value)}>
+            <option value="true">true</option>
+            <option value="false">false</option>
+          </select>
+        </div>
+      );
+    }
+    if (cond.variable === "offhours_reason") {
+      return (
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <select className={styles.selectStyle} value={cond.value ?? "holiday"} onChange={(e) => onChangeValue(e.target.value)}>
+            <option value="holiday">holiday</option>
+            <option value="closed">closed</option>
+          </select>
+        </div>
+      );
+    }
+    return (
+      <div className={styles.inputGroup}>
+        <label className={styles.inputLabel}>Valor</label>
+        <StableInput
+          type="text"
+          placeholder="Valor para comparação"
+          value={cond.value ?? ""}
+          onChange={(e) => onChangeValue(e.target.value)}
+        />
+      </div>
+    );
   };
 
   return (
@@ -867,149 +838,488 @@ function OverlayRegrasComp({
         onBack={onBack}
         onClose={onClose}
         right={
-          <button className={stylesLocal.addButtonSmall} onClick={onSave}>
-            <Check size={14} /> Salvar
+          <button className={styles.addButtonSmall} onClick={commit}>
+            <Check size={14}/> Salvar
           </button>
         }
       />
-
-      <div className={stylesLocal.overlayBody} data-stop-hotkeys="true">
-        <div className={stylesLocal.sectionContainer}>
-          <div className={stylesLocal.sectionHeaderStatic}>
-            <h4 className={stylesLocal.sectionTitle}>Ações</h4>
+      <div className={styles.overlayBody} data-stop-hotkeys="true">
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Regras</h4>
+            <span className={styles.sectionCount}>({draft.actions.length}/25)</span>
           </div>
+          <div className={styles.sectionContent}>
 
-          <div className={stylesLocal.sectionContent}>
-            {(draft?.actions || []).map((a, idx) => (
-              <div key={idx} className={stylesLocal.cardLike}>
-                <div className={stylesLocal.rowTwoCols}>
-                  <div className={stylesLocal.inputGroup}>
-                    <label className={stylesLocal.inputLabel}>Próximo bloco</label>
-                    <select
-                      className={stylesLocal.selectStyle}
-                      value={a.next || ""}
-                      onChange={(e) => updateAction(idx, { next: e.target.value })}
-                    >
-                      <option value="">— selecione —</option>
-                      {nodeOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    {!!a.next && (
-                      <button
-                        className={stylesLocal.iconGhost}
-                        style={{ marginTop: 6 }}
-                        title="Criar conexão visual"
-                        onClick={() => onConnectNodes?.({ source: selectedNode?.id, target: a.next })}
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-                    )}
-                  </div>
-
-                  <div className={stylesLocal.inputGroup} style={{ alignItems: "flex-end" }}>
-                    <button className={stylesLocal.addButtonSmall} onClick={() => removeAction(idx)} title="Remover ação">
-                      <Trash2 size={14} /> Remover ação
-                    </button>
-                  </div>
-                </div>
-
-                <div className={stylesLocal.inputGroup}>
-                  <label className={stylesLocal.inputLabel}>Condições (todas devem ser verdadeiras)</label>
-                </div>
-
-                {(a.conditions || []).map((c, cIdx) => (
-                  <div key={cIdx} className={stylesLocal.rowTwoCols}>
-                    <div className={stylesLocal.inputGroup}>
-                      <label className={stylesLocal.inputLabel}>Variável</label>
-                      <select
-                        className={stylesLocal.selectStyle}
-                        value={c.variable || "lastUserMessage"}
-                        onChange={(e) => updateCondition(idx, cIdx, { variable: e.target.value })}
-                      >
-                        {variableOptions.map((v) => (
-                          <option key={v.value} value={v.value}>{v.label}</option>
-                        ))}
-                        <option value="custom">Custom</option>
-                      </select>
-                    </div>
-
-                    <div className={stylesLocal.inputGroup}>
-                      <label className={stylesLocal.inputLabel}>Tipo</label>
-                      <select
-                        className={stylesLocal.selectStyle}
-                        value={c.type || "equals"}
-                        onChange={(e) => updateCondition(idx, cIdx, { type: e.target.value })}
-                      >
-                        <option value="equals">equals</option>
-                        <option value="contains">contains</option>
-                        <option value="exists">exists</option>
-                        <option value="not_exists">not_exists</option>
-                      </select>
-                    </div>
-
-                    {c.type !== "exists" && c.type !== "not_exists" && (
-                      <div className={stylesLocal.inputGroup}>
-                        <label className={stylesLocal.inputLabel}>Valor</label>
-                        <StableInput
-                          type="text"
-                          value={c.value || ""}
-                          onChange={(e) => updateCondition(idx, cIdx, { value: e.target.value })}
-                        />
-                      </div>
-                    )}
-
-                    <div className={stylesLocal.inputGroup} style={{ alignItems: "flex-end" }}>
-                      <button
-                        className={stylesLocal.addButtonSmall}
-                        onClick={() => removeCondition(idx, cIdx)}
-                        title="Remover condição"
-                      >
-                        <Trash2 size={14} /> Remover condição
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                <button className={stylesLocal.addButton} onClick={() => addCondition(idx)}>
-                  + Adicionar condição
-                </button>
+            {isHuman && (
+              <div className={styles.buttonGroup} style={{ marginBottom: 8 }}>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("offhours_true")}>+ Se offhours = true</button>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_holiday")}>+ Se motivo = holiday</button>
+                <button className={styles.addButtonSmall} onClick={() => addOffhoursAction("reason_closed")}>+ Se motivo = closed</button>
               </div>
+            )}
+
+            {draft.actions.map((action, actionIdx) => (
+              <React.Fragment key={actionIdx}>
+                {actionIdx > 0 && (
+                  <div className={styles.dividerContainer}>
+                    <div className={styles.dividerLine}></div>
+                    <span className={styles.dividerText}>OU</span>
+                  </div>
+                )}
+
+                <div className={styles.actionBox}>
+                  <div className={styles.actionHeader}>
+                    <strong className={styles.actionTitle}>Regra {actionIdx + 1}</strong>
+                    <Trash2
+                      size={16}
+                      className={styles.trashIcon}
+                      onClick={() => {
+                        const updated = deepClone(draft.actions);
+                        updated.splice(actionIdx, 1);
+                        updateActionsLocal(updated);
+                      }}
+                    />
+                  </div>
+
+                  {(action.conditions || []).map((cond, condIdx) => (
+                    <div key={condIdx} className={styles.conditionRow}>
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Variável</label>
+                        <select
+                          value={
+                            variableOptions.some((v) => v.value === cond.variable)
+                              ? cond.variable
+                              : cond.variable
+                              ? "custom"
+                              : "lastUserMessage"
+                          }
+                          onChange={(e) => {
+                            const nextVar = e.target.value;
+                            const updated = deepClone(draft.actions);
+                            if (nextVar === "custom") {
+                              updated[actionIdx].conditions[condIdx].variable = "";
+                            } else {
+                              updated[actionIdx].conditions[condIdx].variable = nextVar;
+                              if (!updated[actionIdx].conditions[condIdx].type) {
+                                updated[actionIdx].conditions[condIdx].type = "equals";
+                              }
+                              if (nextVar === "offhours") {
+                                updated[actionIdx].conditions[condIdx].value = "true";
+                              } else if (nextVar === "offhours_reason") {
+                                updated[actionIdx].conditions[condIdx].value = "closed";
+                              }
+                            }
+                            updateActionsLocal(updated);
+                          }}
+                          className={styles.selectStyle}
+                        >
+                          {variableOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
+                        <div className={styles.inputGroup}>
+                          <label className={styles.inputLabel}>Nome da variável</label>
+                          <StableInput
+                            type="text"
+                            placeholder="ex.: meuCampo"
+                            value={cond.variable || ""}
+                            onChange={(e) => {
+                              const updated = deepClone(draft.actions);
+                              updated[actionIdx].conditions[condIdx].variable = e.target.value;
+                              updateActionsLocal(updated);
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <div className={styles.inputGroup}>
+                        <label className={styles.inputLabel}>Tipo de condição</label>
+                        <select
+                          value={cond.type || ""}
+                          onChange={(e) => {
+                            const updated = deepClone(draft.actions);
+                            updated[actionIdx].conditions[condIdx].type = e.target.value;
+                            if (e.target.value === "exists") {
+                              updated[actionIdx].conditions[condIdx].value = "";
+                            }
+                            updateActionsLocal(updated);
+                          }}
+                          className={styles.selectStyle}
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="exists">Existe</option>
+                          <option value="equals">Igual a</option>
+                          <option value="not_equals">Diferente de</option>
+                          <option value="contains">Contém</option>
+                          <option value="not_contains">Não contém</option>
+                          <option value="starts_with">Começa com</option>
+                          <option value="ends_with">Termina com</option>
+                        </select>
+                      </div>
+
+                      {renderValueInput(cond, (v) => {
+                        const updated = deepClone(draft.actions);
+                        updated[actionIdx].conditions[condIdx].value = v;
+                        updateActionsLocal(updated);
+                      })}
+
+                      <div className={styles.buttonGroup}>
+                        <button
+                          className={styles.deleteButtonSmall}
+                          onClick={() => {
+                            const updated = deepClone(draft.actions);
+                            updated[actionIdx].conditions.splice(condIdx, 1);
+                            updateActionsLocal(updated);
+                          }}
+                        >
+                          <Trash2 size={14} /> Remover condição
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Ir para</label>
+                    <select
+                      value={action.next || ""}
+                      onChange={(e) => {
+                        const targetId = e.target.value;
+                        const updated = deepClone(draft.actions);
+                        updated[actionIdx].next = targetId;
+                        updateActionsLocal(updated);
+                        if (onConnectNodes && targetId) {
+                          onConnectNodes({ source: selectedNode.id, target: targetId });
+                        }
+                      }}
+                      className={styles.selectStyle}
+                    >
+                      <option value="">Selecione um bloco...</option>
+                      {allNodes
+                        .filter((n) => n.id !== selectedNode.id)
+                        .map((node) => (
+                          <option key={node.id} value={node.id}>
+                            {node.data.label || node.id}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+              </React.Fragment>
             ))}
 
-            <button className={stylesLocal.addButton} onClick={addAction}>
-              + Adicionar ação
-            </button>
-          </div>
-        </div>
-
-        <div className={stylesLocal.sectionContainer}>
-          <div className={stylesLocal.sectionHeaderStatic}>
-            <h4 className={stylesLocal.sectionTitle}>Destino padrão</h4>
-          </div>
-          <div className={stylesLocal.sectionContent}>
-            <div className={stylesLocal.inputGroup}>
-              <label className={stylesLocal.inputLabel}>Se nenhuma ação casar</label>
-              <select
-                className={stylesLocal.selectStyle}
-                value={draft?.defaultNext || ""}
-                onChange={(e) => setDraft((d) => ({ ...(d || {}), defaultNext: e.target.value }))}
+            <div className={styles.buttonGroup}>
+              <button
+                onClick={() => {
+                  const newAction = {
+                    next: "",
+                    conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }],
+                  };
+                  updateActionsLocal([...(draft.actions || []), newAction]);
+                }}
+                className={styles.addButton}
               >
-                <option value="">— nenhum —</option>
-                {nodeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+                <Plus size={16} /> Adicionar regra
+              </button>
+            </div>
+
+            <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
+              <div className={styles.sectionHeaderStatic}>
+                <h4 className={styles.sectionTitle}>Saída padrão</h4>
+              </div>
+              <div className={styles.sectionContent}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Próximo bloco</label>
+                  <select
+                    value={draft.defaultNext || ""}
+                    onChange={(e) => setDraft((r) => ({ ...r, defaultNext: e.target.value }))}
+                    className={styles.selectStyle}
+                  >
+                    <option value="">Selecione um bloco...</option>
+                    {allNodes
+                      .filter((n) => n.id !== selectedNode.id)
+                      .map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.data.label || node.id}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-      </div>
+      </div> 
     </>
   );
 }
 
-/* ================= OverlayEspeciais ================= */
+/* ================= Especiais ================= */
+function SpecialList({ title, section, items, onNew, onEdit, onRemove }) {
+  return (
+    <div className={styles.sectionContainer}>
+      <div className={styles.sectionHeaderStatic}>
+        <h4 className={styles.sectionTitle}>{title}</h4>
+        <button className={styles.addButtonSmall} onClick={() => onNew(section)}>
+          + Nova variável
+        </button>
+      </div>
+
+      <div className={styles.sectionContent}>
+        {!items?.length && (
+          <div className={styles.emptyHint}>
+            Nenhuma variável ainda. Clique em <strong>Nova variável</strong> para adicionar.
+          </div>
+        )}
+
+        {items?.map((a, i) => (
+          <div key={`${section}-${i}`} className={styles.specialListRow}>
+            <div className={styles.rowMain}>
+              <div className={styles.rowTitle}>{a.label}</div>
+              <div className={styles.rowMeta}>
+                <span className={styles.pill}>{a.scope || "context"}</span>
+                <span className={styles.metaSep}>•</span>
+                <span className={styles.mono}>{a.key || "-"}</span>
+                <span className={styles.metaArrow}>→</span>
+                <span className={styles.monoTrunc} title={String(a.value ?? "")}>
+                  {String(a.value ?? "") || "—"}
+                </span>
+                {a?.conditions?.length ? (
+                  <>
+                    <span className={styles.metaSep}>•</span>
+                    <span className={styles.pillLight}>{a.conditions.length} condição(ões)</span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+
+            <div className={styles.rowActions}>
+              <button className={styles.iconGhost} title="Editar" onClick={() => onEdit(section, i)}>
+                <PencilLine size={16} />
+              </button>
+              <button className={styles.iconGhost} title="Remover" onClick={() => onRemove(section, i)}>
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EditorOverlay({
+  open,
+  setOpen,
+  draft,
+  setDraft,
+  mode,
+  section,
+  save,
+  cancel,
+  variableOptions,
+}) {
+  const addCond = () =>
+    setDraft((d) => ({ ...d, conditions: [...(d.conditions || []), { variable: "lastUserMessage", type: "exists", value: "" }] }));
+  const updateCond = (idx, patch) => {
+    const next = deepClone(draft.conditions || []);
+    next[idx] = { ...next[idx], ...patch };
+    setDraft((d) => ({ ...d, conditions: next }));
+  };
+  const removeCond = (idx) => {
+    const next = deepClone(draft.conditions || []);
+    next.splice(idx, 1);
+    setDraft((d) => ({ ...d, conditions: next }));
+  };
+
+  return (
+    <div className={`${styles.subOverlay} ${open ? styles.subOverlayOpen : ""}`} data-stop-hotkeys="true">
+      <div className={styles.subOverlayHeader}>
+        <button className={styles.backBtn} onClick={() => { setOpen(false); cancel(); }} title="Voltar">
+          <ArrowLeft size={18} />
+        </button>
+        <div className={styles.overlayTitle}>
+          {mode === "edit" ? "Editar variável" : "Nova variável"}
+          <span className={styles.pillLight} style={{ marginLeft: 8 }}>
+            {section === "enter" ? "Ao entrar" : "Ao sair"}
+          </span>
+        </div>
+        <div className={styles.buttonGroup}>
+          <button className={styles.deleteButtonSmall} onClick={() => { setOpen(false); cancel(); }}>
+            <X size={14}/> Cancelar
+          </button>
+          <button className={styles.addButtonSmall} onClick={() => { save(); setOpen(false); }}>
+            <Check size={14}/> Salvar
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.subOverlayBody}>
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Título *</label>
+          <StableInput
+            placeholder="Como aparece na lista"
+            value={draft.label}
+            onChange={(e) => setDraft((d)=>({ ...d, label: e.target.value }))}
+          />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Escopo</label>
+          <select
+            className={styles.selectStyle}
+            value={draft.scope || "context"}
+            onChange={(e) => setDraft((d)=>({ ...d, scope: e.target.value || "context" }))}
+          >
+            <option value="context">context</option>
+            <option value="contact">contact</option>
+            <option value="contact.extra">contact.extra</option>
+          </select>
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Chave *</label>
+          <StableInput
+            placeholder="ex.: protocolo"
+            value={draft.key}
+            onChange={(e) => setDraft((d)=>({ ...d, key: e.target.value }))}
+          />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Valor</label>
+          <StableInput
+            placeholder='ex.: 12345 ou {{context.algo}}'
+            value={draft.value}
+            onChange={(e) => setDraft((d)=>({ ...d, value: e.target.value }))}
+          />
+        </div>
+
+        <div className={styles.sectionContainer} style={{ marginTop: 12 }}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Condições (opcional)</h4>
+            <button className={styles.addButtonSmall} onClick={addCond}>+ Adicionar condição</button>
+          </div>
+          <div className={styles.sectionContent}>
+            {!(draft.conditions || []).length && (
+              <div className={styles.emptyHint}>
+                Se adicionar condições, a variável só será definida quando <strong>todas</strong> forem satisfeitas.
+              </div>
+            )}
+
+            {(draft.conditions || []).map((cond, idx) => (
+              <div key={idx} className={styles.specialCondRow}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Variável</label>
+                  <select
+                    className={styles.selectStyle}
+                    value={
+                      variableOptions.some((v) => v.value === cond.variable)
+                        ? cond.variable
+                        : cond.variable
+                        ? "custom"
+                        : "lastUserMessage"
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "custom") updateCond(idx, { variable: "" });
+                      else {
+                        const patch = { variable: v };
+                        if (!cond.type) patch.type = "equals";
+                        if (v === "offhours") patch.value = "true";
+                        if (v === "offhours_reason") patch.value = "closed";
+                        updateCond(idx, patch);
+                      }
+                    }}
+                  >
+                    {variableOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {(!variableOptions.some((v) => v.value === cond.variable) || cond.variable === "") && (
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Nome</label>
+                    <StableInput
+                      placeholder="ex.: meuCampo"
+                      value={cond.variable || ""}
+                      onChange={(e) => updateCond(idx, { variable: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.inputLabel}>Tipo</label>
+                  <select
+                    className={styles.selectStyle}
+                    value={cond.type || ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const patch = { type: v || "" };
+                      if (v === "exists") patch.value = "";
+                      updateCond(idx, patch);
+                    }}
+                  >
+                    <option value="">Selecione...</option>
+                    <option value="exists">Existe</option>
+                    <option value="equals">Igual a</option>
+                    <option value="not_equals">Diferente de</option>
+                    <option value="contains">Contém</option>
+                    <option value="not_contains">Não contém</option>
+                    <option value="starts_with">Começa com</option>
+                    <option value="ends_with">Termina com</option>
+                  </select>
+                </div>
+
+                {cond.type !== "exists" && (
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Valor</label>
+                    {cond.variable === "offhours" ? (
+                      <select
+                        className={styles.selectStyle}
+                        value={cond.value ?? "true"}
+                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
+                      >
+                        <option value="true">true</option>
+                        <option value="false">false</option>
+                      </select>
+                    ) : cond.variable === "offhours_reason" ? (
+                      <select
+                        className={styles.selectStyle}
+                        value={cond.value ?? "holiday"}
+                        onChange={(e)=>updateCond(idx,{value:e.target.value})}
+                      >
+                        <option value="holiday">holiday</option>
+                        <option value="closed">closed</option>
+                      </select>
+                    ) : (
+                      <StableInput
+                        placeholder="Valor para comparação"
+                        value={cond.value ?? ""}
+                        onChange={(e) => updateCond(idx, { value: e.target.value })}
+                      />
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.buttonGroup}>
+                  <button className={styles.deleteButtonSmall} onClick={() => removeCond(idx)}>
+                    <Trash2 size={14}/> Remover
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OverlayEspeciaisComp({
   onBack,
   onClose,
@@ -1019,31 +1329,134 @@ function OverlayEspeciaisComp({
   variableOptions,
   showToast,
 }) {
+  const { onEnter = [], onExit = [] } = block || {};
+  const [editorOpen, setEditorOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState({
+    mode: "create",
+    section: "enter",
+    index: -1,
+    draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+  });
+
+  const ensureArray = (v) => (Array.isArray(v) ? v : []);
+  const deepClone = (obj) =>
+    typeof structuredClone === "function" ? structuredClone(obj) : JSON.parse(JSON.stringify(obj ?? {}));
+
+  const resetEditing = () =>
+    setEditing({
+      mode: "create",
+      section: "enter",
+      index: -1,
+      draft: { label: "", scope: "context", key: "", value: "", conditions: [] },
+    });
+
+  const startCreate = (section) => {
+    resetEditing();
+    setEditing((s) => ({ ...s, section, mode: "create" }));
+    setEditorOpen(true);
+  };
+
+  const startEdit = (section, index) => {
+    const list = section === "enter" ? ensureArray(onEnter) : ensureArray(onExit);
+    const item = deepClone(list[index] || {});
+    setEditing({
+      mode: "edit",
+      section,
+      index,
+      draft: {
+        label: item.label || "",
+        scope: item.scope || "context",
+        key: item.key || "",
+        value: item.value ?? "",
+        conditions: ensureArray(item.conditions || []),
+      },
+    });
+    setEditorOpen(true);
+  };
+
+  const removeItem = (section, index) => {
+    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+    list.splice(index, 1);
+    if (section === "enter") {
+      onChangeNode({ onEnter: list });
+    } else {
+      onChangeNode({ onExit: list });
+    }
+    showToast?.("success", "Variável removida.");
+  };
+
+  const validateDraft = (d) => {
+    if (!d.label?.trim()) { showToast?.("error", "Informe o título da variável."); return false; }
+    if (!d.key?.trim())   { showToast?.("error", "Informe a chave da variável."); return false; }
+    for (let i = 0; i < (d.conditions || []).length; i++) {
+      const c = d.conditions[i];
+      if (c.variable === undefined) { showToast?.("error", `Condição ${i + 1}: selecione a variável.`); return false; }
+      if (!c.type) { showToast?.("error", `Condição ${i + 1}: selecione o tipo.`); return false; }
+      if (c.type !== "exists" && (c.value === undefined || c.value === null)) {
+        showToast?.("error", `Condição ${i + 1}: informe o valor.`); return false;
+      }
+    }
+    return true;
+  };
+
+  const saveEditing = () => {
+    const { section, index, mode, draft } = editing;
+    if (!validateDraft(draft)) return;
+
+    const list = section === "enter" ? ensureArray(onEnter).slice() : ensureArray(onExit).slice();
+    const clean = {
+      label: draft.label.trim(),
+      scope: draft.scope || "context",
+      key: draft.key.trim(),
+      value: draft.value ?? "",
+      ...(draft.conditions && draft.conditions.length ? { conditions: draft.conditions } : {}),
+    };
+
+    if (mode === "create") list.push(clean);
+    else list[index] = { ...list[index], ...clean };
+
+    if (section === "enter") onChangeNode({ onEnter: list });
+    else onChangeNode({ onExit: list });
+
+    setEditorOpen(false);
+    resetEditing();
+    showToast?.("success", "Variável salva com sucesso.");
+  };
+
   return (
     <>
-      <OverlayHeader
-        title="Ações especiais"
-        onBack={onBack}
-        onClose={onClose}
-        right={
-          <button className={styles.addButtonSmall} onClick={onClose}>
-            <Check size={14}/> Ok
-          </button>
-        }
-      />
+      <OverlayHeader title="Ações especiais" onBack={onBack} onClose={onClose} />
+
       <div className={styles.overlayBody} data-stop-hotkeys="true">
-        {/* Placeholder não-destrutivo: não altera nada por padrão */}
-        <div className={styles.sectionContainer}>
-          <div className={styles.sectionHeaderStatic}>
-            <h4 className={styles.sectionTitle}>Sem configurações adicionais</h4>
-          </div>
-          <div className={styles.sectionContent}>
-            <p className={styles.helpText}>
-              Este painel é opcional. Você pode fechar ou adicionar campos aqui no futuro sem impacto.
-            </p>
-          </div>
-        </div>
+        <SpecialList
+          title="Ao entrar no bloco"
+          section="enter"
+          items={ensureArray(onEnter)}
+          onNew={startCreate}
+          onEdit={startEdit}
+          onRemove={removeItem}
+        />
+        <SpecialList
+          title="Ao sair do bloco"
+          section="exit"
+          items={ensureArray(onExit)}
+          onNew={startCreate}
+          onEdit={startEdit}
+          onRemove={removeItem}
+        />
       </div>
+
+      <EditorOverlay
+        open={editorOpen}
+        setOpen={setEditorOpen}
+        draft={editing.draft}
+        setDraft={(d) => setEditing((s) => ({ ...s, draft: typeof d === "function" ? d(s.draft) : d }))}
+        mode={editing.mode}
+        section={editing.section}
+        save={saveEditing}
+        cancel={() => setEditing((s) => ({ ...s, draft: { label: "", scope: "context", key: "", value: "", conditions: [] } }))}
+        variableOptions={variableOptions}
+      />
     </>
   );
 }
@@ -1507,6 +1920,7 @@ const ChatPreview = () => {
     </aside>
   );
 }
+
 
 
 
