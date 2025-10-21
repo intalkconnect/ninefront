@@ -205,17 +205,22 @@ export default function Builder() {
     []
   );
 
-  const pushHistory = useCallback((prev) => {
-    try {
-      const key = makeSnapKey(prev);
-      if (key === lastSnapKeyRef.current) return; // evita empilhar duplicado
-      setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
-      lastSnapKeyRef.current = key;
-    } catch {
-      // fallback se algo der errado na geração da key
-      setHistory((h) => ({ past: [...h.past, deepClone(prev)], future: [] }));
+const pushHistory = useCallback((prev) => {
+  // usamos o setHistory "updater" para ler o h atual e evitar condições de corrida
+  setHistory((h) => {
+    const key = makeSnapKey(prev);
+
+    // Só bloqueia se JÁ houver uma assinatura registrada
+    // (no primeiro push deixamos passar)
+    if (lastSnapKeyRef.current && key === lastSnapKeyRef.current) {
+      return h; // nada a fazer (duplicado)
     }
-  }, []);
+
+    lastSnapKeyRef.current = key; // registra a assinatura do snapshot salvo
+    return { past: [...h.past, deepClone(prev)], future: [] };
+  });
+}, []);
+
 
   const undo = useCallback(() => {
     setHistory((h) => {
