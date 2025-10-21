@@ -4,7 +4,6 @@ import { LocationNodeTemplate } from './LocationNodeTemplate';
 import { CodeNodeTemplate } from './CodeNodeTemplate';
 import { HttpNodeTemplate } from './HttpNodeTemplate';
 import { HumanNodeTemplate } from './HumanNodeTemplate';
-import { DespedidaNodeTemplate } from './DespedidaNodeTemplate';
 import { InteractiveNodeTemplate } from './InteractiveNodeTemplate';
 
 export const nodeTemplates = [
@@ -14,7 +13,7 @@ export const nodeTemplates = [
   LocationNodeTemplate,
   CodeNodeTemplate,
   HttpNodeTemplate,
-  HumanNodeTemplate,
-  DespedidaNodeTemplate
+  HumanNodeTemplate
 ];
+
 
