@@ -770,8 +770,284 @@ function OverlayConteudoComp({
 }
 
 /* ================= OverlayRegras ================= */
-// (idêntico ao seu atual — sem mudanças funcionais relevantes, mantido aqui)
-// ... ⟵ mantenha o restante do componente como já está no seu projeto (mesmos handlers, etc.)
+function OverlayRegrasComp({
+  draft,
+  setDraft,
+  variableOptions,
+  allNodes = [],
+  selectedNode,
+  onConnectNodes,
+  onBack,
+  onClose,
+  commit,
+  isHuman,
+}) {
+  const stylesLocal = styles; // reaproveita o mesmo CSS module
+
+  const nodeOptions = allNodes
+    .filter((n) => n?.id && n.id !== selectedNode?.id)
+    .map((n) => ({ value: n.id, label: n.data?.label || n.id }));
+
+  const updateAction = (idx, patch) => {
+    setDraft((prev) => {
+      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
+      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
+      const current = actions[idx] || { next: "", conditions: [] };
+      actions[idx] = { ...current, ...patch };
+      return { ...base, actions };
+    });
+  };
+
+  const updateCondition = (aIdx, cIdx, patch) => {
+    setDraft((prev) => {
+      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
+      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
+      const current = actions[aIdx] || { next: "", conditions: [] };
+      const conds = Array.isArray(current.conditions) ? [...current.conditions] : [];
+      const cur = conds[cIdx] || { variable: "lastUserMessage", type: "exists", value: "" };
+      conds[cIdx] = { ...cur, ...patch };
+      actions[aIdx] = { ...current, conditions: conds };
+      return { ...base, actions };
+    });
+  };
+
+  const addAction = () => {
+    setDraft((prev) => {
+      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
+      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
+      actions.push({
+        next: "",
+        conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }],
+      });
+      return { ...base, actions };
+    });
+  };
+
+  const removeAction = (idx) => {
+    setDraft((prev) => {
+      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
+      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
+      actions.splice(idx, 1);
+      return { ...base, actions };
+    });
+  };
+
+  const addCondition = (aIdx) => {
+    setDraft((prev) => {
+      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
+      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
+      const cur = actions[aIdx] || { next: "", conditions: [] };
+      const conds = Array.isArray(cur.conditions) ? [...cur.conditions] : [];
+      conds.push({ variable: "lastUserMessage", type: "equals", value: "" });
+      actions[aIdx] = { ...cur, conditions: conds };
+      return { ...base, actions };
+    });
+  };
+
+  const removeCondition = (aIdx, cIdx) => {
+    setDraft((prev) => {
+      const base = typeof prev === "function" ? prev({ actions: [], defaultNext: "" }) : prev;
+      const actions = Array.isArray(base.actions) ? [...base.actions] : [];
+      const cur = actions[aIdx] || { next: "", conditions: [] };
+      const conds = Array.isArray(cur.conditions) ? [...cur.conditions] : [];
+      conds.splice(cIdx, 1);
+      actions[aIdx] = { ...cur, conditions: conds };
+      return { ...base, actions };
+    });
+  };
+
+  const onSave = () => {
+    commit?.();
+  };
+
+  return (
+    <>
+      <OverlayHeader
+        title="Regras de saída"
+        onBack={onBack}
+        onClose={onClose}
+        right={
+          <button className={stylesLocal.addButtonSmall} onClick={onSave}>
+            <Check size={14} /> Salvar
+          </button>
+        }
+      />
+
+      <div className={stylesLocal.overlayBody} data-stop-hotkeys="true">
+        <div className={stylesLocal.sectionContainer}>
+          <div className={stylesLocal.sectionHeaderStatic}>
+            <h4 className={stylesLocal.sectionTitle}>Ações</h4>
+          </div>
+
+          <div className={stylesLocal.sectionContent}>
+            {(draft?.actions || []).map((a, idx) => (
+              <div key={idx} className={stylesLocal.cardLike}>
+                <div className={stylesLocal.rowTwoCols}>
+                  <div className={stylesLocal.inputGroup}>
+                    <label className={stylesLocal.inputLabel}>Próximo bloco</label>
+                    <select
+                      className={stylesLocal.selectStyle}
+                      value={a.next || ""}
+                      onChange={(e) => updateAction(idx, { next: e.target.value })}
+                    >
+                      <option value="">— selecione —</option>
+                      {nodeOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    {!!a.next && (
+                      <button
+                        className={stylesLocal.iconGhost}
+                        style={{ marginTop: 6 }}
+                        title="Criar conexão visual"
+                        onClick={() => onConnectNodes?.({ source: selectedNode?.id, target: a.next })}
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className={stylesLocal.inputGroup} style={{ alignItems: "flex-end" }}>
+                    <button className={stylesLocal.addButtonSmall} onClick={() => removeAction(idx)} title="Remover ação">
+                      <Trash2 size={14} /> Remover ação
+                    </button>
+                  </div>
+                </div>
+
+                <div className={stylesLocal.inputGroup}>
+                  <label className={stylesLocal.inputLabel}>Condições (todas devem ser verdadeiras)</label>
+                </div>
+
+                {(a.conditions || []).map((c, cIdx) => (
+                  <div key={cIdx} className={stylesLocal.rowTwoCols}>
+                    <div className={stylesLocal.inputGroup}>
+                      <label className={stylesLocal.inputLabel}>Variável</label>
+                      <select
+                        className={stylesLocal.selectStyle}
+                        value={c.variable || "lastUserMessage"}
+                        onChange={(e) => updateCondition(idx, cIdx, { variable: e.target.value })}
+                      >
+                        {variableOptions.map((v) => (
+                          <option key={v.value} value={v.value}>{v.label}</option>
+                        ))}
+                        <option value="custom">Custom</option>
+                      </select>
+                    </div>
+
+                    <div className={stylesLocal.inputGroup}>
+                      <label className={stylesLocal.inputLabel}>Tipo</label>
+                      <select
+                        className={stylesLocal.selectStyle}
+                        value={c.type || "equals"}
+                        onChange={(e) => updateCondition(idx, cIdx, { type: e.target.value })}
+                      >
+                        <option value="equals">equals</option>
+                        <option value="contains">contains</option>
+                        <option value="exists">exists</option>
+                        <option value="not_exists">not_exists</option>
+                      </select>
+                    </div>
+
+                    {c.type !== "exists" && c.type !== "not_exists" && (
+                      <div className={stylesLocal.inputGroup}>
+                        <label className={stylesLocal.inputLabel}>Valor</label>
+                        <StableInput
+                          type="text"
+                          value={c.value || ""}
+                          onChange={(e) => updateCondition(idx, cIdx, { value: e.target.value })}
+                        />
+                      </div>
+                    )}
+
+                    <div className={stylesLocal.inputGroup} style={{ alignItems: "flex-end" }}>
+                      <button
+                        className={stylesLocal.addButtonSmall}
+                        onClick={() => removeCondition(idx, cIdx)}
+                        title="Remover condição"
+                      >
+                        <Trash2 size={14} /> Remover condição
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button className={stylesLocal.addButton} onClick={() => addCondition(idx)}>
+                  + Adicionar condição
+                </button>
+              </div>
+            ))}
+
+            <button className={stylesLocal.addButton} onClick={addAction}>
+              + Adicionar ação
+            </button>
+          </div>
+        </div>
+
+        <div className={stylesLocal.sectionContainer}>
+          <div className={stylesLocal.sectionHeaderStatic}>
+            <h4 className={stylesLocal.sectionTitle}>Destino padrão</h4>
+          </div>
+          <div className={stylesLocal.sectionContent}>
+            <div className={stylesLocal.inputGroup}>
+              <label className={stylesLocal.inputLabel}>Se nenhuma ação casar</label>
+              <select
+                className={stylesLocal.selectStyle}
+                value={draft?.defaultNext || ""}
+                onChange={(e) => setDraft((d) => ({ ...(d || {}), defaultNext: e.target.value }))}
+              >
+                <option value="">— nenhum —</option>
+                {nodeOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </>
+  );
+}
+
+/* ================= OverlayEspeciais ================= */
+function OverlayEspeciaisComp({
+  onBack,
+  onClose,
+  onChangeNode,
+  selectedNode,
+  block,
+  variableOptions,
+  showToast,
+}) {
+  return (
+    <>
+      <OverlayHeader
+        title="Ações especiais"
+        onBack={onBack}
+        onClose={onClose}
+        right={
+          <button className={styles.addButtonSmall} onClick={onClose}>
+            <Check size={14}/> Ok
+          </button>
+        }
+      />
+      <div className={styles.overlayBody} data-stop-hotkeys="true">
+        {/* Placeholder não-destrutivo: não altera nada por padrão */}
+        <div className={styles.sectionContainer}>
+          <div className={styles.sectionHeaderStatic}>
+            <h4 className={styles.sectionTitle}>Sem configurações adicionais</h4>
+          </div>
+          <div className={styles.sectionContent}>
+            <p className={styles.helpText}>
+              Este painel é opcional. Você pode fechar ou adicionar campos aqui no futuro sem impacto.
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 
 /* ================= Preview ================= */
 function RenderBlockPreview({ type, blockContent, conteudoDraft, overlayMode }) {
@@ -1231,6 +1507,7 @@ const ChatPreview = () => {
     </aside>
   );
 }
+
 
 
 
