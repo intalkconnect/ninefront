@@ -17,7 +17,7 @@ import VersionHistoryModal from "./components/VersionControlModal";
 import MacDock from "./components/MacDock";
 
 import ScriptEditor from "./components/editor/scriptEditor";
-import NodeQuadrado from "./components/NodeQuadrado";
+import NodeQuadrado from "./components/NodeQuadrado";F
 import NodeConfigPanel from "./components/NodeConfigPanel";
 import {
   Zap,
@@ -58,7 +58,7 @@ const iconMap = {
   MapPin: <MapPin size={16} />,
   Headset: <Headset size={16} />,
   Pointer: <MousePointerClick size={16} />,
-  ListEnd: <ArrowDownCircleIcon size={16} />,
+
 };
 
 const nodeTypes = { quadrado: NodeQuadrado };
