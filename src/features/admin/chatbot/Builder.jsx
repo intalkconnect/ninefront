@@ -205,50 +205,48 @@ export default function Builder() {
     []
   );
 
+// garante: 1) não duplica, 2) primeiro push não é bloqueado, 3) sem race conditions
 const pushHistory = useCallback((prev) => {
-  // usamos o setHistory "updater" para ler o h atual e evitar condições de corrida
   setHistory((h) => {
     const key = makeSnapKey(prev);
 
-    // Só bloqueia se JÁ houver uma assinatura registrada
-    // (no primeiro push deixamos passar)
+    // só bloqueia duplicatas se já há uma chave registrada
     if (lastSnapKeyRef.current && key === lastSnapKeyRef.current) {
-      return h; // nada a fazer (duplicado)
+      return h;
     }
 
-    lastSnapKeyRef.current = key; // registra a assinatura do snapshot salvo
+    lastSnapKeyRef.current = key;          // assinatura do snapshot salvo
     return { past: [...h.past, deepClone(prev)], future: [] };
   });
 }, []);
 
+const undo = useCallback(() => {
+  setHistory((h) => {
+    if (h.past.length === 0) return h;
+    const prev = h.past[h.past.length - 1];
+    const current = snapshot();
+    setNodes(prev.nodes);
+    setEdges(prev.edges);
+    setSelectedEdgeId(null);
+    setSelectedNode(null);
+    lastSnapKeyRef.current = null; // <- importante para que o próximo push entre!
+    return { past: h.past.slice(0, -1), future: [...h.future, current] };
+  });
+}, [snapshot]);
 
-  const undo = useCallback(() => {
-    setHistory((h) => {
-      if (h.past.length === 0) return h;
-      const prev = h.past[h.past.length - 1];
-      const current = snapshot();
-      setNodes(prev.nodes);
-      setEdges(prev.edges);
-      setSelectedEdgeId(null);
-      setSelectedNode(null);
-      lastSnapKeyRef.current = null; // <- permite que o PRÓXIMO pushHistory não seja ignorado
-      return { past: h.past.slice(0, -1), future: [...h.future, current] };
-    });
-  }, [snapshot]);
-
-  const redo = useCallback(() => {
-    setHistory((h) => {
-      if (h.future.length === 0) return h;
-      const next = h.future[h.future.length - 1];
-      const current = snapshot();
-      setNodes(next.nodes);
-      setEdges(next.edges);
-      setSelectedEdgeId(null);
-      setSelectedNode(null);
-      lastSnapKeyRef.current = null; // <- idem
-      return { past: [...h.past, current], future: h.future.slice(0, -1) };
-    });
-  }, [snapshot]);
+const redo = useCallback(() => {
+  setHistory((h) => {
+    if (h.future.length === 0) return h;
+    const next = h.future[h.future.length - 1];
+    const current = snapshot();
+    setNodes(next.nodes);
+    setEdges(next.edges);
+    setSelectedEdgeId(null);
+    setSelectedNode(null);
+    lastSnapKeyRef.current = null; // <- idem
+    return { past: [...h.past, current], future: h.future.slice(0, -1) };
+  });
+}, [snapshot]);
 
   /* ---------- handlers básicos ---------- */
   const onNodesChange = useCallback(
@@ -701,6 +699,7 @@ function run(context) {
         setHistory({ past: [], future: [] });
         setSelectedEdgeId(null);
         setSelectedNode(null);
+
         const initial = { nodes: loadedNodes, edges: loadedEdges };
         lastSnapKeyRef.current = makeSnapKey(initial);
       } catch (err) {
