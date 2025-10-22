@@ -12,7 +12,6 @@ import ReactFlow, {
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
-  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { toast } from "react-toastify";
@@ -33,7 +32,6 @@ import {
   Image,
   MapPin,
   Headset,
-  ArrowDownCircle as ArrowDownCircleIcon,
   MousePointerClick,
 } from "lucide-react";
 
@@ -187,6 +185,54 @@ export default function Builder() {
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
   const lastSnapKeyRef = useRef(null);
+
+  // --- Helpers de commit com histórico ---
+  // --- Helpers de commit com histórico ---
+  const pushIfChanged = useCallback((prevSnap, nextSnap) => {
+    const prevKey = makeSnapKey(prevSnap);
+    const nextKey = makeSnapKey(nextSnap);
+
+    // só empilha se houve mudança real
+    if (prevKey !== nextKey) {
+      // evita empilhar duas vezes o MESMO "prev" quando a mesma ação toca nodes e edges
+      if (lastSnapKeyRef.current !== prevKey) {
+        setHistory((h) => ({
+          past: [...h.past, deepClone(prevSnap)],
+          future: [],
+        }));
+        lastSnapKeyRef.current = prevKey; // marca qual "prev" já foi empilhado
+      }
+    }
+  }, []);
+
+  const setNodesWithHistory = useCallback(
+    (updater) => {
+      setNodes((prevNodes) => {
+        const prevSnap = { nodes: prevNodes, edges: edgesRef.current };
+        const nextNodes =
+          typeof updater === "function" ? updater(prevNodes) : updater;
+        const nextSnap = { nodes: nextNodes, edges: edgesRef.current };
+        pushIfChanged(prevSnap, nextSnap);
+        return nextNodes;
+      });
+    },
+    [pushIfChanged]
+  );
+
+  const setEdgesWithHistory = useCallback(
+    (updater) => {
+      setEdges((prevEdges) => {
+        const prevSnap = { nodes: nodesRef.current, edges: prevEdges };
+        const nextEdges =
+          typeof updater === "function" ? updater(prevEdges) : updater;
+        const nextSnap = { nodes: nodesRef.current, edges: nextEdges };
+        pushIfChanged(prevSnap, nextSnap);
+        return nextEdges;
+      });
+    },
+    [pushIfChanged]
+  );
+
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
@@ -205,106 +251,92 @@ export default function Builder() {
     []
   );
 
-// garante: 1) não duplica, 2) primeiro push não é bloqueado, 3) sem race conditions
-const pushHistory = useCallback((prev) => {
-  setHistory((h) => {
-    const key = makeSnapKey(prev);
+  const undo = useCallback(() => {
+    setHistory((h) => {
+      if (h.past.length === 0) return h;
+      const prev = h.past[h.past.length - 1];
+      const current = snapshot();
+      setNodes(prev.nodes);
+      setEdges(prev.edges);
+      setSelectedEdgeId(null);
+      setSelectedNode(null);
+      lastSnapKeyRef.current = null; // <- importante para que o próximo push entre!
+      return { past: h.past.slice(0, -1), future: [...h.future, current] };
+    });
+  }, [snapshot]);
 
-    // só bloqueia duplicatas se já há uma chave registrada
-    if (lastSnapKeyRef.current && key === lastSnapKeyRef.current) {
-      return h;
-    }
-
-    lastSnapKeyRef.current = key;          // assinatura do snapshot salvo
-    return { past: [...h.past, deepClone(prev)], future: [] };
-  });
-}, []);
-
-const undo = useCallback(() => {
-  setHistory((h) => {
-    if (h.past.length === 0) return h;
-    const prev = h.past[h.past.length - 1];
-    const current = snapshot();
-    setNodes(prev.nodes);
-    setEdges(prev.edges);
-    setSelectedEdgeId(null);
-    setSelectedNode(null);
-    lastSnapKeyRef.current = null; // <- importante para que o próximo push entre!
-    return { past: h.past.slice(0, -1), future: [...h.future, current] };
-  });
-}, [snapshot]);
-
-const redo = useCallback(() => {
-  setHistory((h) => {
-    if (h.future.length === 0) return h;
-    const next = h.future[h.future.length - 1];
-    const current = snapshot();
-    setNodes(next.nodes);
-    setEdges(next.edges);
-    setSelectedEdgeId(null);
-    setSelectedNode(null);
-    lastSnapKeyRef.current = null; // <- idem
-    return { past: [...h.past, current], future: h.future.slice(0, -1) };
-  });
-}, [snapshot]);
+  const redo = useCallback(() => {
+    setHistory((h) => {
+      if (h.future.length === 0) return h;
+      const next = h.future[h.future.length - 1];
+      const current = snapshot();
+      setNodes(next.nodes);
+      setEdges(next.edges);
+      setSelectedEdgeId(null);
+      setSelectedNode(null);
+      lastSnapKeyRef.current = null; // <- idem
+      return { past: [...h.past, current], future: h.future.slice(0, -1) };
+    });
+  }, [snapshot]);
 
   /* ---------- handlers básicos ---------- */
   const onNodesChange = useCallback(
     (changes) => {
-      // push só quando houver mudança significativa
       const meaningful = changes.some((ch) => {
-        if (ch.type === "select") return false; // ignorar seleção
-        if (ch.type === "position") return !ch.dragging; // só quando soltar
+        if (ch.type === "select") return false; // ignora seleção
+        if (ch.type === "position") return !ch.dragging; // só no drop
         return true; // add/remove/etc
       });
 
-      setNodes((nds) => {
-        if (meaningful) pushHistory({ nodes: nds, edges: edgesRef.current });
-        return applyNodeChanges(changes, nds);
-      });
+      if (meaningful) {
+        setNodesWithHistory((nds) => applyNodeChanges(changes, nds));
+      } else {
+        setNodes((nds) => applyNodeChanges(changes, nds));
+      }
     },
-    [pushHistory]
+    [setNodesWithHistory]
   );
 
   const onEdgesChange = useCallback(
     (changes) => {
+      const meaningful = changes.some((c) => c.type !== "select");
+
+      if (meaningful) {
+        setEdgesWithHistory((eds) => applyEdgeChanges(changes, eds));
+      } else {
+        setEdges((eds) => applyEdgeChanges(changes, eds));
+      }
+
       const removedIds = new Set(
         changes.filter((c) => c.type === "remove").map((c) => c.id)
       );
-      const removedEdges = edgesRef.current.filter((e) => removedIds.has(e.id));
-
-      // só empilha se houver algo além de seleção
-      const meaningful = changes.some((c) => c.type !== "select");
-      if (meaningful)
-        pushHistory({ nodes: nodesRef.current, edges: edgesRef.current });
-
-      setEdges((eds) => applyEdgeChanges(changes, eds));
-
-      if (removedEdges.length) {
-        setNodes((nds) =>
-          nds.map((node) => {
-            const block = node.data.block || {};
-            const before = block.actions || [];
-            const after = before.filter(
-              (a) =>
-                !removedEdges.some(
-                  (re) => re.source === node.id && re.target === a.next
-                )
-            );
-            if (after.length === before.length) return node;
-            return {
-              ...node,
-              data: { ...node.data, block: { ...block, actions: after } },
-            };
-          })
-        );
-      }
-
       if (removedIds.size) {
+        const removedEdges = edgesRef.current.filter((e) =>
+          removedIds.has(e.id)
+        );
+        if (removedEdges.length) {
+          setNodesWithHistory((nds) =>
+            nds.map((node) => {
+              const block = node.data.block || {};
+              const before = block.actions || [];
+              const after = before.filter(
+                (a) =>
+                  !removedEdges.some(
+                    (re) => re.source === node.id && re.target === a.next
+                  )
+              );
+              if (after.length === before.length) return node;
+              return {
+                ...node,
+                data: { ...node.data, block: { ...block, actions: after } },
+              };
+            })
+          );
+        }
         setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
       }
     },
-    [pushHistory]
+    [setEdgesWithHistory, setNodesWithHistory]
   );
 
   const handleOpenEditor = (node) => {
@@ -325,10 +357,10 @@ function run(context) {
     (newCode) => {
       setScriptCode(newCode);
       if (selectedNode && selectedNode.data?.block?.type === "script") {
-        pushHistory(snapshot());
-        setNodes((nds) =>
+        const id = selectedNode.id;
+        setNodesWithHistory((nds) =>
           nds.map((n) =>
-            n.id === selectedNode.id
+            n.id === id
               ? {
                   ...n,
                   data: {
@@ -352,7 +384,7 @@ function run(context) {
         );
       }
     },
-    [selectedNode, snapshot, pushHistory]
+    [selectedNode, setNodesWithHistory]
   );
 
   const onConnect = useCallback(
@@ -362,11 +394,12 @@ function run(context) {
       const actions = sourceNode?.data?.block?.actions || [];
       const already = actions.some((a) => a.next === target);
 
-      pushHistory(snapshot());
-      setEdges((eds) => addEdge({ ...params, id: genEdgeId() }, eds));
+      setEdgesWithHistory((eds) =>
+        addEdge({ ...params, id: genEdgeId() }, eds)
+      );
 
       if (!already) {
-        setNodes((nds) =>
+        setNodesWithHistory((nds) =>
           nds.map((node) =>
             node.id !== source
               ? node
@@ -396,7 +429,7 @@ function run(context) {
         );
       }
     },
-    [snapshot, pushHistory]
+    [setEdgesWithHistory, setNodesWithHistory]
   );
 
   const onNodeDoubleClick = (_, node) => setSelectedNode(node);
@@ -407,10 +440,7 @@ function run(context) {
       return;
     }
 
-    const prev = snapshot();
-    pushHistory(prev);
-
-    setNodes((prevNodes) =>
+    setNodesWithHistory((prevNodes) =>
       prevNodes.map((n) => (n.id === updated.id ? updated : n))
     );
 
@@ -437,7 +467,7 @@ function run(context) {
     });
 
     const nextEdges = keptEdges.concat(additions);
-    setEdges(nextEdges);
+    setEdgesWithHistory(nextEdges);
 
     if (removedEdgeIds.size) {
       setSelectedEdgeId((cur) => (cur && removedEdgeIds.has(cur) ? null : cur));
@@ -451,11 +481,10 @@ function run(context) {
     const actions = src?.data?.block?.actions || [];
     const already = actions.some((a) => a.next === target);
 
-    pushHistory(snapshot());
-    setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
+    setEdgesWithHistory((eds) => [...eds, { id: genEdgeId(), source, target }]);
 
     if (!already) {
-      setNodes((nds) =>
+      setNodesWithHistory((nds) =>
         nds.map((node) =>
           node.id !== source
             ? node
@@ -487,15 +516,8 @@ function run(context) {
   };
 
   const deleteNodeAndCleanup = (deletedId) => {
-    const prev = snapshot();
-    pushHistory(prev);
-
-    const toRemove = edgesRef.current.filter(
-      (e) => e.source === deletedId || e.target === deletedId
-    );
-    const removedIds = new Set(toRemove.map((e) => e.id));
-
-    setNodes((nds) =>
+    // nodes
+    setNodesWithHistory((nds) =>
       nds
         .filter((n) => n.id !== deletedId)
         .map((n) => {
@@ -518,12 +540,11 @@ function run(context) {
           };
         })
     );
-
-    setEdges((eds) => eds.filter((e) => !removedIds.has(e.id)));
-
-    if (removedIds.size) {
-      setSelectedEdgeId((cur) => (cur && removedIds.has(cur) ? null : cur));
-    }
+    // edges
+    setEdgesWithHistory((eds) =>
+      eds.filter((e) => e.source !== deletedId && e.target !== deletedId)
+    );
+    setSelectedEdgeId((cur) => (cur ? null : cur));
   };
 
   const handleDelete = useCallback(() => {
@@ -562,54 +583,75 @@ function run(context) {
       if (
         el instanceof HTMLElement &&
         el.closest?.("[data-stop-hotkeys='true']")
-      )
+      ) {
         return;
+      }
 
-      const isZ = event.key.toLowerCase() === "z";
-      const isY = event.key.toLowerCase() === "y";
-      if ((event.ctrlKey || event.metaKey) && isZ) {
+      const key = event.key;
+
+      // Undo/Redo
+      if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "z") {
         event.preventDefault();
         if (event.shiftKey) redo();
         else undo();
         return;
       }
-      if ((event.ctrlKey || event.metaKey) && isY) {
+      if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "y") {
         event.preventDefault();
         redo();
         return;
       }
 
-      if (event.key === "Delete") {
+      // Delete/Backspace (fora de campos editáveis)
+      if (key === "Delete" || key === "Backspace") {
+        // nó pode ser deletado?
+        const nodeDeletavel =
+          selectedNode &&
+          selectedNode.data.nodeType !== "start" &&
+          !selectedNode.data.label?.toLowerCase()?.includes("onerror");
+
+        // 1) Se há ARESTA selecionada: remove aresta + limpa action correspondente
         if (selectedEdgeId) {
+          event.preventDefault();
+          event.stopPropagation?.();
+
           const edgeToRemove = edgesRef.current.find(
             (e) => e.id === selectedEdgeId
           );
-          pushHistory(snapshot());
-          setEdges((eds) => eds.filter((e) => e.id !== selectedEdgeId));
+
+          setEdgesWithHistory((eds) =>
+            eds.filter((e) => e.id !== selectedEdgeId)
+          );
+
           if (edgeToRemove) {
-            setNodes((nds) =>
+            setNodesWithHistory((nds) =>
               nds.map((node) => {
                 if (node.id !== edgeToRemove.source) return node;
-                const updatedActions = (node.data.block.actions || []).filter(
+                const before = node.data.block?.actions || [];
+                const after = before.filter(
                   (a) => a.next !== edgeToRemove.target
                 );
+                if (after.length === before.length) return node;
                 return {
                   ...node,
                   data: {
                     ...node.data,
-                    block: { ...node.data.block, actions: updatedActions },
+                    block: { ...node.data.block, actions: after },
                   },
                 };
               })
             );
           }
+
           setSelectedEdgeId(null);
-        } else if (
-          selectedNode &&
-          selectedNode.data.nodeType !== "start" &&
-          !selectedNode.data.label?.toLowerCase()?.includes("onerror")
-        ) {
-          deleteNodeAndCleanup(selectedNode.id);
+          return;
+        }
+
+        // 2) Caso contrário, tenta remover o NÓ (se deletável)
+        if (nodeDeletavel) {
+          event.preventDefault();
+          event.stopPropagation?.();
+          deleteNodeAndCleanup(selectedNode.id); // já usa set*WithHistory
           setSelectedNode(null);
         }
       }
@@ -617,7 +659,7 @@ function run(context) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedEdgeId, selectedNode, undo, redo, pushHistory, snapshot]);
+  }, [selectedEdgeId, selectedNode, undo, redo]);
 
   /* ---------- carregar fluxo ativo ---------- */
   useEffect(() => {
@@ -699,9 +741,6 @@ function run(context) {
         setHistory({ past: [], future: [] });
         setSelectedEdgeId(null);
         setSelectedNode(null);
-
-        const initial = { nodes: loadedNodes, edges: loadedEdges };
-        lastSnapKeyRef.current = makeSnapKey(initial);
       } catch (err) {
         console.error("Erro ao carregar fluxo ativo", err);
       }
@@ -709,16 +748,6 @@ function run(context) {
 
     loadLatestFlow();
   }, []);
-
-  useEffect(() => {
-    // se ainda não foi setado por loadLatestFlow, registra assinatura inicial
-    if (!lastSnapKeyRef.current) {
-      lastSnapKeyRef.current = makeSnapKey({
-        nodes: nodesRef.current,
-        edges: edgesRef.current,
-      });
-    }
-  }, []); // uma vez no mount
 
   /* ---------- Publicar / Baixar ---------- */
   const handlePublish = async () => {
@@ -830,7 +859,6 @@ function run(context) {
     const onErrorNode = nodesRef.current.find(
       (n) => n.data.label?.toLowerCase() === "onerror"
     );
-    pushHistory(snapshot());
     const newNode = {
       id: genId(),
       type: "quadrado",
@@ -843,7 +871,7 @@ function run(context) {
       },
       style: { ...nodeStyle, borderColor: template.color },
     };
-    setNodes((nds) => nds.concat(newNode));
+    setNodesWithHistory((nds) => nds.concat(newNode));
   };
 
   /* ---------- destaque de arestas ---------- */
@@ -1020,10 +1048,16 @@ function run(context) {
               const src = nodesRef.current.find((n) => n.id === source);
               const actions = src?.data?.block?.actions || [];
               const already = actions.some((a) => a.next === target);
-              pushHistory(snapshot());
-              setEdges((eds) => [...eds, { id: genEdgeId(), source, target }]);
+
+              // 1) cria a aresta com histórico
+              setEdgesWithHistory((eds) => [
+                ...eds,
+                { id: genEdgeId(), source, target },
+              ]);
+
+              // 2) se não havia action correspondente, grava a action no bloco (com histórico)
               if (!already) {
-                setNodes((nds) =>
+                setNodesWithHistory((nds) =>
                   nds.map((node) =>
                     node.id !== source
                       ? node
