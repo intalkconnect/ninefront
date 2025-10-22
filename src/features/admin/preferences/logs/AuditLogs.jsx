@@ -26,128 +26,127 @@ function fmtDate(ts) {
 }
 
 /** Rótulo amigável para "action" técnica */
-function formatAction(action) {
+/** Label amigável e consistente para a coluna Ação */
+function formatAction(action, resourceType) {
   const raw = (action ?? "").trim();
   if (!raw) return "—";
-
   const a = raw.toLowerCase();
-  const parts = a.split(".").filter(Boolean);
 
-  // Casos diretos
-  const DIRECT = [
-    [/^facebook\.connect\.upsert$/, "Conectou Facebook"],
-    [/^instagram\.connect\.upsert$/, "Conectou Instagram"],
-    [/^instagram\.connect\.exchange_failed$/, "Instagram: falha na troca do código"],
-    [/^ticket\.tags\.catalog\.upsert\.start$/, "Tags do ticket (catálogo): início do upsert"],
-    [/^ticket\.tags\.catalog\.upsert\.done$/, "Tags do ticket (catálogo): upsert concluído"],
-    [/^queue\.rules\.delete\.notfound$/, "Regras da fila: exclusão (não havia regras)"],
-    [/^wa\.profile\.photo\.set$/, "Definiu foto do perfil do WhatsApp"],
-    [/^wa\.profile\.photo\.unset$/, "Removeu foto do perfil do WhatsApp"],
+  // ===== 1) Casos específicos (prioridade maior) =====
+  const SPECIAL = [
+    // Fluxo
+    [/^flow\.reset$/i,                        "Resetou fluxo"],
+    [/^flow\.activate$/i,                     "Ativou fluxo"],
+    [/^flow\.publish$/i,                      "Publicou fluxo"],
+
+    // Conexões Facebook/Instagram
+    [/^facebook\.connect\.upsert$/i,          "Atualizou conexão com Facebook"],
+    [/^instagram\.connect\.upsert$/i,         "Atualizou conexão com Instagram"],
+    [/^instagram\.connect\.exchange_failed$/i,"Instagram: falha na troca do código"],
+
+    // Fila
+    [/^queue\.update$/i,                      "Atualizou fila"],
+    [/^queue\.rules\.delete\.notfound$/i,     "Exclusão de regras da fila (não havia regras)"],
+
+    // Catálogo de tags do ticket (por fila)
+    [/^ticket\.tags\.catalog\.upsert\.start$/i,"Atualizou catálogo de tags do ticket (início)"],
+    [/^ticket\.tags\.catalog\.upsert\.done$/i, "Atualizou catálogo de tags do ticket (concluído)"],
   ];
-  for (const [re, label] of DIRECT) if (re.test(a)) return label;
+  for (const [re, label] of SPECIAL) if (re.test(a)) return label;
 
-  // Entidades por prefixo
-  const ENTITY = new Map([
-    ["pause_reasons", "motivo de pausa"],
-    ["campaigns", "campanha"],
-    ["tags.customer.catalog", "tag de cliente (catálogo)"],
-    ["ticket.tags.catalog", "tag de ticket (catálogo da fila)"],
-    ["ticket.tags.attach", "vínculo de tags ao ticket"],
-    ["ticket.tags.detach", "remoção de tag do ticket"],
-    ["queue.hours", "horário de atendimento da fila"],
-    ["queue.rules", "regras da fila"],
-    ["queue.permission", "permissão da fila"],
-    ["queue.create", "fila"],
-    ["queue.update", "fila"],
-    ["queue", "fila"],
-    ["quick_reply", "resposta rápida"],
-    ["token", "token de API"],
-    ["settings", "configuração"],
-    ["telegram.connect", "Telegram"],
-    ["facebook.connect", "Facebook"],
-    ["instagram.connect", "Instagram"],
-    ["wa.profile.photo", "WhatsApp: foto do perfil"],
-    ["wa.profile", "WhatsApp: perfil"],
-    ["template", "template"],
-    ["templates.sync_all", "templates (sincronização geral)"],
-    ["session.upsert", "sessão"],
-    ["flow.publish", "fluxo"],
-    ["flow.activate", "fluxo"],
-    ["flow.reset", "fluxo"],
-    ["flow", "fluxo"],
-  ]);
+  // ===== 2) Regras genéricas =====
+  // 2.1 Mapa de verbos (action segment → verbo PT-BR)
+  const VERB_MAP = {
+    create:   "Criou",
+    update:   "Atualizou",
+    upsert:   "Atualizou",       // <= pedido: upsert deve virar "Atualizou"
+    patch:    "Atualizou",
+    delete:   "Excluiu",
+    reset:    "Resetou",
+    activate: "Ativou",
+    publish:  "Publicou",
+    connect:  "Conectou",
+    toggle:   "Alternou",
+    test:     "Testou",
+    sync:     "Sincronizou",
+    submit:   "Enviou",
+    revoke:   "Revogou",
+  };
 
-  let entityLabel = null;
-  let used = 0;
-  for (let key of Array.from(ENTITY.keys()).sort((a, b) => b.length - a.length)) {
-    const k = key.split(".");
-    const ok = k.every((p, i) => parts[i] === p);
-    if (ok) {
-      entityLabel = ENTITY.get(key);
-      used = k.length;
+  // 2.2 Mapa de recursos (resource_type → nome PT-BR)
+  const RES_MAP = {
+    flow:               "fluxo",
+    session:            "sessão",
+    queue:              "fila",
+    "queue-permission": "permissão de fila",
+    "queue_ticket_tag": "tag de ticket (catálogo da fila)",
+    campaign:           "campanha",
+    template:           "modelo",
+    channel:            "canal",
+    security_token:     "token de segurança",
+    setting:            "configuração",
+    user:               "usuário",
+    ticket:             "ticket",
+    ticket_tag:         "tag do ticket",
+    whatsapp_profile:   "perfil do WhatsApp",
+  };
+
+  // 2.3 Sufixos de estado (aparecem no final da action)
+  const SUFFIX_MAP = [
+    { re: /\.start$/i,        label: " (início)" },
+    { re: /\.done$/i,         label: " (concluído)" },
+    { re: /\.invalid$/i,      label: " (dados inválidos)" },
+    { re: /\.bad_request$/i,  label: " (requisição inválida)" },
+    { re: /\.not_found/i,     label: " (não encontrado)" },
+    { re: /\.conflict$/i,     label: " (conflito)" },
+    { re: /\.provider_fail$/i,label: " (falha do provedor)" },
+    { re: /\.already$/i,      label: " (já existia)" },
+    { re: /\.error$/i,        label: " (erro)" },
+  ];
+
+  // Quebra a action em segmentos: ex. "ticket.tags.catalog.upsert.done"
+  const parts = a.split(".");
+  // tenta achar um verbo conhecido no fim (ex.: upsert, update, create, delete…)
+  let verbKey = parts.slice().reverse().find(p => VERB_MAP[p]);
+  // se não achou, tenta em posições anteriores (ex.: "queue.rules.delete.notfound")
+  if (!verbKey) {
+    verbKey = parts.find(p => VERB_MAP[p]) || null;
+  }
+  const verb = verbKey ? VERB_MAP[verbKey] : null;
+
+  // recurso: preferir resourceType do payload; se vier vazio, inferir do início
+  const resKey =
+    (resourceType && resourceType.toLowerCase()) ||
+    parts[0] || ""; // ex.: flow, queue, template…
+  const resLabel = RES_MAP[resKey] || resKey.replace(/_/g, " ");
+
+  // monta sufixo legível (se existir)
+  let suffix = "";
+  for (const s of SUFFIX_MAP) {
+    if (s.re.test(a)) {
+      suffix = s.label;
       break;
     }
   }
-  if (!entityLabel) {
-    entityLabel = parts[0]?.replace(/_/g, " ") || "ação";
-    used = 1;
+
+  // composição final
+  if (verb) {
+    // ajuste semântico: "Conectou" normalmente é "Conectou X" ou "Conectou canal"
+    if (verbKey === "connect" && /facebook|instagram|telegram/i.test(a)) {
+      const which =
+        /facebook/i.test(a) ? "Facebook" :
+        /instagram/i.test(a) ? "Instagram" :
+        /telegram/i.test(a) ? "Telegram" : "canal";
+      return `${verb} ${which}${suffix}`;
+    }
+
+    // regra default: "Verbo + recurso"
+    return `${verb} ${resLabel}${suffix}`.trim();
   }
 
-  const verb = parts[used] || "";
-  let suffix = parts.slice(used + 1).join(".");
-
-  let upsertUpdate = false, upsertCreate = false;
-  if (verb === "upsert" && suffix.startsWith("update")) {
-    upsertUpdate = true; suffix = suffix.replace(/^update\.?/, "");
-  }
-  if (verb === "upsert" && suffix.startsWith("create")) {
-    upsertCreate = true; suffix = suffix.replace(/^create\.?/, "");
-  }
-
-  const VERBS = {
-    create: "Criou",
-    update: "Atualizou",
-    patch: "Alterou",
-    delete: "Removeu",
-    toggle: "Alternou",
-    upsert: "Inseriu/Atualizou",
-    test: "Testou",
-    publish: "Publicou",
-    activate: "Ativou",
-    revoke: "Revogou",
-    connect: "Conectou",
-    submit: "Enviou",
-    sync: "Sincronizou",
-  };
-  let vLabel = upsertUpdate ? "Atualizou" : upsertCreate ? "Criou" : (VERBS[verb] || "Restaurou");
-
-  if (a.startsWith("wa.profile.update")) vLabel = "Atualizou";
-
-  const SUFFIX = {
-    error: " (erro)",
-    invalid: " (dados inválidos)",
-    not_found: " (não encontrado)",
-    conflict: " (conflito)",
-    bad_request: " (requisição inválida)",
-    provider_fail: " (falha do provedor)",
-    already: " (já estava aplicado)",
-    done: " concluído",
-    start: " iniciado",
-    list_only: " (listagem)",
-    dry_run: " (simulação)",
-    nop: " (sem alterações)",
-  };
-  let sLabel = "";
-  if (suffix) {
-    const first = suffix.split(".")[0];
-    if (SUFFIX[first] != null) sLabel = SUFFIX[first];
-  }
-
-  let finalLabel = `${vLabel} ${entityLabel}${sLabel}`.trim();
-  if (!finalLabel || /executou ação/i.test(finalLabel)) {
-    finalLabel = raw.split(".").join(" › ");
-  }
-  return finalLabel.charAt(0).toUpperCase() + finalLabel.slice(1);
+  // ===== 3) Fallback totalmente genérico =====
+  // transforma "ticket.tags.catalog.foo.bar" → "ticket › tags › catalog › foo › bar"
+  return raw.replace(/\./g, " › ");
 }
 
 export default function AuditLogs() {
