@@ -218,7 +218,7 @@ export default function AuditLogs() {
       <div className={styles.header}>
         <div>
           <p className={styles.subtitle}>
-            Registros de ações críticas do sistema para rastreabilidade e segurança.
+            Registros de ações para rastreabilidade e segurança.
           </p>
         </div>
       </div>
