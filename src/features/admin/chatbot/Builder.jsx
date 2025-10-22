@@ -20,6 +20,7 @@ import { apiGet, apiPost } from "../../../shared/apiClient";
 import { nodeTemplates } from "./components/NodeTemplates";
 import VersionHistoryModal from "./components/VersionControlModal";
 import MacDock from "./components/MacDock";
+import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 
 import ScriptEditor from "./components/editor/scriptEditor";
 import NodeQuadrado from "./components/NodeQuadrado";
@@ -168,6 +169,7 @@ export default function Builder() {
       },
     ];
   });
+  const confirm = useConfirm();
 
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -711,54 +713,70 @@ if (key === "Escape") {
 
   /* ---------- Publicar / Baixar ---------- */
   const handlePublish = async () => {
+  try {
+    // resumo rápido pra exibir no modal (opcional)
+    const totalNodes = nodes.length;
+    const totalEdges = edges.length;
+
+    const ok = await confirm({
+      title: "Publicar fluxo?",
+      description:
+        `Isso criará uma nova versão e substituirá a versão ativa.\n\n` +
+        `Resumo: ${totalNodes} blocos e ${totalEdges} conexões serão publicados.`,
+      confirmText: "Publicar",
+      cancelText: "Cancelar",
+      tone: "warning", // usa o mesmo esquema do seu exemplo (danger|warning|success...)
+    });
+
+    if (!ok) return;
+
     setIsPublishing(true);
-    try {
-      const labelToId = {};
-      nodes.forEach((n) => {
-        if (labelToId[n.data.label])
-          console.warn("Label duplicado:", n.data.label);
-        labelToId[n.data.label] = n.id;
-      });
-      const nodeIds = new Set(nodes.map((n) => n.id));
 
-      const blocks = {};
-      nodes.forEach((node) => {
-        const block = { ...node.data.block };
-        if (block?.type === "interactive" && block?.content?.interactive) {
-          block.content = block.content.interactive;
-        }
-        if (block.defaultNext)
-          block.defaultNext = nodeIds.has(block.defaultNext)
-            ? block.defaultNext
-            : labelToId[block.defaultNext] || undefined;
-        if (Array.isArray(block.actions)) {
-          block.actions = block.actions.map((a) => ({
-            ...a,
-            next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
-          }));
-        }
-        blocks[node.id] = {
-          ...block,
-          id: node.id,
-          label: node.data.label,
-          type: node.data.type,
-          color: node.data.color,
-          position: node.position,
-        };
-      });
+    const labelToId = {};
+    nodes.forEach((n) => {
+      if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label);
+      labelToId[n.data.label] = n.id;
+    });
+    const nodeIds = new Set(nodes.map((n) => n.id));
 
-      const startNode = nodes.find((n) => n.data.nodeType === "start");
-      const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
-      await apiPost("/flows/publish", { data: flowData });
-      toast.success("Fluxo publicado com sucesso!");
-    } catch (err) {
-      toast.error(
-        `Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`
-      );
-    } finally {
-      setIsPublishing(false);
-    }
-  };
+    const blocks = {};
+    nodes.forEach((node) => {
+      const block = { ...node.data.block };
+      if (block?.type === "interactive" && block?.content?.interactive) {
+        block.content = block.content.interactive;
+      }
+      if (block.defaultNext)
+        block.defaultNext = nodeIds.has(block.defaultNext)
+          ? block.defaultNext
+          : labelToId[block.defaultNext] || undefined;
+      if (Array.isArray(block.actions)) {
+        block.actions = block.actions.map((a) => ({
+          ...a,
+          next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
+        }));
+      }
+      blocks[node.id] = {
+        ...block,
+        id: node.id,
+        label: node.data.label,
+        type: node.data.type,
+        color: node.data.color,
+        position: node.position,
+      };
+    });
+
+    const startNode = nodes.find((n) => n.data.nodeType === "start");
+    const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
+
+    await apiPost("/flows/publish", { data: flowData });
+    toast.success("Fluxo publicado com sucesso!");
+  } catch (err) {
+    toast.error(`Falha ao publicar o fluxo: ${err?.message || "erro desconhecido"}`);
+  } finally {
+    setIsPublishing(false);
+  }
+};
+
 
   const downloadFlow = () => {
     const labelToId = {};
