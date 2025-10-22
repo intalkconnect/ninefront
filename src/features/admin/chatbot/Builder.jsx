@@ -478,45 +478,6 @@ function run(context) {
     setSelectedNode(updated);
   };
 
-  const handleConnectNodes = ({ source, target }) => {
-    const src = nodesRef.current.find((n) => n.id === source);
-    const actions = src?.data?.block?.actions || [];
-    const already = actions.some((a) => a.next === target);
-
-    setEdgesWithHistory((eds) => [...eds, { id: genEdgeId(), source, target }]);
-
-    if (!already) {
-      setNodesWithHistory((nds) =>
-        nds.map((node) =>
-          node.id !== source
-            ? node
-            : {
-                ...node,
-                data: {
-                  ...node.data,
-                  block: {
-                    ...node.data.block,
-                    actions: [
-                      ...actions,
-                      {
-                        next: target,
-                        conditions: [
-                          {
-                            variable: "lastUserMessage",
-                            type: "exists",
-                            value: "",
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                },
-              }
-        )
-      );
-    }
-  };
-
   const deleteNodeAndCleanup = (deletedId) => {
     // nodes
     setNodesWithHistory((nds) =>
