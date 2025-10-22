@@ -1,0 +1,115 @@
+:root{
+  --border:#e5e7eb;
+  --border2:#eef2f7;
+
+  --text:#0f172a;
+  --text2:#374151;
+  --muted:#6b7280;
+
+  --primary:#3b82f6;
+  --primary-600:#2563eb;
+  --primary-100:rgba(59,130,246,.18);
+}
+
+/* Página/contêiner */
+.container{
+  padding:24px;
+  max-width:1400px;
+  margin:0 auto;
+  background:linear-gradient(135deg,#f7f7fb 0%,#f1f5f9 100%);
+  color:var(--text);
+  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+}
+
+/* Toolbar (à direita) */
+.toolbar{display:flex;justify-content:flex-end;margin-bottom:8px}
+.headerActions{display:flex;gap:10px;flex-wrap:wrap}
+.refreshBtn{
+  border:1px solid var(--border); background:#fff; color:var(--text2);
+  border-radius:12px; padding:10px 14px; font-weight:700;
+  display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+}
+.refreshBtn:hover{ background:#f8fafc; }
+.refreshBtn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.spinning{animation:spin 1s linear infinite}
+
+/* Header */
+.header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:18px; position:relative;
+}
+.header::after{
+  content:''; position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, var(--primary-600) 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+.subtitle{ margin:6px 0 0; color:var(--muted); font-size:15px; font-weight:400; }
+
+/* Card/lista */
+.card{
+  background:#fff; border:1px solid var(--border2);
+  border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); overflow:hidden;
+}
+.cardHead{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border2);
+  background:
+    linear-gradient(180deg, #fff 0%, #fff 100%),
+    linear-gradient(90deg, var(--primary-100) 0%, transparent 45%);
+}
+
+/* Busca e filtros */
+.searchGroup{position:relative}
+.searchInput{
+  width:min(420px,48vw); height:40px; padding:0 36px 0 12px;
+  border:1px solid var(--border); border-radius:12px; outline:none; background:#fff; font-size:14px;
+}
+.searchInput:focus{ box-shadow:0 0 0 3px rgba(59,130,246,.18); border-color:var(--primary-600) }
+.searchClear{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  border:1px solid var(--border); background:#fff; border-radius:8px;
+  width:28px; height:28px; display:grid; place-items:center; cursor:pointer;
+}
+
+/* Tabela */
+.tableWrap{overflow:auto}
+.table{
+  width:100%; border-collapse:separate; border-spacing:0; font-size:14px;
+}
+.table thead th{
+  text-align:left; padding:14px 18px; background:#f9fafb; border-bottom:1px solid var(--border);
+  color:#64748b; text-transform:uppercase; letter-spacing:.08em; font-size:12px; position:sticky; top:0; z-index:1;
+}
+.table tbody td{ padding:16px 18px; border-bottom:1px solid var(--border2); vertical-align:top; color:#111827; }
+.rowHover{ transition:.18s }
+.rowHover:hover{ background:linear-gradient(180deg,#fff 0%, #f7f8fa 100%) }
+.empty{ padding:24px; color:var(--muted); text-align:center }
+
+/* Skeleton */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skelRow td{padding:12px 18px}
+.skeletonRow{
+  height:18px; border-radius:8px;
+  background:linear-gradient(90deg,#f1f5f9 0%,#e2e8f0 50%,#f1f5f9 100%);
+  background-size:200% 100%; animation:shimmer 1.4s infinite;
+}
+
+/* Chips de status (escopo global para usar a mesma classe no JSX) */
+:global(.nc-status-ok),
+:global(.nc-status-fail){
+  display:inline-flex; align-items:center; gap:6px;
+  height:28px; padding:0 12px; border-radius:999px; font-weight:700; font-size:13px;
+  border:1px solid; box-shadow:0 1px 2px rgba(0,0,0,.04);
+}
+:global(.nc-status-ok){ color:#065f46; background:#d1fae5; border-color:#a7f3d0; }
+:global(.nc-status-fail){ color:#991b1b; background:#fee2e2; border-color:#fecaca; }
+
+/* Responsivo */
+@media (max-width:700px){
+  .cardHead{flex-direction:column; align-items:stretch; gap:10px}
+  .searchInput{width:100%}
+  .table thead{display:none}
+  .table, .table tbody, .table tr, .table td{display:block; width:100%}
+  .table tbody td{padding:12px 14px}
+}
