@@ -3,34 +3,15 @@ import { X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "./styles/AuditLogs.module.css";
 import { apiGet } from "../../../../shared/apiClient";
 
-/** Mapeia a ação bruta para um rótulo amigável */
-function formatAction(action) {
-  const raw = String(action ?? "").trim();
-  const a = raw.toLowerCase();
-
-  const MAP = [
-    [/^flow\.reset$/, "Reiniciou fluxo"],
-    [/^flow\.activate$/, "Ativou fluxo"],
-    [/^facebook\.connect\.upsert$/, "Conectou Facebook"],
-    [/^instagram\.connect\.upsert$/, "Conectou Instagram"],
-    [/^instagram\.connect\.exchange_failed$/, "Instagram: falha na troca do código"],
-    [/^ticket\.tags\.catalog\.upsert\.start$/, "Tags de ticket: início do upsert"],
-    [/^ticket\.tags\.catalog\.upsert\.done$/, "Tags de ticket: upsert concluído"],
-    [/^queue\.rules\.delete\.notfound$/, "Regras da fila: exclusão (não havia regras)"],
-    [/^queue\.update$/, "Atualizou fila"],
-  ];
-  for (const [re, label] of MAP) if (re.test(a)) return label;
-  return raw ? raw.replace(/\./g, " › ") : "—";
-}
-
 /** Sucesso = 2xx ou 3xx */
 const isSuccess = (code) => {
   const n = Number(code);
-  return !Number.isNaN(n) && n >= 200 && n < 400;
+  return Number.isFinite(n) && n >= 200 && n < 400;
 };
 
 /** Data PT-BR curtinha */
 function fmtDate(ts) {
+  if (!ts) return "—";
   try {
     return new Date(ts).toLocaleString("pt-BR", {
       year: "numeric",
@@ -40,8 +21,133 @@ function fmtDate(ts) {
       minute: "2-digit",
     });
   } catch {
-    return ts ?? "—";
+    return String(ts);
   }
+}
+
+/** Rótulo amigável para "action" técnica */
+function formatAction(action) {
+  const raw = (action ?? "").trim();
+  if (!raw) return "—";
+
+  const a = raw.toLowerCase();
+  const parts = a.split(".").filter(Boolean);
+
+  // Casos diretos
+  const DIRECT = [
+    [/^facebook\.connect\.upsert$/, "Conectou Facebook"],
+    [/^instagram\.connect\.upsert$/, "Conectou Instagram"],
+    [/^instagram\.connect\.exchange_failed$/, "Instagram: falha na troca do código"],
+    [/^ticket\.tags\.catalog\.upsert\.start$/, "Tags do ticket (catálogo): início do upsert"],
+    [/^ticket\.tags\.catalog\.upsert\.done$/, "Tags do ticket (catálogo): upsert concluído"],
+    [/^queue\.rules\.delete\.notfound$/, "Regras da fila: exclusão (não havia regras)"],
+    [/^wa\.profile\.photo\.set$/, "Definiu foto do perfil do WhatsApp"],
+    [/^wa\.profile\.photo\.unset$/, "Removeu foto do perfil do WhatsApp"],
+  ];
+  for (const [re, label] of DIRECT) if (re.test(a)) return label;
+
+  // Entidades por prefixo
+  const ENTITY = new Map([
+    ["pause_reasons", "motivo de pausa"],
+    ["campaigns", "campanha"],
+    ["tags.customer.catalog", "tag de cliente (catálogo)"],
+    ["ticket.tags.catalog", "tag de ticket (catálogo da fila)"],
+    ["ticket.tags.attach", "vínculo de tags ao ticket"],
+    ["ticket.tags.detach", "remoção de tag do ticket"],
+    ["queue.hours", "horário de atendimento da fila"],
+    ["queue.rules", "regras da fila"],
+    ["queue.permission", "permissão da fila"],
+    ["queue.create", "fila"],
+    ["queue.update", "fila"],
+    ["queue", "fila"],
+    ["quick_reply", "resposta rápida"],
+    ["token", "token de API"],
+    ["settings", "configuração"],
+    ["telegram.connect", "Telegram"],
+    ["facebook.connect", "Facebook"],
+    ["instagram.connect", "Instagram"],
+    ["wa.profile.photo", "WhatsApp: foto do perfil"],
+    ["wa.profile", "WhatsApp: perfil"],
+    ["template", "template"],
+    ["templates.sync_all", "templates (sincronização geral)"],
+    ["session.upsert", "sessão"],
+    ["flow.publish", "fluxo"],
+    ["flow.activate", "fluxo"],
+    ["flow.reset", "fluxo"],
+    ["flow", "fluxo"],
+  ]);
+
+  let entityLabel = null;
+  let used = 0;
+  for (let key of Array.from(ENTITY.keys()).sort((a, b) => b.length - a.length)) {
+    const k = key.split(".");
+    const ok = k.every((p, i) => parts[i] === p);
+    if (ok) {
+      entityLabel = ENTITY.get(key);
+      used = k.length;
+      break;
+    }
+  }
+  if (!entityLabel) {
+    entityLabel = parts[0]?.replace(/_/g, " ") || "ação";
+    used = 1;
+  }
+
+  const verb = parts[used] || "";
+  let suffix = parts.slice(used + 1).join(".");
+
+  let upsertUpdate = false, upsertCreate = false;
+  if (verb === "upsert" && suffix.startsWith("update")) {
+    upsertUpdate = true; suffix = suffix.replace(/^update\.?/, "");
+  }
+  if (verb === "upsert" && suffix.startsWith("create")) {
+    upsertCreate = true; suffix = suffix.replace(/^create\.?/, "");
+  }
+
+  const VERBS = {
+    create: "Criou",
+    update: "Atualizou",
+    patch: "Alterou",
+    delete: "Removeu",
+    toggle: "Alternou",
+    upsert: "Inseriu/Atualizou",
+    test: "Testou",
+    publish: "Publicou",
+    activate: "Ativou",
+    revoke: "Revogou",
+    connect: "Conectou",
+    submit: "Enviou",
+    sync: "Sincronizou",
+  };
+  let vLabel = upsertUpdate ? "Atualizou" : upsertCreate ? "Criou" : (VERBS[verb] || "Executou");
+
+  if (a.startsWith("wa.profile.update")) vLabel = "Atualizou";
+
+  const SUFFIX = {
+    error: " (erro)",
+    invalid: " (dados inválidos)",
+    not_found: " (não encontrado)",
+    conflict: " (conflito)",
+    bad_request: " (requisição inválida)",
+    provider_fail: " (falha do provedor)",
+    already: " (já estava aplicado)",
+    done: " concluído",
+    start: " iniciado",
+    list_only: " (listagem)",
+    dry_run: " (simulação)",
+    nop: " (sem alterações)",
+  };
+  let sLabel = "";
+  if (suffix) {
+    const first = suffix.split(".")[0];
+    if (SUFFIX[first] != null) sLabel = SUFFIX[first];
+  }
+
+  let finalLabel = `${vLabel} ${entityLabel}${sLabel}`.trim();
+  if (!finalLabel || /executou ação/i.test(finalLabel)) {
+    finalLabel = raw.split(".").join(" › ");
+  }
+  return finalLabel.charAt(0).toUpperCase() + finalLabel.slice(1);
 }
 
 export default function AuditLogs() {
@@ -49,13 +155,13 @@ export default function AuditLogs() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // filtros (enviados ao back e também aplicados no front)
+  // filtros (status é client-side; os demais podem ir para o back)
   const [statusChip, setStatusChip] = useState(""); // '' | 'success' | 'fail'
   const [author, setAuthor] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  // paginação (client-side)
+  // paginação local
   const [page, setPage] = useState(1);
   const pageSize = 25;
 
@@ -67,23 +173,17 @@ export default function AuditLogs() {
     setPage(1);
   }, []);
 
-  // carrega do back com filtros básicos (actor + datas);
-  // status também é enviado, mas será aplicado novamente no front para garantir.
+  // carrega do back SEM status (status é exato no back e aqui é grupo)
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (statusChip) params.set("status", statusChip); // opcional para o back
-      if (author) params.set("actor", author);
+      if (author) params.set("actor_user", author);
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
 
       const resp = await apiGet(`/audit/logs?${params.toString()}`);
-      const arr = Array.isArray(resp?.items)
-        ? resp.items
-        : Array.isArray(resp)
-        ? resp
-        : [];
+      const arr = Array.isArray(resp?.items) ? resp.items : (Array.isArray(resp) ? resp : []);
       setItems(arr);
       setPage(1);
     } catch {
@@ -91,40 +191,34 @@ export default function AuditLogs() {
     } finally {
       setLoading(false);
     }
-  }, [statusChip, author, dateFrom, dateTo]);
+  }, [author, dateFrom, dateTo]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  // quando trocar de chip, volta para a 1ª página
-  useEffect(() => {
-    setPage(1);
-  }, [statusChip]);
-
-  // FILTRO DE STATUS (client-side garantido)
-  const statusFiltered = useMemo(() => {
+  // aplica filtro de status client-side
+  const filtered = useMemo(() => {
     if (!statusChip) return items;
-    return items.filter((row) =>
-      statusChip === "success" ? isSuccess(row?.status_code) : !isSuccess(row?.status_code)
-    );
+    return items.filter((row) => {
+      const ok = isSuccess(row?.status_code);
+      return statusChip === "success" ? ok : !ok;
+    });
   }, [items, statusChip]);
 
-  // paginação depois do filtro
-  const totalPages = Math.max(1, Math.ceil(statusFiltered.length / pageSize));
-  const canPrev = page > 1;
-  const canNext = page < totalPages;
-
+  // paginação
   const paginated = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return statusFiltered.slice(start, start + pageSize);
-  }, [statusFiltered, page]);
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
 
   return (
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
         <div>
+          <h1 className={styles.title}>Logs de Auditoria</h1>
           <p className={styles.subtitle}>
             Registros de ações críticas do sistema para rastreabilidade e segurança.
           </p>
@@ -140,7 +234,7 @@ export default function AuditLogs() {
               type="button"
               className={`${styles.chip} ${statusChip === "" ? styles.chipActive : ""}`}
               aria-pressed={statusChip === ""}
-              onClick={() => setStatusChip("")}
+              onClick={() => { setStatusChip(""); setPage(1); }}
             >
               Todos
             </button>
@@ -148,7 +242,7 @@ export default function AuditLogs() {
               type="button"
               className={`${styles.chip} ${statusChip === "success" ? styles.chipActive : ""}`}
               aria-pressed={statusChip === "success"}
-              onClick={() => setStatusChip("success")}
+              onClick={() => { setStatusChip("success"); setPage(1); }}
             >
               Sucesso
             </button>
@@ -156,7 +250,7 @@ export default function AuditLogs() {
               type="button"
               className={`${styles.chip} ${statusChip === "fail" ? styles.chipActive : ""}`}
               aria-pressed={statusChip === "fail"}
-              onClick={() => setStatusChip("fail")}
+              onClick={() => { setStatusChip("fail"); setPage(1); }}
             >
               Falha
             </button>
@@ -208,6 +302,9 @@ export default function AuditLogs() {
           <button className={styles.resetBtn} onClick={clearFilters}>
             Limpar filtros
           </button>
+          <button className={styles.applyBtn} onClick={() => load()}>
+            Aplicar
+          </button>
         </div>
       </div>
 
@@ -227,9 +324,7 @@ export default function AuditLogs() {
               {loading &&
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={`sk-${i}`} className={styles.skelRow}>
-                    <td colSpan={4}>
-                      <div className={styles.skeletonRow} />
-                    </td>
+                    <td colSpan={4}><div className={styles.skeletonRow} /></td>
                   </tr>
                 ))}
 
@@ -241,24 +336,21 @@ export default function AuditLogs() {
                 </tr>
               )}
 
-              {!loading &&
-                paginated.map((row) => (
-                  <tr key={row.id} className={styles.rowHover}>
-                    <td data-label="Data">{fmtDate(row.ts)}</td>
-                    <td data-label="Ação">{formatAction(row?.action)}</td>
-                    <td data-label="Status">
-                      <span
-                        className={
-                          isSuccess(row?.status_code) ? styles.statusOk : styles.statusFail
-                        }
-                        title={`HTTP ${row?.status_code ?? "—"}`}
-                      >
-                        {isSuccess(row?.status_code) ? "Sucesso" : "Falha"}
-                      </span>
-                    </td>
-                    <td data-label="Autor/Usuário">{row?.actor_user || row?.actor_id || "—"}</td>
-                  </tr>
-                ))}
+              {!loading && paginated.map((row) => (
+                <tr key={row.id} className={styles.rowHover}>
+                  <td data-label="Data">{fmtDate(row.ts)}</td>
+                  <td data-label="Ação">{formatAction(row.action)}</td>
+                  <td data-label="Status">
+                    <span
+                      className={isSuccess(row.status_code) ? styles.statusOk : styles.statusFail}
+                      title={`HTTP ${row.status_code}`}
+                    >
+                      {isSuccess(row.status_code) ? "Sucesso" : "Falha"}
+                    </span>
+                  </td>
+                  <td data-label="Autor/Usuário">{row.actor_user || row.actor_id || "—"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -273,9 +365,7 @@ export default function AuditLogs() {
             <ChevronLeft size={16} />
             Anterior
           </button>
-          <div className={styles.pageInfo}>
-            {page} / {totalPages}
-          </div>
+          <div className={styles.pageInfo}>{page} / {totalPages}</div>
           <button
             className={styles.pageBtn}
             onClick={() => canNext && setPage((p) => Math.min(totalPages, p + 1))}
