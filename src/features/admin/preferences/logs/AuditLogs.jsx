@@ -3,11 +3,8 @@ import { X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "./styles/AuditLogs.module.css";
 import { apiGet } from "../../../../shared/apiClient";
 
-/**
- * Mapeia "action" bruta -> label amigável
- */
+/** Mapeia a ação bruta para um rótulo amigável */
 function formatAction(action) {
-  // normaliza (evita null/undefined)
   const raw = String(action ?? "").trim();
   const a = raw.toLowerCase();
 
@@ -22,26 +19,17 @@ function formatAction(action) {
     [/^queue\.rules\.delete\.notfound$/, "Regras da fila: exclusão (não havia regras)"],
     [/^queue\.update$/, "Atualizou fila"],
   ];
-
   for (const [re, label] of MAP) if (re.test(a)) return label;
-
-  // fallback: substitui "." por " › " sem usar replaceAll
-  // (compatível e à prova de null)
   return raw ? raw.replace(/\./g, " › ") : "—";
 }
 
-
-/**
- * Sucesso = 2xx ou 3xx
- */
+/** Sucesso = 2xx ou 3xx */
 const isSuccess = (code) => {
   const n = Number(code);
   return !Number.isNaN(n) && n >= 200 && n < 400;
 };
 
-/**
- * Data PT-BR (curtinha)
- */
+/** Data PT-BR curtinha */
 function fmtDate(ts) {
   try {
     return new Date(ts).toLocaleString("pt-BR", {
@@ -61,13 +49,13 @@ export default function AuditLogs() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // filtros server-side
+  // filtros (enviados ao back e também aplicados no front)
   const [statusChip, setStatusChip] = useState(""); // '' | 'success' | 'fail'
   const [author, setAuthor] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  // paginação (client-side simples)
+  // paginação (client-side)
   const [page, setPage] = useState(1);
   const pageSize = 25;
 
@@ -79,39 +67,58 @@ export default function AuditLogs() {
     setPage(1);
   }, []);
 
-  // carrega do back com os filtros
+  // carrega do back com filtros básicos (actor + datas);
+  // status também é enviado, mas será aplicado novamente no front para garantir.
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (statusChip) params.set("status", statusChip); // 'success' | 'fail'
+      if (statusChip) params.set("status", statusChip); // opcional para o back
       if (author) params.set("actor", author);
       if (dateFrom) params.set("from", dateFrom);
       if (dateTo) params.set("to", dateTo);
 
-      // o endpoint do back proposto: GET /audit/logs
       const resp = await apiGet(`/audit/logs?${params.toString()}`);
-      const arr = Array.isArray(resp?.items) ? resp.items : (Array.isArray(resp) ? resp : []);
+      const arr = Array.isArray(resp?.items)
+        ? resp.items
+        : Array.isArray(resp)
+        ? resp
+        : [];
       setItems(arr);
       setPage(1);
-    } catch (e) {
+    } catch {
       setItems([]);
     } finally {
       setLoading(false);
     }
   }, [statusChip, author, dateFrom, dateTo]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  // paginação local
-  const paginated = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return items.slice(start, start + pageSize);
-  }, [items, page]);
+  // quando trocar de chip, volta para a 1ª página
+  useEffect(() => {
+    setPage(1);
+  }, [statusChip]);
 
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  // FILTRO DE STATUS (client-side garantido)
+  const statusFiltered = useMemo(() => {
+    if (!statusChip) return items;
+    return items.filter((row) =>
+      statusChip === "success" ? isSuccess(row?.status_code) : !isSuccess(row?.status_code)
+    );
+  }, [items, statusChip]);
+
+  // paginação depois do filtro
+  const totalPages = Math.max(1, Math.ceil(statusFiltered.length / pageSize));
   const canPrev = page > 1;
   const canNext = page < totalPages;
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return statusFiltered.slice(start, start + pageSize);
+  }, [statusFiltered, page]);
 
   return (
     <div className={styles.container}>
@@ -159,21 +166,23 @@ export default function AuditLogs() {
 
         <div className={styles.field}>
           <label>Autor/Usuário</label>
-          <input
-            className={styles.input}
-            placeholder="email ou nome"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-          />
-          {author && (
-            <button
-              className={styles.inputClear}
-              title="Limpar"
-              onClick={() => setAuthor("")}
-            >
-              <XIcon size={14} />
-            </button>
-          )}
+          <div className={styles.inputWrap}>
+            <input
+              className={styles.input}
+              placeholder="email ou nome"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+            />
+            {author && (
+              <button
+                className={styles.inputClear}
+                title="Limpar"
+                onClick={() => setAuthor("")}
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className={styles.field}>
@@ -237,22 +246,18 @@ export default function AuditLogs() {
                 paginated.map((row) => (
                   <tr key={row.id} className={styles.rowHover}>
                     <td data-label="Data">{fmtDate(row.ts)}</td>
-                    <td data-label="Ação">{formatAction(row.action)}</td>
+                    <td data-label="Ação">{formatAction(row?.action)}</td>
                     <td data-label="Status">
                       <span
                         className={
-                          isSuccess(row.status_code)
-                            ? styles.statusOk
-                            : styles.statusFail
+                          isSuccess(row?.status_code) ? styles.statusOk : styles.statusFail
                         }
-                        title={`HTTP ${row.status_code}`}
+                        title={`HTTP ${row?.status_code ?? "—"}`}
                       >
-                        {isSuccess(row.status_code) ? "Sucesso" : "Falha"}
+                        {isSuccess(row?.status_code) ? "Sucesso" : "Falha"}
                       </span>
                     </td>
-                    <td data-label="Autor/Usuário">
-                      {row.actor_user || row.actor_id || "—"}
-                    </td>
+                    <td data-label="Autor/Usuário">{row?.actor_user || row?.actor_id || "—"}</td>
                   </tr>
                 ))}
             </tbody>
