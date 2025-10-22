@@ -394,9 +394,11 @@ function run(context) {
       const actions = sourceNode?.data?.block?.actions || [];
       const already = actions.some((a) => a.next === target);
 
-      setEdgesWithHistory((eds) =>
-        addEdge({ ...params, id: genEdgeId() }, eds)
-      );
+      setEdgesWithHistory((eds) => {
+  const exists = eds.some((e) => e.source === params.source && e.target === params.target);
+  return exists ? eds : addEdge({ ...params, id: genEdgeId() }, eds);
+});
+
 
       if (!already) {
         setNodesWithHistory((nds) =>
@@ -572,94 +574,91 @@ function run(context) {
   }, [showHistory]);
 
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      const el = event.target;
-      const tag = el?.tagName?.toUpperCase?.();
-      const isEditableTag =
-        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
-      const isContentEditable = el?.isContentEditable;
-      if (isEditableTag || isContentEditable) return;
+  const handleKeyDown = (event) => {
+    const el = event.target;
+    const tag = el?.tagName?.toUpperCase?.();
+    const isEditableTag = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    const isContentEditable = el?.isContentEditable;
+    if (isEditableTag || isContentEditable) return;
 
-      if (
-        el instanceof HTMLElement &&
-        el.closest?.("[data-stop-hotkeys='true']")
-      ) {
-        return;
-      }
+    if (el instanceof HTMLElement && el.closest?.("[data-stop-hotkeys='true']")) {
+      return;
+    }
 
-      const key = event.key;
+    const key = event.key;
 
-      // Undo/Redo
-      if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "z") {
+    // Undo / Redo
+    if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "z") {
+      event.preventDefault();
+      if (event.shiftKey) redo();
+      else undo();
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "y") {
+      event.preventDefault();
+      redo();
+      return;
+    }
+// Limpa seleção com ESC
+if (key === "Escape") {
+  setSelectedNode(null);
+  setSelectedEdgeId(null);
+  setHighlightedNodeId(null);
+  return;
+}
+
+    // Delete / Backspace
+    if (key === "Delete" || key === "Backspace") {
+      const nodeDeletavel =
+        selectedNode &&
+        selectedNode.data.nodeType !== "start" &&
+        !selectedNode.data.label?.toLowerCase()?.includes("onerror");
+
+      // 1) Se há aresta selecionada: remove aresta + limpa action no nó de origem
+      if (selectedEdgeId) {
         event.preventDefault();
-        if (event.shiftKey) redo();
-        else undo();
-        return;
-      }
-      if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "y") {
-        event.preventDefault();
-        redo();
-        return;
-      }
+        event.stopPropagation?.();
 
-      // Delete/Backspace (fora de campos editáveis)
-      if (key === "Delete" || key === "Backspace") {
-        // nó pode ser deletado?
-        const nodeDeletavel =
-          selectedNode &&
-          selectedNode.data.nodeType !== "start" &&
-          !selectedNode.data.label?.toLowerCase()?.includes("onerror");
+        const edgeToRemove = edgesRef.current.find((e) => e.id === selectedEdgeId);
 
-        // 1) Se há ARESTA selecionada: remove aresta + limpa action correspondente
-        if (selectedEdgeId) {
-          event.preventDefault();
-          event.stopPropagation?.();
+        setEdgesWithHistory((eds) => eds.filter((e) => e.id !== selectedEdgeId));
 
-          const edgeToRemove = edgesRef.current.find(
-            (e) => e.id === selectedEdgeId
+        if (edgeToRemove) {
+          setNodesWithHistory((nds) =>
+            nds.map((node) => {
+              if (node.id !== edgeToRemove.source) return node;
+              const before = node.data.block?.actions || [];
+              const after = before.filter((a) => a.next !== edgeToRemove.target);
+              if (after.length === before.length) return node;
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  block: { ...node.data.block, actions: after },
+                },
+              };
+            })
           );
-
-          setEdgesWithHistory((eds) =>
-            eds.filter((e) => e.id !== selectedEdgeId)
-          );
-
-          if (edgeToRemove) {
-            setNodesWithHistory((nds) =>
-              nds.map((node) => {
-                if (node.id !== edgeToRemove.source) return node;
-                const before = node.data.block?.actions || [];
-                const after = before.filter(
-                  (a) => a.next !== edgeToRemove.target
-                );
-                if (after.length === before.length) return node;
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    block: { ...node.data.block, actions: after },
-                  },
-                };
-              })
-            );
-          }
-
-          setSelectedEdgeId(null);
-          return;
         }
 
-        // 2) Caso contrário, tenta remover o NÓ (se deletável)
-        if (nodeDeletavel) {
-          event.preventDefault();
-          event.stopPropagation?.();
-          deleteNodeAndCleanup(selectedNode.id); // já usa set*WithHistory
-          setSelectedNode(null);
-        }
+        setSelectedEdgeId(null);
+        return;
       }
-    };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedEdgeId, selectedNode, undo, redo]);
+      // 2) Caso contrário, tenta remover o nó (se deletável)
+      if (nodeDeletavel) {
+        event.preventDefault();
+        event.stopPropagation?.();
+        deleteNodeAndCleanup(selectedNode.id);
+        setSelectedNode(null);
+      }
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [selectedEdgeId, selectedNode, undo, redo, setEdgesWithHistory, setNodesWithHistory]);
+
 
   /* ---------- carregar fluxo ativo ---------- */
   useEffect(() => {
