@@ -1,145 +1,128 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { X as XIcon, CalendarRange, RefreshCw } from "lucide-react";
-import styles from "./AuditLogs.module.css";
+import { X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import styles from "./styles/AuditLogs.module.css";
 import { apiGet } from "../../../../shared/apiClient";
-import { toast } from "react-toastify";
 
-/** Mapeia códigos técnicos -> rótulos claros */
-const prettifyAction = (code = "") => {
-  const map = {
-    "flow.activate": "Ativar fluxo",
-    "flow.publish": "Publicar fluxo",
-    "flow.publish.bad_request": "Publicação inválida",
-    "flow.publish.error": "Erro ao publicar fluxo",
-    "flow.reset": "Reiniciar fluxo do cliente",
+/**
+ * Mapeia "action" bruta -> label amigável
+ */
+function formatAction(action = "") {
+  const a = String(action || "").toLowerCase();
 
-    "session.upsert": "Salvar sessão",
-    "session.upsert.error": "Erro ao salvar sessão",
+  const MAP = [
+    [/^flow\.reset$/, "Reiniciou fluxo"],
+    [/^flow\.activate$/, "Ativou fluxo"],
+    [/^facebook\.connect\.upsert$/, "Conectou Facebook"],
+    [/^instagram\.connect\.upsert$/, "Conectou Instagram"],
+    [/^instagram\.connect\.exchange_failed$/, "Instagram: falha na troca do código"],
+    [/^ticket\.tags\.catalog\.upsert\.start$/, "Tags de ticket: início do upsert"],
+    [/^ticket\.tags\.catalog\.upsert\.done$/, "Tags de ticket: upsert concluído"],
+    [/^queue\.rules\.delete\.notfound$/, "Regras da fila: exclusão (não havia regras)"],
+    [/^queue\.update$/, "Atualizou fila"],
+  ];
 
-    "instagram.connect.upsert": "Conectar Instagram",
-    "instagram.connect.exchange_failed": "Falha na conexão do Instagram",
-    "facebook.connect.upsert": "Conectar Facebook",
+  for (const [re, label] of MAP) if (re.test(a)) return label;
 
-    "queue.update": "Atualizar fila",
-    "queue.rules.delete.notfound": "Excluir regras da fila (não encontrado)",
+  // fallback: troca "." por " › "
+  return action.replaceAll(".", " › ");
+}
 
-    "ticket.tags.catalog.upsert.start": "Criar/atualizar tag (início)",
-    "ticket.tags.catalog.upsert.done": "Criar/atualizar tag (concluído)",
-  };
-  if (map[code]) return map[code];
-
-  // fallback: "queue_ticket_tag" etc continuam ocultos (sem coluna "Recurso")
-  // Apenas melhora a leitura do action: "abc.def" -> "Abc def"
-  const pretty = String(code).replaceAll(".", " ").trim();
-  return pretty ? pretty[0].toUpperCase() + pretty.slice(1) : "—";
+/**
+ * Sucesso = 2xx ou 3xx
+ */
+const isSuccess = (code) => {
+  const n = Number(code);
+  return !Number.isNaN(n) && n >= 200 && n < 400;
 };
 
-const isSuccess = (statusCode) => {
-  const n = Number(statusCode);
-  return n >= 200 && n < 400;
-};
+/**
+ * Data PT-BR (curtinha)
+ */
+function fmtDate(ts) {
+  try {
+    return new Date(ts).toLocaleString("pt-BR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return ts ?? "—";
+  }
+}
 
 export default function AuditLogs() {
+  // dados
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Filtros
-  const [statusChip, setStatusChip] = useState(""); // '', 'success', 'fail'
+  // filtros server-side
+  const [statusChip, setStatusChip] = useState(""); // '' | 'success' | 'fail'
   const [author, setAuthor] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [query, setQuery] = useState(""); // busca livre (ação, path, etc)
+
+  // paginação (client-side simples)
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
 
   const clearFilters = useCallback(() => {
     setStatusChip("");
     setAuthor("");
     setDateFrom("");
     setDateTo("");
-    setQuery("");
+    setPage(1);
   }, []);
 
-  const load = useCallback(
-    async (override = {}) => {
-      setLoading(true);
-      try {
-        const s = override.status ?? statusChip;
-        const a = override.author ?? author;
-        const f = override.from ?? dateFrom;
-        const t = override.to ?? dateTo;
-        const q = override.q ?? query;
+  // carrega do back com os filtros
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (statusChip) params.set("status", statusChip); // 'success' | 'fail'
+      if (author) params.set("actor", author);
+      if (dateFrom) params.set("from", dateFrom);
+      if (dateTo) params.set("to", dateTo);
 
-        const params = new URLSearchParams();
-        if (s) params.set("status", s); // success|fail
-        if (a) params.set("actor", a);
-        if (f) params.set("from", f);
-        if (t) params.set("to", t);
-        if (q) params.set("q", q);
+      // o endpoint do back proposto: GET /audit/logs
+      const resp = await apiGet(`/audit/logs?${params.toString()}`);
+      const arr = Array.isArray(resp?.items) ? resp.items : (Array.isArray(resp) ? resp : []);
+      setItems(arr);
+      setPage(1);
+    } catch (e) {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [statusChip, author, dateFrom, dateTo]);
 
-        const resp = await apiGet(`/audit/logs?${params.toString()}`);
-        setItems(Array.isArray(resp?.items) ? resp.items : []);
-      } catch (e) {
-        toast.error("Falha ao carregar logs de auditoria.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [statusChip, author, dateFrom, dateTo, query]
-  );
+  useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // paginação local
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return items.slice(start, start + pageSize);
+  }, [items, page]);
 
-  // Filtro rápido client-side adicional para "query" (se o back não filtrar q)
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let base = items;
-    if (statusChip) {
-      base = base.filter((r) =>
-        statusChip === "success" ? isSuccess(r.status_code) : !isSuccess(r.status_code)
-      );
-    }
-    if (author) {
-      const a = author.toLowerCase();
-      base = base.filter(
-        (r) =>
-          String(r.actor_user || "").toLowerCase().includes(a) ||
-          String(r.actor_id || "").toLowerCase().includes(a)
-      );
-    }
-    if (dateFrom) {
-      base = base.filter((r) => new Date(r.ts) >= new Date(dateFrom));
-    }
-    if (dateTo) {
-      // inclui o dia inteiro
-      const end = new Date(dateTo);
-      end.setHours(23, 59, 59, 999);
-      base = base.filter((r) => new Date(r.ts) <= end);
-    }
-    if (q) {
-      base = base.filter((r) => {
-        const blob = `${r.action ?? ""} ${r.path ?? ""} ${r.method ?? ""} ${r.actor_user ?? ""}`.toLowerCase();
-        return blob.includes(q);
-      });
-    }
-    return base;
-  }, [items, statusChip, author, dateFrom, dateTo, query]);
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
 
   return (
     <div className={styles.container}>
-      {/* Header & descrição */}
+      {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Logs de auditoria</h1>
+          <h1 className={styles.title}>Logs de Auditoria</h1>
           <p className={styles.subtitle}>
-            Eventos importantes do sistema com **quem**, **quando** e **resultado**.
+            Registros de ações críticas do sistema para rastreabilidade e segurança.
           </p>
         </div>
       </div>
 
-      {/* Barra de filtros */}
+      {/* Filtros */}
       <div className={styles.filtersBar}>
-        {/* Status chips */}
         <div className={styles.field}>
           <label>Status</label>
           <div className={styles.chipGroup}>
@@ -160,4 +143,141 @@ export default function AuditLogs() {
               Sucesso
             </button>
             <button
-             
+              type="button"
+              className={`${styles.chip} ${statusChip === "fail" ? styles.chipActive : ""}`}
+              aria-pressed={statusChip === "fail"}
+              onClick={() => setStatusChip("fail")}
+            >
+              Falha
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.field}>
+          <label>Autor/Usuário</label>
+          <input
+            className={styles.input}
+            placeholder="email ou nome"
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+          />
+          {author && (
+            <button
+              className={styles.inputClear}
+              title="Limpar"
+              onClick={() => setAuthor("")}
+            >
+              <XIcon size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className={styles.field}>
+          <label>De</label>
+          <input
+            type="date"
+            className={styles.input}
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+
+        <div className={styles.field}>
+          <label>Até</label>
+          <input
+            type="date"
+            className={styles.input}
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+
+        <div className={styles.actionsRight}>
+          <button className={styles.resetBtn} onClick={clearFilters}>
+            Limpar filtros
+          </button>
+        </div>
+      </div>
+
+      {/* Card + Tabela */}
+      <div className={styles.card}>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Ação</th>
+                <th>Status</th>
+                <th>Autor/Usuário</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading &&
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={`sk-${i}`} className={styles.skelRow}>
+                    <td colSpan={4}>
+                      <div className={styles.skeletonRow} />
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading && paginated.length === 0 && (
+                <tr>
+                  <td colSpan={4} className={styles.empty}>
+                    Nenhum log encontrado para os filtros aplicados.
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                paginated.map((row) => (
+                  <tr key={row.id} className={styles.rowHover}>
+                    <td data-label="Data">{fmtDate(row.ts)}</td>
+                    <td data-label="Ação">{formatAction(row.action)}</td>
+                    <td data-label="Status">
+                      <span
+                        className={
+                          isSuccess(row.status_code)
+                            ? styles.statusOk
+                            : styles.statusFail
+                        }
+                        title={`HTTP ${row.status_code}`}
+                      >
+                        {isSuccess(row.status_code) ? "Sucesso" : "Falha"}
+                      </span>
+                    </td>
+                    <td data-label="Autor/Usuário">
+                      {row.actor_user || row.actor_id || "—"}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginação */}
+        <div className={styles.pager}>
+          <button
+            className={styles.pageBtn}
+            onClick={() => canPrev && setPage((p) => Math.max(1, p - 1))}
+            disabled={!canPrev}
+          >
+            <ChevronLeft size={16} />
+            Anterior
+          </button>
+          <div className={styles.pageInfo}>
+            {page} / {totalPages}
+          </div>
+          <button
+            className={styles.pageBtn}
+            onClick={() => canNext && setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={!canNext}
+          >
+            Próxima
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
