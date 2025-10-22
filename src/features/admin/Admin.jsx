@@ -27,7 +27,7 @@ import {
   Contact,
   UserPen,
   MessageSquareReply,
-  WalletCards
+  WalletCards,
 } from "lucide-react";
 import {
   NavLink,
@@ -57,8 +57,7 @@ import QueueForm from "./management/queue/QueueForm";
 import QueueHours from "./management/queue/QueueHours";
 import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
-import TemplateCreate from './campaigns/template/TemplateCreate';
-
+import TemplateCreate from "./campaigns/template/TemplateCreate";
 
 import UsersPage from "./management/users/Users";
 import UserForm from "./management/users/UserForm";
@@ -66,20 +65,21 @@ import UserForm from "./management/users/UserForm";
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campaigns/campaign/Campaigns";
-import CampaignCreate from './campaigns/campaign/CampaignCreate';
+import CampaignCreate from "./campaigns/campaign/CampaignCreate";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
 import TicketDetail from "./atendimento/history/TicketDetail";
 import WhatsAppProfile from "./preferences/channels/whatsapp/WhatsAppProfile";
 import TelegramConnect from "./preferences/channels/telegram/TelegramConnect";
 import TokensSecurity from "./preferences/security/Tokens";
+import AuditLogs from "./preferences/logs/AuditLogs";
 
 document.title = "NineChat - Gestão";
 
 function RequireRole({ allow, children }) {
-  console.log('🔐 RequireRole - Permissão:', allow);
+  console.log("🔐 RequireRole - Permissão:", allow);
   if (!allow) {
-    console.log('🚫 Acesso negado - Redirecionando para /');
+    console.log("🚫 Acesso negado - Redirecionando para /");
     return <Navigate to="/" replace />;
   }
   return children;
@@ -112,37 +112,36 @@ export default function Admin() {
 
   // DEBUG: Log da rota atual
   useEffect(() => {
-    console.log('📍 ROTA ATUAL:', location.pathname);
-    console.log('🔍 Location object:', location);
+    console.log("📍 ROTA ATUAL:", location.pathname);
+    console.log("🔍 Location object:", location);
   }, [location]);
 
   useEffect(() => {
-
-     // (1) Define um ator inicial a partir do JWT, antes de QUALQUER request
-   if (jwt?.sub || email) {
-     setActorContext({
-       id:    jwt?.sub || email,
-       name:  jwt?.name || email,
-       email: email || jwt?.email || '',
-     });
-   }
+    // (1) Define um ator inicial a partir do JWT, antes de QUALQUER request
+    if (jwt?.sub || email) {
+      setActorContext({
+        id: jwt?.sub || email,
+        name: jwt?.name || email,
+        email: email || jwt?.email || "",
+      });
+    }
     let mounted = true;
     const fetchAdminInfo = async () => {
       setAuthLoading(true);
       try {
         if (email) {
-          console.log('👤 Buscando dados do usuário:', email);
+          console.log("👤 Buscando dados do usuário:", email);
           const res = await apiGet(`/users/${email}`);
           if (mounted) setUserData(res);
           setActorContext({
-            id:    res?.id || res?.userId || res?.email || email,
-            name:  res?.name || res?.nome || res?.email || email,
+            id: res?.id || res?.userId || res?.email || email,
+            name: res?.name || res?.nome || res?.email || email,
             email: res?.email || email,
           });
-          console.log('✅ Dados do usuário carregados:', res);
+          console.log("✅ Dados do usuário carregados:", res);
         } else {
           if (mounted) setUserData(null);
-          console.log('❌ Email não encontrado no token');
+          console.log("❌ Email não encontrado no token");
         }
       } catch (err) {
         console.error("Erro ao buscar dados do admin:", err);
@@ -152,12 +151,14 @@ export default function Admin() {
       }
     };
     fetchAdminInfo();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [email]);
 
   // fecha mega menu e drawer ao trocar de rota
   useEffect(() => {
-    console.log('🔄 Fechando menus devido à mudança de rota');
+    console.log("🔄 Fechando menus devido à mudança de rota");
     setMobileMenuOpen(false);
     setOpenDropdown(null);
     setProfileOpen(false);
@@ -168,9 +169,12 @@ export default function Admin() {
   useEffect(() => {
     const onDocDown = (e) => {
       const target = e.target;
-      if (navRef.current && !navRef.current.contains(target)) setOpenDropdown(null);
-      if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
-      if (helpRef.current && !helpRef.current.contains(target)) setHelpOpen(false);
+      if (navRef.current && !navRef.current.contains(target))
+        setOpenDropdown(null);
+      if (profileRef.current && !profileRef.current.contains(target))
+        setProfileOpen(false);
+      if (helpRef.current && !helpRef.current.contains(target))
+        setHelpOpen(false);
     };
     document.addEventListener("pointerdown", onDocDown, { passive: true });
     return () => document.removeEventListener("pointerdown", onDocDown);
@@ -193,18 +197,15 @@ export default function Admin() {
 
   /* ===== Permissões ===== */
   const role =
-    userData?.role ||
-    userData?.perfil ||
-    userData?.profile ||
-    "user";
+    userData?.role || userData?.perfil || userData?.profile || "user";
 
   const isAdmin = role?.toLowerCase() === "admin";
   const isSupervisor = role?.toLowerCase() === "supervisor";
 
-  console.log('🎭 Permissões detectadas:', { role, isAdmin, isSupervisor });
+  console.log("🎭 Permissões detectadas:", { role, isAdmin, isSupervisor });
 
   const filterMenusByRole = (items) => {
-    console.log('📋 Filtrando menus por role:', role);
+    console.log("📋 Filtrando menus por role:", role);
     if (!isSupervisor) return items;
     return items
       .filter((m) => !["development", "settings"].includes(m.key))
@@ -212,7 +213,7 @@ export default function Admin() {
         if (m.key !== "monitoring") return m;
         const cloned = {
           ...m,
-          children: m.children?.map((g) => ({ ...g }))
+          children: m.children?.map((g) => ({ ...g })),
         };
         cloned.children = cloned.children?.map((grp) => {
           if (grp.key !== "monitoring-analysis") return grp;
@@ -227,153 +228,219 @@ export default function Admin() {
       });
   };
 
-  const menus = useMemo(
-    () => {
-      const filtered = filterMenusByRole([
-        {
-          key: "dashboard",
-          label: "Dashboard",
-          to: DASHBOARD_PATH,
-          icon: <LayoutDashboard size={18} />,
-          exact: true,
-        },
+  const menus = useMemo(() => {
+    const filtered = filterMenusByRole([
+      {
+        key: "dashboard",
+        label: "Dashboard",
+        to: DASHBOARD_PATH,
+        icon: <LayoutDashboard size={18} />,
+        exact: true,
+      },
 
-        {
-          key: "monitoring",
-          label: "Acompanhamento",
-          icon: <SquareActivity size={18} />,
-          children: [
-            {
-              key: "monitoring-realtime",
-              label: "Tempo real",
-              children: [
-                { to: "monitoring/realtime/queues", icon: <ListTree size={16} />, label: "Filas" },
-                { to: "monitoring/realtime/agents", icon: <Headset size={16} />, label: "Agentes" },
-              ],
-            },
-            {
-              key: "monitoring-analysis",
-              label: "Análise",
-              children: [
-                { to: "analytics/quality",  icon: <Gauge size={16} />, label: "Qualidade" },
-                { to: "analytics/sessions", icon: <Clock size={16} />, label: "Sessões"   },
-              ],
-            },
-          ],
-        },
+      {
+        key: "monitoring",
+        label: "Acompanhamento",
+        icon: <SquareActivity size={18} />,
+        children: [
+          {
+            key: "monitoring-realtime",
+            label: "Tempo real",
+            children: [
+              {
+                to: "monitoring/realtime/queues",
+                icon: <ListTree size={16} />,
+                label: "Filas",
+              },
+              {
+                to: "monitoring/realtime/agents",
+                icon: <Headset size={16} />,
+                label: "Agentes",
+              },
+            ],
+          },
+          {
+            key: "monitoring-analysis",
+            label: "Análise",
+            children: [
+              {
+                to: "analytics/quality",
+                icon: <Gauge size={16} />,
+                label: "Qualidade",
+              },
+              {
+                to: "analytics/sessions",
+                icon: <Clock size={16} />,
+                label: "Sessões",
+              },
+            ],
+          },
+        ],
+      },
 
-        {
-          key: "management",
-          label: "Gestão",
-          icon: <Users size={18} />,
-          children: [
-            {
-              key: "mgmt-cadastros",
-              label: "Cadastros",
-              children: [
-                { to: "management/users",         icon: <UserPen size={16} />,  label: "Usuários" },
-                { to: "management/queues",        icon: <Folder size={16} />,   label: "Filas" },
-                { to: "management/quick-replies", icon: <MessageSquareReply size={16} />, label: "Respostas Rápidas" }
-              ],
-            },
-            {
-              key: "mgmt-operacao",
-              label: "Operação",
-              children: [
-                { to: "management/history", icon: <WalletCards size={16} />, label: "Histórico de Ticket" },
-                { to: "management/clientes", icon: <Contact size={16} />,    label: "Clientes" },
-              ],
-            },
-          ],
-        },
+      {
+        key: "management",
+        label: "Gestão",
+        icon: <Users size={18} />,
+        children: [
+          {
+            key: "mgmt-cadastros",
+            label: "Cadastros",
+            children: [
+              {
+                to: "management/users",
+                icon: <UserPen size={16} />,
+                label: "Usuários",
+              },
+              {
+                to: "management/queues",
+                icon: <Folder size={16} />,
+                label: "Filas",
+              },
+              {
+                to: "management/quick-replies",
+                icon: <MessageSquareReply size={16} />,
+                label: "Respostas Rápidas",
+              },
+            ],
+          },
+          {
+            key: "mgmt-operacao",
+            label: "Operação",
+            children: [
+              {
+                to: "management/history",
+                icon: <WalletCards size={16} />,
+                label: "Histórico de Ticket",
+              },
+              {
+                to: "management/clientes",
+                icon: <Contact size={16} />,
+                label: "Clientes",
+              },
+            ],
+          },
+        ],
+      },
 
-        {
-          key: "campaigns",
-          label: "Campanhas",
-          icon: <Megaphone size={18} />,
-          children: [
-            {
-              key: "camp-modelos",
-              label: "Modelos",
-              children: [
-                { to: "campaigns/templates", icon: <FileText size={16} />, label: "Templates" },
-              ],
-            },
-            {
-              key: "camp-disparo",
-              label: "Mensagens Ativas",
-              children: [
-                { to: "campaigns/campaigns", icon: <Send size={16} />, label: "Disparo Ativo" },
-              ],
-            },
-          ],
-        },
+      {
+        key: "campaigns",
+        label: "Campanhas",
+        icon: <Megaphone size={18} />,
+        children: [
+          {
+            key: "camp-modelos",
+            label: "Modelos",
+            children: [
+              {
+                to: "campaigns/templates",
+                icon: <FileText size={16} />,
+                label: "Templates",
+              },
+            ],
+          },
+          {
+            key: "camp-disparo",
+            label: "Mensagens Ativas",
+            children: [
+              {
+                to: "campaigns/campaigns",
+                icon: <Send size={16} />,
+                label: "Disparo Ativo",
+              },
+            ],
+          },
+        ],
+      },
 
-        {
-          key: "development",
-          label: "Desenvolvimento",
-          icon: <Code2 size={18} />,
-          children: [
-            {
-              key: "dev-tools",
-              label: "Ferramentas",
-              children: [
-                { to: "development/studio", icon: <Bot size={16} />, label: "Chatbot Studio" },
-                { to: "development/tracker", icon: <RouteIcon size={16} />, label: "Flow Tracker" },
-              ],
-            },
-          ],
-        },
-        {
-          key: "settings",
-          label: "Configurações",
-          icon: <SettingsIcon size={18} />,
-          children: [
-            {
-              key: "settings-geral",
-              label: "Geral",
-              children: [
-                { to: "settings/preferences", icon: <SettingsIcon size={16} />,     label: "Preferências" },
-                { to: "settings/channels",    icon: <MessageCircle size={16} />, label: "Canais" },
-              ],
-            },
-            {
-              key: "settings-seguranca",
-              label: "Segurança",
-              children: [
-                { to: "settings/security", icon: <Shield size={16} />, label: "Segurança" },
-              ],
-            },
-          ],
-        },
-      ]);
-      
-      console.log('📁 Menus filtrados:', filtered);
-      return filtered;
-    },
-    [isSupervisor]
-  );
+      {
+        key: "development",
+        label: "Desenvolvimento",
+        icon: <Code2 size={18} />,
+        children: [
+          {
+            key: "dev-tools",
+            label: "Ferramentas",
+            children: [
+              {
+                to: "development/studio",
+                icon: <Bot size={16} />,
+                label: "Chatbot Studio",
+              },
+              {
+                to: "development/tracker",
+                icon: <RouteIcon size={16} />,
+                label: "Flow Tracker",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: "settings",
+        label: "Configurações",
+        icon: <SettingsIcon size={18} />,
+        children: [
+          {
+            key: "settings-geral",
+            label: "Geral",
+            children: [
+              {
+                to: "settings/preferences",
+                icon: <SettingsIcon size={16} />,
+                label: "Preferências",
+              },
+              {
+                to: "settings/channels",
+                icon: <MessageCircle size={16} />,
+                label: "Canais",
+              },
+            ],
+          },
+          {
+            key: "settings-seguranca",
+            label: "Segurança",
+            children: [
+              {
+                to: "settings/security",
+                icon: <Shield size={16} />,
+                label: "Segurança",
+              },
+              {
+                to: "settings/logs",
+                icon: <Shield size={16} />,
+                label: "Logs",
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    console.log("📁 Menus filtrados:", filtered);
+    return filtered;
+  }, [isSupervisor]);
 
   const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
   const handleTopClick = (key) => {
-    console.log('🖱️ Clicado no menu:', key);
+    console.log("🖱️ Clicado no menu:", key);
     setOpenDropdown((cur) => (cur === key ? null : key));
   };
 
   // ✅ FUNÇÃO CORRIGIDA DE NAVEGAÇÃO
   const handleNavigation = (path) => {
-    const targetPath = path.startsWith('/') ? path : `/${path}`;
-    console.log('🔄 Navegando para:', { 
-      pathOriginal: path, 
+    const targetPath = path.startsWith("/") ? path : `/${path}`;
+    console.log("🔄 Navegando para:", {
+      pathOriginal: path,
       targetPath: targetPath,
-      currentPath: location.pathname 
+      currentPath: location.pathname,
     });
-    
+
     navigate(targetPath);
   };
 
   if (authLoading) {
-    console.log('⏳ Carregando auth...');
+    console.log("⏳ Carregando auth...");
     return (
       <div
         style={{
@@ -385,8 +452,14 @@ export default function Admin() {
         }}
       >
         <div style={{ display: "grid", gap: 12, placeItems: "center" }}>
-          <img src="/logo.png" alt="NineChat" style={{ width: 56, height: 56, opacity: 0.9 }} />
-          <div style={{ fontSize: 14, opacity: 0.8 }}>Carregando seu workspace…</div>
+          <img
+            src="/logo.png"
+            alt="NineChat"
+            style={{ width: 56, height: 56, opacity: 0.9 }}
+          />
+          <div style={{ fontSize: 14, opacity: 0.8 }}>
+            Carregando seu workspace…
+          </div>
           <div
             aria-label="Carregando"
             role="status"
@@ -424,7 +497,7 @@ export default function Admin() {
     );
   }
 
-  console.log('🎬 Renderizando Admin...');
+  console.log("🎬 Renderizando Admin...");
 
   return (
     <div className={styles.wrapper}>
@@ -446,10 +519,10 @@ export default function Admin() {
           <NavLink
             to={DASHBOARD_PATH}
             className={styles.brand}
-            onClick={(e) => { 
-              e.preventDefault(); 
-              console.log('🏠 Logo clicado - Navegando para dashboard');
-              navigate('/', { replace: true });
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("🏠 Logo clicado - Navegando para dashboard");
+              navigate("/", { replace: true });
             }}
           >
             <img src="/logo-front.png" alt="NineChat" />
@@ -475,7 +548,11 @@ export default function Admin() {
               <CircleHelp size={18} />
             </button>
             {isHelpOpen && (
-              <div className={styles.profileDropdown} role="menu" aria-label="Ajuda">
+              <div
+                className={styles.profileDropdown}
+                role="menu"
+                aria-label="Ajuda"
+              >
                 <ul className={styles.pdList}>
                   {isAdmin && (
                     <li className={styles.pdItem}>
@@ -485,7 +562,9 @@ export default function Admin() {
                         rel="noopener noreferrer"
                         onClick={() => setHelpOpen(false)}
                       >
-                        <span className={styles.pdIcon}><FileText size={16} /></span>
+                        <span className={styles.pdIcon}>
+                          <FileText size={16} />
+                        </span>
                         NineDocs
                       </a>
                     </li>
@@ -497,7 +576,9 @@ export default function Admin() {
                       rel="noopener noreferrer"
                       onClick={() => setHelpOpen(false)}
                     >
-                      <span className={styles.pdIcon}><GraduationCap size={16} /></span>
+                      <span className={styles.pdIcon}>
+                        <GraduationCap size={16} />
+                      </span>
                       Nine Academy
                     </a>
                   </li>
@@ -514,7 +595,9 @@ export default function Admin() {
               <>
                 <button
                   type="button"
-                  className={`${styles.userButton} ${isProfileOpen ? styles.isOpen : ""}`}
+                  className={`${styles.userButton} ${
+                    isProfileOpen ? styles.isOpen : ""
+                  }`}
                   onClick={() => setProfileOpen((v) => !v)}
                   aria-haspopup="menu"
                   aria-expanded={isProfileOpen}
@@ -526,7 +609,11 @@ export default function Admin() {
                   >
                     {userData.name?.charAt(0).toUpperCase() || "U"}
                   </div>
-                  <ChevronDown size={14} className={styles.userChevron} aria-hidden="true" />
+                  <ChevronDown
+                    size={14}
+                    className={styles.userChevron}
+                    aria-hidden="true"
+                  />
                 </button>
 
                 {isProfileOpen && (
@@ -534,12 +621,18 @@ export default function Admin() {
                     <div className={styles.pdHeader}>
                       <div
                         className={styles.avatar}
-                        style={{ backgroundColor: stringToColor(userData.email), width: 36, height: 36 }}
+                        style={{
+                          backgroundColor: stringToColor(userData.email),
+                          width: 36,
+                          height: 36,
+                        }}
                       >
                         {userData.name?.charAt(0).toUpperCase() || "U"}
                       </div>
                       <div>
-                        <div className={styles.pdName}>{userData.name || "Usuário"}</div>
+                        <div className={styles.pdName}>
+                          {userData.name || "Usuário"}
+                        </div>
                         <div className={styles.pdEmail}>{userData.email}</div>
                       </div>
                     </div>
@@ -550,12 +643,14 @@ export default function Admin() {
                           to="settings/preferences"
                           onClick={(e) => {
                             e.preventDefault();
-                            console.log('👤 Edit profile clicked');
+                            console.log("👤 Edit profile clicked");
                             setProfileOpen(false);
                             handleNavigation("settings/preferences");
                           }}
                         >
-                          <span className={styles.pdIcon}><User size={16} /></span>
+                          <span className={styles.pdIcon}>
+                            <User size={16} />
+                          </span>
                           Editar perfil
                         </NavLink>
                       </li>
@@ -563,7 +658,10 @@ export default function Admin() {
                       <li className={styles.pdSeparator} role="separator" />
 
                       <li className={styles.pdItem}>
-                        <LogoutButton className={styles.pdAction} onClick={() => setProfileOpen(false)}>
+                        <LogoutButton
+                          className={styles.pdAction}
+                          onClick={() => setProfileOpen(false)}
+                        >
                           <LogOut size={16} />
                           Logout
                         </LogoutButton>
@@ -583,14 +681,19 @@ export default function Admin() {
           <nav ref={navRef} className={styles.hnav} aria-label="Menu principal">
             {menus.map((m) => {
               const dropdown = isGroup(m);
-              console.log('📦 Renderizando menu item:', m.key, { dropdown, hasTo: !!m.to });
-              
+              console.log("📦 Renderizando menu item:", m.key, {
+                dropdown,
+                hasTo: !!m.to,
+              });
+
               return (
                 <div
                   key={m.key}
                   className={
                     dropdown
-                      ? `${styles.hitem} ${styles.hasChildren} ${openDropdown === m.key ? styles.open : ""}`
+                      ? `${styles.hitem} ${styles.hasChildren} ${
+                          openDropdown === m.key ? styles.open : ""
+                        }`
                       : styles.hitem
                   }
                 >
@@ -598,10 +701,12 @@ export default function Admin() {
                     <NavLink
                       end={m.exact}
                       to={m.to}
-                      className={({ isActive }) => `${styles.hlink} ${isActive ? styles.active : ""}`}
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        console.log('🔗 Menu link clicado:', m.key, m.to);
+                      className={({ isActive }) =>
+                        `${styles.hlink} ${isActive ? styles.active : ""}`
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        console.log("🔗 Menu link clicado:", m.key, m.to);
                         handleNavigation(m.to);
                       }}
                     >
@@ -612,7 +717,9 @@ export default function Admin() {
                     <button
                       type="button"
                       className={styles.hlink}
-                      onClick={() => (dropdown ? handleTopClick(m.key) : undefined)}
+                      onClick={() =>
+                        dropdown ? handleTopClick(m.key) : undefined
+                      }
                     >
                       {m.icon}
                       <span>{m.label}</span>
@@ -624,23 +731,42 @@ export default function Admin() {
                     <div className={styles.megamenu} role="menu">
                       <div className={styles.megagrid}>
                         {m.children.map((grp) => (
-                          <div className={styles.megagroup} key={grp.key || grp.label}>
+                          <div
+                            className={styles.megagroup}
+                            key={grp.key || grp.label}
+                          >
                             <div className={styles.megahdr}>{grp.label}</div>
                             <ul className={styles.megasublist}>
                               {grp.children.map((leaf) => (
-                                <li key={leaf.to} className={styles.megaitem} role="none">
+                                <li
+                                  key={leaf.to}
+                                  className={styles.megaitem}
+                                  role="none"
+                                >
                                   <NavLink
                                     to={leaf.to}
-                                    className={({ isActive }) => `${styles.megalink} ${isActive ? styles.active : ""}`}
-                                    onClick={(e) => { 
-                                      e.preventDefault(); 
-                                      console.log('🍂 Submenu clicado:', leaf.to, leaf.label);
-                                      setOpenDropdown(null); 
+                                    className={({ isActive }) =>
+                                      `${styles.megalink} ${
+                                        isActive ? styles.active : ""
+                                      }`
+                                    }
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      console.log(
+                                        "🍂 Submenu clicado:",
+                                        leaf.to,
+                                        leaf.label
+                                      );
+                                      setOpenDropdown(null);
                                       handleNavigation(leaf.to);
                                     }}
                                     role="menuitem"
                                   >
-                                    {leaf.icon && <span className={styles.megaicon}>{leaf.icon}</span>}
+                                    {leaf.icon && (
+                                      <span className={styles.megaicon}>
+                                        {leaf.icon}
+                                      </span>
+                                    )}
                                     <span>{leaf.label}</span>
                                   </NavLink>
                                 </li>
@@ -659,7 +785,11 @@ export default function Admin() {
       </div>
 
       {/* ===== MOBILE DRAWER ===== */}
-      <aside className={`${styles.mobileDrawer} ${isMobileMenuOpen ? styles.open : ""}`}>
+      <aside
+        className={`${styles.mobileDrawer} ${
+          isMobileMenuOpen ? styles.open : ""
+        }`}
+      >
         <div className={styles.drawerHeader}>
           <span className={styles.drawerTitle}>Menu</span>
           <button
@@ -693,10 +823,12 @@ export default function Admin() {
                           <li key={`i-${leaf.to}`}>
                             <NavLink
                               to={leaf.to}
-                              className={({ isActive }) => (isActive ? styles.active : undefined)}
+                              className={({ isActive }) =>
+                                isActive ? styles.active : undefined
+                              }
                               onClick={(e) => {
                                 e.preventDefault();
-                                console.log('📱 Mobile menu clicado:', leaf.to);
+                                console.log("📱 Mobile menu clicado:", leaf.to);
                                 setMobileMenuOpen(false);
                                 handleNavigation(leaf.to);
                               }}
@@ -714,10 +846,12 @@ export default function Admin() {
                 <NavLink
                   end={m.exact}
                   to={m.to}
-                  className={({ isActive }) => (isActive ? styles.active : undefined)}
+                  className={({ isActive }) =>
+                    isActive ? styles.active : undefined
+                  }
                   onClick={(e) => {
                     e.preventDefault();
-                    console.log('📱 Mobile menu principal clicado:', m.to);
+                    console.log("📱 Mobile menu principal clicado:", m.to);
                     setMobileMenuOpen(false);
                     handleNavigation(m.to);
                   }}
@@ -732,16 +866,19 @@ export default function Admin() {
       </aside>
 
       {/* Conteúdo */}
-      <main
-    className={styles.content}
-    onPointerDownCapture={closeAllMenus}
-  >
+      <main className={styles.content} onPointerDownCapture={closeAllMenus}>
         <Routes>
           <Route index element={<Dashboard />} />
 
           {/* monitoring */}
-          <Route path="monitoring/realtime/agents" element={<AgentsMonitor />} />
-          <Route path="monitoring/realtime/queues" element={<ClientsMonitor />} />
+          <Route
+            path="monitoring/realtime/agents"
+            element={<AgentsMonitor />}
+          />
+          <Route
+            path="monitoring/realtime/queues"
+            element={<ClientsMonitor />}
+          />
 
           {/* analytics */}
           <Route path="analytics/quality" element={<Quality />} />
@@ -755,14 +892,20 @@ export default function Admin() {
           />
 
           {/* management */}
-          <Route path="management/users" element={<UsersPage canCreateAdmin={isAdmin} />} />
+          <Route
+            path="management/users"
+            element={<UsersPage canCreateAdmin={isAdmin} />}
+          />
           <Route path="management/users/new" element={<UserForm />} />
           <Route path="management/users/:userId/edit" element={<UserForm />} />
 
           <Route path="management/queues" element={<Queues />} />
           <Route path="management/queues/new" element={<QueueForm />} />
           <Route path="management/queues/:id" element={<QueueForm />} />
-          <Route path="management/queues/:name/hours" element={<QueueHours />} />
+          <Route
+            path="management/queues/:name/hours"
+            element={<QueueHours />}
+          />
           <Route path="management/quick-replies" element={<QuickReplies />} />
           <Route path="management/history" element={<History />} />
           <Route path="management/history/:id" element={<TicketDetail />} />
@@ -799,6 +942,14 @@ export default function Admin() {
               </RequireRole>
             }
           />
+          <Route
+            path="/settings/logs"
+            element={
+              <RequireRole allow={isAdmin}>
+                <AuditLogs />
+              </RequireRole>
+            }
+          />
 
           {/* channels */}
           <Route path="channels/whatsapp" element={<WhatsAppProfile />} />
@@ -821,8 +972,8 @@ export default function Admin() {
               </RequireRole>
             }
           />
-          <Route 
-            path="/development/tracker/:userId" 
+          <Route
+            path="/development/tracker/:userId"
             element={
               <RequireRole allow={isAdmin}>
                 <JourneyBeholder />
