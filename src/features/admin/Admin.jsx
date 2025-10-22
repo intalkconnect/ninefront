@@ -103,6 +103,12 @@ export default function Admin() {
   const [isHelpOpen, setHelpOpen] = useState(false);
   const helpRef = useRef(null);
   const navRef = useRef(null);
+  const closeAllMenus = () => {
+    setOpenDropdown(null);
+    setProfileOpen(false);
+    setHelpOpen(false);
+    setMobileMenuOpen(false);
+  };
 
   // DEBUG: Log da rota atual
   useEffect(() => {
@@ -166,8 +172,8 @@ export default function Admin() {
       if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
       if (helpRef.current && !helpRef.current.contains(target)) setHelpOpen(false);
     };
-    document.addEventListener("mousedown", onDocDown);
-    return () => document.removeEventListener("mousedown", onDocDown);
+    document.addEventListener("pointerdown", onDocDown, { passive: true });
+    return () => document.removeEventListener("pointerdown", onDocDown);
   }, []);
 
   // ESC
@@ -726,7 +732,10 @@ export default function Admin() {
       </aside>
 
       {/* Conteúdo */}
-      <main className={styles.content}>
+      <main
+    className={styles.content}
+    onPointerDownCapture={closeAllMenus}
+  >
         <Routes>
           <Route index element={<Dashboard />} />
 
