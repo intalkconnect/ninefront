@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./styles/MacDock.module.css";
-import { Undo2, Redo2, Rocket, Download } from "lucide-react";
+import { Undo2, Redo2, Rocket, Download, History } from "lucide-react";
 
 /**
  * Dock estilo mac (horizontal, bottom-centered) com efeito "magnify".
@@ -56,7 +56,7 @@ export default function MacDock({
         disabled: isPublishing,
       },
       { key: "download", title: "Baixar JSON", onClick: onDownload, icon: <Download size={18} /> },
-      { key: "history", title: "Histórico de Versões", onClick: onHistory, icon: <span style={{fontWeight:700}}>🕘</span> },
+      { key: "history", title: "Histórico de Versões", onClick: onHistory, icon: <History size={18} /> },
     ];
 
     // ordem: undo/redo | divider | templates | divider | publish/download/history
