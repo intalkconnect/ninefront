@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, XCircle, RefreshCcw, Filter, X as XIcon, Search } from "lucide-react";
 import { apiGet } from "../../../../shared/apiClient";
-import styles from "../../management/users/styles/Users.module.css"; // reaproveitando o mesmo CSS
+import styles from "./styles/AuditLogs.module.css";
 
 // --- helpers ---------------------------------------------------------------
 
