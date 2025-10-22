@@ -250,3 +250,12 @@ const activePill = {
 
 const restoreBtn = {
   background: "#2563eb",
+  color: "#fff",
+  border: "none",
+  padding: "8px 12px",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 700,
+  minWidth: 104,
+};
