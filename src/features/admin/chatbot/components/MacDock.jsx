@@ -1,16 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import styles from "./styles/MacDock.module.css";
 import { Undo2, Redo2, Rocket, Download, History } from "lucide-react";
 
-/**
- * Dock estilo mac (horizontal, bottom-centered) com efeito "magnify".
- * Props:
- * - templates: array (nodeTemplates)
- * - iconMap: map { iconName: <Icon/> }
- * - onAdd(template)
- * - onUndo(), onRedo(), onPublish(), onDownload(), onHistory()
- * - isPublishing
- */
 export default function MacDock({
   templates = [],
   iconMap = {},
@@ -21,18 +12,9 @@ export default function MacDock({
   onDownload,
   onHistory,
   isPublishing = false,
-  canUndo=false,
-  canRedo=false,
+  canUndo = false,
+  canRedo = false,
 }) {
-  const wrapRef = useRef(null);
-  const btnRefs = useRef([]);
-  const [scales, setScales] = useState([]);
-
-  useEffect(() => {
-    // quantidade = (2 de undo/redo) + templates + (3 ações finais)
-    btnRefs.current = btnRefs.current.slice(0, 2 + templates.length + 3);
-  }, [templates.length]);
-
   const allButtons = useMemo(() => {
     const undoRedo = [
       { key: "undo", title: "Desfazer (Ctrl/Cmd+Z)", onClick: onUndo, icon: <Undo2 size={18} />, disabled: !canUndo },
@@ -48,59 +30,24 @@ export default function MacDock({
     }));
 
     const actions = [
-      {
-        key: "publish",
-        title: isPublishing ? "Publicando..." : "Publicar",
-        onClick: onPublish,
-        icon: <Rocket size={18} />,
-        disabled: isPublishing,
-      },
+      { key: "publish", title: isPublishing ? "Publicando..." : "Publicar", onClick: onPublish, icon: <Rocket size={18} />, disabled: isPublishing },
       { key: "download", title: "Baixar JSON", onClick: onDownload, icon: <Download size={18} /> },
       { key: "history", title: "Histórico de Versões", onClick: onHistory, icon: <History size={18} /> },
     ];
 
-    // ordem: undo/redo | divider | templates | divider | publish/download/history
-    return [ ...undoRedo, "divider", ...tplBtns, "divider", ...actions ];
+    return [...undoRedo, "divider", ...tplBtns, "divider", ...actions];
   }, [templates, iconMap, onAdd, onUndo, onRedo, onPublish, onDownload, onHistory, isPublishing, canUndo, canRedo]);
-
-  // magnify horizontal
-  const onMouseMove = (e) => {
-    if (!wrapRef.current) return;
-    const mouseX = e.clientX;
-    const next = btnRefs.current.map((ref) => {
-      if (!ref) return 1;
-      const r = ref.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const d = Math.abs(mouseX - cx);
-      const influence = 140; // raio de influência
-      const max = 0.85;      // ganho máximo (scale final = 1 + max)
-      const k = Math.max(0, 1 - d / influence); // 0..1
-      return 1 + k * max; // 1..1.85
-    });
-    setScales(next);
-  };
-
-  const onMouseLeave = () => setScales([]);
-
-  let btnIndex = -1;
 
   return (
     <div className={styles.dockWrap}>
-      <div
-        className={styles.dock}
-        ref={wrapRef}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-      >
+      <div className={styles.dock}>
         {allButtons.map((item, idx) => {
           if (item === "divider") {
             return <div key={`div-${idx}`} className={styles.hr} />;
           }
-          btnIndex += 1;
 
-          const scale = scales[btnIndex] || 1;
           const style = {
-            transform: `scale(${scale})`,
+            // sem transform/scale
             borderColor: item.color || undefined,
             color: item.color || undefined,
             boxShadow: item.color
@@ -111,7 +58,6 @@ export default function MacDock({
           return (
             <div key={item.key} className={styles.btnWrap}>
               <button
-                ref={(el) => (btnRefs.current[btnIndex] = el)}
                 className={styles.btn}
                 style={style}
                 title={item.title}
