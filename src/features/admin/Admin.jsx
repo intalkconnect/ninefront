@@ -28,6 +28,7 @@ import {
   UserPen,
   MessageSquareReply,
   WalletCards,
+  SearchCheck
 } from "lucide-react";
 import {
   NavLink,
@@ -408,7 +409,7 @@ export default function Admin() {
               },
               {
                 to: "settings/logs",
-                icon: <Shield size={16} />,
+                icon: <SearchCheck size={16} />,
                 label: "Logs",
               },
             ],
