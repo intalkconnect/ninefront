@@ -119,7 +119,7 @@ function formatAction(action) {
     submit: "Enviou",
     sync: "Sincronizou",
   };
-  let vLabel = upsertUpdate ? "Atualizou" : upsertCreate ? "Criou" : (VERBS[verb] || "Executou");
+  let vLabel = upsertUpdate ? "Atualizou" : upsertCreate ? "Criou" : (VERBS[verb] || "Restaurou");
 
   if (a.startsWith("wa.profile.update")) vLabel = "Atualizou";
 
