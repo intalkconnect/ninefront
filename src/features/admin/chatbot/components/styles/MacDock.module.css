@@ -26,6 +26,8 @@
   margin:0 6px;
 }
 
+/* ...resto do arquivo... */
+
 .btn{
   width:46px; height:46px;
   border-radius:999px;
@@ -34,17 +36,17 @@
   display:grid; place-items:center;
   color:#334155;
   box-shadow: 0 6px 18px rgba(2,6,23,.10);
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
-  will-change: transform;
-  cursor: pointer;
+  transition: box-shadow .12s ease, border-color .12s ease, background .12s ease;
+  will-change: auto;
+  cursor: pointer;           /* mãozinha */
+  transform: none !important;/* desliga magnify de vez */
 }
 
-.btn:not(:disabled):hover{
+.btn:hover{
   background:#f8fafc;
   border-color:#cbd5e1;
   box-shadow: 0 10px 26px rgba(2,6,23,.14);
 }
-
 
 .btn:disabled{
   opacity:.5;
