@@ -20,7 +20,7 @@ import { apiGet, apiPost } from "../../../shared/apiClient";
 import { nodeTemplates } from "./components/NodeTemplates";
 import VersionHistoryModal from "./components/VersionControlModal";
 import MacDock from "./components/MacDock";
-import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
+import { useConfirm } from "../../../app/provider/ConfirmProvider.jsx";
 
 import ScriptEditor from "./components/editor/scriptEditor";
 import NodeQuadrado from "./components/NodeQuadrado";
