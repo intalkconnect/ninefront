@@ -125,7 +125,6 @@ export default function AuditLogs() {
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Logs de Auditoria</h1>
           <p className={styles.subtitle}>
             Registros de ações críticas do sistema para rastreabilidade e segurança.
           </p>
