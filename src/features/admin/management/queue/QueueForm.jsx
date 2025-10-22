@@ -323,14 +323,16 @@ export default function QueueForm() {
       );
       const cfg = r?.data || r;
       const first = Array.isArray(cfg?.conditions) ? cfg.conditions[0] : null;
-
+      const type = first?.type ?? first?.op ?? "";         // backend → UI
+      const variable = first?.variable ?? first?.field ?? "";
+    
       setRuleEnabled(!!cfg?.enabled);
       setRule({
-        field: first?.field || "",
-        op: first?.op === "contains" ? "contains" : "equals",
+        field: variable,
+        op: type === "contains" ? "contains" : "equals",
         value: first?.value || "",
       });
-      setHadRuleInitially(!!cfg?.enabled && !!first?.field && !!first?.value);
+      setHadRuleInitially(!!cfg?.enabled && !!variable && !!first?.value);
     } catch {
       setRuleEnabled(false);
       setRule({ field: "", op: "equals", value: "" });
@@ -449,16 +451,16 @@ export default function QueueForm() {
 
       if (ruleEnabled && rule.field.trim() && rule.value.trim()) {
         const body = {
-          enabled: true,
-          conditions: [
-            {
-              field: rule.field.trim(),
-              op: rule.op === "contains" ? "contains" : "equals",
-              value: rule.value.trim(),
-            },
-          ],
-        };
-        await apiPut(`/queue-rules/${encodeURIComponent(filaNome)}`, body);
+         enabled: true,
+         conditions: [
+           {
+             type: rule.op === "contains" ? "contains" : "equals", 
+             variable: rule.field.trim(),                          
+             value: rule.value.trim(),
+           },
+         ],
+       };
+      await apiPut(`/queue-rules/${encodeURIComponent(filaNome)}`, body);
       } else if (hadRuleInitially) {
         await apiDelete(`/queue-rules/${encodeURIComponent(filaNome)}`);
       } else {
