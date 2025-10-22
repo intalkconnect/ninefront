@@ -301,9 +301,6 @@ export default function AuditLogs() {
           <button className={styles.resetBtn} onClick={clearFilters}>
             Limpar filtros
           </button>
-          <button className={styles.applyBtn} onClick={() => load()}>
-            Aplicar
-          </button>
         </div>
       </div>
 
