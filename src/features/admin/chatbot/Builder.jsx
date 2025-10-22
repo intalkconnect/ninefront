@@ -1049,10 +1049,10 @@ if (key === "Escape") {
               const already = actions.some((a) => a.next === target);
 
               // 1) cria a aresta com histórico
-              setEdgesWithHistory((eds) => [
-                ...eds,
-                { id: genEdgeId(), source, target },
-              ]);
+              setEdgesWithHistory((eds) => {
+             const exists = eds.some((e) => e.source === source && e.target === target);
+             return exists ? eds : [...eds, { id: genEdgeId(), source, target }];
+             });
 
               // 2) se não havia action correspondente, grava a action no bloco (com histórico)
               if (!already) {
