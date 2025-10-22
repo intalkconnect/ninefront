@@ -6,8 +6,10 @@ import { apiGet } from "../../../../shared/apiClient";
 /**
  * Mapeia "action" bruta -> label amigável
  */
-function formatAction(action = "") {
-  const a = String(action || "").toLowerCase();
+function formatAction(action) {
+  // normaliza (evita null/undefined)
+  const raw = String(action ?? "").trim();
+  const a = raw.toLowerCase();
 
   const MAP = [
     [/^flow\.reset$/, "Reiniciou fluxo"],
@@ -23,9 +25,11 @@ function formatAction(action = "") {
 
   for (const [re, label] of MAP) if (re.test(a)) return label;
 
-  // fallback: troca "." por " › "
-  return action.replaceAll(".", " › ");
+  // fallback: substitui "." por " › " sem usar replaceAll
+  // (compatível e à prova de null)
+  return raw ? raw.replace(/\./g, " › ") : "—";
 }
+
 
 /**
  * Sucesso = 2xx ou 3xx
