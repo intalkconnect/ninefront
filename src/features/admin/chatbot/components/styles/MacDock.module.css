@@ -36,12 +36,24 @@
   box-shadow: 0 6px 18px rgba(2,6,23,.10);
   transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
   will-change: transform;
+  cursor: pointer;
 }
 
-.btn:hover{
+.btn:not(:disabled):hover{
   background:#f8fafc;
   border-color:#cbd5e1;
   box-shadow: 0 10px 26px rgba(2,6,23,.14);
+}
+
+
+.btn:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+  filter:saturate(.2);
+}
+
+.btn:disabled{
+  transform:none !important;
 }
 
 .tooltip{
