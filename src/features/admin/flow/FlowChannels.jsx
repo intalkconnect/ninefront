@@ -1,3 +1,4 @@
+// webapp/src/pages/Development/FlowHub/FlowChannels.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, RefreshCw, Settings2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -68,9 +69,9 @@ export default function FlowChannels() {
   const [loading, setLoading] = useState(true);
 
   // status informativo do tenant (não define conectado do flow)
-  const [wa, setWa] = useState({ connected: false, id: "", display: "" });
-  const [fb, setFb] = useState({ connected: false, pageId: "", pageName: "" });
-  const [ig, setIg] = useState({ connected: false, igUserId: "", igUsername: "", pageName: "" });
+  const [wa,       setWa]       = useState({ connected: false, id: "", display: "" });
+  const [fb,       setFb]       = useState({ connected: false, pageId: "", pageName: "" });
+  const [ig,       setIg]       = useState({ connected: false, igUserId: "", igUsername: "", pageName: "" });
   const [tgTenant, setTgTenant] = useState({ connected: false, botId: "", username: "" });
 
   // vínculos reais do FLOW (fonte de verdade)
@@ -103,10 +104,17 @@ export default function FlowChannels() {
         setIg({ connected: !!is?.connected, igUserId: is?.ig_user_id || "", igUsername: is?.ig_username || "", pageName: is?.page_name || "" });
       } catch { setIg({ connected: false, igUserId: "", igUsername: "", pageName: "" }); }
 
+      // ⚠️ Telegram: considerar "conectado" para este flow somente se estiver bound
       try {
         const ts = await apiGet(`/telegram/status?subdomain=${tenant}&flow_id=${flowId}`);
-        setTgTenant({ connected: !!ts?.connected, botId: ts?.bot_id || "", username: ts?.username || "" });
+        const isBoundToFlow = !!ts?.bound;
+        setTgTenant({
+          connected: isBoundToFlow,
+          botId: isBoundToFlow ? (ts?.bot_id || "") : "",
+          username: isBoundToFlow ? (ts?.username || "") : "",
+        });
       } catch { setTgTenant({ connected: false, botId: "", username: "" }); }
+
     } catch (e) {
       console.error(e);
       toast.error("Falha ao carregar canais do flow.");
@@ -127,12 +135,12 @@ export default function FlowChannels() {
     } catch { toast.error(`Falha ao conectar ${kind}.`); }
   }
 
-    const waBinding = useMemo(
+  const waBinding = useMemo(
     () => bindings.find((b) => b.channel_type === "whatsapp" && b.is_active),
     [bindings]
   );
 
-    const openWaProfile = () =>
+  const openWaProfile = () =>
     navigate("/channels/whatsapp", {
       state: {
         returnTo: `/development/flowhub/${flowId}/channels`,
@@ -236,6 +244,7 @@ export default function FlowChannels() {
                 <InstagramConnectButton
                   tenant={tenant}
                   label={ig.connected ? "Conectar novo Instagram" : "Conectar Instagram"}
+                  style={S.btnPrimary} // ✅ aplica estilo ao botão do Instagram
                   onConnected={({ ig_user_id, ig_username, page_name }) =>
                     connectThisFlow("instagram", ig_user_id, ig_username || page_name || "Instagram")
                   }
@@ -258,8 +267,15 @@ export default function FlowChannels() {
             <Row k="Bot ID" v={tgTenant.botId || "—"} mono />
 
             <div style={S.actions}>
-              {isBound("telegram") ? null : (
-                <button style={S.btnPrimary} onClick={openTgConnect}>Conectar Telegram</button>
+              {isBound("telegram") ? (
+                // ✅ Após vinculado ao flow, mostre sempre um botão para abrir os detalhes
+                <button style={S.btnGhost} onClick={openTgConnect}>
+                  Detalhes
+                </button>
+              ) : (
+                <button style={S.btnPrimary} onClick={openTgConnect}>
+                  Conectar Telegram
+                </button>
               )}
             </div>
           </div>
