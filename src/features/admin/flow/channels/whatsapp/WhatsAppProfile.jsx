@@ -1,4 +1,3 @@
-// apps/console/src/pages/settings/channels/whatsapp/WhatsAppProfile.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Save, RotateCcw, Image as ImageIcon, Trash2,
@@ -131,10 +130,9 @@ export default function WhatsAppProfile() {
     if (!base) return "";
     if (channelKey) return `${base}&phone_id=${encodeURIComponent(String(channelKey))}`;
     if (flowId)     return `${base}&flow_id=${encodeURIComponent(String(flowId))}`;
-    return base; // fallback (ativo mais recente do tenant)
+    return base;
   }, [tenant, channelKey, flowId]);
 
-  // Guardas iniciais
   useEffect(() => {
     if (!tenant) {
       toast.error("Tenant não identificado.");
@@ -147,18 +145,18 @@ export default function WhatsAppProfile() {
 
     setLoading(true);
     try {
-      // 1) número
+      // 1) número  **ENDPOINT CORRETO: /wa/**
       try {
-        const num = await apiGet(`/whatsapp/number?${qParams}`);
+        const num = await apiGet(`/wa/number?${qParams}`);
         if (alive.current && num?.ok) setPhone(num.phone || null);
       } catch (e) {
         if (alive.current) setPhone(null);
         toast.error("Falha ao carregar número do WhatsApp.");
       }
 
-      // 2) perfil
+      // 2) perfil  **ENDPOINT CORRETO: /wa/**
       try {
-        const pf = await apiGet(`/whatsapp/profile?${qParams}`);
+        const pf = await apiGet(`/wa/profile?${qParams}`);
         if (alive.current && pf?.ok) {
           const p = pf.profile || {};
           setAbout(limit(p.about || "", 139));
@@ -180,14 +178,12 @@ export default function WhatsAppProfile() {
   }
 
   useEffect(() => {
-    // Recarrega quando tenant/flowId/channelKey mudarem
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qParams]);
 
   function buildScopedBody(extra = {}) {
     const base = { subdomain: tenant, ...extra };
-    // prioriza phone_id; se não houver, usa flow_id; se nenhum, backend cai no fallback do tenant
     if (channelKey) return { ...base, phone_id: channelKey };
     if (flowId)     return { ...base, flow_id: flowId };
     return base;
@@ -199,7 +195,7 @@ export default function WhatsAppProfile() {
     const toastId = toast.loading("Salvando perfil…");
     try {
       const websites = [web1, web2].map((s) => s.trim()).filter(Boolean);
-      await apiPost("/whatsapp/profile", buildScopedBody({
+      await apiPost("/wa/profile", buildScopedBody({
         about, description, address, email, vertical, websites,
       }));
       toast.update(toastId, { render: "Perfil atualizado com sucesso.", type: "success", isLoading: false, autoClose: 2200 });
@@ -217,13 +213,12 @@ export default function WhatsAppProfile() {
     const toastId = toast.loading("Aplicando foto…");
     try {
       setProfilePic(url); // preview otimista
-      await apiPost("/whatsapp/photo-from-url", buildScopedBody({ file_url: url }));
+      await apiPost("/wa/photo-from-url", buildScopedBody({ file_url: url }));
       toast.update(toastId, { render: "Foto aplicada.", type: "success", isLoading: false, autoClose: 1800 });
       setPhotoUrl("");
       await loadAll();
     } catch (e) {
       toast.update(toastId, { render: "Falha ao aplicar foto.", type: "error", isLoading: false, autoClose: 3000 });
-      // rollback opcional — manter preview costuma ser OK
     }
   }
 
@@ -232,7 +227,7 @@ export default function WhatsAppProfile() {
     const toastId = toast.loading("Removendo foto…");
     try {
       // método override para ambientes que não suportem DELETE no apiClient
-      await apiPost("/whatsapp/profile/photo", buildScopedBody({ _method: "DELETE" }));
+      await apiPost("/wa/profile/photo", buildScopedBody({ _method: "DELETE" }));
       setProfilePic("");
       await loadAll();
       toast.update(toastId, { render: "Foto removida.", type: "success", isLoading: false, autoClose: 1800 });
@@ -302,7 +297,6 @@ export default function WhatsAppProfile() {
               <div className={styles.kvCard}>
                 <div className={styles.kvTitle}>Número</div>
                 <div className={styles.kvValue}>
-                  {/* não prefixar "+" se a API já retornar com */}
                   {displayNumber || "—"}
                 </div>
               </div>
