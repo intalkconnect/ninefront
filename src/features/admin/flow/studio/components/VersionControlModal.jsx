@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
 import { X, CheckCircle2, RotateCw, ExternalLink } from "lucide-react";
-import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
+import { useConfirm } from "../../../../../app/provider/ConfirmProvider.jsx";
 
 /**
  * Props (novo modelo, compatível com o seu):
