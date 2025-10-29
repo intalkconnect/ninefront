@@ -52,7 +52,7 @@ export default function FlowHub() {
 
   // abre o Builder do flow (mantemos canal "visual" como escolha local)
   const handleOpenBuilder = (flow, channel) => {
-    navigate(`/admin/development/studio/${flow.id}`, {
+    navigate(`/development/studio/${flow.id}`, {
       state: {
         meta: { flowId: flow.id, name: flow.name, channel },
       },
@@ -61,8 +61,8 @@ export default function FlowHub() {
 
   // único ponto do card para editar canais do flow
   const handleOpenFlowChannels = (flow) => {
-    navigate(`/admin/development/studio/${flow.id}/channels`, {
-      state: { from: "/admin/development/flowhub" },
+    navigate(`/development/studio/${flow.id}/channels`, {
+      state: { from: "/development/flowhub" },
     });
   };
 
@@ -151,7 +151,7 @@ export default function FlowHub() {
               await load();
 
               // abre já o Builder do novo flow
-              navigate(`/admin/development/studio/${created.id}`, {
+              navigate(`/development/studio/${created.id}`, {
                 state: {
                   meta: {
                     flowId: created.id,
