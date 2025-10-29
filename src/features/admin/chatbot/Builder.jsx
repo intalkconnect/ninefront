@@ -1,4 +1,3 @@
-// src/features/admin/chatbot/Builder.jsx
 import React, {
   useCallback,
   useEffect,
@@ -51,8 +50,6 @@ const genEdgeId = () =>
     : `e_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
-
-// compacta o estado relevante para detectar duplicatas de snapshot
 const makeSnapKey = (s) => {
   const n = (s.nodes || [])
     .map((x) => ({
@@ -63,11 +60,9 @@ const makeSnapKey = (s) => {
       b: x.data?.block,
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
-
   const e = (s.edges || [])
     .map((x) => ({ s: x.source, t: x.target }))
     .sort((a, b) => (a.s + a.t).localeCompare(b.s + b.t));
-
   return JSON.stringify({ n, e });
 };
 
@@ -120,16 +115,14 @@ const THEME = {
  * Componente
  * ========================= */
 export default function Builder() {
-  const { flowId } = useParams();
+  const { flowId } = useParams(); // vindo da URL
   const location = useLocation();
-  // meta opcional se veio do FlowHub via navigate(..., { state })
   const externalMeta = location.state?.meta || null;
 
-  // meta do fluxo (nome, canal, versão ativa etc.)
   const [meta, setMeta] = useState(() => ({
     flowId: flowId || externalMeta?.flowId || null,
     name: externalMeta?.name || null,
-    channel: "whatsapp", // padrão quando não há deploy
+    channel: externalMeta?.channel || "whatsapp",
     activeVersionId: null,
   }));
   const [loadingFlow, setLoadingFlow] = useState(true);
@@ -203,17 +196,12 @@ export default function Builder() {
   const edgesRef = useRef(edges);
   const lastSnapKeyRef = useRef(null);
 
-  // --- Helpers de commit com histórico ---
   const pushIfChanged = useCallback((prevSnap, nextSnap) => {
     const prevKey = makeSnapKey(prevSnap);
     const nextKey = makeSnapKey(nextSnap);
-
     if (prevKey !== nextKey) {
       if (lastSnapKeyRef.current !== prevKey) {
-        setHistory((h) => ({
-          past: [...h.past, deepClone(prevSnap)],
-          future: [],
-        }));
+        setHistory((h) => ({ past: [...h.past, deepClone(prevSnap)], future: [] }));
         lastSnapKeyRef.current = prevKey;
       }
     }
@@ -223,8 +211,7 @@ export default function Builder() {
     (updater) => {
       setNodes((prevNodes) => {
         const prevSnap = { nodes: prevNodes, edges: edgesRef.current };
-        const nextNodes =
-          typeof updater === "function" ? updater(prevNodes) : updater;
+        const nextNodes = typeof updater === "function" ? updater(prevNodes) : updater;
         const nextSnap = { nodes: nextNodes, edges: edgesRef.current };
         pushIfChanged(prevSnap, nextSnap);
         return nextNodes;
@@ -237,8 +224,7 @@ export default function Builder() {
     (updater) => {
       setEdges((prevEdges) => {
         const prevSnap = { nodes: nodesRef.current, edges: prevEdges };
-        const nextEdges =
-          typeof updater === "function" ? updater(prevEdges) : updater;
+        const nextEdges = typeof updater === "function" ? updater(prevEdges) : updater;
         const nextSnap = { nodes: nodesRef.current, edges: nextEdges };
         pushIfChanged(prevSnap, nextSnap);
         return nextEdges;
@@ -247,21 +233,14 @@ export default function Builder() {
     [pushIfChanged]
   );
 
-  useEffect(() => {
-    nodesRef.current = nodes;
-  }, [nodes]);
-  useEffect(() => {
-    edgesRef.current = edges;
-  }, [edges]);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+  useEffect(() => { edgesRef.current = edges; }, [edges]);
 
   const canUndo = history.past.length > 0;
   const canRedo = history.future.length > 0;
 
   const snapshot = useCallback(
-    () => ({
-      nodes: deepClone(nodesRef.current),
-      edges: deepClone(edgesRef.current),
-    }),
+    () => ({ nodes: deepClone(nodesRef.current), edges: deepClone(edgesRef.current) }),
     []
   );
 
@@ -297,16 +276,12 @@ export default function Builder() {
   const onNodesChange = useCallback(
     (changes) => {
       const meaningful = changes.some((ch) => {
-        if (ch.type === "select") return false; // ignora seleção
-        if (ch.type === "position") return !ch.dragging; // só no drop
-        return true; // add/remove/etc
+        if (ch.type === "select") return false;
+        if (ch.type === "position") return !ch.dragging;
+        return true;
       });
-
-      if (meaningful) {
-        setNodesWithHistory((nds) => applyNodeChanges(changes, nds));
-      } else {
-        setNodes((nds) => applyNodeChanges(changes, nds));
-      }
+      if (meaningful) setNodesWithHistory((nds) => applyNodeChanges(changes, nds));
+      else setNodes((nds) => applyNodeChanges(changes, nds));
     },
     [setNodesWithHistory]
   );
@@ -314,36 +289,22 @@ export default function Builder() {
   const onEdgesChange = useCallback(
     (changes) => {
       const meaningful = changes.some((c) => c.type !== "select");
+      if (meaningful) setEdgesWithHistory((eds) => applyEdgeChanges(changes, eds));
+      else setEdges((eds) => applyEdgeChanges(changes, eds));
 
-      if (meaningful) {
-        setEdgesWithHistory((eds) => applyEdgeChanges(changes, eds));
-      } else {
-        setEdges((eds) => applyEdgeChanges(changes, eds));
-      }
-
-      const removedIds = new Set(
-        changes.filter((c) => c.type === "remove").map((c) => c.id)
-      );
+      const removedIds = new Set(changes.filter((c) => c.type === "remove").map((c) => c.id));
       if (removedIds.size) {
-        const removedEdges = edgesRef.current.filter((e) =>
-          removedIds.has(e.id)
-        );
+        const removedEdges = edgesRef.current.filter((e) => removedIds.has(e.id));
         if (removedEdges.length) {
           setNodesWithHistory((nds) =>
             nds.map((node) => {
               const block = node.data.block || {};
               const before = block.actions || [];
               const after = before.filter(
-                (a) =>
-                  !removedEdges.some(
-                    (re) => re.source === node.id && re.target === a.next
-                  )
+                (a) => !removedEdges.some((re) => re.source === node.id && re.target === a.next)
               );
               if (after.length === before.length) return node;
-              return {
-                ...node,
-                data: { ...node.data, block: { ...block, actions: after } },
-              };
+              return { ...node, data: { ...node.data, block: { ...block, actions: after } } };
             })
           );
         }
@@ -374,27 +335,11 @@ function run(context) {
         const id = selectedNode.id;
         setNodesWithHistory((nds) =>
           nds.map((n) =>
-            n.id === id
-              ? {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    block: { ...n.data.block, code: newCode },
-                  },
-                }
-              : n
+            n.id === id ? { ...n, data: { ...n.data, block: { ...n.data.block, code: newCode } } } : n
           )
         );
         setSelectedNode((prev) =>
-          prev
-            ? {
-                ...prev,
-                data: {
-                  ...prev.data,
-                  block: { ...prev.data.block, code: newCode },
-                },
-              }
-            : null
+          prev ? { ...prev, data: { ...prev.data, block: { ...prev.data.block, code: newCode } } } : null
         );
       }
     },
@@ -409,9 +354,7 @@ function run(context) {
       const already = actions.some((a) => a.next === target);
 
       setEdgesWithHistory((eds) => {
-        const exists = eds.some(
-          (e) => e.source === params.source && e.target === params.target
-        );
+        const exists = eds.some((e) => e.source === params.source && e.target === params.target);
         return exists ? eds : addEdge({ ...params, id: genEdgeId() }, eds);
       });
 
@@ -428,16 +371,7 @@ function run(context) {
                       ...node.data.block,
                       actions: [
                         ...actions,
-                        {
-                          next: target,
-                          conditions: [
-                            {
-                              variable: "lastUserMessage",
-                              type: "exists",
-                              value: "",
-                            },
-                          ],
-                        },
+                        { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
                       ],
                     },
                   },
@@ -457,30 +391,20 @@ function run(context) {
       return;
     }
 
-    setNodesWithHistory((prevNodes) =>
-      prevNodes.map((n) => (n.id === updated.id ? updated : n))
-    );
+    setNodesWithHistory((prevNodes) => prevNodes.map((n) => (n.id === updated.id ? updated : n)));
 
-    const desiredTargets = new Set(
-      (updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean)
-    );
+    const desiredTargets = new Set((updated.data?.block?.actions || []).map((a) => a?.next).filter(Boolean));
     const prevEdges = edgesRef.current;
 
-    const removedEdges = prevEdges.filter(
-      (e) => e.source === updated.id && !desiredTargets.has(e.target)
-    );
+    const removedEdges = prevEdges.filter((e) => e.source === updated.id && !desiredTargets.has(e.target));
     const removedEdgeIds = new Set(removedEdges.map((e) => e.id));
 
-    const keptEdges = prevEdges.filter(
-      (e) => !(e.source === updated.id && removedEdgeIds.has(e.id))
-    );
-
+    const keptEdges = prevEdges.filter((e) => !(e.source === updated.id && removedEdgeIds.has(e.id)));
     const keptPairs = new Set(keptEdges.map((e) => `${e.source}-${e.target}`));
     const additions = [];
     desiredTargets.forEach((t) => {
       const key = `${updated.id}-${t}`;
-      if (!keptPairs.has(key))
-        additions.push({ id: genEdgeId(), source: updated.id, target: t });
+      if (!keptPairs.has(key)) additions.push({ id: genEdgeId(), source: updated.id, target: t });
     });
 
     const nextEdges = keptEdges.concat(additions);
@@ -489,140 +413,74 @@ function run(context) {
     if (removedEdgeIds.size) {
       setSelectedEdgeId((cur) => (cur && removedEdgeIds.has(cur) ? null : cur));
     }
-
     setSelectedNode(updated);
   };
 
   const deleteNodeAndCleanup = (deletedId) => {
-    // nodes
     setNodesWithHistory((nds) =>
       nds
         .filter((n) => n.id !== deletedId)
         .map((n) => {
           const block = n.data.block || {};
-          const cleanedActions = (block.actions || []).filter(
-            (a) => a.next !== deletedId
-          );
-          const cleanedDefaultNext =
-            block.defaultNext === deletedId ? undefined : block.defaultNext;
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              block: {
-                ...block,
-                actions: cleanedActions,
-                defaultNext: cleanedDefaultNext,
-              },
-            },
-          };
+          const cleanedActions = (block.actions || []).filter((a) => a.next !== deletedId);
+          const cleanedDefaultNext = block.defaultNext === deletedId ? undefined : block.defaultNext;
+          return { ...n, data: { ...n.data, block: { ...block, actions: cleanedActions, defaultNext: cleanedDefaultNext } } };
         })
     );
-    // edges
-    setEdgesWithHistory((eds) =>
-      eds.filter((e) => e.source !== deletedId && e.target !== deletedId)
-    );
+    setEdgesWithHistory((eds) => eds.filter((e) => e.source !== deletedId && e.target !== deletedId));
     setSelectedEdgeId((cur) => (cur ? null : cur));
   };
 
   const handleDelete = useCallback(() => {
-    if (
-      !selectedNode ||
-      selectedNode.data.nodeType === "start" ||
-      selectedNode.data.label?.toLowerCase()?.includes("onerror")
-    )
-      return;
+    if (!selectedNode || selectedNode.data.nodeType === "start" || selectedNode.data.label?.toLowerCase()?.includes("onerror")) return;
     deleteNodeAndCleanup(selectedNode.id);
     setSelectedNode(null);
   }, [selectedNode]);
 
-  /* ---------- Hotkeys (undo/redo, esc, delete edge ou node) ---------- */
+  /* ---------- Hotkeys ---------- */
   useEffect(() => {
     const handleKeyDown = (event) => {
       const el = event.target;
       const tag = el?.tagName?.toUpperCase?.();
-      const isEditableTag =
-        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      const isEditableTag = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       const isContentEditable = el?.isContentEditable;
       if (isEditableTag || isContentEditable) return;
-
-      if (el instanceof HTMLElement && el.closest?.("[data-stop-hotkeys='true']")) {
-        return;
-      }
+      if (el instanceof HTMLElement && el.closest?.("[data-stop-hotkeys='true']")) return;
 
       const key = event.key;
-
-      // Undo / Redo
       if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "z") {
-        event.preventDefault();
-        if (event.shiftKey) redo();
-        else undo();
-        return;
+        event.preventDefault(); event.shiftKey ? redo() : undo(); return;
       }
       if ((event.ctrlKey || event.metaKey) && key.toLowerCase() === "y") {
-        event.preventDefault();
-        redo();
-        return;
+        event.preventDefault(); redo(); return;
       }
-
-      // ESC: limpa seleção
       if (key === "Escape") {
-        setSelectedNode(null);
-        setSelectedEdgeId(null);
-        setHighlightedNodeId(null);
-        return;
+        setSelectedNode(null); setSelectedEdgeId(null); setHighlightedNodeId(null); return;
       }
-
-      // Delete / Backspace
       if (key === "Delete" || key === "Backspace") {
-        const nodeDeletavel =
-          selectedNode &&
-          selectedNode.data.nodeType !== "start" &&
+        const canDeleteNode = selectedNode && selectedNode.data.nodeType !== "start" &&
           !selectedNode.data.label?.toLowerCase()?.includes("onerror");
-
-        // 1) aresta selecionada
         if (selectedEdgeId) {
-          event.preventDefault();
-          event.stopPropagation?.();
-
-          const edgeToRemove = edgesRef.current.find(
-            (e) => e.id === selectedEdgeId
-          );
-
-          setEdgesWithHistory((eds) =>
-            eds.filter((e) => e.id !== selectedEdgeId)
-          );
-
+          event.preventDefault(); event.stopPropagation?.();
+          const edgeToRemove = edgesRef.current.find((e) => e.id === selectedEdgeId);
+          setEdgesWithHistory((eds) => eds.filter((e) => e.id !== selectedEdgeId));
           if (edgeToRemove) {
             setNodesWithHistory((nds) =>
               nds.map((node) => {
                 if (node.id !== edgeToRemove.source) return node;
                 const before = node.data.block?.actions || [];
-                const after = before.filter(
-                  (a) => a.next !== edgeToRemove.target
-                );
+                const after = before.filter((a) => a.next !== edgeToRemove.target);
                 if (after.length === before.length) return node;
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    block: { ...node.data.block, actions: after },
-                  },
-                };
+                return { ...node, data: { ...node.data, block: { ...node.data.block, actions: after } } };
               })
             );
           }
-
           setSelectedEdgeId(null);
           return;
         }
-
-        // 2) remove nó (se deletável)
-        if (nodeDeletavel) {
-          event.preventDefault();
-          event.stopPropagation?.();
-          deleteNodeAndCleanup(selectedNode.id);
-          setSelectedNode(null);
+        if (canDeleteNode) {
+          event.preventDefault(); event.stopPropagation?.();
+          deleteNodeAndCleanup(selectedNode.id); setSelectedNode(null);
         }
       }
     };
@@ -631,55 +489,43 @@ function run(context) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedEdgeId, selectedNode, undo, redo, setEdgesWithHistory, setNodesWithHistory]);
 
-  /* ---------- carregar flow (pelo :flowId) ---------- */
+  /* ---------- carregar flow por :flowId ---------- */
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      if (!flowId) return;
+      if (!flowId) { setLoadingFlow(false); return; }
       try {
         setLoadingFlow(true);
 
-        // Nome/descrição do flow (não quebra se 404)
+        // Nome (não quebra se 404)
         try {
           const info = await apiGet(`/flows/${flowId}`);
-          if (alive && info?.name) {
-            setMeta((m) => ({ ...(m || {}), name: info.name }));
-          }
+          if (alive && info?.name) setMeta((m) => ({ ...(m || {}), name: info.name }));
         } catch {}
 
-        // tenta inferir canal a partir do último deployment ativo desse flow (se teu back aceitar flow_id)
+        // Canal pelo último deployment desse flow (se houver)
         try {
           const deps = await apiGet(`/flows/deployments?flow_id=${encodeURIComponent(flowId)}`);
           if (alive && Array.isArray(deps) && deps.length) {
             setMeta((m) => ({
               ...(m || {}),
-              channel: deps[0]?.channel || "whatsapp",
-              activeVersionId: deps[0]?.version_id || null,
+              channel: deps[0]?.channel || m?.channel || "whatsapp",
+              activeVersionId: deps[0]?.version_id || m?.activeVersionId || null,
             }));
           }
-        } catch {
-          // ignora, ficará "whatsapp"
-        }
+        } catch {}
 
-        // carrega versões e abre a base: último draft; senão último published; senão nada
+        // Carrega versões; preferência: último draft, senão último published
         const versions = await apiGet(`/flows/${flowId}/versions`);
-        const drafts = (versions || [])
-          .filter((v) => v.status === "draft")
-          .sort((a, b) => b.version - a.version);
-        const pubs = (versions || [])
-          .filter((v) => v.status === "published")
-          .sort((a, b) => b.version - a.version);
+        const drafts = (versions || []).filter((v) => v.status === "draft").sort((a, b) => b.version - a.version);
+        const pubs   = (versions || []).filter((v) => v.status === "published").sort((a, b) => b.version - a.version);
 
         const base = drafts[0] || pubs[0] || null;
-
         if (base) {
           const data = await apiGet(`/flows/data-by-version/${base.id}`);
           if (!alive) return;
           hydrateCanvasFromFlow(data);
-          setMeta((m) => ({
-            ...(m || {}),
-            activeVersionId: m?.activeVersionId || pubs[0]?.id || null,
-          }));
+          setMeta((m) => ({ ...(m || {}), activeVersionId: m?.activeVersionId || pubs[0]?.id || null }));
         }
       } catch (err) {
         console.error("Erro ao carregar fluxo:", err);
@@ -687,11 +533,8 @@ function run(context) {
         if (alive) setLoadingFlow(false);
       }
     };
-
     load();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [flowId]);
 
   // normaliza JSON do flow -> nodes/edges
@@ -710,13 +553,9 @@ function run(context) {
         normalized[id] = { ...b, id, label: b?.label || k };
       });
       Object.values(normalized).forEach((b) => {
-        if (b.defaultNext && keyToId[b.defaultNext])
-          b.defaultNext = keyToId[b.defaultNext];
+        if (b.defaultNext && keyToId[b.defaultNext]) b.defaultNext = keyToId[b.defaultNext];
         if (Array.isArray(b.actions)) {
-          b.actions = b.actions.map((a) => ({
-            ...a,
-            next: keyToId[a.next] || a.next,
-          }));
+          b.actions = b.actions.map((a) => ({ ...a, next: keyToId[a.next] || a.next }));
         }
       });
     }
@@ -739,10 +578,7 @@ function run(context) {
       data: {
         label: b.label || "Sem Nome",
         type: b.type,
-        nodeType:
-          b.type === "start" || (b.label || "").toLowerCase() === "início"
-            ? "start"
-            : undefined,
+        nodeType: b.type === "start" || (b.label || "").toLowerCase() === "início" ? "start" : undefined,
         color: b.color || "#607D8B",
         block: b,
       },
@@ -752,13 +588,7 @@ function run(context) {
     const loadedEdges = [];
     Object.values(blocks).forEach((b) => {
       (b.actions || []).forEach((a) => {
-        if (a.next && blocks[a.next]) {
-          loadedEdges.push({
-            id: genEdgeId(),
-            source: b.id,
-            target: a.next,
-          });
-        }
+        if (a.next && blocks[a.next]) loadedEdges.push({ id: genEdgeId(), source: b.id, target: a.next });
       });
     });
 
@@ -776,9 +606,7 @@ function run(context) {
       try {
         if (!meta?.flowId) {
           setFlowHistory([]);
-          toast.info(
-            "Abra o Builder a partir do Flow Hub para ver o histórico."
-          );
+          toast.info("Abra o Builder a partir do FlowHub para ver o histórico.");
           return;
         }
         const rows = await apiGet(`/flows/${meta.flowId}/versions`);
@@ -815,70 +643,38 @@ function run(context) {
 
       // compacta grafo
       const labelToId = {};
-      nodes.forEach((n) => {
-        if (labelToId[n.data.label])
-          console.warn("Label duplicado:", n.data.label);
-        labelToId[n.data.label] = n.id;
-      });
+      nodes.forEach((n) => { if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label); labelToId[n.data.label] = n.id; });
       const nodeIds = new Set(nodes.map((n) => n.id));
 
       const blocks = {};
       nodes.forEach((node) => {
         const block = { ...node.data.block };
-        if (block?.type === "interactive" && block?.content?.interactive) {
-          block.content = block.content.interactive;
-        }
-        if (block.defaultNext)
-          block.defaultNext = nodeIds.has(block.defaultNext)
-            ? block.defaultNext
-            : labelToId[block.defaultNext] || undefined;
+        if (block?.type === "interactive" && block?.content?.interactive) block.content = block.content.interactive;
+        if (block.defaultNext) block.defaultNext = nodeIds.has(block.defaultNext) ? block.defaultNext : labelToId[block.defaultNext] || undefined;
         if (Array.isArray(block.actions)) {
-          block.actions = block.actions.map((a) => ({
-            ...a,
-            next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
-          }));
+          block.actions = block.actions.map((a) => ({ ...a, next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next }));
         }
-        blocks[node.id] = {
-          ...block,
-          id: node.id,
-          label: node.data.label,
-          type: node.data.type,
-          color: node.data.color,
-          position: node.position,
-        };
+        blocks[node.id] = { ...block, id: node.id, label: node.data.label, type: node.data.type, color: node.data.color, position: node.position };
       });
 
       const startNode = nodes.find((n) => n.data.nodeType === "start");
       const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
 
       // 1) cria draft
-      const v1 = await apiPost(`/flows/${meta.flowId}/versions`, {
-        data: flowData,
-        status: "draft",
-      });
+      const v1 = await apiPost(`/flows/${meta.flowId}/versions`, { data: flowData, status: "draft" });
       const newVersionNumber = v1?.version?.version;
       const newVersionId = v1?.version?.id;
       if (!newVersionNumber) throw new Error("Falha ao criar versão");
 
       // 2) publica
-      await apiPut(
-        `/flows/${meta.flowId}/versions/${newVersionNumber}/status`,
-        { status: "published" }
-      );
+      await apiPut(`/flows/${meta.flowId}/versions/${newVersionNumber}/status`, { status: "published" });
 
       // 3) deploy (usa canal conhecido; se nenhum, "whatsapp")
       const channel = meta.channel || "whatsapp";
-      await apiPost(`/flows/${meta.flowId}/deploy`, {
-        version: newVersionNumber,
-        channel,
-      });
+      await apiPost(`/flows/${meta.flowId}/deploy`, { version: newVersionNumber, channel });
 
       toast.success(`Publicado v${newVersionNumber} em ${channel}`);
-      setMeta((m) => ({
-        ...(m || {}),
-        activeVersionId: newVersionId || m?.activeVersionId,
-        channel,
-      }));
+      setMeta((m) => ({ ...(m || {}), activeVersionId: newVersionId || m?.activeVersionId, channel }));
     } catch (err) {
       toast.error(`Falha ao publicar: ${err?.message || "erro desconhecido"}`);
     } finally {
@@ -889,64 +685,32 @@ function run(context) {
   /* ---------- download ---------- */
   const downloadFlow = () => {
     const labelToId = {};
-    nodes.forEach((n) => {
-      if (labelToId[n.data.label])
-        console.warn("Label duplicado:", n.data.label);
-      labelToId[n.data.label] = n.id;
-    });
+    nodes.forEach((n) => { if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label); labelToId[n.data.label] = n.id; });
     const nodeIds = new Set(nodes.map((n) => n.id));
 
     const blocks = {};
     nodes.forEach((node) => {
       const originalBlock = node.data.block || {};
       const clonedBlock = { ...originalBlock };
-      if (
-        clonedBlock?.type === "interactive" &&
-        clonedBlock?.content?.interactive
-      ) {
-        clonedBlock.content = clonedBlock.content.interactive;
-      }
-      if (clonedBlock.defaultNext)
-        clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext)
-          ? clonedBlock.defaultNext
-          : labelToId[clonedBlock.defaultNext] || undefined;
+      if (clonedBlock?.type === "interactive" && clonedBlock?.content?.interactive) clonedBlock.content = clonedBlock.content.interactive;
+      if (clonedBlock.defaultNext) clonedBlock.defaultNext = nodeIds.has(clonedBlock.defaultNext) ? clonedBlock.defaultNext : labelToId[clonedBlock.defaultNext] || undefined;
       if (Array.isArray(clonedBlock.actions)) {
-        clonedBlock.actions = clonedBlock.actions.map((a) => ({
-          ...a,
-          next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next,
-        }));
+        clonedBlock.actions = clonedBlock.actions.map((a) => ({ ...a, next: nodeIds.has(a.next) ? a.next : labelToId[a.next] || a.next }));
       }
-      blocks[node.id] = {
-        ...clonedBlock,
-        id: node.id,
-        label: node.data.label,
-        type: node.data.type,
-        position: node.position,
-        color: node.data.color,
-      };
+      blocks[node.id] = { ...clonedBlock, id: node.id, label: node.data.label, type: node.data.type, position: node.position, color: node.data.color };
     });
 
-    const flowData = {
-      start:
-        nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id,
-      blocks,
-    };
-    const blob = new Blob([JSON.stringify(flowData, null, 2)], {
-      type: "application/json",
-    });
+    const flowData = { start: nodes.find((n) => n.data.nodeType === "start")?.id ?? nodes[0]?.id, blocks };
+    const blob = new Blob([JSON.stringify(flowData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
-    link.download = "fluxo-chatbot.json";
-    link.click();
+    link.href = url; link.download = "fluxo-chatbot.json"; link.click();
     URL.revokeObjectURL(url);
   };
 
   /* ---------- add node ---------- */
   const addNodeTemplate = (template) => {
-    const onErrorNode = nodesRef.current.find(
-      (n) => n.data.label?.toLowerCase() === "onerror"
-    );
+    const onErrorNode = nodesRef.current.find((n) => n.data.label?.toLowerCase() === "onerror");
     const newNode = {
       id: genId(),
       type: "quadrado",
@@ -965,19 +729,13 @@ function run(context) {
   /* ---------- destaque de arestas ---------- */
   const sourceColorById = useMemo(() => {
     const map = new Map();
-    nodes.forEach((n) =>
-      map.set(n.id, n.style?.borderColor || n.data?.color || "#888")
-    );
+    nodes.forEach((n) => map.set(n.id, n.style?.borderColor || n.data?.color || "#888"));
     return map;
   }, [nodes]);
 
   const activeEdges = useMemo(() => {
     if (selectedEdgeId) return new Set([selectedEdgeId]);
-    if (selectedNode) {
-      return new Set(
-        edges.filter((e) => e.source === selectedNode.id).map((e) => e.id)
-      );
-    }
+    if (selectedNode) return new Set(edges.filter((e) => e.source === selectedNode.id).map((e) => e.id));
     return new Set();
   }, [edges, selectedNode, selectedEdgeId]);
 
@@ -996,14 +754,9 @@ function run(context) {
     const isActive = activeEdges.has(edge.id);
     const baseStroke = "#94a3b8";
     const srcColor = sourceColorById.get(edge.source) || "#64748b";
-
-    const common = {
-      markerEnd: {
-        type: "arrowclosed",
-        color: isActive ? srcColor : baseStroke,
-        width: 16,
-        height: 16,
-      },
+    return {
+      ...edge,
+      markerEnd: { type: "arrowclosed", color: isActive ? srcColor : baseStroke, width: 16, height: 16 },
       style: {
         stroke: isActive ? srcColor : baseStroke,
         strokeWidth: isActive ? 2.75 : 1.5,
@@ -1011,7 +764,6 @@ function run(context) {
         transition: "stroke 120ms ease, opacity 120ms ease, stroke-width 120ms",
       },
     };
-    return { ...edge, ...common };
   });
 
   const edgeOptions = {
@@ -1022,48 +774,15 @@ function run(context) {
   };
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100vh",
-        position: "relative",
-        backgroundColor: THEME.bg,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div style={{ width: "100%", height: "100vh", position: "relative", backgroundColor: THEME.bg, display: "flex", flexDirection: "column" }}>
       {/* Header contextual */}
-      <div
-        style={{
-          padding: "8px 12px",
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          borderBottom: `1px solid ${THEME.border}`,
-          background: THEME.panelBg,
-        }}
-      >
+      <div style={{ padding: "8px 12px", display: "flex", gap: 12, alignItems: "center", borderBottom: `1px solid ${THEME.border}`, background: THEME.panelBg }}>
         <strong>Chatbot Studio</strong>
         {meta?.flowId && (
-          <div
-            style={{
-              marginLeft: "auto",
-              fontSize: 12,
-              display: "flex",
-              gap: 12,
-            }}
-          >
-            <span>
-              Flow: <b>{meta.name || meta.flowId}</b>
-            </span>
-            <span>
-              Canal: <b>{meta.channel || "whatsapp"}</b>
-            </span>
-            {meta.activeVersionId && (
-              <span>
-                Versão ativa: <b>{meta.activeVersionId.slice(0, 8)}</b>
-              </span>
-            )}
+          <div style={{ marginLeft: "auto", fontSize: 12, display: "flex", gap: 12 }}>
+            <span>Flow: <b>{meta.name || meta.flowId}</b></span>
+            <span>Canal: <b>{meta.channel || "whatsapp"}</b></span>
+            {meta.activeVersionId && <span>Versão ativa: <b>{String(meta.activeVersionId).slice(0, 8)}</b></span>}
           </div>
         )}
       </div>
@@ -1071,13 +790,7 @@ function run(context) {
       {/* Conteúdo principal */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <div style={{ position: "relative", flex: 1 }}>
-          {itor && (
-            <ScriptEditor
-              code={scriptCode}
-              onChange={handleUpdateCode}
-              onClose={() => setitor(false)}
-            />
-          )}
+          {itor && <ScriptEditor code={scriptCode} onChange={handleUpdateCode} onClose={() => setitor(false)} />}
 
           <ReactFlow
             nodes={styledNodes}
@@ -1101,13 +814,8 @@ function run(context) {
               setHighlightedNodeId(null);
             }}
             onPaneClick={(event) => {
-              if (
-                !event.target.closest(".react-flow__node") &&
-                !event.target.closest(".react-flow__edge")
-              ) {
-                setSelectedNode(null);
-                setSelectedEdgeId(null);
-                setHighlightedNodeId(null);
+              if (!event.target.closest(".react-flow__node") && !event.target.closest(".react-flow__edge")) {
+                setSelectedNode(null); setSelectedEdgeId(null); setHighlightedNodeId(null);
               }
             }}
             fitViewOptions={{ padding: 0.5 }}
@@ -1124,7 +832,6 @@ function run(context) {
                 top: "auto",
                 right: "auto",
                 zIndex: 9999,
-
                 backgroundColor: THEME.panelBg,
                 border: `1px solid ${THEME.border}`,
                 borderRadius: "10px",
@@ -1133,7 +840,6 @@ function run(context) {
               }}
             />
 
-            {/* Dock estilo Mac */}
             <MacDock
               templates={nodeTemplates}
               iconMap={iconMap}
@@ -1149,6 +855,7 @@ function run(context) {
               disabled={loadingFlow}
             />
 
+            {/* Modal de versões (usa o componente que você já tem) */}
             <VersionHistoryModal
               visible={showHistory}
               onClose={() => setShowHistory(false)}
@@ -1166,24 +873,12 @@ function run(context) {
                     return;
                   }
                   const channel = meta.channel || "whatsapp";
-                  await apiPost(`/flows/${meta.flowId}/deploy`, {
-                    version: row.version,
-                    channel,
-                  });
+                  await apiPost(`/flows/${meta.flowId}/deploy`, { version: row.version, channel });
                   toast.success(`Ativado v${row.version} (${channel})`);
                   setMeta((m) => ({ ...(m || {}), activeVersionId: versionId }));
                   setShowHistory(false);
                 } catch {
                   toast.error("Falha ao restaurar a versão");
-                }
-              }}
-              onOpenVersion={async (versionId) => {
-                try {
-                  const data = await apiGet(`/flows/data-by-version/${versionId}`);
-                  hydrateCanvasFromFlow(data);
-                  setMeta((m) => ({ ...(m || {}), activeVersionId: versionId }));
-                } catch {
-                  toast.error("Falha ao abrir versão");
                 }
               }}
             />
@@ -1202,15 +897,11 @@ function run(context) {
               const actions = src?.data?.block?.actions || [];
               const already = actions.some((a) => a.next === target);
 
-              // cria a aresta com histórico
               setEdgesWithHistory((eds) => {
-                const exists = eds.some(
-                  (e) => e.source === source && e.target === target
-                );
+                const exists = eds.some((e) => e.source === source && e.target === target);
                 return exists ? eds : [...eds, { id: genEdgeId(), source, target }];
               });
 
-              // se não havia action correspondente, grava
               if (!already) {
                 setNodesWithHistory((nds) =>
                   nds.map((node) =>
@@ -1224,16 +915,7 @@ function run(context) {
                               ...node.data.block,
                               actions: [
                                 ...actions,
-                                {
-                                  next: target,
-                                  conditions: [
-                                    {
-                                      variable: "lastUserMessage",
-                                      type: "exists",
-                                      value: "",
-                                    },
-                                  ],
-                                },
+                                { next: target, conditions: [{ variable: "lastUserMessage", type: "exists", value: "" }] },
                               ],
                             },
                           },
