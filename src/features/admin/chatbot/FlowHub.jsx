@@ -1,98 +1,275 @@
 // src/features/admin/chatbot/FlowHub.jsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
-import { apiGet, apiPost } from "../../../shared/apiClient";
+import { toast } from "react-toastify";
+import { apiGet, apiPost } from "../../shared/apiClient"; // ajuste o caminho se seu apiClient estiver em outro lugar
+
+const THEME = {
+  bg: "#f9fafb",
+  panelBg: "#ffffff",
+  text: "#0f172a",
+  textMuted: "#475569",
+  border: "#e2e8f0",
+  shadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
+};
+
+const CHANNELS = ["whatsapp", "instagram", "web"]; // ajuste se precisar
 
 export default function FlowHub() {
-  const nav = useNavigate();
-  const [rows, setRows] = useState([]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+  const [showNewModal, setShowNewModal] = useState(false);
 
   const load = async () => {
     try {
       setLoading(true);
-      const data = await apiGet("/flows");
+      // usa /meta pra montar os cards
+      const data = await apiGet("/flows/meta");
       setRows(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao carregar flows");
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => { load(); }, []);
 
-  const createFlow = async () => {
-    if (!name.trim()) return;
-    try {
-      setCreating(true);
-      const res = await apiPost("/flows", { name: name.trim(), description: description || null });
-      setName(""); setDescription("");
-      await load();
-      // abre direto no builder do novo flow
-      nav(`/development/studio/${res.id}`);
-    } finally {
-      setCreating(false);
-    }
+  const handleOpenBuilder = (flow, channel) => {
+    // navega para o Builder com meta mínima: flowId + name + channel
+    navigate("/admin/chatbot/builder", {
+      state: {
+        meta: { flowId: flow.id, name: flow.name, channel }
+      }
+    });
   };
 
   return (
-    <div style={{ padding: 16 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
-        <input
-          placeholder="Nome do novo flow"
-          value={name}
-          onChange={(e)=>setName(e.target.value)}
-          style={{ flex: 1, padding: 10, border: "1px solid #e2e8f0", borderRadius: 10 }}
-        />
-        <input
-          placeholder="Descrição (opcional)"
-          value={description}
-          onChange={(e)=>setDescription(e.target.value)}
-          style={{ flex: 2, padding: 10, border: "1px solid #e2e8f0", borderRadius: 10 }}
-        />
+    <div style={{ padding: 16, background: THEME.bg, minHeight: "100vh" }}>
+      {/* header padrão simples */}
+      <div style={{
+        background: THEME.panelBg, border: `1px solid ${THEME.border}`,
+        borderRadius: 12, padding: 14, marginBottom: 16, display: "flex",
+        alignItems: "center", justifyContent: "space-between", boxShadow: THEME.shadow
+      }}>
+        <div style={{ fontWeight: 800 }}>FlowHub</div>
         <button
-          onClick={createFlow}
-          disabled={!name.trim() || creating}
+          onClick={() => setShowNewModal(true)}
           style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "#0ea5e9", color: "#fff", padding: "10px 14px",
-            border: 0, borderRadius: 10, fontWeight: 700, cursor: "pointer"
+            background: "#2563eb", color: "#fff", border: "none",
+            padding: "10px 14px", borderRadius: 10, fontWeight: 700, cursor: "pointer"
           }}
         >
-          <Plus size={16}/> Novo flow
+          + Novo Flow
         </button>
       </div>
 
+      {/* grid de cards */}
       {loading ? (
-        <div>Carregando…</div>
+        <div style={{ color: THEME.textMuted }}>Carregando…</div>
       ) : rows.length === 0 ? (
-        <div>Nenhum flow ainda. Crie o primeiro acima.</div>
+        <div style={{ color: THEME.textMuted }}>Nenhum flow ainda. Crie o primeiro!</div>
       ) : (
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: 12
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 14
         }}>
-          {rows.map((f)=>(
-            <div key={f.id} style={{
-              border: "1px solid #e5e7eb", borderRadius: 14, padding: 16, background: "#fff"
-            }}>
-              <div style={{ fontWeight: 800, marginBottom: 6 }}>{f.name || f.id}</div>
-              {f.description && <div style={{ fontSize: 12, color: "#64748b" }}>{f.description}</div>}
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-                <button
-                  onClick={()=>nav(`/development/studio/${f.id}`)}
-                  style={{ background: "#2563eb", color: "#fff", border: 0, borderRadius: 8, padding: "8px 12px", fontWeight: 700, cursor: "pointer" }}
-                >
-                  Abrir
-                </button>
-              </div>
-            </div>
+          {rows.map((f) => (
+            <FlowCard
+              key={f.id}
+              flow={f}
+              onOpen={(channel) => handleOpenBuilder(f, channel)}
+            />
           ))}
         </div>
+      )}
+
+      {showNewModal && (
+        <NewFlowModal
+          onClose={() => setShowNewModal(false)}
+          onCreate={async (form) => {
+            try {
+              const created = await apiPost("/flows", {
+                name: form.name,
+                description: form.description || null,
+              });
+              toast.success(`Flow "${created?.name}" criado!`);
+              setShowNewModal(false);
+              await load();
+            } catch (e) {
+              console.error(e);
+              toast.error("Erro ao criar flow");
+            }
+          }}
+        />
       )}
     </div>
   );
 }
+
+function FlowCard({ flow, onOpen }) {
+  const lastPublished = flow?.last_published ?? null;
+  const lastVersion = flow?.last_version ?? null;
+  const deploys = Array.isArray(flow?.active_deploys) ? flow.active_deploys : [];
+
+  // canal “sugerido”: se tem algum deploy ativo usa o primeiro canal, senão ‘whatsapp’
+  const suggestedChannel = useMemo(() => {
+    if (deploys.length > 0) return deploys[0].channel;
+    return CHANNELS[0];
+  }, [deploys]);
+
+  return (
+    <div style={{
+      background: "#fff", border: `1px solid ${THEME.border}`, borderRadius: 12,
+      padding: 14, display: "flex", flexDirection: "column", gap: 10,
+      boxShadow: THEME.shadow
+    }}>
+      <div style={{ fontWeight: 800 }}>{flow.name}</div>
+      {flow.description && (
+        <div style={{ fontSize: 13, color: THEME.textMuted }}>{flow.description}</div>
+      )}
+
+      <div style={{ fontSize: 12, color: THEME.textMuted, display: "flex", gap: 10 }}>
+        <span>última publicada: <b>{lastPublished ?? "—"}</b></span>
+        <span>última versão: <b>{lastVersion ?? "—"}</b></span>
+      </div>
+
+      {deploys.length > 0 ? (
+        <div style={{ borderTop: `1px solid ${THEME.border}`, paddingTop: 8 }}>
+          <div style={{ fontSize: 12, marginBottom: 6 }}>Deploys ativos</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {deploys.slice(0, 4).map((d) => (
+              <span key={d.id} style={pill}>
+                {d.channel} · v{d.version}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: THEME.textMuted }}>
+          Nenhum deploy ativo
+        </div>
+      )}
+
+      <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+        <ChannelPicker
+          defaultValue={suggestedChannel}
+          onOpen={(ch) => onOpen(ch)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ChannelPicker({ defaultValue, onOpen }) {
+  const [channel, setChannel] = useState(defaultValue || CHANNELS[0]);
+  return (
+    <>
+      <select
+        value={channel}
+        onChange={(e) => setChannel(e.target.value)}
+        style={{
+          border: `1px solid ${THEME.border}`, borderRadius: 8, padding: "8px 10px",
+          background: "#fff"
+        }}
+      >
+        {CHANNELS.map((c) => (
+          <option key={c} value={c}>{c}</option>
+        ))}
+      </select>
+      <button
+        onClick={() => onOpen(channel)}
+        style={{
+          background: "#0ea5e9", color: "#fff", border: "none",
+          padding: "8px 12px", borderRadius: 8, fontWeight: 700, cursor: "pointer"
+        }}
+      >
+        Editar
+      </button>
+    </>
+  );
+}
+
+function NewFlowModal({ onClose, onCreate }) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+
+  const canSave = name.trim().length > 0;
+
+  return (
+    <div style={overlay} onClick={onClose}>
+      <div style={modal} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <strong>Novo Flow</strong>
+          <button onClick={onClose} style={linkBtn}>Fechar</button>
+        </div>
+
+        <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+          <label style={label}>Nome</label>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="ex.: Atendimentos WhatsApp"
+            style={input}
+          />
+          <label style={label}>Descrição (opcional)</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="breve descrição"
+            style={{ ...input, height: 88, resize: "vertical" }}
+          />
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+          <button onClick={onClose} style={ghostBtn}>Cancelar</button>
+          <button
+            disabled={!canSave}
+            onClick={() => onCreate({ name: name.trim(), description: description.trim() || "" })}
+            style={{
+              ...primaryBtn,
+              ...(canSave ? {} : { opacity: 0.6, cursor: "not-allowed" })
+            }}
+          >
+            Criar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* estilos pequenos */
+const overlay = {
+  position: "fixed", inset: 0, background: "rgba(15,23,42,.35)",
+  display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000
+};
+const modal = {
+  background: "#fff", border: `1px solid ${THEME.border}`, borderRadius: 12,
+  width: "min(520px, 96vw)", padding: 16, boxShadow: THEME.shadow
+};
+const label = { fontSize: 12, color: THEME.textMuted };
+const input = {
+  border: `1px solid ${THEME.border}`, borderRadius: 8, padding: "10px 12px",
+  outline: "none", width: "100%"
+};
+const pill = {
+  fontSize: 12, border: `1px solid ${THEME.border}`, borderRadius: 999,
+  padding: "4px 10px", background: "#f8fafc"
+};
+const linkBtn = {
+  background: "transparent", color: "#2563eb", border: "none",
+  fontWeight: 700, cursor: "pointer"
+};
+const ghostBtn = {
+  background: "#fff", border: `1px solid ${THEME.border}`,
+  padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700
+};
+const primaryBtn = {
+  background: "#2563eb", color: "#fff", border: "none",
+  padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700
+};
