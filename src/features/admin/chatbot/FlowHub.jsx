@@ -1,8 +1,7 @@
-// src/features/admin/chatbot/FlowHub.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { apiGet, apiPost } from "../../../shared/apiClient"; // ajuste o caminho se seu apiClient estiver em outro lugar
+import { apiGet, apiPost } from "../../../shared/apiClient";
 
 const THEME = {
   bg: "#f9fafb",
@@ -24,8 +23,7 @@ export default function FlowHub() {
   const load = async () => {
     try {
       setLoading(true);
-      // usa /meta pra montar os cards
-      const data = await apiGet("/flows/meta");
+      const data = await apiGet("/flows/meta"); // usa a view meta do seu back
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -38,11 +36,9 @@ export default function FlowHub() {
   useEffect(() => { load(); }, []);
 
   const handleOpenBuilder = (flow, channel) => {
-    // navega para o Builder com meta mínima: flowId + name + channel
-    navigate("/admin/chatbot/builder", {
-      state: {
-        meta: { flowId: flow.id, name: flow.name, channel }
-      }
+    // rota com :flowId na URL + meta no state (nome e canal)
+    navigate(`/admin/chatbot/builder/${flow.id}`, {
+      state: { meta: { flowId: flow.id, name: flow.name, channel } },
     });
   };
 
@@ -98,7 +94,10 @@ export default function FlowHub() {
               });
               toast.success(`Flow "${created?.name}" criado!`);
               setShowNewModal(false);
-              await load();
+              // já abre o Builder desse flow novo no canal padrão
+              navigate(`/admin/chatbot/builder/${created.id}`, {
+                state: { meta: { flowId: created.id, name: created.name, channel: CHANNELS[0] } },
+              });
             } catch (e) {
               console.error(e);
               toast.error("Erro ao criar flow");
@@ -115,7 +114,7 @@ function FlowCard({ flow, onOpen }) {
   const lastVersion = flow?.last_version ?? null;
   const deploys = Array.isArray(flow?.active_deploys) ? flow.active_deploys : [];
 
-  // canal “sugerido”: se tem algum deploy ativo usa o primeiro canal, senão ‘whatsapp’
+  // canal sugerido: se tem algum deploy ativo usa o primeiro canal, senão ‘whatsapp’
   const suggestedChannel = useMemo(() => {
     if (deploys.length > 0) return deploys[0].channel;
     return CHANNELS[0];
@@ -196,7 +195,6 @@ function ChannelPicker({ defaultValue, onOpen }) {
 function NewFlowModal({ onClose, onCreate }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-
   const canSave = name.trim().length > 0;
 
   return (
@@ -243,7 +241,7 @@ function NewFlowModal({ onClose, onCreate }) {
   );
 }
 
-/* estilos pequenos */
+/* estilos */
 const overlay = {
   position: "fixed", inset: 0, background: "rgba(15,23,42,.35)",
   display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000
