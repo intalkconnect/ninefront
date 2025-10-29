@@ -1044,7 +1044,7 @@ function run(context) {
         }}
       >
         <button
-          onClick={() => navigate("/admin/development/flowhub")}
+          onClick={() => navigate(-1)}
           title="Voltar ao FlowHub"
           style={{
             border: `1px solid ${THEME.border}`,
