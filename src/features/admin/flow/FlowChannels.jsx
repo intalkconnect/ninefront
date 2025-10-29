@@ -1,5 +1,4 @@
-// webapp/src/pages/Development/FlowChannels.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { ArrowLeft, CheckCircle2, RefreshCw, Settings2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiGet, apiPost } from "../../../shared/apiClient";
@@ -129,8 +128,10 @@ export default function FlowChannels() {
 
   // vínculos reais do FLOW (fonte de verdade)
   const [bindings, setBindings] = useState([]);
-  const isBound = (type) =>
-    bindings.some((b) => b.channel_type === type && b.is_active);
+  const isBound = useCallback(
+    (type) => bindings.some((b) => b.channel_type === type && b.is_active),
+    [bindings]
+  );
 
   async function fetchBindings() {
     const b = await apiGet(`/flows/${flowId}/channels`);
@@ -142,9 +143,9 @@ export default function FlowChannels() {
     try {
       await fetchBindings();
 
-      // WhatsApp (status do tenant)
+      // WhatsApp (status do tenant)  **ENDPOINT CORRETO: /wa/**
       try {
-        const ws = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
+        const ws = await apiGet(`/wa/number?subdomain=${tenant}`);
         const connected = !!(ws?.ok && ws?.phone);
         setWa({
           connected,
@@ -180,51 +181,24 @@ export default function FlowChannels() {
         setIg({ connected: false, igUserId: "", igUsername: "", pageName: "" });
       }
 
-      // Telegram (status + fallback para binding do flow)
+      // Telegram (status do tenant + bound deste flow)
       try {
         const ts = await apiGet(
           `/telegram/status?subdomain=${tenant}&flow_id=${flowId}`
         );
 
-        // dados vindos do status
+        // dados vindos do status do tenant
         let botId = ts?.bot_id || "";
         let username = ts?.username || "";
         const connected = !!(ts?.connected || ts?.bound);
 
-        // se ainda estiverem vazios, usa o binding do flow
-        const tgBinding =
-          (Array.isArray(bindings) &&
-            bindings.find(
-              (b) => b.channel_type === "telegram" && b.is_active
-            )) ||
-          null;
-
-        if (!botId && tgBinding?.channel_key) botId = String(tgBinding.channel_key);
-        if (!username && tgBinding?.display_name) {
-          // normaliza: remove @ no começo para armazenar e adiciona na renderização
-          username = String(tgBinding.display_name || "").replace(/^@/, "");
-        }
-
         setTgTenant({
           connected,
           botId: botId || "",
-          username: username || "",
+          username: (username || "").replace(/^@/, ""),
         });
       } catch {
-        // tenta ainda preencher a partir do binding
-        const tgBinding =
-          (Array.isArray(bindings) &&
-            bindings.find(
-              (b) => b.channel_type === "telegram" && b.is_active
-            )) ||
-          null;
-
-        setTgTenant({
-          connected: !!tgBinding,
-          botId: tgBinding?.channel_key || "",
-          username:
-            (tgBinding?.display_name || "").replace(/^@/, "") || "",
-        });
+        setTgTenant({ connected: false, botId: "", username: "" });
       }
     } catch (e) {
       console.error(e);
@@ -253,7 +227,7 @@ export default function FlowChannels() {
       });
       await fetchBindings();
       toast.success(`${kind} conectado a este flow.`);
-      if (kind === "telegram") await loadAll(); // garante atualização dos dados no card
+      if (kind === "telegram") await loadAll();
     } catch {
       toast.error(`Falha ao conectar ${kind}.`);
     }
@@ -263,13 +237,17 @@ export default function FlowChannels() {
     () => bindings.find((b) => b.channel_type === "whatsapp" && b.is_active),
     [bindings]
   );
+  const tgBinding = useMemo(
+    () => bindings.find((b) => b.channel_type === "telegram" && b.is_active),
+    [bindings]
+  );
 
   const openWaProfile = () =>
     navigate("/channels/whatsapp", {
       state: {
         returnTo: `/development/flowhub/${flowId}/channels`,
-        flowId, // flow atual
-        channelKey: waBinding?.channel_key || null, // phone_id vinculado
+        flowId,
+        channelKey: waBinding?.channel_key || null,
       },
     });
 
@@ -324,8 +302,9 @@ export default function FlowChannels() {
               </div>
             </div>
 
-            <Row k="Número" v={wa.display || "—"} />
-            <Row k="Phone ID" v={wa.id || "—"} mono />
+            {/* Exibir dados SOMENTE quando estiver vinculado ao flow */}
+            <Row k="Número" v={isBound("whatsapp") ? (wa.display || "—") : "—"} />
+            <Row k="Phone ID" v={isBound("whatsapp") ? (wa.id || "—") : "—"} mono />
 
             <div style={S.actions}>
               {isBound("whatsapp") ? (
@@ -340,7 +319,7 @@ export default function FlowChannels() {
                 <WhatsAppEmbeddedSignupButton
                   tenant={tenant}
                   label={wa.connected ? "Conectar novo WhatsApp" : "Conectar WhatsApp"}
-                  className={S.btnPrimary}
+                  style={S.btnPrimary}
                   onPickSuccess={({ phone_number_id, display }) =>
                     connectThisFlow("whatsapp", phone_number_id, display || "WhatsApp")
                   }
@@ -349,13 +328,13 @@ export default function FlowChannels() {
             </div>
           </div>
 
-    
+          {/* Facebook */}
           <div style={S.card}>
             <div style={S.head}>
               <div style={iconWrap()} title="Facebook">
                 <BrandIcon type="facebook" />
               </div>
-              <div style={{ fontWeight: 700 }}>Facebook Messenger</div>
+            <div style={{ fontWeight: 700 }}>Facebook Messenger</div>
               <div style={{ marginLeft: "auto" }}>
                 {isBound("facebook") ? (
                   <span style={S.chipOk}>
@@ -375,7 +354,7 @@ export default function FlowChannels() {
                 <FacebookConnectButton
                   tenant={tenant}
                   label={fb.connected ? "Conectar novo Facebook" : "Conectar Facebook"}
-                  className={S.btnPrimary}
+                  style={S.btnPrimary}
                   onConnected={({ page_id, page_name }) =>
                     connectThisFlow("facebook", page_id, page_name || "Facebook")
                   }
@@ -384,7 +363,7 @@ export default function FlowChannels() {
             </div>
           </div>
 
-    
+          {/* Instagram */}
           <div style={S.card}>
             <div style={S.head}>
               <div style={iconWrap()} title="Instagram">
@@ -411,7 +390,7 @@ export default function FlowChannels() {
                 <InstagramConnectButton
                   tenant={tenant}
                   label={ig.connected ? "Conectar novo Instagram" : "Conectar Instagram"}
-                  className={S.btnPrimary}
+                  style={S.btnPrimary}
                   onConnected={({ ig_user_id, ig_username, page_name }) =>
                     connectThisFlow(
                       "instagram",
@@ -424,7 +403,7 @@ export default function FlowChannels() {
             </div>
           </div>
 
-         
+          {/* Telegram */}
           <div style={S.card}>
             <div style={S.head}>
               <div style={iconWrap()} title="Telegram">
@@ -442,15 +421,20 @@ export default function FlowChannels() {
               </div>
             </div>
 
+            {/* Exibir dados do bot APENAS quando houver vínculo no flow */}
             <Row
               k="Bot"
               v={
-                tgTenant.username
-                  ? `@${tgTenant.username.replace(/^@/, "")}`
+                isBound("telegram") && (tgBinding?.display_name || tgTenant.username)
+                  ? `@${String((tgBinding?.display_name || tgTenant.username)).replace(/^@/, "")}`
                   : "—"
               }
             />
-            <Row k="Bot ID" v={tgTenant.botId || "—"} mono />
+            <Row
+              k="Bot ID"
+              v={isBound("telegram") ? (tgBinding?.channel_key || tgTenant.botId || "—") : "—"}
+              mono
+            />
 
             <div style={S.actions}>
               {isBound("telegram") ? (
