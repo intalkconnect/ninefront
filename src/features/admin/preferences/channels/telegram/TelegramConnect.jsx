@@ -25,14 +25,18 @@ function genSecretHex(bytes = 32) {
 }
 
 export default function TelegramConnect() {
-  const tenant = useMemo(() => getTenantFromHost(), []);
+  const tenant   = useMemo(() => getTenantFromHost(), []);
   const navigate = useNavigate();
   const location = useLocation();
-  const backTo = location.state?.returnTo || "/channels";
+
+  // flowId pode vir por state (preferido) ou por query (?flow_id=)
+  const flowId   = location.state?.flowId || new URLSearchParams(location.search).get("flow_id") || null;
+  const backTo   = location.state?.returnTo || (flowId ? `/development/flowhub/${flowId}/channels` : "/settings/channels");
 
   // status
   const [checking, setChecking] = useState(true);
-  const [connected, setConnected] = useState(false);
+  const [connected, setConnected] = useState(false); // conexão no tenant
+  const [bound, setBound] = useState(false);         // vinculado a ESTE flow
   const [botId, setBotId] = useState("");
   const [username, setUsername] = useState("");
 
@@ -47,9 +51,10 @@ export default function TelegramConnect() {
   async function loadStatus() {
     setChecking(true);
     try {
-      const s = await apiGet(`/telegram/status?subdomain=${tenant}`);
+      const s = await apiGet(`/telegram/status?subdomain=${tenant}${flowId ? `&flow_id=${flowId}` : ""}`);
       const isConn = !!s?.connected;
       setConnected(isConn);
+      setBound(!!s?.bound);               // << flow-aware
       setBotId(s?.bot_id || "");
       setUsername(s?.username || "");
     } catch {
@@ -68,18 +73,31 @@ export default function TelegramConnect() {
     loadStatus();
     setSecret(genSecretHex());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant]);
+  }, [tenant, flowId]);
 
   async function handleConnect() {
-    if (connected) return;
+    // Se já estiver conectado e já vinculado a este flow, nada a fazer
+    if (connected && bound) return;
     if (!tenant) return toast.warn("Tenant não identificado.");
-    if (!token.trim()) return toast.warn("Informe o Bot Token.");
+    if (!token.trim() && !connected) return toast.warn("Informe o Bot Token.");
 
     setLoading(true);
     const id = toast.loading("Conectando Telegram…");
     try {
-      const j = await apiPost("/telegram/connect", { subdomain: tenant, botToken: token.trim(), secret });
+      const payload = {
+        subdomain: tenant,
+        secret,
+      };
+
+      // se ainda NÃO há conexão no tenant, precisa do token
+      if (!connected) payload.botToken = token.trim();
+
+      // sempre que vier flowId, o backend já cria/garante o vínculo em flow_channels
+      if (flowId) payload.flow_id = flowId;
+
+      const j = await apiPost("/telegram/connect", payload);
       if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
+
       toast.update(id, { render: "Telegram conectado com sucesso!", type: "success", isLoading: false, autoClose: 2500 });
       await loadStatus();
       setToken("");
@@ -92,17 +110,19 @@ export default function TelegramConnect() {
   }
 
   async function handleDisconnect() {
-    // Caso tenha endpoint: await apiPost("/telegram/disconnect", { subdomain: tenant });
+    // Caso tenha endpoint: await apiPost("/telegram/disconnect", { subdomain: tenant, flow_id: flowId });
     toast.info("Função de desconexão ainda não implementada.");
   }
 
-  const title = connected ? "Telegram — Conectado" : "Telegram — Conectar";
+  const title = connected
+    ? (bound ? "Telegram — Conectado neste flow" : "Telegram — Conectado (outro flow)")
+    : "Telegram — Conectar";
 
   return (
     <div className={styles.page}>
       {/* breadcrumbs */}
       <div className={styles.breadcrumbs}>
-        <span className={styles.bcLink} onClick={() => navigate("/settings/channels")}>Canais</span>
+        <span className={styles.bcLink} onClick={() => navigate(backTo)}>Canais do Flow</span>
         <span className={styles.bcSep}>/</span>
         <span>Telegram</span>
       </div>
@@ -111,7 +131,10 @@ export default function TelegramConnect() {
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <h1 className={styles.title}>{title}</h1>
-          <div className={styles.metaRow}>Tenant: <strong>{tenant || "—"}</strong></div>
+          <div className={styles.metaRow}>
+            Tenant: <strong>{tenant || "—"}</strong>
+            {flowId && <span style={{ marginLeft: 8 }}>• Flow: <strong>{flowId}</strong></span>}
+          </div>
         </div>
 
         <div className={styles.headerActions}>
@@ -129,11 +152,11 @@ export default function TelegramConnect() {
           <div className={styles.loading}>Carregando…</div>
         ) : (
           <>
-            {connected ? (
+            {connected && bound ? (
               <>
                 <div className={styles.statusBar}>
                   <span className={styles.statusChipOk}>
-                    <CheckCircle2 size={14}/> Conectado
+                    <CheckCircle2 size={14}/> Conectado • Vinculado a este flow
                   </span>
                 </div>
 
@@ -168,10 +191,7 @@ export default function TelegramConnect() {
                 </div>
 
                 <div className={styles.actionsRow}>
-                  <button
-                    className={styles.btnDanger}
-                    onClick={handleDisconnect}
-                  >
+                  <button className={styles.btnDanger} onClick={handleDisconnect}>
                     Desconectar
                   </button>
                 </div>
@@ -185,84 +205,72 @@ export default function TelegramConnect() {
                   </div>
                   <h2 className={styles.heroTitle}>Conecte seu Bot do Telegram</h2>
                   <p className={styles.heroSubtitle}>
-                    Configure seu bot do Telegram para integração com o sistema de mensageria
+                    {connected
+                      ? "Já há um bot conectado neste tenant. Clique em Conectar para vinculá-lo a este flow."
+                      : "Configure seu bot do Telegram para integração com o sistema de mensageria."}
                   </p>
                 </div>
 
-                <div className={styles.section}>
-                  <div className={styles.formRow}>
-                    <label className={styles.label}>Bot Token *</label>
-                    <input
-                      className={styles.input}
-                      type="text"
-                      placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      autoComplete="off"
-                      disabled={loading}
-                    />
-                  </div>
+                {/* Se o tenant ainda não tem bot, pedimos o token */}
+                {!connected && (
+                  <div className={styles.section}>
+                    <div className={styles.formRow}>
+                      <label className={styles.label}>Bot Token *</label>
+                      <input
+                        className={styles.input}
+                        type="text"
+                        placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        autoComplete="off"
+                        disabled={loading}
+                      />
+                    </div>
 
-                  <div className={styles.hintRow}>
-                    <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
-                  </div>
+                    <div className={styles.hintRow}>
+                      <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
+                    </div>
 
-                  <div className={styles.instructionsToggle}>
-                    <button
-                      className={styles.instructionsBtn}
-                      onClick={() => setShowInstructions(!showInstructions)}
-                    >
-                      <AlertCircle size={14} />
-                      {showInstructions ? 'Ocultar' : 'Como obter o Bot Token?'}
-                    </button>
-                  </div>
+                    <div className={styles.instructionsToggle}>
+                      <button
+                        className={styles.instructionsBtn}
+                        onClick={() => setShowInstructions(!showInstructions)}
+                      >
+                        <AlertCircle size={14} />
+                        {showInstructions ? "Ocultar" : "Como obter o Bot Token?"}
+                      </button>
+                    </div>
 
-                  {showInstructions && (
-                    <div className={styles.instructionsCard}>
-                      <h4 className={styles.instructionsTitle}>Criando um Bot no Telegram</h4>
-                      <div className={styles.instructionsList}>
-                        <div className={styles.instructionItem}>
-                          <div className={styles.instructionStep}>1</div>
-                          <div className={styles.instructionText}>
-                            <strong>Abra o Telegram</strong> e procure por <code>@BotFather</code>
-                          </div>
-                        </div>
-                        <div className={styles.instructionItem}>
-                          <div className={styles.instructionStep}>2</div>
-                          <div className={styles.instructionText}>
-                            <strong>Digite</strong> <code>/newbot</code> e siga as instruções
-                          </div>
-                        </div>
-                        <div className={styles.instructionItem}>
-                          <div className={styles.instructionStep}>3</div>
-                          <div className={styles.instructionText}>
-                            <strong>Escolha um nome</strong> para seu bot (ex: "Meu Sistema Bot")
-                          </div>
-                        </div>
-                        <div className={styles.instructionItem}>
-                          <div className={styles.instructionStep}>4</div>
-                          <div className={styles.instructionText}>
-                            <strong>Escolha um username</strong> que termine com "bot" (ex: "meusistema_bot")
-                          </div>
-                        </div>
-                        <div className={styles.instructionItem}>
-                          <div className={styles.instructionStep}>5</div>
-                          <div className={styles.instructionText}>
-                            <strong>Copie o token</strong> fornecido pelo BotFather e cole no campo acima
-                          </div>
+                    {showInstructions && (
+                      <div className={styles.instructionsCard}>
+                        <h4 className={styles.instructionsTitle}>Criando um Bot no Telegram</h4>
+                        <div className={styles.instructionsList}>
+                          {[
+                            ["1", <>Abra o Telegram e procure por <code>@BotFather</code></>],
+                            ["2", <>Digite <code>/newbot</code> e siga as instruções</>],
+                            ["3", <>Escolha um nome para seu bot (ex: "Meu Sistema Bot")</>],
+                            ["4", <>Escolha um username que termine com <code>bot</code> (ex: "meusistema_bot")</>],
+                            ["5", <>Copie o token fornecido e cole no campo acima</>],
+                          ].map(([n, content]) => (
+                            <div className={styles.instructionItem} key={n}>
+                              <div className={styles.instructionStep}>{n}</div>
+                              <div className={styles.instructionText}>{content}</div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 <div className={styles.actionsRow}>
                   <button
                     className={styles.btnTgPrimary}
                     onClick={handleConnect}
-                    disabled={loading || connected || !token.trim()}
+                    disabled={loading || (!connected && !token.trim())}
+                    title={connected ? "Vincular este bot ao flow" : "Conectar bot ao tenant e vincular ao flow"}
                   >
-                    {loading ? "Conectando..." : "Conectar Bot"}
+                    {loading ? "Conectando..." : (connected ? "Vincular ao flow" : "Conectar Bot")}
                   </button>
                 </div>
               </>
