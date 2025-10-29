@@ -3,16 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
-
-// Ícones
-import {
-  Bot,
-  MessageCircle as WhatsIcon,
-  Instagram as InstaIcon,
-  Send as TgIcon,
-  Globe as WebIcon,
-  ChevronRight,
-} from "lucide-react";
+import { Bot, MessageCircle, Instagram as IgIcon, MessageSquareText as FbIcon, Send, Link as LinkIcon } from "lucide-react";
 
 /* =========================
  * Tema
@@ -23,26 +14,20 @@ const THEME = {
   text: "#0f172a",
   textMuted: "#475569",
   border: "#e2e8f0",
+  borderMuted: "#cbd5e1",
   shadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
-  ring: "0 0 0 3px rgba(37, 99, 235, 0.15)",
+  brand: "#2563eb",
+  info: "#0ea5e9",
 };
 
-/* =========================
- * Helpers
- * ========================= */
-const channelIcon = (type) => {
-  const t = String(type || "").toLowerCase();
-  if (t === "whatsapp") return <WhatsIcon size={16} />;
-  if (t === "instagram") return <InstaIcon size={16} />;
-  if (t === "telegram") return <TgIcon size={16} />;
-  return <WebIcon size={16} />;
+const CHANNELS = ["whatsapp", "facebook", "instagram", "telegram"];
+const CHANNEL_ICONS = {
+  whatsapp: <MessageCircle size={14} />,
+  facebook: <FbIcon size={14} />,
+  instagram: <IgIcon size={14} />,
+  telegram: <Send size={14} />,
 };
 
-const CHANNELS_ORDER = ["whatsapp", "instagram", "telegram", "web"];
-
-/* =========================
- * FlowHub
- * ========================= */
 export default function FlowHub() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -52,7 +37,7 @@ export default function FlowHub() {
   const load = async () => {
     try {
       setLoading(true);
-      // Lista de flows com últimas versões e deploys
+      // usa a rota /flows/meta enriquecida com "channels"
       const data = await apiGet("/flows/meta");
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -63,27 +48,22 @@ export default function FlowHub() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
-  // Abre Builder com meta mínima
-  const handleOpenBuilder = (flow, preferredChannelKey) => {
-    navigate(`/development/studio/${flow.id}`, {
+  // abre o Builder do flow (mantemos canal "visual" como escolha local)
+  const handleOpenBuilder = (flow, channel) => {
+    navigate(`/admin/development/studio/${flow.id}`, {
       state: {
-        meta: {
-          flowId: flow.id,
-          name: flow.name,
-          // se você já tiver channelKey preferido, passe aqui
-          channelKey: preferredChannelKey || null,
-        },
+        meta: { flowId: flow.id, name: flow.name, channel },
       },
     });
   };
 
-  // Abre pagina de canais por flow
-  const handleOpenChannels = (flowId) => {
-    navigate(`/development/flowhub/${flowId}/channels`);
+  // único ponto do card para editar canais do flow
+  const handleOpenFlowChannels = (flow) => {
+    navigate(`/admin/development/studio/${flow.id}/channels`, {
+      state: { from: "/admin/development/flowhub" },
+    });
   };
 
   return (
@@ -111,15 +91,13 @@ export default function FlowHub() {
               fontWeight: 800,
             }}
           >
-            <Bot size={18} />
             FlowHub
           </span>
         </div>
-
         <button
           onClick={() => setShowNewModal(true)}
           style={{
-            background: "#2563eb",
+            background: THEME.brand,
             color: "#fff",
             border: "none",
             padding: "10px 14px",
@@ -132,7 +110,7 @@ export default function FlowHub() {
         </button>
       </div>
 
-      {/* Grid de cards */}
+      {/* Grid */}
       {loading ? (
         <div style={{ color: THEME.textMuted }}>Carregando…</div>
       ) : rows.length === 0 ? (
@@ -151,13 +129,14 @@ export default function FlowHub() {
             <FlowCard
               key={f.id}
               flow={f}
-              onOpenBuilder={() => handleOpenBuilder(f, null)}
-              onOpenChannels={() => handleOpenChannels(f.id)}
+              onOpenBuilder={(channel) => handleOpenBuilder(f, channel)}
+              onOpenChannels={() => handleOpenFlowChannels(f)} // único ponto clicável para editar canais
             />
           ))}
         </div>
       )}
 
+      {/* Modal Novo Flow */}
       {showNewModal && (
         <NewFlowModal
           onClose={() => setShowNewModal(false)}
@@ -171,13 +150,13 @@ export default function FlowHub() {
               setShowNewModal(false);
               await load();
 
-              // Abre o Builder do novo flow
+              // abre já o Builder do novo flow
               navigate(`/admin/development/studio/${created.id}`, {
                 state: {
                   meta: {
                     flowId: created.id,
                     name: created.name,
-                    channelKey: null,
+                    channel: "whatsapp",
                   },
                 },
               });
@@ -192,46 +171,17 @@ export default function FlowHub() {
   );
 }
 
-/* =========================
- * Card do Flow
- * ========================= */
 function FlowCard({ flow, onOpenBuilder, onOpenChannels }) {
-  // Dados vindos de /flows/meta
   const lastPublished = flow?.last_published ?? null;
   const lastVersion = flow?.last_version ?? null;
   const deploys = Array.isArray(flow?.active_deploys) ? flow.active_deploys : [];
+  const channelsBound = Array.isArray(flow?.channels) ? flow.channels : [];
 
-  // Carrega canais desse flow on-demand
-  const [channels, setChannels] = useState([]);
-  const [chLoading, setChLoading] = useState(true);
-
-  const loadChannels = async () => {
-    try {
-      setChLoading(true);
-      const rows = await apiGet(`/flows/${flow.id}/channels`);
-      setChannels(Array.isArray(rows) ? rows : []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setChLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadChannels();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [flow?.id]);
-
-  // Ordena canais pelos tipos padrão
-  const sortedChannels = useMemo(() => {
-    return [...channels].sort((a, b) => {
-      const ai = CHANNELS_ORDER.indexOf((a.channel_type || "").toLowerCase());
-      const bi = CHANNELS_ORDER.indexOf((b.channel_type || "").toLowerCase());
-      const as = ai === -1 ? 999 : ai;
-      const bs = bi === -1 ? 999 : bi;
-      return as - bs;
-    });
-  }, [channels]);
+  // canal “sugerido”: se tem algum deploy usa o primeiro canal do deploy; senão "whatsapp"
+  const suggestedChannel = useMemo(() => {
+    if (deploys.length > 0) return deploys[0].channel || "whatsapp";
+    return "whatsapp";
+  }, [deploys]);
 
   return (
     <div
@@ -242,41 +192,37 @@ function FlowCard({ flow, onOpenBuilder, onOpenChannels }) {
         padding: 14,
         display: "flex",
         flexDirection: "column",
-        gap: 12,
+        gap: 10,
         boxShadow: THEME.shadow,
       }}
     >
-      {/* badge Flow */}
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 12,
-          fontWeight: 700,
-          borderRadius: 999,
-          border: `1px solid ${THEME.border}`,
-          padding: "4px 10px",
-          background: "#f8fafc",
-          width: "fit-content",
-          color: THEME.text,
-        }}
-      >
-        <Bot size={14} />
-        flow
+      {/* Bag "flow" */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            padding: "3px 8px",
+            borderRadius: 999,
+            background: "#eef2ff",
+            color: "#3730a3",
+            fontWeight: 700,
+          }}
+        >
+          <Bot size={14} /> flow
+        </span>
       </div>
 
-      {/* Título + descrição */}
-      <div style={{ display: "grid", gap: 4 }}>
-        <div style={{ fontWeight: 800 }}>{flow.name}</div>
-        {flow.description && (
-          <div style={{ fontSize: 13, color: THEME.textMuted }}>
-            {flow.description}
-          </div>
-        )}
-      </div>
+      <div style={{ fontWeight: 800 }}>{flow.name}</div>
+      {flow.description && (
+        <div style={{ fontSize: 13, color: THEME.textMuted }}>
+          {flow.description}
+        </div>
+      )}
 
-      {/* Versões */}
+      {/* Meta versões */}
       <div
         style={{
           fontSize: 12,
@@ -294,13 +240,82 @@ function FlowCard({ flow, onOpenBuilder, onOpenChannels }) {
         </span>
       </div>
 
-      {/* Deploys ativos (resumo) */}
+      {/* Linha de Canais (informativa) + único CTA para editar */}
+      <div
+        style={{
+          borderTop: `1px solid ${THEME.border}`,
+          paddingTop: 8,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {channelsBound.length ? (
+            channelsBound.slice(0, 6).map((c) => (
+              <span
+                key={`${c.channel_type}:${c.channel_id}`}
+                title={`${c.channel_type}`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 28,
+                  height: 28,
+                  borderRadius: 8,
+                  border: `1px solid ${THEME.border}`,
+                  background: "#fff",
+                }}
+              >
+                {CHANNEL_ICONS[c.channel_type] || <MessageCircle size={14} />}
+              </span>
+            ))
+          ) : (
+            <span style={{ fontSize: 12, color: THEME.textMuted }}>
+              Nenhum canal vinculado
+            </span>
+          )}
+        </div>
+
+        {/* ÚNICO local clicável do card para editar canais */}
+        <button
+          onClick={onOpenChannels}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            padding: "6px 10px",
+            borderRadius: 8,
+            border: `1px solid ${THEME.border}`,
+            background: "#fff",
+            cursor: "pointer",
+            fontWeight: 700,
+          }}
+          title="Editar canais deste flow"
+        >
+          <LinkIcon size={14} />
+          Canais do Flow
+        </button>
+      </div>
+
+      {/* Deploys ativos (se houver) */}
       {deploys.length > 0 ? (
-        <div style={{ borderTop: `1px solid ${THEME.border}`, paddingTop: 8 }}>
+        <div>
           <div style={{ fontSize: 12, marginBottom: 6 }}>Deploys ativos</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {deploys.slice(0, 4).map((d) => (
-              <span key={d.id} style={pill}>
+              <span
+                key={d.id}
+                style={{
+                  fontSize: 12,
+                  border: `1px solid ${THEME.border}`,
+                  borderRadius: 999,
+                  padding: "4px 10px",
+                  background: "#f8fafc",
+                }}
+              >
                 {d.channel} · v{d.version}
               </span>
             ))}
@@ -312,74 +327,58 @@ function FlowCard({ flow, onOpenBuilder, onOpenChannels }) {
         </div>
       )}
 
-      {/* Canais vinculados (ícones clicáveis) */}
-      <div
-        style={{
-          borderTop: `1px solid ${THEME.border}`,
-          paddingTop: 8,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-        }}
-      >
-        <div style={{ fontSize: 12, color: THEME.textMuted }}>Canais</div>
-
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {chLoading ? (
-            <span style={{ fontSize: 12, color: THEME.textMuted }}>
-              carregando…
-            </span>
-          ) : sortedChannels.length === 0 ? (
-            <button
-              onClick={onOpenChannels}
-              style={linkBtnSmall}
-              title="Configurar canais deste flow"
-            >
-              Configurar canais <ChevronRight size={14} />
-            </button>
-          ) : (
-            <>
-              {sortedChannels.slice(0, 6).map((c) => (
-                <button
-                  key={c.id}
-                  onClick={onOpenChannels}
-                  title={`${c.display_name || c.channel_key} (${c.channel_type})`}
-                  style={channelIconBtn(c.is_active)}
-                >
-                  {channelIcon(c.channel_type)}
-                </button>
-              ))}
-              {sortedChannels.length > 6 && (
-                <button onClick={onOpenChannels} style={moreBtn}>
-                  +{sortedChannels.length - 6}
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Ações */}
-      <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={onOpenBuilder} style={primaryBtn}>
-          Editar
-        </button>
-        <button onClick={onOpenChannels} style={ghostBtn}>
-          Canais
-        </button>
+      {/* Ações (apenas Editar Builder; canal é editado no CTA único acima) */}
+      <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+        <ChannelPicker
+          defaultValue={suggestedChannel}
+          onOpen={(ch) => onOpenBuilder(ch)}
+        />
       </div>
     </div>
   );
 }
 
-/* =========================
- * Modal: Novo Flow
- * ========================= */
+function ChannelPicker({ defaultValue, onOpen }) {
+  const [channel, setChannel] = useState(defaultValue || CHANNELS[0]);
+  return (
+    <>
+      <select
+        value={channel}
+        onChange={(e) => setChannel(e.target.value)}
+        style={{
+          border: `1px solid ${THEME.border}`,
+          borderRadius: 8,
+          padding: "8px 10px",
+          background: "#fff",
+        }}
+      >
+        {CHANNELS.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={() => onOpen(channel)}
+        style={{
+          background: THEME.info,
+          color: "#fff",
+          border: "none",
+          padding: "8px 12px",
+          borderRadius: 8,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        Editar
+      </button>
+    </>
+  );
+}
+
 function NewFlowModal({ onClose, onCreate }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-
   const canSave = name.trim().length > 0;
 
   return (
@@ -448,9 +447,7 @@ function NewFlowModal({ onClose, onCreate }) {
   );
 }
 
-/* =========================
- * Estilos compartilhados
- * ========================= */
+/* estilos menores */
 const overlay = {
   position: "fixed",
   inset: 0,
@@ -477,30 +474,13 @@ const input = {
   outline: "none",
   width: "100%",
 };
-
-const pill = {
-  fontSize: 12,
-  border: `1px solid ${THEME.border}`,
-  borderRadius: 999,
-  padding: "4px 10px",
-  background: "#f8fafc",
-};
-
 const linkBtn = {
   background: "transparent",
-  color: "#2563eb",
+  color: THEME.brand,
   border: "none",
   fontWeight: 700,
   cursor: "pointer",
 };
-const linkBtnSmall = {
-  ...linkBtn,
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 6,
-  padding: 0,
-};
-
 const ghostBtn = {
   background: "#fff",
   border: `1px solid ${THEME.border}`,
@@ -510,38 +490,11 @@ const ghostBtn = {
   fontWeight: 700,
 };
 const primaryBtn = {
-  background: "#2563eb",
+  background: THEME.brand,
   color: "#fff",
   border: "none",
   padding: "8px 12px",
   borderRadius: 8,
   cursor: "pointer",
-  fontWeight: 700,
-};
-
-const channelIconBtn = (active) => ({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 32,
-  height: 32,
-  borderRadius: 8,
-  background: active ? "#ecfeff" : "#fff",
-  border: `1px solid ${active ? "#a5f3fc" : THEME.border}`,
-  cursor: "pointer",
-  transition: "box-shadow .12s ease, transform .08s ease",
-});
-const moreBtn = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: 32,
-  minWidth: 32,
-  padding: "0 8px",
-  borderRadius: 8,
-  background: "#fff",
-  border: `1px solid ${THEME.border}`,
-  cursor: "pointer",
-  fontSize: 12,
   fontWeight: 700,
 };
