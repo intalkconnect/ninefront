@@ -8,9 +8,9 @@ import { apiGet } from "../../../shared/apiClient";
 import { toast } from "react-toastify";
 
 // botões originais (como no Channels original que você enviou)
-import WhatsAppEmbeddedSignupButton from "../preferences/components/WhatsAppEmbeddedSignupButton";
-import FacebookConnectButton from "../preferences/components/FacebookConnectButton";
-import InstagramConnectButton from "../preferences/components/InstagramConnectButton";
+import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
+import FacebookConnectButton from "../components/FacebookConnectButton";
+import InstagramConnectButton from "../components/InstagramConnectButton";
 
 /* Logos reais */
 const WhatsAppLogo = ({ size = 18 }) => (
