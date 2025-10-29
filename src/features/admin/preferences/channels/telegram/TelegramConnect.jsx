@@ -12,6 +12,7 @@ function getTenantFromHost() {
   if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
   return parts[0] || "";
 }
+
 function genSecretHex(bytes = 32) {
   if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
     const arr = new Uint8Array(bytes);
@@ -28,24 +29,27 @@ export default function TelegramConnect() {
   const navigate = useNavigate();
   const location = useLocation();
   const backTo = location.state?.returnTo || "/channels";
-  const flowId = location.state?.flowId || null; // ✅ flow atual (se veio do FlowChannels)
+  const flowId  = location.state?.flowId || null;
 
+  // status do tenant (somente info)
   const [checking, setChecking] = useState(true);
   const [connected, setConnected] = useState(false);
   const [botId, setBotId] = useState("");
   const [username, setUsername] = useState("");
 
+  // form
   const [token, setToken] = useState("");
   const [secret, setSecret] = useState(genSecretHex());
   const [loading, setLoading] = useState(false);
+
   const [showInstructions, setShowInstructions] = useState(false);
 
   async function loadStatus() {
     setChecking(true);
     try {
-      // flow-aware: pergunta também se este flow já está bound
-      const s = await apiGet(`/telegram/status?subdomain=${tenant}${flowId ? `&flow_id=${flowId}` : ""}`);
-      setConnected(!!s?.connected);
+      const s = await apiGet(`/telegram/status?subdomain=${tenant}`);
+      const isConn = !!s?.connected;
+      setConnected(isConn);
       setBotId(s?.bot_id || "");
       setUsername(s?.username || "");
     } catch {
@@ -64,7 +68,7 @@ export default function TelegramConnect() {
     loadStatus();
     setSecret(genSecretHex());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant, flowId]);
+  }, [tenant]);
 
   async function handleConnect() {
     if (!tenant) return toast.warn("Tenant não identificado.");
@@ -73,36 +77,28 @@ export default function TelegramConnect() {
     setLoading(true);
     const id = toast.loading("Conectando Telegram…");
     try {
-      // conecta no tenant e (se possível) já seta webhook
-      const j = await apiPost("/telegram/connect", {
-        subdomain: tenant,
-        botToken: token.trim(),
-        secret,
-        flow_id: flowId || undefined, // ⚠️ backend vai aproveitar para já vincular
-      });
+      // 1) conecta o bot no tenant
+      const j = await apiPost("/telegram/connect", { subdomain: tenant, botToken: token.trim(), secret });
       if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
 
-      const newBotId = j.bot_id;
-      const newUsername = j.username;
-
-      // garantia: se backend não vinculou (ex.: flowId ausente), vincula aqui
-      if (flowId && newBotId) {
-        try {
-          await apiPost(`/flows/${flowId}/channels`, {
-            channel_type: "telegram",
-            channel_key: newBotId,
-            display_name: newUsername || "Telegram",
-          });
-        } catch (e) {
-          // não quebra o fluxo — apenas alerta
-          console.warn("bind pós-connect falhou:", e);
-        }
+      // 2) se veio flowId, vincula este flow imediatamente
+      if (flowId && j.bot_id) {
+        await apiPost(`/flows/${flowId}/channels`, {
+          channel_type: "telegram",
+          channel_key: j.bot_id,
+          display_name: j.username || "Telegram",
+        });
       }
 
-      toast.update(id, { render: "Telegram conectado com sucesso!", type: "success", isLoading: false, autoClose: 2500 });
+      toast.update(id, { render: "Telegram conectado!", type: "success", isLoading: false, autoClose: 1800 });
       setToken("");
       setShowInstructions(false);
       await loadStatus();
+
+      // 3) volta para a tela do flow (se houver)
+      if (flowId) {
+        navigate(backTo || `/development/flowhub/${flowId}/channels`, { replace: true });
+      }
     } catch (e) {
       toast.update(id, { render: String(e?.message || e) || "Erro ao conectar.", type: "error", isLoading: false, autoClose: 3500 });
     } finally {
@@ -119,7 +115,7 @@ export default function TelegramConnect() {
   return (
     <div className={styles.page}>
       <div className={styles.breadcrumbs}>
-        <span className={styles.bcLink} onClick={() => navigate("/settings/channels")}>Canais</span>
+        <span className={styles.bcLink} onClick={() => navigate(backTo)}>Canais</span>
         <span className={styles.bcSep}>/</span>
         <span>Telegram</span>
       </div>
@@ -129,12 +125,12 @@ export default function TelegramConnect() {
           <h1 className={styles.title}>{title}</h1>
           <div className={styles.metaRow}>
             Tenant: <strong>{tenant || "—"}</strong>
-            {flowId && <> • Flow: <strong>{flowId}</strong></>}
+            {flowId ? <span style={{ marginLeft: 12 }}>• Flow: <strong>{flowId}</strong></span> : null}
           </div>
         </div>
 
         <div className={styles.headerActions}>
-          <button className={styles.backBtn} onClick={() => navigate(backTo, { state: { flowId } })}>
+          <button className={styles.backBtn} onClick={() => navigate(backTo)}>
             <ArrowLeft size={16}/> Voltar
           </button>
           <button className={styles.btn} onClick={loadStatus} disabled={checking}>
@@ -146,99 +142,97 @@ export default function TelegramConnect() {
       <div className={styles.editorCard}>
         {checking ? (
           <div className={styles.loading}>Carregando…</div>
-        ) : (
+        ) : connected ? (
           <>
-            {connected ? (
-              <>
-                <div className={styles.statusBar}>
-                  <span className={styles.statusChipOk}>
-                    <CheckCircle2 size={14}/> Conectado
-                  </span>
-                </div>
+            <div className={styles.statusBar}>
+              <span className={styles.statusChipOk}>
+                <CheckCircle2 size={14}/> Conectado
+              </span>
+            </div>
 
-                <div className={styles.kpiGrid}>
-                  <div className={styles.kvCard}>
-                    <div className={styles.kvTitle}>Bot</div>
-                    <div className={styles.kvValue}>{username ? `@${username}` : "—"}</div>
-                  </div>
-                  <div className={styles.kvCard}>
-                    <div className={styles.kvTitle}>Bot ID</div>
-                    <div className={styles.kvValueRow}>
-                      <span className={`${styles.kvValue} ${styles.mono}`}>{botId || "—"}</span>
-                      {botId && (
-                        <button
-                          className={styles.copyBtn}
-                          onClick={async () => {
-                            try { await navigator.clipboard.writeText(botId); toast.success("ID copiado!"); }
-                            catch { toast.error("Não foi possível copiar."); }
-                          }}
-                          title="Copiar ID"
-                        >
-                          <Copy size={14}/>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.actionsRow}>
-                  <button className={styles.btnDanger} onClick={handleDisconnect}>Desconectar</button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className={styles.heroSection}>
-                  <div className={styles.heroIcon}><Bot size={48} /></div>
-                  <h2 className={styles.heroTitle}>Conecte seu Bot do Telegram</h2>
-                  <p className={styles.heroSubtitle}>Após conectar, este bot será vinculado ao flow atual.</p>
-                </div>
-
-                <div className={styles.section}>
-                  <div className={styles.formRow}>
-                    <label className={styles.label}>Bot Token *</label>
-                    <input
-                      className={styles.input}
-                      type="text"
-                      placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      autoComplete="off"
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div className={styles.hintRow}>
-                    <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
-                  </div>
-
-                  <div className={styles.instructionsToggle}>
-                    <button className={styles.instructionsBtn} onClick={() => setShowInstructions(!showInstructions)}>
-                      <AlertCircle size={14} />
-                      {showInstructions ? 'Ocultar' : 'Como obter o Bot Token?'}
+            <div className={styles.kpiGrid}>
+              <div className={styles.kvCard}>
+                <div className={styles.kvTitle}>Bot</div>
+                <div className={styles.kvValue}>{username ? `@${username}` : "—"}</div>
+              </div>
+              <div className={styles.kvCard}>
+                <div className={styles.kvTitle}>Bot ID</div>
+                <div className={styles.kvValueRow}>
+                  <span className={`${styles.kvValue} ${styles.mono}`}>{botId || "—"}</span>
+                  {botId && (
+                    <button
+                      className={styles.copyBtn}
+                      onClick={async () => {
+                        try { await navigator.clipboard.writeText(botId); toast.success("ID copiado!"); }
+                        catch { toast.error("Não foi possível copiar."); }
+                      }}
+                      title="Copiar ID"
+                    >
+                      <Copy size={14}/>
                     </button>
-                  </div>
-
-                  {showInstructions && (
-                    <div className={styles.instructionsCard}>
-                      <h4 className={styles.instructionsTitle}>Criando um Bot no Telegram</h4>
-                      <ol className={styles.instructionsList}>
-                        <li>Abra o Telegram e procure por <code>@BotFather</code></li>
-                        <li>Envie <code>/newbot</code> e siga as instruções</li>
-                        <li>Defina um nome para o bot</li>
-                        <li>Defina um username que termine com <code>bot</code></li>
-                        <li>Copie o token fornecido e cole acima</li>
-                      </ol>
-                    </div>
                   )}
                 </div>
+              </div>
+            </div>
 
-                <div className={styles.actionsRow}>
-                  <button className={styles.btnTgPrimary} onClick={handleConnect} disabled={loading || !token.trim()}>
-                    {loading ? "Conectando..." : "Conectar Telegram"}
-                  </button>
+            <div className={styles.actionsRow}>
+              <button className={styles.btnDanger} onClick={handleDisconnect}>
+                Desconectar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className={styles.heroSection}>
+              <div className={styles.heroIcon}><Bot size={48} /></div>
+              <h2 className={styles.heroTitle}>Conecte seu Bot do Telegram</h2>
+              <p className={styles.heroSubtitle}>Este passo conecta no tenant e já vincula este flow (se veio com flowId).</p>
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.formRow}>
+                <label className={styles.label}>Bot Token *</label>
+                <input
+                  className={styles.input}
+                  type="text"
+                  placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  autoComplete="off"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className={styles.hintRow}>
+                <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
+              </div>
+
+              <div className={styles.instructionsToggle}>
+                <button className={styles.instructionsBtn} onClick={() => setShowInstructions(!showInstructions)}>
+                  <AlertCircle size={14} />
+                  {showInstructions ? 'Ocultar' : 'Como obter o Bot Token?'}
+                </button>
+              </div>
+
+              {showInstructions && (
+                <div className={styles.instructionsCard}>
+                  <h4 className={styles.instructionsTitle}>Criando um Bot no Telegram</h4>
+                  <ol className={styles.instructionsList}>
+                    <li><strong>Abra o Telegram</strong> e procure por <code>@BotFather</code></li>
+                    <li><strong>Digite</strong> <code>/newbot</code> e siga as instruções</li>
+                    <li><strong>Escolha um nome</strong> para seu bot</li>
+                    <li><strong>Escolha um username</strong> que termine com <code>bot</code></li>
+                    <li><strong>Copie o token</strong> gerado e cole acima</li>
+                  </ol>
                 </div>
-              </>
-            )}
+              )}
+            </div>
+
+            <div className={styles.actionsRow}>
+              <button className={styles.btnTgPrimary} onClick={handleConnect} disabled={loading || !token.trim()}>
+                {loading ? "Conectando..." : "Conectar Telegram"}
+              </button>
+            </div>
           </>
         )}
       </div>
