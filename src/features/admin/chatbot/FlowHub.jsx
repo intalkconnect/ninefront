@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
@@ -8,9 +8,9 @@ import {
   Instagram as IgIcon,
   MessageSquareText as FbIcon,
   Send,
-  Wifi,
   Plus,
   Workflow,
+  Wifi
 } from "lucide-react";
 
 /* =========================
@@ -26,9 +26,6 @@ const THEME = {
   brand: "#2563eb",
 };
 
-/* =========================
- * Ícones por tipo de canal
- * ========================= */
 const CHANNEL_ICONS = {
   whatsapp: <MessageCircle size={16} />,
   facebook: <FbIcon size={16} />,
@@ -36,73 +33,40 @@ const CHANNEL_ICONS = {
   telegram: <Send size={16} />,
 };
 
+/* util tenant -> para endpoints que exigirem no futuro */
+function getTenantFromHost() {
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname;
+  const parts = host.split(".");
+  if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
+  return parts[0] || "";
+}
+
 export default function FlowHub() {
+  const tenant = useMemo(() => getTenantFromHost(), []);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [showNewModal, setShowNewModal] = useState(false);
 
-  // Mapa de canais vinculados por flowId: { [flowId]: Array<{channel_type, channel_id, ...}> }
-  const [channelsByFlow, setChannelsByFlow] = useState({});
-  const [channelsLoading, setChannelsLoading] = useState(false);
-
-  // Carrega a lista de flows
-  const loadFlows = async () => {
+  const load = async () => {
     try {
       setLoading(true);
-      const data = await apiGet("/flows/meta");
-      const list = Array.isArray(data) ? data : [];
-      setRows(list);
-      return list;
+      // Agora /flows/meta já retorna channels [] vindos de hmg.flow_channels
+      const data = await apiGet(`/flows/meta${tenant ? `?subdomain=${tenant}` : ""}`);
+      setRows(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
       toast.error("Falha ao carregar flows");
-      setRows([]);
-      return [];
     } finally {
       setLoading(false);
     }
   };
 
-  // Carrega os channels vinculados (flow_channels) para todos os flows atuais
-  const loadChannelsForFlows = async (flows) => {
-    if (!flows || flows.length === 0) return;
-    setChannelsLoading(true);
-    try {
-      const results = await Promise.all(
-        flows.map(async (f) => {
-          try {
-            const arr = await apiGet(`/flows/${f.id}/channels`);
-            return [f.id, Array.isArray(arr) ? arr : []];
-          } catch (e) {
-            console.warn("Falha ao carregar channels do flow", f.id, e);
-            return [f.id, []];
-          }
-        })
-      );
-
-      const map = {};
-      for (const [id, arr] of results) {
-        map[id] = arr;
-      }
-      setChannelsByFlow(map);
-    } finally {
-      setChannelsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    (async () => {
-      const list = await loadFlows();
-      await loadChannelsForFlows(list);
-    })();
-  }, []);
-
-  // Recarrega tudo (flows + channels)
-  const reloadAll = async () => {
-    const list = await loadFlows();
-    await loadChannelsForFlows(list);
-  };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant]);
 
   const openStudio = (flow) => {
     navigate(`/development/studio/${flow.id}`, {
@@ -134,58 +98,33 @@ export default function FlowHub() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontWeight: 800 }}>FlowHub</span>
-          {(loading || channelsLoading) && (
-            <span style={{ fontSize: 12, color: THEME.textMuted }}>• carregando…</span>
-          )}
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={reloadAll}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              background: "#fff",
-              color: THEME.text,
-              border: `1px solid ${THEME.border}`,
-              padding: "10px 14px",
-              borderRadius: 10,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Recarregar
-          </button>
-
-          <button
-            onClick={() => setShowNewModal(true)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              background: THEME.brand,
-              color: "#fff",
-              border: "none",
-              padding: "10px 14px",
-              borderRadius: 10,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            <Plus size={16} />
-            Novo Flow
-          </button>
-        </div>
+        <button
+          onClick={() => setShowNewModal(true)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            background: THEME.brand,
+            color: "#fff",
+            border: "none",
+            padding: "10px 14px",
+            borderRadius: 10,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          <Plus size={16} />
+          Novo Flow
+        </button>
       </div>
 
       {/* Grid */}
       {loading ? (
         <div style={{ color: THEME.textMuted }}>Carregando…</div>
       ) : rows.length === 0 ? (
-        <div style={{ color: THEME.textMuted }}>
-          Nenhum flow ainda. Crie o primeiro!
-        </div>
+        <div style={{ color: THEME.textMuted }}>Nenhum flow ainda. Crie o primeiro!</div>
       ) : (
         <div
           style={{
@@ -198,8 +137,6 @@ export default function FlowHub() {
             <FlowCard
               key={f.id}
               flow={f}
-              channels={channelsByFlow[f.id] || []}
-              channelsLoading={channelsLoading}
               onOpenStudio={() => openStudio(f)}
               onOpenChannels={() => openFlowChannels(f)}
             />
@@ -219,8 +156,8 @@ export default function FlowHub() {
               });
               toast.success(`Flow "${created?.name}" criado!`);
               setShowNewModal(false);
-              // permanece no FlowHub e recarrega lista + channels por flow
-              await reloadAll();
+              // NÃO navegar para o Studio; permanece no FlowHub
+              await load();
             } catch (e) {
               console.error(e);
               toast.error("Erro ao criar flow");
@@ -232,15 +169,17 @@ export default function FlowHub() {
   );
 }
 
-function FlowCard({ flow, channels, channelsLoading, onOpenStudio, onOpenChannels }) {
+function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
   const lastPublished = flow?.last_published ?? null;
   const lastVersion = flow?.last_version ?? null;
 
-  // Tipos únicos vindos EXCLUSIVAMENTE de flow_channels
-  const types = (Array.isArray(channels) ? channels : [])
-    .map((c) => (c?.channel_type || "").toLowerCase())
-    .filter(Boolean);
-  const uniqueTypes = Array.from(new Set(types));
+  // SOMENTE canais vindos de flow_channels (backend garantiu isso)
+  const channelsBound = useMemo(() => {
+    const list = Array.isArray(flow?.channels) ? flow.channels : [];
+    return list
+      .filter((c) => c?.channel_type && c?.is_active)
+      .map((c) => String(c.channel_type).toLowerCase());
+  }, [flow]);
 
   return (
     <div
@@ -255,7 +194,7 @@ function FlowCard({ flow, channels, channelsLoading, onOpenStudio, onOpenChannel
         boxShadow: THEME.shadow,
       }}
     >
-      {/* Top row: bag + ações (ícones) */}
+      {/* Top row: bag + action icons (Canais / Studio) */}
       <div style={{ display: "flex", alignItems: "center" }}>
         {/* Bag "flow" */}
         <span
@@ -275,24 +214,14 @@ function FlowCard({ flow, channels, channelsLoading, onOpenStudio, onOpenChannel
           <Workflow size={14} /> flow
         </span>
 
-        <div
-          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}
-        >
-          {/* Botão ícone: Canais (por flow) */}
-          <IconButton
-            title="Canais do flow"
-            ariaLabel="Editar canais do flow"
-            onClick={onOpenChannels}
-          >
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Botão ícone: Canais (visual, limpo) */}
+          <IconButton title="Canais do flow" ariaLabel="Canais do flow" onClick={onOpenChannels}>
             <Wifi size={16} />
           </IconButton>
 
           {/* Botão ícone: Studio */}
-          <IconButton
-            title="Abrir Studio"
-            ariaLabel="Abrir Studio"
-            onClick={onOpenStudio}
-          >
+          <IconButton title="Abrir Studio" ariaLabel="Abrir Studio" onClick={onOpenStudio}>
             <Bot size={16} />
           </IconButton>
         </div>
@@ -301,9 +230,7 @@ function FlowCard({ flow, channels, channelsLoading, onOpenStudio, onOpenChannel
       {/* Título + descrição */}
       <div style={{ fontWeight: 800 }}>{flow.name}</div>
       {flow.description && (
-        <div style={{ fontSize: 13, color: THEME.textMuted }}>
-          {flow.description}
-        </div>
+        <div style={{ fontSize: 13, color: THEME.textMuted }}>{flow.description}</div>
       )}
 
       {/* Meta versões */}
@@ -316,15 +243,11 @@ function FlowCard({ flow, channels, channelsLoading, onOpenStudio, onOpenChannel
           flexWrap: "wrap",
         }}
       >
-        <span>
-          última publicada: <b>{lastPublished ?? "—"}</b>
-        </span>
-        <span>
-          última versão: <b>{lastVersion ?? "—"}</b>
-        </span>
+        <span>última publicada: <b>{lastPublished ?? "—"}</b></span>
+        <span>última versão: <b>{lastVersion ?? "—"}</b></span>
       </div>
 
-      {/* Só ícones dos canais realmente VINCULADOS neste flow */}
+      {/* Ícones dos canais vinculados */}
       <div
         style={{
           borderTop: `1px solid ${THEME.border}`,
@@ -332,14 +255,10 @@ function FlowCard({ flow, channels, channelsLoading, onOpenStudio, onOpenChannel
           display: "flex",
           gap: 6,
           flexWrap: "wrap",
-          minHeight: 34,
-          alignItems: "center",
         }}
       >
-        {channelsLoading ? (
-          <span style={{ fontSize: 12, color: THEME.textMuted }}>Carregando canais…</span>
-        ) : uniqueTypes.length ? (
-          uniqueTypes.slice(0, 8).map((type, idx) => (
+        {channelsBound.length ? (
+          channelsBound.slice(0, 8).map((type, idx) => (
             <span
               key={`${type}-${idx}`}
               title={type}
@@ -398,17 +317,9 @@ function NewFlowModal({ onClose, onCreate }) {
   return (
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <strong>Novo Flow</strong>
-          <button onClick={onClose} style={linkBtn}>
-            Fechar
-          </button>
+          <button onClick={onClose} style={linkBtn}>Fechar</button>
         </div>
 
         <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
@@ -429,25 +340,11 @@ function NewFlowModal({ onClose, onCreate }) {
           />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-            marginTop: 14,
-          }}
-        >
-          <button onClick={onClose} style={ghostBtn}>
-            Cancelar
-          </button>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+          <button onClick={onClose} style={ghostBtn}>Cancelar</button>
           <button
             disabled={!canSave}
-            onClick={() =>
-              onCreate({
-                name: name.trim(),
-                description: description.trim() || "",
-              })
-            }
+            onClick={() => onCreate({ name: name.trim(), description: description.trim() || "" })}
             style={{
               ...primaryBtn,
               ...(canSave ? {} : { opacity: 0.6, cursor: "not-allowed" }),
@@ -474,15 +371,15 @@ const overlay = {
 };
 const modal = {
   background: "#fff",
-  border: `1px solid #e2e8f0`,
+  border: `1px solid ${THEME.border}`,
   borderRadius: 12,
   width: "min(520px, 96vw)",
   padding: 16,
-  boxShadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
+  boxShadow: THEME.shadow,
 };
-const label = { fontSize: 12, color: "#475569" };
+const label = { fontSize: 12, color: THEME.textMuted };
 const input = {
-  border: `1px solid #e2e8f0`,
+  border: `1px solid ${THEME.border}`,
   borderRadius: 8,
   padding: "10px 12px",
   outline: "none",
@@ -490,21 +387,21 @@ const input = {
 };
 const linkBtn = {
   background: "transparent",
-  color: "#2563eb",
+  color: THEME.brand,
   border: "none",
   fontWeight: 700,
   cursor: "pointer",
 };
 const ghostBtn = {
   background: "#fff",
-  border: `1px solid #e2e8f0`,
+  border: `1px solid ${THEME.border}`,
   padding: "8px 12px",
   borderRadius: 8,
   cursor: "pointer",
   fontWeight: 700,
 };
 const primaryBtn = {
-  background: "#2563eb",
+  background: THEME.brand,
   color: "#fff",
   border: "none",
   padding: "8px 12px",
