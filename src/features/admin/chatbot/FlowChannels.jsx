@@ -1,14 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle2, RefreshCw } from "lucide-react";
+import { ArrowLeft, CheckCircle2, RefreshCw, UserCog, Wifi } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import { toast } from "react-toastify";
 
-import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
-import FacebookConnectButton from "../components/FacebookConnectButton";
-import InstagramConnectButton from "../components/InstagramConnectButton";
-
-/* ========= util: tenant ========= */
+/* ===== util ===== */
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname;
@@ -24,7 +20,7 @@ function formatPhone(p) {
   return `+${digits}`;
 }
 
-/* ========= Brand icons originais ========= */
+/* ===== brand icons originais ===== */
 function BrandIcon({ type, size = 18 }) {
   const s = { width: size, height: size, display: "block" };
   switch (type) {
@@ -66,7 +62,7 @@ function BrandIcon({ type, size = 18 }) {
   }
 }
 
-/* ========= estilo ========= */
+/* ===== estilo ===== */
 const S = {
   page: { padding: 16, minHeight: "100vh", background: "#f9fafb" },
   header: {
@@ -81,11 +77,16 @@ const S = {
   chipOk: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#16a34a" },
   chipOff: { fontSize: 12, color: "#64748b" },
   kv: { display: "grid", gridTemplateColumns: "120px 1fr", fontSize: 13, gap: 6, padding: "4px 0" },
-  k: { color: "#475569" }, v: { color: "#0f172a", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" },
-  actions: { display: "flex", gap: 8, marginTop: 10 },
+  k: { color: "#475569" }, v: { color: "#0f172a", fontFamily: "ui-monospace, Menlo, monospace" },
+  actions: { display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" },
   btn: { border: "1px solid #e2e8f0", background: "#fff", padding: "8px 10px", borderRadius: 8, fontWeight: 700, cursor: "pointer" },
   btnPrimary: { background: "#2563eb", color: "#fff", padding: "8px 10px", borderRadius: 8, border: "none", fontWeight: 700, cursor: "pointer" },
+  btnGhost: { border: "1px solid #e2e8f0", background: "#fff", padding: "8px 10px", borderRadius: 8, fontWeight: 700, cursor: "pointer" },
 };
+
+import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupButton";
+import FacebookConnectButton from "../components/FacebookConnectButton";
+import InstagramConnectButton from "../components/InstagramConnectButton";
 
 export default function FlowChannels() {
   const { flowId } = useParams();
@@ -94,19 +95,18 @@ export default function FlowChannels() {
 
   const [loading, setLoading] = useState(true);
 
-  // status do tenant (apenas para exibir dados — NÃO controla o CTA)
+  // status do tenant (informativo)
   const [wa, setWa] = useState({ connected: false, id: "", display: "" });
   const [fb, setFb] = useState({ connected: false, pageId: "", pageName: "" });
   const [ig, setIg] = useState({ connected: false, igUserId: "", igUsername: "", pageName: "" });
   const [tg, setTg] = useState({ connected: false, bound: false, botId: "", username: "" });
 
-  // bindings do flow
-  const [bindings, setBindings] = useState([]); // [{channel_type, channel_key, display_name, is_active}]
+  // vínculos do flow
+  const [bindings, setBindings] = useState([]); // rows de flow_channels
 
   const isBound = (type) => bindings.some(b => b.channel_type === type && b.is_active);
 
-  async function ensureBind(kind, key, label) {
-    // sempre cria/atualiza o vínculo do canal COM ESTE FLOW
+  async function bind(kind, key, label) {
     const res = await apiPost(`/flows/${flowId}/channels`, {
       channel_type: kind,
       channel_key: key,
@@ -118,11 +118,9 @@ export default function FlowChannels() {
   async function loadAll() {
     setLoading(true);
     try {
-      // bindings do flow
       const b = await apiGet(`/flows/${flowId}/channels`);
       setBindings(Array.isArray(b) ? b : []);
 
-      // status de provedores do tenant (apenas informativo)
       try {
         const ws = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
         const connected = !!(ws?.ok && ws?.phone);
@@ -139,7 +137,7 @@ export default function FlowChannels() {
         setIg({ connected: !!is?.connected, igUserId: is?.ig_user_id || "", igUsername: is?.ig_username || "", pageName: is?.page_name || "" });
       } catch { setIg({ connected: false, igUserId: "", igUsername: "", pageName: "" }); }
 
-      // Telegram é flow-aware (status retorna bound)
+      // Telegram: status aware do flow
       try {
         const ts = await apiGet(`/telegram/status?subdomain=${tenant}&flow_id=${flowId}`);
         setTg({
@@ -158,41 +156,41 @@ export default function FlowChannels() {
     }
   }
 
-  useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, [flowId]);
+  useEffect(() => { loadAll(); /* eslint-disable-line */ }, [flowId]);
 
-  // callbacks de sucesso — SEMPRE conectam ao flow
+  // callbacks de conexão (sempre conectam no flow atual)
   const onWaPickSuccess = async ({ phone_number_id, display }) => {
     try {
-      await ensureBind("whatsapp", phone_number_id, display || "WhatsApp");
-      toast.success("WhatsApp conectado a este flow.");
+      await bind("whatsapp", phone_number_id, display || "WhatsApp");
+      toast.success("WhatsApp conectado ao flow.");
       await loadAll();
-    } catch { toast.error("Falha ao conectar WhatsApp ao flow."); }
+    } catch { toast.error("Falha ao conectar WhatsApp."); }
   };
-
   const onFbConnected = async ({ page_id, page_name }) => {
     try {
-      await ensureBind("facebook", page_id, page_name || "Facebook");
-      toast.success("Facebook conectado a este flow.");
+      await bind("facebook", page_id, page_name || "Facebook");
+      toast.success("Facebook conectado ao flow.");
       await loadAll();
-    } catch { toast.error("Falha ao conectar Facebook ao flow."); }
+    } catch { toast.error("Falha ao conectar Facebook."); }
   };
-
   const onIgConnected = async ({ ig_user_id, ig_username, page_name }) => {
     try {
-      await ensureBind("instagram", ig_user_id, ig_username || page_name || "Instagram");
-      toast.success("Instagram conectado a este flow.");
+      await bind("instagram", ig_user_id, ig_username || page_name || "Instagram");
+      toast.success("Instagram conectado ao flow.");
       await loadAll();
-    } catch { toast.error("Falha ao conectar Instagram ao flow."); }
+    } catch { toast.error("Falha ao conectar Instagram."); }
   };
 
   return (
     <div style={S.page}>
       <div style={S.header}>
         <div style={S.titleRow}>
-          <button onClick={() => navigate(-1)} style={{ ...S.btn, display: "inline-flex", alignItems: "center", gap: 6 }} title="Voltar">
+          <button onClick={() => navigate(-1)} style={{ ...S.btn, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <ArrowLeft size={14}/> Voltar
           </button>
-          <div style={{ fontWeight: 800 }}>Canais do Flow</div>
+          <div style={{ fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <Wifi size={16}/> Canais do Flow
+          </div>
           <div style={{ fontSize: 12, color: "#475569" }}>id: <b>{flowId}</b></div>
         </div>
         <button onClick={loadAll} style={{ ...S.btn, display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -207,23 +205,47 @@ export default function FlowChannels() {
           {/* WhatsApp */}
           <div style={S.card}>
             <div style={S.head}>
-              <div style={iconWrap("#22c55e")}><BrandIcon type="whatsapp" /></div>
+              <div style={iconWrap()}><BrandIcon type="whatsapp" /></div>
               <div style={{ fontWeight: 700 }}>WhatsApp</div>
               <div style={{ marginLeft: "auto" }}>
-                {isBound("whatsapp")
-                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
-                  : <span style={S.chipOff}>Não conectado</span>}
+                {isBound("whatsapp") ? (
+                  <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                ) : (
+                  <span style={S.chipOff}>Não conectado</span>
+                )}
               </div>
             </div>
-            <div>
-              <Row k="Número" v={wa.display || "—"} />
-              <Row k="Phone ID" v={wa.id || "—"} mono />
-            </div>
+
+            <Row k="Número" v={wa.display || "—"} />
+            <Row k="Phone ID" v={wa.id || "—"} mono />
+
             <div style={S.actions}>
-              {isBound("whatsapp") ? null : (
-                wa.connected
-                  ? <button style={S.btnPrimary} onClick={() => ensureBind("whatsapp", wa.id, wa.display || "WhatsApp").then(loadAll).then(()=>toast.success("WhatsApp conectado ao flow")).catch(()=>toast.error("Falha ao conectar WhatsApp"))}>Conectar WhatsApp</button>
-                  : <WhatsAppEmbeddedSignupButton tenant={tenant} label="Conectar WhatsApp" onPickSuccess={onWaPickSuccess}/>
+              {isBound("whatsapp") ? (
+                <button
+                  style={S.btnGhost}
+                  onClick={() => navigate("/channels/whatsapp/profile", { state: { returnTo: -1 } })}
+                  title="Perfil do WhatsApp"
+                >
+                  <UserCog size={14}/> Perfil WhatsApp
+                </button>
+              ) : wa.connected ? (
+                <button
+                  style={S.btnPrimary}
+                  onClick={() =>
+                    bind("whatsapp", wa.id, wa.display || "WhatsApp")
+                      .then(() => toast.success("WhatsApp conectado ao flow."))
+                      .then(loadAll)
+                      .catch(() => toast.error("Falha ao conectar WhatsApp."))
+                  }
+                >
+                  Conectar WhatsApp
+                </button>
+              ) : (
+                <WhatsAppEmbeddedSignupButton
+                  tenant={tenant}
+                  label="Conectar WhatsApp"
+                  onPickSuccess={onWaPickSuccess}
+                />
               )}
             </div>
           </div>
@@ -231,23 +253,35 @@ export default function FlowChannels() {
           {/* Facebook */}
           <div style={S.card}>
             <div style={S.head}>
-              <div style={iconWrap("#1877F2")}><BrandIcon type="facebook" /></div>
+              <div style={iconWrap()}><BrandIcon type="facebook" /></div>
               <div style={{ fontWeight: 700 }}>Facebook Messenger</div>
               <div style={{ marginLeft: "auto" }}>
-                {isBound("facebook")
-                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
-                  : <span style={S.chipOff}>Não conectado</span>}
+                {isBound("facebook") ? (
+                  <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                ) : (
+                  <span style={S.chipOff}>Não conectado</span>
+                )}
               </div>
             </div>
-            <div>
-              <Row k="Página" v={fb.pageName || "—"} />
-              <Row k="Page ID" v={fb.pageId || "—"} mono />
-            </div>
+
+            <Row k="Página" v={fb.pageName || "—"} />
+            <Row k="Page ID" v={fb.pageId || "—"} mono />
+
             <div style={S.actions}>
-              {isBound("facebook") ? null : (
-                fb.connected
-                  ? <button style={S.btnPrimary} onClick={() => ensureBind("facebook", fb.pageId, fb.pageName || "Facebook").then(loadAll).then(()=>toast.success("Facebook conectado ao flow")).catch(()=>toast.error("Falha ao conectar Facebook"))}>Conectar Facebook</button>
-                  : <FacebookConnectButton tenant={tenant} label="Conectar Facebook" onConnected={onFbConnected}/>
+              {isBound("facebook") ? null : fb.connected ? (
+                <button
+                  style={S.btnPrimary}
+                  onClick={() =>
+                    bind("facebook", fb.pageId, fb.pageName || "Facebook")
+                      .then(() => toast.success("Facebook conectado ao flow."))
+                      .then(loadAll)
+                      .catch(() => toast.error("Falha ao conectar Facebook."))
+                  }
+                >
+                  Conectar Facebook
+                </button>
+              ) : (
+                <FacebookConnectButton tenant={tenant} label="Conectar Facebook" onConnected={onFbConnected}/>
               )}
             </div>
           </div>
@@ -255,24 +289,36 @@ export default function FlowChannels() {
           {/* Instagram */}
           <div style={S.card}>
             <div style={S.head}>
-              <div style={iconWrap("#DD2A7B")}><BrandIcon type="instagram" /></div>
+              <div style={iconWrap()}><BrandIcon type="instagram" /></div>
               <div style={{ fontWeight: 700 }}>Instagram</div>
               <div style={{ marginLeft: "auto" }}>
-                {isBound("instagram")
-                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
-                  : <span style={S.chipOff}>Não conectado</span>}
+                {isBound("instagram") ? (
+                  <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                ) : (
+                  <span style={S.chipOff}>Não conectado</span>
+                )}
               </div>
             </div>
-            <div>
-              <Row k="IG" v={ig.igUsername || "—"} />
-              <Row k="IG User ID" v={ig.igUserId || "—"} mono />
-              <Row k="Página" v={ig.pageName || "—"} />
-            </div>
+
+            <Row k="IG" v={ig.igUsername || "—"} />
+            <Row k="IG User ID" v={ig.igUserId || "—"} mono />
+            <Row k="Página" v={ig.pageName || "—"} />
+
             <div style={S.actions}>
-              {isBound("instagram") ? null : (
-                ig.connected
-                  ? <button style={S.btnPrimary} onClick={() => ensureBind("instagram", ig.igUserId, ig.igUsername || ig.pageName || "Instagram").then(loadAll).then(()=>toast.success("Instagram conectado ao flow")).catch(()=>toast.error("Falha ao conectar Instagram"))}>Conectar Instagram</button>
-                  : <InstagramConnectButton tenant={tenant} label="Conectar Instagram" onConnected={onIgConnected}/>
+              {isBound("instagram") ? null : ig.connected ? (
+                <button
+                  style={S.btnPrimary}
+                  onClick={() =>
+                    bind("instagram", ig.igUserId, ig.igUsername || ig.pageName || "Instagram")
+                      .then(() => toast.success("Instagram conectado ao flow."))
+                      .then(loadAll)
+                      .catch(() => toast.error("Falha ao conectar Instagram."))
+                  }
+                >
+                  Conectar Instagram
+                </button>
+              ) : (
+                <InstagramConnectButton tenant={tenant} label="Conectar Instagram" onConnected={onIgConnected}/>
               )}
             </div>
           </div>
@@ -280,23 +326,28 @@ export default function FlowChannels() {
           {/* Telegram */}
           <div style={S.card}>
             <div style={S.head}>
-              <div style={iconWrap("#2AABEE")}><BrandIcon type="telegram" /></div>
+              <div style={iconWrap()}><BrandIcon type="telegram" /></div>
               <div style={{ fontWeight: 700 }}>Telegram</div>
               <div style={{ marginLeft: "auto" }}>
-                {tg.bound
-                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
-                  : <span style={S.chipOff}>Não conectado</span>}
+                {tg.bound ? (
+                  <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                ) : (
+                  <span style={S.chipOff}>Não conectado</span>
+                )}
               </div>
             </div>
-            <div>
-              <Row k="Bot" v={tg.username ? `@${tg.username}` : "—"} />
-              <Row k="Bot ID" v={tg.botId || "—"} mono />
-            </div>
+
+            <Row k="Bot" v={tg.username ? `@${tg.username}` : "—"} />
+            <Row k="Bot ID" v={tg.botId || "—"} mono />
+
             <div style={S.actions}>
               {tg.bound ? null : (
                 <button
                   style={S.btnPrimary}
-                  onClick={() => navigate("/development/flowhub/telegram/connect", { state: { returnTo: -1, flowId } })}
+                  onClick={() =>
+                    // ✅ rota que já existe na sua app
+                    navigate("/channels/telegram", { state: { returnTo: -1, flowId } })
+                  }
                 >
                   Conectar Telegram
                 </button>
@@ -309,7 +360,6 @@ export default function FlowChannels() {
   );
 }
 
-/* helpers visuais */
 function iconWrap() {
   return {
     width: 28,
