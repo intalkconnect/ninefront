@@ -52,7 +52,7 @@ const THEME = {
   brand: "#2563eb",
 };
 
-const CHANNEL_ICONS = {
+const _ICONS = {
   whatsapp: <WhatsAppLogo />,
   facebook: <FacebookLogo />,
   instagram: <InstagramLogo />,
@@ -86,8 +86,8 @@ export default function FlowHub() {
     });
   };
 
-  const openFlowChannels = (flow) => {
-    navigate(`/development/studio/${flow.id}/channels`, {
+  const openFlows = (flow) => {
+    navigate(`/development/flowhub/${flow.id}/channels`, {
       state: { from: "/development/flowhub" },
     });
   };
