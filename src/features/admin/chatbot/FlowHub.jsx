@@ -9,9 +9,10 @@ import {
   Instagram as IgIcon,
   MessageSquareText as FbIcon,
   Send,
-  Link as LinkIcon,
+  WifiPen,
   Wrench,
   Plus,
+  Workflow
 } from "lucide-react";
 
 /* =========================
@@ -205,7 +206,7 @@ function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
           }}
           title="Tipo"
         >
-          <Bot size={14} /> flow
+          <Workflow size={14} /> flow
         </span>
 
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
@@ -215,12 +216,12 @@ function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
             ariaLabel="Editar canais do flow"
             onClick={onOpenChannels}
           >
-            <LinkIcon size={16} />
+            <WifiPen size={16} />
           </IconButton>
 
           {/* Botão ícone: Studio */}
           <IconButton title="Abrir Studio" ariaLabel="Abrir Studio" onClick={onOpenStudio}>
-            <Wrench size={16} />
+            <Bot size={16} />
           </IconButton>
         </div>
       </div>
