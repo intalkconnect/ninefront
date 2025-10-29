@@ -3,10 +3,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
-import { PlugZap, Bot, Workflow, Wrench, Plus } from "lucide-react";
+import { PlugZap, Wrench, Plus, Workflow, Bot } from "lucide-react";
 
 /* =========================
- * Logos reais (SVG)
+ * Logos reais (SVG inline)
  * ========================= */
 const WhatsAppLogo = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
@@ -16,12 +16,12 @@ const WhatsAppLogo = ({ size = 16 }) => (
 );
 const InstagramLogo = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-    <linearGradient id="ig" x1="0" x2="1" y1="1" y2="0">
+    <linearGradient id="ig_flowhub" x1="0" x2="1" y1="1" y2="0">
       <stop offset="0%" stopColor="#feda75"/><stop offset="25%" stopColor="#fa7e1e"/>
       <stop offset="50%" stopColor="#d62976"/><stop offset="75%" stopColor="#962fbf"/>
       <stop offset="100%" stopColor="#4f5bd5"/>
     </linearGradient>
-    <path fill="url(#ig)" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5z"/>
+    <path fill="url(#ig_flowhub)" d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5z"/>
     <circle cx="18" cy="6" r="1.3" fill="#fff"/>
     <circle cx="12" cy="12" r="3.5" fill="none" stroke="#fff" strokeWidth="2"/>
     <rect x="4" y="4" width="16" height="16" rx="4" ry="4" fill="none" stroke="#fff" strokeWidth="2"/>
@@ -40,6 +40,16 @@ const TelegramLogo = ({ size = 16 }) => (
 );
 
 /* =========================
+ * Mapa de ícones de canais
+ * ========================= */
+const CHANNEL_ICON_MAP = {
+  whatsapp: <WhatsAppLogo />,
+  facebook: <FacebookLogo />,
+  instagram: <InstagramLogo />,
+  telegram: <TelegramLogo />,
+};
+
+/* =========================
  * Tema
  * ========================= */
 const THEME = {
@@ -52,13 +62,6 @@ const THEME = {
   brand: "#2563eb",
 };
 
-const _ICONS = {
-  whatsapp: <WhatsAppLogo />,
-  facebook: <FacebookLogo />,
-  instagram: <InstagramLogo />,
-  telegram: <TelegramLogo />,
-};
-
 export default function FlowHub() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -68,6 +71,7 @@ export default function FlowHub() {
   const load = async () => {
     try {
       setLoading(true);
+      // /flows/meta deve retornar channels[] (flow_channels) quando houver
       const data = await apiGet("/flows/meta");
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -86,8 +90,8 @@ export default function FlowHub() {
     });
   };
 
-  const openFlows = (flow) => {
-    navigate(`/development/flowhub/${flow.id}/channels`, {
+  const openFlowChannels = (flow) => {
+    navigate(`/development/studio/${flow.id}/channels`, {
       state: { from: "/development/flowhub" },
     });
   };
@@ -290,7 +294,7 @@ function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
                 background: "#fff",
               }}
             >
-              {CHANNEL_ICONS[type] || <Bot size={16} />}
+              {CHANNEL_ICON_MAP[type] || <Bot size={16} />}
             </span>
           ))
         ) : (
