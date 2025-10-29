@@ -340,7 +340,7 @@ export default function FlowChannels() {
                 <WhatsAppEmbeddedSignupButton
                   tenant={tenant}
                   label={wa.connected ? "Conectar novo WhatsApp" : "Conectar WhatsApp"}
-                  className={S.btnPrimary}       {/* se o componente aceitar className */}
+                  className={S.btnPrimary}
                   onPickSuccess={({ phone_number_id, display }) =>
                     connectThisFlow("whatsapp", phone_number_id, display || "WhatsApp")
                   }
@@ -349,7 +349,7 @@ export default function FlowChannels() {
             </div>
           </div>
 
-          {/* Facebook */}
+    
           <div style={S.card}>
             <div style={S.head}>
               <div style={iconWrap()} title="Facebook">
@@ -384,7 +384,7 @@ export default function FlowChannels() {
             </div>
           </div>
 
-          {/* Instagram */}
+    
           <div style={S.card}>
             <div style={S.head}>
               <div style={iconWrap()} title="Instagram">
@@ -424,7 +424,7 @@ export default function FlowChannels() {
             </div>
           </div>
 
-          {/* Telegram */}
+         
           <div style={S.card}>
             <div style={S.head}>
               <div style={iconWrap()} title="Telegram">
