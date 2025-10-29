@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { ArrowLeft, PlugZap, CheckCircle2, RefreshCw, Copy, Bot, AlertCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../../shared/apiClient";
 import styles from "./styles/TelegramConnect.module.css";
 import { toast } from "react-toastify";
 
+/* -------- tenant util -------- */
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname;
@@ -12,6 +13,8 @@ function getTenantFromHost() {
   if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
   return parts[0] || "";
 }
+
+/* -------- secret util -------- */
 function genSecretHex(bytes = 32) {
   if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
     const arr = new Uint8Array(bytes);
@@ -24,36 +27,34 @@ function genSecretHex(bytes = 32) {
 }
 
 export default function TelegramConnect() {
-  const tenant = useMemo(() => getTenantFromHost(), []);
+  const tenant  = useMemo(() => getTenantFromHost(), []);
   const navigate = useNavigate();
   const location = useLocation();
-  const backTo = location.state?.returnTo || "/channels";
-  const flowId  = location.state?.flowId || null;
+  const backTo   = location.state?.returnTo || "/channels";
+  const flowId   = location.state?.flowId || null;
 
   // status (tenant e vínculo com este flow)
   const [checking, setChecking] = useState(true);
-  const [tenantHasSome, setTenantHasSome] = useState(false);  // existe *alguma* conexão TG no tenant
-  const [bound, setBound] = useState(false);                   // se está vinculado a ESTE flow
+  const [tenantHasSome, setTenantHasSome] = useState(false); // existe *alguma* conexão TG no tenant
+  const [bound, setBound] = useState(false);                  // se está vinculado a ESTE flow
   const [botId, setBotId] = useState("");
   const [username, setUsername] = useState("");
 
   // form (sempre habilitado para NOVA conexão)
-  const [token, setToken] = useState("");
+  const [token, setToken]   = useState("");
   const [secret, setSecret] = useState(genSecretHex());
   const [loading, setLoading] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
 
-  async function loadStatus() {
+  const loadStatus = useCallback(async () => {
     setChecking(true);
     try {
-      // a rota já retorna bound quando mandamos flow_id
-      const s = await apiGet(`/telegram/status?subdomain=${tenant}${flowId ? `&flow_id=${flowId}` : ""}`);
+      const qsFlow = flowId ? `&flow_id=${flowId}` : "";
+      const s = await apiGet(`/telegram/status?subdomain=${tenant}${qsFlow}`);
       setTenantHasSome(!!s?.connected);
       setBound(!!s?.bound);
 
-      // ❗️Regra da UI:
-      // - Se NÃO estiver bound a este flow, nos comportamos como "desconectado" para este flow.
-      //   Não exibimos dados do bot existente do tenant para evitar a ideia de “vincular existente”.
+      // Exibir dados do bot SOMENTE quando estiver vinculado a este flow
       if (s?.bound) {
         setBotId(s?.bot_id || "");
         setUsername(s?.username || "");
@@ -66,7 +67,7 @@ export default function TelegramConnect() {
     } finally {
       setChecking(false);
     }
-  }
+  }, [tenant, flowId]);
 
   useEffect(() => {
     if (!tenant) {
@@ -76,8 +77,7 @@ export default function TelegramConnect() {
     }
     loadStatus();
     setSecret(genSecretHex());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant]);
+  }, [tenant, loadStatus]);
 
   async function handleConnect() {
     if (!tenant) return toast.warn("Tenant não identificado.");
@@ -87,7 +87,7 @@ export default function TelegramConnect() {
     const id = toast.loading("Conectando Telegram…");
     try {
       // Sempre cria/atualiza a conexão do BOT desse token
-      // e, se houver flowId, já VINCULA ao flow.
+      // e, se houver flowId, já VINCULA ao flow (sem reaproveitar bot existente de outro flow).
       const j = await apiPost("/telegram/connect", {
         subdomain: tenant,
         botToken: token.trim(),
@@ -98,6 +98,7 @@ export default function TelegramConnect() {
 
       toast.update(id, { render: "Telegram conectado!", type: "success", isLoading: false, autoClose: 1800 });
       setToken("");
+      setSecret(genSecretHex());
       setShowInstructions(false);
       await loadStatus();
 
@@ -111,12 +112,12 @@ export default function TelegramConnect() {
     }
   }
 
-  async function handleDisconnect() {
+  function handleDisconnect() {
+    // Futuro: implementar endpoint de desconexão por flow/bot
     toast.info("Função de desconexão ainda não implementada.");
   }
 
-  // 🔸Título e “estado visual”:
-  // Para este flow, só consideramos “conectado” se bound === true.
+  // UI só considera “Conectado” se estiver bound a este flow
   const uiIsConnected = bound;
   const title = uiIsConnected ? "Telegram — Conectado a este Flow" : "Telegram — Conectar";
 
@@ -138,8 +139,12 @@ export default function TelegramConnect() {
         </div>
 
         <div className={styles.headerActions}>
-          <button className={styles.backBtn} onClick={() => navigate(backTo)}><ArrowLeft size={16}/> Voltar</button>
-          <button className={styles.btn} onClick={loadStatus} disabled={checking}><RefreshCw size={16}/> Recarregar</button>
+          <button className={styles.backBtn} onClick={() => navigate(backTo)}>
+            <ArrowLeft size={16}/> Voltar
+          </button>
+          <button className={styles.btn} onClick={loadStatus} disabled={checking}>
+            <RefreshCw size={16}/> Recarregar
+          </button>
         </div>
       </div>
 
@@ -148,19 +153,16 @@ export default function TelegramConnect() {
           <div className={styles.loading}>Carregando…</div>
         ) : (
           <>
-            {/* Barra de status:
-               - Se estiver bound: mostra OK.
-               - Se NÃO estiver bound: não mostramos “conectado no tenant”; só orientamos a nova conexão. */}
-            {uiIsConnected ? (
+            {uiIsConnected && (
               <div className={styles.statusBar}>
                 <span className={styles.statusChipOk}>
                   <CheckCircle2 size={14}/> Conectado a este Flow
                 </span>
               </div>
-            ) : null}
+            )}
 
-            {/* KPIs do bot só aparecem quando o flow ESTÁ vinculado */}
-            {uiIsConnected ? (
+            {/* KPIs do bot aparecem só quando está vinculado a ESTE flow */}
+            {uiIsConnected && (
               <div className={styles.kpiGrid}>
                 <div className={styles.kvCard}>
                   <div className={styles.kvTitle}>Bot</div>
@@ -185,9 +187,9 @@ export default function TelegramConnect() {
                   </div>
                 </div>
               </div>
-            ) : null}
+            )}
 
-            {/* FORM — sempre visível; e quando NÃO bound, a página inteira se comporta como "nova conexão" */}
+            {/* Quando NÃO estiver vinculado, a tela se comporta como "nova conexão" */}
             {!uiIsConnected && (
               <div className={styles.heroSection}>
                 <div className={styles.heroIcon}><Bot size={48} /></div>
@@ -207,6 +209,7 @@ export default function TelegramConnect() {
                   placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && token.trim() && !loading) handleConnect(); }}
                   autoComplete="off"
                   disabled={loading}
                 />
@@ -242,9 +245,10 @@ export default function TelegramConnect() {
                 {loading ? "Conectando..." : "Conectar Telegram"}
               </button>
 
-              {/* Botão de desconectar só faz sentido se já está vinculado a este flow */}
               {uiIsConnected && (
-                <button className={styles.btnDanger} onClick={handleDisconnect}>Desconectar</button>
+                <button className={styles.btnDanger} onClick={handleDisconnect}>
+                  Desconectar
+                </button>
               )}
             </div>
           </>
