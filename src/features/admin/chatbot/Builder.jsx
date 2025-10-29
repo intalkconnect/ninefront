@@ -995,7 +995,7 @@ function run(context) {
   const styledEdges = edges.map((edge) => {
     const isActive = activeEdges.has(edge.id);
     const baseStroke = "#94a3b8";
-    the const srcColor = sourceColorById.get(edge.source) || "#64748b";
+    onst srcColor = sourceColorById.get(edge.source) || "#64748b";
 
     const common = {
       markerEnd: {
