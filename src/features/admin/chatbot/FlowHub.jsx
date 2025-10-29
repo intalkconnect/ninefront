@@ -44,7 +44,7 @@ export default function FlowHub() {
   useEffect(() => { load(); }, []);
 
   const openBuilder = (flowId, name, preferredChannelKey = null) => {
-    navigate(`/admin/development/studio/${flowId}`, {
+    navigate(`/development/studio/${flowId}`, {
       state: { meta: { flowId, name, channelKey: preferredChannelKey } },
     });
   };
