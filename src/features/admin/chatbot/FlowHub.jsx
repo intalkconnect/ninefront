@@ -1,185 +1,190 @@
-// File: src/pages/admin/development/FlowHub.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Radio, MessageCircle, Send, Instagram, MonitorSmartphone, Zap, CheckCircle2, Clock } from "lucide-react";
 import { apiGet } from "../../../shared/apiClient";
+import { Bot, Cable, Globe, Loader2 } from "lucide-react";
 
-const channelIcon = (ch) => {
-  const m = String(ch || "").toLowerCase();
-  if (m === "whatsapp") return <MessageCircle size={14} />;
-  if (m === "telegram") return <Send size={14} />;
-  if (m === "instagram") return <Instagram size={14} />;
-  if (m === "facebook" || m === "messenger") return <MonitorSmartphone size={14} />;
-  return <Radio size={14} />;
-};
+const ENV_DEFAULT = (import.meta.env?.VITE_FLOW_ENV || "prod").toLowerCase();
 
-function Badge({ children, title }) {
-  return (
-    <span
-      title={title}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 8px",
-        borderRadius: 999,
-        fontSize: 12,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.08)",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function FlowCard({ flow, onOpen }) {
-  const name = flow?.data?.name || `Flow #${flow.id}`;
-  const channels = Array.isArray(flow?.data?.channels) ? flow.data.channels : (flow?.data?.meta?.channels || []);
-  const isActive = flow.active === true;
-  const createdAt = flow.created_at ? new Date(flow.created_at) : null;
-
-  return (
-    <button
-      onClick={() => onOpen(flow)}
-      style={{
-        textAlign: "left",
-        width: "100%",
-        borderRadius: 16,
-        border: "1px solid rgba(255,255,255,0.08)",
-        background: "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))",
-        padding: 16,
-        display: "grid",
-        gap: 12,
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            display: "grid",
-            placeItems: "center",
-            borderRadius: 10,
-            background: "rgba(99,102,241,0.15)",
-            border: "1px solid rgba(99,102,241,0.35)",
-          }}
-        >
-          <Bot size={18} />
-        </div>
-        <div style={{ fontWeight: 600, fontSize: 15, lineHeight: 1.2 }}>{name}</div>
-      </div>
-
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {channels?.length > 0 ? (
-          channels.map((ch) => (
-            <Badge key={ch} title={`Canal: ${ch}`}>
-              {channelIcon(ch)} <span style={{ opacity: 0.9 }}>{ch}</span>
-            </Badge>
-          ))
-        ) : (
-          <Badge title="Canais não definidos">
-            <Zap size={14} />
-            <span style={{ opacity: 0.9 }}>sem canais</span>
-          </Badge>
-        )}
-      </div>
-
-      <div style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 12, opacity: 0.85 }}>
-        {isActive ? (
-          <Badge title="Versão ativa">
-            <CheckCircle2 size={14} />
-            ativo
-          </Badge>
-        ) : (
-          <Badge title="Versão inativa">
-            <Clock size={14} />
-            histórico
-          </Badge>
-        )}
-        {createdAt && (
-          <span style={{ marginLeft: "auto" }}>
-            criado em {createdAt.toLocaleDateString()} {createdAt.toLocaleTimeString().slice(0,5)}
-          </span>
-        )}
-      </div>
-    </button>
-  );
+function groupBy(xs, key) {
+  return xs.reduce((acc, it) => {
+    const k = it[key];
+    (acc[k] ||= []).push(it);
+    return acc;
+  }, {});
 }
 
 export default function FlowHub() {
   const navigate = useNavigate();
+  const [env, setEnv] = useState(ENV_DEFAULT);
   const [loading, setLoading] = useState(true);
-  const [flows, setFlows] = useState([]);
+  const [deploys, setDeploys] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    let mounted = true;
-
-    const load = async () => {
+    let alive = true;
+    (async () => {
       setLoading(true);
+      setError(null);
       try {
-        // 1) pega últimas versões (ativo + histórico)
-        const history = await apiGet("/flows/history"); // [{id, active, created_at}]
-        // 2) para cada id, carrega o data do fluxo (para extrair nome/canais)
-        const enriched = await Promise.all(
-          (history || []).map(async (row) => {
-            try {
-              const data = await apiGet(`/flows/data/${row.id}`);
-              return { ...row, data };
-            } catch {
-              return { ...row, data: null };
-            }
-          })
-        );
-        if (mounted) setFlows(enriched);
+        const rows = await apiGet(`/flows/deployments?environment=${encodeURIComponent(env)}`);
+        if (!alive) return;
+        setDeploys(Array.isArray(rows) ? rows : []);
+      } catch (e) {
+        if (!alive) return;
+        setError(e?.message || "Falha ao carregar deployments");
+        setDeploys([]);
       } finally {
-        if (mounted) setLoading(false);
+        if (alive) setLoading(false);
       }
-    };
+    })();
+    return () => { alive = false; };
+  }, [env]);
 
-    load();
-    return () => { mounted = false; };
-  }, []);
+  const grouped = useMemo(() => groupBy(deploys, "flow_id"), [deploys]);
 
-  const sorted = useMemo(() => {
-    // ativo primeiro, depois por created_at desc
-    const arr = [...flows];
-    arr.sort((a, b) => {
-      if (a.active && !b.active) return -1;
-      if (!a.active && b.active) return 1;
-      return (new Date(b.created_at) - new Date(a.created_at));
-    });
-    return arr;
-  }, [flows]);
-
-  const openInBuilder = (flow) => {
-    // deep-link para o Builder com este flowId
-    navigate(`/development/studio/builder?flowId=${flow.id}`);
+  const openBuilder = async (d) => {
+    try {
+      // busca o JSON do fluxo por version_id
+      const data = await apiGet(`/flows/data-by-version/${d.version_id}`);
+      // navega para o Builder passando o fluxo no estado
+      navigate("/development/studio", {
+        state: {
+          initialFlow: data,
+          meta: {
+            flowId: d.flow_id,
+            versionId: d.version_id,
+            version: d.version,
+            channel: d.channel,
+            environment: d.environment,
+            name: d.name,
+            deploymentId: d.id,
+          },
+        },
+        replace: false,
+      });
+    } catch (e) {
+      alert(`Falha ao abrir o builder: ${e?.message || e}`);
+    }
   };
 
   return (
-    <div style={{ padding: 24, display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Bot size={18} />
-          <h2 style={{ margin: 0, fontSize: 18 }}>Chatbot Studio - Flows</h2>
+    <div style={{ display: "grid", gap: 16 }}>
+      <header style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <Bot size={18} />
+        <h1 style={{ margin: 0, fontSize: 18 }}>Flow Hub</h1>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <Globe size={16} />
+          <select
+            value={env}
+            onChange={(e) => setEnv(e.target.value)}
+            style={{
+              background: "var(--bg2, #0f1422)",
+              color: "var(--fg, #e5e7eb)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              borderRadius: 10,
+              padding: "6px 10px",
+            }}
+          >
+            <option value="prod">prod</option>
+            <option value="hmg">hmg</option>
+          </select>
         </div>
-      </div>
+      </header>
 
       {loading ? (
-        <div style={{ opacity: 0.8 }}>Carregando flows…</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", opacity: 0.8 }}>
+          <Loader2 className="spin" size={16} />
+          Carregando deployments…
+        </div>
+      ) : error ? (
+        <div style={{ color: "#f87171" }}>{String(error)}</div>
+      ) : deploys.length === 0 ? (
+        <div style={{ opacity: 0.85 }}>
+          Nenhum deployment encontrado em <b>{env}</b>.
+        </div>
       ) : (
         <div
           style={{
             display: "grid",
-            gap: 16,
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: 14,
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
           }}
         >
-          {sorted.map((f) => (
-            <FlowCard key={f.id} flow={f} onOpen={openInBuilder} />
-          ))}
+          {Object.entries(grouped).map(([flowId, list]) => {
+            const first = list[0];
+            return (
+              <article
+                key={flowId}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 16,
+                  padding: 14,
+                  background: "rgba(255,255,255,0.03)",
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      display: "grid",
+                      placeItems: "center",
+                      background: "rgba(255,255,255,0.06)",
+                    }}
+                  >
+                    <Bot size={18} />
+                  </div>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {first?.name || `Flow ${flowId}`}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.75 }}>
+                      #{flowId}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {list.map((d) => (
+                    <button
+                      key={d.id}
+                      onClick={() => openBuilder(d)}
+                      title={`Abrir versão ${d.version} (${d.channel} / ${d.environment})`}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        background: "rgba(255,255,255,0.04)",
+                        cursor: "pointer",
+                        fontSize: 12,
+                      }}
+                    >
+                      <Cable size={14} />
+                      <span>{d.channel}</span>
+                      <span style={{ opacity: 0.7 }}>• v{d.version}</span>
+                      {d.is_active && (
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            background: "#22c55e",
+                            borderRadius: 999,
+                            display: "inline-block",
+                          }}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>
