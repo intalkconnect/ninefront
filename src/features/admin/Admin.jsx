@@ -967,7 +967,7 @@ export default function Admin() {
     }
   />
   <Route
-    path="development/studio/builder"       // <- rota para o Builder em si
+    path="development/studio/:flowId"       // <- rota para o Builder em si
     element={
       <RequireRole allow={isAdmin}>
         <Builder />
