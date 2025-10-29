@@ -147,7 +147,7 @@ export default function WhatsAppProfile() {
     try {
       // 1) número  **ENDPOINT CORRETO: /wa/**
       try {
-        const num = await apiGet(`/wa/number?${qParams}`);
+        const num = await apiGet(`/whatsapp/number?${qParams}`);
         if (alive.current && num?.ok) setPhone(num.phone || null);
       } catch (e) {
         if (alive.current) setPhone(null);
@@ -156,7 +156,7 @@ export default function WhatsAppProfile() {
 
       // 2) perfil  **ENDPOINT CORRETO: /wa/**
       try {
-        const pf = await apiGet(`/wa/profile?${qParams}`);
+        const pf = await apiGet(`/whatsapp/profile?${qParams}`);
         if (alive.current && pf?.ok) {
           const p = pf.profile || {};
           setAbout(limit(p.about || "", 139));
@@ -195,7 +195,7 @@ export default function WhatsAppProfile() {
     const toastId = toast.loading("Salvando perfil…");
     try {
       const websites = [web1, web2].map((s) => s.trim()).filter(Boolean);
-      await apiPost("/wa/profile", buildScopedBody({
+      await apiPost("/whatsapp/profile", buildScopedBody({
         about, description, address, email, vertical, websites,
       }));
       toast.update(toastId, { render: "Perfil atualizado com sucesso.", type: "success", isLoading: false, autoClose: 2200 });
@@ -213,7 +213,7 @@ export default function WhatsAppProfile() {
     const toastId = toast.loading("Aplicando foto…");
     try {
       setProfilePic(url); // preview otimista
-      await apiPost("/wa/photo-from-url", buildScopedBody({ file_url: url }));
+      await apiPost("/whatsapp/photo-from-url", buildScopedBody({ file_url: url }));
       toast.update(toastId, { render: "Foto aplicada.", type: "success", isLoading: false, autoClose: 1800 });
       setPhotoUrl("");
       await loadAll();
@@ -227,7 +227,7 @@ export default function WhatsAppProfile() {
     const toastId = toast.loading("Removendo foto…");
     try {
       // método override para ambientes que não suportem DELETE no apiClient
-      await apiPost("/wa/profile/photo", buildScopedBody({ _method: "DELETE" }));
+      await apiPost("/whatsapp/profile/photo", buildScopedBody({ _method: "DELETE" }));
       setProfilePic("");
       await loadAll();
       toast.update(toastId, { render: "Foto removida.", type: "success", isLoading: false, autoClose: 1800 });
