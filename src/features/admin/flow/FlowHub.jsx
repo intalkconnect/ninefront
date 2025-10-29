@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import { Bot, Workflow, Wifi } from "lucide-react";
-import BrandIcon from "../../components/BrandIcon";
+import BrandIcon from "./BrandIcon";
 
 const THEME = {
   bg: "#f9fafb",
