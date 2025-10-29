@@ -7,7 +7,7 @@ import {
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
-import styles from "./channels/styles/Channels.module.css";
+import styles from "./styles/Channels.module.css";
 
 /* =========== utils (mantidos) =========== */
 function formatPhone(p) {
