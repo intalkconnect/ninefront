@@ -145,7 +145,7 @@ export default function FlowChannels() {
 
       // WhatsApp (status do tenant)  **ENDPOINT CORRETO: /wa/**
       try {
-        const ws = await apiGet(`/wa/number?subdomain=${tenant}`);
+        const ws = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
         const connected = !!(ws?.ok && ws?.phone);
         setWa({
           connected,
@@ -156,7 +156,7 @@ export default function FlowChannels() {
         setWa({ connected: false, id: "", display: "" });
       }
 
-      // Facebook (status do tenant)
+      // Facebook (status do tenant) — usado apenas para habilitar botão; dados só exibidos se bound
       try {
         const fs = await apiGet(`/facebook/status?subdomain=${tenant}`);
         setFb({
@@ -168,7 +168,7 @@ export default function FlowChannels() {
         setFb({ connected: false, pageId: "", pageName: "" });
       }
 
-      // Instagram (status do tenant)
+      // Instagram (status do tenant) — idem
       try {
         const is = await apiGet(`/instagram/status?subdomain=${tenant}`);
         setIg({
@@ -181,17 +181,14 @@ export default function FlowChannels() {
         setIg({ connected: false, igUserId: "", igUsername: "", pageName: "" });
       }
 
-      // Telegram (status do tenant + bound deste flow)
+      // Telegram (status do tenant + bound deste flow) — backend agora prioriza o bot do flow
       try {
         const ts = await apiGet(
           `/telegram/status?subdomain=${tenant}&flow_id=${flowId}`
         );
-
-        // dados vindos do status do tenant
         let botId = ts?.bot_id || "";
         let username = ts?.username || "";
         const connected = !!(ts?.connected || ts?.bound);
-
         setTgTenant({
           connected,
           botId: botId || "",
@@ -237,6 +234,14 @@ export default function FlowChannels() {
     () => bindings.find((b) => b.channel_type === "whatsapp" && b.is_active),
     [bindings]
   );
+  const fbBinding = useMemo(
+    () => bindings.find((b) => b.channel_type === "facebook" && b.is_active),
+    [bindings]
+  );
+  const igBinding = useMemo(
+    () => bindings.find((b) => b.channel_type === "instagram" && b.is_active),
+    [bindings]
+  );
   const tgBinding = useMemo(
     () => bindings.find((b) => b.channel_type === "telegram" && b.is_active),
     [bindings]
@@ -247,7 +252,7 @@ export default function FlowChannels() {
       state: {
         returnTo: `/development/flowhub/${flowId}/channels`,
         flowId,
-        channelKey: waBinding?.channel_key || null,
+        channelKey: waBinding?.channel_key || null, // phone_id vinculado
       },
     });
 
@@ -334,7 +339,7 @@ export default function FlowChannels() {
               <div style={iconWrap()} title="Facebook">
                 <BrandIcon type="facebook" />
               </div>
-            <div style={{ fontWeight: 700 }}>Facebook Messenger</div>
+              <div style={{ fontWeight: 700 }}>Facebook Messenger</div>
               <div style={{ marginLeft: "auto" }}>
                 {isBound("facebook") ? (
                   <span style={S.chipOk}>
@@ -346,8 +351,9 @@ export default function FlowChannels() {
               </div>
             </div>
 
-            <Row k="Página" v={fb.pageName || "—"} />
-            <Row k="Page ID" v={fb.pageId || "—"} mono />
+            {/* NÃO misturar dados: só mostra metadados se o flow estiver vinculado */}
+            <Row k="Página" v={isBound("facebook") ? (fbBinding?.display_name || fb.pageName || "—") : "—"} />
+            <Row k="Page ID" v={isBound("facebook") ? (fbBinding?.channel_key || fb.pageId || "—") : "—"} mono />
 
             <div style={S.actions}>
               {isBound("facebook") ? null : (
@@ -381,9 +387,32 @@ export default function FlowChannels() {
               </div>
             </div>
 
-            <Row k="IG" v={ig.igUsername || "—"} />
-            <Row k="IG User ID" v={ig.igUserId || "—"} mono />
-            <Row k="Página" v={ig.pageName || "—"} />
+            {/* NÃO misturar dados: só mostra metadados se o flow estiver vinculado */}
+            <Row
+              k="IG"
+              v={
+                isBound("instagram")
+                  ? (igBinding?.display_name || ig.igUsername || "—")
+                  : "—"
+              }
+            />
+            <Row
+              k="IG User ID"
+              v={
+                isBound("instagram")
+                  ? (igBinding?.channel_key || ig.igUserId || "—")
+                  : "—"
+              }
+              mono
+            />
+            <Row
+              k="Página"
+              v={
+                isBound("instagram")
+                  ? (ig.pageName || "—")
+                  : "—"
+              }
+            />
 
             <div style={S.actions}>
               {isBound("instagram") ? null : (
