@@ -50,7 +50,6 @@ import { stringToColor } from "../../app/utils/color";
 import { apiGet, setActorContext } from "../../shared/apiClient";
 
 import Preferences from "./preferences/settings/Settings";
-import Channels from "./preferences/channels/Channels";
 import ClientsMonitor from "./monitoring/clientsMonitor/ClientsMonitor";
 import AgentsMonitor from "./monitoring/agentsMonitor/AgentsMonitor";
 import JourneyTracker from "./monitoring/journeyTracker/JourneyTracker";
@@ -72,8 +71,8 @@ import CampaignCreate from "./campaigns/campaign/CampaignCreate";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
 import TicketDetail from "./atendimento/history/TicketDetail";
-import WhatsAppProfile from "./preferences/channels/whatsapp/WhatsAppProfile";
-import TelegramConnect from "./preferences/channels/telegram/TelegramConnect";
+import WhatsAppProfile from "./flow/channels/whatsapp/WhatsAppProfile";
+import TelegramConnect from "./flow/channels/telegram/TelegramConnect";
 import TokensSecurity from "./preferences/security/Tokens";
 import AuditLogs from "./preferences/logs/AuditLogs";
 
