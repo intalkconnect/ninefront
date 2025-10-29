@@ -69,7 +69,7 @@ export default function FlowHub() {
 
   // Abre Builder com meta mínima
   const handleOpenBuilder = (flow, preferredChannelKey) => {
-    navigate(`/admin/development/studio/${flow.id}`, {
+    navigate(`/development/studio/${flow.id}`, {
       state: {
         meta: {
           flowId: flow.id,
@@ -83,7 +83,7 @@ export default function FlowHub() {
 
   // Abre pagina de canais por flow
   const handleOpenChannels = (flowId) => {
-    navigate(`/admin/development/flowhub/${flowId}/channels`);
+    navigate(`/development/flowhub/${flowId}/channels`);
   };
 
   return (
