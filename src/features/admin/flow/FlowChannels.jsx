@@ -127,8 +127,19 @@ export default function FlowChannels() {
     } catch { toast.error(`Falha ao conectar ${kind}.`); }
   }
 
-  const openWaProfile = () =>
-    navigate("/channels/whatsapp", { state: { returnTo: `/development/flowhub/${flowId}/channels` } });
+    const waBinding = useMemo(
+    () => bindings.find((b) => b.channel_type === "whatsapp" && b.is_active),
+    [bindings]
+  );
+
+    const openWaProfile = () =>
+    navigate("/channels/whatsapp", {
+      state: {
+        returnTo: `/development/flowhub/${flowId}/channels`,
+        flowId,                                 // ✅ envia o flow
+        channelKey: waBinding?.channel_key || null, // ✅ envia o phone_id vinculado
+      },
+    });
 
   const openTgConnect = () =>
     navigate("/channels/telegram", { state: { returnTo: `/development/flowhub/${flowId}/channels`, flowId } });
