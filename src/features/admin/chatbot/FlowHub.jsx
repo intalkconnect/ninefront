@@ -1,192 +1,133 @@
 import { useEffect, useMemo, useState } from "react";
+import { Plus, GitBranch, Zap, Radio } from "lucide-react";
+import { apiGet, apiPost } from "../../../shared/apiClient";
 import { useNavigate } from "react-router-dom";
-import { apiGet } from "../../../shared/apiClient";
-import { Bot, Cable, Globe, Loader2 } from "lucide-react";
 
-const ENV_DEFAULT = (import.meta.env?.VITE_FLOW_ENV || "prod").toLowerCase();
-
-function groupBy(xs, key) {
-  return xs.reduce((acc, it) => {
-    const k = it[key];
-    (acc[k] ||= []).push(it);
-    return acc;
-  }, {});
-}
+const Card = ({ children }) => (
+  <div style={{
+    border: "1px solid #e5e7eb",
+    borderRadius: 14,
+    background: "#fff",
+    padding: 16,
+    boxShadow: "0 6px 20px rgba(15,23,42,.06)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+  }}>{children}</div>
+);
 
 export default function FlowHub() {
-  const navigate = useNavigate();
-  const [env, setEnv] = useState(ENV_DEFAULT);
-  const [loading, setLoading] = useState(true);
+  const [flows, setFlows] = useState([]);
   const [deploys, setDeploys] = useState([]);
-  const [error, setError] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const rows = await apiGet(`/flows/deployments?environment=${encodeURIComponent(env)}`);
-        if (!alive) return;
-        setDeploys(Array.isArray(rows) ? rows : []);
-      } catch (e) {
-        if (!alive) return;
-        setError(e?.message || "Falha ao carregar deployments");
-        setDeploys([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [env]);
+  const load = async () => {
+    const [fs, ds] = await Promise.all([
+      apiGet("/flows"),
+      apiGet("/flows/deployments"),
+    ]);
+    setFlows(fs || []);
+    setDeploys(ds || []);
+  };
 
-  const grouped = useMemo(() => groupBy(deploys, "flow_id"), [deploys]);
+  useEffect(() => { load(); }, []);
 
-  const openBuilder = async (d) => {
+  const byFlow = useMemo(() => {
+    const map = new Map();
+    deploys.forEach(d => {
+      const arr = map.get(d.flow_id) || [];
+      arr.push(d);
+      map.set(d.flow_id, arr);
+    });
+    return map;
+  }, [deploys]);
+
+  const handleCreate = async () => {
+    if (!name.trim()) return;
+    setCreating(true);
     try {
-      // busca o JSON do fluxo por version_id
-      const data = await apiGet(`/flows/data-by-version/${d.version_id}`);
-      // navega para o Builder passando o fluxo no estado
-      navigate("/development/studio", {
-        state: {
-          initialFlow: data,
-          meta: {
-            flowId: d.flow_id,
-            versionId: d.version_id,
-            version: d.version,
-            channel: d.channel,
-            environment: d.environment,
-            name: d.name,
-            deploymentId: d.id,
-          },
-        },
-        replace: false,
-      });
-    } catch (e) {
-      alert(`Falha ao abrir o builder: ${e?.message || e}`);
+      const created = await apiPost("/flows", { name: name.trim(), description: desc || null });
+      setName(""); setDesc("");
+      await load();
+      // abre direto o builder desse flow
+      navigate(`/development/studio/${created.id}`);
+    } finally {
+      setCreating(false);
     }
   };
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <header style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <Bot size={18} />
-        <h1 style={{ margin: 0, fontSize: 18 }}>Flow Hub</h1>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-          <Globe size={16} />
-          <select
-            value={env}
-            onChange={(e) => setEnv(e.target.value)}
-            style={{
-              background: "var(--bg2, #0f1422)",
-              color: "var(--fg, #e5e7eb)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 10,
-              padding: "6px 10px",
-            }}
-          >
-            <option value="prod">prod</option>
-            <option value="hmg">hmg</option>
-          </select>
-        </div>
-      </header>
+    <div style={{ padding: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontWeight: 800, color: "#0f172a" }}>Flow Hub</h2>
+      </div>
 
-      {loading ? (
-        <div style={{ display: "flex", gap: 8, alignItems: "center", opacity: 0.8 }}>
-          <Loader2 className="spin" size={16} />
-          Carregando deployments…
-        </div>
-      ) : error ? (
-        <div style={{ color: "#f87171" }}>{String(error)}</div>
-      ) : deploys.length === 0 ? (
-        <div style={{ opacity: 0.85 }}>
-          Nenhum deployment encontrado em <b>{env}</b>.
-        </div>
-      ) : (
-        <div
+      {/* linha de criação rápida */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: 10, marginBottom: 16 }}>
+        <input
+          placeholder="Nome do novo flow"
+          value={name}
+          onChange={e=>setName(e.target.value)}
+          style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 12px" }}
+        />
+        <input
+          placeholder="Descrição (opcional)"
+          value={desc}
+          onChange={e=>setDesc(e.target.value)}
+          style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 12px" }}
+        />
+        <button
+          onClick={handleCreate}
+          disabled={creating || !name.trim()}
           style={{
-            display: "grid",
-            gap: 14,
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "#111827", color: "#fff", border: "none",
+            padding: "10px 14px", borderRadius: 10, fontWeight: 800, cursor: "pointer"
           }}
         >
-          {Object.entries(grouped).map(([flowId, list]) => {
-            const first = list[0];
-            return (
-              <article
-                key={flowId}
-                style={{
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 16,
-                  padding: 14,
-                  background: "rgba(255,255,255,0.03)",
-                  display: "grid",
-                  gap: 10,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
-                      display: "grid",
-                      placeItems: "center",
-                      background: "rgba(255,255,255,0.06)",
-                    }}
-                  >
-                    <Bot size={18} />
-                  </div>
-                  <div style={{ display: "grid", gap: 4 }}>
-                    <div style={{ fontWeight: 600 }}>
-                      {first?.name || `Flow ${flowId}`}
-                    </div>
-                    <div style={{ fontSize: 12, opacity: 0.75 }}>
-                      #{flowId}
-                    </div>
-                  </div>
-                </div>
+          <Plus size={16}/> {creating ? "Criando…" : "Novo flow"}
+        </button>
+      </div>
 
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {list.map((d) => (
-                    <button
-                      key={d.id}
-                      onClick={() => openBuilder(d)}
-                      title={`Abrir versão ${d.version} (${d.channel} / ${d.environment})`}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "6px 10px",
-                        borderRadius: 999,
-                        border: "1px solid rgba(255,255,255,0.14)",
-                        background: "rgba(255,255,255,0.04)",
-                        cursor: "pointer",
-                        fontSize: 12,
-                      }}
-                    >
-                      <Cable size={14} />
-                      <span>{d.channel}</span>
-                      <span style={{ opacity: 0.7 }}>• v{d.version}</span>
-                      {d.is_active && (
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            background: "#22c55e",
-                            borderRadius: 999,
-                            display: "inline-block",
-                          }}
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
+      {/* grid de cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 14 }}>
+        {flows.map(f => {
+          const list = byFlow.get(f.id) || [];
+          return (
+            <Card key={f.id}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 800, color: "#0f172a" }}>{f.name}</div>
+                <button
+                  onClick={()=>navigate(`/development/studio/${f.id}`)}
+                  style={{ background: "#2563eb", color: "#fff", border: 0, padding: "8px 10px", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}
+                  title="Abrir no Builder"
+                >
+                  Abrir
+                </button>
+              </div>
+              {f.description && <div style={{ color:"#64748b", fontSize: 12 }}>{f.description}</div>}
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                {list.length === 0 ? (
+                  <span style={{ fontSize: 12, color: "#9ca3af" }}>Sem deploy ativo</span>
+                ) : list.map(d => (
+                  <span key={d.id} title={`v${d.version} • ${new Date(d.activated_at).toLocaleString()}`}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      border: "1px solid #e5e7eb", borderRadius: 999, padding: "4px 10px",
+                      background: "#f9fafb", fontSize: 12
+                    }}>
+                    <Radio size={14}/> {d.channel} <span style={{display:'inline-flex', alignItems:'center', gap:4, fontWeight:700}}><GitBranch size={12}/>v{d.version}</span>
+                  </span>
+                ))}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
