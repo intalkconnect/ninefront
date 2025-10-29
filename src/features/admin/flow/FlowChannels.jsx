@@ -128,7 +128,7 @@ export default function FlowChannels() {
   }
 
   const openWaProfile = () =>
-    navigate("/channels/whatsapp/profile", { state: { returnTo: `/development/flowhub/${flowId}/channels` } });
+    navigate("/channels/whatsapp", { state: { returnTo: `/development/flowhub/${flowId}/channels` } });
 
   const openTgConnect = () =>
     navigate("/channels/telegram", { state: { returnTo: `/development/flowhub/${flowId}/channels`, flowId } });
