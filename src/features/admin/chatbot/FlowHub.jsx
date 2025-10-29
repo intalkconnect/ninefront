@@ -61,14 +61,14 @@ export default function FlowHub() {
   }, []);
 
   const openStudio = (flow) => {
-    navigate(`/admin/development/studio/${flow.id}`, {
+    navigate(`/development/studio/${flow.id}`, {
       state: { meta: { flowId: flow.id, name: flow.name } },
     });
   };
 
   const openFlowChannels = (flow) => {
-    navigate(`/admin/development/studio/${flow.id}/channels`, {
-      state: { from: "/admin/development/flowhub" },
+    navigate(`/development/studio/${flow.id}/channels`, {
+      state: { from: "/development/flowhub" },
     });
   };
 
