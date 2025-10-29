@@ -6,7 +6,7 @@ import React, {
   useRef,
   useMemo,
 } from "react";
-import { useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import ReactFlow, {
   Controls,
   Background,
@@ -19,7 +19,7 @@ import { toast } from "react-toastify";
 import { apiGet, apiPost, apiPut } from "../../../shared/apiClient";
 
 import { nodeTemplates } from "./components/NodeTemplates";
-import VersionHistoryModal from "./components/VersionControlModal"; // vamos trocar o conteúdo dele mais abaixo
+import VersionHistoryModal from "./components/VersionControlModal";
 import MacDock from "./components/MacDock";
 import { useConfirm } from "../../../app/provider/ConfirmProvider.jsx";
 
@@ -112,18 +112,21 @@ const THEME = {
   ring: "0 0 0 3px rgba(99, 102, 241, 0.08)",
 };
 
-// ambiente default da UI
-const UI_ENV = (import.meta.env?.VITE_FLOW_ENV || "prod").toLowerCase();
-
 /* =========================
  * Componente
  * ========================= */
 export default function Builder() {
-  const location = useLocation();
-  // meta pode vir do FlowHub
-  const externalMeta = location.state?.meta || null;
+  const { flowId } = useParams(); // /development/studio/:flowId
+  const confirm = useConfirm();
 
-  const [meta, setMeta] = useState(() => externalMeta || null);
+  // meta do contexto atual
+  const [meta, setMeta] = useState({
+    flowId: flowId || null,
+    name: null,
+    channel: "whatsapp", // default
+    activeVersionId: null, // version_id atualmente implantado (se houver)
+  });
+
   const [loadingFlow, setLoadingFlow] = useState(true);
 
   /* ---------- estado base ---------- */
@@ -176,7 +179,6 @@ export default function Builder() {
       },
     ];
   });
-  const confirm = useConfirm();
 
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -185,8 +187,11 @@ export default function Builder() {
 
   const [itor, setitor] = useState(false);
   const [scriptCode, setScriptCode] = useState("");
+
   const [showHistory, setShowHistory] = useState(false);
-  const [flowHistory, setFlowHistory] = useState([]);
+  const [flowHistory, setFlowHistory] = useState([]); // versões do flow
+  const [versionsLoading, setVersionsLoading] = useState(false);
+
   const [isPublishing, setIsPublishing] = useState(false);
 
   /* ---------- Undo / Redo ---------- */
@@ -342,23 +347,12 @@ function run(context) {
         setNodesWithHistory((nds) =>
           nds.map((n) =>
             n.id === id
-              ? {
-                  ...n,
-                  data: {
-                    ...n.data,
-                    block: { ...n.data.block, code: newCode },
-                  },
-                }
+              ? { ...n, data: { ...n.data, block: { ...n.data.block, code: newCode } } }
               : n
           )
         );
         setSelectedNode((prev) =>
-          prev
-            ? {
-                ...prev,
-                data: { ...prev.data, block: { ...prev.data.block, code: newCode } },
-              }
-            : null
+          prev ? { ...prev, data: { ...prev.data, block: { ...prev.data.block, code: newCode } } } : null
         );
       }
     },
@@ -458,49 +452,45 @@ function run(context) {
     setSelectedNode(null);
   }, [selectedNode]);
 
-  /* ---------- carregar fluxo (deployment -> version) ---------- */
+  /* ---------- carregar fluxo: versões + deploys ---------- */
   useEffect(() => {
     let alive = true;
     const load = async () => {
       try {
+        if (!flowId) return;
         setLoadingFlow(true);
 
-        // 1) Se vier do FlowHub, já temos meta+versionId
-        if (externalMeta?.versionId) {
-          const data = await apiGet(`/flows/data-by-version/${externalMeta.versionId}`);
+        // 1) pegar deploys ativos desse flow para descobrir canal e a versão ativa
+        const deps = await apiGet(`/flows/deployments?flow_id=${encodeURIComponent(flowId)}`);
+        let chosenChannel = "whatsapp";
+        let activeVersionId = null;
+        if (Array.isArray(deps) && deps.length > 0) {
+          // último ativo por ordem de ativação (desc no SQL)
+          chosenChannel = deps[0]?.channel || chosenChannel;
+          activeVersionId = deps[0]?.version_id || null;
+        }
+
+        // 2) pegar versões do flow e escolher canvas-base (maior draft > maior published)
+        const versions = await apiGet(`/flows/${flowId}/versions`);
+        const drafts = (versions || []).filter(v => v.status === "draft").sort((a,b)=>b.version-a.version);
+        const pubs   = (versions || []).filter(v => v.status === "published").sort((a,b)=>b.version-a.version);
+        const base   = drafts[0] || pubs[0] || null;
+
+        if (base) {
+          const data = await apiGet(`/flows/data-by-version/${base.id}`);
           if (!alive) return;
           hydrateCanvasFromFlow(data);
-          setMeta(externalMeta);
-          return;
         }
 
-        // 2) Caso contrário: pegue o 1º deployment ativo do ENV
-        const ENV = UI_ENV;
-        const deployments = await apiGet(`/flows/deployments?environment=${encodeURIComponent(ENV)}`);
         if (!alive) return;
-
-        if (!Array.isArray(deployments) || deployments.length === 0) {
-          // sem deployments ativos — deixa canvas default
-          setMeta(null);
-          return;
-        }
-
-        const d = deployments[0]; // pegue o primeiro (ou escolha por canal)
-        const data = await apiGet(`/flows/data-by-version/${d.version_id}`);
-        if (!alive) return;
-
-        hydrateCanvasFromFlow(data);
-        setMeta({
-          flowId: d.flow_id,
-          versionId: d.version_id,
-          version: d.version,
-          channel: d.channel,
-          environment: d.environment,
-          name: d.name,
-          deploymentId: d.id,
-        });
+        setMeta((m) => ({
+          ...(m || {}),
+          flowId,
+          channel: chosenChannel,
+          activeVersionId,
+        }));
       } catch (err) {
-        console.error("Erro ao carregar fluxo:", err);
+        console.error("Erro ao carregar flow:", err);
       } finally {
         if (alive) setLoadingFlow(false);
       }
@@ -508,8 +498,7 @@ function run(context) {
 
     load();
     return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [flowId]);
 
   // normaliza JSON do flow -> nodes/edges
   const hydrateCanvasFromFlow = (flowData) => {
@@ -576,38 +565,34 @@ function run(context) {
   };
 
   /* ---------- Histórico (versões do flow) ---------- */
-  useEffect(() => {
-    if (!showHistory) return;
-    (async () => {
-      try {
-        if (!meta?.flowId) {
-          setFlowHistory([]);
-          toast.info("Abra o Builder a partir de um deployment para ver o histórico.");
-          return;
-        }
-        const rows = await apiGet(`/flows/${meta.flowId}/versions`);
-        setFlowHistory(rows || []);
-      } catch (err) {
-        console.error("Erro ao carregar histórico de versões:", err);
-      }
-    })();
-  }, [showHistory, meta?.flowId]);
+  const openHistory = async () => {
+    if (!meta?.flowId) return;
+    try {
+      setVersionsLoading(true);
+      const rows = await apiGet(`/flows/${meta.flowId}/versions`);
+      setFlowHistory(rows || []);
+      setShowHistory(true);
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao carregar histórico");
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
 
-  /* ---------- Publicar no novo modelo ---------- */
+  /* ---------- Publicar (draft -> published -> deploy) ---------- */
   const handlePublish = async () => {
     try {
-      if (!meta?.flowId || !meta?.channel) {
-        toast.error("Este Builder precisa saber flowId e channel (abra via FlowHub ou selecione um deployment).");
+      if (!meta?.flowId) {
+        toast.error("Flow não identificado.");
         return;
       }
-      const ENV = meta.environment || UI_ENV;
-
       const totalNodes = nodes.length;
       const totalEdges = edges.length;
       const ok = await confirm({
         title: "Publicar fluxo?",
         description:
-          `Isso criará uma nova versão, publicará e ativará no canal/ambiente atuais.\n\n` +
+          `Será criada uma nova versão, publicada e ativada no canal atual.\n\n` +
           `Resumo: ${totalNodes} blocos e ${totalEdges} conexões.`,
         confirmText: "Publicar",
         cancelText: "Cancelar",
@@ -619,7 +604,10 @@ function run(context) {
 
       // compacta o grafo em JSON de flow
       const labelToId = {};
-      nodes.forEach((n) => { if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label); labelToId[n.data.label] = n.id; });
+      nodes.forEach((n) => {
+        if (labelToId[n.data.label]) console.warn("Label duplicado:", n.data.label);
+        labelToId[n.data.label] = n.id;
+      });
       const nodeIds = new Set(nodes.map((n) => n.id));
 
       const blocks = {};
@@ -650,22 +638,19 @@ function run(context) {
       const flowData = { start: startNode?.id ?? nodes[0]?.id, blocks };
 
       // 1) cria draft
-      const v1 = await apiPost(`/flows/${meta.flowId}/versions`, { data: flowData, status: 'draft' });
+      const v1 = await apiPost(`/flows/${meta.flowId}/versions`, { data: flowData, status: "draft" });
       const newVersionNumber = v1?.version?.version;
       if (!newVersionNumber) throw new Error("Falha ao criar versão");
 
       // 2) publica
-      await apiPut(`/flows/${meta.flowId}/versions/${newVersionNumber}/status`, { status: 'published' });
+      await apiPut(`/flows/${meta.flowId}/versions/${newVersionNumber}/status`, { status: "published" });
 
-      // 3) deploy
-      await apiPost(`/flows/${meta.flowId}/deploy`, {
-        version: newVersionNumber,
-        channel: meta.channel,
-        environment: ENV,
-      });
+      // 3) deploy (usa canal atual ou whatsapp)
+      const channel = meta.channel || "whatsapp";
+      await apiPost(`/flows/${meta.flowId}/deploy`, { version: newVersionNumber, channel });
 
-      toast.success(`Publicado v${newVersionNumber} em ${meta.channel}/${ENV}`);
-      setMeta((m) => ({ ...(m || {}), version: newVersionNumber }));
+      toast.success(`Publicado e implantado: v${newVersionNumber} (${channel})`);
+      setMeta((m) => ({ ...(m || {}), activeVersionId: v1?.version?.id || null, channel }));
     } catch (err) {
       toast.error(`Falha ao publicar: ${err?.message || "erro desconhecido"}`);
     } finally {
@@ -768,12 +753,10 @@ function run(context) {
       {/* Header contextual */}
       <div style={{ padding: "8px 12px", display: "flex", gap: 12, alignItems: "center", borderBottom: `1px solid ${THEME.border}`, background: THEME.panelBg }}>
         <strong>Chatbot Studio</strong>
-        {meta && (
+        {meta?.flowId && (
           <div style={{ marginLeft: "auto", fontSize: 12, display: "flex", gap: 12 }}>
             <span>Flow: <b>{meta.name || meta.flowId}</b></span>
-            <span>Canal: <b>{meta.channel}</b></span>
-            <span>Env: <b>{meta.environment || UI_ENV}</b></span>
-            {meta.version && <span>Versão atual: <b>v{meta.version}</b></span>}
+            <span>Canal: <b>{meta.channel || "whatsapp"}</b></span>
           </div>
         )}
       </div>
@@ -837,7 +820,6 @@ function run(context) {
               templates={nodeTemplates}
               iconMap={iconMap}
               onAdd={(tpl) => {
-                // mesmo addNodeTemplate de antes
                 const onErrorNode = nodesRef.current.find((n) => n.data.label?.toLowerCase() === "onerror");
                 const newNode = {
                   id: genId(),
@@ -859,7 +841,7 @@ function run(context) {
               canRedo={canRedo}
               onPublish={handlePublish}
               onDownload={downloadFlow}
-              onHistory={() => setShowHistory(true)}
+              onHistory={openHistory}
               isPublishing={isPublishing}
               disabled={loadingFlow}
             />
@@ -869,28 +851,31 @@ function run(context) {
               visible={showHistory}
               onClose={() => setShowHistory(false)}
               versions={flowHistory}
-              meta={meta}
-              onRestore={async (version) => {
-                if (!meta?.flowId || !meta?.channel) {
-                  toast.error("Sem contexto de flow/channel para restaurar.");
-                  return;
-                }
-                const ENV = meta.environment || UI_ENV;
-                await apiPost(`/flows/${meta.flowId}/deploy`, {
-                  version,
-                  channel: meta.channel,
-                  environment: ENV,
-                });
-                toast.success(`Ativado v${version} em ${meta.channel}/${ENV}`);
-                setShowHistory(false);
-              }}
-              onOpenVersion={async (versionId) => {
+              loading={versionsLoading}
+              activeId={meta?.activeVersionId || undefined}
+              onRestore={async (versionId) => {
                 try {
-                  const data = await apiGet(`/flows/data-by-version/${versionId}`);
-                  hydrateCanvasFromFlow(data);
-                  setMeta((m) => ({ ...(m || {}), versionId }));
+                  if (!meta?.flowId) {
+                    toast.error("Flow não identificado.");
+                    return;
+                  }
+                  // precisamos do número da versão para o deploy
+                  const v = (flowHistory || []).find((x) => x.id === versionId);
+                  if (!v?.version) {
+                    toast.error("Versão inválida.");
+                    return;
+                  }
+                  const channel = meta.channel || "whatsapp";
+                  await apiPost(`/flows/${meta.flowId}/deploy`, {
+                    version: v.version,
+                    channel,
+                  });
+                  toast.success(`Ativado v${v.version} (${channel})`);
+                  setMeta((m) => ({ ...(m || {}), activeVersionId: versionId }));
+                  setShowHistory(false);
                 } catch (e) {
-                  toast.error("Falha ao abrir versão");
+                  console.error(e);
+                  toast.error("Falha ao restaurar a versão");
                 }
               }}
             />
