@@ -392,11 +392,6 @@ export default function Admin() {
                 icon: <SettingsIcon size={16} />,
                 label: "Preferências",
               },
-              {
-                to: "settings/channels",
-                icon: <MessageCircle size={16} />,
-                label: "Canais",
-              },
             ],
           },
           {
@@ -925,14 +920,6 @@ export default function Admin() {
             element={
               <RequireRole allow={isAdmin}>
                 <Preferences />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/settings/channels"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Channels />
               </RequireRole>
             }
           />
