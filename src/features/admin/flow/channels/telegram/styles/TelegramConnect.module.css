@@ -1,0 +1,377 @@
+/* TelegramConnect.module.css */
+
+/* ===== Página “fluida” como as demais ===== */
+.page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: transparent;          /* herda o app-bg global */
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* ===== Breadcrumbs ===== */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.bcLink {
+  color: #3b82f6;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.bcLink:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+.bcSep { color: #94a3b8; }
+
+/* ===== Page Header com faixa gradiente como nas outras telas ===== */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  position: relative;
+  border-bottom: 1px solid #e2e8f0; /* fallback leve */
+}
+.pageHeader::after{
+  content:'';
+  position:absolute; left:0; right:0; bottom:-1px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+
+.titleWrap h1,
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.metaRow {
+  font-size: 13px;
+  color: #64748b;
+}
+.metaRow strong { color: #374151; }
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.backBtn, .btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.backBtn:hover, .btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Card principal ===== */
+.editorCard {
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  padding: 24px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+/* ===== Alerts ===== */
+.alertErr {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.alertOk {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* ===== Status conectado ===== */
+.statusBar { margin-bottom: 24px; }
+.statusChipOk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid #bbf7d0;
+}
+
+/* ===== KPI Grid ===== */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kvCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px;
+}
+.kvTitle {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.kvValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.kvValueRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.copyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+.copyBtn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* ===== Hero (quando não conectado) ===== */
+.heroSection {
+  text-align: left;        /* mantém alinhado com o restante da página */
+  padding: 8px 0 0;
+  margin-bottom: 8px;
+}
+.heroIcon {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+  color: #0088cc;
+}
+.heroTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+.heroSubtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  max-width: 640px;        /* respira mais em telas largas */
+}
+
+/* ===== Form ===== */
+.section { margin-bottom: 24px; }
+.formRow { margin-bottom: 16px; }
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.input:focus {
+  outline: none;
+  border-color: #0088cc;
+  box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+}
+.input:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+
+.hintRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+/* ===== Instruções ===== */
+.instructionsToggle { margin: 16px 0; }
+.instructionsBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #0088cc;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+.instructionsBtn:hover { color: #006ba3; }
+
+.instructionsCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.instructionsTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+.instructionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.instructionItem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.instructionStep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #0088cc;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.instructionText {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+.instructionText code {
+  background: #e5e7eb;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+/* ===== Ações ===== */
+.actionsRow {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  margin-top: 24px;
+}
+.btnTgPrimary {
+  background: #0088cc;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btnTgPrimary:hover:not(:disabled) { background: #006ba3; }
+.btnTgPrimary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+.btnDanger {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btnDanger:hover { background: #b91c1c; }
+
+/* ===== Responsivo ===== */
+@media (max-width: 768px) {
+  .page { padding: 16px var(--page-inline); }
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .headerActions { justify-content: flex-start; }
+  .kpiGrid { grid-template-columns: 1fr; }
+  .actionsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

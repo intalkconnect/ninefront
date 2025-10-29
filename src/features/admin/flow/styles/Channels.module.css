@@ -1,0 +1,265 @@
+/* ===========================
+   Base igual ao Preferences
+   =========================== */
+
+/* use o mesmo token do Preferences */
+:root{
+  --app-bg: #f6f7fb;
+  --page-inline: clamp(12px, 2vw, 24px);
+  /* grid responsiva – ajuste se quiser cards mais largos/estreitos */
+  --card-min: 320px;
+}
+
+/* fundo/scroll global iguais ao Preferences */
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background: var(--app-bg);
+}
+
+/* wrappers herdam o fundo (evita faixas diferentes) */
+#root, #app, .layout, .main, .content, .page {
+  background: var(--app-bg) !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+}
+
+/* ===========================
+   Layout geral (sem max-width)
+   =========================== */
+.container {
+  /* herda o fundo da página */
+  background: transparent !important;
+
+  /* página cheia, só com padding lateral como nas outras telas */
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  overflow: visible !important;
+
+}
+
+/* ===========================
+   Header – mesmo padrão do Queue/Preferences
+   =========================== */
+.header{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:24px; margin-bottom:18px; position:relative;
+}
+.header::after{
+  content:'';
+  position:absolute; left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+}
+
+.subtitle{
+  margin:6px 0 0; color:var(--qr-muted); font-size:15px; font-weight:400;
+}
+
+.title{
+  margin:0;
+  font-size:36px;           /* igual ao Queue/Preferences */
+  font-weight:700;
+  line-height:1.2;
+  color:#0f172a;
+  display:flex; align-items:center; gap:10px;
+}
+
+.tenantBadge{
+  color:#374151; font-size:13px;
+  background:#f3f4f6; border:1px solid #e5e7eb;
+  padding:6px 10px; border-radius:10px;
+}
+
+.subtle{ color:#9ca3af; }
+
+.alertErr, .alertOk{
+  display:inline-block; padding:8px 10px; border-radius:8px; margin-top:10px;
+}
+.alertErr{ background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+.alertOk { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+
+/* ===========================
+   Grade responsiva FLUIDA (auto-ajusta colunas)
+   =========================== */
+.grid{
+  display:grid;
+  gap:16px;
+  /* auto-fit + minmax -> as colunas se ajustam à largura da página */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--card-min)), 1fr));
+  align-items: stretch;
+}
+.grid > *{ min-width:0; } /* evita overflow interno */
+
+@media (max-width: 420px){
+  :root{ --card-min: 260px; }
+}
+
+/* ===========================
+   Cards/canais (mantidos)
+   =========================== */
+.card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+
+.cardHead{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border-bottom:1px solid #f3f4f6;
+  min-height:56px;
+}
+
+.cardIconWrap{
+  width:28px; height:28px;
+  border-radius:8px;
+  display:grid; place-items:center;
+  color:#111827;
+}
+.cardIconWrap.wa{ background:#e2fbe8; }
+.cardIconWrap.ig{ background:#ffe4f0; }
+.cardIconWrap.fb{ background:#e8effe; }
+.cardIconWrap.tg{ background:#e6f7ff; }
+
+.cardTitle{ font-weight:600; }
+
+.statusOk, .statusOff{
+  padding:4px 8px; font-size:12px; border-radius:999px; border:1px solid #e5e7eb;
+}
+.statusOk { color:#065f46; background:#ecfdf5; border-color:#a7f3d0; display:inline-flex; gap:6px; align-items:center; }
+.statusOff{ color:#6b7280; background:#f3f4f6; }
+
+.cardBody{
+  padding:14px;
+  display:flex; flex-direction:column; gap:12px;
+}
+
+.cardActions{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+
+.btnWrap :global(button){
+  background:#111827; color:#fff; border:1px solid #111827;
+  padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+}
+.btnWrap :global(button[disabled]){ opacity:.6; cursor:not-allowed; }
+
+/* substitua esta regra */
+.btnSecondary{
+  background:#fff; color:#111827; border:1px solid #e5e7eb;
+  padding:8px 12px; border-radius:10px; cursor:pointer; /* ← era not-allowed */
+}
+
+/* novo: só mostra 'proibido' quando realmente estiver desabilitado */
+.btnSecondary[disabled]{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+/* --- Botões coloridos (Telegram / WhatsApp) --- */
+.btnTgPrimary{
+  background:#229ED9;            /* azul Telegram */
+  border:1px solid #229ED9;
+  color:#fff;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btnTgPrimary:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* quando o botão do WhatsApp vem do componente embedded, estilize via :global */
+.btnWrapWa :global(button){
+  background:#25D366 !important; /* verde WhatsApp */
+  border-color:#25D366 !important;
+  color:#fff !important;
+  cursor:pointer !important;
+  font-weight:600 !important;
+}
+.btnWrapWa :global(button:disabled){ opacity:.6 !important; cursor:not-allowed !important; }
+
+.btnWrapWa{
+  display: flex;
+  align-items: center;
+  gap: 12px;        /* 👈 espaço entre o botão e o texto */
+  flex-wrap: wrap;  /* se apertar, o texto quebra pra baixo */
+}
+
+/* utilidades usadas no modal */
+.btnGhost{
+  background:#fff;
+  color:#111827;
+  border:1px solid #e5e7eb;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+}
+.btnIcon{
+  background:transparent;
+  border:0;
+  cursor:pointer;
+  padding:6px;
+  border-radius:8px;
+}
+
+
+
+.hint{ display:inline-flex; align-items:center; gap:6px; color:#6b7280; font-size:12px; }
+
+/* Bloco conectado + lista */
+.connectedBlock{ display:flex; flex-direction:column; gap:10px; }
+
+.kv {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+/* garante que a coluna da chave tenha largura fixa e não quebre */
+.kv .k {
+  min-width: 140px;   /* ajuste esse valor conforme quiser */
+  white-space: nowrap; /* não deixa quebrar */
+  font-weight: 500;
+}
+
+/* valor fica ao lado */
+.kv .v {
+  flex: 1;
+  font-weight: 400;
+}
+
+
+.listWrap{ border-top:1px dashed #e5e7eb; padding-top:10px; }
+.listTitle{ font-weight:600; font-size:14px; margin-bottom:6px; }
+
+.numList{
+  list-style:none; margin:0; padding:0;
+  display:grid; gap:10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.numRow{
+  display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
+  padding:10px; border:1px solid #e5e7eb; border-radius:12px; background:#fafafa;
+}
+.numMain{ display:flex; flex-direction:column; }
+.numPhone{ font-weight:600; color:#111827; }
+.numId{ color:#6b7280; font-size:12px; }
+
+.numActions{ display:flex; gap:6px; }
+.btnTiny{
+  background:#fff; color:#111827; border:1px solid #e5e7eb;
+  padding:6px 8px; border-radius:8px; font-size:12px; cursor:not-allowed;
+}
