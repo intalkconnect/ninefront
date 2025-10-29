@@ -37,7 +37,7 @@ export default function FlowHub() {
 
   const handleOpenBuilder = (flow, channel) => {
     // rota com :flowId na URL + meta no state (nome e canal)
-    navigate(`/admin/chatbot/builder/${flow.id}`, {
+    navigate(`development/studio/${flow.id}`, {
       state: { meta: { flowId: flow.id, name: flow.name, channel } },
     });
   };
