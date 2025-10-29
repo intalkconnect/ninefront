@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { apiGet, apiPost } from "../../shared/apiClient"; // ajuste o caminho se seu apiClient estiver em outro lugar
+import { apiGet, apiPost } from "../../../shared/apiClient"; // ajuste o caminho se seu apiClient estiver em outro lugar
 
 const THEME = {
   bg: "#f9fafb",
