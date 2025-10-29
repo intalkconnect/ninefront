@@ -40,7 +40,7 @@ export default function FlowHub() {
   }, []);
 
   const handleOpenBuilder = (flow, channel) => {
-    navigate(`/admin/development/studio/${flow.id}`, {
+    navigate(`/development/studio/${flow.id}`, {
       state: {
         meta: {
           flowId: flow.id,
