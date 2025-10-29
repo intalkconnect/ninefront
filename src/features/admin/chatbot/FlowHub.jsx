@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
@@ -10,7 +10,7 @@ import {
   Send,
   Wifi,
   Plus,
-  Workflow
+  Workflow,
 } from "lucide-react";
 
 /* =========================
@@ -27,7 +27,7 @@ const THEME = {
 };
 
 /* =========================
- * Ícones reais por canal
+ * Ícones por tipo de canal
  * ========================= */
 const CHANNEL_ICONS = {
   whatsapp: <MessageCircle size={16} />,
@@ -42,24 +42,67 @@ export default function FlowHub() {
   const [rows, setRows] = useState([]);
   const [showNewModal, setShowNewModal] = useState(false);
 
-  const load = async () => {
+  // Mapa de canais vinculados por flowId: { [flowId]: Array<{channel_type, channel_id, ...}> }
+  const [channelsByFlow, setChannelsByFlow] = useState({});
+  const [channelsLoading, setChannelsLoading] = useState(false);
+
+  // Carrega a lista de flows
+  const loadFlows = async () => {
     try {
       setLoading(true);
-      // /flows/meta deve trazer: id, name, description, last_published, last_version,
-      // channels[] (flow_channels) ou active_deploys[] como fallback.
       const data = await apiGet("/flows/meta");
-      setRows(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setRows(list);
+      return list;
     } catch (e) {
       console.error(e);
       toast.error("Falha ao carregar flows");
+      setRows([]);
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
+  // Carrega os channels vinculados (flow_channels) para todos os flows atuais
+  const loadChannelsForFlows = async (flows) => {
+    if (!flows || flows.length === 0) return;
+    setChannelsLoading(true);
+    try {
+      const results = await Promise.all(
+        flows.map(async (f) => {
+          try {
+            const arr = await apiGet(`/flows/${f.id}/channels`);
+            return [f.id, Array.isArray(arr) ? arr : []];
+          } catch (e) {
+            console.warn("Falha ao carregar channels do flow", f.id, e);
+            return [f.id, []];
+          }
+        })
+      );
+
+      const map = {};
+      for (const [id, arr] of results) {
+        map[id] = arr;
+      }
+      setChannelsByFlow(map);
+    } finally {
+      setChannelsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    load();
+    (async () => {
+      const list = await loadFlows();
+      await loadChannelsForFlows(list);
+    })();
   }, []);
+
+  // Recarrega tudo (flows + channels)
+  const reloadAll = async () => {
+    const list = await loadFlows();
+    await loadChannelsForFlows(list);
+  };
 
   const openStudio = (flow) => {
     navigate(`/development/studio/${flow.id}`, {
@@ -91,26 +134,49 @@ export default function FlowHub() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontWeight: 800 }}>FlowHub</span>
+          {(loading || channelsLoading) && (
+            <span style={{ fontSize: 12, color: THEME.textMuted }}>• carregando…</span>
+          )}
         </div>
 
-        <button
-          onClick={() => setShowNewModal(true)}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: THEME.brand,
-            color: "#fff",
-            border: "none",
-            padding: "10px 14px",
-            borderRadius: 10,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          <Plus size={16} />
-          Novo Flow
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={reloadAll}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: "#fff",
+              color: THEME.text,
+              border: `1px solid ${THEME.border}`,
+              padding: "10px 14px",
+              borderRadius: 10,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Recarregar
+          </button>
+
+          <button
+            onClick={() => setShowNewModal(true)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: THEME.brand,
+              color: "#fff",
+              border: "none",
+              padding: "10px 14px",
+              borderRadius: 10,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={16} />
+            Novo Flow
+          </button>
+        </div>
       </div>
 
       {/* Grid */}
@@ -132,6 +198,8 @@ export default function FlowHub() {
             <FlowCard
               key={f.id}
               flow={f}
+              channels={channelsByFlow[f.id] || []}
+              channelsLoading={channelsLoading}
               onOpenStudio={() => openStudio(f)}
               onOpenChannels={() => openFlowChannels(f)}
             />
@@ -151,8 +219,8 @@ export default function FlowHub() {
               });
               toast.success(`Flow "${created?.name}" criado!`);
               setShowNewModal(false);
-              // permanece no FlowHub (não abre o Studio)
-              await load();
+              // permanece no FlowHub e recarrega lista + channels por flow
+              await reloadAll();
             } catch (e) {
               console.error(e);
               toast.error("Erro ao criar flow");
@@ -164,26 +232,15 @@ export default function FlowHub() {
   );
 }
 
-function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
+function FlowCard({ flow, channels, channelsLoading, onOpenStudio, onOpenChannels }) {
   const lastPublished = flow?.last_published ?? null;
   const lastVersion = flow?.last_version ?? null;
 
-  // Preferir channels[] (flow_channels). Se não vier, usar active_deploys[].channel
-  const channelsBound = useMemo(() => {
-    if (Array.isArray(flow?.channels) && flow.channels.length) {
-      // esperado: [{channel_type, channel_id, ...}]
-      return flow.channels
-        .filter((c) => c?.channel_type)
-        .map((c) => c.channel_type.toLowerCase());
-    }
-    if (Array.isArray(flow?.active_deploys) && flow.active_deploys.length) {
-      const uniq = new Set(
-        flow.active_deploys.map((d) => (d.channel || "").toLowerCase())
-      );
-      return Array.from(uniq);
-    }
-    return [];
-  }, [flow]);
+  // Tipos únicos vindos EXCLUSIVAMENTE de flow_channels
+  const types = (Array.isArray(channels) ? channels : [])
+    .map((c) => (c?.channel_type || "").toLowerCase())
+    .filter(Boolean);
+  const uniqueTypes = Array.from(new Set(types));
 
   return (
     <div
@@ -198,7 +255,7 @@ function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
         boxShadow: THEME.shadow,
       }}
     >
-      {/* Top row: bag + ação (somente ícones) */}
+      {/* Top row: bag + ações (ícones) */}
       <div style={{ display: "flex", alignItems: "center" }}>
         {/* Bag "flow" */}
         <span
@@ -267,7 +324,7 @@ function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
         </span>
       </div>
 
-      {/* APENAS ícones dos canais vinculados ao fluxo */}
+      {/* Só ícones dos canais realmente VINCULADOS neste flow */}
       <div
         style={{
           borderTop: `1px solid ${THEME.border}`,
@@ -275,10 +332,14 @@ function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
           display: "flex",
           gap: 6,
           flexWrap: "wrap",
+          minHeight: 34,
+          alignItems: "center",
         }}
       >
-        {channelsBound.length ? (
-          channelsBound.slice(0, 8).map((type, idx) => (
+        {channelsLoading ? (
+          <span style={{ fontSize: 12, color: THEME.textMuted }}>Carregando canais…</span>
+        ) : uniqueTypes.length ? (
+          uniqueTypes.slice(0, 8).map((type, idx) => (
             <span
               key={`${type}-${idx}`}
               title={type}
