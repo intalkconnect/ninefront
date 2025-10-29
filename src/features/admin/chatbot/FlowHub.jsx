@@ -91,7 +91,7 @@ export default function FlowHub() {
   };
 
   const openFlowChannels = (flow) => {
-    navigate(`/development/studio/${flow.id}/channels`, {
+    navigate(`/development/flowhub/${flow.id}/channels`, {
       state: { from: "/development/flowhub" },
     });
   };
