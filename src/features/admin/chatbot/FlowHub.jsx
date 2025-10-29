@@ -35,12 +35,19 @@ export default function FlowHub() {
 
   useEffect(() => { load(); }, []);
 
-  const handleOpenBuilder = (flow, channel) => {
-    // rota com :flowId na URL + meta no state (nome e canal)
-    navigate(`development/studio/${flow.id}`, {
-      state: { meta: { flowId: flow.id, name: flow.name, channel } },
-    });
-  };
+// src/features/admin/chatbot/FlowHub.jsx
+const handleOpenBuilder = (flow, channel) => {
+  navigate(`/admin/development/studio/${flow.id}`, {
+    state: {
+      meta: {
+        flowId: flow.id,
+        name: flow.name,
+        channel, // mantém o canal escolhido no card
+      },
+    },
+  });
+};
+
 
   return (
     <div style={{ padding: 16, background: THEME.bg, minHeight: "100vh" }}>
@@ -83,28 +90,38 @@ export default function FlowHub() {
         </div>
       )}
 
-      {showNewModal && (
-        <NewFlowModal
-          onClose={() => setShowNewModal(false)}
-          onCreate={async (form) => {
-            try {
-              const created = await apiPost("/flows", {
-                name: form.name,
-                description: form.description || null,
-              });
-              toast.success(`Flow "${created?.name}" criado!`);
-              setShowNewModal(false);
-              // já abre o Builder desse flow novo no canal padrão
-              navigate(`/admin/chatbot/builder/${created.id}`, {
-                state: { meta: { flowId: created.id, name: created.name, channel: CHANNELS[0] } },
-              });
-            } catch (e) {
-              console.error(e);
-              toast.error("Erro ao criar flow");
-            }
-          }}
-        />
-      )}
+      // ainda em FlowHub.jsx
+{showNewModal && (
+  <NewFlowModal
+    onClose={() => setShowNewModal(false)}
+    onCreate={async (form) => {
+      try {
+        const created = await apiPost("/flows", {
+          name: form.name,
+          description: form.description || null,
+        });
+        toast.success(`Flow "${created?.name}" criado!`);
+        setShowNewModal(false);
+        await load();
+
+        // ✅ abre o Builder do novo flow
+        navigate(`/admin/development/studio/${created.id}`, {
+          state: {
+            meta: {
+              flowId: created.id,
+              name: created.name,
+              channel: "whatsapp", // default
+            },
+          },
+        });
+      } catch (e) {
+        console.error(e);
+        toast.error("Erro ao criar flow");
+      }
+    }}
+  />
+)}
+
     </div>
   );
 }
