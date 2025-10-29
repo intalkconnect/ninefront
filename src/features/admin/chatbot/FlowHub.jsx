@@ -3,7 +3,16 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
-import { Bot, MessageCircle, Instagram as IgIcon, MessageSquareText as FbIcon, Send, Link as LinkIcon } from "lucide-react";
+import {
+  Bot,
+  MessageCircle,
+  Instagram as IgIcon,
+  MessageSquareText as FbIcon,
+  Send,
+  Link as LinkIcon,
+  Wrench,
+  Plus,
+} from "lucide-react";
 
 /* =========================
  * Tema
@@ -14,18 +23,16 @@ const THEME = {
   text: "#0f172a",
   textMuted: "#475569",
   border: "#e2e8f0",
-  borderMuted: "#cbd5e1",
   shadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
   brand: "#2563eb",
   info: "#0ea5e9",
 };
 
-const CHANNELS = ["whatsapp", "facebook", "instagram", "telegram"];
 const CHANNEL_ICONS = {
-  whatsapp: <MessageCircle size={14} />,
-  facebook: <FbIcon size={14} />,
-  instagram: <IgIcon size={14} />,
-  telegram: <Send size={14} />,
+  whatsapp: <MessageCircle size={16} />,
+  facebook: <FbIcon size={16} />,
+  instagram: <IgIcon size={16} />,
+  telegram: <Send size={16} />,
 };
 
 export default function FlowHub() {
@@ -37,7 +44,8 @@ export default function FlowHub() {
   const load = async () => {
     try {
       setLoading(true);
-      // usa a rota /flows/meta enriquecida com "channels"
+      // /flows/meta deve trazer: id, name, description, last_published, last_version,
+      // active_deploys[], e (preferencial) channels[] de flow_channels.
       const data = await apiGet("/flows/meta");
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -48,21 +56,19 @@ export default function FlowHub() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
-  // abre o Builder do flow (mantemos canal "visual" como escolha local)
-  const handleOpenBuilder = (flow, channel) => {
-    navigate(`/development/studio/${flow.id}`, {
-      state: {
-        meta: { flowId: flow.id, name: flow.name, channel },
-      },
+  const openStudio = (flow) => {
+    navigate(`/admin/development/studio/${flow.id}`, {
+      state: { meta: { flowId: flow.id, name: flow.name } },
     });
   };
 
-  // único ponto do card para editar canais do flow
-  const handleOpenFlowChannels = (flow) => {
-    navigate(`/development/studio/${flow.id}/channels`, {
-      state: { from: "/development/flowhub" },
+  const openFlowChannels = (flow) => {
+    navigate(`/admin/development/studio/${flow.id}/channels`, {
+      state: { from: "/admin/development/flowhub" },
     });
   };
 
@@ -83,20 +89,15 @@ export default function FlowHub() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              fontWeight: 800,
-            }}
-          >
-            FlowHub
-          </span>
+          <span style={{ fontWeight: 800 }}>FlowHub</span>
         </div>
+
         <button
           onClick={() => setShowNewModal(true)}
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
             background: THEME.brand,
             color: "#fff",
             border: "none",
@@ -106,7 +107,8 @@ export default function FlowHub() {
             cursor: "pointer",
           }}
         >
-          + Novo Flow
+          <Plus size={16} />
+          Novo Flow
         </button>
       </div>
 
@@ -114,9 +116,7 @@ export default function FlowHub() {
       {loading ? (
         <div style={{ color: THEME.textMuted }}>Carregando…</div>
       ) : rows.length === 0 ? (
-        <div style={{ color: THEME.textMuted }}>
-          Nenhum flow ainda. Crie o primeiro!
-        </div>
+        <div style={{ color: THEME.textMuted }}>Nenhum flow ainda. Crie o primeiro!</div>
       ) : (
         <div
           style={{
@@ -126,12 +126,7 @@ export default function FlowHub() {
           }}
         >
           {rows.map((f) => (
-            <FlowCard
-              key={f.id}
-              flow={f}
-              onOpenBuilder={(channel) => handleOpenBuilder(f, channel)}
-              onOpenChannels={() => handleOpenFlowChannels(f)} // único ponto clicável para editar canais
-            />
+            <FlowCard key={f.id} flow={f} onOpenStudio={() => openStudio(f)} onOpenChannels={() => openFlowChannels(f)} />
           ))}
         </div>
       )}
@@ -148,18 +143,8 @@ export default function FlowHub() {
               });
               toast.success(`Flow "${created?.name}" criado!`);
               setShowNewModal(false);
+              // ⚠️ NÃO navegar para o Studio; permanece no FlowHub
               await load();
-
-              // abre já o Builder do novo flow
-              navigate(`/development/studio/${created.id}`, {
-                state: {
-                  meta: {
-                    flowId: created.id,
-                    name: created.name,
-                    channel: "whatsapp",
-                  },
-                },
-              });
             } catch (e) {
               console.error(e);
               toast.error("Erro ao criar flow");
@@ -171,17 +156,24 @@ export default function FlowHub() {
   );
 }
 
-function FlowCard({ flow, onOpenBuilder, onOpenChannels }) {
+function FlowCard({ flow, onOpenStudio, onOpenChannels }) {
   const lastPublished = flow?.last_published ?? null;
   const lastVersion = flow?.last_version ?? null;
-  const deploys = Array.isArray(flow?.active_deploys) ? flow.active_deploys : [];
-  const channelsBound = Array.isArray(flow?.channels) ? flow.channels : [];
 
-  // canal “sugerido”: se tem algum deploy usa o primeiro canal do deploy; senão "whatsapp"
-  const suggestedChannel = useMemo(() => {
-    if (deploys.length > 0) return deploys[0].channel || "whatsapp";
-    return "whatsapp";
-  }, [deploys]);
+  // Preferir channels[] (flow_channels). Se não vier, cair para active_deploys[].channel
+  const channelsBound = useMemo(() => {
+    if (Array.isArray(flow?.channels) && flow.channels.length) {
+      // esperado: [{channel_type, channel_id, ...}]
+      return flow.channels
+        .filter((c) => c?.channel_type)
+        .map((c) => c.channel_type.toLowerCase());
+    }
+    if (Array.isArray(flow?.active_deploys) && flow.active_deploys.length) {
+      const uniq = new Set(flow.active_deploys.map((d) => (d.channel || "").toLowerCase()));
+      return Array.from(uniq);
+    }
+    return [];
+  }, [flow]);
 
   return (
     <div
@@ -192,12 +184,13 @@ function FlowCard({ flow, onOpenBuilder, onOpenChannels }) {
         padding: 14,
         display: "flex",
         flexDirection: "column",
-        gap: 10,
+        gap: 12,
         boxShadow: THEME.shadow,
       }}
     >
-      {/* Bag "flow" */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {/* Top row: bag + action icons (Canais / Studio) */}
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {/* Bag "flow" */}
         <span
           style={{
             display: "inline-flex",
@@ -210,169 +203,107 @@ function FlowCard({ flow, onOpenBuilder, onOpenChannels }) {
             color: "#3730a3",
             fontWeight: 700,
           }}
+          title="Tipo"
         >
           <Bot size={14} /> flow
         </span>
+
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Botão ícone: Canais */}
+          <IconButton
+            title="Canais do flow"
+            ariaLabel="Editar canais do flow"
+            onClick={onOpenChannels}
+          >
+            <LinkIcon size={16} />
+          </IconButton>
+
+          {/* Botão ícone: Studio */}
+          <IconButton title="Abrir Studio" ariaLabel="Abrir Studio" onClick={onOpenStudio}>
+            <Wrench size={16} />
+          </IconButton>
+        </div>
       </div>
 
+      {/* Título + descrição */}
       <div style={{ fontWeight: 800 }}>{flow.name}</div>
       {flow.description && (
-        <div style={{ fontSize: 13, color: THEME.textMuted }}>
-          {flow.description}
-        </div>
+        <div style={{ fontSize: 13, color: THEME.textMuted }}>{flow.description}</div>
       )}
 
-      {/* Meta versões */}
+      {/* Meta versões (sem falar de deploys) */}
       <div
         style={{
           fontSize: 12,
           color: THEME.textMuted,
           display: "flex",
-          gap: 10,
+          gap: 12,
           flexWrap: "wrap",
         }}
       >
-        <span>
-          última publicada: <b>{lastPublished ?? "—"}</b>
-        </span>
-        <span>
-          última versão: <b>{lastVersion ?? "—"}</b>
-        </span>
+        <span>última publicada: <b>{lastPublished ?? "—"}</b></span>
+        <span>última versão: <b>{lastVersion ?? "—"}</b></span>
       </div>
 
-      {/* Linha de Canais (informativa) + único CTA para editar */}
+      {/* Apenas ícones dos canais vinculados */}
       <div
         style={{
           borderTop: `1px solid ${THEME.border}`,
           paddingTop: 8,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
+          gap: 6,
+          flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {channelsBound.length ? (
-            channelsBound.slice(0, 6).map((c) => (
-              <span
-                key={`${c.channel_type}:${c.channel_id}`}
-                title={`${c.channel_type}`}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 28,
-                  height: 28,
-                  borderRadius: 8,
-                  border: `1px solid ${THEME.border}`,
-                  background: "#fff",
-                }}
-              >
-                {CHANNEL_ICONS[c.channel_type] || <MessageCircle size={14} />}
-              </span>
-            ))
-          ) : (
-            <span style={{ fontSize: 12, color: THEME.textMuted }}>
-              Nenhum canal vinculado
+        {channelsBound.length ? (
+          channelsBound.slice(0, 8).map((type, idx) => (
+            <span
+              key={`${type}-${idx}`}
+              title={type}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 32,
+                borderRadius: 10,
+                border: `1px solid ${THEME.border}`,
+                background: "#fff",
+              }}
+            >
+              {CHANNEL_ICONS[type] || <MessageCircle size={16} />}
             </span>
-          )}
-        </div>
-
-        {/* ÚNICO local clicável do card para editar canais */}
-        <button
-          onClick={onOpenChannels}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            padding: "6px 10px",
-            borderRadius: 8,
-            border: `1px solid ${THEME.border}`,
-            background: "#fff",
-            cursor: "pointer",
-            fontWeight: 700,
-          }}
-          title="Editar canais deste flow"
-        >
-          <LinkIcon size={14} />
-          Canais do Flow
-        </button>
-      </div>
-
-      {/* Deploys ativos (se houver) */}
-      {deploys.length > 0 ? (
-        <div>
-          <div style={{ fontSize: 12, marginBottom: 6 }}>Deploys ativos</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {deploys.slice(0, 4).map((d) => (
-              <span
-                key={d.id}
-                style={{
-                  fontSize: 12,
-                  border: `1px solid ${THEME.border}`,
-                  borderRadius: 999,
-                  padding: "4px 10px",
-                  background: "#f8fafc",
-                }}
-              >
-                {d.channel} · v{d.version}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div style={{ fontSize: 12, color: THEME.textMuted }}>
-          Nenhum deploy ativo
-        </div>
-      )}
-
-      {/* Ações (apenas Editar Builder; canal é editado no CTA único acima) */}
-      <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-        <ChannelPicker
-          defaultValue={suggestedChannel}
-          onOpen={(ch) => onOpenBuilder(ch)}
-        />
+          ))
+        ) : (
+          <span style={{ fontSize: 12, color: THEME.textMuted }}>
+            Nenhum canal vinculado
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
-function ChannelPicker({ defaultValue, onOpen }) {
-  const [channel, setChannel] = useState(defaultValue || CHANNELS[0]);
+function IconButton({ title, ariaLabel, onClick, children }) {
   return (
-    <>
-      <select
-        value={channel}
-        onChange={(e) => setChannel(e.target.value)}
-        style={{
-          border: `1px solid ${THEME.border}`,
-          borderRadius: 8,
-          padding: "8px 10px",
-          background: "#fff",
-        }}
-      >
-        {CHANNELS.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={() => onOpen(channel)}
-        style={{
-          background: THEME.info,
-          color: "#fff",
-          border: "none",
-          padding: "8px 12px",
-          borderRadius: 8,
-          fontWeight: 700,
-          cursor: "pointer",
-        }}
-      >
-        Editar
-      </button>
-    </>
+    <button
+      onClick={onClick}
+      title={title}
+      aria-label={ariaLabel}
+      style={{
+        width: 34,
+        height: 34,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        border: `1px solid ${THEME.border}`,
+        background: "#fff",
+        cursor: "pointer",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -384,17 +315,9 @@ function NewFlowModal({ onClose, onCreate }) {
   return (
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <strong>Novo Flow</strong>
-          <button onClick={onClose} style={linkBtn}>
-            Fechar
-          </button>
+          <button onClick={onClose} style={linkBtn}>Fechar</button>
         </div>
 
         <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
@@ -403,7 +326,7 @@ function NewFlowModal({ onClose, onCreate }) {
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="ex.: Atendimentos WhatsApp"
+            placeholder="ex.: Atendimento Geral"
             style={input}
           />
           <label style={label}>Descrição (opcional)</label>
@@ -415,25 +338,11 @@ function NewFlowModal({ onClose, onCreate }) {
           />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 8,
-            marginTop: 14,
-          }}
-        >
-          <button onClick={onClose} style={ghostBtn}>
-            Cancelar
-          </button>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+          <button onClick={onClose} style={ghostBtn}>Cancelar</button>
           <button
             disabled={!canSave}
-            onClick={() =>
-              onCreate({
-                name: name.trim(),
-                description: description.trim() || "",
-              })
-            }
+            onClick={() => onCreate({ name: name.trim(), description: description.trim() || "" })}
             style={{
               ...primaryBtn,
               ...(canSave ? {} : { opacity: 0.6, cursor: "not-allowed" }),
