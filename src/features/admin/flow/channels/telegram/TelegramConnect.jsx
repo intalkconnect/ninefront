@@ -30,12 +30,14 @@ export default function TelegramConnect() {
   const backTo = location.state?.returnTo || "/channels";
   const flowId  = location.state?.flowId || null;
 
+  // status (tenant e vínculo com este flow)
   const [checking, setChecking] = useState(true);
-  const [connected, setConnected] = useState(false); // no tenant
-  const [bound, setBound] = useState(false); // a este flow
+  const [tenantHasSome, setTenantHasSome] = useState(false);  // existe *alguma* conexão TG no tenant
+  const [bound, setBound] = useState(false);                   // se está vinculado a ESTE flow
   const [botId, setBotId] = useState("");
   const [username, setUsername] = useState("");
 
+  // form (sempre habilitado para NOVA conexão)
   const [token, setToken] = useState("");
   const [secret, setSecret] = useState(genSecretHex());
   const [loading, setLoading] = useState(false);
@@ -44,11 +46,21 @@ export default function TelegramConnect() {
   async function loadStatus() {
     setChecking(true);
     try {
+      // a rota já retorna bound quando mandamos flow_id
       const s = await apiGet(`/telegram/status?subdomain=${tenant}${flowId ? `&flow_id=${flowId}` : ""}`);
-      setConnected(!!s?.connected);
+      setTenantHasSome(!!s?.connected);
       setBound(!!s?.bound);
-      setBotId(s?.bot_id || "");
-      setUsername(s?.username || "");
+
+      // ❗️Regra da UI:
+      // - Se NÃO estiver bound a este flow, nos comportamos como "desconectado" para este flow.
+      //   Não exibimos dados do bot existente do tenant para evitar a ideia de “vincular existente”.
+      if (s?.bound) {
+        setBotId(s?.bot_id || "");
+        setUsername(s?.username || "");
+      } else {
+        setBotId("");
+        setUsername("");
+      }
     } catch {
       toast.error("Falha ao consultar status do Telegram.");
     } finally {
@@ -74,7 +86,14 @@ export default function TelegramConnect() {
     setLoading(true);
     const id = toast.loading("Conectando Telegram…");
     try {
-      const j = await apiPost("/telegram/connect", { subdomain: tenant, botToken: token.trim(), secret, flow_id: flowId || undefined });
+      // Sempre cria/atualiza a conexão do BOT desse token
+      // e, se houver flowId, já VINCULA ao flow.
+      const j = await apiPost("/telegram/connect", {
+        subdomain: tenant,
+        botToken: token.trim(),
+        secret,
+        flow_id: flowId || undefined,
+      });
       if (!j?.ok) throw new Error(j?.error || "Falha ao conectar Telegram");
 
       toast.update(id, { render: "Telegram conectado!", type: "success", isLoading: false, autoClose: 1800 });
@@ -96,9 +115,10 @@ export default function TelegramConnect() {
     toast.info("Função de desconexão ainda não implementada.");
   }
 
-  const title = connected
-    ? (bound ? "Telegram — Conectado a este Flow" : "Telegram — Conectado no tenant (não vinculado a este Flow)")
-    : "Telegram — Conectar";
+  // 🔸Título e “estado visual”:
+  // Para este flow, só consideramos “conectado” se bound === true.
+  const uiIsConnected = bound;
+  const title = uiIsConnected ? "Telegram — Conectado a este Flow" : "Telegram — Conectar";
 
   return (
     <div className={styles.page}>
@@ -128,35 +148,56 @@ export default function TelegramConnect() {
           <div className={styles.loading}>Carregando…</div>
         ) : (
           <>
-            {connected ? (
+            {/* Barra de status:
+               - Se estiver bound: mostra OK.
+               - Se NÃO estiver bound: não mostramos “conectado no tenant”; só orientamos a nova conexão. */}
+            {uiIsConnected ? (
               <div className={styles.statusBar}>
-                {bound
-                  ? <span className={styles.statusChipOk}><CheckCircle2 size={14}/> Conectado a este Flow</span>
-                  : <span className={styles.statusChipWarn}><AlertCircle size={14}/> Não vinculado a este Flow</span>}
+                <span className={styles.statusChipOk}>
+                  <CheckCircle2 size={14}/> Conectado a este Flow
+                </span>
               </div>
             ) : null}
 
-            <div className={styles.kpiGrid}>
-              <div className={styles.kvCard}>
-                <div className={styles.kvTitle}>Bot</div>
-                <div className={styles.kvValue}>{username ? `@${username}` : "—"}</div>
-              </div>
-              <div className={styles.kvCard}>
-                <div className={styles.kvTitle}>Bot ID</div>
-                <div className={styles.kvValueRow}>
-                  <span className={`${styles.kvValue} ${styles.mono}`}>{botId || "—"}</span>
-                  {botId && (
-                    <button className={styles.copyBtn}
-                      onClick={async () => { try { await navigator.clipboard.writeText(botId); toast.success("ID copiado!"); } catch { toast.error("Não foi possível copiar."); } }}
-                      title="Copiar ID">
-                      <Copy size={14}/>
-                    </button>
-                  )}
+            {/* KPIs do bot só aparecem quando o flow ESTÁ vinculado */}
+            {uiIsConnected ? (
+              <div className={styles.kpiGrid}>
+                <div className={styles.kvCard}>
+                  <div className={styles.kvTitle}>Bot</div>
+                  <div className={styles.kvValue}>{username ? `@${username}` : "—"}</div>
+                </div>
+                <div className={styles.kvCard}>
+                  <div className={styles.kvTitle}>Bot ID</div>
+                  <div className={styles.kvValueRow}>
+                    <span className={`${styles.kvValue} ${styles.mono}`}>{botId || "—"}</span>
+                    {botId && (
+                      <button
+                        className={styles.copyBtn}
+                        onClick={async () => {
+                          try { await navigator.clipboard.writeText(botId); toast.success("ID copiado!"); }
+                          catch { toast.error("Não foi possível copiar."); }
+                        }}
+                        title="Copiar ID"
+                      >
+                        <Copy size={14}/>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
 
-            {/* Form SEMPRE disponível para NOVA conexão */}
+            {/* FORM — sempre visível; e quando NÃO bound, a página inteira se comporta como "nova conexão" */}
+            {!uiIsConnected && (
+              <div className={styles.heroSection}>
+                <div className={styles.heroIcon}><Bot size={48} /></div>
+                <h2 className={styles.heroTitle}>Conecte um novo Bot do Telegram</h2>
+                <p className={styles.heroSubtitle}>
+                  Este processo cria a conexão e já vincula este flow. Bots existentes do tenant não são reutilizados.
+                </p>
+              </div>
+            )}
+
             <div className={styles.section}>
               <div className={styles.formRow}>
                 <label className={styles.label}>Bot Token *</label>
@@ -200,7 +241,9 @@ export default function TelegramConnect() {
               <button className={styles.btnTgPrimary} onClick={handleConnect} disabled={loading || !token.trim()}>
                 {loading ? "Conectando..." : "Conectar Telegram"}
               </button>
-              {connected && (
+
+              {/* Botão de desconectar só faz sentido se já está vinculado a este flow */}
+              {uiIsConnected && (
                 <button className={styles.btnDanger} onClick={handleDisconnect}>Desconectar</button>
               )}
             </div>
