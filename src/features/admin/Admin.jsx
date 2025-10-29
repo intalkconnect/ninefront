@@ -39,6 +39,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import FlowHub from "./chatbot/FlowHub";
 import Builder from "./chatbot/Builder";
 import Dashboard from "./dashboard/Dashboard";
 import LogoutButton from "../../components/common/LogoutButton";
@@ -364,9 +365,9 @@ export default function Admin() {
             label: "Ferramentas",
             children: [
               {
-                to: "development/studio",
+                to: "development/flowhub",
                 icon: <Bot size={16} />,
-                label: "Chatbot Studio",
+                label: "Flow Hub",
               },
               {
                 to: "development/tracker",
@@ -957,14 +958,22 @@ export default function Admin() {
           <Route path="channels/telegram" element={<TelegramConnect />} />
 
           {/* development – admin only */}
-          <Route
-            path="development/studio"
-            element={
-              <RequireRole allow={isAdmin}>
-                <Builder />
-              </RequireRole>
-            }
-          />
+<Route
+    path="development/flowhub"               // <- agora abre a GALERIA
+    element={
+      <RequireRole allow={isAdmin}>
+        <FlowHub />
+      </RequireRole>
+    }
+  />
+  <Route
+    path="development/studio/builder"       // <- rota para o Builder em si
+    element={
+      <RequireRole allow={isAdmin}>
+        <Builder />
+      </RequireRole>
+    }
+  />
           <Route
             path="development/tracker"
             element={
