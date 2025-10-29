@@ -1,54 +1,94 @@
 // src/features/admin/chatbot/components/VersionControlModal.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom";
-import { X, CheckCircle2, RotateCw } from "lucide-react";
+import { X, CheckCircle2, RotateCw, ExternalLink } from "lucide-react";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 
 /**
- * Props:
+ * Props (novo modelo, compatível com o seu):
  *  - visible: boolean
  *  - onClose: () => void
- *  - versions: Array<{ id: string, created_at: string }>
- *  - onRestore: (id: string) => Promise<void> | void
+ *  - versions: Array<{
+ *      id: string,           // <- version_id (PK)
+ *      flow_id?: string,
+ *      version: number,      // <- número da versão
+ *      status?: 'draft'|'published'|'deprecated',
+ *      created_at?: string,
+ *      published_at?: string
+ *    }>
+ *  - onRestore: (versionNumber: number) => Promise<void> | void   // ativa a versão (deploy)
+ *  - onOpenVersion?: (versionId: string) => Promise<void> | void  // abre essa versão no canvas (somente pré-visualização)
  *  - loading?: boolean
- *  - activeId?: string
+ *  - activeId?: string                 // compat legado (version_id ativo)
+ *  - activeVersion?: number            // recomendado (número da versão ativa)
+ *  - meta?: { flowId?: string, channel?: string, environment?: string, name?: string }
  */
 export default function VersionControlModal({
   visible,
   onClose,
   versions = [],
   onRestore,
+  onOpenVersion,
   loading = false,
   activeId,
+  activeVersion,
+  meta,
 }) {
   const confirm = useConfirm();
-  const [restoringId, setRestoringId] = useState(null);
+  const [restoringKey, setRestoringKey] = useState(null);
 
   useEffect(() => {
-    if (!visible) setRestoringId(null);
+    if (!visible) setRestoringKey(null);
   }, [visible]);
+
+  const hasActiveByNumber = typeof activeVersion === "number" && !Number.isNaN(activeVersion);
+  const activeMatcher = useMemo(() => {
+    if (hasActiveByNumber) {
+      return (v) => Number(v.version) === Number(activeVersion);
+    }
+    if (activeId) {
+      return (v) => String(v.id) === String(activeId);
+    }
+    return () => false;
+  }, [hasActiveByNumber, activeVersion, activeId]);
 
   if (!visible) return null;
 
-  const handleRestore = async (flow) => {
-    // abre o diálogo de confirmação via ConfirmProvider
+  const handleRestore = async (item) => {
+    // item.version (number) é o que o back espera no POST /flows/:flow_id/deploy
+    const ver = item.version;
+    const when = item.published_at || item.created_at;
+    const whenStr = when ? new Date(when).toLocaleString() : "data desconhecida";
+
     const ok = await confirm({
-      title: "Restaurar versão?",
+      title: "Ativar versão?",
       description:
-        `Você está prestes a ativar a versão #${flow.id.slice(0, 8)} ` +
-        `criada em ${new Date(flow.created_at).toLocaleString()}.\n\n` +
-        "Isso substituirá o fluxo ativo atual.",
-      confirmText: "Restaurar",
+        `Você está prestes a ativar a versão v${ver} ` +
+        (meta?.channel && meta?.environment
+          ? `em ${meta.channel}/${meta.environment}.`
+          : "no ambiente configurado.") +
+        `\n\nCriada/Publicada em: ${whenStr}\nIsso substituirá o deployment ativo.`,
+      confirmText: "Ativar",
       cancelText: "Cancelar",
       tone: "warning",
     });
     if (!ok) return;
 
     try {
-      setRestoringId(flow.id);
-      await Promise.resolve(onRestore?.(flow.id));
+      setRestoringKey(`restore:${item.id}`);
+      await Promise.resolve(onRestore?.(ver));
     } finally {
-      setRestoringId(null);
+      setRestoringKey(null);
+    }
+  };
+
+  const handleOpen = async (item) => {
+    if (!onOpenVersion) return;
+    try {
+      setRestoringKey(`open:${item.id}`);
+      await Promise.resolve(onOpenVersion(item.id));
+    } finally {
+      setRestoringKey(null);
     }
   };
 
@@ -68,6 +108,18 @@ export default function VersionControlModal({
           </button>
         </div>
 
+        {/* contexto */}
+        {meta && (
+          <div style={contextBar}>
+            <span>Flow: <b>{meta.name || meta.flowId || "—"}</b></span>
+            {meta.channel && <span>Canal: <b>{meta.channel}</b></span>}
+            {meta.environment && <span>Env: <b>{meta.environment}</b></span>}
+            {hasActiveByNumber && (
+              <span>Ativa: <b>v{activeVersion}</b></span>
+            )}
+          </div>
+        )}
+
         {/* body */}
         <div style={bodyStyle}>
           {loading ? (
@@ -79,22 +131,33 @@ export default function VersionControlModal({
             <div style={emptyWrap}>Nenhuma versão encontrada.</div>
           ) : (
             <div style={listStyle}>
-              {versions.map((flow) => {
-                const isActive = activeId && activeId === flow.id;
-                const isRestoring = restoringId === flow.id;
+              {versions.map((v) => {
+                const isActive = activeMatcher(v);
+                const isActionOpen = restoringKey === `open:${v.id}`;
+                const isActionRestore = restoringKey === `restore:${v.id}`;
+
                 return (
                   <div
-                    key={flow.id}
+                    key={v.id}
                     style={{
                       ...itemStyle,
                       ...(isActive ? itemActiveStyle : null),
                     }}
                   >
                     <div style={itemLeft}>
-                      <span style={badge}>#{flow.id.slice(0, 8)}</span>
+                      <span style={badge}>v{v.version}</span>
+                      <span style={monoBadge}>#{String(v.id).slice(0, 8)}</span>
+                      {v.status && (
+                        <span style={statusPill(v.status)}>{v.status}</span>
+                      )}
                       <span style={dateText}>
-                        {new Date(flow.created_at).toLocaleString()}
+                        {v.published_at
+                          ? `Publicado: ${new Date(v.published_at).toLocaleString()}`
+                          : v.created_at
+                          ? `Criado: ${new Date(v.created_at).toLocaleString()}`
+                          : "Sem data"}
                       </span>
+
                       {isActive && (
                         <span style={activePill}>
                           <CheckCircle2 size={14} style={{ marginRight: 6 }} />
@@ -104,17 +167,29 @@ export default function VersionControlModal({
                     </div>
 
                     <div style={itemRight}>
+                      {/* Abrir (pré-visualizar no canvas sem ativar) */}
+                      {onOpenVersion && (
+                        <button
+                          style={openBtn}
+                          disabled={!!restoringKey}
+                          onClick={() => handleOpen(v)}
+                          title="Abrir esta versão no Builder"
+                        >
+                          {isActionOpen ? "Abrindo…" : (<><ExternalLink size={14} style={{marginRight:6}}/>Abrir</>)}
+                        </button>
+                      )}
+
+                      {/* Ativar (deploy) */}
                       <button
                         style={{
                           ...restoreBtn,
-                          ...(isActive
-                            ? { opacity: 0.55, cursor: "not-allowed" }
-                            : null),
+                          ...(isActive ? { opacity: 0.55, cursor: "not-allowed" } : null),
                         }}
-                        disabled={isActive || isRestoring}
-                        onClick={() => handleRestore(flow)}
+                        disabled={isActive || !!restoringKey}
+                        onClick={() => handleRestore(v)}
+                        title="Ativar esta versão no canal/ENV atuais"
                       >
-                        {isRestoring ? "Restaurando…" : "Restaurar"}
+                        {isActionRestore ? "Ativando…" : "Ativar"}
                       </button>
                     </div>
                   </div>
@@ -132,7 +207,7 @@ export default function VersionControlModal({
   );
 }
 
-/* ===== estilos claros para combinar com o padrão do app ===== */
+/* ===== estilos ===== */
 const overlayStyle = {
   position: "fixed",
   inset: 0,
@@ -146,12 +221,11 @@ const overlayStyle = {
 
 const modalStyle = {
   background: "#ffffff",
-  width: "min(560px, 96vw)",
-  maxHeight: "min(72vh, 720px)",
+  width: "min(620px, 96vw)",
+  maxHeight: "min(76vh, 740px)",
   borderRadius: 14,
   border: "1px solid #e2e8f0",
-  boxShadow:
-    "0 10px 30px rgba(15,23,42,.12), 0 4px 12px rgba(15,23,42,.06)",
+  boxShadow: "0 10px 30px rgba(15,23,42,.12), 0 4px 12px rgba(15,23,42,.06)",
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
@@ -169,22 +243,18 @@ const headerStyle = {
   zIndex: 1,
 };
 
-const titleStyle = {
-  margin: 0,
-  fontSize: 16,
-  fontWeight: 700,
-  color: "#0f172a",
+const contextBar = {
+  display: "flex",
+  gap: 12,
+  alignItems: "center",
+  padding: "8px 14px",
+  borderBottom: "1px solid #eef2f7",
+  fontSize: 12,
+  color: "#475569",
 };
 
-const iconBtn = {
-  background: "transparent",
-  border: "none",
-  color: "#334155",
-  padding: 8,
-  borderRadius: 8,
-  cursor: "pointer",
-};
-
+const titleStyle = { margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" };
+const iconBtn = { background: "transparent", border: "none", color: "#334155", padding: 8, borderRadius: 8, cursor: "pointer" };
 const bodyStyle = { padding: "10px 12px 16px", overflow: "auto" };
 
 const loadingWrap = {
@@ -196,12 +266,7 @@ const loadingWrap = {
   height: 120,
 };
 
-const emptyWrap = {
-  textAlign: "center",
-  color: "#64748b",
-  padding: "24px 8px",
-};
-
+const emptyWrap = { textAlign: "center", color: "#64748b", padding: "24px 8px" };
 const listStyle = { display: "flex", flexDirection: "column", gap: 10 };
 
 const itemStyle = {
@@ -214,11 +279,7 @@ const itemStyle = {
   background: "#fff",
   boxShadow: "0 1px 0 rgba(15,23,42,.03)",
 };
-
-const itemActiveStyle = {
-  borderColor: "#bfdbfe",
-  boxShadow: "0 0 0 3px rgba(37,99,235,.12)",
-};
+const itemActiveStyle = { borderColor: "#bfdbfe", boxShadow: "0 0 0 3px rgba(37,99,235,.12)" };
 
 const itemLeft = { display: "flex", alignItems: "center", gap: 10, minWidth: 0 };
 const itemRight = { display: "flex", alignItems: "center", gap: 8 };
@@ -230,6 +291,16 @@ const badge = {
   borderRadius: 8,
   border: "1px solid #cbd5e1",
   background: "#f8fafc",
+  color: "#0f172a",
+};
+
+const monoBadge = {
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  fontSize: 12,
+  padding: "4px 8px",
+  borderRadius: 8,
+  border: "1px dashed #e2e8f0",
+  background: "#ffffff",
   color: "#0f172a",
 };
 
@@ -246,6 +317,38 @@ const activePill = {
   background: "#eff6ff",
   color: "#1d4ed8",
   border: "1px solid #bfdbfe",
+};
+
+const statusPill = (status) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  fontSize: 11,
+  fontWeight: 700,
+  padding: "3px 8px",
+  borderRadius: 999,
+  textTransform: "uppercase",
+  letterSpacing: 0.3,
+  ...(status === "published"
+    ? { background: "#ecfdf5", color: "#065f46", border: "1px solid #a7f3d0" }
+    : status === "deprecated"
+    ? { background: "#fff7ed", color: "#9a3412", border: "1px solid #fed7aa" }
+    : { background: "#f1f5f9", color: "#0f172a", border: "1px solid #e2e8f0" }),
+});
+
+const openBtn = {
+  background: "transparent",
+  color: "#374151",
+  border: "1px solid #d1d5db",
+  padding: "7px 10px",
+  borderRadius: 8,
+  cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 700,
+  minWidth: 98,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
 };
 
 const restoreBtn = {
