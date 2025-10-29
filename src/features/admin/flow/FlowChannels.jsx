@@ -309,7 +309,6 @@ export default function FlowChannels() {
 
             {/* Exibir dados SOMENTE quando estiver vinculado ao flow */}
             <Row k="Número" v={isBound("whatsapp") ? (wa.display || "—") : "—"} />
-            <Row k="Phone ID" v={isBound("whatsapp") ? (wa.id || "—") : "—"} mono />
 
             <div style={S.actions}>
               {isBound("whatsapp") ? (
@@ -353,7 +352,6 @@ export default function FlowChannels() {
 
             {/* NÃO misturar dados: só mostra metadados se o flow estiver vinculado */}
             <Row k="Página" v={isBound("facebook") ? (fbBinding?.display_name || fb.pageName || "—") : "—"} />
-            <Row k="Page ID" v={isBound("facebook") ? (fbBinding?.channel_key || fb.pageId || "—") : "—"} mono />
 
             <div style={S.actions}>
               {isBound("facebook") ? null : (
@@ -395,15 +393,6 @@ export default function FlowChannels() {
                   ? (igBinding?.display_name || ig.igUsername || "—")
                   : "—"
               }
-            />
-            <Row
-              k="IG User ID"
-              v={
-                isBound("instagram")
-                  ? (igBinding?.channel_key || ig.igUserId || "—")
-                  : "—"
-              }
-              mono
             />
             <Row
               k="Página"
@@ -458,11 +447,6 @@ export default function FlowChannels() {
                   ? `@${String((tgBinding?.display_name || tgTenant.username)).replace(/^@/, "")}`
                   : "—"
               }
-            />
-            <Row
-              k="Bot ID"
-              v={isBound("telegram") ? (tgBinding?.channel_key || tgTenant.botId || "—") : "—"}
-              mono
             />
 
             <div style={S.actions}>
