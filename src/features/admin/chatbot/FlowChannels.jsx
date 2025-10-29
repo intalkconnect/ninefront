@@ -1,4 +1,3 @@
-// webapp/src/pages/Development/FlowChannels.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CheckCircle2, RefreshCw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -9,7 +8,7 @@ import WhatsAppEmbeddedSignupButton from "../components/WhatsAppEmbeddedSignupBu
 import FacebookConnectButton from "../components/FacebookConnectButton";
 import InstagramConnectButton from "../components/InstagramConnectButton";
 
-/* ========= util tenant ========= */
+/* ========= util: tenant ========= */
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname;
@@ -25,7 +24,7 @@ function formatPhone(p) {
   return `+${digits}`;
 }
 
-/* ========= Ícones ========= */
+/* ========= Brand icons originais ========= */
 function BrandIcon({ type, size = 18 }) {
   const s = { width: size, height: size, display: "block" };
   switch (type) {
@@ -67,6 +66,7 @@ function BrandIcon({ type, size = 18 }) {
   }
 }
 
+/* ========= estilo ========= */
 const S = {
   page: { padding: 16, minHeight: "100vh", background: "#f9fafb" },
   header: {
@@ -81,8 +81,7 @@ const S = {
   chipOk: { display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "#16a34a" },
   chipOff: { fontSize: 12, color: "#64748b" },
   kv: { display: "grid", gridTemplateColumns: "120px 1fr", fontSize: 13, gap: 6, padding: "4px 0" },
-  k: { color: "#475569" },
-  v: { color: "#0f172a", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" },
+  k: { color: "#475569" }, v: { color: "#0f172a", fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" },
   actions: { display: "flex", gap: 8, marginTop: 10 },
   btn: { border: "1px solid #e2e8f0", background: "#fff", padding: "8px 10px", borderRadius: 8, fontWeight: 700, cursor: "pointer" },
   btnPrimary: { background: "#2563eb", color: "#fff", padding: "8px 10px", borderRadius: 8, border: "none", fontWeight: 700, cursor: "pointer" },
@@ -95,88 +94,61 @@ export default function FlowChannels() {
 
   const [loading, setLoading] = useState(true);
 
-  // bindings do flow (única fonte de verdade para "Conectado")
+  // status do tenant (apenas para exibir dados — NÃO controla o CTA)
+  const [wa, setWa] = useState({ connected: false, id: "", display: "" });
+  const [fb, setFb] = useState({ connected: false, pageId: "", pageName: "" });
+  const [ig, setIg] = useState({ connected: false, igUserId: "", igUsername: "", pageName: "" });
+  const [tg, setTg] = useState({ connected: false, bound: false, botId: "", username: "" });
+
+  // bindings do flow
   const [bindings, setBindings] = useState([]); // [{channel_type, channel_key, display_name, is_active}]
 
-  // Detalhes (apenas para exibir quando houver binding)
-  const [waInfo, setWaInfo] = useState({ id: "", number: "" });
-  const [fbInfo, setFbInfo] = useState({ pageId: "", pageName: "" });
-  const [igInfo, setIgInfo] = useState({ igUserId: "", igUsername: "", pageName: "" });
-  const [tgInfo, setTgInfo] = useState({ botId: "", username: "" });
+  const isBound = (type) => bindings.some(b => b.channel_type === type && b.is_active);
 
-  const boundOf = (type) => bindings.find(b => b.channel_type === type && b.is_active);
-
-  async function bindToFlow(kind, key, label) {
-    // usado exclusivamente após conectar; não há botão "vincular"
+  async function ensureBind(kind, key, label) {
+    // sempre cria/atualiza o vínculo do canal COM ESTE FLOW
     const res = await apiPost(`/flows/${flowId}/channels`, {
       channel_type: kind,
-      channel_key: String(key),
+      channel_key: key,
       display_name: label || null
     });
-    setBindings(prev => {
-      const other = prev.filter(b => !(b.channel_type === kind));
-      return [{ ...res }, ...other];
-    });
+    return res;
   }
 
   async function loadAll() {
     setLoading(true);
     try {
-      // 1) bindings do flow
+      // bindings do flow
       const b = await apiGet(`/flows/${flowId}/channels`);
-      const list = Array.isArray(b) ? b : [];
-      setBindings(list);
+      setBindings(Array.isArray(b) ? b : []);
 
-      // 2) enriquecer com detalhes (somente se houver binding)
-      // WhatsApp: mapeia phone_id -> display_phone_number a partir de /whatsapp/status
-      const waBinding = list.find(x => x.channel_type === "whatsapp");
-      if (waBinding) {
-        try {
-          const ws = await apiGet(`/whatsapp/status?subdomain=${tenant}`);
-          const match = (ws?.numbers || []).find(n => String(n.id) === String(waBinding.channel_key));
-          setWaInfo({
-            id: waBinding.channel_key,
-            number: match ? formatPhone(match) : formatPhone(waBinding.display_name || "")
-          });
-        } catch { setWaInfo({ id: waBinding.channel_key, number: formatPhone(waBinding.display_name || "") }); }
-      } else setWaInfo({ id: "", number: "" });
+      // status de provedores do tenant (apenas informativo)
+      try {
+        const ws = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
+        const connected = !!(ws?.ok && ws?.phone);
+        setWa({ connected, id: ws?.phone?.id || "", display: formatPhone(ws?.phone) });
+      } catch { setWa({ connected: false, id: "", display: "" }); }
 
-      // Facebook
-      const fbBinding = list.find(x => x.channel_type === "facebook");
-      if (fbBinding) {
-        try {
-          const fs = await apiGet(`/facebook/status?subdomain=${tenant}`);
-          const pageId = fbBinding.channel_key;
-          setFbInfo({ pageId, pageName: fs?.page_id === pageId ? fs.page_name : (fbBinding.display_name || "") });
-        } catch { setFbInfo({ pageId: fbBinding.channel_key, pageName: fbBinding.display_name || "" }); }
-      } else setFbInfo({ pageId: "", pageName: "" });
+      try {
+        const fs = await apiGet(`/facebook/status?subdomain=${tenant}`);
+        setFb({ connected: !!fs?.connected, pageId: fs?.page_id || "", pageName: fs?.page_name || "" });
+      } catch { setFb({ connected: false, pageId: "", pageName: "" }); }
 
-      // Instagram
-      const igBinding = list.find(x => x.channel_type === "instagram");
-      if (igBinding) {
-        try {
-          const is = await apiGet(`/instagram/status?subdomain=${tenant}`);
-          setIgInfo({
-            igUserId: igBinding.channel_key,
-            igUsername: is?.ig_user_id === igBinding.channel_key ? (is.ig_username || "") : (igBinding.display_name || ""),
-            pageName: is?.page_name || ""
-          });
-        } catch {
-          setIgInfo({ igUserId: igBinding.channel_key, igUsername: igBinding.display_name || "", pageName: "" });
-        }
-      } else setIgInfo({ igUserId: "", igUsername: "", pageName: "" });
+      try {
+        const is = await apiGet(`/instagram/status?subdomain=${tenant}`);
+        setIg({ connected: !!is?.connected, igUserId: is?.ig_user_id || "", igUsername: is?.ig_username || "", pageName: is?.page_name || "" });
+      } catch { setIg({ connected: false, igUserId: "", igUsername: "", pageName: "" }); }
 
-      // Telegram
-      const tgBinding = list.find(x => x.channel_type === "telegram");
-      if (tgBinding) {
-        try {
-          const ts = await apiGet(`/telegram/status?subdomain=${tenant}`);
-          setTgInfo({
-            botId: tgBinding.channel_key,
-            username: ts?.bot_id === tgBinding.channel_key ? (ts?.username || "") : (tgBinding.display_name || "")
-          });
-        } catch { setTgInfo({ botId: tgBinding.channel_key, username: tgBinding.display_name || "" }); }
-      } else setTgInfo({ botId: "", username: "" });
+      // Telegram é flow-aware (status retorna bound)
+      try {
+        const ts = await apiGet(`/telegram/status?subdomain=${tenant}&flow_id=${flowId}`);
+        setTg({
+          connected: !!ts?.connected,
+          bound: !!ts?.bound,
+          botId: ts?.bot_id || "",
+          username: ts?.username || ""
+        });
+      } catch { setTg({ connected: false, bound: false, botId: "", username: "" }); }
 
     } catch (e) {
       console.error(e);
@@ -188,29 +160,29 @@ export default function FlowChannels() {
 
   useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, [flowId]);
 
-  // callbacks de conexão — após conectar, já VINCULAM ao flow atual
+  // callbacks de sucesso — SEMPRE conectam ao flow
   const onWaPickSuccess = async ({ phone_number_id, display }) => {
     try {
-      await bindToFlow("whatsapp", phone_number_id, display || "WhatsApp");
+      await ensureBind("whatsapp", phone_number_id, display || "WhatsApp");
+      toast.success("WhatsApp conectado a este flow.");
       await loadAll();
-      toast.success("WhatsApp conectado e vinculado a este flow.");
-    } catch { toast.error("Falha ao finalizar WhatsApp para este flow."); }
+    } catch { toast.error("Falha ao conectar WhatsApp ao flow."); }
   };
 
   const onFbConnected = async ({ page_id, page_name }) => {
     try {
-      await bindToFlow("facebook", page_id, page_name || "Facebook");
+      await ensureBind("facebook", page_id, page_name || "Facebook");
+      toast.success("Facebook conectado a este flow.");
       await loadAll();
-      toast.success("Facebook conectado e vinculado a este flow.");
-    } catch { toast.error("Falha ao finalizar Facebook para este flow."); }
+    } catch { toast.error("Falha ao conectar Facebook ao flow."); }
   };
 
   const onIgConnected = async ({ ig_user_id, ig_username, page_name }) => {
     try {
-      await bindToFlow("instagram", ig_user_id, ig_username || page_name || "Instagram");
+      await ensureBind("instagram", ig_user_id, ig_username || page_name || "Instagram");
+      toast.success("Instagram conectado a este flow.");
       await loadAll();
-      toast.success("Instagram conectado e vinculado a este flow.");
-    } catch { toast.error("Falha ao finalizar Instagram para este flow."); }
+    } catch { toast.error("Falha ao conectar Instagram ao flow."); }
   };
 
   return (
@@ -233,139 +205,121 @@ export default function FlowChannels() {
       ) : (
         <div style={S.grid}>
           {/* WhatsApp */}
-          <Card
-            title="WhatsApp"
-            icon={<BrandIcon type="whatsapp" />}
-            connected={!!boundOf("whatsapp")}
-            infoRows={[
-              ["Número", waInfo.number || "—", false],
-              ["Phone ID", waInfo.id || "—", true],
-            ]}
-            actions={
-              <>
-                {!boundOf("whatsapp") ? (
-                  <WhatsAppEmbeddedSignupButton
-                    tenant={tenant}
-                    label="Conectar WhatsApp"
-                    onPickSuccess={onWaPickSuccess}
-                  />
-                ) : (
-                  <button className="btn" style={S.btn} onClick={() => navigate("/channels/whatsapp", { state: { returnTo: -1 } })}>
-                    Perfil
-                  </button>
-                )}
-              </>
-            }
-          />
+          <div style={S.card}>
+            <div style={S.head}>
+              <div style={iconWrap("#22c55e")}><BrandIcon type="whatsapp" /></div>
+              <div style={{ fontWeight: 700 }}>WhatsApp</div>
+              <div style={{ marginLeft: "auto" }}>
+                {isBound("whatsapp")
+                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                  : <span style={S.chipOff}>Não conectado</span>}
+              </div>
+            </div>
+            <div>
+              <Row k="Número" v={wa.display || "—"} />
+              <Row k="Phone ID" v={wa.id || "—"} mono />
+            </div>
+            <div style={S.actions}>
+              {isBound("whatsapp") ? null : (
+                wa.connected
+                  ? <button style={S.btnPrimary} onClick={() => ensureBind("whatsapp", wa.id, wa.display || "WhatsApp").then(loadAll).then(()=>toast.success("WhatsApp conectado ao flow")).catch(()=>toast.error("Falha ao conectar WhatsApp"))}>Conectar WhatsApp</button>
+                  : <WhatsAppEmbeddedSignupButton tenant={tenant} label="Conectar WhatsApp" onPickSuccess={onWaPickSuccess}/>
+              )}
+            </div>
+          </div>
 
           {/* Facebook */}
-          <Card
-            title="Facebook Messenger"
-            icon={<BrandIcon type="facebook" />}
-            connected={!!boundOf("facebook")}
-            infoRows={[
-              ["Página", fbInfo.pageName || "—", false],
-              ["Page ID", fbInfo.pageId || "—", true],
-            ]}
-            actions={
-              <>
-                {!boundOf("facebook") ? (
-                  <FacebookConnectButton tenant={tenant} label="Conectar Facebook" onConnected={onFbConnected} />
-                ) : (
-                  <button className="btn" style={S.btn} onClick={() => window.open("/auth/facebook", "_blank")}>
-                    Gerenciar no provedor
-                  </button>
-                )}
-              </>
-            }
-          />
+          <div style={S.card}>
+            <div style={S.head}>
+              <div style={iconWrap("#1877F2")}><BrandIcon type="facebook" /></div>
+              <div style={{ fontWeight: 700 }}>Facebook Messenger</div>
+              <div style={{ marginLeft: "auto" }}>
+                {isBound("facebook")
+                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                  : <span style={S.chipOff}>Não conectado</span>}
+              </div>
+            </div>
+            <div>
+              <Row k="Página" v={fb.pageName || "—"} />
+              <Row k="Page ID" v={fb.pageId || "—"} mono />
+            </div>
+            <div style={S.actions}>
+              {isBound("facebook") ? null : (
+                fb.connected
+                  ? <button style={S.btnPrimary} onClick={() => ensureBind("facebook", fb.pageId, fb.pageName || "Facebook").then(loadAll).then(()=>toast.success("Facebook conectado ao flow")).catch(()=>toast.error("Falha ao conectar Facebook"))}>Conectar Facebook</button>
+                  : <FacebookConnectButton tenant={tenant} label="Conectar Facebook" onConnected={onFbConnected}/>
+              )}
+            </div>
+          </div>
 
           {/* Instagram */}
-          <Card
-            title="Instagram"
-            icon={<BrandIcon type="instagram" />}
-            connected={!!boundOf("instagram")}
-            infoRows={[
-              ["IG", igInfo.igUsername || "—", false],
-              ["IG User ID", igInfo.igUserId || "—", true],
-              ["Página", igInfo.pageName || "—", false],
-            ]}
-            actions={
-              <>
-                {!boundOf("instagram") ? (
-                  <InstagramConnectButton tenant={tenant} label="Conectar Instagram" onConnected={onIgConnected} />
-                ) : (
-                  <button className="btn" style={S.btn} onClick={() => window.open("/auth/instagram", "_blank")}>
-                    Gerenciar no provedor
-                  </button>
-                )}
-              </>
-            }
-          />
+          <div style={S.card}>
+            <div style={S.head}>
+              <div style={iconWrap("#DD2A7B")}><BrandIcon type="instagram" /></div>
+              <div style={{ fontWeight: 700 }}>Instagram</div>
+              <div style={{ marginLeft: "auto" }}>
+                {isBound("instagram")
+                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                  : <span style={S.chipOff}>Não conectado</span>}
+              </div>
+            </div>
+            <div>
+              <Row k="IG" v={ig.igUsername || "—"} />
+              <Row k="IG User ID" v={ig.igUserId || "—"} mono />
+              <Row k="Página" v={ig.pageName || "—"} />
+            </div>
+            <div style={S.actions}>
+              {isBound("instagram") ? null : (
+                ig.connected
+                  ? <button style={S.btnPrimary} onClick={() => ensureBind("instagram", ig.igUserId, ig.igUsername || ig.pageName || "Instagram").then(loadAll).then(()=>toast.success("Instagram conectado ao flow")).catch(()=>toast.error("Falha ao conectar Instagram"))}>Conectar Instagram</button>
+                  : <InstagramConnectButton tenant={tenant} label="Conectar Instagram" onConnected={onIgConnected}/>
+              )}
+            </div>
+          </div>
 
           {/* Telegram */}
-          <Card
-            title="Telegram"
-            icon={<BrandIcon type="telegram" />}
-            connected={!!boundOf("telegram")}
-            infoRows={[
-              ["Bot", tgInfo.username ? `@${tgInfo.username}` : "—", false],
-              ["Bot ID", tgInfo.botId || "—", true],
-            ]}
-            actions={
-              <>
-                {!boundOf("telegram") ? (
-                  <button
-                    style={S.btnPrimary}
-                    onClick={() => navigate("/channels/telegram", { state: { returnTo: -1, flowId } })}
-                  >
-                    Conectar Telegram
-                  </button>
-                ) : (
-                  <button
-                    style={S.btn}
-                    onClick={() => navigate("/channels/telegram", { state: { returnTo: -1 } })}
-                  >
-                    Gerenciar
-                  </button>
-                )}
-              </>
-            }
-          />
+          <div style={S.card}>
+            <div style={S.head}>
+              <div style={iconWrap("#2AABEE")}><BrandIcon type="telegram" /></div>
+              <div style={{ fontWeight: 700 }}>Telegram</div>
+              <div style={{ marginLeft: "auto" }}>
+                {tg.bound
+                  ? <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
+                  : <span style={S.chipOff}>Não conectado</span>}
+              </div>
+            </div>
+            <div>
+              <Row k="Bot" v={tg.username ? `@${tg.username}` : "—"} />
+              <Row k="Bot ID" v={tg.botId || "—"} mono />
+            </div>
+            <div style={S.actions}>
+              {tg.bound ? null : (
+                <button
+                  style={S.btnPrimary}
+                  onClick={() => navigate("/development/flowhub/telegram/connect", { state: { returnTo: -1, flowId } })}
+                >
+                  Conectar Telegram
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-/* Componentes auxiliares */
-function Card({ title, icon, connected, infoRows, actions }) {
-  return (
-    <div style={S.card}>
-      <div style={S.head}>
-        <div style={iconWrap()}>{icon}</div>
-        <div style={{ fontWeight: 700 }}>{title}</div>
-        <div style={{ marginLeft: "auto" }}>
-          {connected ? (
-            <span style={S.chipOk}><CheckCircle2 size={14}/> Conectado</span>
-          ) : (
-            <span style={S.chipOff}>Não conectado</span>
-          )}
-        </div>
-      </div>
-      <div>
-        {infoRows.map(([k, v, mono], i) => (
-          <Row key={i} k={k} v={v} mono={mono} />
-        ))}
-      </div>
-      <div style={S.actions}>{actions}</div>
-    </div>
-  );
-}
+/* helpers visuais */
 function iconWrap() {
   return {
-    width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-    borderRadius: 8, background: "#fff", border: "1px solid #e2e8f0",
+    width: 28,
+    height: 28,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    background: "#fff",
+    border: "1px solid #e2e8f0",
   };
 }
 function Row({ k, v, mono }) {
