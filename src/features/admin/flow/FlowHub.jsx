@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import { Bot, Workflow, Wifi } from "lucide-react";
+import BrandIcon from "../../components/BrandIcon";
 
 const THEME = {
   bg: "#f9fafb",
@@ -11,13 +12,6 @@ const THEME = {
   border: "#e2e8f0",
   shadow: "0 6px 20px rgba(15, 23, 42, 0.08)",
   brand: "#2563eb",
-};
-
-const CHANNEL_ICONS = {
-  whatsapp: "WA",
-  facebook: "FB",
-  instagram: "IG",
-  telegram: "TG",
 };
 
 function getTenantFromHost() {
@@ -131,14 +125,13 @@ export default function FlowHub() {
                 {Array.isArray(f.channels) && f.channels.length
                   ? f.channels.filter(c => c?.is_active).slice(0, 8).map((c, i) => (
                       <span key={`${c.channel_type}-${i}`}
-                        title={c.channel_type}
+                        title={c.display_name || c.channel_type}
                         style={{
                           display: "inline-flex", alignItems: "center", justifyContent: "center",
-                          width: 32, height: 32, borderRadius: 10, border: `1px solid ${THEME.border}`, background: "#fff",
-                          fontSize: 11, fontWeight: 800
+                          width: 32, height: 32, borderRadius: 10, border: `1px solid ${THEME.border}`, background: "#fff"
                         }}
                       >
-                        {CHANNEL_ICONS[c.channel_type] || "CH"}
+                        <BrandIcon type={c.channel_type}/>
                       </span>
                     ))
                   : <span style={{ fontSize: 12, color: THEME.textMuted }}>Nenhum canal vinculado</span>}
@@ -174,7 +167,7 @@ function IconButton({ title, onClick, children }) {
       title={title}
       style={{
         width: 34, height: 34, display: "inline-flex", alignItems: "center", justifyContent: "center",
-        borderRadius: 10, border: `1px solid ${THEME.border}`, background: "#fff", cursor: "pointer",
+        borderRadius: 10, border: `1px solid #e2e8f0`, background: "#fff", cursor: "pointer",
       }}
     >
       {children}
@@ -215,9 +208,9 @@ function NewFlowModal({ onClose, onCreate }) {
 }
 
 const overlay = { position: "fixed", inset: 0, background: "rgba(15,23,42,.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000 };
-const modal   = { background: "#fff", border: `1px solid ${THEME.border}`, borderRadius: 12, width: "min(520px, 96vw)", padding: 16, boxShadow: THEME.shadow };
-const label   = { fontSize: 12, color: THEME.textMuted };
-const input   = { border: `1px solid ${THEME.border}`, borderRadius: 8, padding: "10px 12px", outline: "none", width: "100%" };
-const linkBtn = { background: "transparent", color: THEME.brand, border: "none", fontWeight: 700, cursor: "pointer" };
-const ghostBtn= { background: "#fff", border: `1px solid ${THEME.border}`, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700 };
-const primaryBtn = { background: THEME.brand, color: "#fff", border: "none", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700 };
+const modal   = { background: "#fff", border: `1px solid #e2e8f0`, borderRadius: 12, width: "min(520px, 96vw)", padding: 16, boxShadow: "0 6px 20px rgba(15, 23, 42, 0.08)" };
+const label   = { fontSize: 12, color: "#475569" };
+const input   = { border: `1px solid #e2e8f0`, borderRadius: 8, padding: "10px 12px", outline: "none", width: "100%" };
+const linkBtn = { background: "transparent", color: "#2563eb", border: "none", fontWeight: 700, cursor: "pointer" };
+const ghostBtn= { background: "#fff", border: `1px solid #e2e8f0`, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700 };
+const primaryBtn = { background: "#2563eb", color: "#fff", border: "none", padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700 };
