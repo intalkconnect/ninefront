@@ -41,6 +41,7 @@ import {
 
 import FlowHub from "./chatbot/FlowHub";
 import Builder from "./chatbot/Builder";
+import FlowChannels from "./chatbot/FlowChannels";
 import Dashboard from "./dashboard/Dashboard";
 import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
@@ -966,6 +967,14 @@ export default function Admin() {
       </RequireRole>
     }
   />
+<Route
+  path="development/flowhub/:flowId/channels" // << página de canais por flow
+  element={
+    <RequireRole allow={isAdmin}>
+      <FlowChannels />
+    </RequireRole>
+  }
+/>
   <Route
     path="development/studio/:flowId"       // <- rota para o Builder em si
     element={
