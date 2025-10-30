@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../../shared/apiClient";
+import LogoLoader from "../../../components/common/LogoLoader";
 import styles from "./styles/WhatsAppProfile.module.css";
 import { toast } from "react-toastify";
 
@@ -276,7 +277,7 @@ export default function WhatsAppProfile() {
       </div>
 
       {loading ? (
-        <div className={styles.loading}>Carregando…</div>
+        <LogoLoader full size={56} src="/logo.png" />
       ) : (
         <div className={styles.grid}>
           {/* ===== esquerda ===== */}
