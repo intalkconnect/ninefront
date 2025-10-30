@@ -10,7 +10,7 @@ import InstagramConnectButton from "./channels/components/InstagramConnectButton
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
 
-import styles from "./FlowChannels.module.css";
+import styles from "./styles/FlowChannels.module.css";
 
 /* ========= tenant util ========= */
 function getTenantFromHost() {
