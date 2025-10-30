@@ -317,7 +317,7 @@ export default function FlowChannels() {
 
             <div className={styles.actions}>
               {!isBound("telegram") ? (
-                <button className={styles.btnPrimary} onClick={openTgConnect}>
+                <button className={styles.btnPrimary} onClick={openTgConnect} buttonClassName={styles.btnPrimary}>
                   Conectar        {/* <— sempre “Conectar” */}
                 </button>
               ) : (
