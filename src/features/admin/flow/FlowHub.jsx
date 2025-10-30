@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import { Bot, Workflow, Wifi } from "lucide-react";
+import LogoLoader from "../../../components/LogoLoader";
 import BrandIcon from "./BrandIcon";
 
 const THEME = {
@@ -88,7 +89,12 @@ export default function FlowHub() {
       </div>
 
       {loading ? (
-        <div style={{ color: THEME.textMuted }}>Carregando…</div>
+        <LogoLoader
+        full
+        size={56}
+        label="Carregando flow…"
+        src="/logo.svg"
+      />
       ) : rows.length === 0 ? (
         <div style={{ color: THEME.textMuted }}>Nenhum flow ainda. Crie o primeiro!</div>
       ) : (
