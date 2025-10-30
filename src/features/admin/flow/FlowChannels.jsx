@@ -328,7 +328,7 @@ export default function FlowChannels() {
               ) : (
                 <WhatsAppEmbeddedSignupButton
                   tenant={tenant}
-                  label={wa.connected ? "Conectar novo WhatsApp" : "Conectar WhatsApp"}
+                  label={wa.connected ? "Conectar" : "Conectar WhatsApp"}
                   style={S.btnPrimary}
                   onPickSuccess={({ phone_number_id, display }) =>
                     connectThisFlow("whatsapp", phone_number_id, display || "WhatsApp")
@@ -363,7 +363,7 @@ export default function FlowChannels() {
               {isBound("facebook") ? null : (
                 <FacebookConnectButton
                   tenant={tenant}
-                  label={fb.connected ? "Conectar novo Facebook" : "Conectar Facebook"}
+                  label={fb.connected ? "Conectar" : "Conectar Facebook"}
                   style={S.btnPrimary}
                   onConnected={({ page_id, page_name }) =>
                     connectThisFlow("facebook", page_id, page_name || "Facebook")
@@ -413,7 +413,7 @@ export default function FlowChannels() {
               {isBound("instagram") ? null : (
                 <InstagramConnectButton
                   tenant={tenant}
-                  label={ig.connected ? "Conectar novo Instagram" : "Conectar Instagram"}
+                  label={ig.connected ? "Conectar" : "Conectar Instagram"}
                   style={S.btnPrimary}
                   onConnected={({ ig_user_id, ig_username, page_name }) =>
                     connectThisFlow(
@@ -462,7 +462,7 @@ export default function FlowChannels() {
                 </button>
               ) : (
                 <button style={S.btnPrimary} onClick={openTgConnect}>
-                  Conectar Telegram
+                  Conectar
                 </button>
               )}
             </div>
