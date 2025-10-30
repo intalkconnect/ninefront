@@ -4,23 +4,26 @@
   background: #f9fafb;
 }
 
+/* header */
 .header {
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 14px;
   margin-bottom: 16px;
+
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  grid-template-columns: 1fr auto auto;
   gap: 12px;
+  align-items: center;
+
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
 }
 
 .titleRow {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .metaRow {
@@ -28,7 +31,6 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-width: 0;
 }
 
 .flowMeta {
@@ -38,18 +40,18 @@
 .flowInfo {
   font-size: 12px;
   color: #475569;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
-.sep {
-  color: #cbd5e1;
-}
+
 .dim {
   color: #64748b;
 }
 
-/* grid de cards mais estreitos */
+.sep {
+  color: #cbd5e1;
+  margin: 0 8px;
+}
+
+/* grid + card */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -57,30 +59,18 @@
 }
 
 .card {
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
 }
 
 .head {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 8px;
-}
-
-.icon {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
 }
 
 .title {
@@ -104,28 +94,40 @@
   color: #64748b;
 }
 
-/* key/value com título em cima */
-.kv {
-  display: grid;
-  gap: 4px;
-  padding: 6px 0 2px;
+.iconWrap {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
 }
+
+/* KV em coluna */
+.kv {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
 .k {
   color: #475569;
-  font-size: 12px;
 }
+
 .v {
   color: #0f172a;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  word-break: break-word;
 }
 
 /* ações */
 .actions {
+  margin-top: 10px;
   display: flex;
   gap: 8px;
-  margin-top: 10px;
   flex-wrap: wrap;
 }
 
@@ -141,52 +143,20 @@
   gap: 6px;
 }
 
-/* Botão primário padrão (para Telegram e casos nativos) */
 .btnPrimary {
   background: #2563eb;
   color: #fff;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   font-weight: 700;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
 }
 
-/* Contêiner para uniformizar botões internos de componentes de terceiros */
-.btnWrap {
-  display: inline-block;
-}
-
-/* Força visual do botão interno (dos componentes WhatsApp/Facebook/Instagram) */
-.btnWrap :is(button, a) {
-  background: #2563eb !important;
-  color: #fff !important;
-  border: none !important;
-  padding: 8px 12px !important;
-  border-radius: 8px !important;
-  font-weight: 700 !important;
-  cursor: pointer !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  text-decoration: none !important;
-  box-shadow: none !important;
-}
-
-/* Remove possíveis estilos “mini” herdados */
-.btnWrap :is(button, a) * {
-  font: inherit !important;
-  line-height: inherit !important;
-}
-
-/* Botão secundário (ghost) mantido */
 .btnGhost {
   border: 1px solid #e2e8f0;
   background: #fff;
-  padding: 8px 12px;
+  padding: 8px 10px;
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
@@ -195,3 +165,18 @@
   gap: 6px;
 }
 
+/* Força estilo nos componentes de terceiros (caso não apliquem className) */
+.btnWrap :global(button),
+.btnWrap :global(a) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #2563eb !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 8px 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
