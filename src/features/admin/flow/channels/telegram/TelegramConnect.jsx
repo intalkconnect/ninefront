@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { ArrowLeft, PlugZap, CheckCircle2, RefreshCw, Copy, Bot, AlertCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../../shared/apiClient";
+import LogoLoader from "../../../../../components/common/LogoLoader";
 import styles from "./styles/TelegramConnect.module.css";
 import { toast } from "react-toastify";
 
@@ -140,7 +141,7 @@ export default function TelegramConnect() {
 
       <div className={styles.editorCard}>
         {checking ? (
-          <div className={styles.loading}>Carregando…</div>
+          <LogoLoader full size={56} src="/logo.png" />
         ) : (
           <>
             {uiIsConnected && (
