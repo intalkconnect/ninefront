@@ -66,21 +66,20 @@ export default function FlowChannels() {
     setBindings(Array.isArray(b) ? b : []);
   }
 
-  async function fetchFlowMeta() {
-    try {
-      const meta = await apiGet(`/flows/${flowId}`);
-      setFlowName(meta?.name || "");
-    } catch {
-      setFlowName("");
-    }
-  }
-
   async function loadAll() {
     setLoading(true);
     try {
-      await Promise.all([fetchBindings(), fetchFlowMeta()]);
+      // nome do flow
+      try {
+        const meta = await apiGet(`/flows/${flowId}`);
+        setFlowName(meta?.name || "");
+      } catch {
+        setFlowName("");
+      }
 
-      // WhatsApp
+      await fetchBindings();
+
+      // WhatsApp (status do tenant)
       try {
         const ws = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
         const connected = !!(ws?.ok && ws?.phone);
@@ -93,7 +92,7 @@ export default function FlowChannels() {
         setWa({ connected: false, id: "", display: "" });
       }
 
-      // Facebook
+      // Facebook (status do tenant)
       try {
         const fs = await apiGet(`/facebook/status?subdomain=${tenant}`);
         setFb({
@@ -105,7 +104,7 @@ export default function FlowChannels() {
         setFb({ connected: false, pageId: "", pageName: "" });
       }
 
-      // Instagram
+      // Instagram (status do tenant)
       try {
         const is = await apiGet(`/instagram/status?subdomain=${tenant}`);
         setIg({
@@ -118,7 +117,7 @@ export default function FlowChannels() {
         setIg({ connected: false, igUserId: "", igUsername: "", pageName: "" });
       }
 
-      // Telegram
+      // Telegram (status do tenant + bound deste flow)
       try {
         const ts = await apiGet(
           `/telegram/status?subdomain=${tenant}&flow_id=${flowId}`
@@ -189,7 +188,7 @@ export default function FlowChannels() {
       state: {
         returnTo: `/development/flowhub/${flowId}/channels`,
         flowId,
-        channelKey: waBinding?.channel_key || null, // phone_id vinculado
+        channelKey: waBinding?.channel_key || null,
       },
     });
 
@@ -207,20 +206,30 @@ export default function FlowChannels() {
             className={styles.btn}
             title="Voltar"
           >
-            <ArrowLeft size={14} /> Voltar
+            <ArrowLeft size={14} />
+            <span>Voltar</span>
           </button>
-          <div className={styles.headerTitle}>Canais do Flow</div>
-          <div className={styles.headerMeta}>
-            id: <b>{flowId}</b>
+
+        </div>
+
+        <div className={styles.metaRow}>
+          <div className={styles.flowMeta}>
+            <span>Canais do Flow</span>
+          </div>
+          <div className={styles.flowInfo}>
+            <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
             {flowName ? (
-              <span className={styles.headerName}>
-                • nome: <b title={flowName}>{flowName}</b>
-              </span>
+              <>
+                <span className={styles.sep}>·</span>
+                <span className={styles.dim}>nome:</span>&nbsp;<b>{flowName}</b>
+              </>
             ) : null}
           </div>
         </div>
+
         <button onClick={loadAll} className={styles.btn}>
-          <RefreshCw size={14} /> Recarregar
+          <RefreshCw size={14} />
+          <span>Recarregar</span>
         </button>
       </div>
 
@@ -231,11 +240,11 @@ export default function FlowChannels() {
           {/* WhatsApp */}
           <div className={styles.card}>
             <div className={styles.head}>
-              <div className={styles.iconWrap} title="WhatsApp">
+              <div className={styles.icon} title="WhatsApp">
                 <BrandIcon type="whatsapp" />
               </div>
-              <div className={styles.cardTitle}>WhatsApp</div>
-              <div className={styles.statusRight}>
+              <div className={styles.title}>WhatsApp</div>
+              <div className={styles.status}>
                 {isBound("whatsapp") ? (
                   <span className={styles.chipOk}>
                     <CheckCircle2 size={14} /> Conectado
@@ -246,27 +255,24 @@ export default function FlowChannels() {
               </div>
             </div>
 
-            {/* título em cima, valor embaixo */}
-            <RowV title="Número" value={isBound("whatsapp") ? (wa.display || "—") : "—"} />
+            <KV label="Número" value={isBound("whatsapp") ? (wa.display || "—") : "—"} />
 
             <div className={styles.actions}>
               {isBound("whatsapp") ? (
-                <button
-                  className={styles.btnGhost}
-                  onClick={openWaProfile}
-                  title="Abrir Perfil do WhatsApp"
-                >
-                  <Settings2 size={14} /> Perfil
+                <button className={styles.btnGhost} onClick={openWaProfile}>
+                  <Settings2 size={14} />
+                  <span>Perfil</span>
                 </button>
               ) : (
-                <WhatsAppEmbeddedSignupButton
-                  tenant={tenant}
-                  label={wa.connected ? "Conectar" : "Conectar WhatsApp"}
-                  style={styles.btnPrimary}
-                  onPickSuccess={({ phone_number_id, display }) =>
-                    connectThisFlow("whatsapp", phone_number_id, display || "WhatsApp")
-                  }
-                />
+                <div className={styles.btnPrimary}>
+                  <WhatsAppEmbeddedSignupButton
+                    tenant={tenant}
+                    label="Conectar"
+                    onPickSuccess={({ phone_number_id, display }) =>
+                      connectThisFlow("whatsapp", phone_number_id, display || "WhatsApp")
+                    }
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -274,11 +280,11 @@ export default function FlowChannels() {
           {/* Facebook */}
           <div className={styles.card}>
             <div className={styles.head}>
-              <div className={styles.iconWrap} title="Facebook">
+              <div className={styles.icon} title="Facebook">
                 <BrandIcon type="facebook" />
               </div>
-              <div className={styles.cardTitle}>Facebook Messenger</div>
-              <div className={styles.statusRight}>
+              <div className={styles.title}>Facebook Messenger</div>
+              <div className={styles.status}>
                 {isBound("facebook") ? (
                   <span className={styles.chipOk}>
                     <CheckCircle2 size={14} /> Conectado
@@ -289,21 +295,22 @@ export default function FlowChannels() {
               </div>
             </div>
 
-            <RowV
-              title="Página"
+            <KV
+              label="Página"
               value={isBound("facebook") ? (fbBinding?.display_name || fb.pageName || "—") : "—"}
             />
 
             <div className={styles.actions}>
               {isBound("facebook") ? null : (
-                <FacebookConnectButton
-                  tenant={tenant}
-                  label="Conectar"
-                  style={styles.btnPrimary}
-                  onConnected={({ page_id, page_name }) =>
-                    connectThisFlow("facebook", page_id, page_name || "Facebook")
-                  }
-                />
+                <div className={styles.btnPrimary}>
+                  <FacebookConnectButton
+                    tenant={tenant}
+                    label="Conectar"
+                    onConnected={({ page_id, page_name }) =>
+                      connectThisFlow("facebook", page_id, page_name || "Facebook")
+                    }
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -311,11 +318,11 @@ export default function FlowChannels() {
           {/* Instagram */}
           <div className={styles.card}>
             <div className={styles.head}>
-              <div className={styles.iconWrap} title="Instagram">
+              <div className={styles.icon} title="Instagram">
                 <BrandIcon type="instagram" />
               </div>
-              <div className={styles.cardTitle}>Instagram</div>
-              <div className={styles.statusRight}>
+              <div className={styles.title}>Instagram</div>
+              <div className={styles.status}>
                 {isBound("instagram") ? (
                   <span className={styles.chipOk}>
                     <CheckCircle2 size={14} /> Conectado
@@ -326,33 +333,34 @@ export default function FlowChannels() {
               </div>
             </div>
 
-            <RowV
-              title="IG"
+            <KV
+              label="IG"
               value={
                 isBound("instagram")
                   ? (igBinding?.display_name || ig.igUsername || "—")
                   : "—"
               }
             />
-            <RowV
-              title="Página"
+            <KV
+              label="Página"
               value={isBound("instagram") ? (ig.pageName || "—") : "—"}
             />
 
             <div className={styles.actions}>
               {isBound("instagram") ? null : (
-                <InstagramConnectButton
-                  tenant={tenant}
-                  label="Conectar"
-                  style={styles.btnPrimary}
-                  onConnected={({ ig_user_id, ig_username, page_name }) =>
-                    connectThisFlow(
-                      "instagram",
-                      ig_user_id,
-                      ig_username || page_name || "Instagram"
-                    )
-                  }
-                />
+                <div className={styles.btnPrimary}>
+                  <InstagramConnectButton
+                    tenant={tenant}
+                    label="Conectar"
+                    onConnected={({ ig_user_id, ig_username, page_name }) =>
+                      connectThisFlow(
+                        "instagram",
+                        ig_user_id,
+                        ig_username || page_name || "Instagram"
+                      )
+                    }
+                  />
+                </div>
               )}
             </div>
           </div>
@@ -360,11 +368,11 @@ export default function FlowChannels() {
           {/* Telegram */}
           <div className={styles.card}>
             <div className={styles.head}>
-              <div className={styles.iconWrap} title="Telegram">
+              <div className={styles.icon} title="Telegram">
                 <BrandIcon type="telegram" />
               </div>
-              <div className={styles.cardTitle}>Telegram</div>
-              <div className={styles.statusRight}>
+              <div className={styles.title}>Telegram</div>
+              <div className={styles.status}>
                 {isBound("telegram") ? (
                   <span className={styles.chipOk}>
                     <CheckCircle2 size={14} /> Conectado
@@ -375,8 +383,8 @@ export default function FlowChannels() {
               </div>
             </div>
 
-            <RowV
-              title="Bot"
+            <KV
+              label="Bot"
               value={
                 isBound("telegram") && (tgBinding?.display_name || tgTenant.username)
                   ? `@${String((tgBinding?.display_name || tgTenant.username)).replace(/^@/, "")}`
@@ -402,11 +410,11 @@ export default function FlowChannels() {
   );
 }
 
-function RowV({ title, value }) {
+function KV({ label, value }) {
   return (
-    <div className={styles.kvV}>
-      <div className={styles.kvTitle}>{title}</div>
-      <div className={styles.kvValue} title={String(value)}>{value}</div>
+    <div className={styles.kv}>
+      <div className={styles.k}>{label}</div>
+      <div className={styles.v}>{value}</div>
     </div>
   );
 }
