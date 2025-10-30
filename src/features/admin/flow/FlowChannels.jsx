@@ -225,7 +225,7 @@ export default function FlowChannels() {
               <div className={styles.iconWrap} title="Facebook">
                 <BrandIcon type="facebook" />
               </div>
-              <div className={styles.title}>Facebook Messenger</div>
+              <div className={styles.title}>Messenger</div>
               <div className={styles.status}>
                 {isBound("facebook") ? (
                   <span className={styles.chipOk}>
