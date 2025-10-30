@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { ArrowLeft, CheckCircle2, RefreshCw, Settings2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiGet, apiPost } from "../../../shared/apiClient";
+import { apiGet } from "../../../shared/apiClient";
 import { toast } from "react-toastify";
 
 import WhatsAppEmbeddedSignupButton from "./channels/components/WhatsAppEmbeddedSignupButton";
@@ -12,7 +12,7 @@ import BrandIcon from "./BrandIcon";
 
 import styles from "./styles/FlowChannels.module.css";
 
-/* ========= tenant util ========= */
+/* ========= utils ========= */
 function getTenantFromHost() {
   if (typeof window === "undefined") return "";
   const host = window.location.hostname;
@@ -40,19 +40,10 @@ export default function FlowChannels() {
   const [flowName, setFlowName] = useState("");
 
   // status informativo do tenant (não define conectado do flow)
-  const [wa, setWa] = useState({ connected: false, id: "", display: "" });
-  const [fb, setFb] = useState({ connected: false, pageId: "", pageName: "" });
-  const [ig, setIg] = useState({
-    connected: false,
-    igUserId: "",
-    igUsername: "",
-    pageName: "",
-  });
-  const [tgTenant, setTgTenant] = useState({
-    connected: false,
-    botId: "",
-    username: "",
-  });
+  const [wa, setWa] = useState({ connected: false, display: "" });
+  const [fb, setFb] = useState({ connected: false, pageName: "" });
+  const [ig, setIg] = useState({ connected: false, igUsername: "", pageName: "" });
+  const [tgTenant, setTgTenant] = useState({ connected: false, username: "" });
 
   // vínculos reais do FLOW (fonte de verdade)
   const [bindings, setBindings] = useState([]);
@@ -69,7 +60,7 @@ export default function FlowChannels() {
   async function loadAll() {
     setLoading(true);
     try {
-      // nome do flow
+      // meta do flow
       try {
         const meta = await apiGet(`/flows/${flowId}`);
         setFlowName(meta?.name || "");
@@ -79,59 +70,42 @@ export default function FlowChannels() {
 
       await fetchBindings();
 
-      // WhatsApp (status do tenant)
+      // WhatsApp
       try {
         const ws = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
         const connected = !!(ws?.ok && ws?.phone);
-        setWa({
-          connected,
-          id: ws?.phone?.id || "",
-          display: formatPhone(ws?.phone),
-        });
+        setWa({ connected, display: formatPhone(ws?.phone) });
       } catch {
-        setWa({ connected: false, id: "", display: "" });
+        setWa({ connected: false, display: "" });
       }
 
-      // Facebook (status do tenant)
+      // Facebook
       try {
         const fs = await apiGet(`/facebook/status?subdomain=${tenant}`);
-        setFb({
-          connected: !!fs?.connected,
-          pageId: fs?.page_id || "",
-          pageName: fs?.page_name || "",
-        });
+        setFb({ connected: !!fs?.connected, pageName: fs?.page_name || "" });
       } catch {
-        setFb({ connected: false, pageId: "", pageName: "" });
+        setFb({ connected: false, pageName: "" });
       }
 
-      // Instagram (status do tenant)
+      // Instagram
       try {
         const is = await apiGet(`/instagram/status?subdomain=${tenant}`);
         setIg({
           connected: !!is?.connected,
-          igUserId: is?.ig_user_id || "",
           igUsername: is?.ig_username || "",
           pageName: is?.page_name || "",
         });
       } catch {
-        setIg({ connected: false, igUserId: "", igUsername: "", pageName: "" });
+        setIg({ connected: false, igUsername: "", pageName: "" });
       }
 
-      // Telegram (status do tenant + bound deste flow)
+      // Telegram (tenant + bound deste flow)
       try {
-        const ts = await apiGet(
-          `/telegram/status?subdomain=${tenant}&flow_id=${flowId}`
-        );
-        let botId = ts?.bot_id || "";
-        let username = ts?.username || "";
+        const ts = await apiGet(`/telegram/status?subdomain=${tenant}&flow_id=${flowId}`);
         const connected = !!(ts?.connected || ts?.bound);
-        setTgTenant({
-          connected,
-          botId: botId || "",
-          username: (username || "").replace(/^@/, ""),
-        });
+        setTgTenant({ connected, username: (ts?.username || "").replace(/^@/, "") });
       } catch {
-        setTgTenant({ connected: false, botId: "", username: "" });
+        setTgTenant({ connected: false, username: "" });
       }
     } catch (e) {
       console.error(e);
@@ -146,36 +120,8 @@ export default function FlowChannels() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flowId]);
 
-  // cria vínculo deste flow (após NOVA conexão)
-  async function connectThisFlow(kind, key, label) {
-    if (!key) {
-      toast.warn("Conta não encontrada para conectar.");
-      return;
-    }
-    try {
-      await apiPost(`/flows/${flowId}/channels`, {
-        channel_type: kind,
-        channel_key: key,
-        display_name: label || null,
-      });
-      await fetchBindings();
-      toast.success(`${kind} conectado a este flow.`);
-      if (kind === "telegram") await loadAll();
-    } catch {
-      toast.error(`Falha ao conectar ${kind}.`);
-    }
-  }
-
   const waBinding = useMemo(
     () => bindings.find((b) => b.channel_type === "whatsapp" && b.is_active),
-    [bindings]
-  );
-  const fbBinding = useMemo(
-    () => bindings.find((b) => b.channel_type === "facebook" && b.is_active),
-    [bindings]
-  );
-  const igBinding = useMemo(
-    () => bindings.find((b) => b.channel_type === "instagram" && b.is_active),
     [bindings]
   );
   const tgBinding = useMemo(
@@ -209,13 +155,10 @@ export default function FlowChannels() {
             <ArrowLeft size={14} />
             <span>Voltar</span>
           </button>
-
         </div>
 
         <div className={styles.metaRow}>
-          <div className={styles.flowMeta}>
-            <span>Canais do Flow</span>
-          </div>
+          <div className={styles.flowMeta}>Canais do Flow</div>
           <div className={styles.flowInfo}>
             <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
             {flowName ? (
@@ -238,67 +181,153 @@ export default function FlowChannels() {
       ) : (
         <div className={styles.grid}>
           {/* WhatsApp */}
-<div className={styles.actions}>
-  {isBound("whatsapp") ? (
-    <button className={styles.btnGhost} onClick={openWaProfile}>
-      <Settings2 size={14} />
-      <span>Perfil</span>
-    </button>
-  ) : (
-    <div className={styles.btnWrap}>
-      <WhatsAppEmbeddedSignupButton
-        tenant={tenant}
-        label="Conectar"
-        /* caso o componente aceite, deixo também essas props de bônus */
-        className={styles.btnPrimary}
-        buttonClassName={styles.btnPrimary}
-      />
-    </div>
-  )}
-</div>
+          <div className={styles.card}>
+            <div className={styles.head}>
+              <div className={styles.iconWrap} title="WhatsApp">
+                <BrandIcon type="whatsapp" />
+              </div>
+              <div className={styles.title}>WhatsApp</div>
+              <div className={styles.status}>
+                {isBound("whatsapp") ? (
+                  <span className={styles.chipOk}>
+                    <CheckCircle2 size={14} /> Conectado
+                  </span>
+                ) : (
+                  <span className={styles.chipOff}>Não conectado</span>
+                )}
+              </div>
+            </div>
 
-{/* Facebook */}
-<div className={styles.actions}>
-  {isBound("facebook") ? null : (
-    <div className={styles.btnWrap}>
-      <FacebookConnectButton
-        tenant={tenant}
-        label="Conectar"
-        className={styles.btnPrimary}
-        buttonClassName={styles.btnPrimary}
-      />
-    </div>
-  )}
-</div>
+            <KV label="Número" value={isBound("whatsapp") ? (wa.display || "—") : "—"} />
 
-{/* Instagram */}
-<div className={styles.actions}>
-  {isBound("instagram") ? null : (
-    <div className={styles.btnWrap}>
-      <InstagramConnectButton
-        tenant={tenant}
-        label="Conectar"
-        className={styles.btnPrimary}
-        buttonClassName={styles.btnPrimary}
-      />
-    </div>
-  )}
-</div>
-
-{/* Telegram */}
-<div className={styles.actions}>
-  {isBound("telegram") ? (
-    <button className={styles.btnGhost} onClick={openTgConnect}>
-      Detalhes
-    </button>
-  ) : (
-    <button className={styles.btnPrimary} onClick={openTgConnect}>
-      Conectar
-    </button>
-  )}
-</div>
-
+            <div className={styles.actions}>
+              {!isBound("whatsapp") ? (
+                <div className={styles.btnWrap}>
+                  <WhatsAppEmbeddedSignupButton
+                    tenant={tenant}
+                    label="Conectar"            /* <— sempre “Conectar” */
+                    className={styles.btnPrimary}
+                    buttonClassName={styles.btnPrimary}
+                  />
+                </div>
+              ) : (
+                <button className={styles.btnGhost} onClick={openWaProfile}>
+                  <Settings2 size={14} />
+                  <span>Perfil</span>
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Facebook */}
+          <div className={styles.card}>
+            <div className={styles.head}>
+              <div className={styles.iconWrap} title="Facebook">
+                <BrandIcon type="facebook" />
+              </div>
+              <div className={styles.title}>Facebook Messenger</div>
+              <div className={styles.status}>
+                {isBound("facebook") ? (
+                  <span className={styles.chipOk}>
+                    <CheckCircle2 size={14} /> Conectado
+                  </span>
+                ) : (
+                  <span className={styles.chipOff}>Não conectado</span>
+                )}
+              </div>
+            </div>
+
+            <KV label="Página" value={isBound("facebook") ? (fb.pageName || "—") : "—"} />
+
+            <div className={styles.actions}>
+              {!isBound("facebook") && (
+                <div className={styles.btnWrap}>
+                  <FacebookConnectButton
+                    tenant={tenant}
+                    label="Conectar"          /* <— sempre “Conectar” */
+                    className={styles.btnPrimary}
+                    buttonClassName={styles.btnPrimary}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Instagram */}
+          <div className={styles.card}>
+            <div className={styles.head}>
+              <div className={styles.iconWrap} title="Instagram">
+                <BrandIcon type="instagram" />
+              </div>
+              <div className={styles.title}>Instagram</div>
+              <div className={styles.status}>
+                {isBound("instagram") ? (
+                  <span className={styles.chipOk}>
+                    <CheckCircle2 size={14} /> Conectado
+                  </span>
+                ) : (
+                  <span className={styles.chipOff}>Não conectado</span>
+                )}
+              </div>
+            </div>
+
+            <KV label="IG" value={isBound("instagram") ? (ig.igUsername || "—") : "—"} />
+            <KV label="Página" value={isBound("instagram") ? (ig.pageName || "—") : "—"} />
+
+            <div className={styles.actions}>
+              {!isBound("instagram") && (
+                <div className={styles.btnWrap}>
+                  <InstagramConnectButton
+                    tenant={tenant}
+                    label="Conectar"          /* <— sempre “Conectar” */
+                    className={styles.btnPrimary}
+                    buttonClassName={styles.btnPrimary}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Telegram */}
+          <div className={styles.card}>
+            <div className={styles.head}>
+              <div className={styles.iconWrap} title="Telegram">
+                <BrandIcon type="telegram" />
+              </div>
+              <div className={styles.title}>Telegram</div>
+              <div className={styles.status}>
+                {isBound("telegram") ? (
+                  <span className={styles.chipOk}>
+                    <CheckCircle2 size={14} /> Conectado
+                  </span>
+                ) : (
+                  <span className={styles.chipOff}>Não conectado</span>
+                )}
+              </div>
+            </div>
+
+            <KV
+              label="Bot"
+              value={
+                isBound("telegram") && tgTenant.username
+                  ? `@${String(tgTenant.username).replace(/^@/, "")}`
+                  : "—"
+              }
+            />
+
+            <div className={styles.actions}>
+              {!isBound("telegram") ? (
+                <button className={styles.btnPrimary} onClick={openTgConnect}>
+                  Conectar        {/* <— sempre “Conectar” */}
+                </button>
+              ) : (
+                <button className={styles.btnGhost} onClick={openTgConnect}>
+                  Detalhes
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
