@@ -92,7 +92,7 @@ export default function FlowHub() {
       ) : rows.length === 0 ? (
         <div style={{ color: THEME.textMuted }}>Nenhum flow ainda. Crie o primeiro!</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
           {rows.map((f) => (
             <div key={f.id}
               style={{
@@ -115,11 +115,6 @@ export default function FlowHub() {
 
               <div style={{ fontWeight: 800 }}>{f.name}</div>
               {f.description ? <div style={{ fontSize: 13, color: THEME.textMuted }}>{f.description}</div> : null}
-
-              <div style={{ fontSize: 12, color: THEME.textMuted, display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <span>última publicada: <b>{f.last_published ?? "—"}</b></span>
-                <span>última versão: <b>{f.last_version ?? "—"}</b></span>
-              </div>
 
               <div style={{ borderTop: `1px solid ${THEME.border}`, paddingTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {Array.isArray(f.channels) && f.channels.length
