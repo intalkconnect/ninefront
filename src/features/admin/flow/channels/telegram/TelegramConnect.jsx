@@ -35,12 +35,12 @@ export default function TelegramConnect() {
 
   // status (tenant e vínculo com este flow)
   const [checking, setChecking] = useState(true);
-  const [tenantHasSome, setTenantHasSome] = useState(false); // existe *alguma* conexão TG no tenant
-  const [bound, setBound] = useState(false);                  // se está vinculado a ESTE flow
+  const [tenantHasSome, setTenantHasSome] = useState(false);
+  const [bound, setBound] = useState(false);
   const [botId, setBotId] = useState("");
   const [username, setUsername] = useState("");
 
-  // form (sempre habilitado para NOVA conexão)
+  // form (só para NOVA conexão)
   const [token, setToken]   = useState("");
   const [secret, setSecret] = useState(genSecretHex());
   const [loading, setLoading] = useState(false);
@@ -54,7 +54,6 @@ export default function TelegramConnect() {
       setTenantHasSome(!!s?.connected);
       setBound(!!s?.bound);
 
-      // Exibir dados do bot SOMENTE quando estiver vinculado a este flow
       if (s?.bound) {
         setBotId(s?.bot_id || "");
         setUsername(s?.username || "");
@@ -86,8 +85,6 @@ export default function TelegramConnect() {
     setLoading(true);
     const id = toast.loading("Conectando Telegram…");
     try {
-      // Sempre cria/atualiza a conexão do BOT desse token
-      // e, se houver flowId, já VINCULA ao flow (sem reaproveitar bot existente de outro flow).
       const j = await apiPost("/telegram/connect", {
         subdomain: tenant,
         botToken: token.trim(),
@@ -113,7 +110,6 @@ export default function TelegramConnect() {
   }
 
   function handleDisconnect() {
-    // Futuro: implementar endpoint de desconexão por flow/bot
     toast.info("Função de desconexão ainda não implementada.");
   }
 
@@ -161,7 +157,7 @@ export default function TelegramConnect() {
               </div>
             )}
 
-            {/* KPIs do bot aparecem só quando está vinculado a ESTE flow */}
+            {/* KPIs do bot só quando vinculado */}
             {uiIsConnected && (
               <div className={styles.kpiGrid}>
                 <div className={styles.kvCard}>
@@ -191,66 +187,72 @@ export default function TelegramConnect() {
 
             {/* Quando NÃO estiver vinculado, a tela se comporta como "nova conexão" */}
             {!uiIsConnected && (
-              <div className={styles.heroSection}>
-                <div className={styles.heroIcon}><Bot size={48} /></div>
-                <h2 className={styles.heroTitle}>Conecte um novo Bot do Telegram</h2>
-                <p className={styles.heroSubtitle}>
-                  Este processo cria a conexão e já vincula este flow. Bots existentes do tenant não são reutilizados.
-                </p>
-              </div>
+              <>
+                <div className={styles.heroSection}>
+                  <div className={styles.heroIcon}><Bot size={48} /></div>
+                  <h2 className={styles.heroTitle}>Conecte um novo Bot do Telegram</h2>
+                  <p className={styles.heroSubtitle}>
+                    Este processo cria a conexão e já vincula este flow. Bots existentes do tenant não são reutilizados.
+                  </p>
+                </div>
+
+                {/* === FORM E INSTRUÇÕES APENAS QUANDO NÃO CONECTADO === */}
+                <div className={styles.section}>
+                  <div className={styles.formRow}>
+                    <label className={styles.label}>Bot Token *</label>
+                    <input
+                      className={styles.input}
+                      type="text"
+                      placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && token.trim() && !loading) handleConnect(); }}
+                      autoComplete="off"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className={styles.hintRow}>
+                    <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
+                  </div>
+
+                  <div className={styles.instructionsToggle}>
+                    <button className={styles.instructionsBtn} onClick={() => setShowInstructions(!showInstructions)}>
+                      <AlertCircle size={14} />
+                      {showInstructions ? 'Ocultar' : 'Como obter o Bot Token?'}
+                    </button>
+                  </div>
+
+                  {showInstructions && (
+                    <div className={styles.instructionsCard}>
+                      <h4 className={styles.instructionsTitle}>Criando um Bot no Telegram</h4>
+                      <ol className={styles.instructionsList}>
+                        <li><strong>Abra o Telegram</strong> e procure por <code>@BotFather</code></li>
+                        <li><strong>Digite</strong> <code>/newbot</code> e siga as instruções</li>
+                        <li><strong>Escolha um nome</strong> para seu bot</li>
+                        <li><strong>Escolha um username</strong> que termine com <code>bot</code></li>
+                        <li><strong>Copie o token</strong> gerado e cole acima</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.actionsRow}>
+                  <button className={styles.btnTgPrimary} onClick={handleConnect} disabled={loading || !token.trim()}>
+                    {loading ? "Conectando..." : "Conectar Telegram"}
+                  </button>
+                </div>
+              </>
             )}
 
-            <div className={styles.section}>
-              <div className={styles.formRow}>
-                <label className={styles.label}>Bot Token *</label>
-                <input
-                  className={styles.input}
-                  type="text"
-                  placeholder="123456789:ABCdefGhIJklmnoPQRstuvWXyz..."
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && token.trim() && !loading) handleConnect(); }}
-                  autoComplete="off"
-                  disabled={loading}
-                />
-              </div>
-
-              <div className={styles.hintRow}>
-                <PlugZap size={14}/> Um segredo de webhook foi gerado automaticamente.
-              </div>
-
-              <div className={styles.instructionsToggle}>
-                <button className={styles.instructionsBtn} onClick={() => setShowInstructions(!showInstructions)}>
-                  <AlertCircle size={14} />
-                  {showInstructions ? 'Ocultar' : 'Como obter o Bot Token?'}
-                </button>
-              </div>
-
-              {showInstructions && (
-                <div className={styles.instructionsCard}>
-                  <h4 className={styles.instructionsTitle}>Criando um Bot no Telegram</h4>
-                  <ol className={styles.instructionsList}>
-                    <li><strong>Abra o Telegram</strong> e procure por <code>@BotFather</code></li>
-                    <li><strong>Digite</strong> <code>/newbot</code> e siga as instruções</li>
-                    <li><strong>Escolha um nome</strong> para seu bot</li>
-                    <li><strong>Escolha um username</strong> que termine com <code>bot</code></li>
-                    <li><strong>Copie o token</strong> gerado e cole acima</li>
-                  </ol>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.actionsRow}>
-              <button className={styles.btnTgPrimary} onClick={handleConnect} disabled={loading || !token.trim()}>
-                {loading ? "Conectando..." : "Conectar Telegram"}
-              </button>
-
-              {uiIsConnected && (
+            {/* Quando JÁ estiver vinculado, mostra apenas ação de desconectar (se desejar manter) */}
+            {uiIsConnected && (
+              <div className={styles.actionsRow}>
                 <button className={styles.btnDanger} onClick={handleDisconnect}>
                   Desconectar
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </>
         )}
       </div>
