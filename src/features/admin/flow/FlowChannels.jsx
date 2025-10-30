@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import WhatsAppEmbeddedSignupButton from "./channels/components/WhatsAppEmbeddedSignupButton";
 import FacebookConnectButton from "./channels/components/FacebookConnectButton";
 import InstagramConnectButton from "./channels/components/InstagramConnectButton";
+import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
 
 /* ========= tenant util ========= */
@@ -286,7 +287,12 @@ export default function FlowChannels() {
       </div>
 
       {loading ? (
-        <div style={{ color: "#475569" }}>Carregando…</div>
+         <LogoLoader
+        full
+        size={56}
+        label="Carregando flow…"
+        src="/logo.svg"
+      />
       ) : (
         <div style={S.grid}>
           {/* WhatsApp */}
