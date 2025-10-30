@@ -81,7 +81,6 @@ export default function FlowHub() {
                 </div>
               </div>
 
-              {/* Título + descrição melhorados */}
               <div className={styles.cardTitle} title={f.name || "Sem nome"}>
                 {f.name || "Sem nome"}
               </div>
@@ -120,10 +119,15 @@ export default function FlowHub() {
         <NewFlowModal
           onClose={() => setShowNewModal(false)}
           onCreate={async (form) => {
+            // guarda de segurança adicional
+            if (!form.name || !form.name.trim()) {
+              toast.warn("Informe um nome para o flow.");
+              return;
+            }
             try {
               const created = await apiPost("/flows", {
-                name: form.name,
-                description: form.description || null,
+                name: form.name.trim(),
+                description: form.description?.trim() || null,
               });
               toast.success(`Flow "${created?.name}" criado!`);
               setShowNewModal(false);
@@ -151,7 +155,19 @@ function IconButton({ title, onClick, children }) {
 function NewFlowModal({ onClose, onCreate }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const canSave = name.trim().length > 0;
+  const [touchedName, setTouchedName] = useState(false);
+
+  const trimmed = name.trim();
+  const nameError = touchedName && trimmed.length === 0 ? "Informe um nome para o flow." : "";
+  const canSave = trimmed.length > 0;
+
+  const submit = () => {
+    if (!canSave) {
+      setTouchedName(true);
+      return;
+    }
+    onCreate({ name: trimmed, description });
+  };
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -162,16 +178,29 @@ function NewFlowModal({ onClose, onCreate }) {
         </div>
 
         <div className={styles.modalBody}>
-          <label className={styles.label}>Nome</label>
+          <label className={styles.label} htmlFor="flow-name">Nome<span className={styles.reqStar}>*</span></label>
           <input
+            id="flow-name"
             autoFocus
+            required
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={() => setTouchedName(true)}
             placeholder="ex.: Atendimento"
-            className={styles.input}
+            aria-invalid={!!nameError}
+            className={`${styles.input} ${nameError ? styles.inputInvalid : ""}`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submit();
+              }
+            }}
           />
-          <label className={styles.label}>Descrição (opcional)</label>
+          {nameError ? <div className={styles.fieldError}>{nameError}</div> : null}
+
+          <label className={styles.label} htmlFor="flow-desc">Descrição (opcional)</label>
           <textarea
+            id="flow-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="breve descrição"
@@ -183,7 +212,7 @@ function NewFlowModal({ onClose, onCreate }) {
           <button onClick={onClose} className={styles.btnGhost}>Cancelar</button>
           <button
             disabled={!canSave}
-            onClick={() => onCreate({ name: name.trim(), description: description.trim() || "" })}
+            onClick={submit}
             className={`${styles.btnPrimary} ${!canSave ? styles.btnDisabled : ""}`}
           >
             Criar
