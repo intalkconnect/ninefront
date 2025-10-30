@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import LogoLoader from "../LogoLoader";
-import "./overlay.css"; // estilos do overlay
+import "./styles/overlay.css"; // estilos do overlay
 
 const Ctx = createContext(null);
 
