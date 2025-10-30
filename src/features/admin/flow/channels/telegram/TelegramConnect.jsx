@@ -119,12 +119,6 @@ export default function TelegramConnect() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.breadcrumbs}>
-        <span className={styles.bcLink} onClick={() => navigate(backTo)}>Canais</span>
-        <span className={styles.bcSep}>/</span>
-        <span>Telegram</span>
-      </div>
-
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <h1 className={styles.title}>{title}</h1>
