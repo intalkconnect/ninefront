@@ -299,7 +299,6 @@ export default function FlowChannels() {
 </div>
 
           </div>
-        </div>
       )}
     </div>
   );
