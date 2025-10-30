@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import { Bot, Workflow, Wifi } from "lucide-react";
-import LogoLoader from "../../../components/LogoLoader";
+import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
 
 const THEME = {
