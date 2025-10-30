@@ -246,3 +246,29 @@
   gap: 8px;
   margin-top: 14px;
 }
+
+/* estado inválido + erro */
+.inputInvalid {
+  border-color: #ef4444 !important; /* red-500 */
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.fieldError {
+  color: #b91c1c; /* red-700 */
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.reqStar {
+  color: #ef4444;
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+/* botão desabilitado */
+.btnDisabled {
+  opacity: 0.6;
+  cursor: not-allowed !important;
+  filter: grayscale(0.2);
+}
+
