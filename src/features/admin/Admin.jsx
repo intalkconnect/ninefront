@@ -28,7 +28,8 @@ import {
   UserPen,
   MessageSquareReply,
   WalletCards,
-  SearchCheck
+  SearchCheck,
+  Workflow
 } from "lucide-react";
 import {
   NavLink,
@@ -366,7 +367,7 @@ export default function Admin() {
             children: [
               {
                 to: "development/flowhub",
-                icon: <Bot size={16} />,
+                icon: <Workflow size={16} />,
                 label: "Flow Hub",
               },
               {
