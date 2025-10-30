@@ -1,0 +1,86 @@
+:root{
+  --bg:#f9fafb;
+  --panel:#fff;
+  --border:#e2e8f0;
+  --shadow:0 6px 20px rgba(15,23,42,.08);
+  --muted:#475569;
+  --ok:#16a34a;
+  --brand:#2563eb;
+}
+
+/* Layout */
+.page{
+  padding:16px;
+  min-height:100vh;
+  background:var(--bg);
+}
+.header{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-shadow:var(--shadow);
+}
+.titleRow{display:flex;align-items:center;gap:10px;}
+.headerTitle{font-weight:800;}
+.headerMeta{font-size:12px;color:var(--muted);margin-left:6px;}
+.headerName{margin-left:8px;}
+
+.btn{
+  border:1px solid var(--border);
+  background:#fff;
+  padding:8px 10px;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+/* Grid com cards mais estreitos */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));
+  gap:12px;
+}
+.card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+  box-shadow:var(--shadow);
+}
+
+/* Cabeçalho do card */
+.head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.iconWrap{
+  width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:8px;background:#fff;border:1px solid var(--border);
+}
+.cardTitle{font-weight:700;}
+.statusRight{margin-left:auto;}
+.chipOk{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ok);}
+.chipOff{font-size:12px;color:#64748b}
+
+/* Key/Value vertical */
+.kvV{display:flex;flex-direction:column;gap:2px;margin:8px 0;}
+.kvTitle{font-size:12px;color:var(--muted);}
+.kvValue{
+  color:#0f172a;
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break:break-word;
+}
+
+/* Actions */
+.actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.btnPrimary{
+  background:var(--brand);color:#fff;border:none;padding:8px 10px;border-radius:8px;font-weight:700;cursor:pointer;
+}
+.btnGhost{
+  border:1px solid var(--border);background:#fff;padding:8px 10px;border-radius:8px;font-weight:700;cursor:pointer;
+}
