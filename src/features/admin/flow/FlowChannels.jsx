@@ -238,171 +238,66 @@ export default function FlowChannels() {
       ) : (
         <div className={styles.grid}>
           {/* WhatsApp */}
-          <div className={styles.card}>
-            <div className={styles.head}>
-              <div className={styles.icon} title="WhatsApp">
-                <BrandIcon type="whatsapp" />
-              </div>
-              <div className={styles.title}>WhatsApp</div>
-              <div className={styles.status}>
-                {isBound("whatsapp") ? (
-                  <span className={styles.chipOk}>
-                    <CheckCircle2 size={14} /> Conectado
-                  </span>
-                ) : (
-                  <span className={styles.chipOff}>Não conectado</span>
-                )}
-              </div>
-            </div>
+<div className={styles.actions}>
+  {isBound("whatsapp") ? (
+    <button className={styles.btnGhost} onClick={openWaProfile}>
+      <Settings2 size={14} />
+      <span>Perfil</span>
+    </button>
+  ) : (
+    <div className={styles.btnWrap}>
+      <WhatsAppEmbeddedSignupButton
+        tenant={tenant}
+        label="Conectar"
+        /* caso o componente aceite, deixo também essas props de bônus */
+        className={styles.btnPrimary}
+        buttonClassName={styles.btnPrimary}
+      />
+    </div>
+  )}
+</div>
 
-            <KV label="Número" value={isBound("whatsapp") ? (wa.display || "—") : "—"} />
+{/* Facebook */}
+<div className={styles.actions}>
+  {isBound("facebook") ? null : (
+    <div className={styles.btnWrap}>
+      <FacebookConnectButton
+        tenant={tenant}
+        label="Conectar"
+        className={styles.btnPrimary}
+        buttonClassName={styles.btnPrimary}
+      />
+    </div>
+  )}
+</div>
 
-            <div className={styles.actions}>
-              {isBound("whatsapp") ? (
-                <button className={styles.btnGhost} onClick={openWaProfile}>
-                  <Settings2 size={14} />
-                  <span>Perfil</span>
-                </button>
-              ) : (
-                <div className={styles.btnPrimary}>
-                  <WhatsAppEmbeddedSignupButton
-                    tenant={tenant}
-                    label="Conectar"
-                    onPickSuccess={({ phone_number_id, display }) =>
-                      connectThisFlow("whatsapp", phone_number_id, display || "WhatsApp")
-                    }
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+{/* Instagram */}
+<div className={styles.actions}>
+  {isBound("instagram") ? null : (
+    <div className={styles.btnWrap}>
+      <InstagramConnectButton
+        tenant={tenant}
+        label="Conectar"
+        className={styles.btnPrimary}
+        buttonClassName={styles.btnPrimary}
+      />
+    </div>
+  )}
+</div>
 
-          {/* Facebook */}
-          <div className={styles.card}>
-            <div className={styles.head}>
-              <div className={styles.icon} title="Facebook">
-                <BrandIcon type="facebook" />
-              </div>
-              <div className={styles.title}>Facebook Messenger</div>
-              <div className={styles.status}>
-                {isBound("facebook") ? (
-                  <span className={styles.chipOk}>
-                    <CheckCircle2 size={14} /> Conectado
-                  </span>
-                ) : (
-                  <span className={styles.chipOff}>Não conectado</span>
-                )}
-              </div>
-            </div>
+{/* Telegram */}
+<div className={styles.actions}>
+  {isBound("telegram") ? (
+    <button className={styles.btnGhost} onClick={openTgConnect}>
+      Detalhes
+    </button>
+  ) : (
+    <button className={styles.btnPrimary} onClick={openTgConnect}>
+      Conectar
+    </button>
+  )}
+</div>
 
-            <KV
-              label="Página"
-              value={isBound("facebook") ? (fbBinding?.display_name || fb.pageName || "—") : "—"}
-            />
-
-            <div className={styles.actions}>
-              {isBound("facebook") ? null : (
-                <div className={styles.btnPrimary}>
-                  <FacebookConnectButton
-                    tenant={tenant}
-                    label="Conectar"
-                    onConnected={({ page_id, page_name }) =>
-                      connectThisFlow("facebook", page_id, page_name || "Facebook")
-                    }
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Instagram */}
-          <div className={styles.card}>
-            <div className={styles.head}>
-              <div className={styles.icon} title="Instagram">
-                <BrandIcon type="instagram" />
-              </div>
-              <div className={styles.title}>Instagram</div>
-              <div className={styles.status}>
-                {isBound("instagram") ? (
-                  <span className={styles.chipOk}>
-                    <CheckCircle2 size={14} /> Conectado
-                  </span>
-                ) : (
-                  <span className={styles.chipOff}>Não conectado</span>
-                )}
-              </div>
-            </div>
-
-            <KV
-              label="IG"
-              value={
-                isBound("instagram")
-                  ? (igBinding?.display_name || ig.igUsername || "—")
-                  : "—"
-              }
-            />
-            <KV
-              label="Página"
-              value={isBound("instagram") ? (ig.pageName || "—") : "—"}
-            />
-
-            <div className={styles.actions}>
-              {isBound("instagram") ? null : (
-                <div className={styles.btnPrimary}>
-                  <InstagramConnectButton
-                    tenant={tenant}
-                    label="Conectar"
-                    onConnected={({ ig_user_id, ig_username, page_name }) =>
-                      connectThisFlow(
-                        "instagram",
-                        ig_user_id,
-                        ig_username || page_name || "Instagram"
-                      )
-                    }
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Telegram */}
-          <div className={styles.card}>
-            <div className={styles.head}>
-              <div className={styles.icon} title="Telegram">
-                <BrandIcon type="telegram" />
-              </div>
-              <div className={styles.title}>Telegram</div>
-              <div className={styles.status}>
-                {isBound("telegram") ? (
-                  <span className={styles.chipOk}>
-                    <CheckCircle2 size={14} /> Conectado
-                  </span>
-                ) : (
-                  <span className={styles.chipOff}>Não conectado</span>
-                )}
-              </div>
-            </div>
-
-            <KV
-              label="Bot"
-              value={
-                isBound("telegram") && (tgBinding?.display_name || tgTenant.username)
-                  ? `@${String((tgBinding?.display_name || tgTenant.username)).replace(/^@/, "")}`
-                  : "—"
-              }
-            />
-
-            <div className={styles.actions}>
-              {isBound("telegram") ? (
-                <button className={styles.btnGhost} onClick={openTgConnect}>
-                  Detalhes
-                </button>
-              ) : (
-                <button className={styles.btnPrimary} onClick={openTgConnect}>
-                  Conectar
-                </button>
-              )}
-            </div>
           </div>
         </div>
       )}
