@@ -1,0 +1,9 @@
+.nc-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(248, 250, 252, 0.75); /* slate-50 com translucidez */
+  backdrop-filter: blur(2px);
+}
