@@ -257,15 +257,9 @@ export default function WhatsAppProfile() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.breadcrumbs}>
-        <span className={styles.bcLink} onClick={() => navigate("/settings/channels")}>Canais</span>
-        <span className={styles.bcSep}>/</span>
-        <span>WhatsApp</span>
-      </div>
-
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
-          <h1 className={styles.title}>WhatsApp — Perfil</h1>
+          <h1 className={styles.title}>WhatsApp - Perfil</h1>
           <div className={styles.metaRow}>{metaLine}</div>
         </div>
         <div className={styles.headerActions}>
