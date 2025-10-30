@@ -363,7 +363,7 @@ export default function FlowChannels() {
               {isBound("facebook") ? null : (
                 <FacebookConnectButton
                   tenant={tenant}
-                  label={fb.connected ? "Conectar" : "Conectar Facebook"}
+                  label={fb.connected ? "Conectar" : "Conectar"}
                   style={S.btnPrimary}
                   onConnected={({ page_id, page_name }) =>
                     connectThisFlow("facebook", page_id, page_name || "Facebook")
@@ -413,7 +413,7 @@ export default function FlowChannels() {
               {isBound("instagram") ? null : (
                 <InstagramConnectButton
                   tenant={tenant}
-                  label={ig.connected ? "Conectar" : "Conectar Instagram"}
+                  label={ig.connected ? "Conectar" : "Conectar"}
                   style={S.btnPrimary}
                   onConnected={({ ig_user_id, ig_username, page_name }) =>
                     connectThisFlow(
