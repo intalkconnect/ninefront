@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
-import { Bot, Workflow, Wifi } from "lucide-react";
+import { Bot, Workflow, PlugZap } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
 import styles from "./styles/FlowHub.module.css";
@@ -73,7 +73,7 @@ export default function FlowHub() {
                 </span>
                 <div className={styles.cardHeadActions}>
                   <IconButton title="Canais" onClick={() => openChannels(f)}>
-                    <Wifi size={16} />
+                    <PlugZap size={16} />
                   </IconButton>
                   <IconButton title="Studio" onClick={() => openStudio(f)}>
                     <Bot size={16} />
