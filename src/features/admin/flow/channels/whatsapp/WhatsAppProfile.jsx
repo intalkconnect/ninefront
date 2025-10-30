@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../../shared/apiClient";
-import LogoLoader from "../../../components/common/LogoLoader";
+import LogoLoader from "../../../../../components/common/LogoLoader";
 import styles from "./styles/WhatsAppProfile.module.css";
 import { toast } from "react-toastify";
 
