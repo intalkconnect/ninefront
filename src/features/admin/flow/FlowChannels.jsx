@@ -272,7 +272,7 @@ export default function FlowChannels() {
             </div>
 
             <KV label="IG" value={isBound("instagram") ? (ig.igUsername || "—") : "—"} />
-            <KV label="Página" value={isBound("instagram") ? (ig.pageName || "—") : "—"} />
+            {/* <KV label="Página" value={isBound("instagram") ? (ig.pageName || "—") : "—"} /> */}
 
             <div className={styles.actions}>
               {!isBound("instagram") && (
