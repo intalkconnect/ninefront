@@ -18,9 +18,9 @@
 .page {
   padding: 24px;
   min-height: 100vh;
+  background: var(--bg);
   max-width: 1400px;
   margin: 0 auto;
-  background: var(--bg);
 }
 
 /* Header aprimorado */
@@ -237,6 +237,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  justify-content: center;
 }
 
 .btnPrimary:hover {
@@ -258,6 +260,8 @@
   gap: 8px;
   transition: all 0.2s ease;
   color: var(--text-secondary);
+  width: 100%;
+  justify-content: center;
 }
 
 .btnGhost:hover {
