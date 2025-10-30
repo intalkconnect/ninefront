@@ -177,7 +177,7 @@ export default function FlowChannels() {
       </div>
 
       {loading ? (
-        <LogoLoader full size={56} src="/logo.svg" />
+        <LogoLoader full size={56} src="/logo.png" />
       ) : (
         <div className={styles.grid}>
           {/* WhatsApp */}
