@@ -146,7 +146,7 @@ export default function WhatsAppProfile() {
 
     setLoading(true);
     try {
-      // 1) número  **ENDPOINT CORRETO: /wa/**
+      // 1) número
       try {
         const num = await apiGet(`/whatsapp/number?${qParams}`);
         if (alive.current && num?.ok) setPhone(num.phone || null);
@@ -155,7 +155,7 @@ export default function WhatsAppProfile() {
         toast.error("Falha ao carregar número do WhatsApp.");
       }
 
-      // 2) perfil  **ENDPOINT CORRETO: /wa/**
+      // 2) perfil
       try {
         const pf = await apiGet(`/whatsapp/profile?${qParams}`);
         if (alive.current && pf?.ok) {
@@ -227,7 +227,6 @@ export default function WhatsAppProfile() {
     if (!tenant) return toast.warn("Tenant não identificado.");
     const toastId = toast.loading("Removendo foto…");
     try {
-      // método override para ambientes que não suportem DELETE no apiClient
       await apiPost("/whatsapp/profile/photo", buildScopedBody({ _method: "DELETE" }));
       setProfilePic("");
       await loadAll();
@@ -282,13 +281,8 @@ export default function WhatsAppProfile() {
         <div className={styles.grid}>
           {/* ===== esquerda ===== */}
           <section className={styles.left}>
-            {/* === META DADOS EM GRADE === */}
+            {/* === META DADOS EM GRADE (apenas Número, Nome, Qualidade, Verificação) === */}
             <section className={styles.kpiGrid}>
-              <div className={styles.kvCard}>
-                <div className={styles.kvTitle}>Phone ID</div>
-                <div className={`${styles.kvValue} ${styles.mono}`}>{phone?.id || "—"}</div>
-              </div>
-
               <div className={styles.kvCard}>
                 <div className={styles.kvTitle}>Número</div>
                 <div className={styles.kvValue}>
@@ -307,122 +301,121 @@ export default function WhatsAppProfile() {
               </div>
 
               <div className={styles.kvCard}>
-                <div className={styles.kvTitle}>Conta oficial</div>
-                <div className={styles.kvValue}>
-                  {oba ? (
-                    <span className={`${styles.chip} ${styles.chipOk}`}>Sim</span>
-                  ) : (
-                    <span className={`${styles.chip} ${styles.chipOff}`}>Não</span>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.kvCard}>
                 <div className={styles.kvTitle}>Verificação</div>
                 <div className={styles.kvValue}>{verifyChip(verifyStatus)}</div>
               </div>
             </section>
 
-            {/* Foto por URL */}
+            {/* === CARD ÚNICO COM TODOS OS CAMPOS EDITÁVEIS === */}
             <div className={styles.section}>
-              <label className={styles.labelStrong}>Foto por URL</label>
-              <div className={styles.inlinePhoto}>
+              <h3 className={styles.sectionTitle}>Informações do Perfil</h3>
+
+              {/* Foto por URL */}
+              <div className={styles.formGroup}>
+                <label className={styles.labelStrong}>Foto por URL</label>
+                <div className={styles.inlinePhoto}>
+                  <input
+                    className={styles.input}
+                    placeholder="https://exemplo.com/imagem.jpg"
+                    value={photoUrl}
+                    onChange={(e) => setPhotoUrl(e.target.value)}
+                  />
+                  <button className={styles.btnBlue} onClick={applyPhoto} disabled={!photoUrl.trim()}>
+                    <ImageIcon size={16} style={{ marginRight: 6 }}/> Aplicar
+                  </button>
+                  <button className={styles.btnGhost} onClick={removePhoto} disabled={!avatarSrc}>
+                    <Trash2 size={16} style={{ marginRight: 6 }}/> Remover
+                  </button>
+                </div>
+              </div>
+
+              {/* Sobre */}
+              <div className={styles.formGroup}>
+                <label className={styles.labelStrong}>Sobre</label>
                 <input
                   className={styles.input}
-                  placeholder="https://exemplo.com/imagem.jpg"
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
+                  value={about}
+                  maxLength={139}
+                  onChange={(e) => setAbout(limit(e.target.value, 139))}
+                  placeholder="Hey there! I am using WhatsApp."
                 />
-                <button className={styles.btnBlue} onClick={applyPhoto} disabled={!photoUrl.trim()}>
-                  <ImageIcon size={16} style={{ marginRight: 6 }}/> Aplicar
-                </button>
-                <button className={styles.btnGhost} onClick={removePhoto} disabled={!avatarSrc}>
-                  <Trash2 size={16} style={{ marginRight: 6 }}/> Remover
-                </button>
+                <div className={styles.counter}>{count(about)}/139</div>
               </div>
-            </div>
 
-            {/* Campos editáveis */}
-            <div className={styles.section}>
-              <label className={styles.labelStrong}>Sobre</label>
-              <input
-                className={styles.input}
-                value={about}
-                maxLength={139}
-                onChange={(e) => setAbout(limit(e.target.value, 139))}
-                placeholder="Hey there! I am using WhatsApp."
-              />
-              <div className={styles.counter}>{count(about)}/139</div>
-            </div>
-
-            <div className={styles.section}>
-              <label className={styles.labelStrong}>Descrição</label>
-              <textarea
-                className={styles.textarea}
-                rows={4}
-                value={description}
-                maxLength={512}
-                onChange={(e) => setDescription(limit(e.target.value, 512))}
-                placeholder="Descrição do negócio (até ~512 chars)"
-              />
-              <div className={styles.counter}>{count(description)}/512</div>
-            </div>
-
-            <div className={styles.section}>
-              <label className={styles.labelStrong}>Endereço</label>
-              <input
-                className={styles.input}
-                value={address}
-                maxLength={256}
-                onChange={(e) => setAddress(limit(e.target.value, 256))}
-                placeholder="Rua, número, cidade, UF"
-              />
-              <div className={styles.counter}>{count(address)}/256</div>
-            </div>
-
-            <div className={styles.section}>
-              <label className={styles.labelStrong}>Email</label>
-              <input
-                className={styles.input}
-                type="email"
-                value={email}
-                maxLength={128}
-                onChange={(e) => setEmail(limit(e.target.value, 128))}
-                placeholder="contato@empresa.com"
-              />
-              <div className={styles.counter}>{count(email)}/128</div>
-            </div>
-
-            <div className={styles.section}>
-              <label className={styles.labelStrong}>Categoria</label>
-              <div className={styles.selectWrap}>
-                <select
-                  className={styles.select}
-                  value={vertical}
-                  onChange={(e) => setVertical(e.target.value)}
-                >
-                  {VERTICALS.map(([label, val]) => (
-                    <option key={val || "empty"} value={val}>{label}</option>
-                  ))}
-                </select>
+              {/* Descrição */}
+              <div className={styles.formGroup}>
+                <label className={styles.labelStrong}>Descrição</label>
+                <textarea
+                  className={styles.textarea}
+                  rows={4}
+                  value={description}
+                  maxLength={512}
+                  onChange={(e) => setDescription(limit(e.target.value, 512))}
+                  placeholder="Descrição do negócio (até ~512 chars)"
+                />
+                <div className={styles.counter}>{count(description)}/512</div>
               </div>
-            </div>
 
-            <div className={styles.section}>
-              <label className={styles.labelStrong}>Websites</label>
-              <input
-                className={styles.input}
-                value={web1}
-                onChange={(e) => setWeb1(e.target.value)}
-                placeholder="https://site1.com/"
-              />
-              <input
-                className={styles.input}
-                style={{ marginTop: 8 }}
-                value={web2}
-                onChange={(e) => setWeb2(e.target.value)}
-                placeholder="https://site2.com/"
-              />
+              {/* Endereço */}
+              <div className={styles.formGroup}>
+                <label className={styles.labelStrong}>Endereço</label>
+                <input
+                  className={styles.input}
+                  value={address}
+                  maxLength={256}
+                  onChange={(e) => setAddress(limit(e.target.value, 256))}
+                  placeholder="Rua, número, cidade, UF"
+                />
+                <div className={styles.counter}>{count(address)}/256</div>
+              </div>
+
+              {/* Email */}
+              <div className={styles.formGroup}>
+                <label className={styles.labelStrong}>Email</label>
+                <input
+                  className={styles.input}
+                  type="email"
+                  value={email}
+                  maxLength={128}
+                  onChange={(e) => setEmail(limit(e.target.value, 128))}
+                  placeholder="contato@empresa.com"
+                />
+                <div className={styles.counter}>{count(email)}/128</div>
+              </div>
+
+              {/* Categoria */}
+              <div className={styles.formGroup}>
+                <label className={styles.labelStrong}>Categoria</label>
+                <div className={styles.selectWrap}>
+                  <select
+                    className={styles.select}
+                    value={vertical}
+                    onChange={(e) => setVertical(e.target.value)}
+                  >
+                    {VERTICALS.map(([label, val]) => (
+                      <option key={val || "empty"} value={val}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Websites */}
+              <div className={styles.formGroup}>
+                <label className={styles.labelStrong}>Websites</label>
+                <input
+                  className={styles.input}
+                  value={web1}
+                  onChange={(e) => setWeb1(e.target.value)}
+                  placeholder="https://site1.com/"
+                />
+                <input
+                  className={styles.input}
+                  style={{ marginTop: 8 }}
+                  value={web2}
+                  onChange={(e) => setWeb2(e.target.value)}
+                  placeholder="https://site2.com/"
+                />
+              </div>
             </div>
           </section>
 
