@@ -4,7 +4,6 @@ import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
 import {
   Bot,
-  Workflow,
   PlugZap,
   Users,
   Tag,
@@ -103,15 +102,31 @@ export default function FlowHub() {
             <div key={f.id} className={styles.card}>
               {/* Cabeçalho do card */}
               <div className={styles.cardHead}>
-                <span className={styles.tagFlow}>
-                  <Workflow size={14} /> flow
-                </span>
+                {/* esquerda pode ficar vazia ou você pode pôr um avatar depois */}
                 <div className={styles.cardHeadActions}>
                   <IconButton title="Canais" onClick={() => openChannels(f)}>
                     <PlugZap size={16} />
                   </IconButton>
                   <IconButton title="Studio" onClick={() => openStudio(f)}>
                     <Bot size={16} />
+                  </IconButton>
+                  <IconButton
+                    title="Filas deste flow"
+                    onClick={() => openQueues(f)}
+                  >
+                    <ListChecks size={16} />
+                  </IconButton>
+                  <IconButton
+                    title="Atendentes deste flow"
+                    onClick={() => openAgents(f)}
+                  >
+                    <Users size={16} />
+                  </IconButton>
+                  <IconButton
+                    title="Clientes & tags deste flow"
+                    onClick={() => openCustomersAndTags(f)}
+                  >
+                    <Tag size={16} />
                   </IconButton>
                 </div>
               </div>
@@ -133,50 +148,26 @@ export default function FlowHub() {
                 {f.description ? f.description : "Sem descrição"}
               </div>
 
-              {/* Ações específicas do flow (Filas, Atendentes, Clientes/Tags) */}
+              {/* Rodapé: canais vinculados */}
               <div className={styles.cardFoot}>
-                <div className={styles.actionsRow}>
-                  <IconButton
-                    title="Filas deste flow"
-                    onClick={() => openQueues(f)}
-                  >
-                    <ListChecks size={16} />
-                  </IconButton>
-                  <IconButton
-                    title="Atendentes deste flow"
-                    onClick={() => openAgents(f)}
-                  >
-                    <Users size={16} />
-                  </IconButton>
-                  <IconButton
-                    title="Clientes & tags deste flow"
-                    onClick={() => openCustomersAndTags(f)}
-                  >
-                    <Tag size={16} />
-                  </IconButton>
-                </div>
-
-                {/* Canais vinculados (já existia) */}
-                <div className={styles.channelsRow}>
-                  {Array.isArray(f.channels) && f.channels.length ? (
-                    f.channels
-                      .filter((c) => c?.is_active)
-                      .slice(0, 8)
-                      .map((c, i) => (
-                        <span
-                          key={`${c.channel_type}-${i}`}
-                          title={c.display_name || c.channel_type}
-                          className={styles.channelBadge}
-                        >
-                          <BrandIcon type={c.channel_type} />
-                        </span>
-                      ))
-                  ) : (
-                    <span className={styles.noChannels}>
-                      Nenhum canal vinculado
-                    </span>
-                  )}
-                </div>
+                {Array.isArray(f.channels) && f.channels.length ? (
+                  f.channels
+                    .filter((c) => c?.is_active)
+                    .slice(0, 8)
+                    .map((c, i) => (
+                      <span
+                        key={`${c.channel_type}-${i}`}
+                        title={c.display_name || c.channel_type}
+                        className={styles.channelBadge}
+                      >
+                        <BrandIcon type={c.channel_type} />
+                      </span>
+                    ))
+                ) : (
+                  <span className={styles.noChannels}>
+                    Nenhum canal vinculado
+                  </span>
+                )}
               </div>
             </div>
           ))}
