@@ -5,10 +5,11 @@ import { apiGet, apiPost } from "../../../shared/apiClient";
 import {
   Bot,
   PlugZap,
-  Users,
-  Tag,
   ListChecks,
   Headphones,
+  MessageSquare,
+  History,
+  IdCard,
 } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
@@ -71,8 +72,18 @@ export default function FlowHub() {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
 
-  const openCustomersAndTags = (f) =>
+  const openCustomers = (f) =>
     navigate(`/development/flowhub/${f.id}/customers`, {
+      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    });
+
+  const openTicketHistory = (f) =>
+    navigate(`/development/flowhub/${f.id}/ticket-history`, {
+      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    });
+
+  const openQuickReplies = (f) =>
+    navigate(`/development/flowhub/${f.id}/quick-replies`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
 
@@ -101,7 +112,7 @@ export default function FlowHub() {
         <div className={styles.grid}>
           {rows.map((f) => (
             <div key={f.id} className={styles.card}>
-              {/* Cabeçalho do card */}
+              {/* Cabeçalho do card: ações por flow */}
               <div className={styles.cardHead}>
                 <div className={styles.cardHeadActions}>
                   <IconButton
@@ -121,7 +132,7 @@ export default function FlowHub() {
                   </IconButton>
 
                   <IconButton
-                    title="Filas deste flow"
+                    title="Filas"
                     onClick={() => openQueues(f)}
                     variant="queues"
                   >
@@ -129,7 +140,7 @@ export default function FlowHub() {
                   </IconButton>
 
                   <IconButton
-                    title="Atendentes deste flow"
+                    title="Atendentes"
                     onClick={() => openAgents(f)}
                     variant="agents"
                   >
@@ -137,11 +148,27 @@ export default function FlowHub() {
                   </IconButton>
 
                   <IconButton
-                    title="Clientes & tags deste flow"
-                    onClick={() => openCustomersAndTags(f)}
+                    title="Respostas rápidas"
+                    onClick={() => openQuickReplies(f)}
+                    variant="quick"
+                  >
+                    <MessageSquare size={16} />
+                  </IconButton>
+
+                  <IconButton
+                    title="Histórico de ticket"
+                    onClick={() => openTicketHistory(f)}
+                    variant="history"
+                  >
+                    <History size={16} />
+                  </IconButton>
+
+                  <IconButton
+                    title="Clientes"
+                    onClick={() => openCustomers(f)}
                     variant="customers"
                   >
-                    <Users size={16} />
+                    <IdCard size={16} />
                   </IconButton>
                 </div>
               </div>
@@ -309,8 +336,7 @@ function NewFlowModal({ onClose, onCreate }) {
 
         <div className={styles.modalFoot}>
           <button onClick={onClose} className={styles.btnGhost}>
-            Cancelar
-          </button>
+            Cancelar</button>
           <button
             disabled={!canSave}
             onClick={submit}
