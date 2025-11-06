@@ -2,7 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../../../shared/apiClient";
-import { Bot, Workflow, PlugZap } from "lucide-react";
+import {
+  Bot,
+  Workflow,
+  PlugZap,
+  Users,
+  Tag,
+  ListChecks,
+} from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
 import styles from "./styles/FlowHub.module.css";
@@ -26,7 +33,9 @@ export default function FlowHub() {
   const load = async () => {
     try {
       setLoading(true);
-      const data = await apiGet(`/flows/meta${tenant ? `?subdomain=${tenant}` : ""}`);
+      const data = await apiGet(
+        `/flows/meta${tenant ? `?subdomain=${tenant}` : ""}`
+      );
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -36,13 +45,36 @@ export default function FlowHub() {
     }
   };
 
-  useEffect(() => { load(); }, [tenant]);
+  useEffect(() => {
+    load();
+  }, [tenant]);
+
+  /* ====== navegação por flow (sempre usando f.id) ====== */
 
   const openStudio = (f) =>
-    navigate(`/development/studio/${f.id}`, { state: { meta: { flowId: f.id, name: f.name } } });
+    navigate(`/development/studio/${f.id}`, {
+      state: { meta: { flowId: f.id, name: f.name } },
+    });
 
   const openChannels = (f) =>
-    navigate(`/development/flowhub/${f.id}/channels`, { state: { from: "/development/flowhub" } });
+    navigate(`/development/flowhub/${f.id}/channels`, {
+      state: { from: "/development/flowhub" },
+    });
+
+  const openQueues = (f) =>
+    navigate(`/development/flowhub/${f.id}/queues`, {
+      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    });
+
+  const openAgents = (f) =>
+    navigate(`/development/flowhub/${f.id}/agents`, {
+      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    });
+
+  const openCustomersAndTags = (f) =>
+    navigate(`/development/flowhub/${f.id}/customers`, {
+      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    });
 
   return (
     <div className={styles.page}>
@@ -62,11 +94,14 @@ export default function FlowHub() {
       {loading ? (
         <LogoLoader full size={56} src="/logo.svg" />
       ) : rows.length === 0 ? (
-        <div className={styles.emptyHint}>Nenhum flow ainda. Crie o primeiro!</div>
+        <div className={styles.emptyHint}>
+          Nenhum flow ainda. Crie o primeiro!
+        </div>
       ) : (
         <div className={styles.grid}>
           {rows.map((f) => (
             <div key={f.id} className={styles.card}>
+              {/* Cabeçalho do card */}
               <div className={styles.cardHead}>
                 <span className={styles.tagFlow}>
                   <Workflow size={14} /> flow
@@ -81,34 +116,67 @@ export default function FlowHub() {
                 </div>
               </div>
 
-              <div className={styles.cardTitle} title={f.name || "Sem nome"}>
+              {/* Título / descrição */}
+              <div
+                className={styles.cardTitle}
+                title={f.name || "Sem nome"}
+              >
                 {f.name || "Sem nome"}
               </div>
 
               <div
-                className={f.description ? styles.cardDesc : styles.cardDescMuted}
+                className={
+                  f.description ? styles.cardDesc : styles.cardDescMuted
+                }
                 title={f.description ? f.description : "Sem descrição"}
               >
                 {f.description ? f.description : "Sem descrição"}
               </div>
 
+              {/* Ações específicas do flow (Filas, Atendentes, Clientes/Tags) */}
               <div className={styles.cardFoot}>
-                {Array.isArray(f.channels) && f.channels.length ? (
-                  f.channels
-                    .filter((c) => c?.is_active)
-                    .slice(0, 8)
-                    .map((c, i) => (
-                      <span
-                        key={`${c.channel_type}-${i}`}
-                        title={c.display_name || c.channel_type}
-                        className={styles.channelBadge}
-                      >
-                        <BrandIcon type={c.channel_type} />
-                      </span>
-                    ))
-                ) : (
-                  <span className={styles.noChannels}>Nenhum canal vinculado</span>
-                )}
+                <div className={styles.actionsRow}>
+                  <IconButton
+                    title="Filas deste flow"
+                    onClick={() => openQueues(f)}
+                  >
+                    <ListChecks size={16} />
+                  </IconButton>
+                  <IconButton
+                    title="Atendentes deste flow"
+                    onClick={() => openAgents(f)}
+                  >
+                    <Users size={16} />
+                  </IconButton>
+                  <IconButton
+                    title="Clientes & tags deste flow"
+                    onClick={() => openCustomersAndTags(f)}
+                  >
+                    <Tag size={16} />
+                  </IconButton>
+                </div>
+
+                {/* Canais vinculados (já existia) */}
+                <div className={styles.channelsRow}>
+                  {Array.isArray(f.channels) && f.channels.length ? (
+                    f.channels
+                      .filter((c) => c?.is_active)
+                      .slice(0, 8)
+                      .map((c, i) => (
+                        <span
+                          key={`${c.channel_type}-${i}`}
+                          title={c.display_name || c.channel_type}
+                          className={styles.channelBadge}
+                        >
+                          <BrandIcon type={c.channel_type} />
+                        </span>
+                      ))
+                  ) : (
+                    <span className={styles.noChannels}>
+                      Nenhum canal vinculado
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -119,7 +187,6 @@ export default function FlowHub() {
         <NewFlowModal
           onClose={() => setShowNewModal(false)}
           onCreate={async (form) => {
-            // guarda de segurança adicional
             if (!form.name || !form.name.trim()) {
               toast.warn("Informe um nome para o flow.");
               return;
@@ -146,7 +213,12 @@ export default function FlowHub() {
 
 function IconButton({ title, onClick, children }) {
   return (
-    <button onClick={onClick} title={title} className={styles.iconButton}>
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={styles.iconButton}
+    >
       {children}
     </button>
   );
@@ -158,7 +230,10 @@ function NewFlowModal({ onClose, onCreate }) {
   const [touchedName, setTouchedName] = useState(false);
 
   const trimmed = name.trim();
-  const nameError = touchedName && trimmed.length === 0 ? "Informe um nome para o flow." : "";
+  const nameError =
+    touchedName && trimmed.length === 0
+      ? "Informe um nome para o flow."
+      : "";
   const canSave = trimmed.length > 0;
 
   const submit = () => {
@@ -171,14 +246,21 @@ function NewFlowModal({ onClose, onCreate }) {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={styles.modalHead}>
           <strong>Novo Flow</strong>
-          <button onClick={onClose} className={styles.linkBtn}>Fechar</button>
+          <button onClick={onClose} className={styles.linkBtn}>
+            Fechar
+          </button>
         </div>
 
         <div className={styles.modalBody}>
-          <label className={styles.label} htmlFor="flow-name">Nome<span className={styles.reqStar}>*</span></label>
+          <label className={styles.label} htmlFor="flow-name">
+            Nome<span className={styles.reqStar}>*</span>
+          </label>
           <input
             id="flow-name"
             autoFocus
@@ -188,7 +270,9 @@ function NewFlowModal({ onClose, onCreate }) {
             onBlur={() => setTouchedName(true)}
             placeholder="ex.: Atendimento"
             aria-invalid={!!nameError}
-            className={`${styles.input} ${nameError ? styles.inputInvalid : ""}`}
+            className={`${styles.input} ${
+              nameError ? styles.inputInvalid : ""
+            }`}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -196,9 +280,13 @@ function NewFlowModal({ onClose, onCreate }) {
               }
             }}
           />
-          {nameError ? <div className={styles.fieldError}>{nameError}</div> : null}
+          {nameError ? (
+            <div className={styles.fieldError}>{nameError}</div>
+          ) : null}
 
-          <label className={styles.label} htmlFor="flow-desc">Descrição (opcional)</label>
+          <label className={styles.label} htmlFor="flow-desc">
+            Descrição (opcional)
+          </label>
           <textarea
             id="flow-desc"
             value={description}
@@ -209,11 +297,15 @@ function NewFlowModal({ onClose, onCreate }) {
         </div>
 
         <div className={styles.modalFoot}>
-          <button onClick={onClose} className={styles.btnGhost}>Cancelar</button>
+          <button onClick={onClose} className={styles.btnGhost}>
+            Cancelar
+          </button>
           <button
             disabled={!canSave}
             onClick={submit}
-            className={`${styles.btnPrimary} ${!canSave ? styles.btnDisabled : ""}`}
+            className={`${styles.btnPrimary} ${
+              !canSave ? styles.btnDisabled : ""
+            }`}
           >
             Criar
           </button>
