@@ -156,7 +156,10 @@
   margin-left: auto;
   display: flex;
   gap: 8px;
+  /* novo: afasta o último ícone da borda direita do card */
+  padding-right: 8px; /* pode testar 6, 8, 10 px até ficar confortável */
 }
+
 
 .iconButton {
   width: 36px;
