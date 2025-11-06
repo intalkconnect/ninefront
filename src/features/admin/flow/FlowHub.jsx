@@ -8,6 +8,7 @@ import {
   Users,
   Tag,
   ListChecks,
+  Headphones,
 } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
@@ -102,31 +103,45 @@ export default function FlowHub() {
             <div key={f.id} className={styles.card}>
               {/* Cabeçalho do card */}
               <div className={styles.cardHead}>
-                {/* esquerda pode ficar vazia ou você pode pôr um avatar depois */}
                 <div className={styles.cardHeadActions}>
-                  <IconButton title="Canais" onClick={() => openChannels(f)}>
+                  <IconButton
+                    title="Canais"
+                    onClick={() => openChannels(f)}
+                    variant="channels"
+                  >
                     <PlugZap size={16} />
                   </IconButton>
-                  <IconButton title="Studio" onClick={() => openStudio(f)}>
+
+                  <IconButton
+                    title="Studio"
+                    onClick={() => openStudio(f)}
+                    variant="studio"
+                  >
                     <Bot size={16} />
                   </IconButton>
+
                   <IconButton
                     title="Filas deste flow"
                     onClick={() => openQueues(f)}
+                    variant="queues"
                   >
                     <ListChecks size={16} />
                   </IconButton>
+
                   <IconButton
                     title="Atendentes deste flow"
                     onClick={() => openAgents(f)}
+                    variant="agents"
                   >
-                    <Users size={16} />
+                    <Headphones size={16} />
                   </IconButton>
+
                   <IconButton
                     title="Clientes & tags deste flow"
                     onClick={() => openCustomersAndTags(f)}
+                    variant="customers"
                   >
-                    <Tag size={16} />
+                    <Users size={16} />
                   </IconButton>
                 </div>
               </div>
@@ -202,13 +217,18 @@ export default function FlowHub() {
 
 /* ---------- Aux components ---------- */
 
-function IconButton({ title, onClick, children }) {
+function IconButton({ title, onClick, children, variant }) {
+  const classes = [styles.iconButton];
+  if (variant && styles[`iconButton_${variant}`]) {
+    classes.push(styles[`iconButton_${variant}`]);
+  }
+
   return (
     <button
       type="button"
       onClick={onClick}
       title={title}
-      className={styles.iconButton}
+      className={classes.join(" ")}
     >
       {children}
     </button>
