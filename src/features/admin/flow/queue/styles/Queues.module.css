@@ -1,277 +1,576 @@
 /* =========================================
-   THEME / TOKENS
+   THEME / TOKENS (padrão do produto)
 ========================================= */
 :root{
-  --app-bg: #f8f9fb;
-}
+  --app-bg:#f6f7fb;
 
-/* Fundo global */
-html, body {
-  height: auto;
-  min-height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-  background: var(--app-bg);
-}
+  /* Paleta principal */
+  --qr-primary:#8B5CF6;
+  --qr-primary-600:#7C3AED;
+  --qr-primary-100:rgba(139,92,246,.20);
 
-#root, #app, .layout, .main, .content, .page {
-  background: var(--app-bg) !important;
-  height: auto !important;
-  min-height: auto !important;
-  overflow: visible !important;
+  --qr-surface:#f4f6fb;
+  --qr-surface-hover:#eef2f7;
+
+  --qr-text:#0f172a;
+  --qr-text-secondary:#475569;
+  --qr-muted:#6b7280;
+
+  --qr-border:#dbe1ea;
+  --qr-border-light:#eef2f7;
+
+  --qr-success:#16a34a;
+  --qr-success-100:rgba(22,163,74,.15);
+
+  --qr-danger:#ef4444;
+  --qr-danger-100:rgba(239,68,68,.18);
+
+  --qr-radius:10px;
+  --qr-radius-xl:14px;
+
+  --qr-shadow-sm:0 1px 2px rgba(0,0,0,.06);
+  --qr-shadow:0 6px 18px rgba(2,6,23,.06);
+  --qr-shadow-lg:0 18px 40px rgba(2,6,23,.12);
+
+  --qr-gap:14px;
+  --qr-transition:.18s ease;
 }
 
 /* =========================================
-   PAGE WRAP (sem container extra)
+   GLOBAL / CONTAINER
 ========================================= */
-.pageWrap {
-  background: transparent !important;
-  padding: 24px 32px;
-  max-width: 1400px;
-  margin: 0 auto;
-  overflow: visible !important;
+.container{
+  padding:24px;
+  max-width:1400px;
+  margin:0 auto;
+  min-height:0 !important;
+  overflow:visible !important;
+  background:transparent !important;
 }
 
 /* =========================================
-   HEADER (sem barra, sem voltar)
+   HEADER DA PÁGINA
 ========================================= */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  gap: 20px;
-  flex-wrap: wrap;
+.header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:24px;
+  margin-bottom:18px;
+  position:relative;
+}
+.header::after{
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-16px;
+  height:2px;
+  background:linear-gradient(
+    90deg,
+    #2563eb 0%,
+    rgba(37,99,235,.18) 55%,
+    transparent 100%
+  );
 }
 
-.title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-  letter-spacing: -0.01em;
+.title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:34px;
+  font-weight:900;
+  letter-spacing:-.015em;
+  line-height:1.15;
+  color:var(--qr-text);
+  margin:0;
+  text-shadow:0 1px 0 rgba(255,255,255,.6);
+}
+.subtitle{
+  margin:6px 0 0;
+  color:var(--qr-muted);
+  font-size:15px;
+  font-weight:400;
+}
+
+/* lado direito do header: contexto do flow */
+.headerRight{
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-end;
+}
+.contextPill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 12px;
+  border-radius:999px;
+  background:#f3f4f6;
+  border:1px solid #e5e7eb;
+  font-size:13px;
+  color:#374151;
+}
+.contextLabel{
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:600;
+  font-size:11px;
+  color:#6b7280;
+}
+.contextValue{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size:12px;
+}
+.contextHint{
+  font-size:13px;
+  color:#9ca3af;
+}
+
+/* toolbar genérica (usada antes – mantida) */
+.toolbar{
+  display:flex;
+  justify-content:flex-end;
+  margin-bottom:8px;
+}
+.headerActions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* =========================================
+   ALERTAS (mantidos)
+========================================= */
+.alertErr,
+.alertOk{
+  margin-top:12px;
+  padding:12px 14px;
+  border-radius:var(--qr-radius);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--qr-border-light);
+  background:#fff;
+  box-shadow:var(--qr-shadow-sm);
+}
+.alertErr{
+  color:var(--qr-danger);
+  border-color:var(--qr-danger-100);
+}
+.alertOk{
+  color:var(--qr-success);
+  border-color:var(--qr-success-100);
 }
 
 /* =========================================
    BOTÕES
 ========================================= */
-.btnPrimary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 18px;
-  background: #3b82f6;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+.btn,
+.btnPrimary,
+.btnSecondary,
+.btnDanger{
+  appearance:none;
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:13px;
+  font-weight:600;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  cursor:pointer;
+  transition:var(--qr-transition);
+  border:1px solid transparent;
 }
 
-.btnPrimary:hover {
-  background: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-  transform: translateY(-1px);
+/* botão neutro genérico */
+.btn{
+  background:#fff;
+  color:var(--qr-text-secondary);
+  border-color:var(--qr-border);
+}
+.btn:hover{
+  background:var(--qr-surface-hover);
+  color:var(--qr-text);
 }
 
-.btnIcon {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #f3f4f6;
-  color: #6b7280;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
+/* primário (igual ao channels) */
+.btnPrimary{
+  background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
+  color:#ffffff;
+  border:none;
+  box-shadow:0 2px 8px rgba(59,130,246,0.2);
+}
+.btnPrimary:hover{
+  background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);
+  box-shadow:0 4px 12px rgba(59,130,246,0.3);
+  transform:translateY(-1px);
 }
 
-.btnIcon:hover {
-  background: #e5e7eb;
-  color: #374151;
+/* secundário roxinho */
+.btnSecondary{
+  background:#f1f0ff;
+  border-color:#e6e4ff;
+  color:#4338ca;
 }
 
-.btnIconDanger {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #fef2f2;
-  color: #dc2626;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
+/* danger */
+.btnDanger{
+  background:#fef2f2;
+  border-color:#fecaca;
+  color:#b91c1c;
+}
+.btnDanger:hover{
+  background:#fee2e2;
 }
 
-.btnIconDanger:hover {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-/* =========================================
-   LISTA DE FILAS (cards em linha)
-========================================= */
-.queueList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* utilitário para botão só com ícone (se precisar) */
+.iconOnly{
+  width:36px;
+  height:36px;
+  padding:0 !important;
+  border-radius:9px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
 }
 
 /* =========================================
-   CARD DA FILA (horizontal/linha)
+   BUSCA + CONTADOR (padrão Channels)
 ========================================= */
-.queueCard {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: all 0.2s ease;
+.searchGroup{
+  position:relative;
+  display:flex;
+  align-items:center;
+  flex:1;
+  min-width:220px;
+}
+.searchInput{
+  width:100%;
+  height:40px;
+  padding:0 36px 0 12px;
+  border-radius:12px;
+  border:1px solid var(--qr-border);
+  font-size:14px;
+  background:#fff;
+}
+.searchInput:focus{
+  outline:none;
+  border-color:#2563eb;
+  box-shadow:0 0 0 3px rgba(37,99,235,.20);
+}
+.searchClear{
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform:translateY(-50%);
+  width:28px;
+  height:28px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  color:var(--qr-text-secondary);
+}
+.searchClear:hover{
+  background:var(--qr-surface-hover);
 }
 
-.queueCard:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+.counter{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:var(--qr-primary-100);
+  color:#4b5563;
+  font-size:13px;
 }
-
-/* Dot colorido à esquerda */
-.colorDot {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #e5e7eb;
-  flex-shrink: 0;
-}
-
-/* Info da fila (cresce para ocupar espaço) */
-.queueInfo {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.queueName {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #0f172a;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.queueDesc {
-  margin: 0;
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Actions à direita */
-.queueActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+.counterNumber{
+  font-weight:800;
 }
 
 /* =========================================
-   ESTADOS VAZIOS E LOADING
+   CARD DE LISTAGEM (envolve a lista)
 ========================================= */
-.loading,
-.empty {
-  text-align: center;
-  padding: 48px 24px;
-  color: #64748b;
-  font-size: 15px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+.listCard{
+  margin-top:8px;
+  background:#fff;
+  border:1px solid var(--qr-border-light);
+  border-radius:var(--qr-radius-xl);
+  box-shadow:var(--qr-shadow);
+  padding:16px 18px 18px;
 }
 
-.empty p {
-  margin: 0;
+.listToolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+
+.listArea{
+  min-height:80px;
+}
+
+.empty{
+  padding:24px 8px;
+  text-align:center;
+  color:var(--qr-muted);
 }
 
 /* =========================================
-   RESPONSIVO
+   LISTA EM CARDS EMPILHADOS
 ========================================= */
-@media (max-width: 768px) {
-  .pageWrap {
-    padding: 20px 16px;
-  }
+.stackList{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
 
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
+/* card da fila (linha) */
+.queueRow{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid var(--qr-border-light);
+  background:#fff;
+  box-shadow:0 4px 14px rgba(15,23,42,.04);
+}
+.queueRowMain{
+  flex:1;
+  min-width:0;
+}
+.queueNameLine{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:4px;
+}
+.queueTitle{
+  font-weight:700;
+  color:var(--qr-text);
+}
+.queueDesc{
+  margin:0;
+  font-size:13px;
+  color:var(--qr-text-secondary);
+}
 
-  .title {
-    font-size: 22px;
-  }
+/* bolinha de cor */
+.colorDot{
+  width:14px;
+  height:14px;
+  border-radius:999px;
+  border:1px solid var(--qr-border);
+  box-shadow:var(--qr-shadow-sm);
+}
 
-  .queueCard {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
+/* status pill (reaproveita ideia de Channels) */
+.statusOk,
+.statusOff{
+  padding:3px 8px;
+  font-size:11px;
+  border-radius:999px;
+  border:1px solid #e5e7eb;
+}
+.statusOk{
+  color:#065f46;
+  background:#ecfdf5;
+  border-color:#a7f3d0;
+}
+.statusOff{
+  color:#6b7280;
+  background:#f3f4f6;
+}
 
-  .queueInfo {
-    flex-basis: 100%;
-  }
+/* ações à direita */
+.queueRowActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
 
-  .queueActions {
-    margin-left: auto;
+/* responsivo: empilha ações embaixo */
+@media (max-width: 768px){
+  .queueRow{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+  .queueRowActions{
+    width:100%;
   }
 }
 
-@media (max-width: 480px) {
-  .pageWrap {
-    padding: 16px 12px;
-  }
+/* =========================================
+   MODAL (já usado em outras telas de fila)
+========================================= */
+.modalOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(17,24,39,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:9999;
+}
+.modal{
+  width:100%;
+  max-width:640px;
+  background:#fff;
+  border:1px solid var(--qr-border-light);
+  border-radius:var(--qr-radius-xl);
+  box-shadow:var(--qr-shadow-lg);
+  overflow:hidden;
+}
+.modalHeader{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 22px;
+  border-bottom:1px solid var(--qr-border-light);
+  background:
+    linear-gradient(180deg,var(--qr-surface) 0%,#fff 100%),
+    linear-gradient(90deg,var(--qr-primary-100) 0%,transparent 40%);
+}
+.modalTitle{
+  margin:0;
+  font-size:18px;
+  font-weight:800;
+  color:var(--qr-text);
+}
+.modalBody{
+  max-height:65vh;
+  overflow:auto;
+  padding:18px 22px;
+}
+.formInner{
+  display:grid;
+  gap:var(--qr-gap);
+  padding:0 22px 0;
+}
+.modalActions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  padding:12px 22px 20px;
+  border-top:1px solid var(--qr-border-light);
+  background:linear-gradient(180deg,#fff 0%,var(--qr-surface) 100%);
+}
+.modalActions .btn,
+.modalActions .btnPrimary{
+  height:42px;
+  padding:0 16px;
+  border-radius:12px;
+}
+.modalActions .btnPrimary{
+  box-shadow:0 8px 18px rgba(139,92,246,.25);
+}
 
-  .queueCard {
-    padding: 14px 16px;
-  }
+/* campos do formulário dentro do modal */
+.inputGroup{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.label{
+  font-size:14px;
+  font-weight:700;
+  color:var(--qr-text-secondary);
+}
+.req{
+  color:var(--qr-danger);
+  margin-left:4px;
+}
+.input,
+.textarea,
+.select{
+  width:100%;
+  min-width:0;
+  padding:12px 14px;
+  border:1px solid var(--qr-border);
+  border-radius:10px;
+  background:#fff;
+  outline:none;
+  font-size:14px;
+  color:var(--qr-text);
+  transition:var(--qr-transition);
+}
+.textarea{
+  min-height:110px;
+  resize:vertical;
+  font-family:inherit;
+}
+.input::placeholder,
+.textarea::placeholder{
+  color:#94a3b8;
+  font-weight:400;
+}
+.input:focus,
+.textarea:focus,
+.select:focus{
+  border-color:var(--qr-primary);
+  box-shadow:0 0 0 3px var(--qr-primary-100);
+}
+.inputHelper{
+  font-size:12px;
+  color:var(--qr-muted);
+}
 
-  .queueActions {
-    gap: 6px;
-  }
+/* linha de cor no modal */
+.colorRow{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.colorField{
+  width:220px;
+}
+.colorChip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--qr-border);
+  background:#fff;
+  padding:8px 12px;
+  border-radius:999px;
+  box-shadow:var(--qr-shadow-sm);
+  font-size:13px;
+  color:var(--qr-text-secondary);
+}
+.colorSwatch{
+  width:16px;
+  height:16px;
+  border-radius:999px;
+  border:1px solid var(--qr-border);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);
+}
+.hex{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size:12.5px;
+  color:var(--qr-text-secondary);
+}
 
-  .btnIcon,
-  .btnIconDanger {
-    width: 32px;
-    height: 32px;
+/* responsivo geral */
+@media (max-width: 640px){
+  .header{
+    flex-direction:column;
   }
-  
-  .queueName {
-    font-size: 15px;
+  .headerRight{
+    width:100%;
+    justify-content:flex-start;
   }
-  
-  .queueDesc {
-    font-size: 12px;
+  .listToolbar{
+    flex-direction:column;
+    align-items:stretch;
   }
 }
