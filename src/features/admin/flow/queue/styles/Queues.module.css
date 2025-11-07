@@ -50,6 +50,19 @@
 /* =========================================
    HEADER – no mesmo padrão visual de Channels
 ========================================= */
+
+/* container e header você já tem; só certifique que estão assim: */
+
+.container{
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height:0 !important;
+  overflow:visible !important;
+  background:transparent !important;
+}
+
+/* HEADER PADRÃO (igual Preferences / Channels) */
 .header{
   display:flex;
   align-items:flex-start;
@@ -61,14 +74,8 @@
 .header::after{
   content:'';
   position:absolute;
-  left:0; right:0; bottom:-16px;
-  height:2px;
-  background:linear-gradient(
-    90deg,
-    #2563eb 0%,
-    rgba(37,99,235,.18) 55%,
-    transparent 100%
-  );
+  left:0; right:0; bottom:-16px; height:2px;
+  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
 }
 
 .title{
@@ -79,9 +86,6 @@
   line-height:1.15;
   color:var(--qr-text);
   text-shadow:0 1px 0 rgba(255,255,255,.6);
-  display:flex;
-  align-items:center;
-  gap:10px;
 }
 
 .subtitle{
@@ -90,6 +94,53 @@
   font-size:15px;
   font-weight:400;
 }
+
+/* pill com contexto do fluxo – parecido com o header de Canais */
+.flowContextPill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:10px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#f3f4ff;
+  border:1px solid #e0e7ff;
+  color:#4b5563;
+  font-size:13px;
+}
+.flowLabel{
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-size:11px;
+  color:#6366f1;
+}
+.flowInfo{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+}
+.flowContextPill code{
+  background:rgba(255,255,255,.7);
+  padding:2px 6px;
+  border-radius:999px;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-size:11px;
+}
+
+/* ações do header (Recarregar + Nova fila) */
+.headerActionsRight{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* (o resto do arquivo pode ficar como já estava:
+   .card, .cardHead, .cardActions, .searchGroup, .btn, .btnPrimary, .btnSecondary,
+   .tableWrap, .table, .rowHover, .queueNameWrap etc) */
+
+
 
 /* badge com o flow_id, similar ao tenant da tela de canais */
 .flowBadge{
