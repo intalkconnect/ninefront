@@ -160,7 +160,10 @@
   gap: 8px;
 }
 
-
+/* novo: dá um respiro extra pro último ícone */
+.cardHeadActions button:last-child {
+  margin-right: 6px;   /* testa 6 / 8 / 10px se quiser mais espaço */
+}
 
 .iconButton {
   width: 36px;
