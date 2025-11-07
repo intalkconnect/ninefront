@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { apiGet, apiPut } from '../../../../shared/apiClient';
 import { toast } from 'react-toastify';
@@ -59,6 +59,12 @@ function validateWindows(windows) {
 export default function QueueHours() {
   const { name } = useParams(); // param usado para buscar os dados
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const flowId =
+    location.state?.flowId ||
+    location.state?.meta?.flowId ||
+    null;
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -73,12 +79,18 @@ export default function QueueHours() {
   // Nome bonito para breadcrumb (usa queue_name do /queues/:id)
   const [queueNome, setQueueNome] = useState(name || '');
 
+  const baseQueuesPath = flowId
+    ? `/development/flowhub/${encodeURIComponent(flowId)}/queues`
+    : '/management/queues';
+
   useEffect(() => {
     (async () => {
       setLoading(true); setErr(null);
       try {
+        const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+
         // 1) Carrega horas/regra da fila
-        const data = await apiGet(`/queue-hours/${encodeURIComponent(name)}/hours`);
+        const data = await apiGet(`/queue-hours/${encodeURIComponent(name)}/hours${qs}`);
         const norm = normalizeIncoming(data);
         setEnabled(norm.enabled);
         setTz(norm.timezone);
@@ -89,7 +101,7 @@ export default function QueueHours() {
 
         // 2) Resolve o nome de exibição (queue_name) via /queues/:id
         try {
-          const q = await apiGet(`/queues/${encodeURIComponent(name)}`);
+          const q = await apiGet(`/queues/${encodeURIComponent(name)}${qs}`);
           setQueueNome(q?.queue_name ?? q?.nome ?? q?.name ?? name);
         } catch {
           setQueueNome(name);
@@ -102,7 +114,7 @@ export default function QueueHours() {
         setLoading(false);
       }
     })();
-  }, [name]);
+  }, [name, flowId]);
 
   const addWindow = (dayKey) => {
     setWindows((w) => ({ ...w, [dayKey]: [...(w[dayKey]||[]), { start:'09:00', end:'18:00' }] }));
@@ -140,7 +152,8 @@ export default function QueueHours() {
         toast.warn(vErr);
         return;
       }
-      await apiPut(`/queue-hours/${encodeURIComponent(name)}/hours`, {
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+      await apiPut(`/queue-hours/${encodeURIComponent(name)}/hours${qs}`, {
         enabled,
         timezone: tz,
         pre_message: preMsg,
@@ -149,7 +162,7 @@ export default function QueueHours() {
         holidays,
       });
       toast.success('Configurações salvas.');
-      navigate('/management/queues');
+      navigate(baseQueuesPath);
     } catch (e) {
       console.error(e);
       setErr('Erro ao salvar configurações.');
@@ -165,7 +178,7 @@ export default function QueueHours() {
         <ol className={css.bcList}>
           <li><Link to="/" className={css.bcLink}>Dashboard</Link></li>
           <li className={css.bcSep}>/</li>
-          <li><Link to="/management/queues" className={css.bcLink}>Filas</Link></li>
+          <li><Link to={baseQueuesPath} className={css.bcLink}>Filas</Link></li>
           <li className={css.bcSep}>/</li>
           <li><span className={css.bcCurrent}>{queueNome} - Horários</span></li>
         </ol>
@@ -334,7 +347,7 @@ export default function QueueHours() {
       {/* Rodapé fixo */}
       <div className={css.stickyFooter}>
         <div className={css.stickyInner}>
-          <button className={css.btnGhost} onClick={() => navigate('/management/queues')}>Cancelar</button>
+          <button className={css.btnGhost} onClick={() => navigate(baseQueuesPath)}>Cancelar</button>
           <button className={css.btnPrimary} onClick={save} disabled={saving}>
             <Save size={16}/> Salvar
           </button>
