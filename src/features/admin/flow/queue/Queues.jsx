@@ -1,11 +1,11 @@
-// webapp/src/pages/Queues/Queues.jsx
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Clock3, X as XIcon, SquarePen, Trash2, Plus } from 'lucide-react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
-import { apiGet, apiDelete } from '../../../../shared/apiClient';
-import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
-import { toast } from 'react-toastify';
-import styles from './styles/Queues.module.css';
+// webapp/src/features/admin/flow/queue/Queues.jsx
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { Clock3, X as XIcon, SquarePen, Trash2, Plus, RotateCw } from "lucide-react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { apiGet, apiDelete } from "../../../../shared/apiClient";
+import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
+import { toast } from "react-toastify";
+import styles from "./styles/Queues.module.css";
 
 export default function Queues() {
   const navigate = useNavigate();
@@ -20,18 +20,26 @@ export default function Queues() {
     location.state?.meta?.flowId ||
     null;
 
+  // meta extra do flow (quando vier do FlowHub)
+  const flowMeta = location.state?.meta || null;
+  const flowName =
+    flowMeta?.name ||
+    flowMeta?.flowName ||
+    flowMeta?.title ||
+    null;
+
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const confirm = useConfirm();
 
   const normalizeHexColor = (input) => {
     if (!input) return null;
     let c = String(input).trim();
     if (!c) return null;
-    if (!c.startsWith('#')) c = `#${c}`;
+    if (!c.startsWith("#")) c = `#${c}`;
     if (/^#([0-9a-fA-F]{3})$/.test(c)) {
-      c = '#' + c.slice(1).split('').map(ch => ch + ch).join('');
+      c = "#" + c.slice(1).split("").map((ch) => ch + ch).join("");
     }
     return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
   };
@@ -39,64 +47,63 @@ export default function Queues() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       const data = await apiGet(`/queues${qs}`);
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      toast.error('Falha ao carregar filas.');
+      toast.error("Falha ao carregar filas.");
     } finally {
       setLoading(false);
     }
   }, [flowId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return filas;
     return filas.filter((f) => {
-      const nome = String(f.nome ?? f.name ?? '').toLowerCase();
-      const desc = String(f.descricao ?? '').toLowerCase();
+      const nome = String(f.nome ?? f.name ?? "").toLowerCase();
+      const desc = String(f.descricao ?? "").toLowerCase();
       return nome.includes(q) || desc.includes(q);
     });
   }, [filas, query]);
 
-  const clearSearch = () => setQuery('');
+  const clearSearch = () => setQuery("");
 
   async function handleDelete(queue) {
     const id = queue.id ?? queue.nome ?? queue.name;
     if (!id) {
-      toast.warn('ID da fila indisponível.');
+      toast.warn("ID da fila indisponível.");
       return;
     }
     try {
       const ok = await confirm({
-        title: 'Excluir fila?',
+        title: "Excluir fila?",
         description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
-        confirmText: 'Excluir',
-        cancelText: 'Cancelar',
-        tone: 'danger',
+        confirmText: "Excluir",
+        cancelText: "Cancelar",
+        tone: "danger",
       });
       if (!ok) return;
 
-      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
 
-      toast.success('Fila excluída.');
+      toast.success("Fila excluída.");
       load();
     } catch (e) {
       console.error(e);
 
-      // tenta pegar a mensagem amigável da API
-      let msg = 'Falha ao excluir fila.';
-
+      let msg = "Falha ao excluir fila.";
       const data = e?.response?.data || e?.data;
-      if (data && typeof data.error === 'string') {
+      if (data && typeof data.error === "string") {
         msg = data.error;
-      } else if (typeof e?.message === 'string') {
-        // Ex.: "DELETE ... failed (409): Não é possível excluir a fila: ..."
-        const idx = e.message.indexOf('): ');
+      } else if (typeof e?.message === "string") {
+        const idx = e.message.indexOf("): ");
         if (idx !== -1) {
           msg = e.message.slice(idx + 3).trim();
         } else {
@@ -108,14 +115,13 @@ export default function Queues() {
     }
   }
 
-  // caminho base pra voltar quando estiver no contexto de flow (se precisar em outros pontos)
   const baseQueuesPath = flowId
     ? `/development/flowhub/${encodeURIComponent(flowId)}/queues`
-    : '/management/queues';
+    : "/management/queues";
 
   return (
     <div className={styles.container}>
-      {/* HEADER no mesmo padrão visual do Channels */}
+      {/* HEADER no mesmo padrão visual das outras telas */}
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Filas de atendimento</h1>
@@ -124,19 +130,36 @@ export default function Queues() {
           </p>
 
           {flowId && (
-            <div className={styles.flowBadge}>
-              <span>Contexto do fluxo:</span>
-              <code className={styles.flowId}>{flowId}</code>
+            <div className={styles.flowContextPill}>
+              <span className={styles.flowLabel}>Contexto do fluxo</span>
+              <span className={styles.flowInfo}>
+                id: <code>{flowId}</code>
+              </span>
+              {flowName && (
+                <span className={styles.flowInfo}>
+                  • nome: <strong>{flowName}</strong>
+                </span>
+              )}
             </div>
           )}
         </div>
 
-        <div className={styles.headerActions}>
+        <div className={styles.headerActionsRight}>
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={load}
+            title="Recarregar filas"
+          >
+            <RotateCw size={16} />
+            Recarregar
+          </button>
+
           <button
             type="button"
             className={styles.btnPrimary}
             onClick={() =>
-              navigate('/management/queues/new', { state: { flowId } })
+              navigate("/management/queues/new", { state: { flowId } })
             }
           >
             <Plus size={16} /> Nova fila
@@ -144,7 +167,7 @@ export default function Queues() {
         </div>
       </div>
 
-      {/* CARD com busca + tabela, no mesmo estilo da tela de canais */}
+      {/* CARD + LISTA */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardActions}>
@@ -174,7 +197,9 @@ export default function Queues() {
               aria-label="Total de itens filtrados"
             >
               <span className={styles.counterNumber}>{filtered.length}</span>
-              <span>{filtered.length === 1 ? 'fila' : 'filas'}</span>
+              <span>
+                {filtered.length === 1 ? "fila" : "filas"}
+              </span>
             </div>
           </div>
         </div>
@@ -185,7 +210,7 @@ export default function Queues() {
               <tr>
                 <th style={{ minWidth: 360 }}>Fila</th>
                 <th>Descrição</th>
-                <th style={{ width: 220, textAlign: 'right' }}>Ações</th>
+                <th style={{ width: 220, textAlign: "right" }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -196,7 +221,6 @@ export default function Queues() {
                   </td>
                 </tr>
               )}
-
               {!loading && filtered.length === 0 && (
                 <tr>
                   <td colSpan={3} className={styles.empty}>
@@ -204,12 +228,11 @@ export default function Queues() {
                   </td>
                 </tr>
               )}
-
               {!loading &&
                 filtered.map((f) => {
                   const id = f.id ?? f.nome ?? f.name;
-                  const nomeFila = f.nome ?? f.name ?? '';
-                  const hex = f.color || '';
+                  const nomeFila = f.nome ?? f.name ?? "";
+                  const hex = f.color || "";
                   const showHex = normalizeHexColor(hex);
 
                   return (
@@ -218,18 +241,22 @@ export default function Queues() {
                         <div className={styles.queueNameWrap}>
                           <span
                             className={styles.colorDot}
-                            style={{ background: showHex || '#fff' }}
+                            style={{ background: showHex || "#fff" }}
                             aria-hidden="true"
                           />
                           <span>{nomeFila}</span>
                         </div>
                       </td>
-                      <td data-label="Descrição">{f.descricao || '—'}</td>
+                      <td data-label="Descrição">
+                        {f.descricao || "—"}
+                      </td>
                       <td
                         className={styles.actionsCell}
                         data-label="Ações"
                       >
-                        <div style={{ display: 'inline-flex', gap: 8 }}>
+                        <div
+                          style={{ display: "inline-flex", gap: 8 }}
+                        >
                           <button
                             type="button"
                             className={`${styles.btnSecondary} ${styles.iconOnly}`}
@@ -251,7 +278,9 @@ export default function Queues() {
                             title="Editar"
                             onClick={() =>
                               navigate(
-                                `/management/queues/${encodeURIComponent(id)}`,
+                                `/management/queues/${encodeURIComponent(
+                                  id
+                                )}`,
                                 { state: { flowId } }
                               )
                             }
