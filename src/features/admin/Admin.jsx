@@ -43,6 +43,9 @@ import {
 import FlowHub from "./flow/FlowHub";
 import Builder from "./flow/Builder";
 import FlowChannels from "./flow/FlowChannels";
+import Queues from "./flow/queue/Queues";
+import QueueForm from "./flow/queue/QueueForm";
+import QueueHours from "./flow/queue/QueueHours";
 import Dashboard from "./dashboard/Dashboard";
 import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
@@ -55,9 +58,7 @@ import ClientsMonitor from "./monitoring/clientsMonitor/ClientsMonitor";
 import AgentsMonitor from "./monitoring/agentsMonitor/AgentsMonitor";
 import JourneyTracker from "./monitoring/journeyTracker/JourneyTracker";
 import JourneyBeholder from "./monitoring/journeyTracker/JourneyBeholder";
-import Queues from "./management/queue/Queues";
-import QueueForm from "./management/queue/QueueForm";
-import QueueHours from "./management/queue/QueueHours";
+
 import QuickReplies from "./management/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
 import TemplateCreate from "./campaigns/template/TemplateCreate";
@@ -970,6 +971,14 @@ export default function Admin() {
       </RequireRole>
     }
   />
+          <Route
+  path="development/flowhub/:flowId/queues" // << página de canais por flow
+  element={
+    <RequireRole allow={isAdmin}>
+      <FlowChannels />
+    </RequireRole>
+  }
+/>
           <Route
             path="development/tracker"
             element={
