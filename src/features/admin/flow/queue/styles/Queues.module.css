@@ -1,12 +1,11 @@
 /* =========================================
-   THEME / TOKENS (padrão Channels)
+   THEME / TOKENS
 ========================================= */
 :root{
-  --app-bg: #f6f7fb;
-  --page-inline: clamp(12px, 2vw, 24px);
+  --app-bg: #f8f9fb;
 }
 
-/* Fundo/scroll global */
+/* Fundo global */
 html, body {
   height: auto;
   min-height: 100%;
@@ -29,40 +28,30 @@ html, body {
 ========================================= */
 .container {
   background: transparent !important;
-  padding: 24px;
+  padding: 32px 40px;
   max-width: 1400px;
   margin: 0 auto;
   overflow: visible !important;
 }
 
 /* =========================================
-   HEADER (mesmo estilo de Channels)
+   HEADER (simples, sem gradiente)
 ========================================= */
-.header{
+.header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
+  margin-bottom: 32px;
   gap: 24px;
-  margin-bottom: 18px;
-  position: relative;
   flex-wrap: wrap;
 }
 
-.header::after{
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -16px;
-  height: 2px;
-  background: linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
-}
-
-.subtitle{
-  margin: 6px 0 0;
-  color: #6b7280;
-  font-size: 15px;
-  font-weight: 400;
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
 /* =========================================
@@ -72,42 +61,22 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  padding: 10px 20px;
+  background: #3b82f6;
   color: #ffffff;
   border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.2);
-}
-
-.btnPrimary:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
-  transform: translateY(-1px);
-}
-
-.btnSecondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: #fff;
-  color: #111827;
-  border: 1px solid #e5e7eb;
   border-radius: 10px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.btnSecondary:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+.btnPrimary:hover {
+  background: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  transform: translateY(-1px);
 }
 
 .btnIcon {
@@ -117,18 +86,17 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
-  color: #374151;
-  border: 1px solid #e5e7eb;
-  border-radius: 9px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .btnIcon:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #111827;
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .btnIconDanger {
@@ -138,167 +106,105 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: #fef2f2;
   color: #dc2626;
-  border: 1px solid #fee2e2;
-  border-radius: 9px;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .btnIconDanger:hover {
-  background: #fef2f2;
-  border-color: #fecaca;
+  background: #fee2e2;
   color: #b91c1c;
 }
 
 /* =========================================
-   BARRA DE BUSCA
+   GRID DE FILAS (igual FlowHub)
 ========================================= */
-.searchBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.searchGroup {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 280px;
-  max-width: 480px;
-}
-
-.searchInput {
-  width: 100%;
-  height: 44px;
-  padding: 0 40px 0 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  outline: none;
-  background: #fff;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.searchInput:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.searchClear {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
+.queueGrid {
   display: grid;
-  place-items: center;
-  cursor: pointer;
-  color: #6b7280;
-  transition: all 0.15s ease;
-}
-
-.searchClear:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.counter {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(59, 130, 246, 0.1);
-  color: #1e40af;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  height: 36px;
-  white-space: nowrap;
-}
-
-.counterNumber {
-  font-weight: 800;
-  font-size: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+  align-items: start;
 }
 
 /* =========================================
-   LISTA DE FILAS
+   CARD DA FILA (padrão da imagem)
 ========================================= */
-.queueList {
+.queueCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.queueCard {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  overflow: hidden;
+  gap: 16px;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .queueCard:hover {
   border-color: #d1d5db;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
-.queueCardHeader {
+/* Actions no topo do card */
+.cardActions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 18px;
-  gap: 16px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-.queueInfo {
+/* Nome da fila */
+.queueName {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* Descrição */
+.queueDesc {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  min-height: 42px;
+}
+
+/* Rodapé com cor */
+.cardFooter {
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+}
+
+.colorIndicator {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
+  gap: 10px;
 }
 
 .colorDot {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px #e5e7eb, 0 2px 4px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
 }
 
-.queueName {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-  line-height: 1.3;
-}
-
-.queueDesc {
-  margin: 4px 0 0;
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.4;
-}
-
-.queueActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+.colorLabel {
+  font-size: 13px;
+  color: #64748b;
+  font-family: ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  font-weight: 500;
 }
 
 /* =========================================
@@ -306,61 +212,57 @@ html, body {
 ========================================= */
 .loading,
 .empty {
+  grid-column: 1 / -1;
   text-align: center;
-  padding: 48px 24px;
-  color: #6b7280;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  padding: 60px 24px;
+  color: #64748b;
+  font-size: 15px;
 }
 
 .empty p {
-  margin: 0 0 16px;
-  font-size: 15px;
+  margin: 0;
 }
 
 /* =========================================
    RESPONSIVO
 ========================================= */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .container {
-    padding: 16px;
+    padding: 24px 20px;
   }
 
   .header {
     flex-direction: column;
+    align-items: flex-start;
     gap: 16px;
   }
 
-  .header::after {
-    bottom: -12px;
+  .title {
+    font-size: 24px;
   }
 
-  .searchBar {
-    flex-direction: column;
-    align-items: stretch;
+  .queueGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 20px 16px;
   }
 
-  .searchGroup {
-    max-width: 100%;
+  .queueCard {
+    padding: 16px;
   }
 
-  .counter {
-    align-self: flex-start;
+  .cardActions {
+    gap: 6px;
   }
 
-  .queueCardHeader {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .queueInfo {
-    width: 100%;
-  }
-
-  .queueActions {
-    width: 100%;
-    justify-content: flex-end;
+  .btnIcon,
+  .btnIconDanger {
+    width: 32px;
+    height: 32px;
   }
 }
