@@ -104,11 +104,9 @@ export default function Queues() {
 
   return (
     <div className={styles.container}>
-      {/* Header com gradiente */}
+      {/* Header sem gradiente, limpo */}
       <div className={styles.header}>
-        <div>
-          <p className={styles.subtitle}>Gestão de filas: crie, edite, configure horários e exclua.</p>
-        </div>
+        <h1 className={styles.title}>Filas</h1>
         <button
           type="button"
           className={styles.btnPrimary}
@@ -120,36 +118,8 @@ export default function Queues() {
         </button>
       </div>
 
-      {/* Barra de busca e contador */}
-      <div className={styles.searchBar}>
-        <div className={styles.searchGroup}>
-          <input
-            className={styles.searchInput}
-            placeholder="Buscar por nome ou descrição…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Buscar filas"
-          />
-          {query && (
-            <button
-              className={styles.searchClear}
-              onClick={clearSearch}
-              title="Limpar busca"
-              aria-label="Limpar busca"
-              type="button"
-            >
-              <XIcon size={14} />
-            </button>
-          )}
-        </div>
-        <div className={styles.counter} aria-label="Total de itens filtrados">
-          <span className={styles.counterNumber}>{filtered.length}</span>
-          <span>{filtered.length === 1 ? 'fila' : 'filas'}</span>
-        </div>
-      </div>
-
-      {/* Lista de filas em cards */}
-      <div className={styles.queueList}>
+      {/* Grid de filas em cards - igual FlowHub */}
+      <div className={styles.queueGrid}>
         {loading && (
           <div className={styles.loading}>Carregando filas…</div>
         )}
@@ -157,7 +127,6 @@ export default function Queues() {
         {!loading && filtered.length === 0 && (
           <div className={styles.empty}>
             <p>Nenhuma fila encontrada.</p>
-            {query && <button className={styles.btnSecondary} onClick={clearSearch}>Limpar busca</button>}
           </div>
         )}
         
@@ -169,55 +138,62 @@ export default function Queues() {
 
           return (
             <div key={String(id)} className={styles.queueCard}>
-              <div className={styles.queueCardHeader}>
-                <div className={styles.queueInfo}>
+              {/* Actions no topo */}
+              <div className={styles.cardActions}>
+                <button
+                  type="button"
+                  className={styles.btnIcon}
+                  title="Configurar horários"
+                  onClick={() =>
+                    navigate(
+                      `/management/queues/${encodeURIComponent(nomeFila)}/hours`,
+                      { state: { flowId } }
+                    )
+                  }
+                >
+                  <Clock3 size={18}/>
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnIcon}
+                  title="Editar"
+                  onClick={() =>
+                    navigate(
+                      `/management/queues/${encodeURIComponent(id)}`,
+                      { state: { flowId } }
+                    )
+                  }
+                >
+                  <SquarePen size={18}/>
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnIconDanger}
+                  title="Excluir"
+                  onClick={() => handleDelete(f)}
+                >
+                  <Trash2 size={18}/>
+                </button>
+              </div>
+
+              {/* Nome da fila */}
+              <h3 className={styles.queueName}>{nomeFila}</h3>
+
+              {/* Descrição */}
+              <p className={styles.queueDesc}>
+                {f.descricao || 'Sem descrição'}
+              </p>
+
+              {/* Cor indicator no rodapé */}
+              <div className={styles.cardFooter}>
+                <div className={styles.colorIndicator}>
                   <span 
                     className={styles.colorDot} 
                     style={{ background: showHex || '#e5e7eb' }} 
-                    aria-hidden="true" 
                   />
-                  <div>
-                    <h3 className={styles.queueName}>{nomeFila}</h3>
-                    {f.descricao && (
-                      <p className={styles.queueDesc}>{f.descricao}</p>
-                    )}
-                  </div>
-                </div>
-                <div className={styles.queueActions}>
-                  <button
-                    type="button"
-                    className={styles.btnIcon}
-                    title="Configurar horários e feriados"
-                    onClick={() =>
-                      navigate(
-                        `/management/queues/${encodeURIComponent(nomeFila)}/hours`,
-                        { state: { flowId } }
-                      )
-                    }
-                  >
-                    <Clock3 size={18}/>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnIcon}
-                    title="Editar"
-                    onClick={() =>
-                      navigate(
-                        `/management/queues/${encodeURIComponent(id)}`,
-                        { state: { flowId } }
-                      )
-                    }
-                  >
-                    <SquarePen size={18}/>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.btnIconDanger}
-                    title="Excluir"
-                    onClick={() => handleDelete(f)}
-                  >
-                    <Trash2 size={18}/>
-                  </button>
+                  <span className={styles.colorLabel}>
+                    {showHex || 'Sem cor'}
+                  </span>
                 </div>
               </div>
             </div>
