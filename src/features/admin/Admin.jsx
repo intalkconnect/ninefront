@@ -975,7 +975,7 @@ export default function Admin() {
   path="development/flowhub/:flowId/queues" // << página de canais por flow
   element={
     <RequireRole allow={isAdmin}>
-      <FlowChannels />
+      <Queues />
     </RequireRole>
   }
 />
