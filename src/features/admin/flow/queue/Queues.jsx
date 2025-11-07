@@ -64,30 +64,50 @@ export default function Queues() {
   const clearSearch = () => setQuery('');
 
   async function handleDelete(queue) {
-    const id = queue.id ?? queue.nome ?? queue.name;
-    if (!id) {
-      toast.warn('ID da fila indisponível.');
-      return;
-    }
-    try {
-      const ok = await confirm({
-        title: 'Excluir fila?',
-        description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
-        confirmText: 'Excluir',
-        cancelText: 'Cancelar',
-        tone: 'danger',
-      });
-      if (!ok) return;
-
-      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
-      await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
-      toast.success('Fila excluída.');
-      load();
-    } catch (e) {
-      console.error(e);
-      toast.error('Falha ao excluir fila.');
-    }
+  const id = queue.id ?? queue.nome ?? queue.name;
+  if (!id) {
+    toast.warn('ID da fila indisponível.');
+    return;
   }
+  try {
+    const ok = await confirm({
+      title: 'Excluir fila?',
+      description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger',
+    });
+    if (!ok) return;
+
+    const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+    await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
+
+    toast.success('Fila excluída.');
+    load();
+  } catch (e) {
+    console.error(e);
+
+    // tenta pegar a mensagem amigável da API
+    let msg = 'Falha ao excluir fila.';
+
+    // se seu apiClient devolver algo tipo { response: { data: { error } } }
+    const data = e?.response?.data || e?.data;
+    if (data && typeof data.error === 'string') {
+      msg = data.error;
+    } else if (typeof e?.message === 'string') {
+      // Ex.: "DELETE ... failed (409): Não é possível excluir a fila: ..."
+      const idx = e.message.indexOf('): ');
+      if (idx !== -1) {
+        msg = e.message.slice(idx + 3).trim();
+      } else {
+        msg = e.message;
+      }
+    }
+
+    toast.error(msg);
+  }
+}
+
 
   // caminho base pra voltar quando estiver no contexto de flow
   const baseQueuesPath = flowId
