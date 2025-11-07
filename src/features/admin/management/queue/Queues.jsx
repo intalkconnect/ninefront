@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Clock3, X as XIcon, SquarePen, Trash2, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { apiGet, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
 import { toast } from 'react-toastify';
@@ -8,6 +8,16 @@ import styles from './styles/Queues.module.css';
 
 export default function Queues() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
+
+  // flowId pode vir da URL (ex.: /development/flowhub/:flowId/queues)
+  // ou do state enviado pelo FlowHub
+  const flowId =
+    params.flowId ||
+    location.state?.flowId ||
+    location.state?.meta?.flowId ||
+    null;
 
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +38,8 @@ export default function Queues() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiGet('/queues');
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+      const data = await apiGet(`/queues${qs}`);
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -36,7 +47,8 @@ export default function Queues() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [flowId]);
+
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
@@ -51,30 +63,36 @@ export default function Queues() {
 
   const clearSearch = () => setQuery('');
 
-async function handleDelete(queue) {
-  const id = queue.id ?? queue.nome ?? queue.name;
-  if (!id) {
-    toast.warn('ID da fila indisponível.');
-    return;
-  }
-  try {
-    const ok = await confirm({
-      title: 'Excluir fila?',
-      description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
-      confirmText: 'Excluir',
-      cancelText: 'Cancelar',
-      tone: 'danger',
-    });
-    if (!ok) return;
+  async function handleDelete(queue) {
+    const id = queue.id ?? queue.nome ?? queue.name;
+    if (!id) {
+      toast.warn('ID da fila indisponível.');
+      return;
+    }
+    try {
+      const ok = await confirm({
+        title: 'Excluir fila?',
+        description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+        tone: 'danger',
+      });
+      if (!ok) return;
 
-    await apiDelete(`/queues/${encodeURIComponent(id)}`);
-    toast.success('Fila excluída.');
-    load();
-  } catch (e) {
-    console.error(e);
-    toast.error('Falha ao excluir fila.');
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+      await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
+      toast.success('Fila excluída.');
+      load();
+    } catch (e) {
+      console.error(e);
+      toast.error('Falha ao excluir fila.');
+    }
   }
-}
+
+  // caminho base pra voltar quando estiver no contexto de flow
+  const baseQueuesPath = flowId
+    ? `/development/flowhub/${encodeURIComponent(flowId)}/queues`
+    : '/management/queues';
 
   return (
     <div className={styles.container}>
@@ -83,7 +101,9 @@ async function handleDelete(queue) {
           <button
             type="button"
             className={styles.btnPrimary}
-            onClick={() => navigate('/management/queues/new')}
+            onClick={() =>
+              navigate('/management/queues/new', { state: { flowId } })
+            }
           >
             <Plus size={16}/> Nova Fila
           </button>
@@ -163,7 +183,12 @@ async function handleDelete(queue) {
                           type="button"
                           className={`${styles.btnSecondary} ${styles.iconOnly}`}
                           title="Configurar horários e feriados"
-                          onClick={() => navigate(`/management/queues/${encodeURIComponent(nomeFila)}/hours`)}
+                          onClick={() =>
+                            navigate(
+                              `/management/queues/${encodeURIComponent(nomeFila)}/hours`,
+                              { state: { flowId } }
+                            )
+                          }
                         >
                           <Clock3 size={16}/>
                         </button>
@@ -171,7 +196,12 @@ async function handleDelete(queue) {
                           type="button"
                           className={`${styles.btnSecondary} ${styles.iconOnly}`}
                           title="Editar"
-                          onClick={() => navigate(`/management/queues/${encodeURIComponent(id)}`)}
+                          onClick={() =>
+                            navigate(
+                              `/management/queues/${encodeURIComponent(id)}`,
+                              { state: { flowId } }
+                            )
+                          }
                         >
                           <SquarePen size={16}/>
                         </button>
