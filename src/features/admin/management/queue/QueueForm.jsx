@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
 import { Save, Palette, RefreshCw, X } from "lucide-react";
 import {
   apiGet,
@@ -53,12 +53,6 @@ const randomPastelHex = () => {
 };
 
 /* =================== ChipsInput (tags) =================== */
-/* Agora as tags são mantidas exatamente como digitadas:
-   - sem lower-case
-   - sem trocar espaços/acentos
-   - sem substituir por hífens/underscores
-   - apenas trim + corte por maxLen
-*/
 function ChipsInput({
   value = [],
   onChange,
@@ -83,7 +77,7 @@ function ChipsInput({
     (raw) => {
       const tokens = tokenize(raw);
       if (!tokens.length) return;
-      const existing = new Set(value); // case-sensitive de propósito
+      const existing = new Set(value); // case-sensitive
       const fresh = tokens.filter((t) => !existing.has(t));
       if (!fresh.length) return;
       onChange([...value, ...fresh]);
@@ -257,7 +251,14 @@ export default function QueueForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const topRef = useRef(null);
+
+  // flowId vindo do FlowHub ou de rota com param
+  const flowId =
+    location.state?.flowId ||
+    location.state?.meta?.flowId ||
+    null;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -266,14 +267,14 @@ export default function QueueForm() {
   const [form, setForm] = useState({ nome: "", descricao: "", color: "" });
   const [touched, setTouched] = useState({ nome: false, color: false });
 
-  // nome exibido no breadcrumb (usa queue_name do backend quando disponível)
+  // nome exibido no breadcrumb
   const [queueDisplay, setQueueDisplay] = useState(id || "");
 
   // tags
   const [initialTags, setInitialTags] = useState([]); // catálogo original
-  const [tags, setTags] = useState([]); // estado visível no input (com chips)
+  const [tags, setTags] = useState([]); // estado visível
 
-  // --- Regra de roteamento (apenas 1 condição; operadores: equals|contains) ---
+  // --- Regra de roteamento ---
   const [ruleEnabled, setRuleEnabled] = useState(false);
   const [hadRuleInitially, setHadRuleInitially] = useState(false);
   const [rule, setRule] = useState({ field: "", op: "equals", value: "" });
@@ -287,23 +288,31 @@ export default function QueueForm() {
   const colorInvalid = form.color ? !colorPreview : false;
   const canSubmit = !saving && !nameInvalid && !colorInvalid;
 
+  const baseQueuesPath = flowId
+    ? `/development/flowhub/${encodeURIComponent(flowId)}/queues`
+    : "/management/queues";
+
   // carrega catálogo por nome de fila
-  const loadTags = useCallback(async (filaNome) => {
+  const loadTags = useCallback(async (filaNome, flowIdParam) => {
     if (!filaNome) {
       setInitialTags([]);
       setTags([]);
       return;
     }
     try {
-      const r = await apiGet(
-        `/tags/ticket/catalog?fila=${encodeURIComponent(
-          filaNome
-        )}&page_size=200`
-      );
+      const qsParts = [
+        `fila=${encodeURIComponent(filaNome)}`,
+        "page_size=200",
+      ];
+      if (flowIdParam) {
+        qsParts.push(`flow_id=${encodeURIComponent(flowIdParam)}`);
+      }
+      const url = `/tags/ticket/catalog?${qsParts.join("&")}`;
+      const r = await apiGet(url);
       const list = Array.isArray(r?.data) ? r.data : [];
       const arr = list.map((x) => x.tag);
       setInitialTags(arr);
-      setTags(arr); // mantém como foi cadastrado (case/acentos)
+      setTags(arr);
     } catch {
       setInitialTags([]);
       setTags([]);
@@ -311,21 +320,24 @@ export default function QueueForm() {
   }, []);
 
   // carrega UMA regra da API
-  const loadRule = useCallback(async (filaIdOrName) => {
+  const loadRule = useCallback(async (filaIdOrName, flowIdParam) => {
     if (!filaIdOrName) {
       setRuleEnabled(false);
       setRule({ field: "", op: "equals", value: "" });
       return;
     }
     try {
+      const qs = flowIdParam
+        ? `?flow_id=${encodeURIComponent(flowIdParam)}`
+        : "";
       const r = await apiGet(
-        `/queue-rules/${encodeURIComponent(filaIdOrName)}`
+        `/queue-rules/${encodeURIComponent(filaIdOrName)}${qs}`
       );
       const cfg = r?.data || r;
       const first = Array.isArray(cfg?.conditions) ? cfg.conditions[0] : null;
-      const type = first?.type ?? first?.op ?? "";         // backend → UI
+      const type = first?.type ?? first?.op ?? "";
       const variable = first?.variable ?? first?.field ?? "";
-    
+
       setRuleEnabled(!!cfg?.enabled);
       setRule({
         field: variable,
@@ -345,7 +357,8 @@ export default function QueueForm() {
     setErr(null);
     try {
       if (isEdit) {
-        const data = await apiGet(`/queues/${encodeURIComponent(id)}`);
+        const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
+        const data = await apiGet(`/queues/${encodeURIComponent(id)}${qs}`);
         const q = data?.data ?? data ?? {};
         const nomeFila = (q.queue_name ?? q.nome ?? q.name ?? "").trim();
 
@@ -356,8 +369,8 @@ export default function QueueForm() {
         });
         setQueueDisplay(nomeFila || id);
 
-        await loadTags(nomeFila || q.nome || q.name);
-        await loadRule(nomeFila || q.nome || q.name);
+        await loadTags(nomeFila || q.nome || q.name, flowId);
+        await loadRule(nomeFila || q.nome || q.name, flowId);
       } else {
         setForm({ nome: "", descricao: "", color: "" });
         setQueueDisplay("");
@@ -376,7 +389,7 @@ export default function QueueForm() {
         topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
       );
     }
-  }, [isEdit, id, loadTags, loadRule]);
+  }, [isEdit, id, loadTags, loadRule, flowId]);
 
   useEffect(() => {
     load();
@@ -387,7 +400,12 @@ export default function QueueForm() {
   const handleLimparCor = () => setForm((f) => ({ ...f, color: "" }));
 
   // cria e remove conforme diff — respeita exatamente como escrito nas tags
-  async function persistTagsDiff(filaNome, before = [], current = []) {
+  async function persistTagsDiff(
+    filaNome,
+    before = [],
+    current = [],
+    flowIdParam
+  ) {
     const prev = new Set(before);
     const now = new Set(current);
 
@@ -398,15 +416,23 @@ export default function QueueForm() {
 
     for (const tag of toAdd) {
       jobs.push(
-        apiPost("/tags/ticket/catalog", { fila: filaNome, tag, active: true })
+        apiPost("/tags/ticket/catalog", {
+          fila: filaNome,
+          tag,
+          active: true,
+          ...(flowIdParam ? { flow_id: flowIdParam } : {}),
+        })
       );
     }
     for (const tag of toRemove) {
+      const qs = flowIdParam
+        ? `?flow_id=${encodeURIComponent(flowIdParam)}`
+        : "";
       jobs.push(
         apiDelete(
           `/tags/ticket/catalog/${encodeURIComponent(
             filaNome
-          )}/${encodeURIComponent(tag)}`
+          )}/${encodeURIComponent(tag)}${qs}`
         )
       );
     }
@@ -436,37 +462,44 @@ export default function QueueForm() {
         nome: form.nome.trim(),
         ...(form.descricao.trim() ? { descricao: form.descricao.trim() } : {}),
         ...(colorPreview ? { color: colorPreview } : {}),
+        ...(flowId ? { flow_id: flowId } : {}),
       };
 
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
+
       if (isEdit) {
-        await apiPut(`/queues/${encodeURIComponent(id)}`, payload);
+        await apiPut(`/queues/${encodeURIComponent(id)}${qs}`, payload);
         toast.success("Fila atualizada.");
       } else {
-        await apiPost("/queues", payload);
+        await apiPost(`/queues${qs}`, payload);
         toast.success("Fila criada.");
       }
 
       const filaNome = form.nome.trim();
-      await persistTagsDiff(filaNome, initialTags, tags);
+      await persistTagsDiff(filaNome, initialTags, tags, flowId);
 
       if (ruleEnabled && rule.field.trim() && rule.value.trim()) {
         const body = {
-         enabled: true,
-         conditions: [
-           {
-             type: rule.op === "contains" ? "contains" : "equals", 
-             variable: rule.field.trim(),                          
-             value: rule.value.trim(),
-           },
-         ],
-       };
-      await apiPut(`/queue-rules/${encodeURIComponent(filaNome)}`, body);
+          enabled: true,
+          conditions: [
+            {
+              type: rule.op === "contains" ? "contains" : "equals",
+              variable: rule.field.trim(),
+              value: rule.value.trim(),
+            },
+          ],
+        };
+        await apiPut(
+          `/queue-rules/${encodeURIComponent(filaNome)}${qs}`,
+          body
+        );
       } else if (hadRuleInitially) {
-        await apiDelete(`/queue-rules/${encodeURIComponent(filaNome)}`);
+        await apiDelete(`/queue-rules/${encodeURIComponent(filaNome)}${qs}`);
       } else {
+        // nada a fazer
       }
 
-      navigate("/management/queues");
+      navigate(baseQueuesPath);
     } catch (e) {
       console.error(e);
       toast.error("Não foi possível salvar. Tente novamente.");
@@ -487,7 +520,7 @@ export default function QueueForm() {
           </li>
           <li className={styles.bcSep}>/</li>
           <li>
-            <Link to="/management/queues" className={styles.bcLink}>
+            <Link to={baseQueuesPath} className={styles.bcLink}>
               Filas
             </Link>
           </li>
@@ -772,7 +805,7 @@ export default function QueueForm() {
               <button
                 type="button"
                 className={styles.btnGhost}
-                onClick={() => navigate("/management/queues")}
+                onClick={() => navigate(baseQueuesPath)}
               >
                 Cancelar
               </button>
