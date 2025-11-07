@@ -150,15 +150,16 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  /* novo: afasta o último ícone da borda direita do card */
+  padding-right: 12px; /* pode testar 10, 12, 16px até gostar do espaçamento */
 }
 
 .cardHeadActions {
   margin-left: auto;
   display: flex;
   gap: 8px;
-  /* novo: afasta o último ícone da borda direita do card */
-  padding-right: 8px; /* pode testar 6, 8, 10 px até ficar confortável */
 }
+
 
 
 .iconButton {
