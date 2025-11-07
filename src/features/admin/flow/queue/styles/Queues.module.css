@@ -1,433 +1,366 @@
 /* =========================================
-   THEME / TOKENS (iguais/compatíveis com Channels)
+   THEME / TOKENS (padrão Channels)
 ========================================= */
 :root{
-  --app-bg:#f6f7fb;
+  --app-bg: #f6f7fb;
+  --page-inline: clamp(12px, 2vw, 24px);
+}
 
-  --qr-primary:#8B5CF6;
-  --qr-primary-600:#7C3AED;
-  --qr-primary-100:rgba(139,92,246,.20);
+/* Fundo/scroll global */
+html, body {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  background: var(--app-bg);
+}
 
-  --qr-surface:#f4f6fb;
-  --qr-surface-hover:#eef2f7;
-
-  --qr-text:#0f172a;
-  --qr-text-secondary:#475569;
-  --qr-muted:#6b7280;
-
-  --qr-border:#dbe1ea;
-  --qr-border-light:#eef2f7;
-
-  --qr-success:#16a34a;
-  --qr-success-100:rgba(22,163,74,.15);
-
-  --qr-danger:#ef4444;
-  --qr-danger-100:rgba(239,68,68,.18);
-
-  --qr-radius:10px;
-  --qr-radius-xl:14px;
-
-  --qr-shadow-sm:0 1px 2px rgba(0,0,0,.06);
-  --qr-shadow:0 6px 18px rgba(2,6,23,.06);
-  --qr-shadow-lg:0 18px 40px rgba(2,6,23,.12);
-
-  --qr-gap:14px;
-  --qr-transition:.18s ease;
+#root, #app, .layout, .main, .content, .page {
+  background: var(--app-bg) !important;
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
 }
 
 /* =========================================
-   CONTAINER (largura e padding iguais à tela de canais)
+   CONTAINER
 ========================================= */
-.container{
-  padding:24px;
-  max-width:1400px;
-  margin:0 auto;
-  min-height:0 !important;
-  overflow:visible !important;
-  background:transparent !important;
-}
-
-/* =========================================
-   HEADER – no mesmo padrão visual de Channels
-========================================= */
-
-/* container e header você já tem; só certifique que estão assim: */
-
-.container{
+.container {
+  background: transparent !important;
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  min-height:0 !important;
-  overflow:visible !important;
-  background:transparent !important;
+  overflow: visible !important;
 }
 
-/* HEADER PADRÃO (igual Preferences / Channels) */
+/* =========================================
+   HEADER (mesmo estilo de Channels)
+========================================= */
 .header{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:24px;
-  margin-bottom:18px;
-  position:relative;
-}
-.header::after{
-  content:'';
-  position:absolute;
-  left:0; right:0; bottom:-16px; height:2px;
-  background:linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  position: relative;
+  flex-wrap: wrap;
 }
 
-.title{
-  margin:0;
-  font-size:34px;
-  font-weight:900;
-  letter-spacing:-.015em;
-  line-height:1.15;
-  color:var(--qr-text);
-  text-shadow:0 1px 0 rgba(255,255,255,.6);
+.header::after{
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -16px;
+  height: 2px;
+  background: linear-gradient(90deg, #2563eb 0%, rgba(37,99,235,.18) 55%, transparent 100%);
 }
 
 .subtitle{
-  margin:6px 0 0;
-  color:var(--qr-muted);
-  font-size:15px;
-  font-weight:400;
-}
-
-/* pill com contexto do fluxo – parecido com o header de Canais */
-.flowContextPill{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  margin-top:10px;
-  padding:6px 10px;
-  border-radius:999px;
-  background:#f3f4ff;
-  border:1px solid #e0e7ff;
-  color:#4b5563;
-  font-size:13px;
-}
-.flowLabel{
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:.06em;
-  font-size:11px;
-  color:#6366f1;
-}
-.flowInfo{
-  display:inline-flex;
-  align-items:center;
-  gap:4px;
-}
-.flowContextPill code{
-  background:rgba(255,255,255,.7);
-  padding:2px 6px;
-  border-radius:999px;
-  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
-  font-size:11px;
-}
-
-/* ações do header (Recarregar + Nova fila) */
-.headerActionsRight{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-/* (o resto do arquivo pode ficar como já estava:
-   .card, .cardHead, .cardActions, .searchGroup, .btn, .btnPrimary, .btnSecondary,
-   .tableWrap, .table, .rowHover, .queueNameWrap etc) */
-
-
-
-/* badge com o flow_id, similar ao tenant da tela de canais */
-.flowBadge{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  margin-top:10px;
-  padding:6px 10px;
-  border-radius:10px;
-  background:#f3f4f6;
-  border:1px solid #e5e7eb;
-  font-size:12px;
-  color:#374151;
-}
-.flowId{
-  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
-  font-size:12px;
-  color:#111827;
-}
-
-/* ações do header (botão Nova fila) */
-.headerActions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  align-items:flex-start;
-  justify-content:flex-end;
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 15px;
+  font-weight: 400;
 }
 
 /* =========================================
-   BOTÕES (reutiliza lógica da tela de canais)
+   BOTÕES
 ========================================= */
-.btn,
-.btnPrimary,
-.btnSecondary{
-  appearance:none;
-  border:1px solid;
-  border-radius:10px;
-  padding:10px 14px;
-  font-size:14px;
-  font-weight:700;
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  cursor:pointer;
-  transition:var(--qr-transition);
-  background:#fff;
-  color:var(--qr-text-secondary);
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.2);
 }
 
-.btn{
-  border-color:var(--qr-border);
-}
-.btn:hover{
-  background:var(--qr-surface-hover);
-  color:var(--qr-text);
+.btnPrimary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+  transform: translateY(-1px);
 }
 
-/* botão principal (Nova fila) */
-.btnPrimary{
-  background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color:#ffffff;
-  border:none;
-  border-radius:10px;
-  font-weight:700;
-  font-size:14px;
-  cursor:pointer;
-  transition:all 0.2s ease;
-  box-shadow:0 2px 8px rgba(59,130,246,0.2);
-}
-.btnPrimary:hover{
-  background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow:0 4px 12px rgba(59,130,246,0.3);
-  transform:translateY(-1px);
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-/* botão secundário (ícones de ação) */
-.btnSecondary{
-  background:#f1f0ff !important;
-  border-color:#e6e4ff !important;
-  color:#4338ca !important;
+.btnSecondary:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
 }
 
-/* apenas ícone */
-.iconOnly{
-  width:36px;
-  height:36px;
-  padding:0 !important;
-  border-radius:9px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
+.btnIcon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnIcon:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+.btnIconDanger {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #fee2e2;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnIconDanger:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
 }
 
 /* =========================================
-   CARD LISTA
+   BARRA DE BUSCA
 ========================================= */
-.card{
-  background:#fff;
-  border:1px solid var(--qr-border-light);
-  border-radius:var(--qr-radius-xl);
-  box-shadow:var(--qr-shadow);
-  overflow:hidden;
-  transition:var(--qr-transition);
-}
-.card:hover{
-  box-shadow:var(--qr-shadow-lg);
-  border-color:var(--qr-border);
+.searchBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
-/* header do card (busca + contador) */
-.cardHead{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  padding:12px 16px;
-  border-bottom:1px solid var(--qr-border-light);
-  background:
-    linear-gradient(180deg, #fff 0%, #fff 100%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
+.searchGroup {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 280px;
+  max-width: 480px;
 }
-.cardActions{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:wrap;
-  justify-content:flex-end;
-  width:100%;
+
+.searchInput {
+  width: 100%;
+  height: 44px;
+  padding: 0 40px 0 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  outline: none;
+  background: #fff;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.searchClear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.15s ease;
+}
+
+.searchClear:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e40af;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  height: 36px;
+  white-space: nowrap;
+}
+
+.counterNumber {
+  font-weight: 800;
+  font-size: 15px;
 }
 
 /* =========================================
-   BUSCA
+   LISTA DE FILAS
 ========================================= */
-.searchGroup{
-  position:relative;
-  display:flex;
-  align-items:center;
-}
-.searchInput{
-  height:40px;
-  padding:0 36px 0 12px;
-  min-width:260px;
-  width:min(360px, 40vw);
-  border:1px solid var(--qr-border);
-  border-radius:12px;
-  outline:none;
-  background:#fff;
-  font-size:14px;
-}
-.searchInput:focus{
-  border-color:var(--qr-primary);
-  box-shadow:0 0 0 3px var(--qr-primary-100);
-}
-.searchClear{
-  position:absolute;
-  right:6px;
-  top:50%;
-  transform:translateY(-50%);
-  width:28px;
-  height:28px;
-  border:0;
-  border-radius:8px;
-  background:transparent;
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  color:var(--qr-text-secondary);
-}
-.searchClear:hover{
-  background:var(--qr-surface-hover);
+.queueList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* contador de itens */
-.counter{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  background:var(--qr-primary-100);
-  color:#4b5563;
-  padding:6px 10px;
-  border-radius:10px;
-  font-size:13px;
-  font-weight:700;
-  height:32px;
+.queueCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
-.counterNumber{
-  font-weight:800;
+
+.queueCard:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.queueCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.queueInfo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.colorDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #e5e7eb, 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.queueName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.queueDesc {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.queueActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 /* =========================================
-   TABELA
+   ESTADOS VAZIOS E LOADING
 ========================================= */
-.tableWrap{
-  overflow:auto;
-}
-.table{
-  width:100%;
-  border-collapse:separate;
-  border-spacing:0;
-  font-size:14px;
-}
-.table thead th{
-  text-align:left;
-  font-weight:800;
-  font-size:12px;
-  color:var(--qr-muted);
-  padding:14px 18px;
-  border-bottom:1px solid var(--qr-border);
-  position:sticky;
-  top:0;
-  z-index:1;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  background:
-    linear-gradient(180deg, var(--qr-surface) 0%, #fff 100%),
-    linear-gradient(90deg, var(--qr-primary-100) 0%, transparent 45%);
-}
-.table tbody td{
-  padding:16px 18px;
-  border-bottom:1px solid var(--qr-border-light);
-  vertical-align:middle;
-}
-.rowHover{
-  transition:var(--qr-transition);
-}
-.rowHover:hover{
-  background:linear-gradient(180deg, #fff 0%, var(--qr-surface) 100%);
+.loading,
+.empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: #6b7280;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
 }
 
-.queueNameWrap{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.colorDot{
-  width:14px;
-  height:14px;
-  border-radius:999px;
-  border:1px solid var(--qr-border);
-  box-shadow:var(--qr-shadow-sm);
-}
-
-.actionsCell{
-  text-align:right;
-}
-
-.empty,
-.loading{
-  text-align:center;
-  color:var(--qr-muted);
-  padding:24px;
+.empty p {
+  margin: 0 0 16px;
+  font-size: 15px;
 }
 
 /* =========================================
    RESPONSIVO
 ========================================= */
-@media (max-width: 640px){
-  .header{
-    flex-direction:column;
-    align-items:flex-start;
+@media (max-width: 640px) {
+  .container {
+    padding: 16px;
   }
 
-  .cardHead{
-    justify-content:flex-start;
+  .header {
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .searchInput{
-    min-width:0;
-    width:100%;
+  .header::after {
+    bottom: -12px;
   }
 
-  .table thead{
-    display:none;
+  .searchBar {
+    flex-direction: column;
+    align-items: stretch;
   }
-  .table,
-  .table tbody,
-  .table tr,
-  .table td{
-    display:block;
-    width:100%;
+
+  .searchGroup {
+    max-width: 100%;
   }
-  .table tbody td{
-    padding:12px 14px;
+
+  .counter {
+    align-self: flex-start;
   }
-  .actionsCell{
-    text-align:left;
+
+  .queueCardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .queueInfo {
+    width: 100%;
+  }
+
+  .queueActions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
-
