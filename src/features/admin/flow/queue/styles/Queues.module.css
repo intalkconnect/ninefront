@@ -1,576 +1,373 @@
-/* =========================================
-   THEME / TOKENS (padrão do produto)
-========================================= */
-:root{
-  --app-bg:#f6f7fb;
+/* ============================
+   TOKENS / TEMA
+============================ */
+:root {
+  --app-bg: #f6f7fb;
 
-  /* Paleta principal */
-  --qr-primary:#8B5CF6;
-  --qr-primary-600:#7C3AED;
-  --qr-primary-100:rgba(139,92,246,.20);
+  --qr-primary: #2563eb;
+  --qr-primary-soft: rgba(37, 99, 235, 0.16);
 
-  --qr-surface:#f4f6fb;
-  --qr-surface-hover:#eef2f7;
+  --qr-text: #0f172a;
+  --qr-text-soft: #6b7280;
 
-  --qr-text:#0f172a;
-  --qr-text-secondary:#475569;
-  --qr-muted:#6b7280;
+  --qr-success: #16a34a;
+  --qr-success-soft: rgba(22, 163, 74, 0.16);
 
-  --qr-border:#dbe1ea;
-  --qr-border-light:#eef2f7;
+  --qr-danger: #ef4444;
+  --qr-danger-soft: rgba(239, 68, 68, 0.1);
 
-  --qr-success:#16a34a;
-  --qr-success-100:rgba(22,163,74,.15);
+  --qr-border: #e5e7eb;
+  --qr-border-soft: #eef1f7;
 
-  --qr-danger:#ef4444;
-  --qr-danger-100:rgba(239,68,68,.18);
+  --qr-radius: 12px;
+  --qr-radius-lg: 18px;
 
-  --qr-radius:10px;
-  --qr-radius-xl:14px;
-
-  --qr-shadow-sm:0 1px 2px rgba(0,0,0,.06);
-  --qr-shadow:0 6px 18px rgba(2,6,23,.06);
-  --qr-shadow-lg:0 18px 40px rgba(2,6,23,.12);
-
-  --qr-gap:14px;
-  --qr-transition:.18s ease;
+  --qr-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --qr-shadow: 0 8px 26px rgba(15, 23, 42, 0.08);
 }
 
-/* =========================================
-   GLOBAL / CONTAINER
-========================================= */
-.container{
-  padding:24px;
-  max-width:1400px;
-  margin:0 auto;
-  min-height:0 !important;
-  overflow:visible !important;
-  background:transparent !important;
+/* ============================
+   CONTAINER / HEADER
+============================ */
+
+.container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: transparent;
 }
 
-/* =========================================
-   HEADER DA PÁGINA
-========================================= */
-.header{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:24px;
-  margin-bottom:18px;
-  position:relative;
-}
-.header::after{
-  content:'';
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:-16px;
-  height:2px;
-  background:linear-gradient(
-    90deg,
-    #2563eb 0%,
-    rgba(37,99,235,.18) 55%,
-    transparent 100%
-  );
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
 }
 
-.title{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-size:34px;
-  font-weight:900;
-  letter-spacing:-.015em;
-  line-height:1.15;
-  color:var(--qr-text);
-  margin:0;
-  text-shadow:0 1px 0 rgba(255,255,255,.6);
-}
-.subtitle{
-  margin:6px 0 0;
-  color:var(--qr-muted);
-  font-size:15px;
-  font-weight:400;
+.title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--qr-text);
 }
 
-/* lado direito do header: contexto do flow */
-.headerRight{
-  display:flex;
-  align-items:flex-start;
-  justify-content:flex-end;
-}
-.contextPill{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:8px 12px;
-  border-radius:999px;
-  background:#f3f4f6;
-  border:1px solid #e5e7eb;
-  font-size:13px;
-  color:#374151;
-}
-.contextLabel{
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  font-weight:600;
-  font-size:11px;
-  color:#6b7280;
-}
-.contextValue{
-  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
-  font-size:12px;
-}
-.contextHint{
-  font-size:13px;
-  color:#9ca3af;
+.subtitle {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: var(--qr-text-soft);
 }
 
-/* toolbar genérica (usada antes – mantida) */
-.toolbar{
-  display:flex;
-  justify-content:flex-end;
-  margin-bottom:8px;
-}
-.headerActions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-/* =========================================
-   ALERTAS (mantidos)
-========================================= */
-.alertErr,
-.alertOk{
-  margin-top:12px;
-  padding:12px 14px;
-  border-radius:var(--qr-radius);
-  display:flex;
-  align-items:center;
-  gap:10px;
-  border:1px solid var(--qr-border-light);
-  background:#fff;
-  box-shadow:var(--qr-shadow-sm);
-}
-.alertErr{
-  color:var(--qr-danger);
-  border-color:var(--qr-danger-100);
-}
-.alertOk{
-  color:var(--qr-success);
-  border-color:var(--qr-success-100);
+/* pill de contexto do fluxo (direita) */
+.flowContext {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--qr-border);
+  background: #f9fafb;
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
-/* =========================================
-   BOTÕES
-========================================= */
-.btn,
-.btnPrimary,
-.btnSecondary,
-.btnDanger{
-  appearance:none;
-  border-radius:10px;
-  padding:8px 12px;
-  font-size:13px;
-  font-weight:600;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  cursor:pointer;
-  transition:var(--qr-transition);
-  border:1px solid transparent;
+.flowContextLabel {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
-/* botão neutro genérico */
-.btn{
-  background:#fff;
-  color:var(--qr-text-secondary);
-  border-color:var(--qr-border);
-}
-.btn:hover{
-  background:var(--qr-surface-hover);
-  color:var(--qr-text);
+.flowContextId {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 11px;
+  color: #4b5563;
 }
 
-/* primário (igual ao channels) */
-.btnPrimary{
-  background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
-  color:#ffffff;
-  border:none;
-  box-shadow:0 2px 8px rgba(59,130,246,0.2);
-}
-.btnPrimary:hover{
-  background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);
-  box-shadow:0 4px 12px rgba(59,130,246,0.3);
-  transform:translateY(-1px);
+/* ============================
+   PAINEL PRINCIPAL
+============================ */
+
+.panel {
+  margin-top: 8px;
+  background: #ffffff;
+  border-radius: var(--qr-radius-lg);
+  border: 1px solid var(--qr-border-soft);
+  box-shadow: var(--qr-shadow);
+  padding: 14px 18px 18px;
 }
 
-/* secundário roxinho */
-.btnSecondary{
-  background:#f1f0ff;
-  border-color:#e6e4ff;
-  color:#4338ca;
+/* topo do painel: busca + contador + botão */
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-/* danger */
-.btnDanger{
-  background:#fef2f2;
-  border-color:#fecaca;
-  color:#b91c1c;
-}
-.btnDanger:hover{
-  background:#fee2e2;
+/* Busca */
+.searchGroup {
+  position: relative;
+  flex: 1 1 260px;
+  max-width: 520px;
 }
 
-/* utilitário para botão só com ícone (se precisar) */
-.iconOnly{
-  width:36px;
-  height:36px;
-  padding:0 !important;
-  border-radius:9px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
+.searchInput {
+  width: 100%;
+  height: 44px;
+  padding: 0 38px 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--qr-border);
+  background: #f9fafb;
+  font-size: 14px;
+  color: var(--qr-text);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
-/* =========================================
-   BUSCA + CONTADOR (padrão Channels)
-========================================= */
-.searchGroup{
-  position:relative;
-  display:flex;
-  align-items:center;
-  flex:1;
-  min-width:220px;
-}
-.searchInput{
-  width:100%;
-  height:40px;
-  padding:0 36px 0 12px;
-  border-radius:12px;
-  border:1px solid var(--qr-border);
-  font-size:14px;
-  background:#fff;
-}
-.searchInput:focus{
-  outline:none;
-  border-color:#2563eb;
-  box-shadow:0 0 0 3px rgba(37,99,235,.20);
-}
-.searchClear{
-  position:absolute;
-  right:6px;
-  top:50%;
-  transform:translateY(-50%);
-  width:28px;
-  height:28px;
-  border:0;
-  border-radius:999px;
-  background:transparent;
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  color:var(--qr-text-secondary);
-}
-.searchClear:hover{
-  background:var(--qr-surface-hover);
+.searchInput::placeholder {
+  color: #9ca3af;
 }
 
-.counter{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 10px;
-  border-radius:999px;
-  background:var(--qr-primary-100);
-  color:#4b5563;
-  font-size:13px;
-}
-.counterNumber{
-  font-weight:800;
+.searchInput:focus {
+  background: #ffffff;
+  border-color: var(--qr-primary);
+  box-shadow: 0 0 0 2px var(--qr-primary-soft);
 }
 
-/* =========================================
-   CARD DE LISTAGEM (envolve a lista)
-========================================= */
-.listCard{
-  margin-top:8px;
-  background:#fff;
-  border:1px solid var(--qr-border-light);
-  border-radius:var(--qr-radius-xl);
-  box-shadow:var(--qr-shadow);
-  padding:16px 18px 18px;
+.searchClear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #6b7280;
 }
 
-.listToolbar{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-  align-items:center;
-  justify-content:space-between;
-  margin-bottom:14px;
+.searchClear:hover {
+  background: #f3f4f6;
 }
 
-.listArea{
-  min-height:80px;
+.panelHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.empty{
-  padding:24px 8px;
-  text-align:center;
-  color:var(--qr-muted);
+/* contador tipo "1 fila" */
+.counterPill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--qr-primary-soft);
+  color: #1f2933;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-/* =========================================
-   LISTA EM CARDS EMPILHADOS
-========================================= */
-.stackList{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+/* botão principal "+ Nova fila" */
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    filter 0.15s ease;
 }
 
-/* card da fila (linha) */
-.queueRow{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:16px;
-  padding:14px 16px;
-  border-radius:14px;
-  border:1px solid var(--qr-border-light);
-  background:#fff;
-  box-shadow:0 4px 14px rgba(15,23,42,.04);
-}
-.queueRowMain{
-  flex:1;
-  min-width:0;
-}
-.queueNameLine{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:4px;
-}
-.queueTitle{
-  font-weight:700;
-  color:var(--qr-text);
-}
-.queueDesc{
-  margin:0;
-  font-size:13px;
-  color:var(--qr-text-secondary);
+.btnPrimary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow: 0 14px 26px rgba(37, 99, 235, 0.45);
 }
 
-/* bolinha de cor */
-.colorDot{
-  width:14px;
-  height:14px;
-  border-radius:999px;
-  border:1px solid var(--qr-border);
-  box-shadow:var(--qr-shadow-sm);
+/* ============================
+   LISTA DE FILAS
+============================ */
+
+.listArea {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* status pill (reaproveita ideia de Channels) */
-.statusOk,
-.statusOff{
-  padding:3px 8px;
-  font-size:11px;
-  border-radius:999px;
-  border:1px solid #e5e7eb;
-}
-.statusOk{
-  color:#065f46;
-  background:#ecfdf5;
-  border-color:#a7f3d0;
-}
-.statusOff{
-  color:#6b7280;
-  background:#f3f4f6;
+.feedbackRow {
+  padding: 16px 14px;
+  border-radius: 14px;
+  background: #f9fafb;
+  border: 1px dashed var(--qr-border);
+  color: var(--qr-text-soft);
+  font-size: 14px;
 }
 
-/* ações à direita */
-.queueRowActions{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
+/* Card da fila (1 por linha) */
+.queueCard {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #edf0ff;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 
-/* responsivo: empilha ações embaixo */
-@media (max-width: 768px){
-  .queueRow{
-    flex-direction:column;
-    align-items:flex-start;
+/* Coluna esquerda: nome + descrição */
+.queueMain {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.queueTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.queueDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 1px rgba(148, 163, 184, 0.4);
+}
+
+.queueName {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--qr-text);
+}
+
+/* status ("Ativa" / "Inativa") */
+.queueStatusActive,
+.queueStatusInactive {
+  margin-left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.queueStatusActive {
+  background: var(--qr-success-soft);
+  color: #166534;
+}
+
+.queueStatusInactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.queueDesc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--qr-text-soft);
+}
+
+/* Coluna direita: botões de ação */
+.queueActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Botão base */
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--qr-border);
+  background: #f9fafb;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.actionBtn svg {
+  flex-shrink: 0;
+}
+
+.actionBtn:hover {
+  background: #ffffff;
+  border-color: var(--qr-primary-soft);
+  box-shadow: var(--qr-shadow-sm);
+  transform: translateY(-0.5px);
+}
+
+/* variações */
+.actionBtnSoft {
+  background: #f3f4ff;
+  border-color: #e0e7ff;
+  color: #4338ca;
+}
+
+.actionBtnSoft:hover {
+  background: #e0e7ff;
+}
+
+.actionBtnDanger {
+  background: var(--qr-danger-soft);
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.actionBtnDanger:hover {
+  background: #fee2e2;
+}
+
+/* ============================
+   RESPONSIVO
+============================ */
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
   }
-  .queueRowActions{
-    width:100%;
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
-}
 
-/* =========================================
-   MODAL (já usado em outras telas de fila)
-========================================= */
-.modalOverlay{
-  position:fixed;
-  inset:0;
-  background:rgba(17,24,39,.45);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-  z-index:9999;
-}
-.modal{
-  width:100%;
-  max-width:640px;
-  background:#fff;
-  border:1px solid var(--qr-border-light);
-  border-radius:var(--qr-radius-xl);
-  box-shadow:var(--qr-shadow-lg);
-  overflow:hidden;
-}
-.modalHeader{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:18px 22px;
-  border-bottom:1px solid var(--qr-border-light);
-  background:
-    linear-gradient(180deg,var(--qr-surface) 0%,#fff 100%),
-    linear-gradient(90deg,var(--qr-primary-100) 0%,transparent 40%);
-}
-.modalTitle{
-  margin:0;
-  font-size:18px;
-  font-weight:800;
-  color:var(--qr-text);
-}
-.modalBody{
-  max-height:65vh;
-  overflow:auto;
-  padding:18px 22px;
-}
-.formInner{
-  display:grid;
-  gap:var(--qr-gap);
-  padding:0 22px 0;
-}
-.modalActions{
-  display:flex;
-  justify-content:flex-end;
-  gap:10px;
-  padding:12px 22px 20px;
-  border-top:1px solid var(--qr-border-light);
-  background:linear-gradient(180deg,#fff 0%,var(--qr-surface) 100%);
-}
-.modalActions .btn,
-.modalActions .btnPrimary{
-  height:42px;
-  padding:0 16px;
-  border-radius:12px;
-}
-.modalActions .btnPrimary{
-  box-shadow:0 8px 18px rgba(139,92,246,.25);
-}
-
-/* campos do formulário dentro do modal */
-.inputGroup{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-.label{
-  font-size:14px;
-  font-weight:700;
-  color:var(--qr-text-secondary);
-}
-.req{
-  color:var(--qr-danger);
-  margin-left:4px;
-}
-.input,
-.textarea,
-.select{
-  width:100%;
-  min-width:0;
-  padding:12px 14px;
-  border:1px solid var(--qr-border);
-  border-radius:10px;
-  background:#fff;
-  outline:none;
-  font-size:14px;
-  color:var(--qr-text);
-  transition:var(--qr-transition);
-}
-.textarea{
-  min-height:110px;
-  resize:vertical;
-  font-family:inherit;
-}
-.input::placeholder,
-.textarea::placeholder{
-  color:#94a3b8;
-  font-weight:400;
-}
-.input:focus,
-.textarea:focus,
-.select:focus{
-  border-color:var(--qr-primary);
-  box-shadow:0 0 0 3px var(--qr-primary-100);
-}
-.inputHelper{
-  font-size:12px;
-  color:var(--qr-muted);
-}
-
-/* linha de cor no modal */
-.colorRow{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:wrap;
-}
-.colorField{
-  width:220px;
-}
-.colorChip{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  border:1px solid var(--qr-border);
-  background:#fff;
-  padding:8px 12px;
-  border-radius:999px;
-  box-shadow:var(--qr-shadow-sm);
-  font-size:13px;
-  color:var(--qr-text-secondary);
-}
-.colorSwatch{
-  width:16px;
-  height:16px;
-  border-radius:999px;
-  border:1px solid var(--qr-border);
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.75);
-}
-.hex{
-  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
-  font-size:12.5px;
-  color:var(--qr-text-secondary);
-}
-
-/* responsivo geral */
-@media (max-width: 640px){
-  .header{
-    flex-direction:column;
+  .flowContext {
+    align-self: flex-start;
   }
-  .headerRight{
-    width:100%;
-    justify-content:flex-start;
+
+  .queueCard {
+    flex-direction: column;
+    align-items: flex-start;
   }
-  .listToolbar{
-    flex-direction:column;
-    align-items:stretch;
+
+  .queueActions {
+    justify-content: flex-start;
   }
 }
