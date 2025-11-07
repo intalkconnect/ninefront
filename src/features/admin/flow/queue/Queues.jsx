@@ -103,8 +103,8 @@ export default function Queues() {
   }
 
   return (
-    <div className={styles.container}>
-      {/* Header sem gradiente, limpo */}
+    <div className={styles.pageWrap}>
+      {/* Header simples - sem barra, sem voltar */}
       <div className={styles.header}>
         <h1 className={styles.title}>Filas</h1>
         <button
@@ -118,8 +118,8 @@ export default function Queues() {
         </button>
       </div>
 
-      {/* Grid de filas em cards - igual FlowHub */}
-      <div className={styles.queueGrid}>
+      {/* Lista de filas em linha */}
+      <div className={styles.queueList}>
         {loading && (
           <div className={styles.loading}>Carregando filas…</div>
         )}
@@ -138,8 +138,22 @@ export default function Queues() {
 
           return (
             <div key={String(id)} className={styles.queueCard}>
-              {/* Actions no topo */}
-              <div className={styles.cardActions}>
+              {/* Dot colorido */}
+              <span 
+                className={styles.colorDot} 
+                style={{ background: showHex || '#e5e7eb' }} 
+              />
+
+              {/* Info da fila */}
+              <div className={styles.queueInfo}>
+                <h3 className={styles.queueName}>{nomeFila}</h3>
+                <p className={styles.queueDesc}>
+                  {f.descricao || 'Sem descrição'}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className={styles.queueActions}>
                 <button
                   type="button"
                   className={styles.btnIcon}
@@ -174,27 +188,6 @@ export default function Queues() {
                 >
                   <Trash2 size={18}/>
                 </button>
-              </div>
-
-              {/* Nome da fila */}
-              <h3 className={styles.queueName}>{nomeFila}</h3>
-
-              {/* Descrição */}
-              <p className={styles.queueDesc}>
-                {f.descricao || 'Sem descrição'}
-              </p>
-
-              {/* Cor indicator no rodapé */}
-              <div className={styles.cardFooter}>
-                <div className={styles.colorIndicator}>
-                  <span 
-                    className={styles.colorDot} 
-                    style={{ background: showHex || '#e5e7eb' }} 
-                  />
-                  <span className={styles.colorLabel}>
-                    {showHex || 'Sem cor'}
-                  </span>
-                </div>
               </div>
             </div>
           );
