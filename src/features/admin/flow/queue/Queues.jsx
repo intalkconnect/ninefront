@@ -1,4 +1,3 @@
-// webapp/src/pages/Queues/Queues.jsx
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Clock3, X as XIcon, SquarePen, Trash2, Plus } from 'lucide-react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
@@ -65,72 +64,59 @@ export default function Queues() {
   const clearSearch = () => setQuery('');
 
   async function handleDelete(queue) {
-    const id = queue.id ?? queue.nome ?? queue.name;
-    if (!id) {
-      toast.warn('ID da fila indisponível.');
-      return;
-    }
-    try {
-      const ok = await confirm({
-        title: 'Excluir fila?',
-        description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
-        confirmText: 'Excluir',
-        cancelText: 'Cancelar',
-        tone: 'danger',
-      });
-      if (!ok) return;
-
-      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
-      await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
-
-      toast.success('Fila excluída.');
-      load();
-    } catch (e) {
-      console.error(e);
-
-      // tenta pegar a mensagem amigável da API
-      let msg = 'Falha ao excluir fila.';
-
-      const data = e?.response?.data || e?.data;
-      if (data && typeof data.error === 'string') {
-        msg = data.error;
-      } else if (typeof e?.message === 'string') {
-        // Ex.: "DELETE ... failed (409): Não é possível excluir a fila: ..."
-        const idx = e.message.indexOf('): ');
-        if (idx !== -1) {
-          msg = e.message.slice(idx + 3).trim();
-        } else {
-          msg = e.message;
-        }
-      }
-
-      toast.error(msg);
-    }
+  const id = queue.id ?? queue.nome ?? queue.name;
+  if (!id) {
+    toast.warn('ID da fila indisponível.');
+    return;
   }
+  try {
+    const ok = await confirm({
+      title: 'Excluir fila?',
+      description: `Tem certeza que deseja excluir a fila "${queue.nome ?? queue.name}"? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      tone: 'danger',
+    });
+    if (!ok) return;
 
-  // caminho base pra voltar quando estiver no contexto de flow (se precisar em outros pontos)
+    const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+    await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
+
+    toast.success('Fila excluída.');
+    load();
+  } catch (e) {
+    console.error(e);
+
+    // tenta pegar a mensagem amigável da API
+    let msg = 'Falha ao excluir fila.';
+
+    // se seu apiClient devolver algo tipo { response: { data: { error } } }
+    const data = e?.response?.data || e?.data;
+    if (data && typeof data.error === 'string') {
+      msg = data.error;
+    } else if (typeof e?.message === 'string') {
+      // Ex.: "DELETE ... failed (409): Não é possível excluir a fila: ..."
+      const idx = e.message.indexOf('): ');
+      if (idx !== -1) {
+        msg = e.message.slice(idx + 3).trim();
+      } else {
+        msg = e.message;
+      }
+    }
+
+    toast.error(msg);
+  }
+}
+
+
+  // caminho base pra voltar quando estiver no contexto de flow
   const baseQueuesPath = flowId
     ? `/development/flowhub/${encodeURIComponent(flowId)}/queues`
     : '/management/queues';
 
   return (
     <div className={styles.container}>
-      {/* HEADER no mesmo padrão visual do Channels */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Filas de atendimento</h1>
-          <p className={styles.subtitle}>
-            Crie, edite, configure horários e exclua filas de atendimento.
-          </p>
-
-          {flowId && (
-            <div className={styles.flowBadge}>
-              <span>Contexto do fluxo:</span>
-              <code className={styles.flowId}>{flowId}</code>
-            </div>
-          )}
-        </div>
-
+      <div className={styles.toolbar}>
         <div className={styles.headerActions}>
           <button
             type="button"
@@ -139,12 +125,17 @@ export default function Queues() {
               navigate('/management/queues/new', { state: { flowId } })
             }
           >
-            <Plus size={16} /> Nova fila
+            <Plus size={16}/> Nova Fila
           </button>
         </div>
       </div>
 
-      {/* CARD com busca + tabela, no mesmo estilo da tela de canais */}
+      <div className={styles.header}>
+        <div>
+          <p className={styles.subtitle}>Gestão de filas: crie, edite, configure horários e exclua.</p>
+        </div>
+      </div>
+
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardActions}>
@@ -168,13 +159,9 @@ export default function Queues() {
                 </button>
               )}
             </div>
-
-            <div
-              className={styles.counter}
-              aria-label="Total de itens filtrados"
-            >
+            <div className={styles.counter} aria-label="Total de itens filtrados">
               <span className={styles.counterNumber}>{filtered.length}</span>
-              <span>{filtered.length === 1 ? 'fila' : 'filas'}</span>
+              <span>{filtered.length === 1 ? 'item' : 'itens'}</span>
             </div>
           </div>
         </div>
@@ -190,87 +177,67 @@ export default function Queues() {
             </thead>
             <tbody>
               {loading && (
-                <tr>
-                  <td colSpan={3} className={styles.loading}>
-                    Carregando…
-                  </td>
-                </tr>
+                <tr><td colSpan={3} className={styles.loading}>Carregando…</td></tr>
               )}
-
               {!loading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={3} className={styles.empty}>
-                    Nenhuma fila encontrada.
-                  </td>
-                </tr>
+                <tr><td colSpan={3} className={styles.empty}>Nenhuma fila encontrada.</td></tr>
               )}
+              {!loading && filtered.map((f) => {
+                const id = f.id ?? f.nome ?? f.name; // fallback seguro
+                const nomeFila = f.nome ?? f.name ?? '';
+                const hex = f.color || '';
+                const showHex = normalizeHexColor(hex);
 
-              {!loading &&
-                filtered.map((f) => {
-                  const id = f.id ?? f.nome ?? f.name;
-                  const nomeFila = f.nome ?? f.name ?? '';
-                  const hex = f.color || '';
-                  const showHex = normalizeHexColor(hex);
-
-                  return (
-                    <tr key={String(id)} className={styles.rowHover}>
-                      <td data-label="Fila">
-                        <div className={styles.queueNameWrap}>
-                          <span
-                            className={styles.colorDot}
-                            style={{ background: showHex || '#fff' }}
-                            aria-hidden="true"
-                          />
-                          <span>{nomeFila}</span>
-                        </div>
-                      </td>
-                      <td data-label="Descrição">{f.descricao || '—'}</td>
-                      <td
-                        className={styles.actionsCell}
-                        data-label="Ações"
-                      >
-                        <div style={{ display: 'inline-flex', gap: 8 }}>
-                          <button
-                            type="button"
-                            className={`${styles.btnSecondary} ${styles.iconOnly}`}
-                            title="Configurar horários e feriados"
-                            onClick={() =>
-                              navigate(
-                                `/management/queues/${encodeURIComponent(
-                                  nomeFila
-                                )}/hours`,
-                                { state: { flowId } }
-                              )
-                            }
-                          >
-                            <Clock3 size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.btnSecondary} ${styles.iconOnly}`}
-                            title="Editar"
-                            onClick={() =>
-                              navigate(
-                                `/management/queues/${encodeURIComponent(id)}`,
-                                { state: { flowId } }
-                              )
-                            }
-                          >
-                            <SquarePen size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.btn} ${styles.iconOnly}`}
-                            title="Excluir"
-                            onClick={() => handleDelete(f)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                return (
+                  <tr key={String(id)} className={styles.rowHover}>
+                    <td data-label="Fila">
+                      <div className={styles.queueNameWrap}>
+                        <span className={styles.colorDot} style={{ background: showHex || '#fff' }} aria-hidden="true" />
+                        <span>{nomeFila}</span>
+                      </div>
+                    </td>
+                    <td data-label="Descrição">{f.descricao || '—'}</td>
+                    <td className={styles.actionsCell} data-label="Ações">
+                      <div style={{ display: 'inline-flex', gap: 8 }}>
+                        <button
+                          type="button"
+                          className={`${styles.btnSecondary} ${styles.iconOnly}`}
+                          title="Configurar horários e feriados"
+                          onClick={() =>
+                            navigate(
+                              `/management/queues/${encodeURIComponent(nomeFila)}/hours`,
+                              { state: { flowId } }
+                            )
+                          }
+                        >
+                          <Clock3 size={16}/>
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.btnSecondary} ${styles.iconOnly}`}
+                          title="Editar"
+                          onClick={() =>
+                            navigate(
+                              `/management/queues/${encodeURIComponent(id)}`,
+                              { state: { flowId } }
+                            )
+                          }
+                        >
+                          <SquarePen size={16}/>
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.btn} ${styles.iconOnly}`}
+                          title="Excluir"
+                          onClick={() => handleDelete(f)}
+                        >
+                          <Trash2 size={16}/>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
