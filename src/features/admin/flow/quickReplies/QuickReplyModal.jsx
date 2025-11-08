@@ -35,8 +35,8 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
 
   const submit = async (e) => {
     e.preventDefault();
-    const t = title.trim(),
-      c = content.trim();
+    const t = title.trim();
+    const c = content.trim();
     if (!t || !c) {
       setError("Por favor, preencha o título e o conteúdo.");
       toast.warn("Preencha título e conteúdo.");
@@ -60,6 +60,7 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
       onCreated?.();
       onClose?.();
     } catch (err) {
+      console.error(err);
       setError("Erro ao criar resposta. Tente novamente.");
       toast.error("Erro ao criar resposta. Tente novamente.");
     } finally {
@@ -107,6 +108,7 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
               className={styles.alertClose}
               onClick={() => setError(null)}
               aria-label="Fechar alerta"
+              type="button"
             >
               <XIcon size={14} />
             </button>
