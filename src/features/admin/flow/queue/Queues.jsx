@@ -7,87 +7,70 @@ import React, {
 import {
   ArrowLeft,
   RefreshCw,
+  Plus,
   Clock3,
   SquarePen,
   Trash2,
-  Plus,
+  X as XIcon,
 } from "lucide-react";
-import {
-  useNavigate,
-  useLocation,
-  useParams,
-} from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { apiGet, apiDelete } from "../../../../shared/apiClient";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 import { toast } from "react-toastify";
-
-import LogoLoader from "../../../../components/common/LogoLoader";
-
 import styles from "./styles/Queues.module.css";
-
-function normalizeHexColor(input) {
-  if (!input) return null;
-  let c = String(input).trim();
-  if (!c) return null;
-  if (!c.startsWith("#")) c = `#${c}`;
-  if (/^#([0-9a-fA-F]{3})$/.test(c)) {
-    c =
-      "#" +
-      c
-        .slice(1)
-        .split("")
-        .map((ch) => ch + ch)
-        .join("");
-  }
-  return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
-}
 
 export default function Queues() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  const confirm = useConfirm();
 
+  // flowId pode vir da URL (ex.: /development/flowhub/:flowId/queues)
+  // ou do state enviado pelo FlowHub
   const flowId =
     params.flowId ||
     location.state?.flowId ||
     location.state?.meta?.flowId ||
     null;
 
-  const [loading, setLoading] = useState(true);
-  const [flowName, setFlowName] = useState("");
+  const inFlowContext = !!flowId;
 
   const [filas, setFilas] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
 
-  const loadAll = useCallback(async () => {
+  const confirm = useConfirm();
+
+  const normalizeHexColor = (input) => {
+    if (!input) return null;
+    let c = String(input).trim();
+    if (!c) return null;
+    if (!c.startsWith("#")) c = `#${c}`;
+    if (/^#([0-9a-fA-F]{3})$/.test(c)) {
+      c = "#" + c.slice(1).split("").map((ch) => ch + ch).join("");
+    }
+    return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
+  };
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      if (flowId) {
-        try {
-          const meta = await apiGet(`/flows/${flowId}`);
-          setFlowName(meta?.name || "");
-        } catch {
-          setFlowName("");
-        }
-      } else {
-        setFlowName("");
-      }
-
       const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       const data = await apiGet(`/queues${qs}`);
+
+      // se vier algo não-array, garante array vazio
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
       toast.error("Falha ao carregar filas.");
+      setFilas([]);
     } finally {
       setLoading(false);
     }
   }, [flowId]);
 
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    load();
+  }, [load]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -98,6 +81,8 @@ export default function Queues() {
       return nome.includes(q) || desc.includes(q);
     });
   }, [filas, query]);
+
+  const clearSearch = () => setQuery("");
 
   async function handleDelete(queue) {
     const id = queue.id ?? queue.nome ?? queue.name;
@@ -122,13 +107,13 @@ export default function Queues() {
       await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
 
       toast.success("Fila excluída.");
-      loadAll();
+      load();
     } catch (e) {
       console.error(e);
 
       let msg = "Falha ao excluir fila.";
-      const data = e?.response?.data || e?.data;
 
+      const data = e?.response?.data || e?.data;
       if (data && typeof data.error === "string") {
         msg = data.error;
       } else if (typeof e?.message === "string") {
@@ -144,66 +129,68 @@ export default function Queues() {
     }
   }
 
-  const handleBack = () => {
-    if (flowId) {
+  const goBack = () => {
+    if (inFlowContext) {
       navigate("/development/flowhub");
     } else {
       navigate(-1);
     }
   };
 
-  const handleNewQueue = () =>
-    navigate("/management/queues/new", {
+  const handleNewQueue = () => {
+    navigate("/management/queues/new", { state: { flowId } });
+  };
+
+  const handleEdit = (queue) => {
+    const id = queue.id ?? queue.nome ?? queue.name;
+    if (!id) return;
+    navigate(`/management/queues/${encodeURIComponent(id)}`, {
       state: { flowId },
     });
+  };
+
+  const handleHours = (queue) => {
+    const nomeFila = queue.nome ?? queue.name ?? "";
+    if (!nomeFila) return;
+    navigate(`/management/queues/${encodeURIComponent(nomeFila)}/hours`, {
+      state: { flowId },
+    });
+  };
 
   return (
     <div className={styles.page}>
-      {/* HEADER – agora com busca + Nova fila dentro do mesmo card */}
-      <div className={styles.header}>
-        <div className={styles.titleRow}>
+      {/* HEADER / CONTROLES */}
+      <div className={styles.headerCard}>
+        <div className={styles.headerRow}>
           <button
-            onClick={handleBack}
-            className={styles.btn}
-            title="Voltar"
             type="button"
+            className={styles.btn}
+            onClick={goBack}
+            title="Voltar"
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={16} />
             <span>Voltar</span>
+          </button>
+
+          <div className={styles.headerCenter}>
+            <div className={styles.title}>
+              {inFlowContext ? "Filas do Flow" : "Filas de atendimento"}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={`${styles.btn} ${styles.iconBtn}`}
+            onClick={load}
+            title="Recarregar"
+            aria-label="Recarregar"
+          >
+            <RefreshCw size={18} />
           </button>
         </div>
 
-        <div className={styles.metaRow}>
-          <div className={styles.flowMeta}>
-            {flowId ? "Filas do Flow" : "Filas de atendimento"}
-          </div>
-          {/* se quiser mostrar id/nome do flow, basta trocar o `false` por `true` */}
-          {false && flowId && (
-            <div className={styles.flowInfo}>
-              <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
-              {flowName && (
-                <>
-                  <span className={styles.sep}>·</span>
-                  <span className={styles.dim}>nome:</span>&nbsp;
-                  <b>{flowName}</b>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={loadAll}
-          className={styles.btn}
-          type="button"
-          title="Recarregar"
-        >
-          <RefreshCw size={14} />
-          <span>Recarregar</span>
-        </button>
-
-        {/* Linha de busca + Nova fila DENTRO do header */}
-        <div className={styles.headerToolbar}>
+        {/* linha com busca + novo (na mesma linha) */}
+        <div className={styles.filterRow}>
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
@@ -214,56 +201,57 @@ export default function Queues() {
             />
             {query && (
               <button
+                type="button"
                 className={styles.searchClear}
-                onClick={() => setQuery("")}
+                onClick={clearSearch}
                 title="Limpar busca"
                 aria-label="Limpar busca"
-                type="button"
               >
-                ×
+                <XIcon size={14} />
               </button>
             )}
           </div>
 
-          <div className={styles.headerToolbarRight}>
-            <button
-              className={styles.btnPrimary}
-              type="button"
-              onClick={handleNewQueue}
-            >
-              <Plus size={14} />
-              <span>Nova fila</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className={`${styles.btnPrimary} ${styles.iconBtn}`}
+            onClick={handleNewQueue}
+            title="Nova fila"
+            aria-label="Nova fila"
+          >
+            <Plus size={20} />
+          </button>
         </div>
       </div>
 
-      {loading ? (
-        <LogoLoader full size={56} src="/logo.png" />
-      ) : (
-        <div className={styles.list}>
-          {filtered.length === 0 ? (
-            <div className={styles.emptyCard}>
-              Nenhuma fila encontrada para os filtros atuais.
-            </div>
-          ) : (
-            filtered.map((f) => {
+      {/* LISTA DE FILAS */}
+      <div className={styles.bodyCard}>
+        {loading ? (
+          <div className={styles.stateMsg}>Carregando filas…</div>
+        ) : !filtered.length ? (
+          <div className={styles.stateMsg}>Nenhuma fila encontrada.</div>
+        ) : (
+          <div className={styles.list}>
+            {filtered.map((f) => {
               const id = f.id ?? f.nome ?? f.name;
               const nomeFila = f.nome ?? f.name ?? "";
+              const ativa = f.ativa !== false;
               const hex = f.color || "";
-              const showHex = normalizeHexColor(hex) || "#22c55e";
-              const ativa =
-                typeof f.ativa === "boolean" ? f.ativa : true;
+              const showHex = normalizeHexColor(hex);
 
               return (
-                <div key={String(id)} className={styles.queueCard}>
-                  <div className={styles.queueMain}>
-                    <div className={styles.queueHead}>
+                <div key={String(id)} className={styles.row}>
+                  <div className={styles.rowMain}>
+                    <div className={styles.rowTitle}>
                       <span
-                        className={styles.queueDot}
-                        style={{ backgroundColor: showHex }}
+                        className={styles.statusDot}
+                        style={
+                          showHex
+                            ? { backgroundColor: showHex }
+                            : undefined
+                        }
                       />
-                      <span className={styles.queueTitle}>{nomeFila}</span>
+                      <span className={styles.queueName}>{nomeFila}</span>
                       <span
                         className={
                           ativa
@@ -274,60 +262,46 @@ export default function Queues() {
                         {ativa ? "Ativa" : "Inativa"}
                       </span>
                     </div>
-                    <div className={styles.queueDesc}>
-                      {f.descricao || "Sem descrição."}
+                    <div className={styles.rowDesc}>
+                      {f.descricao || "—"}
                     </div>
                   </div>
 
-                  <div className={styles.queueActions}>
+                  <div className={styles.rowActions}>
                     <button
                       type="button"
-                      className={styles.btnGhost}
+                      className={styles.actionBtn}
+                      onClick={() => handleHours(f)}
                       title="Configurar horários e feriados"
-                      onClick={() =>
-                        navigate(
-                          `/management/queues/${encodeURIComponent(
-                            nomeFila
-                          )}/hours`,
-                          { state: { flowId } }
-                        )
-                      }
                     >
-                      <Clock3 size={14} />
+                      <Clock3 size={16} />
                       <span>Horários</span>
                     </button>
-
                     <button
                       type="button"
-                      className={styles.btnGhost}
-                      title="Editar"
-                      onClick={() =>
-                        navigate(
-                          `/management/queues/${encodeURIComponent(id)}`,
-                          { state: { flowId } }
-                        )
-                      }
+                      className={styles.actionBtn}
+                      onClick={() => handleEdit(f)}
+                      title="Editar fila"
                     >
-                      <SquarePen size={14} />
+                      <SquarePen size={16} />
                       <span>Editar</span>
                     </button>
-
                     <button
                       type="button"
-                      className={styles.btnDanger}
-                      title="Excluir"
+                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
                       onClick={() => handleDelete(f)}
+                      title="Excluir fila"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={16} />
                       <span>Excluir</span>
                     </button>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-      )}
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
