@@ -48,7 +48,8 @@ export default function Agents() {
       const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
 
       const [usersResp, filasResp, flowMeta] = await Promise.all([
-        apiGet(`/users${qs}`),
+        // agora usamos o endpoint de atendentes
+        apiGet(`/users/agents${qs}`),
         apiGet(`/queues${qs}`),
         flowId ? apiGet(`/flows/${encodeURIComponent(flowId)}`) : null,
       ]);
@@ -61,23 +62,19 @@ export default function Agents() {
         setFlowName(flowMeta?.name ?? flowMeta?.nome ?? "");
       }
 
-      const queueIds = new Set(
-        allQueues.map((q) => String(q.id ?? q.nome ?? q.name))
+      // set de NOME das filas deste flow
+      const queueNames = new Set(
+        allQueues.map((q) => String(q.nome ?? q.name ?? q.id))
       );
 
-      // só atendentes
-      const justAgents = allUsers.filter(
-        (u) => String(u.perfil || "").toLowerCase() === "atendente"
-      );
-
-      // se tiver flowId, agente só aparece se tiver fila deste flow
+      // se tiver flowId, agente só aparece se tiver fila deste flow (por NOME)
       const agentsFiltered = flowId
-        ? justAgents.filter(
+        ? allUsers.filter(
             (u) =>
               Array.isArray(u.filas) &&
-              u.filas.some((fid) => queueIds.has(String(fid)))
+              u.filas.some((fid) => queueNames.has(String(fid)))
           )
-        : justAgents;
+        : allUsers;
 
       setItems(agentsFiltered);
     } catch (e) {
@@ -105,10 +102,11 @@ export default function Agents() {
     });
   }, [items, query]);
 
+  // map por NOME da fila, pra enriquecer chip se precisar
   const queuesById = useMemo(() => {
     const map = new Map();
     for (const f of queues) {
-      const k = String(f.id ?? f.nome ?? f.name);
+      const k = String(f.nome ?? f.name ?? f.id);
       map.set(k, f);
     }
     return map;
@@ -134,7 +132,10 @@ export default function Agents() {
         tone: "danger",
       });
       if (!ok) return;
-      await apiDelete(`/users/${u.id}`);
+
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
+      await apiDelete(`/users/${u.id}${qs}`);
+
       toast.success("Atendente excluído.");
       load();
     } catch (e) {
@@ -207,7 +208,10 @@ export default function Agents() {
             onClick={load}
             disabled={refreshing}
           >
-            <RefreshCw size={16} className={refreshing ? styles.spinning : ""} />
+            <RefreshCw
+              size={16}
+              className={refreshing ? styles.spinning : ""}
+            />
           </button>
         </div>
       </div>
@@ -249,13 +253,12 @@ export default function Agents() {
                 filtered.map((u) => {
                   const nome = `${u.name ?? ""} ${u.lastname ?? ""}`.trim();
                   const filasArr = Array.isArray(u.filas) ? u.filas : [];
+
                   const chipNames = filasArr
-                    .map(
-                      (id) =>
-                        queuesById.get(String(id))?.nome ??
-                        queuesById.get(String(id))?.name ??
-                        id
-                    )
+                    .map((filaName) => {
+                      const q = queuesById.get(String(filaName));
+                      return q?.nome ?? q?.name ?? filaName;
+                    })
                     .filter(Boolean);
 
                   return (
