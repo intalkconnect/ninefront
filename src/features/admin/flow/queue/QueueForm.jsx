@@ -812,7 +812,7 @@ export default function QueueForm() {
                 {saving
                   ? "Salvando…"
                   : isEdit
-                  ? "Salvar alterações"
+                  ? "Salvar"
                   : "Criar fila"}
               </button>
             </div>
