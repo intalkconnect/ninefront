@@ -1,114 +1,126 @@
-/* ============================
-   TOKENS / TEMA
-============================ */
 :root {
-  --app-bg: #f6f7fb;
-
-  --qr-primary: #2563eb;
-  --qr-primary-soft: rgba(37, 99, 235, 0.16);
-
-  --qr-text: #0f172a;
-  --qr-text-soft: #6b7280;
-
-  --qr-success: #16a34a;
-  --qr-success-soft: rgba(22, 163, 74, 0.16);
-
-  --qr-danger: #ef4444;
-  --qr-danger-soft: rgba(239, 68, 68, 0.1);
-
-  --qr-border: #e5e7eb;
-  --qr-border-soft: #eef1f7;
-
-  --qr-radius: 12px;
-  --qr-radius-lg: 18px;
-
-  --qr-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --qr-shadow: 0 8px 26px rgba(15, 23, 42, 0.08);
+  --bg: #f8fafc;
+  --panel-bg: #ffffff;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --text-secondary: #475569;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --brand: #3b82f6;
+  --brand-hover: #2563eb;
+  --success: #10b981;
+  --success-bg: #d1fae5;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
 }
 
-/* ============================
-   CONTAINER / HEADER
-============================ */
-
-.container {
+/* Página no mesmo padrão do FlowChannels */
+.page {
   padding: 24px;
-  max-width: 1200px;
+  min-height: 100vh;
+  background: var(--bg);
+  max-width: 1400px;
   margin: 0 auto;
-  background: transparent;
 }
 
+/* Header em card */
 .header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+  box-shadow: var(--shadow);
 }
 
-.title {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  color: var(--qr-text);
-}
-
-.subtitle {
-  margin: 6px 0 0;
-  font-size: 15px;
-  color: var(--qr-text-soft);
-}
-
-/* pill de contexto do fluxo (direita) */
-.flowContext {
+.titleRow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--qr-border);
-  background: #f9fafb;
-  font-size: 12px;
-  color: #6b7280;
-  white-space: nowrap;
+  gap: 12px;
 }
 
-.flowContextLabel {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.metaRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.flowMeta {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.flowInfo {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dim {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.flowInfo b {
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
-.flowContextId {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
-  font-size: 11px;
-  color: #4b5563;
+.sep {
+  color: #cbd5e1;
+  margin: 0 6px;
+  font-weight: 300;
 }
 
-/* ============================
-   PAINEL PRINCIPAL
-============================ */
-
-.panel {
-  margin-top: 8px;
-  background: #ffffff;
-  border-radius: var(--qr-radius-lg);
-  border: 1px solid var(--qr-border-soft);
-  box-shadow: var(--qr-shadow);
-  padding: 14px 18px 18px;
+/* Botão genérico (igual FlowChannels) */
+.btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
 }
 
-/* topo do painel: busca + contador + botão */
-.panelHeader {
+.btn:hover {
+  background: var(--bg);
+  border-color: var(--text-muted);
+}
+
+/* Toolbar (busca + contador + nova fila) */
+.toolbar {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-/* Busca */
 .searchGroup {
   position: relative;
   flex: 1 1 260px;
@@ -120,10 +132,10 @@
   height: 44px;
   padding: 0 38px 0 16px;
   border-radius: 999px;
-  border: 1px solid var(--qr-border);
+  border: 1px solid var(--border);
   background: #f9fafb;
   font-size: 14px;
-  color: var(--qr-text);
+  color: var(--text-primary);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease,
     background 0.15s ease;
@@ -135,8 +147,8 @@
 
 .searchInput:focus {
   background: #ffffff;
-  border-color: var(--qr-primary);
-  box-shadow: 0 0 0 2px var(--qr-primary-soft);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
 }
 
 .searchClear {
@@ -153,93 +165,96 @@
   place-items: center;
   cursor: pointer;
   color: #6b7280;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .searchClear:hover {
   background: #f3f4f6;
 }
 
-.panelHeaderRight {
+.toolbarRight {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
 }
 
-/* contador tipo "1 fila" */
-.counterPill {
+.counterChip {
   padding: 6px 12px;
   border-radius: 999px;
-  background: var(--qr-primary-soft);
+  background: #e0edff;
   color: #1f2933;
   font-size: 12px;
   font-weight: 600;
 }
 
-/* botão principal "+ Nova fila" */
+/* Botão primário "+ Nova fila" */
 .btnPrimary {
+  background: var(--brand);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: none;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 10px 18px rgba(37, 99, 235, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease,
-    filter 0.15s ease;
 }
 
 .btnPrimary:hover {
+  background: var(--brand-hover);
+  box-shadow: var(--shadow);
   transform: translateY(-1px);
-  filter: brightness(1.03);
-  box-shadow: 0 14px 26px rgba(37, 99, 235, 0.45);
 }
 
-/* ============================
-   LISTA DE FILAS
-============================ */
-
-.listArea {
-  margin-top: 14px;
+/* Lista de filas */
+.list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
-.feedbackRow {
-  padding: 16px 14px;
-  border-radius: 14px;
-  background: #f9fafb;
-  border: 1px dashed var(--qr-border);
-  color: var(--qr-text-soft);
-  font-size: 14px;
-}
-
-/* Card da fila (1 por linha) */
-.queueCard {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
+.emptyCard {
+  background: var(--panel-bg);
   border-radius: 16px;
-  border: 1px solid #edf0ff;
-  background: #ffffff;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  border: 1px dashed var(--border);
+  padding: 16px 18px;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
-/* Coluna esquerda: nome + descrição */
+/* Card da fila (empilhado) */
+.queueCard {
+  background: var(--panel-bg);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+  transition: all 0.25s ease;
+}
+
+.queueCard:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--text-muted);
+}
+
 .queueMain {
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.queueTitleRow {
+.queueHead {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -250,116 +265,124 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 1px rgba(148, 163, 184, 0.4);
+  box-shadow: 0 0 0 2px #ffffff,
+    0 0 0 1px rgba(148, 163, 184, 0.4);
 }
 
-.queueName {
+.queueTitle {
   font-weight: 700;
   font-size: 15px;
-  color: var(--qr-text);
+  color: var(--text-primary);
 }
 
-/* status ("Ativa" / "Inativa") */
-.queueStatusActive,
-.queueStatusInactive {
-  margin-left: 10px;
+.statusChipOk,
+.statusChipOff {
+  margin-left: 8px;
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
 }
 
-.queueStatusActive {
-  background: var(--qr-success-soft);
+.statusChipOk {
+  background: var(--success-bg);
   color: #166534;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.queueStatusInactive {
-  background: #fee2e2;
+.statusChipOff {
+  background: var(--danger-bg);
   color: #b91c1c;
+  border: 1px solid rgba(248, 113, 113, 0.3);
 }
 
 .queueDesc {
   margin-top: 4px;
   font-size: 13px;
-  color: var(--qr-text-soft);
+  color: var(--text-muted);
 }
 
-/* Coluna direita: botões de ação */
+/* Ações da fila */
 .queueActions {
   display: flex;
-  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
-/* Botão base */
-.actionBtn {
+/* Botão secundário (ghost) */
+.btnGhost {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.btnGhost:hover {
+  background: var(--bg);
+  border-color: var(--text-muted);
+}
+
+/* Botão de exclusão */
+.btnDanger {
+  border: 1px solid #fecaca;
+  background: var(--danger-bg);
   padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--qr-border);
-  background: #f9fafb;
-  color: #374151;
-  font-size: 13px;
+  border-radius: 10px;
   font-weight: 600;
+  font-size: 13px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease,
-    color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
-}
-
-.actionBtn svg {
-  flex-shrink: 0;
-}
-
-.actionBtn:hover {
-  background: #ffffff;
-  border-color: var(--qr-primary-soft);
-  box-shadow: var(--qr-shadow-sm);
-  transform: translateY(-0.5px);
-}
-
-/* variações */
-.actionBtnSoft {
-  background: #f3f4ff;
-  border-color: #e0e7ff;
-  color: #4338ca;
-}
-
-.actionBtnSoft:hover {
-  background: #e0e7ff;
-}
-
-.actionBtnDanger {
-  background: var(--qr-danger-soft);
-  border-color: #fecaca;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
   color: #b91c1c;
 }
 
-.actionBtnDanger:hover {
-  background: #fee2e2;
+.btnDanger:hover {
+  background: #fecaca;
+  border-color: #fca5a5;
 }
 
-/* ============================
-   RESPONSIVO
-============================ */
-
+/* Responsivo – mesmo espírito do FlowChannels */
 @media (max-width: 768px) {
-  .container {
+  .page {
     padding: 16px;
   }
 
   .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
-  .flowContext {
-    align-self: flex-start;
+  .metaRow {
+    align-items: flex-start;
+  }
+
+  .flowInfo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sep {
+    display: none;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbarRight {
+    justify-content: space-between;
   }
 
   .queueCard {
@@ -368,6 +391,7 @@
   }
 
   .queueActions {
+    width: 100%;
     justify-content: flex-start;
   }
 }
