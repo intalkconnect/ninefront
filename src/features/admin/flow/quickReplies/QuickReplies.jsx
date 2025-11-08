@@ -1,29 +1,33 @@
+// src/pages/QuickReplies/QuickReplies.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { apiGet, apiDelete, apiPut } from "../../../../shared/apiClient.js";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 import { toast } from "react-toastify";
 import styles from "./styles/QuickReplies.module.css";
 import {
-  MessageSquare,
   Save as SaveIcon,
   Edit3 as EditIcon,
   Trash2 as TrashIcon,
   X as XIcon,
-  AlertCircle,
-  CheckCircle2,
+  RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 
-import { useParams } from "react-router-dom";
 import QuickReplyModal from "./QuickReplyModal";
 
 const QuickReplies = () => {
   const { flowId } = useParams();
+  const navigate = useNavigate();
   const inFlowContext = Boolean(flowId);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+
+  const [flowName, setFlowName] = useState("");
 
   // busca
   const [query, setQuery] = useState("");
@@ -31,7 +35,7 @@ const QuickReplies = () => {
   // modal
   const [createOpen, setCreateOpen] = useState(false);
 
-  // edição
+  // edição inline
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
@@ -46,18 +50,29 @@ const QuickReplies = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setRefreshing(true);
     setError(null);
     try {
       const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
-      const data = await apiGet(`/quick-replies${qs}`);
+
+      const [data, flowMeta] = await Promise.all([
+        apiGet(`/quick-replies${qs}`),
+        flowId ? apiGet(`/flows/${encodeURIComponent(flowId)}`) : null,
+      ]);
+
       setItems(Array.isArray(data) ? data : []);
+      if (flowMeta) {
+        setFlowName(flowMeta?.name ?? flowMeta?.nome ?? "");
+      }
     } catch (e) {
+      console.error(e);
       setError("Falha ao carregar respostas rápidas. Verifique sua conexão.");
       toast.error(
         "Falha ao carregar respostas rápidas. Verifique sua conexão."
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [flowId]);
 
@@ -86,6 +101,7 @@ const QuickReplies = () => {
     setEditTitle(item.title || "");
     setEditContent(item.content || "");
   };
+
   const cancelEdit = () => {
     setEditingId(null);
     setEditTitle("");
@@ -116,6 +132,7 @@ const QuickReplies = () => {
       setEditContent("");
       toast.success("Resposta atualizada.");
     } catch (e) {
+      console.error(e);
       setError("Erro ao salvar alterações. Tente novamente.");
       toast.error("Erro ao salvar alterações. Tente novamente.");
     } finally {
@@ -144,6 +161,7 @@ const QuickReplies = () => {
       setItems((prev) => prev.filter((r) => r.id !== id));
       toast.success("Resposta removida.");
     } catch (e) {
+      console.error(e);
       setError("Erro ao excluir resposta. Tente novamente.");
       toast.error("Erro ao excluir resposta. Tente novamente.");
     } finally {
@@ -153,53 +171,92 @@ const QuickReplies = () => {
 
   const clearSearch = () => setQuery("");
 
+  const handleBack = () => {
+    if (inFlowContext) {
+      navigate("/development/flowhub");
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
-    <div className={styles.container} data-page="quickreplies">
-      <div className={styles.toolbar}>
-        <div className={styles.headerActions}>
-          <div>
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={() => setCreateOpen(true)}
-            >
-              + Nova Resposta
-            </button>
+    <div className={styles.page} data-page="quickreplies">
+      {/* HEADER NO PADRÃO (Voltar + título + meta + busca/ações) */}
+      <div className={styles.headerCard}>
+        <button className={styles.btn} onClick={handleBack}>
+          <ArrowLeft size={14} />
+          <span>Voltar</span>
+        </button>
+
+        <div className={styles.headerCenter}>
+          <div className={styles.headerTitle}>Respostas rápidas</div>
+          {flowName && (
+            <div className={styles.headerMeta}>
+              Flow:
+              <span className={styles.headerMetaName}>{flowName}</span>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.headerRight}>
+          <div className={styles.searchGroup}>
+            <input
+              className={styles.searchInput}
+              placeholder="Buscar por título ou conteúdo..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Buscar respostas"
+            />
+            {query && (
+              <button
+                className={styles.searchClear}
+                onClick={clearSearch}
+                aria-label="Limpar busca"
+                type="button"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
           </div>
+
+          <button
+            type="button"
+            className={styles.iconBtnPrimary}
+            onClick={() => setCreateOpen(true)}
+          >
+            + Nova resposta
+          </button>
+
+          <button
+            className={styles.iconBtn}
+            title="Recarregar"
+            onClick={load}
+            disabled={refreshing}
+            type="button"
+          >
+            <RefreshCw
+              size={16}
+              className={refreshing ? styles.spinning : ""}
+            />
+          </button>
         </div>
       </div>
 
-      <div className={styles.header}>
-        <div>
-          <p className={styles.subtitle}>
-            Respostas rápidas: mais agilidade no atendimento.
-          </p>
+      {error && (
+        <div className={styles.alertErr}>
+          <span>{error}</span>
         </div>
-      </div>
+      )}
+      {successMsg && (
+        <div className={styles.alertOk}>
+          <span>{successMsg}</span>
+        </div>
+      )}
 
+      {/* CARD TABELA */}
       <div className={styles.card}>
         <div className={styles.cardHead}>
           <div className={styles.cardActions}>
-            <div className={styles.searchGroup}>
-              <input
-                className={styles.searchInput}
-                placeholder="Buscar por título ou conteúdo..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Buscar respostas"
-              />
-              {query && (
-                <button
-                  className={styles.searchClear}
-                  onClick={clearSearch}
-                  aria-label="Limpar busca"
-                  type="button"
-                >
-                  <XIcon size={14} />
-                </button>
-              )}
-            </div>
-
             <div
               className={styles.counter}
               aria-label="Total de itens filtrados"
@@ -282,7 +339,7 @@ const QuickReplies = () => {
                       {editingId === item.id ? (
                         <div className={styles.actions}>
                           <button
-                            className={`${styles.iconBtn} ${styles.iconSuccess}`}
+                            className={`${styles.qrIconBtn} ${styles.iconSuccess}`}
                             onClick={() => saveEdit(item.id)}
                             disabled={savingId === item.id}
                             type="button"
@@ -292,7 +349,7 @@ const QuickReplies = () => {
                             <SaveIcon size={18} />
                           </button>
                           <button
-                            className={styles.iconBtn}
+                            className={styles.qrIconBtn}
                             onClick={cancelEdit}
                             disabled={savingId === item.id}
                             type="button"
@@ -305,7 +362,7 @@ const QuickReplies = () => {
                       ) : (
                         <div className={styles.actions}>
                           <button
-                            className={styles.iconBtn}
+                            className={styles.qrIconBtn}
                             onClick={() => startEdit(item)}
                             type="button"
                             title="Editar"
@@ -314,7 +371,7 @@ const QuickReplies = () => {
                             <EditIcon size={18} />
                           </button>
                           <button
-                            className={`${styles.iconBtn} ${styles.iconDanger}`}
+                            className={`${styles.qrIconBtn} ${styles.iconDanger}`}
                             onClick={() => handleDelete(item.id)}
                             disabled={deletingId === item.id}
                             type="button"
@@ -345,12 +402,12 @@ const QuickReplies = () => {
       <QuickReplyModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
-        flowId={flowId}
         onCreated={() => {
           setCreateOpen(false);
           load();
           showSuccess("Resposta criada com sucesso.");
         }}
+        flowId={flowId}
       />
     </div>
   );
