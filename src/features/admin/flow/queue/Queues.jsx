@@ -48,7 +48,6 @@ export default function Queues() {
   const params = useParams();
   const confirm = useConfirm();
 
-  // flowId pode vir da URL ou do state
   const flowId =
     params.flowId ||
     location.state?.flowId ||
@@ -64,7 +63,6 @@ export default function Queues() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      // meta do flow (para exibir no header)
       if (flowId) {
         try {
           const meta = await apiGet(`/flows/${flowId}`);
@@ -76,7 +74,6 @@ export default function Queues() {
         setFlowName("");
       }
 
-      // filas (filtradas por flow, quando tiver)
       const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       const data = await apiGet(`/queues${qs}`);
       setFilas(Array.isArray(data) ? data : []);
@@ -160,13 +157,9 @@ export default function Queues() {
       state: { flowId },
     });
 
-  const total = filtered.length;
-  const totalLabel =
-    total === 0 ? "Nenhuma fila" : total === 1 ? "1 fila" : `${total} filas`;
-
   return (
     <div className={styles.page}>
-      {/* HEADER – mesmo padrão do FlowChannels */}
+      {/* HEADER – igual FlowChannels, mas sem a linha de id/nome */}
       <div className={styles.header}>
         <div className={styles.titleRow}>
           <button
@@ -184,20 +177,19 @@ export default function Queues() {
           <div className={styles.flowMeta}>
             {flowId ? "Filas do Flow" : "Filas de atendimento"}
           </div>
-          <div className={styles.flowInfo}>
-            {flowId ? (
-              <>
-                <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
-              </>
-            ) : null}
-            {flowId && flowName ? (
-              <>
-                <span className={styles.sep}>·</span>
-                <span className={styles.dim}>nome:</span>&nbsp;
-                <b>{flowName}</b>
-              </>
-            ) : null}
-          </div>
+          {/* opcional: se quiser, pode colocar o nome do flow embaixo,
+              mas no print você marcou para remover a linha */}
+          {false && flowId && (
+            <div className={styles.flowInfo}>
+              <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
+              {flowName && (
+                <>
+                  <span className={styles.sep}>·</span>
+                  <span className={styles.dim}>nome:</span>&nbsp;<b>{flowName}</b>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <button
@@ -215,7 +207,7 @@ export default function Queues() {
         <LogoLoader full size={56} src="/logo.png" />
       ) : (
         <>
-          {/* TOOLBAR (busca + contador + nova fila) */}
+          {/* TOOLBAR – sem o chip de contador, só busca + Nova fila */}
           <div className={styles.toolbar}>
             <div className={styles.searchGroup}>
               <input
@@ -239,7 +231,6 @@ export default function Queues() {
             </div>
 
             <div className={styles.toolbarRight}>
-              <span className={styles.counterChip}>{totalLabel}</span>
               <button
                 className={styles.btnPrimary}
                 type="button"
