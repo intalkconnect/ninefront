@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Save, ArrowLeft } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
@@ -28,7 +28,6 @@ export default function AgentsForm() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // também aceito flowId via state, mas padrao é via params
   const flowIdFromState = location.state?.flowId || location.state?.meta?.flowId;
   const effectiveFlowId = flowId || flowIdFromState || null;
   const inFlowContext = Boolean(effectiveFlowId);
@@ -43,7 +42,7 @@ export default function AgentsForm() {
     name: "",
     lastname: "",
     email: "",
-    filas: [],
+    filas: [], // aqui SEMPRE nomes de filas
   });
 
   const [touched, setTouched] = useState({});
@@ -89,6 +88,7 @@ export default function AgentsForm() {
           name: u.name ?? "",
           lastname: u.lastname ?? "",
           email: u.email ?? "",
+          // backend agora retorna nomes nas filas
           filas: Array.isArray(u.filas) ? u.filas.map(String) : [],
         });
       } else {
@@ -115,12 +115,15 @@ export default function AgentsForm() {
     load();
   }, [load]);
 
-  function toggleFila(id) {
+  function toggleFila(value) {
+    // value aqui é o NOME da fila
     setForm((p) => {
-      const has = p.filas.includes(id);
+      const has = p.filas.includes(value);
       return {
         ...p,
-        filas: has ? p.filas.filter((x) => x !== id) : [...p.filas, id],
+        filas: has
+          ? p.filas.filter((x) => x !== value)
+          : [...p.filas, value],
       };
     });
   }
@@ -145,6 +148,7 @@ export default function AgentsForm() {
         lastname: form.lastname.trim(),
         email: form.email.trim(),
         perfil: "atendente", // sempre atendente
+        // filas já estão em NOME, mas o back aceita ids ou nomes
         filas: form.filas,
         ...(effectiveFlowId ? { flow_id: effectiveFlowId } : {}),
       };
@@ -287,7 +291,13 @@ export default function AgentsForm() {
                   className={styles.select}
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (v) toggleFila(v);
+                    if (v) {
+                      const q = qsQueues.find(
+                        (qq) => String(qq.id) === String(v)
+                      );
+                      const valueToAdd = q?.nome ?? v; // salvar sempre NOME
+                      if (valueToAdd) toggleFila(valueToAdd);
+                    }
                     e.target.value = "";
                   }}
                   defaultValue=""
@@ -296,7 +306,8 @@ export default function AgentsForm() {
                     Selecionar…
                   </option>
                   {qsQueues
-                    .filter((q) => !form.filas.includes(String(q.id)))
+                    // esconde filas já vinculadas (comparando por NOME)
+                    .filter((q) => !form.filas.includes(q.nome))
                     .map((q) => (
                       <option key={q.id} value={q.id}>
                         {q.nome}
@@ -318,18 +329,19 @@ export default function AgentsForm() {
                         Nenhuma fila selecionada
                       </span>
                     ) : (
-                      form.filas.map((fid) => {
+                      form.filas.map((filaName) => {
                         const q = qsQueues.find(
-                          (x) => String(x.id) === String(fid)
+                          (x) => String(x.nome) === String(filaName)
                         );
+                        const label = q?.nome ?? filaName;
                         return (
-                          <span key={fid} className={styles.chip}>
-                            {q?.nome ?? fid}
+                          <span key={filaName} className={styles.chip}>
+                            {label}
                             <button
                               type="button"
                               className={styles.chipX}
-                              onClick={() => toggleFila(String(fid))}
-                              aria-label={`Remover fila ${q?.nome ?? fid}`}
+                              onClick={() => toggleFila(String(filaName))}
+                              aria-label={`Remover fila ${label}`}
                             >
                               ×
                             </button>
