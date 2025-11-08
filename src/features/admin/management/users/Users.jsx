@@ -6,6 +6,7 @@ import {
   Trash2,
   X as XIcon,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
 import { useNavigate, useLocation, useParams, Link } from "react-router-dom";
 import { apiGet, apiDelete } from "../../../../shared/apiClient.js";
