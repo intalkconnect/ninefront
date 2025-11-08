@@ -56,7 +56,6 @@ export default function Queues() {
     try {
       const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       const data = await apiGet(`/queues${qs}`);
-
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -111,7 +110,6 @@ export default function Queues() {
       console.error(e);
 
       let msg = "Falha ao excluir fila.";
-
       const data = e?.response?.data || e?.data;
       if (data && typeof data.error === "string") {
         msg = data.error;
@@ -179,12 +177,12 @@ export default function Queues() {
             </div>
           </div>
 
-          {/* Área da direita: busca + nova fila + recarregar */}
+          {/* Direita: busca + nova fila + recarregar */}
           <div className={styles.headerRight}>
             <div className={styles.searchGroup}>
               <input
                 className={styles.searchInput}
-                placeholder="Buscar…"
+                placeholder="Buscar..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label="Buscar filas"
@@ -209,7 +207,7 @@ export default function Queues() {
               title="Nova fila"
               aria-label="Nova fila"
             >
-              <Plus size={20} />
+              <Plus size={18} />
             </button>
 
             <button
@@ -219,7 +217,7 @@ export default function Queues() {
               title="Recarregar"
               aria-label="Recarregar"
             >
-              <RefreshCw size={18} />
+              <RefreshCw size={16} />
             </button>
           </div>
         </div>
@@ -247,9 +245,7 @@ export default function Queues() {
                       <span
                         className={styles.statusDot}
                         style={
-                          showHex
-                            ? { backgroundColor: showHex }
-                            : undefined
+                          showHex ? { backgroundColor: showHex } : undefined
                         }
                       />
                       <span className={styles.queueName}>{nomeFila}</span>
