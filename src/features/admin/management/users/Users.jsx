@@ -140,14 +140,6 @@ export default function Users({ canCreateAdmin = false }) {
     if (!refreshing) load();
   };
 
-  const handleBack = () => {
-    if (flowId) {
-      navigate(`/development/flowhub/${encodeURIComponent(flowId)}`);
-    } else {
-      navigate("/"); // ou algum dashboard padrão
-    }
-  };
-
   const title = flowId ? "Atendentes do Flow" : "Usuários";
 
   return (
@@ -156,12 +148,13 @@ export default function Users({ canCreateAdmin = false }) {
       <div className={styles.headerCard}>
         <div className={styles.headerRow}>
           <button
+            onClick={() => navigate("/development/flowhub")}
             type="button"
             className={styles.backBtn}
-            onClick={handleBack}
             title="Voltar"
           >
-            ← Voltar
+            <ArrowLeft size={14} />
+            <span>Voltar</span>
           </button>
 
           <div className={styles.headerCenter}>
