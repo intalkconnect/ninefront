@@ -190,19 +190,6 @@ export default function AgentsForm() {
           <div className={styles.headerTitle}>
             {isEdit ? "Editar atendente" : "Novo atendente"}
           </div>
-          {effectiveFlowId && (
-            <div className={styles.flowInfo}>
-              <span className={styles.dim}>id:</span>&nbsp;
-              <b>{effectiveFlowId}</b>
-              {flowName && (
-                <>
-                  <span className={styles.sep}>·</span>
-                  <span className={styles.dim}>nome:</span>&nbsp;
-                  <b>{flowName}</b>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         <div className={styles.headerRight} />
