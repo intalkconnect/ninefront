@@ -9,7 +9,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Save, ArrowLeft } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
-import styles from "./styles/UserForm.module.css";
+import styles from "./styles/AgentsForm.module.css";
 
 function normalizeQueues(queues) {
   return (Array.isArray(queues) ? queues : [])
