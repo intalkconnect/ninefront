@@ -66,6 +66,9 @@ import TemplateCreate from "./campaigns/template/TemplateCreate";
 import UsersPage from "./management/users/Users";
 import UserForm from "./management/users/UserForm";
 
+import Agents from "./flow/agents/Agents";
+import AgentsForm from "./flow/agents/AgentsForm";
+
 import Clientes from "./management/clientes/Clientes";
 import History from "./atendimento/history/TicketsHistory";
 import Campaigns from "./campaigns/campaign/Campaigns";
@@ -983,7 +986,7 @@ export default function Admin() {
   path="development/flowhub/:flowId/agents" // << página de canais por flow
   element={
     <RequireRole allow={isAdmin}>
-      <UsersPage />
+      <Agents />
     </RequireRole>
   }
 />
