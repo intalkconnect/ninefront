@@ -162,19 +162,7 @@ export default function Agents() {
         </button>
 
         <div className={styles.headerCenter}>
-          <div className={styles.headerTitle}>Atendentes do Flow</div>
-          {flowId && (
-            <div className={styles.flowInfo}>
-              <span className={styles.dim}>id:</span>&nbsp;
-              <b>{flowId}</b>
-              {flowName && (
-                <>
-                  <span className={styles.sep}>·</span>
-                  <span className={styles.dim}>nome:</span>&nbsp;<b>{flowName}</b>
-                </>
-              )}
-            </div>
-          )}
+          <div className={styles.headerTitle}>Atendentes</div>
         </div>
 
         <div className={styles.headerRight}>
