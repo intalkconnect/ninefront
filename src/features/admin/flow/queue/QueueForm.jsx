@@ -5,8 +5,14 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { useNavigate, useParams, Link, useLocation } from "react-router-dom";
-import { Save, Palette, RefreshCw, X } from "lucide-react";
+import {
+  Save,
+  Palette,
+  RefreshCw,
+  X,
+  ArrowLeft,
+} from "lucide-react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   apiGet,
   apiPost,
@@ -77,7 +83,7 @@ function ChipsInput({
     (raw) => {
       const tokens = tokenize(raw);
       if (!tokens.length) return;
-      const existing = new Set(value); // case-sensitive
+      const existing = new Set(value);
       const fresh = tokens.filter((t) => !existing.has(t));
       if (!fresh.length) return;
       onChange([...value, ...fresh]);
@@ -254,7 +260,6 @@ export default function QueueForm() {
   const location = useLocation();
   const topRef = useRef(null);
 
-  // flowId vindo do FlowHub ou de rota com param
   const flowId =
     location.state?.flowId ||
     location.state?.meta?.flowId ||
@@ -267,19 +272,15 @@ export default function QueueForm() {
   const [form, setForm] = useState({ nome: "", descricao: "", color: "" });
   const [touched, setTouched] = useState({ nome: false, color: false });
 
-  // nome exibido no breadcrumb
   const [queueDisplay, setQueueDisplay] = useState(id || "");
 
-  // tags
-  const [initialTags, setInitialTags] = useState([]); // catálogo original
-  const [tags, setTags] = useState([]); // estado visível
+  const [initialTags, setInitialTags] = useState([]);
+  const [tags, setTags] = useState([]);
 
-  // --- Regra de roteamento ---
   const [ruleEnabled, setRuleEnabled] = useState(false);
   const [hadRuleInitially, setHadRuleInitially] = useState(false);
   const [rule, setRule] = useState({ field: "", op: "equals", value: "" });
 
-  // validação
   const colorPreview = useMemo(
     () => normalizeHexColor(form.color),
     [form.color]
@@ -292,7 +293,6 @@ export default function QueueForm() {
     ? `/development/flowhub/${encodeURIComponent(flowId)}/queues`
     : "/management/queues";
 
-  // carrega catálogo por nome de fila
   const loadTags = useCallback(async (filaNome, flowIdParam) => {
     if (!filaNome) {
       setInitialTags([]);
@@ -304,9 +304,7 @@ export default function QueueForm() {
         `fila=${encodeURIComponent(filaNome)}`,
         "page_size=200",
       ];
-      if (flowIdParam) {
-        qsParts.push(`flow_id=${encodeURIComponent(flowIdParam)}`);
-      }
+      if (flowIdParam) qsParts.push(`flow_id=${encodeURIComponent(flowIdParam)}`);
       const url = `/tags/ticket/catalog?${qsParts.join("&")}`;
       const r = await apiGet(url);
       const list = Array.isArray(r?.data) ? r.data : [];
@@ -319,7 +317,6 @@ export default function QueueForm() {
     }
   }, []);
 
-  // carrega UMA regra da API
   const loadRule = useCallback(async (filaIdOrName, flowIdParam) => {
     if (!filaIdOrName) {
       setRuleEnabled(false);
@@ -327,9 +324,7 @@ export default function QueueForm() {
       return;
     }
     try {
-      const qs = flowIdParam
-        ? `?flow_id=${encodeURIComponent(flowIdParam)}`
-        : "";
+      const qs = flowIdParam ? `?flow_id=${encodeURIComponent(flowIdParam)}` : "";
       const r = await apiGet(
         `/queue-rules/${encodeURIComponent(filaIdOrName)}${qs}`
       );
@@ -351,7 +346,6 @@ export default function QueueForm() {
     }
   }, []);
 
-  // carrega fila
   const load = useCallback(async () => {
     setLoading(true);
     setErr(null);
@@ -397,9 +391,9 @@ export default function QueueForm() {
 
   const handleSortearCor = () =>
     setForm((f) => ({ ...f, color: randomPastelHex() }));
-  const handleLimparCor = () => setForm((f) => ({ ...f, color: "" }));
+  const handleLimparCor = () =>
+    setForm((f) => ({ ...f, color: "" }));
 
-  // cria e remove conforme diff — respeita exatamente como escrito nas tags
   async function persistTagsDiff(
     filaNome,
     before = [],
@@ -495,8 +489,6 @@ export default function QueueForm() {
         );
       } else if (hadRuleInitially) {
         await apiDelete(`/queue-rules/${encodeURIComponent(filaNome)}${qs}`);
-      } else {
-        // nada a fazer
       }
 
       navigate(baseQueuesPath);
@@ -508,42 +500,45 @@ export default function QueueForm() {
     }
   }
 
+  const goBack = () => navigate(baseQueuesPath);
+
   return (
     <div className={styles.page} ref={topRef}>
-      {/* Breadcrumb */}
-      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-        <ol className={styles.bcList}>
-          <li>
-            <Link to="/" className={styles.bcLink}>
-              Dashboard
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <Link to={baseQueuesPath} className={styles.bcLink}>
-              Filas
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <span className={styles.bcCurrent}>
-              {isEdit ? `${queueDisplay}` : "Nova fila"}
-            </span>
-          </li>
-        </ol>
-      </nav>
+      {/* HEADER NO MESMO PADRÃO DAS OUTRAS TELAS */}
+      <div className={styles.headerCard}>
+        <div className={styles.headerRow}>
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={goBack}
+            title="Voltar"
+          >
+            <ArrowLeft size={16} />
+            <span>Voltar</span>
+          </button>
 
-      <header className={styles.pageHeader}>
-        <div className={styles.pageTitleWrap}>
-          <h1 className={styles.pageTitle}>
-            {isEdit ? `Editar ${queueDisplay}` : "Nova fila"}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            Defina o nome da fila, uma descrição e (opcionalmente) uma cor de
-            identificação.
-          </p>
+          <div className={styles.headerCenter}>
+            <div className={styles.headerTitle}>
+              {isEdit ? "Editar fila" : "Nova fila"}
+            </div>
+            <div className={styles.headerSubtitle}>
+              {isEdit
+                ? queueDisplay
+                : "Crie uma nova fila de atendimento."}
+            </div>
+          </div>
+
+          <div className={styles.headerRight}>
+            <span
+              className={`${styles.statusChip} ${
+                isEdit ? styles.statusEdit : styles.statusNew
+              }`}
+            >
+              {isEdit ? "Em edição" : "Nova fila"}
+            </span>
+          </div>
         </div>
-      </header>
+      </div>
 
       {loading ? (
         <div className={styles.skeleton}>
@@ -576,7 +571,9 @@ export default function QueueForm() {
                   placeholder="Ex.: Suporte, Comercial, Financeiro…"
                 />
                 {touched.nome && nameInvalid && (
-                  <span className={styles.errMsg}>Informe o nome da fila.</span>
+                  <span className={styles.errMsg}>
+                    Informe o nome da fila.
+                  </span>
                 )}
               </div>
 
@@ -650,22 +647,22 @@ export default function QueueForm() {
             </div>
           </section>
 
-          {/* ===== Etiquetas ===== */}
+          {/* ===== Tags ===== */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
               <h2 className={styles.cardTitle}>Tags</h2>
               <p className={styles.cardDesc}>
-                Digite as tags e pressione <strong>Enter</strong>. Separe várias
-                por vírgula ou ponto-e-vírgula. As alterações (criações e
-                remoções) serão aplicadas ao salvar a fila.
+                Digite as tags e pressione <strong>Enter</strong>. Separe
+                várias por vírgula ou ponto-e-vírgula. As alterações serão
+                aplicadas ao salvar a fila.
               </p>
             </div>
 
             <div className={styles.cardBody}>
               <ChipsInput value={tags} onChange={setTags} />
               <p className={styles.hint} style={{ marginTop: 8 }}>
-                Dica: Use <kbd>Backspace</kbd> para remover o último chip quando
-                o campo estiver vazio.
+                Dica: Use <kbd>Backspace</kbd> para remover o último chip
+                quando o campo estiver vazio.
               </p>
             </div>
           </section>
@@ -678,7 +675,7 @@ export default function QueueForm() {
               </h2>
               <p className={styles.cardDesc}>
                 Defina uma condição para que tickets entrem automaticamente
-                nesta fila. (Somente uma condição. Operadores:{" "}
+                nesta fila. (Somente uma condição:{" "}
                 <strong>igual</strong> ou <strong>contém</strong>.)
               </p>
             </div>
@@ -710,7 +707,6 @@ export default function QueueForm() {
                   alignItems: "center",
                 }}
               >
-                {/* Operador */}
                 <div>
                   <label
                     className={styles.label}
@@ -729,7 +725,6 @@ export default function QueueForm() {
                   />
                 </div>
 
-                {/* Variável */}
                 <div>
                   <label
                     className={styles.label}
@@ -748,7 +743,6 @@ export default function QueueForm() {
                   />
                 </div>
 
-                {/* Valor */}
                 <div>
                   <label
                     className={styles.label}
@@ -767,7 +761,6 @@ export default function QueueForm() {
                   />
                 </div>
 
-                {/* Ação */}
                 <div>
                   <label
                     className={styles.label}
@@ -782,9 +775,9 @@ export default function QueueForm() {
                   <button
                     type="button"
                     className={styles.btn}
-                    onClick={() => {
-                      setRule({ field: "", op: "equals", value: "" });
-                    }}
+                    onClick={() =>
+                      setRule({ field: "", op: "equals", value: "" })
+                    }
                     disabled={!ruleEnabled}
                   >
                     Limpar
@@ -799,13 +792,13 @@ export default function QueueForm() {
             </div>
           </section>
 
-          {/* Rodapé */}
+          {/* Rodapé fixo */}
           <div className={styles.stickyFooter} role="region" aria-label="Ações">
             <div className={styles.stickyInner}>
               <button
                 type="button"
                 className={styles.btnGhost}
-                onClick={() => navigate(baseQueuesPath)}
+                onClick={goBack}
               >
                 Cancelar
               </button>
@@ -815,7 +808,7 @@ export default function QueueForm() {
                 onClick={handleSave}
                 disabled={!canSubmit}
               >
-                <Save size={16} />{" "}
+                <Save size={16} />
                 {saving
                   ? "Salvando…"
                   : isEdit
