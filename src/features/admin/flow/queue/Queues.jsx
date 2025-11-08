@@ -173,7 +173,7 @@ export default function Queues() {
           {/* Título centralizado */}
           <div className={styles.headerCenter}>
             <div className={styles.title}>
-              {inFlowContext ? "Filas do Flow" : "Filas de atendimento"}
+              Filas
             </div>
           </div>
 
@@ -272,7 +272,6 @@ export default function Queues() {
                       title="Configurar horários e feriados"
                     >
                       <Clock3 size={16} />
-                      <span>Horários</span>
                     </button>
                     <button
                       type="button"
@@ -281,7 +280,6 @@ export default function Queues() {
                       title="Editar fila"
                     >
                       <SquarePen size={16} />
-                      <span>Editar</span>
                     </button>
                     <button
                       type="button"
@@ -290,7 +288,6 @@ export default function Queues() {
                       title="Excluir fila"
                     >
                       <Trash2 size={16} />
-                      <span>Excluir</span>
                     </button>
                   </div>
                 </div>
