@@ -91,7 +91,7 @@ export default function FlowHub() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.titleRow}>
-          <span className={styles.titleStrong}>FlowHub</span>
+          <span className={styles.titleStrong}>Workflow Hub</span>
         </div>
 
         <button
