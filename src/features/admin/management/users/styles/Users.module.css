@@ -35,19 +35,26 @@
   align-items:center;
   gap:16px;
 }
-.backBtn{
-  border:1px solid var(--border);
-  background:#fff;
-  color:#374151;
-  border-radius:12px;
-  padding:10px 14px;
-  font-size:14px;
-  font-weight:700;
-  cursor:pointer;
-  transition:.18s ease;
-  white-space:nowrap;
+
+.backBtn {
+  border: 1px solid var(--q-border);
+  background: #ffffff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--q-text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
 }
-.backBtn:hover{ background:#f8fafc; }
+
+.backBtn:hover {
+  background: #f9fafb;
+  border-color: #cbd5e1;
+}
 
 .headerCenter{
   flex:1;
