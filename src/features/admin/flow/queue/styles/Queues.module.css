@@ -7,7 +7,8 @@
   --border: #e2e8f0;
   --border-light: #f1f5f9;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -2px rgba(0, 0, 0, 0.1);
   --brand: #3b82f6;
@@ -35,7 +36,8 @@
   margin-bottom: 24px;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 20px;
+  grid-auto-rows: auto;
+  gap: 16px 20px;
   align-items: center;
   box-shadow: var(--shadow);
 }
@@ -106,20 +108,24 @@
   border-color: var(--text-muted);
 }
 
-/* TOOLBAR */
-.toolbar {
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 18px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow);
+/* TOOLBAR DENTRO DO HEADER */
+.headerToolbar {
+  grid-column: 1 / -1;              /* ocupa a linha inteira */
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: 4px;
 }
 
+.headerToolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Busca */
 .searchGroup {
   position: relative;
   flex: 1 1 260px;
@@ -170,13 +176,6 @@
 
 .searchClear:hover {
   background: #f3f4f6;
-}
-
-.toolbarRight {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
 }
 
 /* Botão primário */
@@ -348,7 +347,6 @@
 
   .header {
     grid-template-columns: 1fr;
-    gap: 16px;
   }
 
   .metaRow {
@@ -364,12 +362,12 @@
     display: none;
   }
 
-  .toolbar {
+  .headerToolbar {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .toolbarRight {
+  .headerToolbarRight {
     justify-content: flex-start;
   }
 
