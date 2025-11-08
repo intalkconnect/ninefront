@@ -159,7 +159,7 @@ export default function Queues() {
 
   return (
     <div className={styles.page}>
-      {/* HEADER – igual FlowChannels, mas sem a linha de id/nome */}
+      {/* HEADER – agora com busca + Nova fila dentro do mesmo card */}
       <div className={styles.header}>
         <div className={styles.titleRow}>
           <button
@@ -177,15 +177,15 @@ export default function Queues() {
           <div className={styles.flowMeta}>
             {flowId ? "Filas do Flow" : "Filas de atendimento"}
           </div>
-          {/* opcional: se quiser, pode colocar o nome do flow embaixo,
-              mas no print você marcou para remover a linha */}
+          {/* se quiser mostrar id/nome do flow, basta trocar o `false` por `true` */}
           {false && flowId && (
             <div className={styles.flowInfo}>
               <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
               {flowName && (
                 <>
                   <span className={styles.sep}>·</span>
-                  <span className={styles.dim}>nome:</span>&nbsp;<b>{flowName}</b>
+                  <span className={styles.dim}>nome:</span>&nbsp;
+                  <b>{flowName}</b>
                 </>
               )}
             </div>
@@ -201,137 +201,132 @@ export default function Queues() {
           <RefreshCw size={14} />
           <span>Recarregar</span>
         </button>
+
+        {/* Linha de busca + Nova fila DENTRO do header */}
+        <div className={styles.headerToolbar}>
+          <div className={styles.searchGroup}>
+            <input
+              className={styles.searchInput}
+              placeholder="Buscar por nome ou descrição..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Buscar filas"
+            />
+            {query && (
+              <button
+                className={styles.searchClear}
+                onClick={() => setQuery("")}
+                title="Limpar busca"
+                aria-label="Limpar busca"
+                type="button"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          <div className={styles.headerToolbarRight}>
+            <button
+              className={styles.btnPrimary}
+              type="button"
+              onClick={handleNewQueue}
+            >
+              <Plus size={14} />
+              <span>Nova fila</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <LogoLoader full size={56} src="/logo.png" />
       ) : (
-        <>
-          {/* TOOLBAR – sem o chip de contador, só busca + Nova fila */}
-          <div className={styles.toolbar}>
-            <div className={styles.searchGroup}>
-              <input
-                className={styles.searchInput}
-                placeholder="Buscar por nome ou descrição..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Buscar filas"
-              />
-              {query && (
-                <button
-                  className={styles.searchClear}
-                  onClick={() => setQuery("")}
-                  title="Limpar busca"
-                  aria-label="Limpar busca"
-                  type="button"
-                >
-                  ×
-                </button>
-              )}
+        <div className={styles.list}>
+          {filtered.length === 0 ? (
+            <div className={styles.emptyCard}>
+              Nenhuma fila encontrada para os filtros atuais.
             </div>
+          ) : (
+            filtered.map((f) => {
+              const id = f.id ?? f.nome ?? f.name;
+              const nomeFila = f.nome ?? f.name ?? "";
+              const hex = f.color || "";
+              const showHex = normalizeHexColor(hex) || "#22c55e";
+              const ativa =
+                typeof f.ativa === "boolean" ? f.ativa : true;
 
-            <div className={styles.toolbarRight}>
-              <button
-                className={styles.btnPrimary}
-                type="button"
-                onClick={handleNewQueue}
-              >
-                <Plus size={14} />
-                <span>Nova fila</span>
-              </button>
-            </div>
-          </div>
-
-          {/* LISTA DE FILAS – cards empilhados */}
-          <div className={styles.list}>
-            {filtered.length === 0 ? (
-              <div className={styles.emptyCard}>
-                Nenhuma fila encontrada para os filtros atuais.
-              </div>
-            ) : (
-              filtered.map((f) => {
-                const id = f.id ?? f.nome ?? f.name;
-                const nomeFila = f.nome ?? f.name ?? "";
-                const hex = f.color || "";
-                const showHex = normalizeHexColor(hex) || "#22c55e";
-                const ativa =
-                  typeof f.ativa === "boolean" ? f.ativa : true;
-
-                return (
-                  <div key={String(id)} className={styles.queueCard}>
-                    <div className={styles.queueMain}>
-                      <div className={styles.queueHead}>
-                        <span
-                          className={styles.queueDot}
-                          style={{ backgroundColor: showHex }}
-                        />
-                        <span className={styles.queueTitle}>
-                          {nomeFila}
-                        </span>
-                        <span
-                          className={
-                            ativa
-                              ? styles.statusChipOk
-                              : styles.statusChipOff
-                          }
-                        >
-                          {ativa ? "Ativa" : "Inativa"}
-                        </span>
-                      </div>
-                      <div className={styles.queueDesc}>
-                        {f.descricao || "Sem descrição."}
-                      </div>
+              return (
+                <div key={String(id)} className={styles.queueCard}>
+                  <div className={styles.queueMain}>
+                    <div className={styles.queueHead}>
+                      <span
+                        className={styles.queueDot}
+                        style={{ backgroundColor: showHex }}
+                      />
+                      <span className={styles.queueTitle}>{nomeFila}</span>
+                      <span
+                        className={
+                          ativa
+                            ? styles.statusChipOk
+                            : styles.statusChipOff
+                        }
+                      >
+                        {ativa ? "Ativa" : "Inativa"}
+                      </span>
                     </div>
-
-                    <div className={styles.queueActions}>
-                      <button
-                        type="button"
-                        className={styles.btnGhost}
-                        title="Configurar horários e feriados"
-                        onClick={() =>
-                          navigate(
-                            `/management/queues/${encodeURIComponent(
-                              nomeFila
-                            )}/hours`,
-                            { state: { flowId } }
-                          )
-                        }
-                      >
-                        <Clock3 size={14} />
-                        <span>Horários</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={styles.btnGhost}
-                        title="Editar"
-                        onClick={() =>
-                          navigate(
-                            `/management/queues/${encodeURIComponent(id)}`,
-                            { state: { flowId } }
-                          )
-                        }
-                      >
-                        <SquarePen size={14} />
-                        <span>Editar</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className={styles.btnDanger}
-                        title="Excluir"
-                        onClick={() => handleDelete(f)}
-                      >
-                        <Trash2 size={14} />
-                        <span>Excluir</span>
-                      </button>
+                    <div className={styles.queueDesc}>
+                      {f.descricao || "Sem descrição."}
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </>
+
+                  <div className={styles.queueActions}>
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
+                      title="Configurar horários e feriados"
+                      onClick={() =>
+                        navigate(
+                          `/management/queues/${encodeURIComponent(
+                            nomeFila
+                          )}/hours`,
+                          { state: { flowId } }
+                        )
+                      }
+                    >
+                      <Clock3 size={14} />
+                      <span>Horários</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.btnGhost}
+                      title="Editar"
+                      onClick={() =>
+                        navigate(
+                          `/management/queues/${encodeURIComponent(id)}`,
+                          { state: { flowId } }
+                        )
+                      }
+                    >
+                      <SquarePen size={14} />
+                      <span>Editar</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={styles.btnDanger}
+                      title="Excluir"
+                      onClick={() => handleDelete(f)}
+                    >
+                      <Trash2 size={14} />
+                      <span>Excluir</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       )}
     </div>
   );
