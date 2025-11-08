@@ -983,12 +983,16 @@ export default function Admin() {
   }
 />
           <Route
-  path="development/flowhub/:flowId/agents" // << página de canais por flow
-  element={
-    <RequireRole allow={isAdmin}>
-      <Agents />
-    </RequireRole>
-  }
+  path="/development/flowhub/:flowId/agents"
+  element={<Agents />}
+/>
+<Route
+  path="/development/flowhub/:flowId/agents/new"
+  element={<AgentsForm />}
+/>
+<Route
+  path="/development/flowhub/:flowId/agents/:userId/edit"
+  element={<AgentsForm />}
 />
           <Route
             path="development/tracker"
