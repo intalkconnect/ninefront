@@ -369,7 +369,7 @@ export default function Admin() {
               {
                 to: "development/flowhub",
                 icon: <Workflow size={16} />,
-                label: "Flow Hub",
+                label: "Workflow Hub",
               },
               {
                 to: "development/tracker",
