@@ -1,49 +1,82 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Clock3, X as XIcon, SquarePen, Trash2, Plus } from "lucide-react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from "react";
+import {
+  ArrowLeft,
+  RefreshCw,
+  Clock3,
+  SquarePen,
+  Trash2,
+  Plus,
+} from "lucide-react";
+import {
+  useNavigate,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { apiGet, apiDelete } from "../../../../shared/apiClient";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 import { toast } from "react-toastify";
+
+import LogoLoader from "../../../../components/common/LogoLoader";
+
 import styles from "./styles/Queues.module.css";
+
+function normalizeHexColor(input) {
+  if (!input) return null;
+  let c = String(input).trim();
+  if (!c) return null;
+  if (!c.startsWith("#")) c = `#${c}`;
+  if (/^#([0-9a-fA-F]{3})$/.test(c)) {
+    c =
+      "#" +
+      c
+        .slice(1)
+        .split("")
+        .map((ch) => ch + ch)
+        .join("");
+  }
+  return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
+}
 
 export default function Queues() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
+  const confirm = useConfirm();
 
-  // flowId pode vir da URL (/development/flowhub/:flowId/queues)
-  // ou do state enviado pelo FlowHub
+  // flowId pode vir da URL ou do state
   const flowId =
     params.flowId ||
     location.state?.flowId ||
     location.state?.meta?.flowId ||
     null;
 
+  const [loading, setLoading] = useState(true);
+  const [flowName, setFlowName] = useState("");
+
   const [filas, setFilas] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
-  const confirm = useConfirm();
 
-  const normalizeHexColor = (input) => {
-    if (!input) return null;
-    let c = String(input).trim();
-    if (!c) return null;
-    if (!c.startsWith("#")) c = `#${c}`;
-    if (/^#([0-9a-fA-F]{3})$/.test(c)) {
-      c =
-        "#" +
-        c
-          .slice(1)
-          .split("")
-          .map((ch) => ch + ch)
-          .join("");
-    }
-    return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
-  };
-
-  const load = useCallback(async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
+      // meta do flow (para exibir no header)
+      if (flowId) {
+        try {
+          const meta = await apiGet(`/flows/${flowId}`);
+          setFlowName(meta?.name || "");
+        } catch {
+          setFlowName("");
+        }
+      } else {
+        setFlowName("");
+      }
+
+      // filas (filtradas por flow, quando tiver)
       const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       const data = await apiGet(`/queues${qs}`);
       setFilas(Array.isArray(data) ? data : []);
@@ -56,8 +89,8 @@ export default function Queues() {
   }, [flowId]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadAll();
+  }, [loadAll]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -68,8 +101,6 @@ export default function Queues() {
       return nome.includes(q) || desc.includes(q);
     });
   }, [filas, query]);
-
-  const clearSearch = () => setQuery("");
 
   async function handleDelete(queue) {
     const id = queue.id ?? queue.nome ?? queue.name;
@@ -94,11 +125,10 @@ export default function Queues() {
       await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
 
       toast.success("Fila excluída.");
-      load();
+      loadAll();
     } catch (e) {
       console.error(e);
 
-      // tenta extrair mensagem amigável
       let msg = "Falha ao excluir fila.";
       const data = e?.response?.data || e?.data;
 
@@ -117,169 +147,201 @@ export default function Queues() {
     }
   }
 
-  const totalFilas = filtered.length;
-  const contadorLabel =
-    totalFilas === 0
-      ? "Nenhuma fila"
-      : totalFilas === 1
-      ? "1 fila"
-      : `${totalFilas} filas`;
+  const handleBack = () => {
+    if (flowId) {
+      navigate("/development/flowhub");
+    } else {
+      navigate(-1);
+    }
+  };
 
-  const handleNew = () =>
+  const handleNewQueue = () =>
     navigate("/management/queues/new", {
       state: { flowId },
     });
 
+  const total = filtered.length;
+  const totalLabel =
+    total === 0 ? "Nenhuma fila" : total === 1 ? "1 fila" : `${total} filas`;
+
   return (
-    <div className={styles.container}>
-      {/* HEADER */}
+    <div className={styles.page}>
+      {/* HEADER – mesmo padrão do FlowChannels */}
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Filas de atendimento</h1>
-          <p className={styles.subtitle}>
-            Crie, edite, configure horários e exclua filas de atendimento.
-          </p>
+        <div className={styles.titleRow}>
+          <button
+            onClick={handleBack}
+            className={styles.btn}
+            title="Voltar"
+            type="button"
+          >
+            <ArrowLeft size={14} />
+            <span>Voltar</span>
+          </button>
         </div>
-        {flowId && (
-          <div className={styles.flowContext}>
-            <span className={styles.flowContextLabel}>Contexto do fluxo</span>
-            <span className={styles.flowContextId}>{flowId}</span>
+
+        <div className={styles.metaRow}>
+          <div className={styles.flowMeta}>
+            {flowId ? "Filas do Flow" : "Filas de atendimento"}
           </div>
-        )}
+          <div className={styles.flowInfo}>
+            {flowId ? (
+              <>
+                <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
+              </>
+            ) : null}
+            {flowId && flowName ? (
+              <>
+                <span className={styles.sep}>·</span>
+                <span className={styles.dim}>nome:</span>&nbsp;
+                <b>{flowName}</b>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        <button
+          onClick={loadAll}
+          className={styles.btn}
+          type="button"
+          title="Recarregar"
+        >
+          <RefreshCw size={14} />
+          <span>Recarregar</span>
+        </button>
       </div>
 
-      {/* PAINEL PRINCIPAL */}
-      <div className={styles.panel}>
-        {/* Header do painel: busca + contador + nova fila */}
-        <div className={styles.panelHeader}>
-          <div className={styles.searchGroup}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por nome ou descrição..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Buscar filas"
-            />
-            {query && (
-              <button
-                className={styles.searchClear}
-                onClick={clearSearch}
-                title="Limpar busca"
-                aria-label="Limpar busca"
-                type="button"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className={styles.panelHeaderRight}>
-            <span className={styles.counterPill}>{contadorLabel}</span>
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={handleNew}
-            >
-              <Plus size={16} />
-              Nova fila
-            </button>
-          </div>
-        </div>
-
-        {/* LISTA DE FILAS */}
-        <div className={styles.listArea}>
-          {loading && (
-            <div className={styles.feedbackRow}>Carregando filas...</div>
-          )}
-
-          {!loading && filtered.length === 0 && (
-            <div className={styles.feedbackRow}>
-              Nenhuma fila encontrada para os filtros atuais.
+      {loading ? (
+        <LogoLoader full size={56} src="/logo.png" />
+      ) : (
+        <>
+          {/* TOOLBAR (busca + contador + nova fila) */}
+          <div className={styles.toolbar}>
+            <div className={styles.searchGroup}>
+              <input
+                className={styles.searchInput}
+                placeholder="Buscar por nome ou descrição..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Buscar filas"
+              />
+              {query && (
+                <button
+                  className={styles.searchClear}
+                  onClick={() => setQuery("")}
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                  type="button"
+                >
+                  ×
+                </button>
+              )}
             </div>
-          )}
 
-          {!loading &&
-            filtered.map((f) => {
-              const id = f.id ?? f.nome ?? f.name;
-              const nomeFila = f.nome ?? f.name ?? "";
-              const hex = f.color || "";
-              const showHex = normalizeHexColor(hex) || "#4ade80"; // verde claro padrão
-              const ativa =
-                typeof f.ativa === "boolean" ? f.ativa : true; // default
+            <div className={styles.toolbarRight}>
+              <span className={styles.counterChip}>{totalLabel}</span>
+              <button
+                className={styles.btnPrimary}
+                type="button"
+                onClick={handleNewQueue}
+              >
+                <Plus size={14} />
+                <span>Nova fila</span>
+              </button>
+            </div>
+          </div>
 
-              return (
-                <div key={String(id)} className={styles.queueCard}>
-                  {/* Coluna principal: nome + descrição */}
-                  <div className={styles.queueMain}>
-                    <div className={styles.queueTitleRow}>
-                      <span
-                        className={styles.queueDot}
-                        style={{ backgroundColor: showHex }}
-                      />
-                      <span className={styles.queueName}>{nomeFila}</span>
-                      <span
-                        className={
-                          ativa
-                            ? styles.queueStatusActive
-                            : styles.queueStatusInactive
+          {/* LISTA DE FILAS – cards empilhados */}
+          <div className={styles.list}>
+            {filtered.length === 0 ? (
+              <div className={styles.emptyCard}>
+                Nenhuma fila encontrada para os filtros atuais.
+              </div>
+            ) : (
+              filtered.map((f) => {
+                const id = f.id ?? f.nome ?? f.name;
+                const nomeFila = f.nome ?? f.name ?? "";
+                const hex = f.color || "";
+                const showHex = normalizeHexColor(hex) || "#22c55e";
+                const ativa =
+                  typeof f.ativa === "boolean" ? f.ativa : true;
+
+                return (
+                  <div key={String(id)} className={styles.queueCard}>
+                    <div className={styles.queueMain}>
+                      <div className={styles.queueHead}>
+                        <span
+                          className={styles.queueDot}
+                          style={{ backgroundColor: showHex }}
+                        />
+                        <span className={styles.queueTitle}>
+                          {nomeFila}
+                        </span>
+                        <span
+                          className={
+                            ativa
+                              ? styles.statusChipOk
+                              : styles.statusChipOff
+                          }
+                        >
+                          {ativa ? "Ativa" : "Inativa"}
+                        </span>
+                      </div>
+                      <div className={styles.queueDesc}>
+                        {f.descricao || "Sem descrição."}
+                      </div>
+                    </div>
+
+                    <div className={styles.queueActions}>
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        title="Configurar horários e feriados"
+                        onClick={() =>
+                          navigate(
+                            `/management/queues/${encodeURIComponent(
+                              nomeFila
+                            )}/hours`,
+                            { state: { flowId } }
+                          )
                         }
                       >
-                        {ativa ? "Ativa" : "Inativa"}
-                      </span>
-                    </div>
-                    <div className={styles.queueDesc}>
-                      {f.descricao || "Sem descrição."}
+                        <Clock3 size={14} />
+                        <span>Horários</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.btnGhost}
+                        title="Editar"
+                        onClick={() =>
+                          navigate(
+                            `/management/queues/${encodeURIComponent(id)}`,
+                            { state: { flowId } }
+                          )
+                        }
+                      >
+                        <SquarePen size={14} />
+                        <span>Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.btnDanger}
+                        title="Excluir"
+                        onClick={() => handleDelete(f)}
+                      >
+                        <Trash2 size={14} />
+                        <span>Excluir</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Ações */}
-                  <div className={styles.queueActions}>
-                    <button
-                      type="button"
-                      className={`${styles.actionBtn} ${styles.actionBtnSoft}`}
-                      title="Configurar horários e feriados"
-                      onClick={() =>
-                        navigate(
-                          `/management/queues/${encodeURIComponent(
-                            nomeFila
-                          )}/hours`,
-                          { state: { flowId } }
-                        )
-                      }
-                    >
-                      <Clock3 size={16} />
-                      Horários
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`${styles.actionBtn} ${styles.actionBtnSoft}`}
-                      title="Editar fila"
-                      onClick={() =>
-                        navigate(`/management/queues/${encodeURIComponent(id)}`, {
-                          state: { flowId },
-                        })
-                      }
-                    >
-                      <SquarePen size={16} />
-                      Editar
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                      title="Excluir fila"
-                      onClick={() => handleDelete(f)}
-                    >
-                      <Trash2 size={16} />
-                      Excluir
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-        </div>
-      </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
