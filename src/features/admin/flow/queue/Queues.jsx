@@ -57,7 +57,6 @@ export default function Queues() {
       const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       const data = await apiGet(`/queues${qs}`);
 
-      // se vier algo não-array, garante array vazio
       setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -162,6 +161,7 @@ export default function Queues() {
       {/* HEADER / CONTROLES */}
       <div className={styles.headerCard}>
         <div className={styles.headerRow}>
+          {/* Voltar */}
           <button
             type="button"
             className={styles.btn}
@@ -172,55 +172,56 @@ export default function Queues() {
             <span>Voltar</span>
           </button>
 
+          {/* Título centralizado */}
           <div className={styles.headerCenter}>
             <div className={styles.title}>
               {inFlowContext ? "Filas do Flow" : "Filas de atendimento"}
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`${styles.btn} ${styles.iconBtn}`}
-            onClick={load}
-            title="Recarregar"
-            aria-label="Recarregar"
-          >
-            <RefreshCw size={18} />
-          </button>
-        </div>
+          {/* Área da direita: busca + nova fila + recarregar */}
+          <div className={styles.headerRight}>
+            <div className={styles.searchGroup}>
+              <input
+                className={styles.searchInput}
+                placeholder="Buscar…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Buscar filas"
+              />
+              {query && (
+                <button
+                  type="button"
+                  className={styles.searchClear}
+                  onClick={clearSearch}
+                  title="Limpar busca"
+                  aria-label="Limpar busca"
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
+            </div>
 
-        {/* linha com busca + novo (na mesma linha) */}
-        <div className={styles.filterRow}>
-          <div className={styles.searchGroup}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por nome ou descrição..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Buscar filas"
-            />
-            {query && (
-              <button
-                type="button"
-                className={styles.searchClear}
-                onClick={clearSearch}
-                title="Limpar busca"
-                aria-label="Limpar busca"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
+            <button
+              type="button"
+              className={`${styles.btnPrimary} ${styles.iconBtn}`}
+              onClick={handleNewQueue}
+              title="Nova fila"
+              aria-label="Nova fila"
+            >
+              <Plus size={20} />
+            </button>
+
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.iconBtn}`}
+              onClick={load}
+              title="Recarregar"
+              aria-label="Recarregar"
+            >
+              <RefreshCw size={18} />
+            </button>
           </div>
-
-          <button
-            type="button"
-            className={`${styles.btnPrimary} ${styles.iconBtn}`}
-            onClick={handleNewQueue}
-            title="Nova fila"
-            aria-label="Nova fila"
-          >
-            <Plus size={20} />
-          </button>
         </div>
       </div>
 
