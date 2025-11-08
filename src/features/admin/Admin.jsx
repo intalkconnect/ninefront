@@ -980,6 +980,14 @@ export default function Admin() {
   }
 />
           <Route
+  path="development/flowhub/:flowId/users" // << página de canais por flow
+  element={
+    <RequireRole allow={isAdmin}>
+      <UsersPage />
+    </RequireRole>
+  }
+/>
+          <Route
             path="development/tracker"
             element={
               <RequireRole allow={isAdmin}>
