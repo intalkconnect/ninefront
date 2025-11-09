@@ -28,8 +28,8 @@ export default function TicketsHistory() {
   const location = useLocation();
   const params = useParams();
 
-  // flowId pode vir da URL (ex.: /development/flowhub/:flowId/history)
-  // ou do state enviado pelo FlowHub/admin
+  // flowId vem da URL (/development/flowhub/:flowId/ticket-history)
+  // ou do state
   const flowIdParam = params.flowId || null;
   const flowIdFromState =
     location.state?.flowId || location.state?.meta?.flowId || null;
@@ -205,16 +205,25 @@ export default function TicketsHistory() {
                       className={`${styles.rowHover} ${styles.rowClickable}`}
                       role="button"
                       tabIndex={0}
-                      onClick={() =>
-                        navigate(`/management/history/${t.id}`, {
-                          state: {
-                            returnTo:
-                              window.location.pathname +
-                              window.location.search,
-                            flowId,
-                          },
-                        })
-                      }
+                      onClick={() => {
+                        if (!flowId) {
+                          console.error("flowId ausente ao abrir ticket detail");
+                          return;
+                        }
+                        navigate(
+                          `/development/flowhub/${encodeURIComponent(
+                            flowId
+                          )}/ticket-history/${t.id}`,
+                          {
+                            state: {
+                              returnTo:
+                                window.location.pathname +
+                                window.location.search,
+                              flowId,
+                            },
+                          }
+                        );
+                      }}
                     >
                       <td className={styles.nowrap}>{num}</td>
                       <td className={styles.truncate}>{client}</td>
