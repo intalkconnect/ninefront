@@ -70,7 +70,7 @@ import Agents from "./flow/agents/Agents";
 import AgentsForm from "./flow/agents/AgentsForm";
 
 import Clientes from "./management/clientes/Clientes";
-import History from "./flow/history/TicketsHistory";
+import TicketsHistory from "./flow/history/TicketsHistory";
 import TicketDetail from "./flow/history/TicketDetail";
 import Campaigns from "./campaigns/campaign/Campaigns";
 import CampaignCreate from "./campaigns/campaign/CampaignCreate";
@@ -972,12 +972,12 @@ export default function Admin() {
   element={<AgentsForm />}
 />
           <Route
-  path="/development/flowhub/:flowId/history"
+  path="/development/flowhub/:flowId/ticket-history"
   element={<TicketsHistory />}
 />
 
 <Route
-  path="/development/flowhub/:flowId/history/:id"
+  path="/development/flowhub/:flowId/ticket-history/:id"
   element={<TicketDetail />}
 />
           <Route
