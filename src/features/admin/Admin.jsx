@@ -299,28 +299,13 @@ export default function Admin() {
                 to: "management/users",
                 icon: <UserPen size={16} />,
                 label: "Usuários",
-              },
-              {
-                to: "management/queues",
-                icon: <Folder size={16} />,
-                label: "Filas",
-              },
-              {
-                to: "management/quick-replies",
-                icon: <MessageSquareReply size={16} />,
-                label: "Respostas Rápidas",
-              },
+              }
             ],
           },
           {
             key: "mgmt-operacao",
             label: "Operação",
             children: [
-              {
-                to: "management/history",
-                icon: <WalletCards size={16} />,
-                label: "Histórico de Ticket",
-              },
               {
                 to: "management/clientes",
                 icon: <Contact size={16} />,
@@ -902,16 +887,6 @@ export default function Admin() {
           <Route path="management/users/new" element={<UserForm />} />
           <Route path="management/users/:userId/edit" element={<UserForm />} />
 
-          <Route path="management/queues" element={<Queues />} />
-          <Route path="management/queues/new" element={<QueueForm />} />
-          <Route path="management/queues/:id" element={<QueueForm />} />
-          <Route
-            path="management/queues/:name/hours"
-            element={<QueueHours />}
-          />
-          <Route path="management/quick-replies" element={<QuickReplies />} />
-          <Route path="management/history" element={<History />} />
-          <Route path="management/history/:id" element={<TicketDetail />} />
           <Route path="management/clientes" element={<Clientes />} />
 
           {/* campaigns */}
@@ -995,6 +970,15 @@ export default function Admin() {
 <Route
   path="/development/flowhub/:flowId/agents/:userId/edit"
   element={<AgentsForm />}
+/>
+          <Route
+  path="/development/flowhub/:flowId/history"
+  element={<TicketsHistory />}
+/>
+
+<Route
+  path="/development/flowhub/:flowId/history/:id"
+  element={<TicketDetail />}
 />
           <Route
             path="development/tracker"
