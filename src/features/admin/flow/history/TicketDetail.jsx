@@ -151,20 +151,6 @@ export default function TicketDetail() {
   return (
     <div className={styles.page}>
       {/* breadcrumb */}
-      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-        <ol className={styles.bcList}>
-          <li>
-            <Link to={historyRootPath} className={styles.bcLink}>
-              History
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <span className={styles.bcCurrent}>Ticket #{titleNum}</span>
-          </li>
-        </ol>
-      </nav>
-
       {/* HEADER: voltar à esquerda, ticket ao centro, export à direita */}
       <div className={styles.pageHeader}>
         <div className={styles.headerLeft}>
