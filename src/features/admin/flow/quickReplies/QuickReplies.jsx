@@ -1,38 +1,54 @@
 // src/pages/QuickReplies/QuickReplies.jsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { apiGet, apiDelete, apiPut } from "../../../../shared/apiClient.js";
-import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
-import { toast } from "react-toastify";
-import styles from "./styles/QuickReplies.module.css";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from "react";
 import {
+  MessageSquare,
   Save as SaveIcon,
   Edit3 as EditIcon,
   Trash2 as TrashIcon,
   X as XIcon,
-  RefreshCw,
   ArrowLeft,
+  RefreshCw,
 } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import {
+  apiGet,
+  apiDelete,
+  apiPut,
+} from "../../../../shared/apiClient.js";
+import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
+import { toast } from "react-toastify";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import styles from "./styles/QuickReplies.module.css";
 
 import QuickReplyModal from "./QuickReplyModal";
 
 const QuickReplies = () => {
   const { flowId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const inFlowContext = Boolean(flowId);
+  const confirm = useConfirm();
+
+  // flow_id efetivo (params > state > null)
+  const flowIdFromState = location.state?.flowId || location.state?.meta?.flowId;
+  const effectiveFlowId = flowId || flowIdFromState || null;
+  const inFlowContext = Boolean(effectiveFlowId);
 
   const [items, setItems] = useState([]);
+  const [flowName, setFlowName] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMsg, setSuccessMsg] = useState(null);
 
-  const [flowName, setFlowName] = useState("");
+  const [error, setError] = useState(null);
 
   // busca
   const [query, setQuery] = useState("");
 
-  // modal
+  // modal criação
   const [createOpen, setCreateOpen] = useState(false);
 
   // edição inline
@@ -41,44 +57,43 @@ const QuickReplies = () => {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [savingId, setSavingId] = useState(null);
-  const confirm = useConfirm();
 
-  const showSuccess = useCallback((msg) => {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 2600);
-  }, []);
+  const qs = effectiveFlowId
+    ? `?flow_id=${encodeURIComponent(effectiveFlowId)}`
+    : "";
 
   const load = useCallback(async () => {
     setLoading(true);
     setRefreshing(true);
     setError(null);
     try {
-      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
-
       const [data, flowMeta] = await Promise.all([
         apiGet(`/quick-replies${qs}`),
-        flowId ? apiGet(`/flows/${encodeURIComponent(flowId)}`) : null,
+        effectiveFlowId
+          ? apiGet(`/flows/${encodeURIComponent(effectiveFlowId)}`)
+          : Promise.resolve(null),
       ]);
 
       setItems(Array.isArray(data) ? data : []);
+
       if (flowMeta) {
-        setFlowName(flowMeta?.name ?? flowMeta?.nome ?? "");
+        const fm = flowMeta?.data ?? flowMeta;
+        setFlowName(fm?.name ?? fm?.nome ?? "");
       }
     } catch (e) {
-      console.error(e);
       setError("Falha ao carregar respostas rápidas. Verifique sua conexão.");
-      toast.error(
-        "Falha ao carregar respostas rápidas. Verifique sua conexão."
-      );
+      toast.error("Falha ao carregar respostas rápidas. Verifique sua conexão.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [flowId]);
+  }, [qs, effectiveFlowId]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const clearSearch = () => setQuery("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -101,13 +116,11 @@ const QuickReplies = () => {
     setEditTitle(item.title || "");
     setEditContent(item.content || "");
   };
-
   const cancelEdit = () => {
     setEditingId(null);
     setEditTitle("");
     setEditContent("");
   };
-
   const saveEdit = async (id) => {
     if (!editTitle.trim() || !editContent.trim()) {
       setError("Título e conteúdo são obrigatórios.");
@@ -117,13 +130,10 @@ const QuickReplies = () => {
     setSavingId(id);
     setError(null);
     try {
-      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       const updated = await apiPut(`/quick-replies/${id}${qs}`, {
         title: editTitle.trim(),
         content: editContent.trim(),
-        ...(flowId ? { flow_id: flowId } : {}),
       });
-
       setItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, ...updated } : item))
       );
@@ -132,7 +142,6 @@ const QuickReplies = () => {
       setEditContent("");
       toast.success("Resposta atualizada.");
     } catch (e) {
-      console.error(e);
       setError("Erro ao salvar alterações. Tente novamente.");
       toast.error("Erro ao salvar alterações. Tente novamente.");
     } finally {
@@ -154,22 +163,16 @@ const QuickReplies = () => {
         tone: "danger",
       });
       if (!ok) return;
-
-      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
       await apiDelete(`/quick-replies/${id}${qs}`);
-
       setItems((prev) => prev.filter((r) => r.id !== id));
       toast.success("Resposta removida.");
     } catch (e) {
-      console.error(e);
       setError("Erro ao excluir resposta. Tente novamente.");
       toast.error("Erro ao excluir resposta. Tente novamente.");
     } finally {
       setDeletingId(null);
     }
   };
-
-  const clearSearch = () => setQuery("");
 
   const handleBack = () => {
     if (inFlowContext) {
@@ -181,21 +184,31 @@ const QuickReplies = () => {
 
   return (
     <div className={styles.page} data-page="quickreplies">
-      {/* HEADER NO PADRÃO (Voltar + título + meta + busca/ações) */}
+      {/* HEADER PADRONIZADO (igual queues/agents) */}
       <div className={styles.headerCard}>
-        <button className={styles.btn} onClick={handleBack}>
+        <button type="button" className={styles.btn} onClick={handleBack}>
           <ArrowLeft size={14} />
           <span>Voltar</span>
         </button>
 
         <div className={styles.headerCenter}>
-          <div className={styles.headerTitle}>Respostas rápidas</div>
-          {flowName && (
-            <div className={styles.headerMeta}>
-              Flow:
-              <span className={styles.headerMetaName}>{flowName}</span>
-            </div>
-          )}
+          <div className={styles.headerTitle}>
+            <span className={styles.headerIcon}>
+              <MessageSquare size={18} />
+            </span>
+            <span>Respostas rápidas</span>
+          </div>
+          <p className={styles.headerSubtitle}>
+            Atalhos de mensagens para agilizar o atendimento.
+            {inFlowContext && flowName && (
+              <>
+                {" "}
+                <span className={styles.flowBadge}>
+                  Flow: <strong>{flowName}</strong>
+                </span>
+              </>
+            )}
+          </p>
         </div>
 
         <div className={styles.headerRight}>
@@ -219,54 +232,41 @@ const QuickReplies = () => {
             )}
           </div>
 
-          <button
-            type="button"
-            className={styles.iconBtnPrimary}
-            onClick={() => setCreateOpen(true)}
+          <div
+            className={styles.counter}
+            aria-label="Total de itens filtrados"
           >
-            + Nova resposta
-          </button>
+            <span className={styles.counterNumber}>{filtered.length}</span>
+            <span>{filtered.length === 1 ? "item" : "itens"}</span>
+          </div>
 
           <button
+            type="button"
             className={styles.iconBtn}
             title="Recarregar"
             onClick={load}
             disabled={refreshing}
-            type="button"
           >
             <RefreshCw
               size={16}
               className={refreshing ? styles.spinning : ""}
             />
           </button>
+
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={() => setCreateOpen(true)}
+          >
+            + Nova resposta
+          </button>
         </div>
       </div>
 
-      {error && (
-        <div className={styles.alertErr}>
-          <span>{error}</span>
-        </div>
-      )}
-      {successMsg && (
-        <div className={styles.alertOk}>
-          <span>{successMsg}</span>
-        </div>
-      )}
+      {error && <div className={styles.alertErr}>{error}</div>}
 
       {/* CARD TABELA */}
       <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardActions}>
-            <div
-              className={styles.counter}
-              aria-label="Total de itens filtrados"
-            >
-              <span className={styles.counterNumber}>{filtered.length}</span>
-              <span>{filtered.length === 1 ? "item" : "itens"}</span>
-            </div>
-          </div>
-        </div>
-
         <div className={styles.tableWrap}>
           <table className={styles.table} role="table">
             <thead>
@@ -335,11 +335,14 @@ const QuickReplies = () => {
                       )}
                     </td>
 
-                    <td className={styles.actionsCell} data-label="Ações">
+                    <td
+                      className={styles.actionsCell}
+                      data-label="Ações"
+                    >
                       {editingId === item.id ? (
                         <div className={styles.actions}>
                           <button
-                            className={`${styles.qrIconBtn} ${styles.iconSuccess}`}
+                            className={`${styles.iconBtn} ${styles.iconSuccess}`}
                             onClick={() => saveEdit(item.id)}
                             disabled={savingId === item.id}
                             type="button"
@@ -349,7 +352,7 @@ const QuickReplies = () => {
                             <SaveIcon size={18} />
                           </button>
                           <button
-                            className={styles.qrIconBtn}
+                            className={styles.iconBtn}
                             onClick={cancelEdit}
                             disabled={savingId === item.id}
                             type="button"
@@ -362,7 +365,7 @@ const QuickReplies = () => {
                       ) : (
                         <div className={styles.actions}>
                           <button
-                            className={styles.qrIconBtn}
+                            className={styles.iconBtn}
                             onClick={() => startEdit(item)}
                             type="button"
                             title="Editar"
@@ -371,7 +374,7 @@ const QuickReplies = () => {
                             <EditIcon size={18} />
                           </button>
                           <button
-                            className={`${styles.qrIconBtn} ${styles.iconDanger}`}
+                            className={`${styles.iconBtn} ${styles.iconDanger}`}
                             onClick={() => handleDelete(item.id)}
                             disabled={deletingId === item.id}
                             type="button"
@@ -405,9 +408,8 @@ const QuickReplies = () => {
         onCreated={() => {
           setCreateOpen(false);
           load();
-          showSuccess("Resposta criada com sucesso.");
         }}
-        flowId={flowId}
+        flowId={effectiveFlowId}
       />
     </div>
   );
