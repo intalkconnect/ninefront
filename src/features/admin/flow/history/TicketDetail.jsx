@@ -45,7 +45,7 @@ export default function TicketDetail() {
     location.state?.flowId || location.state?.meta?.flowId || null;
   const flowId = flowIdParam || flowIdFromState || null;
 
-  // rota base do histórico (para breadcrumbs e botão Voltar)
+  // rota base para voltar
   const historyRootPath = useMemo(() => {
     if (flowId) {
       return `/development/flowhub/${encodeURIComponent(
@@ -71,7 +71,6 @@ export default function TicketDetail() {
       setLoading(true);
       setErr(null);
 
-      // backend exige flow_id
       if (!flowId) {
         if (alive) {
           setErr(new Error("flow_id ausente"));
@@ -124,7 +123,7 @@ export default function TicketDetail() {
       a.remove();
       URL.revokeObjectURL(a.href);
       toast.success("Download iniciado!");
-    } catch (e) {
+    } catch {
       toast.error("Não foi possível baixar o arquivo.");
     }
   }
@@ -167,7 +166,7 @@ export default function TicketDetail() {
         </ol>
       </nav>
 
-      {/* HEADER: título + ações */}
+      {/* HEADER: número do ticket + ações */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <div className={styles.title}>Ticket #{titleNum}</div>
@@ -177,11 +176,16 @@ export default function TicketDetail() {
         </div>
 
         <div className={styles.headerActions}>
-          <button className={styles.backBtn} onClick={() => nav(backTo)}>
+          <button
+            type="button"
+            className={styles.backBtn}
+            onClick={() => nav(backTo)}
+          >
             <ArrowLeft size={16} />
             Voltar
           </button>
           <button
+            type="button"
             className={styles.btnPrimary}
             onClick={handleExportPdf}
             disabled={!canExport}
@@ -193,8 +197,9 @@ export default function TicketDetail() {
         </div>
       </div>
 
+      {/* COLUNAS: info + chat */}
       <div className={styles.columns}>
-        {/* ==== COLUNA ESQUERDA: dados do cliente ==== */}
+        {/* ESQUERDA: dados do cliente */}
         <aside className={styles.sidebar}>
           <div className={styles.card}>
             <div className={styles.section}>
@@ -260,33 +265,33 @@ export default function TicketDetail() {
           </div>
         </aside>
 
-        {/* ==== COLUNA DIREITA: conversa e anexos ==== */}
+        {/* DIREITA: conversa e anexos */}
         <section className={styles.main}>
           <div className={styles.chatCard}>
             <div className={styles.cardHead}>
               <div className={styles.tabs}>
                 <button
+                  type="button"
                   className={`${styles.tab} ${
                     activeTab === "conversation" ? styles.tabActive : ""
                   }`}
                   onClick={() => setActiveTab("conversation")}
-                  type="button"
                 >
                   Conversa
                 </button>
                 <button
+                  type="button"
                   className={`${styles.tab} ${
                     activeTab === "attachments" ? styles.tabActive : ""
                   }`}
                   onClick={() => setActiveTab("attachments")}
-                  type="button"
                 >
                   <Paperclip size={14} style={{ marginRight: 6 }} /> Anexos
                 </button>
               </div>
             </div>
 
-            {/* área scrollável do chat/anexos */}
+            {/* área SCROLLÁVEL do chat/anexos */}
             <div className={styles.chatBody}>
               {loading ? (
                 <div className={styles.loading}>Carregando…</div>
@@ -328,13 +333,13 @@ export default function TicketDetail() {
                           </div>
                           <div className={styles.attachActions}>
                             <button
+                              type="button"
                               className={`${styles.btnPrimary} ${styles.btnSm}`}
                               onClick={() =>
                                 downloadFile(a.url, a.filename || "arquivo")
                               }
                               title="Baixar"
                               aria-label={`Baixar ${a.filename || "arquivo"}`}
-                              type="button"
                             >
                               <Download
                                 size={16}
