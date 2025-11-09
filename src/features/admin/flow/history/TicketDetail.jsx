@@ -1,132 +1,113 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
-import { ArrowLeft, Download, Paperclip } from "lucide-react";
-import { toast } from "react-toastify";
-import ChatThread from "./ChatThread";
-import styles from "./styles/TicketDetail.module.css";
-import { apiGet } from "../../../../shared/apiClient";
+// src/pages/.../TicketDetail.jsx
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { ArrowLeft, Download, Paperclip } from 'lucide-react';
+import { toast } from 'react-toastify';
+import ChatThread from './ChatThread';
+import styles from './styles/TicketDetail.module.css';
+import { apiGet } from '../../../../shared/apiClient';
 
 function fmtDT(iso) {
-  if (!iso) return "—";
+  if (!iso) return '—';
   try {
     const d = new Date(iso);
-    return d.toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: '2-digit',
+      hour: '2-digit', minute: '2-digit'
     });
-  } catch {
-    return "—";
-  }
+  } catch { return '—'; }
 }
 const fmtBytes = (n) => {
-  if (!n && n !== 0) return "";
-  const u = ["B", "KB", "MB", "GB", "TB"];
-  let i = 0;
-  let b = Number(n);
-  while (b >= 1024 && i < u.length - 1) {
-    b /= 1024;
-    i++;
-  }
+  if (!n && n !== 0) return '';
+  const u = ['B','KB','MB','GB','TB']; let i = 0; let b = Number(n);
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
   return `${b.toFixed(b < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
 };
 
 export default function TicketDetail() {
-  const { id, flowId: flowIdParam } = useParams();
+  const params = useParams();
+  const { id, flowId: flowIdParam } = params;
   const nav = useNavigate();
   const location = useLocation();
 
-  const flowIdFromState =
-    location.state?.flowId || location.state?.meta?.flowId || null;
+  const flowIdFromState = location.state?.flowId || location.state?.meta?.flowId || null;
   const flowId = flowIdParam || flowIdFromState || null;
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
-  const [activeTab, setActiveTab] = useState("conversation");
+  const [activeTab, setActiveTab] = useState('conversation');
 
-  const backTo = useMemo(() => {
-    if (location.state?.returnTo) return location.state.returnTo;
-    if (flowId)
-      return `/development/flowhub/${encodeURIComponent(flowId)}/history`;
-    return "/management/history";
-  }, [location.state, flowId]);
+  const backTo = useMemo(
+    () =>
+      location.state?.returnTo ||
+      (flowId
+        ? `/development/flowhub/${encodeURIComponent(flowId)}/ticket-history`
+        : '/development/flowhub'),
+    [location.state, flowId]
+  );
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      setLoading(true);
-      setErr(null);
+      setLoading(true); setErr(null);
       try {
         const qs = new URLSearchParams({
-          include: "messages,attachments",
-          messages_limit: "500",
+          include: 'messages,attachments',
+          messages_limit: '500',
         });
-        if (flowId) qs.set("flow_id", flowId);
+        if (flowId) qs.set('flow_id', flowId);
 
-        // já retorna messages e attachments prontos
         const res = await apiGet(`/tickets/history/${id}?${qs.toString()}`);
         if (alive) setData(res);
       } catch (e) {
-        console.error(e);
         if (alive) {
-          setErr("Falha ao carregar o ticket.");
-          toast.error("Falha ao carregar o ticket.");
+          setErr(e);
+          toast.error('Falha ao carregar o ticket.');
         }
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [id, flowId]);
 
-  const titleNum = data?.ticket_number
-    ? String(data.ticket_number).padStart(6, "0")
-    : "—";
+  const titleNum = data?.ticket_number ? String(data.ticket_number).padStart(6, '0') : '—';
   const messages = data?.messages || [];
   const attachments = data?.attachments || [];
 
-  // Pode exportar somente se carregado, sem erro e houver ao menos 1 mensagem
   const canExport = !loading && !err && messages.length > 0;
 
-  async function downloadFile(url, filename = "arquivo") {
+  async function downloadFile(url, filename = 'arquivo') {
     try {
-      const resp = await fetch(url, { credentials: "include" });
-      if (!resp.ok) throw new Error("Falha no download");
+      const resp = await fetch(url, { credentials: 'include' });
+      if (!resp.ok) throw new Error('Falha no download');
       const blob = await resp.blob();
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(a.href);
-
-      toast.success("Download iniciado!");
+      toast.success('Download iniciado!');
     } catch (e) {
-      toast.error("Não foi possível baixar o arquivo.");
+      toast.error('Não foi possível baixar o arquivo.');
     }
   }
 
   async function handleExportPdf() {
     if (!canExport) return;
     try {
-      const qs = flowId
-        ? `?flow_id=${encodeURIComponent(flowId)}`
-        : "";
-      const resp = await fetch(
-        `/api/v1/tickets/history/${id}/pdf${qs}`,
-        {
-          credentials: "include",
-        }
-      );
-      if (!resp.ok) throw new Error("Falha ao gerar PDF");
+      const qs = new URLSearchParams();
+      if (flowId) qs.set('flow_id', flowId);
+
+      const resp = await fetch(`/api/v1/tickets/history/${id}/pdf?${qs.toString()}`, {
+        credentials: 'include'
+      });
+      if (!resp.ok) throw new Error('Falha ao gerar PDF');
       const blob = await resp.blob();
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `ticket-${titleNum}.pdf`;
       document.body.appendChild(a);
@@ -135,7 +116,7 @@ export default function TicketDetail() {
       URL.revokeObjectURL(a.href);
       toast.success(`PDF do ticket #${titleNum} gerado!`);
     } catch {
-      toast.error("Não foi possível exportar o PDF.");
+      toast.error('Não foi possível exportar o PDF.');
     }
   }
 
@@ -145,41 +126,38 @@ export default function TicketDetail() {
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
           <li>
-            <Link to={backTo} className={styles.bcLink}>
-              History
-            </Link>
+            {flowId ? (
+              <Link
+                to={`/development/flowhub/${encodeURIComponent(flowId)}/ticket-history`}
+                className={styles.bcLink}
+              >
+                History
+              </Link>
+            ) : (
+              <span className={styles.bcLink}>History</span>
+            )}
           </li>
           <li className={styles.bcSep}>/</li>
           <li>
-            <span className={styles.bcCurrent}>
-              Ticket #{titleNum}
-            </span>
+            <span className={styles.bcCurrent}>Ticket #{titleNum}</span>
           </li>
         </ol>
       </nav>
 
-      {/* header: título à esquerda, ações à direita (Voltar / Exportar PDF) */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
-          <div className={styles.metaRow}>
-            Criado em {fmtDT(data?.created_at)}
-          </div>
+          <div className={styles.metaRow}>Criado em {fmtDT(data?.created_at)}</div>
         </div>
 
         <div className={styles.headerActions}>
-          <button
-            className={styles.backBtn}
-            onClick={() => nav(backTo, { state: { flowId } })}
-          >
-            <ArrowLeft size={16} /> Voltar
+          <button className={styles.backBtn} onClick={() => nav(backTo)}>
+            <ArrowLeft size={16}/> Voltar
           </button>
           <button
             className={styles.btnPrimary}
             onClick={handleExportPdf}
             disabled={!canExport}
-            title={
-              canExport ? "Exportar PDF" : "Sem mensagens para exportar"
-            }
+            title={canExport ? 'Exportar PDF' : 'Sem mensagens para exportar'}
             aria-disabled={!canExport}
           >
             Exportar PDF
