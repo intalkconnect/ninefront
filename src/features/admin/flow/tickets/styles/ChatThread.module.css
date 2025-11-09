@@ -1,0 +1,28 @@
+.threadArea {
+  height: 100%;
+  display: grid;
+  background: #f7f9fc;
+  border-radius: 12px;
+}
+
+/* Container usado pelo MessageList */
+:global(.chat-scroll-container) {
+  height: 100%;
+  overflow: auto;
+  padding: 16px 18px;
+  box-sizing: border-box;
+  /* sem suavização/auto-rolagem */
+  scroll-behavior: auto;
+}
+
+/* Divisores (ticket/sistema) */
+:global(.ticket-divider) {
+  text-align: center;
+  color: #667781;
+  background: #eef2f7;
+  border: 1px solid #e3e7ee;
+  padding: 3px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin: 6px auto 10px;
+}
