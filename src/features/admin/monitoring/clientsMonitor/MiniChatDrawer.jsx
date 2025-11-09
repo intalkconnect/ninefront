@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, MessageCircle } from "lucide-react";
 import { apiGet } from "../../../../shared/apiClient";
-import ChatThread from "../../atendimento/history/ChatThread";
+import ChatThread from "../../flow/history/ChatThread";
 import s from "./styles/MiniChatDrawer.module.css";
 
 /**
