@@ -60,7 +60,6 @@
   gap: 16px;
 }
 
-/* esquerda / centro / direita */
 .headerLeft,
 .headerRight {
   flex: 0 0 auto;
@@ -90,7 +89,6 @@
   font-size: 13px;
 }
 
-/* Ações do header (mantém export à direita) */
 .headerRight {
   justify-content: flex-end;
 }
@@ -117,13 +115,14 @@
   display: grid;
   grid-template-columns: 420px 1fr; /* sidebar | chat */
   gap: 16px;
-  align-items: start;
+  align-items: stretch; /* importante para o chat preencher a altura */
 }
 
+/* sidebar “colada” mas sem crescer a página */
 .sidebar {
   position: sticky;
-  top: 88px; /* cola abaixo da barra azul + header branco */
-  align-self: start;
+  top: 88px;
+  align-self: flex-start;
 }
 
 /* ========== Cards & seções ========== */
@@ -227,13 +226,17 @@
 }
 
 /* ========== Coluna do chat ========== */
+/* aqui é o truque: usa a altura da tela - “cabeçalho / breadcrumbs / paddings” */
 .main {
-  min-height: 60vh;
+  height: calc(100vh - 230px); /* ajuste fino se precisar */
+  min-height: 320px;
 }
 
+/* chatCard ocupa 100% dessa altura; o chat em si vai ter scroll interno */
 .chatCard {
+  height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(480px, 70vh); /* altura CONTROLADA do chat */
+  grid-template-rows: auto minmax(0, 1fr);
   background: #fff;
   border: 1px solid var(--card-border);
   border-radius: 12px;
@@ -268,7 +271,7 @@
   border-bottom-color: #3b82f6;
 }
 
-/* O ChatThread já tem o próprio scroll; aqui só repassamos altura */
+/* o ChatThread fica dentro daqui, com o scroll dele */
 .chatBody {
   padding: 0;
   height: 100%;
@@ -281,7 +284,7 @@
   color: var(--muted);
 }
 
-/* ====== Empty states (sem mensagens / sem anexos) ====== */
+/* ====== Empty states ====== */
 .emptyState {
   height: 100%;
   display: grid;
@@ -388,7 +391,7 @@
   filter: saturate(0.6);
 }
 
-/* Tamanho pequeno para botões compactos (ex.: Baixar) */
+/* botão pequeno (ex.: Baixar) */
 .btnSm {
   padding: 8px 12px;
   font-size: 13px;
@@ -403,6 +406,10 @@
   }
   .sidebar {
     position: static;
+  }
+  .main {
+    height: auto;              /* em telas pequenas deixa rolar normal */
+    min-height: 480px;
   }
   .title {
     font-size: 18px;
