@@ -70,11 +70,24 @@ export default function TicketDetail() {
     (async () => {
       setLoading(true);
       setErr(null);
+
+      // backend exige flow_id
+      if (!flowId) {
+        if (alive) {
+          setErr(new Error("flow_id ausente"));
+          setLoading(false);
+          toast.error("flow_id é obrigatório para carregar o histórico.");
+        }
+        return;
+      }
+
       try {
-        // já retorna messages e attachments prontos
-        const res = await apiGet(
-          `/tickets/history/${id}?include=messages,attachments&messages_limit=500`
-        );
+        const qs = new URLSearchParams();
+        qs.set("include", "messages,attachments");
+        qs.set("messages_limit", "500");
+        qs.set("flow_id", flowId);
+
+        const res = await apiGet(`/tickets/history/${id}?${qs.toString()}`);
         if (alive) setData(res);
       } catch (e) {
         if (alive) {
@@ -88,7 +101,7 @@ export default function TicketDetail() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, flowId]);
 
   const titleNum = data?.ticket_number
     ? String(data.ticket_number).padStart(6, "0")
@@ -273,7 +286,7 @@ export default function TicketDetail() {
               </div>
             </div>
 
-            {/* 👇 região scrollável do chat/anexos */}
+            {/* área scrollável do chat/anexos */}
             <div className={styles.chatBody}>
               {loading ? (
                 <div className={styles.loading}>Carregando…</div>
@@ -308,10 +321,8 @@ export default function TicketDetail() {
                               </div>
                               <div className={styles.fileMeta}>
                                 {a.mime_type || "arquivo"}
-                                {a.size
-                                  ? ` • ${fmtBytes(a.size)}`
-                                  : ""}{" "}
-                                • {fmtDT(a.timestamp)}
+                                {a.size ? ` • ${fmtBytes(a.size)}` : ""} •{" "}
+                                {fmtDT(a.timestamp)}
                               </div>
                             </div>
                           </div>
@@ -319,10 +330,7 @@ export default function TicketDetail() {
                             <button
                               className={`${styles.btnPrimary} ${styles.btnSm}`}
                               onClick={() =>
-                                downloadFile(
-                                  a.url,
-                                  a.filename || "arquivo"
-                                )
+                                downloadFile(a.url, a.filename || "arquivo")
                               }
                               title="Baixar"
                               aria-label={`Baixar ${a.filename || "arquivo"}`}
