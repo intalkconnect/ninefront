@@ -1,5 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, X as XIcon } from "lucide-react";
+// src/pages/.../TicketsHistory.jsx
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  ArrowLeft,
+  RefreshCw,
+  X as XIcon,
+} from "lucide-react";
 import styles from "./styles/TicketsHistory.module.css";
 import { toast } from "react-toastify";
 import { apiGet } from "../../../../shared/apiClient";
@@ -28,8 +38,7 @@ export default function TicketsHistory() {
   const location = useLocation();
   const params = useParams();
 
-  // flowId vem da URL (/development/flowhub/:flowId/ticket-history)
-  // ou do state
+  // flowId SEMPRE esperado nesse contexto (FlowHub)
   const flowIdParam = params.flowId || null;
   const flowIdFromState =
     location.state?.flowId || location.state?.meta?.flowId || null;
@@ -67,6 +76,12 @@ export default function TicketsHistory() {
   }, [page, pageSize, qDeb, fromDate, toDate, flowId]);
 
   const load = useCallback(async () => {
+    if (!flowId) {
+      setError("flow_id é obrigatório para carregar o histórico.");
+      toast.error("flow_id é obrigatório para carregar o histórico.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -77,11 +92,12 @@ export default function TicketsHistory() {
       setPage(Number(page) || 1);
     } catch (e) {
       console.error(e);
+      setError("Falha ao carregar histórico de tickets.");
       toast.error("Falha ao carregar histórico de tickets.");
     } finally {
       setLoading(false);
     }
-  }, [queryString]);
+  }, [queryString, flowId]);
 
   useEffect(() => {
     load();
@@ -90,27 +106,80 @@ export default function TicketsHistory() {
   const startIdx = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIdx = Math.min(total, page * pageSize);
 
+  const clearSearch = () => setQ("");
+
+  const goBack = () => {
+    if (flowId) {
+      navigate(`/development/flowhub/${encodeURIComponent(flowId)}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
   return (
-    <div className={styles.container}>
-      <div className={styles.toolbar}>
-        <div className={styles.headerActions}>
-          <button className={styles.btn} onClick={load}>
-            <RefreshCw size={16} /> Atualizar
+    <div className={styles.page}>
+      {/* HEADER EM CARTÃO (padrão FlowHub) */}
+      <div className={styles.headerCard}>
+        <div className={styles.headerRow}>
+          {/* Voltar */}
+          <button
+            type="button"
+            className={styles.btn}
+            onClick={goBack}
+            title="Voltar"
+          >
+            <ArrowLeft size={16} />
+            <span>Voltar</span>
           </button>
+
+          {/* Título centralizado */}
+          <div className={styles.headerCenter}>
+            <div className={styles.title}>Histórico de tickets</div>
+          </div>
+
+          {/* Direita: busca + recarregar */}
+          <div className={styles.headerRight}>
+            <div className={styles.searchGroup}>
+              <input
+                className={styles.searchInput}
+                placeholder="Buscar por número, cliente, fila ou atendente…"
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setPage(1);
+                }}
+                aria-label="Buscar tickets"
+              />
+              {q && (
+                <button
+                  className={styles.searchClear}
+                  onClick={clearSearch}
+                  aria-label="Limpar busca"
+                  type="button"
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.iconBtn}`}
+              onClick={load}
+              title="Recarregar"
+              aria-label="Recarregar"
+              disabled={loading || !flowId}
+            >
+              <RefreshCw size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className={styles.header}>
-        <div>
-          <p className={styles.subtitle}>
-            Revise interações e responsáveis: filtre por período, ticket,
-            cliente, fila ou atendente.
-          </p>
-        </div>
-      </div>
-
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
+      {/* CARD PRINCIPAL COM FILTROS + TABELA */}
+      <div className={styles.bodyCard}>
+        {/* Filtros de período e info de contagem */}
+        <div className={styles.filtersRow}>
           <div className={styles.filtersLeft}>
             <div className={styles.inputGroupSm}>
               <label className={styles.labelSm}>De</label>
@@ -138,28 +207,16 @@ export default function TicketsHistory() {
             </div>
           </div>
 
-          <div className={styles.searchGroup}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por número, cliente, fila ou atendente…"
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-            />
-            {q && (
-              <button
-                className={styles.searchClear}
-                onClick={() => setQ("")}
-                aria-label="Limpar busca"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
+          <div className={styles.filtersRight}>
+            <span className={styles.filtersHint}>
+              {total > 0
+                ? `Mostrando ${startIdx}–${endIdx} de ${total}`
+                : "Nenhum ticket encontrado"}
+            </span>
           </div>
         </div>
 
+        {/* Tabela */}
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -175,7 +232,7 @@ export default function TicketsHistory() {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={5} className={styles.loading}>
+                  <td colSpan={5} className={styles.stateMsg}>
                     Carregando…
                   </td>
                 </tr>
@@ -183,7 +240,7 @@ export default function TicketsHistory() {
 
               {!loading && !error && items.length === 0 && (
                 <tr>
-                  <td colSpan={5} className={styles.empty}>
+                  <td colSpan={5} className={styles.stateMsg}>
                     Nenhum ticket encontrado.
                   </td>
                 </tr>
@@ -205,11 +262,7 @@ export default function TicketsHistory() {
                       className={`${styles.rowHover} ${styles.rowClickable}`}
                       role="button"
                       tabIndex={0}
-                      onClick={() => {
-                        if (!flowId) {
-                          console.error("flowId ausente ao abrir ticket detail");
-                          return;
-                        }
+                      onClick={() =>
                         navigate(
                           `/development/flowhub/${encodeURIComponent(
                             flowId
@@ -222,8 +275,8 @@ export default function TicketsHistory() {
                               flowId,
                             },
                           }
-                        );
-                      }}
+                        )
+                      }
                     >
                       <td className={styles.nowrap}>{num}</td>
                       <td className={styles.truncate}>{client}</td>
@@ -241,6 +294,7 @@ export default function TicketsHistory() {
           </table>
         </div>
 
+        {/* Paginação (padrão inferior) */}
         <div className={styles.tableFooter}>
           <div className={styles.leftInfo}>
             {`Mostrando ${startIdx}–${endIdx} de ${total}`}
