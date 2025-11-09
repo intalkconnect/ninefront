@@ -166,16 +166,9 @@ export default function TicketDetail() {
         </ol>
       </nav>
 
-      {/* HEADER: número do ticket + ações */}
+      {/* HEADER: voltar à esquerda, ticket central, exportar à direita */}
       <div className={styles.pageHeader}>
-        <div className={styles.titleWrap}>
-          <div className={styles.title}>Ticket #{titleNum}</div>
-          <div className={styles.metaRow}>
-            Criado em {fmtDT(data?.created_at)}
-          </div>
-        </div>
-
-        <div className={styles.headerActions}>
+        <div className={styles.headerLeft}>
           <button
             type="button"
             className={styles.backBtn}
@@ -184,6 +177,16 @@ export default function TicketDetail() {
             <ArrowLeft size={16} />
             Voltar
           </button>
+        </div>
+
+        <div className={styles.headerCenter}>
+          <div className={styles.title}>Ticket #{titleNum}</div>
+          <div className={styles.metaRow}>
+            Criado em {fmtDT(data?.created_at)}
+          </div>
+        </div>
+
+        <div className={styles.headerRight}>
           <button
             type="button"
             className={styles.btnPrimary}
@@ -197,7 +200,7 @@ export default function TicketDetail() {
         </div>
       </div>
 
-      {/* COLUNAS: info + chat */}
+      {/* COLUNAS: info + chat (sem scroll da página, só do chat) */}
       <div className={styles.columns}>
         {/* ESQUERDA: dados do cliente */}
         <aside className={styles.sidebar}>
@@ -291,7 +294,7 @@ export default function TicketDetail() {
               </div>
             </div>
 
-            {/* área SCROLLÁVEL do chat/anexos */}
+            {/* ÁREA SCROLLÁVEL DO CHAT/ANEXOS */}
             <div className={styles.chatBody}>
               {loading ? (
                 <div className={styles.loading}>Carregando…</div>
