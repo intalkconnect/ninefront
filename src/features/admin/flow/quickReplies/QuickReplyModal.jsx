@@ -5,7 +5,12 @@ import { apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 import styles from "./styles/QuickReplyModal.module.css";
 
-export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) {
+export default function QuickReplyModal({
+  isOpen,
+  onClose,
+  onCreated,
+  flowId,
+}) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
@@ -59,8 +64,8 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
       });
       onCreated?.();
       onClose?.();
+      toast.success("Resposta criada com sucesso.");
     } catch (err) {
-      console.error(err);
       setError("Erro ao criar resposta. Tente novamente.");
       toast.error("Erro ao criar resposta. Tente novamente.");
     } finally {
@@ -98,7 +103,6 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
             className={styles.alertErr}
             role="alert"
             aria-live="assertive"
-            style={{ margin: "0 18px" }}
           >
             <span className={styles.alertIcon} aria-hidden="true">
               <AlertCircle size={16} />
@@ -108,7 +112,6 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
               className={styles.alertClose}
               onClick={() => setError(null)}
               aria-label="Fechar alerta"
-              type="button"
             >
               <XIcon size={14} />
             </button>
@@ -117,7 +120,6 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
 
         <form onSubmit={submit}>
           <div className={styles.formInner}>
-            {/* Título */}
             <div className={styles.inputGroup}>
               <div className={styles.labelRow}>
                 <label htmlFor="qr-title" className={styles.label}>
@@ -136,7 +138,6 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
               />
             </div>
 
-            {/* Conteúdo */}
             <div className={styles.inputGroup}>
               <div className={styles.labelRow}>
                 <label htmlFor="qr-content" className={styles.label}>
@@ -155,6 +156,13 @@ export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) 
                 onChange={(e) => setContent(e.target.value)}
               />
             </div>
+
+            {flowId && (
+              <p className={styles.scopeHint}>
+                Esta resposta será vinculada ao flow{" "}
+                <strong>{flowId}</strong>.
+              </p>
+            )}
           </div>
 
           <div className={styles.modalActions}>
