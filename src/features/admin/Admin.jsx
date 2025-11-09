@@ -966,6 +966,7 @@ export default function Admin() {
     </RequireRole>
   }
 />
+          <Route path="development/flowhub/:flowId/quick-replies" element={<QuickReplies />} />
   <Route
     path="development/studio/:flowId"       // <- rota para o Builder em si
     element={
