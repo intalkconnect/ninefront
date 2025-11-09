@@ -1,62 +1,70 @@
-// src/pages/QuickReplies/QuickReplies.jsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+} from "react";
 import {
   ArrowLeft,
   RefreshCw,
   Plus,
+  Clock3,
   SquarePen,
   Trash2,
-  Save as SaveIcon,
   X as XIcon,
 } from "lucide-react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { apiGet, apiDelete, apiPut } from "../../../../shared/apiClient";
+import { apiGet, apiDelete } from "../../../../shared/apiClient";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 import { toast } from "react-toastify";
-import QuickReplyModal from "./QuickReplyModal";
-import styles from "./styles/QuickReplies.module.css";
+import styles from "./styles/Queues.module.css";
 
-export default function QuickReplies() {
+export default function Queues() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  const confirm = useConfirm();
 
-  // flowId pode vir da URL ou do state
-  const flowIdParam = params.flowId || null;
-  const flowIdFromState =
-    location.state?.flowId || location.state?.meta?.flowId || null;
-  const flowId = flowIdParam || flowIdFromState || null;
+  // flowId pode vir da URL (ex.: /development/flowhub/:flowId/queues)
+  // ou do state enviado pelo FlowHub
+  const flowId =
+    params.flowId ||
+    location.state?.flowId ||
+    location.state?.meta?.flowId ||
+    null;
+
   const inFlowContext = !!flowId;
 
-  const [items, setItems] = useState([]);
+  const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const confirm = useConfirm();
 
-  const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editContent, setEditContent] = useState("");
-  const [savingId, setSavingId] = useState(null);
-
-  const [deletingId, setDeletingId] = useState(null);
-
-  const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
+  const normalizeHexColor = (input) => {
+    if (!input) return null;
+    let c = String(input).trim();
+    if (!c) return null;
+    if (!c.startsWith("#")) c = `#${c}`;
+    if (/^#([0-9a-fA-F]{3})$/.test(c)) {
+      c = "#" + c.slice(1).split("").map((ch) => ch + ch).join("");
+    }
+    return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiGet(`/quick-replies${qs}`);
-      setItems(Array.isArray(data) ? data : []);
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
+      const data = await apiGet(`/queues${qs}`);
+      setFilas(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
-      toast.error("Falha ao carregar respostas rápidas.");
-      setItems([]);
+      toast.error("Falha ao carregar filas.");
+      setFilas([]);
     } finally {
       setLoading(false);
     }
-  }, [qs]);
+  }, [flowId]);
 
   useEffect(() => {
     load();
@@ -64,97 +72,87 @@ export default function QuickReplies() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = [...items].sort((a, b) =>
-      String(a.title || "").localeCompare(String(b.title || ""), undefined, {
-        sensitivity: "base",
-      })
-    );
-    if (!q) return base;
-    return base.filter((r) => {
-      const t = String(r.title || "").toLowerCase();
-      const c = String(r.content || "").toLowerCase();
-      return t.includes(q) || c.includes(q);
+    if (!q) return filas;
+    return filas.filter((f) => {
+      const nome = String(f.nome ?? f.name ?? "").toLowerCase();
+      const desc = String(f.descricao ?? "").toLowerCase();
+      return nome.includes(q) || desc.includes(q);
     });
-  }, [items, query]);
+  }, [filas, query]);
 
   const clearSearch = () => setQuery("");
 
-  function goBack() {
-    if (inFlowContext) {
-      navigate("/development/flowhub");
-    } else {
-      navigate(-1);
-    }
-  }
-
-  function startEdit(item) {
-    setEditingId(item.id);
-    setEditTitle(item.title || "");
-    setEditContent(item.content || "");
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setEditTitle("");
-    setEditContent("");
-  }
-
-  async function saveEdit(id) {
-    const t = editTitle.trim();
-    const c = editContent.trim();
-
-    if (!t || !c) {
-      toast.warn("Título e conteúdo são obrigatórios.");
+  async function handleDelete(queue) {
+    const id = queue.id ?? queue.nome ?? queue.name;
+    if (!id) {
+      toast.warn("ID da fila indisponível.");
       return;
     }
 
-    setSavingId(id);
-    try {
-      const updated = await apiPut(
-        `/quick-replies/${encodeURIComponent(id)}${qs}`,
-        {
-          title: t,
-          content: c,
-          ...(flowId ? { flow_id: flowId } : {}),
-        }
-      );
-
-      setItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, ...updated } : item))
-      );
-      toast.success("Resposta atualizada.");
-      cancelEdit();
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro ao salvar alterações. Tente novamente.");
-    } finally {
-      setSavingId(null);
-    }
-  }
-
-  async function handleDelete(id) {
-    setDeletingId(id);
     try {
       const ok = await confirm({
-        title: "Excluir resposta?",
-        description:
-          "Tem certeza que deseja excluir essa resposta rápida? Esta ação não pode ser desfeita.",
+        title: "Excluir fila?",
+        description: `Tem certeza que deseja excluir a fila "${
+          queue.nome ?? queue.name
+        }"? Esta ação não pode ser desfeita.`,
         confirmText: "Excluir",
         cancelText: "Cancelar",
         tone: "danger",
       });
       if (!ok) return;
 
-      await apiDelete(`/quick-replies/${encodeURIComponent(id)}${qs}`);
-      setItems((prev) => prev.filter((r) => r.id !== id));
-      toast.success("Resposta removida.");
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
+      await apiDelete(`/queues/${encodeURIComponent(id)}${qs}`);
+
+      toast.success("Fila excluída.");
+      load();
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao excluir resposta. Tente novamente.");
-    } finally {
-      setDeletingId(null);
+
+      let msg = "Falha ao excluir fila.";
+      const data = e?.response?.data || e?.data;
+      if (data && typeof data.error === "string") {
+        msg = data.error;
+      } else if (typeof e?.message === "string") {
+        const idx = e.message.indexOf("): ");
+        if (idx !== -1) {
+          msg = e.message.slice(idx + 3).trim();
+        } else {
+          msg = e.message;
+        }
+      }
+
+      toast.error(msg);
     }
   }
+
+  const goBack = () => {
+    if (inFlowContext) {
+      navigate("/development/flowhub");
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const handleNewQueue = () => {
+    navigate("/management/queues/new", { state: { flowId } });
+  };
+
+  const handleEdit = (queue) => {
+    const id = queue.id ?? queue.nome ?? queue.name;
+    if (!id) return;
+    navigate(`/management/queues/${encodeURIComponent(id)}`, {
+      state: { flowId },
+    });
+  };
+
+  const handleHours = (queue) => {
+    const nomeFila = queue.nome ?? queue.name ?? "";
+    if (!nomeFila) return;
+    navigate(`/management/queues/${encodeURIComponent(nomeFila)}/hours`, {
+      state: { flowId },
+    });
+  };
 
   return (
     <div className={styles.page}>
@@ -174,18 +172,20 @@ export default function QuickReplies() {
 
           {/* Título centralizado */}
           <div className={styles.headerCenter}>
-            <div className={styles.title}>Respostas rápidas</div>
+            <div className={styles.title}>
+              Filas
+            </div>
           </div>
 
-          {/* Direita: busca + nova resposta + recarregar */}
+          {/* Direita: busca + nova fila + recarregar */}
           <div className={styles.headerRight}>
             <div className={styles.searchGroup}>
               <input
                 className={styles.searchInput}
-                placeholder="Buscar por título ou conteúdo..."
+                placeholder="Buscar..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label="Buscar respostas rápidas"
+                aria-label="Buscar filas"
               />
               {query && (
                 <button
@@ -203,9 +203,9 @@ export default function QuickReplies() {
             <button
               type="button"
               className={`${styles.btnPrimary} ${styles.iconBtn}`}
-              onClick={() => setCreateOpen(true)}
-              title="Nova resposta rápida"
-              aria-label="Nova resposta rápida"
+              onClick={handleNewQueue}
+              title="Nova fila"
+              aria-label="Nova fila"
             >
               <Plus size={18} />
             </button>
@@ -223,106 +223,72 @@ export default function QuickReplies() {
         </div>
       </div>
 
-      {/* LISTA DE RESPOSTAS */}
+      {/* LISTA DE FILAS */}
       <div className={styles.bodyCard}>
         {loading ? (
-          <div className={styles.stateMsg}>Carregando respostas rápidas…</div>
+          <div className={styles.stateMsg}>Carregando filas…</div>
         ) : !filtered.length ? (
-          <div className={styles.stateMsg}>
-            Nenhuma resposta rápida encontrada.
-          </div>
+          <div className={styles.stateMsg}>Nenhuma fila encontrada.</div>
         ) : (
           <div className={styles.list}>
-            {filtered.map((item) => {
-              const isEditing = editingId === item.id;
+            {filtered.map((f) => {
+              const id = f.id ?? f.nome ?? f.name;
+              const nomeFila = f.nome ?? f.name ?? "";
+              const ativa = f.ativa !== false;
+              const hex = f.color || "";
+              const showHex = normalizeHexColor(hex);
 
               return (
-                <div key={item.id} className={styles.row}>
+                <div key={String(id)} className={styles.row}>
                   <div className={styles.rowMain}>
-                    {isEditing ? (
-                      <div className={styles.editWrapper}>
-                        <div className={styles.editGroup}>
-                          <label className={styles.editLabel}>Título</label>
-                          <input
-                            className={styles.editInput}
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            placeholder="Título da resposta"
-                            autoFocus
-                          />
-                        </div>
-                        <div className={styles.editGroup}>
-                          <label className={styles.editLabel}>Conteúdo</label>
-                          <textarea
-                            className={styles.editTextarea}
-                            rows={3}
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            placeholder="Conteúdo da resposta rápida"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className={styles.rowTitle}>
-                          <span className={styles.replyTitle}>
-                            {item.title || "—"}
-                          </span>
-                        </div>
-                        <div className={styles.rowDesc}>
-                          {item.content || "—"}
-                        </div>
-                      </>
-                    )}
+                    <div className={styles.rowTitle}>
+                      <span
+                        className={styles.statusDot}
+                        style={
+                          showHex ? { backgroundColor: showHex } : undefined
+                        }
+                      />
+                      <span className={styles.queueName}>{nomeFila}</span>
+                      <span
+                        className={
+                          ativa
+                            ? styles.statusChipOk
+                            : styles.statusChipOff
+                        }
+                      >
+                        {ativa ? "Ativa" : "Inativa"}
+                      </span>
+                    </div>
+                    <div className={styles.rowDesc}>
+                      {f.descricao || "—"}
+                    </div>
                   </div>
 
                   <div className={styles.rowActions}>
-                    {isEditing ? (
-                      <>
-                        <button
-                          type="button"
-                          className={styles.actionBtn}
-                          onClick={() => saveEdit(item.id)}
-                          disabled={savingId === item.id}
-                          title="Salvar"
-                          aria-label="Salvar"
-                        >
-                          <SaveIcon size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                          onClick={cancelEdit}
-                          disabled={savingId === item.id}
-                          title="Cancelar edição"
-                          aria-label="Cancelar edição"
-                        >
-                          <XIcon size={16} />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className={styles.actionBtn}
-                          onClick={() => startEdit(item)}
-                          title="Editar resposta"
-                          aria-label="Editar resposta"
-                        >
-                          <SquarePen size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
-                          onClick={() => handleDelete(item.id)}
-                          disabled={deletingId === item.id}
-                          title="Excluir resposta"
-                          aria-label="Excluir resposta"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </>
-                    )}
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => handleHours(f)}
+                      title="Configurar horários e feriados"
+                    >
+                      <Clock3 size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.actionBtn}
+                      onClick={() => handleEdit(f)}
+                      title="Editar fila"
+                    >
+                      <SquarePen size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                      onClick={() => handleDelete(f)}
+                      title="Excluir fila"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               );
@@ -330,16 +296,6 @@ export default function QuickReplies() {
           </div>
         )}
       </div>
-
-      <QuickReplyModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={() => {
-          setCreateOpen(false);
-          load();
-        }}
-        flowId={flowId}
-      />
     </div>
   );
 }
