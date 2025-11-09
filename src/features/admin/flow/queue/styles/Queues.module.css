@@ -1,3 +1,4 @@
+/* src/pages/QuickReplies/styles/QuickReplies.module.css */
 :root {
   --q-bg: #f8fafc;
   --q-panel: #ffffff;
@@ -77,7 +78,7 @@
 /* BUSCA COMPATTA */
 .searchGroup {
   position: relative;
-  width: 220px;              /* menor para caber com os ícones */
+  width: 220px;
   flex-shrink: 1;
 }
 
@@ -143,7 +144,7 @@
   border-color: #cbd5e1;
 }
 
-/* botão primário (Nova fila) */
+/* botão primário circular */
 .btnPrimary {
   background: var(--q-primary);
   color: #ffffff;
@@ -197,11 +198,11 @@
   flex-direction: column;
 }
 
-/* linha da fila */
+/* linha */
 .row {
   padding: 14px 18px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   border-top: 1px solid var(--q-border-light);
 }
@@ -222,44 +223,58 @@
   margin-bottom: 4px;
 }
 
-.statusDot {
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: var(--q-success);
-  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.18);
-}
-
-.queueName {
+.replyTitle {
   font-weight: 600;
   color: var(--q-text);
-}
-
-/* chips de status */
-.statusChipOk,
-.statusChipOff {
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-weight: 600;
-}
-
-.statusChipOk {
-  background: var(--q-success-bg);
-  color: var(--q-success);
-  border: 1px solid rgba(22, 163, 74, 0.35);
-}
-
-.statusChipOff {
-  background: #e5e7eb;
-  color: #4b5563;
-  border: 1px solid #d1d5db;
 }
 
 .rowDesc {
   font-size: 13px;
   color: var(--q-muted);
   margin-top: 2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* edição inline */
+.editWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--q-text-secondary);
+}
+
+.editInput,
+.editTextarea {
+  border-radius: 10px;
+  border: 1px solid var(--q-border);
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  background: #f9fafb;
+}
+
+.editTextarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.editInput:focus,
+.editTextarea:focus {
+  border-color: var(--q-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+  background: #ffffff;
 }
 
 /* ações da linha */
@@ -277,7 +292,7 @@
   color: var(--q-text-secondary);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 600;
