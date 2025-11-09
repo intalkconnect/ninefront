@@ -5,12 +5,7 @@ import { apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 import styles from "./styles/QuickReplyModal.module.css";
 
-export default function QuickReplyModal({
-  isOpen,
-  onClose,
-  onCreated,
-  flowId,
-}) {
+export default function QuickReplyModal({ isOpen, onClose, onCreated, flowId }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,6 +37,7 @@ export default function QuickReplyModal({
     e.preventDefault();
     const t = title.trim();
     const c = content.trim();
+
     if (!t || !c) {
       setError("Por favor, preencha o título e o conteúdo.");
       toast.warn("Preencha título e conteúdo.");
@@ -64,8 +60,8 @@ export default function QuickReplyModal({
       });
       onCreated?.();
       onClose?.();
-      toast.success("Resposta criada com sucesso.");
     } catch (err) {
+      console.error(err);
       setError("Erro ao criar resposta. Tente novamente.");
       toast.error("Erro ao criar resposta. Tente novamente.");
     } finally {
@@ -103,6 +99,7 @@ export default function QuickReplyModal({
             className={styles.alertErr}
             role="alert"
             aria-live="assertive"
+            style={{ margin: "0 18px" }}
           >
             <span className={styles.alertIcon} aria-hidden="true">
               <AlertCircle size={16} />
@@ -156,13 +153,6 @@ export default function QuickReplyModal({
                 onChange={(e) => setContent(e.target.value)}
               />
             </div>
-
-            {flowId && (
-              <p className={styles.scopeHint}>
-                Esta resposta será vinculada ao flow{" "}
-                <strong>{flowId}</strong>.
-              </p>
-            )}
           </div>
 
           <div className={styles.modalActions}>
