@@ -1,40 +1,55 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, X as XIcon } from 'lucide-react';
-import styles from './styles/TicketsHistory.module.css';
-import { toast } from 'react-toastify';
-import { apiGet } from '../../../../shared/apiClient';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw, X as XIcon } from "lucide-react";
+import styles from "./styles/TicketsHistory.module.css";
+import { toast } from "react-toastify";
+import { apiGet } from "../../../../shared/apiClient";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 
 const PAGE_SIZES = [10, 20, 30, 40];
 
 function fmtDateTime(iso) {
-  if (!iso) return '—';
+  if (!iso) return "—";
   try {
     const d = new Date(iso);
-    return d.toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: '2-digit',
-      hour: '2-digit', minute: '2-digit'
+    return d.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
-  } catch { return '—'; }
+  } catch {
+    return "—";
+  }
 }
 
 export default function TicketsHistory() {
-  const [items, setItems]   = useState([]);
-  const [page, setPage]     = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal]   = useState(0);
-  const totalPages          = Math.max(1, Math.ceil(total / pageSize));
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
 
-  const [q, setQ]           = useState('');
-  const [qDeb, setQDeb]     = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  // flowId pode vir da URL (ex.: /development/flowhub/:flowId/history)
+  // ou do state enviado pelo FlowHub/admin
+  const flowIdParam = params.flowId || null;
+  const flowIdFromState =
+    location.state?.flowId || location.state?.meta?.flowId || null;
+  const flowId = flowIdParam || flowIdFromState || null;
+
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const [q, setQ] = useState("");
+  const [qDeb, setQDeb] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState(null);
-  const navigate = useNavigate();
+  const [error, setError] = useState(null);
 
-  // debounce
+  // debounce do texto de busca
   useEffect(() => {
     const t = setTimeout(() => setQDeb(q.trim()), 350);
     return () => clearTimeout(t);
@@ -42,13 +57,14 @@ export default function TicketsHistory() {
 
   const queryString = useMemo(() => {
     const p = new URLSearchParams();
-    p.set('page', String(page));
-    p.set('page_size', String(pageSize));
-    if (qDeb)     p.set('q', qDeb);
-    if (fromDate) p.set('from', fromDate);
-    if (toDate)   p.set('to', toDate);
+    p.set("page", String(page));
+    p.set("page_size", String(pageSize));
+    if (qDeb) p.set("q", qDeb);
+    if (fromDate) p.set("from", fromDate);
+    if (toDate) p.set("to", toDate);
+    if (flowId) p.set("flow_id", flowId);
     return p.toString();
-  }, [page, pageSize, qDeb, fromDate, toDate]);
+  }, [page, pageSize, qDeb, fromDate, toDate, flowId]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,29 +77,34 @@ export default function TicketsHistory() {
       setPage(Number(page) || 1);
     } catch (e) {
       console.error(e);
-      toast.error('Falha ao carregar histórico de tickets.');
+      toast.error("Falha ao carregar histórico de tickets.");
     } finally {
       setLoading(false);
     }
   }, [queryString]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const startIdx = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const endIdx   = Math.min(total, page * pageSize);
+  const endIdx = Math.min(total, page * pageSize);
 
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
         <div className={styles.headerActions}>
-          <button className={styles.btn} onClick={load}><RefreshCw size={16}/> Atualizar</button>
+          <button className={styles.btn} onClick={load}>
+            <RefreshCw size={16} /> Atualizar
+          </button>
         </div>
       </div>
 
       <div className={styles.header}>
         <div>
           <p className={styles.subtitle}>
-            Revise interações e responsáveis: filtre por período, ticket, cliente, fila ou atendente.
+            Revise interações e responsáveis: filtre por período, ticket,
+            cliente, fila ou atendente.
           </p>
         </div>
       </div>
@@ -97,7 +118,10 @@ export default function TicketsHistory() {
                 type="date"
                 className={styles.inputSm}
                 value={fromDate}
-                onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setPage(1);
+                }}
               />
             </div>
             <div className={styles.inputGroupSm}>
@@ -106,7 +130,10 @@ export default function TicketsHistory() {
                 type="date"
                 className={styles.inputSm}
                 value={toDate}
-                onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setPage(1);
+                }}
               />
             </div>
           </div>
@@ -116,11 +143,18 @@ export default function TicketsHistory() {
               className={styles.searchInput}
               placeholder="Buscar por número, cliente, fila ou atendente…"
               value={q}
-              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
             />
             {q && (
-              <button className={styles.searchClear} onClick={() => setQ('')} aria-label="Limpar busca">
-                <XIcon size={14}/>
+              <button
+                className={styles.searchClear}
+                onClick={() => setQ("")}
+                aria-label="Limpar busca"
+              >
+                <XIcon size={14} />
               </button>
             )}
           </div>
@@ -140,38 +174,60 @@ export default function TicketsHistory() {
 
             <tbody>
               {loading && (
-                <tr><td colSpan={5} className={styles.loading}>Carregando…</td></tr>
+                <tr>
+                  <td colSpan={5} className={styles.loading}>
+                    Carregando…
+                  </td>
+                </tr>
               )}
 
               {!loading && !error && items.length === 0 && (
-                <tr><td colSpan={5} className={styles.empty}>Nenhum ticket encontrado.</td></tr>
+                <tr>
+                  <td colSpan={5} className={styles.empty}>
+                    Nenhum ticket encontrado.
+                  </td>
+                </tr>
               )}
 
-              {!loading && !error && items.map((t) => {
-                const num = t.ticket_number ? String(t.ticket_number).padStart(5, '0') : '—';
-                const client = t.client_name || t.user_name || t.user_id || '—';
-                const agent  = t.agent_name  || t.assigned_to || '—';
+              {!loading &&
+                !error &&
+                items.map((t) => {
+                  const num = t.ticket_number
+                    ? String(t.ticket_number).padStart(5, "0")
+                    : "—";
+                  const client =
+                    t.client_name || t.user_name || t.user_id || "—";
+                  const agent = t.agent_name || t.assigned_to || "—";
 
-                return (
-                  <tr
-                    key={t.id}
-                    className={`${styles.rowHover} ${styles.rowClickable}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/management/history/${t.id}`, {
-                      state: { returnTo: window.location.pathname + window.location.search }
-                    })}
-                  >
-                    <td className={styles.nowrap}>{num}</td>
-                    <td className={styles.truncate}>{client}</td>
-                    <td className={styles.truncate}>{t.fila || '—'}</td>
-                    <td className={styles.truncate}>{agent}</td>
-                    <td className={`${styles.nowrap} ${styles.textRight}`}>
-                      {fmtDateTime(t.closed_at || t.updated_at)}
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr
+                      key={t.id}
+                      className={`${styles.rowHover} ${styles.rowClickable}`}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        navigate(`/management/history/${t.id}`, {
+                          state: {
+                            returnTo:
+                              window.location.pathname +
+                              window.location.search,
+                            flowId,
+                          },
+                        })
+                      }
+                    >
+                      <td className={styles.nowrap}>{num}</td>
+                      <td className={styles.truncate}>{client}</td>
+                      <td className={styles.truncate}>{t.fila || "—"}</td>
+                      <td className={styles.truncate}>{agent}</td>
+                      <td
+                        className={`${styles.nowrap} ${styles.textRight}`}
+                      >
+                        {fmtDateTime(t.closed_at || t.updated_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -185,16 +241,49 @@ export default function TicketsHistory() {
             <select
               className={styles.pageSize}
               value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
             >
-              {PAGE_SIZES.map(n => <option key={n} value={n}>{n} por página</option>)}
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n} por página
+                </option>
+              ))}
             </select>
 
-            <button className={styles.pBtn} onClick={() => setPage(1)} disabled={page <= 1}>« Primeiro</button>
-            <button className={styles.pBtn} onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Anterior</button>
-            <span className={styles.pInfo}>Página {page} de {totalPages}</span>
-            <button className={styles.pBtn} onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>Próxima</button>
-            <button className={styles.pBtn} onClick={() => setPage(totalPages)} disabled={page >= totalPages}>Última »</button>
+            <button
+              className={styles.pBtn}
+              onClick={() => setPage(1)}
+              disabled={page <= 1}
+            >
+              « Primeiro
+            </button>
+            <button
+              className={styles.pBtn}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              Anterior
+            </button>
+            <span className={styles.pInfo}>
+              Página {page} de {totalPages}
+            </span>
+            <button
+              className={styles.pBtn}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            >
+              Próxima
+            </button>
+            <button
+              className={styles.pBtn}
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages}
+            >
+              Última »
+            </button>
           </div>
         </div>
       </div>
