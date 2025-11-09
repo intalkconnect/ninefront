@@ -1,4 +1,3 @@
-// src/pages/Management/TicketsHistory/TicketDetail.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { ArrowLeft, Download, Paperclip } from "lucide-react";
@@ -45,7 +44,7 @@ export default function TicketDetail() {
     location.state?.flowId || location.state?.meta?.flowId || null;
   const flowId = flowIdParam || flowIdFromState || null;
 
-  // rota base para voltar
+  // rota base de histórico
   const historyRootPath = useMemo(() => {
     if (flowId) {
       return `/development/flowhub/${encodeURIComponent(
@@ -151,7 +150,7 @@ export default function TicketDetail() {
 
   return (
     <div className={styles.page}>
-      {/* BREADCRUMB */}
+      {/* breadcrumb */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
           <li>
@@ -166,7 +165,7 @@ export default function TicketDetail() {
         </ol>
       </nav>
 
-      {/* HEADER: voltar à esquerda, ticket central, exportar à direita */}
+      {/* HEADER: voltar à esquerda, ticket ao centro, export à direita */}
       <div className={styles.pageHeader}>
         <div className={styles.headerLeft}>
           <button
@@ -200,9 +199,9 @@ export default function TicketDetail() {
         </div>
       </div>
 
-      {/* COLUNAS: info + chat (sem scroll da página, só do chat) */}
+      {/* COLUNAS */}
       <div className={styles.columns}>
-        {/* ESQUERDA: dados do cliente */}
+        {/* sidebar fixa */}
         <aside className={styles.sidebar}>
           <div className={styles.card}>
             <div className={styles.section}>
@@ -268,7 +267,7 @@ export default function TicketDetail() {
           </div>
         </aside>
 
-        {/* DIREITA: conversa e anexos */}
+        {/* coluna direita: chat / anexos */}
         <section className={styles.main}>
           <div className={styles.chatCard}>
             <div className={styles.cardHead}>
@@ -294,7 +293,6 @@ export default function TicketDetail() {
               </div>
             </div>
 
-            {/* ÁREA SCROLLÁVEL DO CHAT/ANEXOS */}
             <div className={styles.chatBody}>
               {loading ? (
                 <div className={styles.loading}>Carregando…</div>
