@@ -70,12 +70,13 @@ import Agents from "./flow/agents/Agents";
 import AgentsForm from "./flow/agents/AgentsForm";
 
 import Clientes from "./management/clientes/Clientes";
-import History from "./atendimento/history/TicketsHistory";
+import History from "./flow/history/TicketsHistory";
+import TicketDetail from "./flow/history/TicketDetail";
 import Campaigns from "./campaigns/campaign/Campaigns";
 import CampaignCreate from "./campaigns/campaign/CampaignCreate";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
-import TicketDetail from "./atendimento/history/TicketDetail";
+
 import WhatsAppProfile from "./flow/channels/whatsapp/WhatsAppProfile";
 import TelegramConnect from "./flow/channels/telegram/TelegramConnect";
 import TokensSecurity from "./preferences/security/Tokens";
