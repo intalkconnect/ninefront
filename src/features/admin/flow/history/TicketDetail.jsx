@@ -1,113 +1,130 @@
-// src/pages/.../TicketDetail.jsx
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, Download, Paperclip } from 'lucide-react';
-import { toast } from 'react-toastify';
-import ChatThread from './ChatThread';
-import styles from './styles/TicketDetail.module.css';
-import { apiGet } from '../../../../shared/apiClient';
+// src/pages/Management/TicketsHistory/TicketDetail.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { ArrowLeft, Download, Paperclip } from "lucide-react";
+import { toast } from "react-toastify";
+import ChatThread from "./ChatThread";
+import styles from "./styles/TicketDetail.module.css";
+import { apiGet } from "../../../../shared/apiClient";
 
 function fmtDT(iso) {
-  if (!iso) return '—';
+  if (!iso) return "—";
   try {
     const d = new Date(iso);
-    return d.toLocaleString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: '2-digit',
-      hour: '2-digit', minute: '2-digit'
+    return d.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
-  } catch { return '—'; }
+  } catch {
+    return "—";
+  }
 }
+
 const fmtBytes = (n) => {
-  if (!n && n !== 0) return '';
-  const u = ['B','KB','MB','GB','TB']; let i = 0; let b = Number(n);
-  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  if (!n && n !== 0) return "";
+  const u = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0;
+  let b = Number(n);
+  while (b >= 1024 && i < u.length - 1) {
+    b /= 1024;
+    i++;
+  }
   return `${b.toFixed(b < 10 && i > 0 ? 1 : 0)} ${u[i]}`;
 };
 
 export default function TicketDetail() {
-  const params = useParams();
-  const { id, flowId: flowIdParam } = params;
+  const { id, flowId: flowIdParam } = useParams();
   const nav = useNavigate();
   const location = useLocation();
 
-  const flowIdFromState = location.state?.flowId || location.state?.meta?.flowId || null;
+  // flowId pode vir da URL (FlowHub) ou do state
+  const flowIdFromState =
+    location.state?.flowId || location.state?.meta?.flowId || null;
   const flowId = flowIdParam || flowIdFromState || null;
+
+  // rota base do histórico (para breadcrumbs e botão Voltar)
+  const historyRootPath = useMemo(() => {
+    if (flowId) {
+      return `/development/flowhub/${encodeURIComponent(
+        flowId
+      )}/ticket-history`;
+    }
+    return "/management/ticket-history";
+  }, [flowId]);
+
+  const backTo = useMemo(
+    () => location.state?.returnTo || historyRootPath,
+    [location.state, historyRootPath]
+  );
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
-  const [activeTab, setActiveTab] = useState('conversation');
-
-  const backTo = useMemo(
-    () =>
-      location.state?.returnTo ||
-      (flowId
-        ? `/development/flowhub/${encodeURIComponent(flowId)}/ticket-history`
-        : '/development/flowhub'),
-    [location.state, flowId]
-  );
+  const [activeTab, setActiveTab] = useState("conversation");
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      setLoading(true); setErr(null);
+      setLoading(true);
+      setErr(null);
       try {
-        const qs = new URLSearchParams({
-          include: 'messages,attachments',
-          messages_limit: '500',
-        });
-        if (flowId) qs.set('flow_id', flowId);
-
-        const res = await apiGet(`/tickets/history/${id}?${qs.toString()}`);
+        // já retorna messages e attachments prontos
+        const res = await apiGet(
+          `/tickets/history/${id}?include=messages,attachments&messages_limit=500`
+        );
         if (alive) setData(res);
       } catch (e) {
         if (alive) {
           setErr(e);
-          toast.error('Falha ao carregar o ticket.');
+          toast.error("Falha ao carregar o ticket.");
         }
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
-  }, [id, flowId]);
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
-  const titleNum = data?.ticket_number ? String(data.ticket_number).padStart(6, '0') : '—';
+  const titleNum = data?.ticket_number
+    ? String(data.ticket_number).padStart(6, "0")
+    : "—";
   const messages = data?.messages || [];
   const attachments = data?.attachments || [];
 
   const canExport = !loading && !err && messages.length > 0;
 
-  async function downloadFile(url, filename = 'arquivo') {
+  async function downloadFile(url, filename = "arquivo") {
     try {
-      const resp = await fetch(url, { credentials: 'include' });
-      if (!resp.ok) throw new Error('Falha no download');
+      const resp = await fetch(url, { credentials: "include" });
+      if (!resp.ok) throw new Error("Falha no download");
       const blob = await resp.blob();
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(a.href);
-      toast.success('Download iniciado!');
+      toast.success("Download iniciado!");
     } catch (e) {
-      toast.error('Não foi possível baixar o arquivo.');
+      toast.error("Não foi possível baixar o arquivo.");
     }
   }
 
   async function handleExportPdf() {
     if (!canExport) return;
     try {
-      const qs = new URLSearchParams();
-      if (flowId) qs.set('flow_id', flowId);
-
-      const resp = await fetch(`/api/v1/tickets/history/${id}/pdf?${qs.toString()}`, {
-        credentials: 'include'
+      const resp = await fetch(`/api/v1/tickets/history/${id}/pdf`, {
+        credentials: "include",
       });
-      if (!resp.ok) throw new Error('Falha ao gerar PDF');
+      if (!resp.ok) throw new Error("Falha ao gerar PDF");
       const blob = await resp.blob();
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `ticket-${titleNum}.pdf`;
       document.body.appendChild(a);
@@ -116,26 +133,19 @@ export default function TicketDetail() {
       URL.revokeObjectURL(a.href);
       toast.success(`PDF do ticket #${titleNum} gerado!`);
     } catch {
-      toast.error('Não foi possível exportar o PDF.');
+      toast.error("Não foi possível exportar o PDF.");
     }
   }
 
   return (
     <div className={styles.page}>
-      {/* breadcrumbs (sem “Management”) */}
+      {/* BREADCRUMB */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
           <li>
-            {flowId ? (
-              <Link
-                to={`/development/flowhub/${encodeURIComponent(flowId)}/ticket-history`}
-                className={styles.bcLink}
-              >
-                History
-              </Link>
-            ) : (
-              <span className={styles.bcLink}>History</span>
-            )}
+            <Link to={historyRootPath} className={styles.bcLink}>
+              History
+            </Link>
           </li>
           <li className={styles.bcSep}>/</li>
           <li>
@@ -144,20 +154,25 @@ export default function TicketDetail() {
         </ol>
       </nav>
 
+      {/* HEADER: título + ações */}
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
-          <div className={styles.metaRow}>Criado em {fmtDT(data?.created_at)}</div>
+          <div className={styles.title}>Ticket #{titleNum}</div>
+          <div className={styles.metaRow}>
+            Criado em {fmtDT(data?.created_at)}
+          </div>
         </div>
 
         <div className={styles.headerActions}>
           <button className={styles.backBtn} onClick={() => nav(backTo)}>
-            <ArrowLeft size={16}/> Voltar
+            <ArrowLeft size={16} />
+            Voltar
           </button>
           <button
             className={styles.btnPrimary}
             onClick={handleExportPdf}
             disabled={!canExport}
-            title={canExport ? 'Exportar PDF' : 'Sem mensagens para exportar'}
+            title={canExport ? "Exportar PDF" : "Sem mensagens para exportar"}
             aria-disabled={!canExport}
           >
             Exportar PDF
@@ -166,16 +181,13 @@ export default function TicketDetail() {
       </div>
 
       <div className={styles.columns}>
-        {/* ==== COLUNA ESQUERDA (SIDEBAR COM DADOS) ==== */}
+        {/* ==== COLUNA ESQUERDA: dados do cliente ==== */}
         <aside className={styles.sidebar}>
           <div className={styles.card}>
             <div className={styles.section}>
-              {/* topo do card: avatar + nome + id/contato */}
               <div className={styles.profile}>
                 <div className={styles.avatar}>
-                  {(data?.customer_name || "C")
-                    .slice(0, 2)
-                    .toUpperCase()}
+                  {(data?.customer_name || "C").slice(0, 2).toUpperCase()}
                 </div>
                 <div>
                   <div className={styles.personName}>
@@ -190,9 +202,7 @@ export default function TicketDetail() {
               <div className={styles.infoList}>
                 <div className={styles.infoItem}>
                   <div className={styles.label}>Fila</div>
-                  <div className={styles.value}>
-                    {data?.fila || "—"}
-                  </div>
+                  <div className={styles.value}>{data?.fila || "—"}</div>
                 </div>
 
                 <div className={styles.infoItem}>
@@ -205,16 +215,12 @@ export default function TicketDetail() {
                 <div className={styles.infoItem}>
                   <div className={styles.label}>Status</div>
                   <div className={styles.value}>
-                    <span className={styles.pill}>
-                      {data?.status || "—"}
-                    </span>
+                    <span className={styles.pill}>{data?.status || "—"}</span>
                   </div>
                 </div>
 
                 <div className={styles.infoItem}>
-                  <div className={styles.label}>
-                    Última atualização
-                  </div>
+                  <div className={styles.label}>Última atualização</div>
                   <div className={styles.value}>
                     {fmtDT(data?.updated_at)}
                   </div>
@@ -241,38 +247,33 @@ export default function TicketDetail() {
           </div>
         </aside>
 
-        {/* ==== COLUNA DIREITA (CHAT + ANEXOS) ==== */}
+        {/* ==== COLUNA DIREITA: conversa e anexos ==== */}
         <section className={styles.main}>
           <div className={styles.chatCard}>
             <div className={styles.cardHead}>
               <div className={styles.tabs}>
                 <button
                   className={`${styles.tab} ${
-                    activeTab === "conversation"
-                      ? styles.tabActive
-                      : ""
+                    activeTab === "conversation" ? styles.tabActive : ""
                   }`}
                   onClick={() => setActiveTab("conversation")}
+                  type="button"
                 >
                   Conversa
                 </button>
                 <button
                   className={`${styles.tab} ${
-                    activeTab === "attachments"
-                      ? styles.tabActive
-                      : ""
+                    activeTab === "attachments" ? styles.tabActive : ""
                   }`}
                   onClick={() => setActiveTab("attachments")}
+                  type="button"
                 >
-                  <Paperclip
-                    size={14}
-                    style={{ marginRight: 6 }}
-                  />{" "}
-                  Anexos
+                  <Paperclip size={14} style={{ marginRight: 6 }} /> Anexos
                 </button>
               </div>
             </div>
 
+            {/* 👇 região scrollável do chat/anexos */}
             <div className={styles.chatBody}>
               {loading ? (
                 <div className={styles.loading}>Carregando…</div>
@@ -296,15 +297,10 @@ export default function TicketDetail() {
                   {attachments.length ? (
                     <div className={styles.attachList}>
                       {attachments.map((a) => (
-                        <div
-                          key={a.id}
-                          className={styles.attachItem}
-                        >
+                        <div key={a.id} className={styles.attachItem}>
                           <div className={styles.attachLeft}>
                             <div className={styles.fileIcon}>
-                              {(a.type || "file")
-                                .slice(0, 1)
-                                .toUpperCase()}
+                              {(a.type || "file").slice(0, 1).toUpperCase()}
                             </div>
                             <div className={styles.fileText}>
                               <div className={styles.fileName}>
@@ -329,9 +325,8 @@ export default function TicketDetail() {
                                 )
                               }
                               title="Baixar"
-                              aria-label={`Baixar ${
-                                a.filename || "arquivo"
-                              }`}
+                              aria-label={`Baixar ${a.filename || "arquivo"}`}
+                              type="button"
                             >
                               <Download
                                 size={16}
@@ -346,9 +341,7 @@ export default function TicketDetail() {
                   ) : (
                     <div className={styles.emptyState}>
                       <div>
-                        <div className={styles.emptyTitle}>
-                          Nenhum anexo
-                        </div>
+                        <div className={styles.emptyTitle}>Nenhum anexo</div>
                         <div className={styles.emptySub}>
                           Arquivos enviados aparecerão aqui.
                         </div>
