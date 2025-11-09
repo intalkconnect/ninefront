@@ -59,7 +59,7 @@ import AgentsMonitor from "./monitoring/agentsMonitor/AgentsMonitor";
 import JourneyTracker from "./monitoring/journeyTracker/JourneyTracker";
 import JourneyBeholder from "./monitoring/journeyTracker/JourneyBeholder";
 
-import QuickReplies from "./management/quickReplies/QuickReplies";
+import QuickReplies from "./flow/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
 import TemplateCreate from "./campaigns/template/TemplateCreate";
 
