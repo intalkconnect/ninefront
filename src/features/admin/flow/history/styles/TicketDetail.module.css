@@ -113,7 +113,7 @@
 /* ========== Layout 2 colunas ========== */
 .columns {
   display: grid;
-  grid-template-columns: 420px 1fr; /* sidebar | chat */
+  grid-template-columns: 320px 1fr; /* sidebar | chat */
   gap: 16px;
   align-items: stretch; /* importante para o chat preencher a altura */
 }
@@ -228,7 +228,7 @@
 /* ========== Coluna do chat ========== */
 /* aqui é o truque: usa a altura da tela - “cabeçalho / breadcrumbs / paddings” */
 .main {
-  height: calc(100vh - 230px); /* ajuste fino se precisar */
+  height: calc(100vh - 320px); /* ajuste fino se precisar */
   min-height: 320px;
 }
 
