@@ -159,15 +159,6 @@ export default function FlowChannels() {
 
         <div className={styles.metaRow}>
           <div className={styles.flowMeta}>Canais do Flow</div>
-          <div className={styles.flowInfo}>
-            <span className={styles.dim}>id:</span>&nbsp;<b>{flowId}</b>
-            {flowName ? (
-              <>
-                <span className={styles.sep}>·</span>
-                <span className={styles.dim}>nome:</span>&nbsp;<b>{flowName}</b>
-              </>
-            ) : null}
-          </div>
         </div>
 
         <button onClick={loadAll} className={styles.btn}>
