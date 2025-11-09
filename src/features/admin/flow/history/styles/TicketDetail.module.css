@@ -1,85 +1,63 @@
-:root {
-  --td-bg: #f8fafc;
-  --td-panel: #ffffff;
-  --td-panel-soft: #f9fafb;
-
-  --td-text: #0f172a;
-  --td-text-secondary: #475569;
-  --td-muted: #94a3b8;
-
-  --td-border: #e2e8f0;
-  --td-border-soft: #edf2f7;
-
-  --td-primary: #3b82f6;
-  --td-primary-hover: #2563eb;
-
-  --td-pill-bg: #e0f2fe;
-  --td-pill-text: #0369a1;
-
-  --td-chip-bg: #eff6ff;
-  --td-chip-text: #1d4ed8;
-
-  --td-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --td-shadow-md: 0 10px 30px rgba(15, 23, 42, 0.12);
-}
-
-/* PAGE CONTAINER */
+/* ========== Variáveis & base ========== */
 .page {
+  --container-max: 1440px;
+  --gap: 16px;
+  --card-bg: #fff;
+  --card-border: #e3e7ee;
+  --muted: #64748b;
+  --text: #0f172a;
+  --divider: #eef2f7;
+
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: var(--td-bg);
-
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* importante para flex aninhado */
+  display: grid;
+  gap: 16px;
+  background: #f6f7fb;
 }
 
-/* BREADCRUMB */
+/* Breadcrumbs no topo */
 .breadcrumbs {
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin: 4px 0 4px;
 }
-
 .bcList {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: inline-flex;
+  display: flex;
+  gap: 8px;
   align-items: center;
-  gap: 6px;
-  color: var(--td-muted);
+  flex-wrap: wrap;
 }
-
-.bcLink {
-  color: var(--td-text-secondary);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.bcLink:hover {
-  text-decoration: underline;
-}
-
 .bcSep {
-  color: var(--td-muted);
+  color: #94a3b8;
 }
-
-.bcCurrent {
-  color: var(--td-text);
+.bcLink {
+  text-decoration: none;
+  color: #64748b;
   font-weight: 600;
 }
+.bcLink:hover {
+  color: #0f172a;
+  text-decoration: underline;
+}
+.bcLink:visited {
+  color: #64748b;
+}
+.bcCurrent {
+  color: #0f172a;
+  font-weight: 700;
+}
 
-/* HEADER */
+/* ========== Header card (Voltar | Ticket | Exportar) ========== */
 .pageHeader {
-  background: var(--td-panel);
-  border-radius: 14px;
-  border: 1px solid var(--td-border);
-  padding: 12px 18px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: var(--td-shadow-sm);
 }
 
 /* esquerda / centro / direita */
@@ -96,400 +74,337 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--td-text);
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--text);
 }
 
 .metaRow {
+  color: var(--muted);
   font-size: 13px;
-  color: var(--td-muted);
 }
 
-/* BUTTONS */
+/* Ações do header (mantém export à direita) */
+.headerRight {
+  justify-content: flex-end;
+}
+
+/* Botão Voltar */
 .backBtn {
-  border-radius: 999px;
-  border: 1px solid var(--td-border);
-  background: #ffffff;
-  padding: 8px 14px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--td-text-secondary);
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition: all 0.16s ease;
+  font-weight: 600;
+  color: #111827;
 }
-
 .backBtn:hover {
-  background: #f9fafb;
-  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
-.btnPrimary {
-  border-radius: 999px;
-  border: none;
-  background: var(--td-primary);
-  color: #ffffff;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  box-shadow: var(--td-shadow-sm);
-  transition: all 0.18s ease;
-}
-
-.btnPrimary:hover:not(:disabled) {
-  background: var(--td-primary-hover);
-  box-shadow: var(--td-shadow-md);
-  transform: translateY(-1px);
-}
-
-.btnPrimary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btnSm {
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-/* LAYOUT COLUMNS */
+/* ========== Layout 2 colunas ========== */
 .columns {
-  display: flex;
-  gap: 20px;
-  margin-top: 18px;
-
-  flex: 1;
-  min-height: 0; /* deixa as colunas usarem o restante da altura */
+  display: grid;
+  grid-template-columns: 420px 1fr; /* sidebar | chat */
+  gap: 16px;
+  align-items: start;
 }
 
-/* SIDEBAR (ESQUERDA) */
 .sidebar {
-  width: 280px;
-  flex-shrink: 0;
+  position: sticky;
+  top: 88px; /* cola abaixo da barra azul + header branco */
+  align-self: start;
 }
 
+/* ========== Cards & seções ========== */
 .card {
-  background: var(--td-panel);
-  border-radius: 16px;
-  border: 1px solid var(--td-border);
-  box-shadow: var(--td-shadow-sm);
-  padding: 18px 18px 16px;
-  height: 100%;
-  box-sizing: border-box;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .section {
-  margin-bottom: 10px;
+  padding: 16px;
 }
 
+.divider {
+  height: 1px;
+  background: var(--divider);
+  margin: 0;
+}
+
+/* Perfil do cliente (avatar + nome + id/contato) */
 .profile {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
-
 .avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  background: #e0f2fe;
-  color: #0ea5e9;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  display: grid;
+  place-items: center;
   font-weight: 700;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
-
 .personName {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--td-text);
+  font-weight: 700;
+  color: var(--text);
 }
-
 .personId {
-  font-size: 13px;
-  color: var(--td-muted);
+  font-size: 12px;
+  color: var(--muted);
 }
 
+/* Lista de infos (Fila / Atendente / Status / Última atualização) */
 .infoList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
+  display: grid;
+  gap: 14px;
 }
-
 .infoItem {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  gap: 6px;
 }
-
 .label {
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--td-muted);
+  letter-spacing: 0.04em;
+  color: #94a3b8;
 }
-
 .value {
-  font-size: 14px;
-  color: var(--td-text);
+  color: var(--text);
+  font-weight: 600;
 }
 
+/* Pill de status */
 .pill {
   display: inline-flex;
-  padding: 3px 10px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: var(--td-pill-bg);
-  color: var(--td-pill-text);
-  font-size: 11px;
+  background: #fef9c3;
+  color: #854d0e;
   font-weight: 600;
-}
-
-.divider {
-  border-top: 1px solid var(--td-border-soft);
-  margin: 10px -18px 12px;
-}
-
-/* TAGS */
-.tagsWrap {
-  padding-top: 2px;
-}
-
-.tagsTitle {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--td-text-secondary);
-  margin-bottom: 4px;
+  border: 1px solid #fde68a;
 }
 
+/* Tags */
+.tagsWrap {
+  padding: 14px 16px;
+}
+.tagsTitle {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
-
 .chip {
+  padding: 4px 8px;
   border-radius: 999px;
-  background: var(--td-chip-bg);
-  color: var(--td-chip-text);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 12px;
+  border: 1px solid #e2e8f0;
 }
 
-/* MAIN (CHAT) */
+/* ========== Coluna do chat ========== */
 .main {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  display: flex;
+  min-height: 60vh;
 }
 
-/* CARD DO CHAT – sem height fixo em vh, usa flex para caber na página */
 .chatCard {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  background: var(--td-panel);
-  border-radius: 16px;
-  border: 1px solid var(--td-border);
-  box-shadow: var(--td-shadow-sm);
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto minmax(480px, 70vh); /* altura CONTROLADA do chat */
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-/* Cabeçalho das abas */
 .cardHead {
-  padding: 10px 16px 0;
-  border-bottom: 1px solid var(--td-border-soft);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--divider);
+  background: #fff;
 }
 
+/* Tabs */
 .tabs {
   display: flex;
-  gap: 14px;
+  gap: 24px;
 }
-
 .tab {
-  position: relative;
-  background: transparent;
-  border: none;
-  padding: 8px 6px;
-  font-size: 13px;
+  padding: 12px 4px;
+  border: 0;
+  background: none;
   font-weight: 600;
-  color: var(--td-muted);
+  color: #64748b;
+  border-bottom: 2px solid transparent;
   cursor: pointer;
 }
-
+.tab:hover {
+  color: #111827;
+}
 .tabActive {
-  color: var(--td-primary);
+  color: #2563eb;
+  border-bottom-color: #3b82f6;
 }
 
-.tabActive::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--td-primary);
-}
-
-/* ÁREA SCROLLÁVEL DO CHAT */
+/* O ChatThread já tem o próprio scroll; aqui só repassamos altura */
 .chatBody {
-  flex: 1;
-  min-height: 0;
-  padding: 14px;
-  overflow-y: auto; /* aqui é o scroll interno */
-  background: #f3f4f6;
-  border-radius: 0 0 16px 16px;
+  padding: 0;
+  height: 100%;
 }
 
-/* estados */
-.loading {
-  padding: 24px;
-  text-align: center;
-  font-size: 14px;
-  color: var(--td-muted);
+/* Loading & erro */
+.loading,
+.error {
+  padding: 18px;
+  color: var(--muted);
 }
 
+/* ====== Empty states (sem mensagens / sem anexos) ====== */
 .emptyState {
   height: 100%;
-  min-height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   text-align: center;
-  color: var(--td-muted);
+  color: var(--muted);
+  padding: 24px;
 }
-
 .emptyTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--td-text-secondary);
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
 }
-
 .emptySub {
   font-size: 13px;
-  margin-top: 4px;
 }
 
-/* ANEXOS */
+/* ====== Attachments ====== */
 .attachWrap {
-  height: 100%;
+  padding: 12px;
 }
-
 .attachList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  gap: 8px;
 }
-
 .attachItem {
-  background: var(--td-panel);
-  border-radius: 12px;
-  padding: 10px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  border: 1px solid var(--td-border-soft);
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-radius: 10px;
+  background: #fff;
 }
-
 .attachLeft {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
-
 .fileIcon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
-  background: #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: #4b5563;
+  background: #eef2ff;
+  color: #3730a3;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
 }
-
 .fileText {
   min-width: 0;
 }
-
 .fileName {
-  font-size: 13px;
   font-weight: 600;
-  color: var(--td-text);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .fileMeta {
   font-size: 12px;
-  color: var(--td-muted);
-  margin-top: 2px;
+  color: var(--muted);
 }
-
 .attachActions {
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* RESPONSIVO */
-@media (max-width: 960px) {
+/* ===== Botão primário (azul degradê) ===== */
+.btnPrimary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+.btnPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+.btnPrimary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+.btnPrimary:focus-visible {
+  outline: 2px solid #bfdbfe;
+  outline-offset: 2px;
+}
+.btnPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: saturate(0.6);
+}
+
+/* Tamanho pequeno para botões compactos (ex.: Baixar) */
+.btnSm {
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  gap: 6px;
+}
+
+/* ========== Responsivo ========== */
+@media (max-width: 1100px) {
   .columns {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
-
   .sidebar {
-    width: 100%;
+    position: static;
   }
-
-  .card {
-    height: auto;
-  }
-}
-
-@media (max-width: 640px) {
-  .page {
-    padding: 16px;
-  }
-
-  .pageHeader {
-    flex-wrap: wrap;
-  }
-
-  .headerLeft {
-    order: 1;
-  }
-
-  .headerCenter {
-    order: 2;
-    width: 100%;
-  }
-
-  .headerRight {
-    order: 3;
-    margin-left: auto;
+  .title {
+    font-size: 18px;
   }
 }
