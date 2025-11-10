@@ -3,7 +3,7 @@ import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
 import { useLocation, useParams } from 'react-router-dom';
 import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
-import styles from './styles/Customers.module.css'; // mantido igual seu código antigo
+import styles from './styles/Clientes.module.css';
 
 /* ================== helpers ================== */
 const PAGE_SIZES = [10, 20, 30, 40];
@@ -123,7 +123,7 @@ export default function Customers() {
   const location = useLocation();
   const params = useParams();
 
-  // MESMA LÓGICA DO QUEUES
+  // MESMO padrão do Queues: tenta pegar o flowId da rota e do state
   const flowId =
     params.flowId ||
     location.state?.flowId ||
@@ -156,17 +156,22 @@ export default function Customers() {
     const nextPageSize = opts.pageSize ?? pageSize;
     const nextQ        = opts.q ?? q;
 
+    // se não tiver flowId, nem tenta (back exige)
+    if (!flowId) {
+      setItems([]);
+      setTotal(0);
+      return { data: [], total: 0 };
+    }
+
     setLoading(true);
     try {
-      const resp = await apiGet('/customers', {
-        params: {
-          q: nextQ,
-          page: nextPage,
-          page_size: nextPageSize,
-          // se tiver flowId, manda para o back filtrar por fluxo
-          ...(flowId ? { flow_id: flowId } : {}),
-        },
-      });
+      const qs = new URLSearchParams();
+      qs.set('page', String(nextPage));
+      qs.set('page_size', String(nextPageSize));
+      if (nextQ) qs.set('q', nextQ);
+      qs.set('flow_id', flowId);
+
+      const resp = await apiGet(`/customers?${qs.toString()}`);
 
       const data = Array.isArray(resp?.data) ? resp.data : resp?.data ?? [];
       setItems(data);
@@ -175,7 +180,7 @@ export default function Customers() {
       const totalFound = Number(resp?.total || data.length || 0);
       setTotal(totalFound);
 
-      // baixa tags dos clientes visíveis (por fluxo também)
+      // baixa tags dos clientes visíveis (também com flow_id na query)
       const chunk = async (arr, size) => {
         for (let i = 0; i < arr.length; i += size) {
           const slice = arr.slice(i, i + size);
@@ -183,9 +188,9 @@ export default function Customers() {
             const uid = row.user_id;
             if (!uid || tagsLoaded[uid]) return;
             try {
-              const r = await apiGet(`/tags/customer/${encodeURIComponent(uid)}`, {
-                params: flowId ? { flow_id: flowId } : undefined,
-              });
+              const qsTags = new URLSearchParams();
+              qsTags.set('flow_id', flowId);
+              const r = await apiGet(`/tags/customer/${encodeURIComponent(uid)}?${qsTags.toString()}`);
               const list = Array.isArray(r?.tags) ? r.tags : (Array.isArray(r?.data) ? r.data : []);
               const norm = (list || []).map(x => String(x?.tag || x).trim()).filter(Boolean);
               setTagsByUser(m => ({ ...m, [uid]: norm }));
@@ -206,21 +211,26 @@ export default function Customers() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, q, tagsLoaded, flowId]);
 
-  useEffect(() => { load(); }, [load]); // primeira carga
+  useEffect(() => { 
+    load(); 
+  }, [load]);
 
-  /* ========= catálogo global (por fluxo) ========= */
+  /* ========= catálogo global (por flow_id) ========= */
   const loadCatalog = useCallback(async () => {
+    if (!flowId) {
+      setCatalog([]);
+      return;
+    }
+
     try {
       setCatalogBusy(true);
-      const resp = await apiGet('/tags/customer/catalog', {
-        params: {
-          active: true,
-          page_size: 200,
-          ...(flowId ? { flow_id: flowId } : {}),
-        },
-      });
+      const qs = new URLSearchParams();
+      qs.set('active', 'true');
+      qs.set('page_size', '200');
+      qs.set('flow_id', flowId);
 
-      const raw = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp?.tags) ? resp.tags : []);
+      const r = await apiGet(`/tags/customer/catalog?${qs.toString()}`);
+      const raw = Array.isArray(r?.data) ? r.data : (Array.isArray(r?.tags) ? r.tags : []);
       const list = raw.map(it => {
         if (typeof it === 'string') return { tag: it };
         const tag = String(it?.tag || '').trim();
@@ -237,17 +247,15 @@ export default function Customers() {
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
   const createTags = async (tokens) => {
-    if (!tokens?.length) return;
+    if (!tokens?.length || !flowId) return;
     try {
       setCatalogBusy(true);
       const uniq = [...new Set(tokens)];
+
+      const qs = `?flow_id=${encodeURIComponent(flowId)}`;
       await Promise.all(
         uniq.map(tag =>
-          apiPost('/tags/customer/catalog', {
-            tag,
-            active: true,
-            ...(flowId ? { flow_id: flowId } : {}),
-          })
+          apiPost(`/tags/customer/catalog${qs}`, { tag, active: true })
         )
       );
       await loadCatalog();
@@ -256,7 +264,7 @@ export default function Customers() {
 
   // remove também das exibições de todos os clientes (estado local)
   const deleteCatalogTag = async (tag) => {
-    if (!tag) return;
+    if (!tag || !flowId) return;
 
     const ok = await confirm({
       title: 'Excluir etiqueta do catálogo',
@@ -269,9 +277,8 @@ export default function Customers() {
 
     try {
       setCatalogBusy(true);
-      await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`, {
-        params: flowId ? { flow_id: flowId } : undefined,
-      });
+      const qs = `?flow_id=${encodeURIComponent(flowId)}`;
+      await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}${qs}`);
 
       setCatalog(prev => prev.filter(it => (typeof it === 'string' ? it !== tag : it.tag !== tag)));
       setSelectedTags(prev => prev.filter(t => t !== tag));
