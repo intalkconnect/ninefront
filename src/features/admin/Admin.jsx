@@ -947,6 +947,22 @@ export default function Admin() {
     </RequireRole>
   }
 />
+                    <Route
+  path="development/flowhub/:flowId/queues/new" // << página de canais por flow
+  element={
+    <RequireRole allow={isAdmin}>
+      <QueueForm />
+    </RequireRole>
+  }
+/>
+                              <Route
+  path="development/flowhub/:flowId/queues/:id" // << página de canais por flow
+  element={
+    <RequireRole allow={isAdmin}>
+      <QueueHours />
+    </RequireRole>
+  }
+/>
           <Route
   path="/development/flowhub/:flowId/agents"
   element={<Agents />}
