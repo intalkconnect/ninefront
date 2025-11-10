@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
 import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
-import styles from './styles/Clientes.module.css';
+import styles from './styles/Customer.module.css';
 
 /* ================== helpers ================== */
 const PAGE_SIZES = [10, 20, 30, 40];
@@ -117,7 +117,7 @@ function ChipsCreateInput({
   );
 }
 
-export default function Clientes() {
+export default function Customer() {
   const confirm = useConfirm();
 
   const [items, setItems] = useState([]);
