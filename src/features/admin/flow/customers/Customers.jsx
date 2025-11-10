@@ -133,7 +133,7 @@ function ChipsCreateInput({
   );
 }
 
-export default function Clientes() {
+export default function Customers() {
   const confirm = useConfirm();
   const location = useLocation();
 
