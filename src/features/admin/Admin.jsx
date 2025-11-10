@@ -69,7 +69,7 @@ import UserForm from "./management/users/UserForm";
 import Agents from "./flow/agents/Agents";
 import AgentsForm from "./flow/agents/AgentsForm";
 
-import Clientes from "./management/clientes/Clientes";
+import Customers from "./flow/customers/Customers";
 import TicketsHistory from "./flow/history/TicketsHistory";
 import TicketDetail from "./flow/history/TicketDetail";
 import Campaigns from "./campaigns/campaign/Campaigns";
@@ -302,17 +302,7 @@ export default function Admin() {
               }
             ],
           },
-          {
-            key: "mgmt-operacao",
-            label: "Operação",
-            children: [
-              {
-                to: "management/clientes",
-                icon: <Contact size={16} />,
-                label: "Clientes",
-              },
-            ],
-          },
+
         ],
       },
 
@@ -979,6 +969,10 @@ export default function Admin() {
 <Route
   path="/development/flowhub/:flowId/ticket-history/:id"
   element={<TicketDetail />}
+/>
+          <Route
+  path="/development/flowhub/:flowId/customers"
+  element={<Customers />}
 />
           <Route
             path="development/tracker"
