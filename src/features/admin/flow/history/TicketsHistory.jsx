@@ -110,7 +110,7 @@ export default function TicketsHistory() {
 
   const goBack = () => {
     if (flowId) {
-      navigate(`/development/flowhub/${encodeURIComponent(flowId)}`);
+      navigate("/development/flowhub");
     } else {
       navigate(-1);
     }
