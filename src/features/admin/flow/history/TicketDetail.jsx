@@ -154,21 +154,6 @@ export default function TicketDetail() {
 
   return (
     <div className={styles.page}>
-      {/* breadcrumbs (sem “Management”) */}
-      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-        <ol className={styles.bcList}>
-          <li>
-            <Link to="/management/history" className={styles.bcLink}>
-              History
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <span className={styles.bcCurrent}>Ticket #{titleNum}</span>
-          </li>
-        </ol>
-      </nav>
-
       {/* Header card: Voltar | Ticket # | Exportar */}
       <div className={styles.pageHeader}>
         <div className={styles.headerLeft}>
