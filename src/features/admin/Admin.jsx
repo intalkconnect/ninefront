@@ -877,8 +877,6 @@ export default function Admin() {
           <Route path="management/users/new" element={<UserForm />} />
           <Route path="management/users/:userId/edit" element={<UserForm />} />
 
-          <Route path="management/clientes" element={<Clientes />} />
-
           {/* campaigns */}
           <Route path="campaigns/templates" element={<Templates />} />
           <Route path="campaigns/templates/new" element={<TemplateCreate />} />
