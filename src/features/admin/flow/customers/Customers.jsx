@@ -1,687 +1,855 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
-import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
-import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
-import styles from './styles/Customers.module.css';
-
-/* ================== helpers ================== */
-const PAGE_SIZES = [10, 20, 30, 40];
-
-// NÃO alterar o texto digitado: apenas separa por vírgula/; para criação múltipla
-function splitTokens(raw) {
-  return String(raw || '')
-    .split(/[,\u003B\u061B\uFF1B]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+function isValidUserId(userId) {
+  return /^[^@]+@[^@]+\.[^@]+$/.test(userId);
 }
 
-/* ===== ícones de canal ===== */
-const IconWA = (props) => (
-  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
-    <path d="M20.52 3.48A11.94 11.94 0 0 0 12 0C5.37 0 0 5.37 0 12c0 2.11.55 4.16 1.6 5.98L0 24l6.2-1.62A11.93 11.93 0 0 0 12 24c6.63 0 12-5.37 12-12 0-3.2-1.25-6.22-3.48-8.52z" fill="#25D366" />
-    <path
-      d="M18.41 14.23c-.25.7-1.23 1.29-2.02 1.47-.54.13-1.24.24-3.58-.74-3.01-1.25-4.95-4.34-5.1-4.55-.15-.22-1.22-1.62-1.22-3.09 0-1.47.77-2.19 1.05-2.49.27-.3.58-.37.78-.37h.56c.18 0 .43.06.66.51.25.5.8 1.73.87 1.86.07.14.12.3.02.48-.1.19-.15.3-.3.47-.14.17-.3.38-.42.51-.14.14-.29.3-.13.58.15.29.65 1.08 1.4 1.75.97.86 1.79 1.13 2.06 1.25.27.12.43.1.6-.06.19-.2.43-.52.68-.84.17-.23.39-.26.62-.18.24.08 1.5.71 1.76.84.26.13.43.19.5.3.06.11.06.67-.19 1.37z"
-      fill="#fff"
-    />
-  </svg>
-);
-const IconTG = (props) => (
-  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
-    <path
-      d="M9.999 15.2 9.9 20c.4 0 .6-.2.8-.4l1.9-1.8 3.9 2.8c.7.4 1.2.2 1.4-.6l2.6-12.2c.2-.8-.3-1.2-1-.9L3.8 9.4c-.8.3-.8.7-.1 1l4.7 1.5 10.8-6.7-9.4 10.5z"
-      fill="#229ED9"
-    />
-  </svg>
-);
-const IconIG = (props) => (
-  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
-    <radialGradient id="igG" cx="50%" cy="50%" r="75%">
-      <stop offset="0%" stopColor="#FFD776" />
-      <stop offset="50%" stopColor="#F56040" />
-      <stop offset="100%" stopColor="#8A3AB9" />
-    </radialGradient>
-    <rect x="2" y="2" width="20" height="20" rx="5" fill="url(#igG)" />
-    <circle cx="12" cy="12" r="4" fill="#fff" />
-    <circle cx="17" cy="7" r="1.3" fill="#fff" />
-  </svg>
-);
-const IconFB = (props) => (
-  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" {...props}>
-    <path
-      d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.093 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.007 1.793-4.668 4.533-4.668 1.313 0 2.686.235 2.686.235v2.953h-1.514c-1.492 0-1.956.928-1.956 1.88v2.246h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"
-      fill="#1877F2"
-    />
-  </svg>
-);
+function normalizeTag(raw) {
+  if (raw == null) return null;
+  const t = String(raw).trim().replace(/\s+/g, " ");
+  if (!t) return null;
+  if (t.length > 40) return t.slice(0, 40);
 
-function channelIcon(channel) {
-  const c = String(channel || '').toLowerCase();
-  if (c === 'whatsapp') return <IconWA />;
-  if (c === 'telegram') return <IconTG />;
-  if (c === 'instagram') return <IconIG />;
-  if (c === 'facebook') return <IconFB />;
-  return null;
+  if (/[^\S\r\n]*[\r\n]/.test(t)) return null;
+  return t;
 }
 
-/** Input de criação com chips (azul claro, sem pastel “lavado”) e “X” */
-function ChipsCreateInput({
-  placeholder = 'ex.: VIP, Suporte, Cliente Atrasado',
-  onCreate,
-  onDeleteTag,
-  busy,
-  tags = [], // [{ tag }]
-}) {
-  const [text, setText] = useState('');
+async function customersRoutes(fastify, options) {
+  // GET /customers?page=&page_size=&q=&flow_id=
+  fastify.get("/", async (req, reply) => {
+    const { q = "", page = 1, page_size = 10, flow_id } = req.query || {};
 
-  const commit = async (raw) => {
-    const tokens = splitTokens(raw);
-    if (!tokens.length) return;
-    setText('');
-    await onCreate(tokens);
-  };
-
-  const onKeyDown = async (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      if (text.trim()) await commit(text);
+    if (!flow_id) {
+      return reply
+        .code(400)
+        .send({ error: "flow_id é obrigatório para listar clientes" });
     }
-    if (e.key === 'Backspace' && !text && tags.length) {
-      onDeleteTag && onDeleteTag(tags[tags.length - 1].tag);
+    const flowId = String(flow_id);
+
+    // page_size permitido: 10,20,30,40
+    const allowed = new Set([10, 20, 30, 40]);
+    const pageSize = allowed.has(Number(page_size)) ? Number(page_size) : 10;
+    const pageNum = Math.max(1, Number(page) || 1);
+    const offset = (pageNum - 1) * pageSize;
+
+    const paramsWhere = [];
+    const where = [];
+
+    // sempre filtra por flow_id
+    paramsWhere.push(flowId);
+    where.push(`c.flow_id = $${paramsWhere.length}::uuid`);
+
+    if (q) {
+      paramsWhere.push(`%${q}%`);
+      const i = paramsWhere.length;
+      where.push(`(
+        LOWER(COALESCE(c.name,''))      LIKE LOWER($${i})
+        OR LOWER(COALESCE(c.user_id,'')) LIKE LOWER($${i})
+        OR LOWER(COALESCE(c.phone,''))   LIKE LOWER($${i})
+      )`);
     }
-  };
 
-  const onPaste = async (e) => {
-    const txt = (e.clipboardData || window.clipboardData)?.getData('text') || '';
-    if (/[,\u003B\u061B\uFF1B]/.test(txt)) {
-      e.preventDefault();
-      await commit(txt);
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+    const sqlCount = `SELECT COUNT(*)::bigint AS total FROM clientes c ${whereSql}`;
+    const sqlList = `
+      SELECT c.user_id, c.name, c.phone, c.channel, c.created_at, c.updated_at
+        FROM clientes c
+        ${whereSql}
+       ORDER BY c.updated_at DESC NULLS LAST, c.created_at DESC
+       LIMIT $${paramsWhere.length + 1}
+      OFFSET $${paramsWhere.length + 2}
+    `;
+
+    try {
+      const countRes = await req.db.query(sqlCount, paramsWhere);
+      const total = Number(countRes.rows?.[0]?.total || 0);
+
+      const listRes = await req.db.query(sqlList, [
+        ...paramsWhere,
+        pageSize,
+        offset,
+      ]);
+      const data = listRes.rows || [];
+
+      const total_pages = Math.max(1, Math.ceil(total / pageSize));
+      return reply.send({
+        data,
+        page: pageNum,
+        page_size: pageSize,
+        total,
+        total_pages,
+      });
+    } catch (error) {
+      req.log.error("Erro ao listar clientes:", error);
+      return reply.code(500).send({ error: "Erro interno ao listar clientes" });
     }
-  };
+  });
 
-  return (
-    <div
-      className={styles.tagsField}
-      onClick={(e) => e.currentTarget.querySelector('input')?.focus()}
-      aria-label="Criar etiquetas do catálogo"
-    >
-      {tags.map(({ tag }) => (
-        <span key={tag} className={styles.tagChip}>
-          <span className={styles.tagText}>{tag}</span>
-          <button
-            type="button"
-            className={styles.tagChipX}
-            onClick={() => onDeleteTag && onDeleteTag(tag)}
-            aria-label={`Excluir ${tag}`}
-            disabled={busy}
-          >
-            ×
-          </button>
-        </span>
-      ))}
+  // GET /customers/:user_id?flow_id=...
+  fastify.get("/:user_id", async (req, reply) => {
+    const { user_id } = req.params;
+    const { flow_id } = req.query || {};
 
-      <input
-        className={styles.tagsInput}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={onKeyDown}
-        onPaste={onPaste}
-        placeholder={placeholder}
-        disabled={busy}
-      />
-    </div>
-  );
-}
+    if (!flow_id) {
+      return reply
+        .code(400)
+        .send({ error: "flow_id é obrigatório", user_id });
+    }
+    const flowId = String(flow_id);
 
-export default function Clientes() {
-  const confirm = useConfirm();
-  const location = useLocation();
+    if (!isValidUserId(user_id)) {
+      return reply.code(400).send({
+        error: "Formato de user_id inválido. Use: usuario@dominio",
+        user_id,
+      });
+    }
 
-  // flow_id vem da querystring (?flow_id=...)
-  const search = new URLSearchParams(location.search);
-  const flowId = search.get('flow_id');
+    try {
+      const { rows } = await req.db.query(
+        `
+      SELECT 
+        c.*, 
+        t.ticket_number, 
+        t.fila, 
+        c.channel 
+      FROM clientes c
+      LEFT JOIN tickets t 
+        ON c.user_id = t.user_id
+       AND t.status = 'open'
+       AND t.flow_id = c.flow_id
+      WHERE c.user_id = $1
+        AND c.flow_id = $2::uuid
+      ORDER BY t.created_at DESC NULLS LAST
+      LIMIT 1
+      `,
+        [user_id, flowId]
+      );
 
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+      return rows[0]
+        ? reply.send(rows[0])
+        : reply.code(404).send({ error: "Cliente não encontrado", user_id });
+    } catch (error) {
+      fastify.log.error(`Erro ao buscar cliente ${user_id}:`, error);
+      return reply.code(500).send({
+        error: "Erro interno",
+        user_id,
+        ...(process.env.NODE_ENV === "production" && {
+          details: error.message,
+        }),
+      });
+    }
+  });
 
-  const [q, setQ] = useState('');
-  const [pageSize, setPageSize] = useState(10);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [openRow, setOpenRow] = useState(null);
+  // PUT /customers/:user_id?flow_id=...
+  fastify.put("/:user_id", async (req, reply) => {
+    const { user_id } = req.params;
+    const { flow_id } = req.query || {};
+    const { name, phone } = req.body || {};
 
-  // catálogo global [{tag}]
-  const [catalog, setCatalog] = useState([]);
-  const [catalogBusy, setCatalogBusy] = useState(false);
+    if (!flow_id) {
+      const resp = { error: "flow_id é obrigatório", user_id };
+      await fastify.audit(req, {
+        action: "customer.update.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp,
+        requestBody: req.body,
+      });
+      return reply.code(400).send(resp);
+    }
+    const flowId = String(flow_id);
 
-  // filtro por tag (strings)
-  const [selectedTags, setSelectedTags] = useState([]);
+    // 400 – validação
+    if (!name?.trim() || !phone?.trim()) {
+      const resp = {
+        error: "Campos name e phone são obrigatórios e não podem ser vazios",
+        user_id,
+      };
+      await fastify.audit(req, {
+        action: "customer.update.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp,
+        requestBody: req.body,
+      });
+      return reply.code(400).send(resp);
+    }
 
-  // tags por cliente
-  const [tagsByUser, setTagsByUser] = useState({}); // { [user_id]: string[] }
-  const [tagsLoaded, setTagsLoaded] = useState({}); // { [user_id]: bool }
+    try {
+      // snapshot "antes"
+      const beforeQ = await req.db.query(
+        `SELECT * FROM clientes WHERE user_id = $1 AND flow_id = $2::uuid LIMIT 1`,
+        [user_id, flowId]
+      );
+      const beforeData = beforeQ.rows?.[0] || null;
 
-  /* ========= carregar clientes (sempre com flow_id) ========= */
-  const load = useCallback(
-    async (opts = {}) => {
-      const nextPage = opts.page ?? page;
-      const nextPageSize = opts.pageSize ?? pageSize;
-      const nextQ = opts.q ?? q;
+      // atualização
+      const { rows } = await req.db.query(
+        `UPDATE clientes 
+         SET name = $1, phone = $2, updated_at = NOW()
+       WHERE user_id = $3
+         AND flow_id = $4::uuid
+       RETURNING *`,
+        [name.trim(), phone.trim(), user_id, flowId]
+      );
 
-      // se não tiver flow_id, não chama API (back vai exigir)
-      if (!flowId) {
-        setItems([]);
-        setTotal(0);
-        setLoading(false);
-        return { data: [], total: 0 };
-      }
-
-      setLoading(true);
-      try {
-        const resp = await apiGet('/customers', {
-          params: {
-            q: nextQ,
-            page: nextPage,
-            page_size: nextPageSize,
-            flow_id: flowId,
-          },
+      // 404 – não encontrado
+      if (!rows[0]) {
+        const resp = { error: "Cliente não encontrado", user_id };
+        await fastify.audit(req, {
+          action: "customer.update.not_found",
+          resourceType: "customer",
+          resourceId: user_id,
+          statusCode: 404,
+          responseBody: resp,
+          requestBody: req.body,
+          beforeData,
         });
-
-        const data = Array.isArray(resp?.data) ? resp.data : resp?.data ?? [];
-        setItems(data);
-        setPage(resp?.page || nextPage);
-        setPageSize(resp?.page_size || nextPageSize);
-        const totalFound = Number(resp?.total || data.length || 0);
-        setTotal(totalFound);
-
-        // baixa tags dos clientes visíveis (também com flow_id)
-        const chunk = async (arr, size) => {
-          for (let i = 0; i < arr.length; i += size) {
-            const slice = arr.slice(i, i + size);
-            await Promise.all(
-              slice.map(async (row) => {
-                const uid = row.user_id;
-                if (!uid || tagsLoaded[uid]) return;
-                try {
-                  const r = await apiGet(
-                    `/tags/customer/${encodeURIComponent(uid)}`,
-                    {
-                      params: { flow_id: flowId },
-                    }
-                  );
-                  const list = Array.isArray(r?.tags)
-                    ? r.tags
-                    : Array.isArray(r?.data)
-                    ? r.data
-                    : [];
-                  const norm = (list || [])
-                    .map((x) => String(x?.tag || x).trim())
-                    .filter(Boolean);
-                  setTagsByUser((m) => ({ ...m, [uid]: norm }));
-                  setTagsLoaded((m) => ({ ...m, [uid]: true }));
-                } catch {
-                  setTagsByUser((m) => ({ ...m, [uid]: [] }));
-                  setTagsLoaded((m) => ({ ...m, [uid]: true }));
-                }
-              })
-            );
-          }
-        };
-        await chunk(data, 8);
-
-        return { data, total: totalFound };
-      } finally {
-        setLoading(false);
+        return reply.code(404).send(resp);
       }
-    },
-    [page, pageSize, q, tagsLoaded, flowId]
-  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+      // 200 – sucesso
+      const afterData = rows[0];
+      await fastify.audit(req, {
+        action: "customer.update",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 200,
+        requestBody: req.body,
+        beforeData,
+        afterData,
+      });
 
-  /* ========= catálogo global (por flow) ========= */
-  const loadCatalog = useCallback(async () => {
-    if (!flowId) {
-      setCatalog([]);
-      return;
+      return reply.send(afterData);
+    } catch (error) {
+      fastify.log.error(`Erro ao atualizar cliente ${user_id}:`, error);
+      const resp = {
+        error: "Erro na atualização",
+        user_id,
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
+      };
+
+      await fastify.audit(req, {
+        action: "customer.update.error",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 500,
+        responseBody: resp,
+        requestBody: req.body,
+        extra: { message: error.message },
+      });
+
+      return reply.code(500).send(resp);
+    }
+  });
+
+  // PATCH /customers/:user_id?flow_id=...
+  fastify.patch("/:user_id", async (req, reply) => {
+    const { user_id } = req.params;
+    const { flow_id } = req.query || {};
+
+    if (!flow_id) {
+      const resp = { error: "flow_id é obrigatório", user_id };
+      await fastify.audit(req, {
+        action: "customer.patch.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        requestBody: req.body,
+        responseBody: resp,
+      });
+      return reply.code(400).send(resp);
+    }
+    const flowId = String(flow_id);
+
+    // normaliza e filtra campos permitidos
+    const updates = Object.entries(req.body || {})
+      .filter(
+        ([key, val]) =>
+          ["name", "phone"].includes(key) &&
+          typeof val === "string" &&
+          val.trim()
+      )
+      .reduce((acc, [key, val]) => ({ ...acc, [key]: val.trim() }), {});
+
+    // 400 – nada para atualizar
+    if (Object.keys(updates).length === 0) {
+      const resp = {
+        error: "Forneça name ou phone válidos para atualização",
+        user_id,
+      };
+      await fastify.audit(req, {
+        action: "customer.patch.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        requestBody: req.body,
+        responseBody: resp,
+      });
+      return reply.code(400).send(resp);
     }
 
     try {
-      setCatalogBusy(true);
-      const r = await apiGet('/tags/customer/catalog', {
-        params: {
-          active: true,
-          page_size: 200,
-          flow_id: flowId,
-        },
+      // snapshot "antes"
+      const beforeQ = await req.db.query(
+        `SELECT * FROM clientes WHERE user_id = $1 AND flow_id = $2::uuid LIMIT 1`,
+        [user_id, flowId]
+      );
+      const beforeData = beforeQ.rows?.[0] || null;
+
+      // monta SET dinamicamente
+      const keys = Object.keys(updates);
+      const setClauses = keys
+        .map((key, i) => `${key} = $${i + 1}`)
+        .join(", ");
+      const len = keys.length;
+
+      const { rows } = await req.db.query(
+        `UPDATE clientes 
+         SET ${setClauses}, updated_at = NOW()
+       WHERE user_id = $${len + 1}
+         AND flow_id = $${len + 2}::uuid
+       RETURNING *`,
+        [...Object.values(updates), user_id, flowId]
+      );
+
+      // 404 – não encontrado
+      if (!rows[0]) {
+        const resp = { error: "Cliente não encontrado", user_id };
+        await fastify.audit(req, {
+          action: "customer.patch.not_found",
+          resourceType: "customer",
+          resourceId: user_id,
+          statusCode: 404,
+          requestBody: req.body,
+          responseBody: resp,
+          beforeData,
+        });
+        return reply.code(404).send(resp);
+      }
+
+      // 200 – sucesso
+      const afterData = rows[0];
+      await fastify.audit(req, {
+        action: "customer.patch",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 200,
+        requestBody: req.body,
+        beforeData,
+        afterData,
       });
 
-      const raw = Array.isArray(r?.data)
-        ? r.data
-        : Array.isArray(r?.tags)
-        ? r.tags
-        : [];
-      const list = raw
-        .map((it) => {
-          if (typeof it === 'string') return { tag: it };
-          const tag = String(it?.tag || '').trim();
-          return { tag };
-        })
-        .filter((x) => x.tag);
-      const dedup = Array.from(new Map(list.map((x) => [x.tag, x])).values()).sort((a, b) =>
-        a.tag.localeCompare(b.tag)
-      );
-      setCatalog(dedup);
-    } finally {
-      setCatalogBusy(false);
+      return reply.send(afterData);
+    } catch (error) {
+      fastify.log.error(`Erro ao atualizar parcialmente ${user_id}:`, error);
+      const resp = {
+        error: "Erro na atualização parcial",
+        user_id,
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
+      };
+
+      await fastify.audit(req, {
+        action: "customer.patch.error",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 500,
+        requestBody: req.body,
+        responseBody: resp,
+        extra: { message: error.message },
+      });
+
+      return reply.code(500).send(resp);
     }
-  }, [flowId]);
+  });
 
-  useEffect(() => {
-    loadCatalog();
-  }, [loadCatalog]);
+  // DELETE /customers/:user_id?flow_id=...
+  fastify.delete("/:user_id", async (req, reply) => {
+    const { user_id } = req.params;
+    const { flow_id } = req.query || {};
 
-  const createTags = async (tokens) => {
-    if (!tokens?.length || !flowId) return;
+    if (!flow_id) {
+      const resp = { error: "flow_id é obrigatório", user_id };
+      await fastify.audit(req, {
+        action: "customer.delete.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp,
+      });
+      return reply.code(400).send(resp);
+    }
+    const flowId = String(flow_id);
+
     try {
-      setCatalogBusy(true);
-      const uniq = [...new Set(tokens)];
-      await Promise.all(
-        uniq.map((tag) =>
-          apiPost('/tags/customer/catalog', { tag, active: true, flow_id: flowId })
-        )
+      // snapshot "antes"
+      const beforeQ = await req.db.query(
+        `SELECT * FROM clientes WHERE user_id = $1 AND flow_id = $2::uuid LIMIT 1`,
+        [user_id, flowId]
       );
-      await loadCatalog();
-    } finally {
-      setCatalogBusy(false);
+      const beforeData = beforeQ.rows?.[0] || null;
+
+      const { rowCount } = await req.db.query(
+        `DELETE FROM clientes WHERE user_id = $1 AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+
+      if (rowCount > 0) {
+        await fastify.audit(req, {
+          action: "customer.delete",
+          resourceType: "customer",
+          resourceId: user_id,
+          statusCode: 204,
+          beforeData,
+        });
+        return reply.code(204).send();
+      }
+
+      const resp404 = { error: "Cliente não encontrado", user_id };
+      await fastify.audit(req, {
+        action: "customer.delete.not_found",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 404,
+        responseBody: resp404,
+      });
+      return reply.code(404).send(resp404);
+    } catch (error) {
+      fastify.log.error(`Erro ao deletar cliente ${user_id}:`, error);
+      const resp500 = {
+        error: "Erro ao excluir",
+        user_id,
+        ...(process.env.NODE_ENV === "production" && {
+          details: error.message,
+        }),
+      };
+      await fastify.audit(req, {
+        action: "customer.delete.error",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 500,
+        responseBody: resp500,
+        extra: { message: error.message },
+      });
+      return reply.code(500).send(resp500);
     }
-  };
+  });
 
-  // remove também das exibições de todos os clientes (estado local)
-  const deleteCatalogTag = async (tag) => {
-    if (!tag || !flowId) return;
+  // GET /customers/:user_id/tags?flow_id=...
+  fastify.get("/:user_id/tags", async (req, reply) => {
+    const { user_id } = req.params;
+    const { flow_id } = req.query || {};
 
-    const ok = await confirm({
-      title: 'Excluir etiqueta do catálogo',
-      description: `Tem certeza que deseja excluir a etiqueta "${tag}"? Esse procedimento também removerá a etiqueta de todos os clientes.`,
-      confirmText: 'Excluir',
-      cancelText: 'Cancelar',
-      tone: 'danger',
-    });
-    if (!ok) return;
+    if (!flow_id) {
+      return reply
+        .code(400)
+        .send({ error: "flow_id é obrigatório para listar tags" });
+    }
+    const flowId = String(flow_id);
+
+    if (!isValidUserId(user_id)) {
+      return reply
+        .code(400)
+        .send({ error: "Formato de user_id inválido. Use: usuario@dominio" });
+    }
 
     try {
-      setCatalogBusy(true);
-      await apiDelete(`/tags/customer/catalog/${encodeURIComponent(tag)}`, {
-        params: { flow_id: flowId },
-      });
-
-      setCatalog((prev) =>
-        prev.filter((it) => (typeof it === 'string' ? it !== tag : it.tag !== tag))
+      const cRes = await req.db.query(
+        `SELECT 1 FROM clientes WHERE user_id = $1 AND flow_id = $2::uuid`,
+        [user_id, flowId]
       );
-      setSelectedTags((prev) => prev.filter((t) => t !== tag));
-      setTagsByUser((prev) => {
-        const next = {};
-        for (const [uid, arr] of Object.entries(prev)) {
-          next[uid] = (arr || []).filter((t) => t !== tag);
-        }
-        return next;
+      if (cRes.rowCount === 0)
+        return reply.code(404).send({ error: "Cliente não encontrado" });
+
+      const { rows } = await req.db.query(
+        `SELECT tag 
+           FROM customer_tags 
+          WHERE user_id = $1
+            AND flow_id = $2::uuid
+          ORDER BY tag ASC`,
+        [user_id, flowId]
+      );
+      return reply.send({ user_id, tags: rows.map((r) => r.tag) });
+    } catch (err) {
+      req.log.error({ err }, "Erro em GET /clientes/:user_id/tags");
+      return reply
+        .code(500)
+        .send({ error: "Erro interno ao listar tags do cliente" });
+    }
+  });
+
+  // PUT /customers/:user_id/tags?flow_id=... { tags: string[] }
+  fastify.put("/:user_id/tags", async (req, reply) => {
+    const { user_id } = req.params;
+    const { flow_id } = req.query || {};
+    const { tags } = req.body || {};
+
+    if (!flow_id) {
+      const resp400 = { error: "flow_id é obrigatório" };
+      await fastify.audit(req, {
+        action: "customer.tags.replace.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
+    const flowId = String(flow_id);
+
+    if (!isValidUserId(user_id)) {
+      const resp400 = {
+        error: "Formato de user_id inválido. Use: usuario@dominio",
+      };
+      await fastify.audit(req, {
+        action: "customer.tags.replace.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
+    if (!Array.isArray(tags)) {
+      const resp400 = { error: "Payload inválido. Envie { tags: string[] }" };
+      await fastify.audit(req, {
+        action: "customer.tags.replace.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
+
+    const norm = [...new Set(tags.map(normalizeTag).filter(Boolean))];
+
+    const client = req.db;
+    let inTx = false;
+    try {
+      const cRes = await client.query(
+        `SELECT 1 FROM clientes WHERE user_id = $1 AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+      if (cRes.rowCount === 0) {
+        const resp404 = { error: "Cliente não encontrado" };
+        await fastify.audit(req, {
+          action: "customer.tags.replace.not_found",
+          resourceType: "customer",
+          resourceId: user_id,
+          statusCode: 404,
+          responseBody: resp404,
+        });
+        return reply.code(404).send(resp404);
+      }
+
+      const beforeQ = await client.query(
+        `SELECT COALESCE(array_agg(tag ORDER BY tag), '{}') AS tags
+         FROM customer_tags
+        WHERE user_id = $1
+          AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+      const beforeTags = beforeQ.rows?.[0]?.tags || [];
+
+      await client.query("BEGIN");
+      inTx = true;
+
+      await client.query(
+        `DELETE FROM customer_tags WHERE user_id = $1 AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+
+      if (norm.length) {
+        const values = norm
+          .map((_, i) => `($1, $2::uuid, $${i + 3})`)
+          .join(", ");
+        await client.query(
+          `INSERT INTO customer_tags (user_id, flow_id, tag)
+           VALUES ${values}
+           ON CONFLICT DO NOTHING`,
+          [user_id, flowId, ...norm]
+        );
+      }
+
+      await client.query("COMMIT");
+      inTx = false;
+
+      const resp200 = { ok: true, user_id, tags: norm };
+
+      await fastify.audit(req, {
+        action: "customer.tags.replace",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 200,
+        beforeData: { tags: beforeTags },
+        afterData: { tags: norm },
+        requestBody: { tags },
+        responseBody: resp200,
       });
 
-      await loadCatalog();
-    } catch (e) {
-      console.error('Falha ao remover etiqueta:', e);
-    } finally {
-      setCatalogBusy(false);
-    }
-  };
+      return reply.send(resp200);
+    } catch (err) {
+      if (inTx) {
+        try {
+          await req.db.query("ROLLBACK");
+        } catch {}
+      }
+      req.log.error({ err }, "Erro em PUT /clientes/:user_id/tags");
 
-  /* ========= filtros / busca ========= */
-  const onSearch = async (e) => {
-    e?.preventDefault?.();
-    setPage(1);
-    await load({ page: 1, q });
-  };
+      const resp500 = { error: "Erro ao salvar tags do cliente" };
 
-  const visible = useMemo(() => {
-    let data = items;
-    if (selectedTags.length > 0) {
-      data = data.filter((row) => {
-        const uid = row.user_id;
-        const userTags = tagsByUser[uid] || [];
-        return selectedTags.every((t) => userTags.includes(t));
+      await fastify.audit(req, {
+        action: "customer.tags.replace.error",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 500,
+        responseBody: resp500,
+        extra: { message: err?.message },
       });
+
+      return reply.code(500).send(resp500);
     }
-    return data;
-  }, [items, selectedTags, tagsByUser]);
+  });
 
-  /* ========= helpers de UI ========= */
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const showingTo = total === 0 ? 0 : Math.min(page * pageSize, total);
+  // POST /customers/:user_id/tags?flow_id=... { tag: string }
+  fastify.post("/:user_id/tags", async (req, reply) => {
+    const { user_id } = req.params;
+    const { flow_id } = req.query || {};
+    const { tag } = req.body || {};
+    const t = normalizeTag(tag);
 
-  return (
-    <div className={styles.container}>
-      {/* Cabeçalho padrão de página */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Clientes</h1>
-          <p className={styles.subtitle}>
-            Gestão de clientes: crie etiquetas, filtre por etiquetas e visualize os detalhes.
-          </p>
-        </div>
-      </div>
+    if (!flow_id) {
+      const resp400 = { error: "flow_id é obrigatório" };
+      await fastify.audit(req, {
+        action: "customer.tags.add.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
+    const flowId = String(flow_id);
 
-      {/* Card principal */}
-      <div className={styles.card}>
-        {/* ===== Criação (chips no input) ===== */}
-        <section className={styles.cardHead}>
-          <div className={styles.groupColumn}>
-            <div className={styles.groupRow}>
-              <label className={styles.label}>Etiquetas</label>
-              <ChipsCreateInput
-                onCreate={createTags}
-                onDeleteTag={deleteCatalogTag}
-                busy={catalogBusy}
-                tags={catalog}
-                placeholder="Digite e pressione Enter (pode colar várias separadas por vírgula)"
-              />
-              <div className={styles.hint}>
-                As etiquetas criadas aqui ficam disponíveis para todos os clientes deste fluxo.
-              </div>
-            </div>
-          </div>
-        </section>
+    if (!isValidUserId(user_id)) {
+      const resp400 = {
+        error: "Formato de user_id inválido. Use: usuario@dominio",
+      };
+      await fastify.audit(req, {
+        action: "customer.tags.add.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
 
-        {/* ===== Filtro + Busca ===== */}
-        <section className={styles.filtersBar}>
-          <div className={styles.filtersHead}>
-            <div className={styles.filtersTitle}>Filtrar por etiquetas</div>
-          </div>
+    if (!t) {
+      const resp400 = { error: "Tag inválida" };
+      await fastify.audit(req, {
+        action: "customer.tags.add.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
 
-          <div className={styles.tagsFilterWrap}>
-            {catalog.length === 0 && (
-              <div className={styles.empty}>Nenhuma etiqueta cadastrada.</div>
-            )}
-            {catalog.map(({ tag }) => {
-              const active = selectedTags.includes(tag);
-              return (
-                <button
-                  type="button"
-                  key={tag}
-                  className={`${styles.tagToggle} ${
-                    active ? styles.tagToggleOn : ''
-                  }`}
-                  onClick={() =>
-                    setSelectedTags((prev) =>
-                      prev.includes(tag)
-                        ? prev.filter((t) => t !== tag)
-                        : [...prev, tag]
-                    )
-                  }
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
+    try {
+      const cRes = await req.db.query(
+        `SELECT 1 FROM clientes WHERE user_id = $1 AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+      if (cRes.rowCount === 0) {
+        const resp404 = { error: "Cliente não encontrado" };
+        await fastify.audit(req, {
+          action: "customer.tags.add.not_found",
+          resourceType: "customer",
+          resourceId: user_id,
+          statusCode: 404,
+          responseBody: resp404,
+        });
+        return reply.code(404).send(resp404);
+      }
 
-          {selectedTags.length > 0 && (
-            <div className={styles.filterSelectedRow}>
-              {selectedTags.map((t) => (
-                <span
-                  key={t}
-                  className={styles.tagChip /* mesma aparência, mas com X pra limpar */}
-                >
-                  <span className={styles.tagText}>{t}</span>
-                  <button
-                    className={styles.tagChipX}
-                    onClick={() =>
-                      setSelectedTags((prev) => prev.filter((x) => x !== t))
-                    }
-                    aria-label={`Remover ${t}`}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-              <button
-                type="button"
-                className={styles.btn}
-                onClick={() => setSelectedTags([])}
-              >
-                Limpar filtro
-              </button>
-            </div>
-          )}
+      const beforeQ = await req.db.query(
+        `SELECT COALESCE(array_agg(tag ORDER BY tag), '{}') AS tags
+         FROM customer_tags
+        WHERE user_id = $1
+          AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+      const beforeTags = beforeQ.rows?.[0]?.tags || [];
 
-          {/* BUSCA */}
-          <form onSubmit={onSearch} className={styles.searchGroupInline}>
-            <label className={styles.searchLabel}>Buscar</label>
-            <div className={styles.searchBox}>
-              <input
-                className={styles.searchInput}
-                placeholder="Buscar por nome, telefone ou user_id…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              {q && (
-                <button
-                  type="button"
-                  className={styles.searchClear}
-                  onClick={() => setQ('')}
-                  aria-label="Limpar"
-                >
-                  <XIcon size={14} />
-                </button>
-              )}
-            </div>
-          </form>
-        </section>
+      const ins = await req.db.query(
+        `INSERT INTO customer_tags (user_id, flow_id, tag)
+         VALUES ($1, $2::uuid, $3)
+         ON CONFLICT DO NOTHING`,
+        [user_id, flowId, t]
+      );
 
-        {/* ===== Tabela ===== */}
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <colgroup>
-              <col className={styles.colNome} />
-              <col className={styles.colTags} />
-              <col className={styles.colCanal} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Etiquetas</th>
-                <th>Canal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan={3} className={styles.loading}>
-                    Carregando…
-                  </td>
-                </tr>
-              )}
-              {!loading && visible.length === 0 && (
-                <tr>
-                  <td colSpan={3} className={styles.empty}>
-                    Nenhum cliente encontrado.
-                  </td>
-                </tr>
-              )}
+      const afterQ = await req.db.query(
+        `SELECT COALESCE(array_agg(tag ORDER BY tag), '{}') AS tags
+         FROM customer_tags
+        WHERE user_id = $1
+          AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+      const afterTags = afterQ.rows?.[0]?.tags || [];
 
-              {!loading &&
-                visible.map((row) => {
-                  const uid = row.user_id;
-                  const isOpen = openRow === uid;
-                  const userTags = tagsByUser[uid];
-                  const tagsPending = !tagsLoaded[uid];
+      const created = ins.rowCount === 1;
+      const resp = { ok: true, user_id, tag: t, created };
 
-                  return (
-                    <React.Fragment key={uid}>
-                      <tr
-                        className={`${styles.rowHover} ${styles.accRow}`}
-                        onClick={() => setOpenRow(isOpen ? null : uid)}
-                      >
-                        <td className={styles.summaryCell}>
-                          <span
-                            className={`${styles.chev} ${
-                              isOpen ? styles.chevOpen : ''
-                            }`}
-                          >
-                            <ChevronRight size={16} />
-                          </span>
-                          <span className={styles.nameText}>
-                            {row.name || '—'}
-                          </span>
-                        </td>
+      await fastify.audit(req, {
+        action: created ? "customer.tags.add" : "customer.tags.add.noop",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 201,
+        beforeData: { tags: beforeTags },
+        afterData: { tags: afterTags },
+        requestBody: { tag },
+        responseBody: resp,
+      });
 
-                        <td className={styles.tagsCell}>
-                          {tagsPending ? (
-                            <span className={styles.muted}>—</span>
-                          ) : userTags && userTags.length > 0 ? (
-                            <div className={styles.tagsRowWrap}>
-                              {userTags.map((t) => (
-                                <span key={t} className={styles.tagChip}>
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className={styles.muted}>—</span>
-                          )}
-                        </td>
+      return reply.code(201).send(resp);
+    } catch (err) {
+      req.log.error({ err }, "Erro em POST /clientes/:user_id/tags");
 
-                        <td className={styles.summaryRight}>
-                          <span
-                            className={styles.chanIcon}
-                            title={String(row.channel || '')}
-                            aria-label={String(row.channel || '')}
-                          >
-                            {channelIcon(row.channel)}
-                          </span>
-                        </td>
-                      </tr>
+      const resp500 = { error: "Erro ao adicionar tag do cliente" };
 
-                      {isOpen && (
-                        <tr className={styles.rowDetails}>
-                          <td colSpan={3}>
-                            <div className={styles.detailsBox}>
-                              <div className={styles.detailsGrid}>
-                                <div className={styles.item}>
-                                  <div className={styles.k}>User ID</div>
-                                  <div className={styles.v}>
-                                    {row.user_id || '—'}
-                                  </div>
-                                </div>
-                                <div className={styles.item}>
-                                  <div className={styles.k}>Telefone</div>
-                                  <div className={styles.v}>
-                                    {String(row.channel || '').toLowerCase() ===
-                                    'whatsapp'
-                                      ? row.phone || '—'
-                                      : '—'}
-                                  </div>
-                                </div>
-                                <div className={styles.item}>
-                                  <div className={styles.k}>Canal</div>
-                                  <div className={styles.v}>
-                                    {String(row.channel || '') || '—'}
-                                  </div>
-                                </div>
-                                <div className={styles.item}>
-                                  <div className={styles.k}>Atualizado em</div>
-                                  <div className={styles.v}>
-                                    {row.updated_at
-                                      ? new Date(
-                                          row.updated_at
-                                        ).toLocaleString()
-                                      : '—'}
-                                  </div>
-                                </div>
-                                <div className={styles.item}>
-                                  <div className={styles.k}>Criado em</div>
-                                  <div className={styles.v}>
-                                    {row.created_at
-                                      ? new Date(
-                                          row.created_at
-                                        ).toLocaleString()
-                                      : '—'}
-                                  </div>
-                                </div>
-                                {/* sem duplicar etiquetas aqui */}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+      await fastify.audit(req, {
+        action: "customer.tags.add.error",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 500,
+        responseBody: resp500,
+        extra: { message: err?.message },
+      });
 
-        {/* Footer paginador */}
-        <div className={styles.tableFooter}>
-          <div className={styles.leftInfo}>
-            Mostrando {showingFrom}–{showingTo} de {total}
-          </div>
+      return reply.code(500).send(resp500);
+    }
+  });
 
-          <div className={styles.pager}>
-            <select
-              className={styles.pageSize}
-              value={pageSize}
-              onChange={async (e) => {
-                const ps = Number(e.target.value);
-                setPageSize(ps);
-                setPage(1);
-                await load({ page: 1, pageSize: ps });
-              }}
-            >
-              {PAGE_SIZES.map((n) => (
-                <option key={n} value={n}>
-                  {n} por página
-                </option>
-              ))}
-            </select>
+  // DELETE /customers/:user_id/tags/:tag?flow_id=...
+  fastify.delete("/:user_id/tags/:tag", async (req, reply) => {
+    const { user_id, tag } = req.params;
+    const { flow_id } = req.query || {};
+    const t = normalizeTag(tag);
 
-            <button
-              className={styles.pBtn}
-              disabled={page <= 1}
-              onClick={() => load({ page: 1 })}
-            >
-              « Primeiro
-            </button>
-            <button
-              className={styles.pBtn}
-              disabled={page <= 1}
-              onClick={() => load({ page: page - 1 })}
-            >
-              Anterior
-            </button>
-            <span className={styles.pInfo}>
-              Página {page} de {totalPages}
-            </span>
-            <button
-              className={styles.pBtn}
-              disabled={page >= totalPages}
-              onClick={() => load({ page: page + 1 })}
-            >
-              Próxima
-            </button>
-            <button
-              className={styles.pBtn}
-              disabled={page >= totalPages}
-              onClick={() => load({ page: totalPages })}
-            >
-              Última »
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    if (!flow_id) {
+      const resp400 = { error: "flow_id é obrigatório" };
+      await fastify.audit(req, {
+        action: "customer.tags.remove.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
+    const flowId = String(flow_id);
+
+    if (!isValidUserId(user_id)) {
+      const resp400 = {
+        error: "Formato de user_id inválido. Use: usuario@dominio",
+      };
+      await fastify.audit(req, {
+        action: "customer.tags.remove.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
+
+    if (!t) {
+      const resp400 = { error: "Tag inválida" };
+      await fastify.audit(req, {
+        action: "customer.tags.remove.bad_request",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 400,
+        responseBody: resp400,
+      });
+      return reply.code(400).send(resp400);
+    }
+
+    try {
+      const beforeQ = await req.db.query(
+        `SELECT COALESCE(array_agg(tag ORDER BY tag), '{}') AS tags
+         FROM customer_tags
+        WHERE user_id = $1
+          AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+      const beforeTags = beforeQ.rows?.[0]?.tags || [];
+
+      const del = await req.db.query(
+        `DELETE FROM customer_tags 
+        WHERE user_id = $1
+          AND flow_id = $2::uuid
+          AND tag = $3`,
+        [user_id, flowId, t]
+      );
+
+      if (del.rowCount === 0) {
+        const resp404 = { error: "Tag não encontrada para este cliente" };
+        await fastify.audit(req, {
+          action: "customer.tags.remove.not_found",
+          resourceType: "customer",
+          resourceId: user_id,
+          statusCode: 404,
+          beforeData: { tags: beforeTags },
+          responseBody: resp404,
+          requestBody: { tag: t },
+        });
+        return reply.code(404).send(resp404);
+      }
+
+      const afterQ = await req.db.query(
+        `SELECT COALESCE(array_agg(tag ORDER BY tag), '{}') AS tags
+         FROM customer_tags
+        WHERE user_id = $1
+          AND flow_id = $2::uuid`,
+        [user_id, flowId]
+      );
+      const afterTags = afterQ.rows?.[0]?.tags || [];
+
+      await fastify.audit(req, {
+        action: "customer.tags.remove",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 204,
+        beforeData: { tags: beforeTags },
+        afterData: { tags: afterTags },
+        requestBody: { tag: t },
+      });
+
+      return reply.code(204).send();
+    } catch (err) {
+      req.log.error({ err }, "Erro em DELETE /clientes/:user_id/tags/:tag");
+      const resp500 = { error: "Erro ao remover tag do cliente" };
+
+      await fastify.audit(req, {
+        action: "customer.tags.remove.error",
+        resourceType: "customer",
+        resourceId: user_id,
+        statusCode: 500,
+        responseBody: resp500,
+        extra: { message: err?.message },
+      });
+
+      return reply.code(500).send(resp500);
+    }
+  });
 }
+
+export default customersRoutes;
