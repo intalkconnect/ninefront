@@ -135,13 +135,13 @@ export default function Queues() {
   };
 
   const handleNewQueue = () => {
-    navigate("/management/queues/new", { state: { flowId } });
+    navigate("/development/queues/new", { state: { flowId } });
   };
 
   const handleEdit = (queue) => {
     const id = queue.id ?? queue.nome ?? queue.name;
     if (!id) return;
-    navigate(`/management/queues/${encodeURIComponent(id)}`, {
+    navigate(`/development/queues/${encodeURIComponent(id)}`, {
       state: { flowId },
     });
   };
@@ -149,7 +149,7 @@ export default function Queues() {
   const handleHours = (queue) => {
     const nomeFila = queue.nome ?? queue.name ?? "";
     if (!nomeFila) return;
-    navigate(`/management/queues/${encodeURIComponent(nomeFila)}/hours`, {
+    navigate(`/development/queues/${encodeURIComponent(nomeFila)}/hours`, {
       state: { flowId },
     });
   };
