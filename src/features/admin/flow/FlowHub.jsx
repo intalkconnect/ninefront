@@ -73,7 +73,7 @@ export default function FlowHub() {
     });
 
   const openCustomers = (f) =>
-    navigate(`/development/flowhub/${f.id}/customers`, {
+    navigate(`/development/flowhub/${f.id}/customer`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
 
