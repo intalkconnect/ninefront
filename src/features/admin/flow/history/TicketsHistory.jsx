@@ -43,6 +43,7 @@ export default function TicketsHistory() {
   const flowIdFromState =
     location.state?.flowId || location.state?.meta?.flowId || null;
   const flowId = flowIdParam || flowIdFromState || null;
+  const inFlowContext = !!flowId;
 
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(1);
@@ -109,7 +110,7 @@ export default function TicketsHistory() {
   const clearSearch = () => setQ("");
 
   const goBack = () => {
-    if (flowId) {
+    if (inFlowContext) {
       navigate("/development/flowhub");
     } else {
       navigate(-1);
