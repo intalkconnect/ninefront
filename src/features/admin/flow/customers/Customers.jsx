@@ -3,7 +3,7 @@ import { ChevronRight, RefreshCw, X as XIcon } from 'lucide-react';
 import { useLocation, useParams } from 'react-router-dom';
 import { apiGet, apiPost, apiDelete } from '../../../../shared/apiClient';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider.jsx';
-import styles from './styles/Clientes.module.css'; // mantido igual seu código antigo
+import styles from './styles/Customers.module.css'; // mantido igual seu código antigo
 
 /* ================== helpers ================== */
 const PAGE_SIZES = [10, 20, 30, 40];
