@@ -166,7 +166,7 @@ export default function FlowHub() {
                   <IconButton
                     title="Clientes"
                     onClick={() => openCustomers(f)}
-                    variant="customers"
+                    variant="customer"
                   >
                     <IdCard size={16} />
                   </IconButton>
