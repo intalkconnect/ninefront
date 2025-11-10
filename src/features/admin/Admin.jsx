@@ -969,7 +969,7 @@ export default function Admin() {
   element={<TicketDetail />}
 />
           <Route
-  path="/development/flowhub/:flowId/customer"
+  path="/development/flowhub/:flowId/customers"
   element={<Customers />}
 />
           <Route
