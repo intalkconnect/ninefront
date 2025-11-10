@@ -50,18 +50,13 @@ export default function TicketDetail() {
   const [activeTab, setActiveTab] = useState("conversation");
 
   const backTo = useMemo(() => {
-    if (location.state?.returnTo) return location.state.returnTo;
 
-    if (flowId) {
       // volta para o histórico dentro do FlowHub
       return `/development/flowhub/${encodeURIComponent(
         flowId
       )}/ticket-history`;
-    }
 
-    // fallback: rota do admin
-    return "/management/history";
-  }, [location.state, flowId]);
+  }, [flowId]);
 
   useEffect(() => {
     let alive = true;
