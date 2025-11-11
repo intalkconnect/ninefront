@@ -1,5 +1,5 @@
 // src/app/features/chat/components/header/ChatHeader.jsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Share2, CheckCircle, Tag as TagIcon } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
 import { apiGet, apiPost, apiDelete, apiPut } from '../../../../../shared/apiClient';
@@ -15,22 +15,20 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
   const ref = useRef(null);
 
   useEffect(() => {
-    const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => {
+      if (!ref.current) return;
+      if (!ref.current.contains(e.target)) setOpen(false);
+    };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  // dropdown não mostra itens já selecionados
-  const base = useMemo(
-    () => options.filter(o => !selected.includes(o.tag)),
-    [options, selected]
-  );
-
-  const filtered = useMemo(() => {
+  const base = options.filter(o => !selected.includes(o.tag));
+  const filtered = (() => {
     const t = q.trim().toLowerCase();
     if (!t) return base;
     return base.filter(o => (o.label || o.tag).toLowerCase().includes(t));
-  }, [q, base]);
+  })();
 
   if (!options.length) return null;
 
@@ -75,7 +73,7 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
   );
 }
 
-/** ===== Helpers de CUSTOMER TAGS: GET (fonte da verdade) + DIFF (POST/DELETE) ===== */
+/** ===== Helpers de CUSTOMER TAGS ===== */
 async function fetchServerCustomerTags(userId) {
   try {
     const r = await apiGet(`/tags/customer/${encodeURIComponent(userId)}`);
@@ -94,32 +92,30 @@ async function saveCustomerTagsDiff(userId, initialTags = [], selectedTags = [])
   const toRemove = [...initial].filter(t => !selected.has(t));
 
   if (toAdd.length) {
-    console.log('[CUSTOMER] POST add →', toAdd);
     await apiPost(`/tags/customer/${encodeURIComponent(userId)}`, { tags: toAdd });
   }
   for (const t of toRemove) {
-    console.log('[CUSTOMER] DELETE remove →', t);
     await apiDelete(`/tags/customer/${encodeURIComponent(userId)}/${encodeURIComponent(t)}`);
   }
 }
 
-export default function ChatHeader({ userIdSelecionado }) {
-  const confirm = useConfirm();
+export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
+  const confirm           = useConfirm();
   const [showTransferModal, setShowTransferModal] = useState(false);
 
-  const clienteAtivo      = useConversationsStore(s => s.clienteAtivo);
+  const clienteAtivoStore = useConversationsStore(s => s.clienteAtivo);
   const mergeConversation = useConversationsStore(s => s.mergeConversation);
   const setSelectedUserId = useConversationsStore(s => s.setSelectedUserId);
 
-  if (!clienteAtivo) return null;
+  // 👉 fonte de verdade do cliente (store OU prop)
+  const cliente = clienteAtivoStore || clienteInfo || {};
 
-  const ticketNumber = clienteAtivo?.ticket_number || '';
-  const name         = clienteAtivo?.name || 'Cliente';
-  const userId       = clienteAtivo?.user_id || userIdSelecionado;
-
-  /** ===== TAGS do TICKET ===== */
   const [ticketCatalog, setTicketCatalog] = useState([]);
-  const [ticketTags, setTicketTags] = useState([]); // reseta por ticket
+  const [ticketTags, setTicketTags]       = useState([]);
+
+  const ticketNumber = cliente?.ticket_number || '';
+  const name         = cliente?.name || 'Cliente';
+  const userId       = cliente?.user_id || userIdSelecionado;
 
   const addTicketTag    = (tag) => setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
   const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
@@ -129,8 +125,10 @@ export default function ChatHeader({ userIdSelecionado }) {
     let alive = true;
     setTicketTags([]);
     setTicketCatalog([]);
+
+    if (!ticketNumber) return;
+
     (async () => {
-      if (!ticketNumber) return;
       try {
         const r = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`);
         if (!alive) return;
@@ -139,8 +137,12 @@ export default function ChatHeader({ userIdSelecionado }) {
         if (alive) setTicketCatalog([]);
       }
     })();
+
     return () => { alive = false; };
   }, [ticketNumber]);
+
+  // se nem userId temos, não faz sentido renderizar header
+  if (!userId) return null;
 
   /** ===== FINALIZAR (ticket + customer) ===== */
   const finalizarAtendimento = async () => {
@@ -154,14 +156,12 @@ export default function ChatHeader({ userIdSelecionado }) {
     if (!ok) return;
 
     try {
-      // 1) Salva tags do TICKET (se houver)
+      // 1) Salva tags do TICKET
       if (ticketTags.length) {
-        console.log('[FINALIZAR] POST ticket tags →', ticketTags);
         await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
       }
 
       // 2) Salva DIFF de tags do CUSTOMER
-      //    Fonte: conversations[userId].pending_customer_tags (setada no DetailsPanel via mergeConversation)
       const st   = useConversationsStore.getState();
       const conv = (st.conversations && st.conversations[userId]) || {};
       const pendentesRaw =
@@ -174,7 +174,6 @@ export default function ChatHeader({ userIdSelecionado }) {
       const pending = [...new Set((pendentesRaw || []).map(t => String(t).trim()).filter(Boolean))];
 
       const serverCurrent = await fetchServerCustomerTags(userId);
-      console.log('[FINALIZAR] CUSTOMER diff → from server:', serverCurrent, ' pending:', pending);
       await saveCustomerTagsDiff(userId, serverCurrent, pending);
 
       // 3) Fecha o ticket
@@ -239,7 +238,13 @@ export default function ChatHeader({ userIdSelecionado }) {
                 {ticketTags.map(t => (
                   <span key={t} className="chip">
                     <span>{t}</span>
-                    <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
+                    <button
+                      className="chip__x"
+                      onClick={() => removeTicketTag(t)}
+                      aria-label={`Remover ${t}`}
+                    >
+                      ×
+                    </button>
                   </span>
                 ))}
               </div>
