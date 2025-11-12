@@ -47,9 +47,15 @@ function pickSnippet(c) {
 
     if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url))
       return 'Imagem';
-    if (mt.startsWith('audio/') || typ === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(url))
+    if (
+      mt.startsWith('audio/') ||
+      typ === 'audio' ||
+      c.voice ||
+      /\.(ogg|mp3|wav|m4a|opus)$/.test(url)
+    )
       return 'Áudio';
-    if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
+    if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url))
+      return 'Vídeo';
 
     if (c.filename) return c.filename;
     if (mt === 'application/pdf' || (c.filename && c.filename.toLowerCase().endsWith('.pdf')))
@@ -81,7 +87,6 @@ function normalizeStatus(s) {
   if (!s) return s;
   const v = String(s).toLowerCase();
   if (v === 'error') return 'failed';
-  if (v === 'queue' || v === 'queued' || v === 'pending') return 'pending';
   return v;
 }
 
@@ -113,33 +118,23 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
 
   const renderTimeAndStatus = () => (
     <div className="message-time">
-      {msg.timestamp &&
-        new Date(msg.timestamp).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        })}
+      {new Date(msg.timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}
       {isOutgoing && (
         <span className="message-status">
-          {/* PRIORIDADE:
-              1) falha → sem ícone aqui (aviso aparece embaixo)
-              2) pending/otimista → relógio
-              3) sent → 1 check
-              4) delivered → 2 checks cinza
-              5) read → 2 checks azuis
-           */}
-          {status === 'failed' ? null : // sem ícone no relógio quando falha
-          (msg.pending && (!status || status === 'pending')) ? (
-            <Clock size={14} className="check pending" />
-          ) : status === 'read' ? (
+          {status === 'read' ? (
             <CheckCheck size={14} className="check read" />
           ) : status === 'delivered' ? (
             <CheckCheck size={14} className="check delivered" />
           ) : status === 'sent' ? (
             <Check size={14} className="check sent" />
-          ) : status === 'pending' ? (
-            <Clock size={14} className="check pending" />
+          ) : status === 'failed' ? (
+            // sem ícone no timestamp quando falha
+            null
           ) : (
-            // fallback: se nada bater mas é mensagem de saída, mostra relógio também
+            // pending ou indefinido => relógio
             <Clock size={14} className="check pending" />
           )}
         </span>
@@ -189,7 +184,9 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
   if (isSystem) {
     messageContent = (
       <div className="system-message">
-        {typeof content === 'object' ? content.text || content.body || content.caption : content}
+        {typeof content === 'object'
+          ? content.text || content.body || content.caption
+          : content}
       </div>
     );
   }
@@ -227,9 +224,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
           loop={isLikelySticker}
           muted={true}
           controls={!isLikelySticker}
-          mimeType={
-            content?.mime_type || (urlLower.endsWith('.webm') ? 'video/webm' : 'video/mp4')
-          }
+          mimeType={content?.mime_type || (urlLower.endsWith('.webm') ? 'video/webm' : 'video/mp4')}
         />
       );
     } else if (isPdf) {
@@ -305,7 +300,6 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Cabeçalho de resposta (igual WhatsApp)
   const replyPreview =
     buildReplyPreview(msg.replyTo) ||
     buildReplyPreview(msg.reply_preview) ||
@@ -320,11 +314,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
           <div className={bubbleClass}>
             <div className="message-bubble-content">
               <div className="menu-arrow" ref={menuRef}>
-                <button
-                  onClick={toggleMenu}
-                  className="menu-button"
-                  title="Mais opções"
-                >
+                <button onClick={toggleMenu} className="menu-button" title="Mais opções">
                   <ChevronDown size={16} />
                 </button>
                 {menuOpen && (
@@ -376,13 +366,8 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
             </div>
           </div>
 
-          {/* AVISO DE FALHA — abaixo do bubble (sem motivo e com botão) */}
           {isOutgoing && status === 'failed' && (
-            <div
-              className="delivery-failed-note"
-              role="status"
-              aria-live="polite"
-            >
+            <div className="delivery-failed-note" role="status" aria-live="polite">
               <span>Falha ao entregar.</span>
               <button
                 type="button"
