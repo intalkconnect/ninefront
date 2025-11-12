@@ -11,7 +11,7 @@
 
 /* Ícone de lido (2 checks AZUIS) */
 .check.read {
-  color: #34b7f1; /* azul de leitura */
+  color: #34b7f1;
   font-size: 0.6rem;
   line-height: 1;
 }
@@ -67,8 +67,8 @@
   word-wrap: break-word;
   overflow: visible;
 }
-.message-bubble.incoming { background-color: --color-incoming-bg; background: var(--color-incoming-bg); color: var(--color-text-light); }
-.message-bubble.outgoing { background-color: --color-outgoing-bg; background: var(--color-outgoing-bg); color: var(--color-text-light); }
+.message-bubble.incoming { background-color: var(--color-incoming-bg); background: var(--color-incoming-bg); color: var(--color-text-light); }
+.message-bubble.outgoing { background-color: var(--color-outgoing-bg); background: var(--color-outgoing-bg); color: var(--color-text-light); }
 
 /* Conteúdo */
 .message-content { line-height: var(--message-line-height); }
@@ -87,11 +87,24 @@
 /* Esconde ícones em incoming */
 .message-bubble.incoming .check { display: none; }
 
-/* CORES CORRETAS DOS STATUS (outgoing) */
-.check.sent {       color: #9aa3b2; font-size: 0.6rem; line-height: 1; }  /* 1 check cinza */
-.check.delivered {  color: #9aa3b2; font-size: 0.6rem; line-height: 1; }  /* 2 checks cinza */
-.check.pending {    color: #9aa3b2; font-size: 0.6rem; line-height: 1; }  /* relógio cinza */
-/* .check.read está no topo (azul) */
+/* Cores base (fallback) */
+.check.sent      { color: #9aa3b2; font-size: 0.6rem; line-height: 1; } /* 1 check cinza */
+.check.delivered { color: #9aa3b2; font-size: 0.6rem; line-height: 1; } /* 2 checks cinza */
+.check.pending   { color: #9aa3b2; font-size: 0.6rem; line-height: 1; } /* relógio cinza */
+
+/* ====== FORÇAR ESPECIFICIDADE (evita herdar azul/branco do container) ====== */
+.message-time .check.sent,
+.message-status .check.sent { color: #9aa3b2 !important; }
+
+.message-time .check.delivered,
+.message-status .check.delivered { color: #9aa3b2 !important; }
+
+.message-time .check.pending,
+.message-status .check.pending { color: #9aa3b2 !important; }
+
+.message-time .check.read,
+.message-status .check.read { color: #34b7f1 !important; }
+/* ========================================================================== */
 
 /* Botão de responder / menu */
 .menu-arrow { position: absolute; top: 4px; right: 4px; display: none; z-index: 2; }
