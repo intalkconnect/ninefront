@@ -9,16 +9,7 @@ import AudioMessage from './messageTypes/AudioMessage';
 import ContactsMessage from './messageTypes/ContactsMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import './styles/MessageRow.css';
-import {
-  CheckCheck,
-  Check,
-  Download,
-  Copy,
-  CornerDownLeft,
-  ChevronDown,
-  RotateCcw,
-  Clock,
-} from 'lucide-react';
+import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown, Clock } from 'lucide-react';
 
 // -------- helpers para o cabeçalho de resposta --------
 function pickSnippet(c) {
@@ -27,13 +18,10 @@ function pickSnippet(c) {
     if (/BEGIN:VCARD/i.test(c)) return 'Contato';
     return c;
   }
-
   if (typeof c === 'object') {
     if (c.type === 'contacts' || Array.isArray(c.contacts) || Array.isArray(c.vcards)) {
-      const n = Array.isArray(c.contacts)
-        ? c.contacts.length
-        : Array.isArray(c.vcards)
-        ? c.vcards.length
+      const n = Array.isArray(c.contacts) ? c.contacts.length
+        : Array.isArray(c.vcards)   ? c.vcards.length
         : 1;
       return n > 1 ? `${n} contatos` : 'Contato';
     }
@@ -41,25 +29,16 @@ function pickSnippet(c) {
     if (typeof c.text === 'string' && c.text.trim()) return c.text;
     if (typeof c.caption === 'string' && c.caption.trim()) return c.caption;
 
-    const mt = c.mime_type || '';
+    const mt  = c.mime_type || '';
     const typ = c.type || '';
     const url = String(c.url || '').toLowerCase();
 
-    if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url))
-      return 'Imagem';
-    if (
-      mt.startsWith('audio/') ||
-      typ === 'audio' ||
-      c.voice ||
-      /\.(ogg|mp3|wav|m4a|opus)$/.test(url)
-    )
-      return 'Áudio';
-    if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url))
-      return 'Vídeo';
+    if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
+    if (mt.startsWith('audio/') || typ === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(url)) return 'Áudio';
+    if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
 
     if (c.filename) return c.filename;
-    if (mt === 'application/pdf' || (c.filename && c.filename.toLowerCase().endsWith('.pdf')))
-      return 'PDF';
+    if (mt === 'application/pdf' || (c.filename && c.filename.toLowerCase().endsWith('.pdf'))) return 'PDF';
 
     return 'Documento';
   }
@@ -76,21 +55,25 @@ function buildReplyPreview(raw) {
     return { title: '', snippet: s };
   }
 
-  const title = raw.direction === 'outgoing' ? 'Você' : raw.name || raw.sender_name || '';
+  const title = raw.direction === 'outgoing'
+    ? 'Você'
+    : (raw.name || raw.sender_name || '');
 
   const snippet = pickSnippet(raw.content);
   return { title, snippet };
 }
 
-// Backcompat: normaliza 'error' -> 'failed'
+// Normalização de status (backcompat)
 function normalizeStatus(s) {
-  if (!s) return s;
-  const v = String(s).toLowerCase();
+  const v = String(s || '').toLowerCase();
+  if (!v) return undefined;
   if (v === 'error') return 'failed';
-  return v;
+  if (v === 'sending' || v === 'queued' || v === 'pending') return 'pending';
+  if (['sent','delivered','read','failed'].includes(v)) return v;
+  return undefined;
 }
 
-export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onRetry }) {
+export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef();
 
@@ -100,28 +83,21 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
     if (!/^\d+$/.test(content)) {
       const s = content.trim();
       if (s.startsWith('{') || s.startsWith('[')) {
-        try {
-          content = JSON.parse(s);
-        } catch {
-          /* noop */
-        }
+        try { content = JSON.parse(s); } catch {}
       }
     }
   }
 
   const isOutgoing = msg.direction === 'outgoing';
-  const isSystem = msg.direction === 'system' || msg.type === 'system';
-  const status = normalizeStatus(msg.status);
+  const isSystem   = msg.direction === 'system' || msg.type === 'system';
+  const status     = normalizeStatus(msg.status);
 
-  const rowClass = `message-row ${isSystem ? 'system' : isOutgoing ? 'outgoing' : 'incoming'}`;
+  const rowClass    = `message-row ${isSystem ? 'system' : isOutgoing ? 'outgoing' : 'incoming'}`;
   const bubbleClass = `message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`;
 
   const renderTimeAndStatus = () => (
     <div className="message-time">
-      {new Date(msg.timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}
+      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       {isOutgoing && (
         <span className="message-status">
           {status === 'read' ? (
@@ -131,10 +107,8 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
           ) : status === 'sent' ? (
             <Check size={14} className="check sent" />
           ) : status === 'failed' ? (
-            // sem ícone no timestamp quando falha
             null
           ) : (
-            // pending ou indefinido => relógio
             <Clock size={14} className="check pending" />
           )}
         </span>
@@ -170,8 +144,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
 
   const isPdf =
     (msg.type === 'document' || content?.filename || content?.mime_type === 'application/pdf') &&
-    (content?.filename?.toLowerCase?.().endsWith('.pdf') ||
-      content?.mime_type === 'application/pdf');
+    (content?.filename?.toLowerCase?.().endsWith('.pdf') || content?.mime_type === 'application/pdf');
 
   const isList =
     (content?.type === 'list' || content?.body?.type === 'list') &&
@@ -184,9 +157,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
   if (isSystem) {
     messageContent = (
       <div className="system-message">
-        {typeof content === 'object'
-          ? content.text || content.body || content.caption
-          : content}
+        {typeof content === 'object' ? (content.text || content.body || content.caption) : content}
       </div>
     );
   }
@@ -211,9 +182,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
     } else if (isVideo) {
       const isLikelySticker =
         !!content?.is_sticker ||
-        (!!content?.mime_type &&
-          /^video\/(mp4|webm)$/i.test(content.mime_type) &&
-          !content?.filename);
+        (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
 
       messageContent = (
         <VideoMessage
@@ -243,13 +212,8 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
       messageContent = <QuickReplyMessage data={content} />;
     } else if (typeof content === 'string') {
       messageContent = <TextMessage content={content} />;
-    } else if (
-      typeof content === 'object' &&
-      (content?.body || content?.text || content?.caption)
-    ) {
-      messageContent = (
-        <TextMessage content={content.body || content.text || content.caption} />
-      );
+    } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
+      messageContent = <TextMessage content={content.body || content.text || content.caption} />;
     } else {
       messageContent = <UnknownMessage />;
     }
@@ -258,10 +222,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
   const handleCopy = () => {
     if (typeof content === 'string') {
       navigator.clipboard.writeText(content);
-    } else if (
-      typeof content === 'object' &&
-      (content?.body || content?.text || content?.caption)
-    ) {
+    } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
       navigator.clipboard.writeText(content.body || content.text || content.caption);
     }
     setMenuOpen(false);
@@ -300,6 +261,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Cabeçalho de resposta (igual WhatsApp)
   const replyPreview =
     buildReplyPreview(msg.replyTo) ||
     buildReplyPreview(msg.reply_preview) ||
@@ -320,23 +282,17 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
                 {menuOpen && (
                   <div className={`menu-dropdown ${isOutgoing ? 'right' : 'left'}`}>
                     {onReply && (
-                      <button
-                        onClick={() => {
-                          onReply(msg);
-                          setMenuOpen(false);
-                        }}
-                      >
+                      <button onClick={() => { onReply(msg); setMenuOpen(false); }}>
                         <CornerDownLeft size={14} /> Responder
                       </button>
                     )}
                     {(typeof content === 'string' ||
-                      (typeof content === 'object' &&
-                        (content?.body || content?.text || content?.caption))) && (
+                      (typeof content === 'object' && (content?.body || content?.text || content?.caption))) && (
                       <button onClick={handleCopy}>
                         <Copy size={14} /> Copiar
                       </button>
                     )}
-                    {content?.url && (isImage || isPdf || isVideo) && (
+                    {((content?.url && (isImage || isPdf || isVideo))) && (
                       <button onClick={handleDownload}>
                         <Download size={14} /> Baixar
                       </button>
@@ -351,33 +307,28 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
                   <div className="replied-content">
                     <div className="replied-title">
                       <strong>
-                        {replyPreview.title ||
-                          (msg.reply_direction === 'outgoing' ? 'Você' : '')}
+                        {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
                       </strong>
                     </div>
-                    <div className="replied-text">{replyPreview.snippet}</div>
+                    <div className="replied-text">
+                      {replyPreview.snippet}
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="message-content">{messageContent}</div>
+              <div className="message-content">
+                {messageContent}
+              </div>
 
               {renderTimeAndStatus()}
             </div>
           </div>
 
+          {/* AVISO DE FALHA — sem botão de retry */}
           {isOutgoing && status === 'failed' && (
             <div className="delivery-failed-note" role="status" aria-live="polite">
-              <span>Falha ao entregar.</span>
-              <button
-                type="button"
-                className="retry-btn"
-                onClick={() => onRetry?.(msg)}
-                title="Tentar novamente"
-              >
-                <RotateCcw size={14} />
-                Tentar novamente
-              </button>
+              Falha ao entregar. Esta mensagem não foi enviada.
             </div>
           )}
         </>
