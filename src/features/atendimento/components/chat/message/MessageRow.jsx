@@ -11,59 +11,44 @@ import UnknownMessage from './messageTypes/UnknownMessage';
 import './styles/MessageRow.css';
 import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown, Clock } from 'lucide-react';
 
-// -------- helpers para o cabeçalho de resposta --------
+/* --- helpers de preview de resposta --- */
 function pickSnippet(c) {
   if (!c) return '';
-  if (typeof c === 'string') {
-    if (/BEGIN:VCARD/i.test(c)) return 'Contato';
-    return c;
-  }
+  if (typeof c === 'string') { if (/BEGIN:VCARD/i.test(c)) return 'Contato'; return c; }
   if (typeof c === 'object') {
     if (c.type === 'contacts' || Array.isArray(c.contacts) || Array.isArray(c.vcards)) {
-      const n = Array.isArray(c.contacts) ? c.contacts.length
-        : Array.isArray(c.vcards)   ? c.vcards.length
-        : 1;
+      const n = Array.isArray(c.contacts) ? c.contacts.length : Array.isArray(c.vcards) ? c.vcards.length : 1;
       return n > 1 ? `${n} contatos` : 'Contato';
     }
     if (typeof c.body === 'string' && c.body.trim()) return c.body;
     if (typeof c.text === 'string' && c.text.trim()) return c.text;
     if (typeof c.caption === 'string' && c.caption.trim()) return c.caption;
 
-    const mt  = c.mime_type || '';
+    const mt = c.mime_type || '';
     const typ = c.type || '';
     const url = String(c.url || '').toLowerCase();
-
     if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
     if (mt.startsWith('audio/') || typ === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(url)) return 'Áudio';
     if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
-
     if (c.filename) return c.filename;
     if (mt === 'application/pdf' || (c.filename && c.filename.toLowerCase().endsWith('.pdf'))) return 'PDF';
-
     return 'Documento';
   }
   return '';
 }
-
 function buildReplyPreview(raw) {
   if (!raw) return null;
-
   if (typeof raw === 'string') {
-    const s = raw.trim();
-    const m = s.match(/^\*(.+?)\*:\s*(.*)$/);
+    const s = raw.trim(); const m = s.match(/^\*(.+?)\*:\s*(.*)$/);
     if (m) return { title: m[1], snippet: m[2] };
     return { title: '', snippet: s };
   }
-
-  const title = raw.direction === 'outgoing'
-    ? 'Você'
-    : (raw.name || raw.sender_name || '');
-
+  const title = raw.direction === 'outgoing' ? 'Você' : (raw.name || raw.sender_name || '');
   const snippet = pickSnippet(raw.content);
   return { title, snippet };
 }
 
-// Normalização de status (backcompat)
+/* --- normalização de status --- */
 function normalizeStatus(s) {
   const v = String(s || '').toLowerCase();
   if (!v) return undefined;
@@ -80,11 +65,9 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   // normaliza content
   let content = msg.content;
   if (typeof content === 'string') {
-    if (!/^\d+$/.test(content)) {
-      const s = content.trim();
-      if (s.startsWith('{') || s.startsWith('[')) {
-        try { content = JSON.parse(s); } catch {}
-      }
+    const s = content.trim();
+    if (!/^\d+$/.test(s) && (s.startsWith('{') || s.startsWith('['))) {
+      try { content = JSON.parse(s); } catch {}
     }
   }
 
@@ -117,51 +100,18 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   );
 
   const urlLower = String(content?.url || '').toLowerCase();
-
-  const isContacts =
-    msg.type === 'contacts' ||
-    content?.type === 'contacts' ||
-    Array.isArray(content?.contacts) ||
-    Array.isArray(content?.vcards) ||
-    (typeof content === 'string' && /BEGIN:VCARD/i.test(content));
-
-  const isAudio =
-    msg.type === 'audio' ||
-    content?.voice ||
-    content?.mime_type?.startsWith?.('audio/') ||
-    /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
-
-  const isImage =
-    msg.type === 'image' ||
-    content?.mime_type?.startsWith?.('image/') ||
-    /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(urlLower) ||
-    urlLower.startsWith('blob:');
-
-  const isVideo =
-    msg.type === 'video' ||
-    content?.mime_type?.startsWith?.('video/') ||
-    /(^blob:)|\.(mp4|mov|webm)$/i.test(urlLower);
-
-  const isPdf =
-    (msg.type === 'document' || content?.filename || content?.mime_type === 'application/pdf') &&
-    (content?.filename?.toLowerCase?.().endsWith('.pdf') || content?.mime_type === 'application/pdf');
-
-  const isList =
-    (content?.type === 'list' || content?.body?.type === 'list') &&
-    (content?.action || content?.body?.action);
-
+  const isContacts = msg.type === 'contacts' || content?.type === 'contacts' || Array.isArray(content?.contacts) || Array.isArray(content?.vcards) || (typeof content === 'string' && /BEGIN:VCARD/i.test(content));
+  const isAudio    = msg.type === 'audio' || content?.voice || content?.mime_type?.startsWith?.('audio/') || /\.(ogg|mp3|wav|m4a|opus)$/i.test(urlLower);
+  const isImage    = msg.type === 'image' || content?.mime_type?.startsWith?.('image/') || /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(urlLower) || urlLower.startsWith('blob:');
+  const isVideo    = msg.type === 'video' || content?.mime_type?.startsWith?.('video/') || /(^blob:)|\.(mp4|mov|webm)$/i.test(urlLower);
+  const isPdf      = (msg.type === 'document' || content?.filename || content?.mime_type === 'application/pdf') && (content?.filename?.toLowerCase?.().endsWith('.pdf') || content?.mime_type === 'application/pdf');
+  const isList     = (content?.type === 'list' || content?.body?.type === 'list') && (content?.action || content?.body?.action);
   const isQuickReply = content?.type === 'button' && Array.isArray(content?.action?.buttons);
 
   let messageContent = null;
-
   if (isSystem) {
-    messageContent = (
-      <div className="system-message">
-        {typeof content === 'object' ? (content.text || content.body || content.caption) : content}
-      </div>
-    );
+    messageContent = <div className="system-message">{typeof content === 'object' ? (content.text || content.body || content.caption) : content}</div>;
   }
-
   if (!messageContent) {
     if (typeof content === 'string' && /^\d+$/.test(content)) {
       messageContent = <TextMessage content={content} />;
@@ -170,20 +120,11 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
     } else if (isAudio) {
       messageContent = <AudioMessage url={content?.url || msg.url || ''} />;
     } else if (isImage) {
-      messageContent = (
-        <ImageMessage
-          url={content?.url}
-          caption={content?.caption}
-          onClick={() => onImageClick?.(content?.url)}
-        />
-      );
+      messageContent = <ImageMessage url={content?.url} caption={content?.caption} onClick={() => onImageClick?.(content?.url)} />;
     } else if (isContacts) {
       messageContent = <ContactsMessage data={content} />;
     } else if (isVideo) {
-      const isLikelySticker =
-        !!content?.is_sticker ||
-        (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
-
+      const isLikelySticker = !!content?.is_sticker || (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
       messageContent = (
         <VideoMessage
           url={content?.url || msg.url || ''}
@@ -197,14 +138,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
         />
       );
     } else if (isPdf) {
-      messageContent = (
-        <DocumentMessage
-          filename={content?.filename}
-          url={content?.url}
-          caption={content?.caption}
-          onClick={() => onPdfClick?.(content?.url)}
-        />
-      );
+      messageContent = <DocumentMessage filename={content?.filename} url={content?.url} caption={content?.caption} onClick={() => onPdfClick?.(content?.url)} />;
     } else if (isList) {
       const listData = content?.type === 'list' ? content : content.body;
       messageContent = <ListMessage listData={listData} />;
@@ -229,39 +163,26 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
   };
 
   const handleDownload = async () => {
-    const fileUrl = content?.url;
-    const filename = content?.filename || 'arquivo';
+    const fileUrl = content?.url; const filename = content?.filename || 'arquivo';
     if (!fileUrl) return;
     try {
       const response = await fetch(fileUrl);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
-      setMenuOpen(false);
-    } catch (err) {
-      console.error('Erro ao baixar arquivo:', err);
-    }
+      link.href = blobUrl; link.download = filename;
+      document.body.appendChild(link); link.click(); link.remove();
+      URL.revokeObjectURL(blobUrl); setMenuOpen(false);
+    } catch (err) { console.error('Erro ao baixar arquivo:', err); }
   };
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
-
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    };
+    const handleClickOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Cabeçalho de resposta (igual WhatsApp)
   const replyPreview =
     buildReplyPreview(msg.replyTo) ||
     buildReplyPreview(msg.reply_preview) ||
@@ -306,26 +227,19 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply }) {
                   <div className="replied-bar" />
                   <div className="replied-content">
                     <div className="replied-title">
-                      <strong>
-                        {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
-                      </strong>
+                      <strong>{replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}</strong>
                     </div>
-                    <div className="replied-text">
-                      {replyPreview.snippet}
-                    </div>
+                    <div className="replied-text">{replyPreview.snippet}</div>
                   </div>
                 </div>
               )}
 
-              <div className="message-content">
-                {messageContent}
-              </div>
+              <div className="message-content">{messageContent}</div>
 
               {renderTimeAndStatus()}
             </div>
           </div>
 
-          {/* AVISO DE FALHA — sem botão de retry */}
           {isOutgoing && status === 'failed' && (
             <div className="delivery-failed-note" role="status" aria-live="polite">
               Falha ao entregar. Esta mensagem não foi enviada.
