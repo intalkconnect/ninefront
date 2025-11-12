@@ -265,12 +265,29 @@ export default function ChatWindow({ userIdSelecionado }) {
         (flowParam ? `?${flowParam}` : "");
       const check24hUrl = `/messages/check-24h/${baseUserId}` +
         (flowParam ? `?${flowParam}` : "");
+        const state   = useConversationsStore.getState();
+        const conv    = state.conversations?.[userIdSelecionado];
+        const flowId  = conv?.flow_id || null;
+        
+        const flowParam   = flowId ? `flow_id=${encodeURIComponent(flowId)}` : "";
+        const baseUserId  = encodeURIComponent(userIdSelecionado);
+        
+        const messagesUrl = `/messages/${baseUserId}?limit=${PAGE_LIMIT}&sort=asc` +
+          (flowParam ? `&${flowParam}` : "");
+        const customersUrl = `/customers/${baseUserId}` +
+          (flowParam ? `?${flowParam}` : "");
+        const ticketsUrl = `/tickets/${baseUserId}` +
+          (flowParam ? `?${flowParam}` : "");
+        const check24hUrl = `/messages/check-24h/${baseUserId}` +
+          (flowParam ? `?${flowParam}` : "");
+        
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
-          apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?limit=${PAGE_LIMIT}&sort=asc`),
-          apiGet(`/customers/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/tickets/${encodeURIComponent(userIdSelecionado)}`),
-          apiGet(`/messages/check-24h/${encodeURIComponent(userIdSelecionado)}`),
+          apiGet(messagesUrl),
+          apiGet(customersUrl),
+          apiGet(ticketsUrl),
+          apiGet(check24hUrl),
         ]);
+
 
         const { status, assigned_to, fila } = (ticketRes || {});
         if (status !== "open" || assigned_to !== userEmail || !(userFilas || []).includes(fila)) {
