@@ -67,7 +67,10 @@ const contentToString = (conv) => getSnippet(conv) || "";
         return;
       }
 
-      const params = new URLSearchParams({ filas: userFilas.join(",") });
+      const params = new URLSearchParams({
+      filas: (userFilas || []).join(","),
+      email: userEmail, // ⚠️ importante: passa o email do atendente
+      });
       const data = await apiGet(`/conversations/queues?${params.toString()}`);
       setFilaCount(Array.isArray(data) ? data.length : data?.length || 0);
     } catch (err) {
