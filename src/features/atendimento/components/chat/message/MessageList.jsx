@@ -1,49 +1,23 @@
-import React, {
-  forwardRef,
-  useImperativeHandle,
-  useRef,
-  useLayoutEffect,
-} from 'react';
-
+import React, { forwardRef, useImperativeHandle, useRef, useLayoutEffect } from 'react';
 import MessageRow from './MessageRow';
 
 /* ===== helpers locais ===== */
 function idKey(m) {
-  return (
-    m?.id ||
-    m?.message_id ||
-    m?.provider_id ||
-    m?.client_id ||
-    null
-  );
+  return (m?.id || m?.message_id || m?.provider_id || m?.client_id || null);
 }
 function timeKey(m) {
-  return m?.timestamp || m?.created_at || null;
+  return (m?.timestamp || m?.created_at || null);
 }
 
 /**
  * MessageList
- * - Inicializa já no final (useLayoutEffect no mount)
- * - Em mudanças de mensagens:
- *     • Se chegou item NOVO no fim → desce para o fim (sem efeito)
- *     • Se vierem itens no topo (paginações) → mantém posição
- * - Não tem auto-scroll “suave” / sem animação
+ * - Inicializa no final
+ * - Detecta append vs prepend
  */
 const MessageList = forwardRef(
-  (
-    {
-      messages = [],
-      onImageClick,
-      onPdfClick,
-      onReply,
-      onRetry,        // handler de retry para falha
-      loaderRef = null, // sentinel no topo (IntersectionObserver vem do pai)
-    },
-    ref
-  ) => {
+  ({ messages = [], onImageClick, onPdfClick, onReply, loaderRef = null }, ref) => {
     const containerRef = useRef(null);
 
-    // guardas para detectar se a mudança foi append (fim) ou prepend (topo)
     const prevLastKeyRef  = useRef(null);
     const prevFirstKeyRef = useRef(null);
     const prevLenRef      = useRef(0);
@@ -51,22 +25,17 @@ const MessageList = forwardRef(
     useImperativeHandle(ref, () => ({
       scrollToBottomInstant: () => {
         const el = containerRef.current;
-        if (el) {
-          el.scrollTop = el.scrollHeight;
-        }
+        if (el) el.scrollTop = el.scrollHeight;
       },
       getContainer: () => containerRef.current,
     }));
 
-    // 1) Ao montar, já desce pro final
     useLayoutEffect(() => {
       const el = containerRef.current;
       if (!el) return;
       el.scrollTop = el.scrollHeight;
     }, []);
 
-    // 2) Ao mudar a lista de mensagens:
-    //    - Detecta append vs prepend e decide se desce para o final
     useLayoutEffect(() => {
       const el = containerRef.current;
       if (!el) return;
@@ -82,7 +51,6 @@ const MessageList = forwardRef(
       const first = messages[0];
       const last  = messages[len - 1];
 
-      // chaves para detectar mudança estrutural
       const firstKey = idKey(first) || timeKey(first);
       const lastKey  = idKey(last)  || timeKey(last);
 
@@ -90,19 +58,11 @@ const MessageList = forwardRef(
       const prevLast  = prevLastKeyRef.current;
       const prevLen   = prevLenRef.current;
 
-      // Caso 1: append (nova msg no final): lastKey mudou
-      const appended = prevLen > 0 && lastKey && prevLast && lastKey !== prevLast;
-
-      // Caso 2: prepend (mensagens antigas carregadas no topo): firstKey mudou e len aumentou
+      const appended  = prevLen > 0 && lastKey && prevLast && lastKey !== prevLast;
       const prepended = prevLen > 0 && firstKey && prevFirst && firstKey !== prevFirst && len > prevLen;
 
-      if (appended) {
-        // novas mensagens ao fim → acompanha a conversa
-        el.scrollTop = el.scrollHeight;
-      }
-      // se foi prepend, não mexe no scroll (o pai já ajusta a posição ao carregar antigas)
+      if (appended) el.scrollTop = el.scrollHeight;
 
-      // atualiza guardas
       prevLenRef.current      = len;
       prevFirstKeyRef.current = firstKey || null;
       prevLastKeyRef.current  = lastKey || null;
@@ -110,7 +70,6 @@ const MessageList = forwardRef(
 
     return (
       <div ref={containerRef} className="chat-scroll-container">
-        {/* Sentinel no topo para "carregar mais" via IntersectionObserver */}
         {loaderRef && <div ref={loaderRef} style={{ height: 1 }} />}
 
         {messages.map((msg, index) => {
@@ -132,47 +91,27 @@ const MessageList = forwardRef(
           }
 
           const prevMsg = messages[index - 1];
-          const showTicketDivider =
-            msg.ticket_number && (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
+          const showTicketDivider = msg.ticket_number && (!prevMsg || msg.ticket_number !== prevMsg.ticket_number);
 
-          // Resolução do alvo de resposta (preview)
+          // Resolve preview de resposta
           let replyToMessage = msg.replyTo || null;
           const replyId = msg.reply_to || msg.context?.message_id || null;
           if (!replyToMessage && typeof replyId === 'string' && replyId.trim() !== '') {
             const target = messages.find((m) => {
-              const ids = [
-                m.message_id,
-                m.whatsapp_message_id,
-                m.telegram_message_id,
-                m.provider_id,
-                m.id,
-              ].filter(Boolean);
+              const ids = [m.message_id, m.whatsapp_message_id, m.telegram_message_id, m.provider_id, m.id].filter(Boolean);
               return ids.some((x) => String(x) === String(replyId));
             });
             replyToMessage = target || null;
           }
 
           return (
-            <React.Fragment
-              key={
-                msg.id ||
-                msg.message_id ||
-                msg.provider_id ||
-                msg.client_id ||
-                index
-              }
-            >
-              {showTicketDivider && (
-                <div className="ticket-divider">
-                  Ticket #{msg.ticket_number}
-                </div>
-              )}
+            <React.Fragment key={msg.id || msg.message_id || msg.provider_id || msg.client_id || index}>
+              {showTicketDivider && <div className="ticket-divider">Ticket #{msg.ticket_number}</div>}
               <MessageRow
                 msg={{ ...msg, replyTo: replyToMessage }}
                 onImageClick={onImageClick}
                 onPdfClick={onPdfClick}
                 onReply={onReply}
-                onRetry={onRetry}
               />
             </React.Fragment>
           );
