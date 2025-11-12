@@ -48,20 +48,34 @@ function tsOf(m) {
   const n = t ? new Date(t).getTime() : NaN;
   return Number.isFinite(n) ? n : 0;
 }
+
+/**
+ * Procura mensagem por qualquer identificador,
+ * incluindo `_id` (bem comum em Mongo).
+ */
 function findIndexByAnyId(list, msg) {
-  const keys = new Set([msg?.id, msg?.message_id, msg?.provider_id, msg?.client_id].filter(Boolean).map(String));
+  const keys = new Set(
+    [msg?.id, msg?._id, msg?.message_id, msg?.provider_id, msg?.client_id]
+      .filter(Boolean)
+      .map(String)
+  );
   if (!keys.size) return -1;
-  return list.findIndex(m => {
-    const ks = [m?.id, m?.message_id, m?.provider_id, m?.client_id].filter(Boolean).map(String);
-    return ks.some(k => keys.has(k));
+
+  return list.findIndex((m) => {
+    const ks = [m?.id, m?._id, m?.message_id, m?.provider_id, m?.client_id]
+      .filter(Boolean)
+      .map(String);
+    return ks.some((k) => keys.has(k));
   });
 }
+
 function mergeOutgoing(a, b) {
   const first = rankStatus(a.status) >= rankStatus(b.status) ? a : b;
   const second = first === a ? b : a;
   return {
     ...first,
     id: first.id || second.id,
+    _id: first._id || second._id,
     message_id: first.message_id || second.message_id,
     provider_id: first.provider_id || second.provider_id,
     client_id: first.client_id || second.client_id,
@@ -72,6 +86,7 @@ function mergeOutgoing(a, b) {
     type: first.type || second.type,
     reply_to: first.reply_to ?? second.reply_to,
     reply_direction: first.reply_direction ?? second.reply_direction,
+    status: first.status || second.status,
   };
 }
 
@@ -89,7 +104,15 @@ function insertSortedAsc(list, msg) {
   copy.splice(lo, 0, msg);
   return copy;
 }
-function upsertByKeySortedAsc(list, msg) {
+
+/**
+ * Upsert ordenado por timestamp.
+ * - Se achar por id/message_id/provider_id/client_id/_id → faz merge.
+ * - Se NÃO achar:
+ *    - allowInsertIfNotFound = true  → insere.
+ *    - allowInsertIfNotFound = false → ignora (evita duplicar em update_message).
+ */
+function upsertByKeySortedAsc(list, msg, { allowInsertIfNotFound = true } = {}) {
   const idx = findIndexByAnyId(list, msg);
   if (idx >= 0) {
     const merged = mergeOutgoing(list[idx], msg);
@@ -101,6 +124,11 @@ function upsertByKeySortedAsc(list, msg) {
     const copy = list.slice();
     copy.splice(idx, 1);
     return insertSortedAsc(copy, merged);
+  }
+  if (!allowInsertIfNotFound) {
+    // update_message "perdido": não insere para não duplicar
+    console.warn("update_message sem match, ignorando para evitar duplicação:", msg);
+    return list;
   }
   return insertSortedAsc(list, msg);
 }
@@ -172,7 +200,7 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages((prev) => {
-      const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
+      const next = upsertByKeySortedAsc(prev, { ...msg, pending: false }, { allowInsertIfNotFound: true });
       messageCacheRef.current.set(msg.user_id, next);
 
       const ts = msg.timestamp || new Date().toISOString();
@@ -182,7 +210,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         direction: msg.direction,
         timestamp: ts,
         type: (msg.type || "text").toLowerCase(),
-        // sem status aqui
+        status: msg.status,
       });
 
       mergeConversation(msg.user_id, mergeData);
@@ -194,7 +222,8 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!msg || msg.user_id !== userIdSelecionado) return;
 
     setAllMessages((prev) => {
-      const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
+      // update_message NÃO deve criar nova mensagem => allowInsertIfNotFound: false
+      const next = upsertByKeySortedAsc(prev, { ...msg, pending: false }, { allowInsertIfNotFound: false });
       messageCacheRef.current.set(msg.user_id, next);
 
       const ts = msg.timestamp || new Date().toISOString();
@@ -205,7 +234,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         direction: msg.direction,
         timestamp: ts,
         type: (msg.type || "text").toLowerCase(),
-        // NUNCA enviar `status` aqui
+        status: msg.status,
       };
       const safe = pruneEmpty(stripTicketFields(base));
       mergeConversation(msg.user_id, safe);
@@ -402,16 +431,23 @@ export default function ChatWindow({ userIdSelecionado }) {
     if (!tempMsg) return;
 
     const client_id = tempMsg.client_id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    // pega flow_id atual só pra garantir que a msg otimista também carrega isso
+    const state   = useConversationsStore.getState();
+    const conv    = state.conversations?.[userIdSelecionado];
+    const flowId  = conv?.flow_id || null;
+
     const optimistic = {
       ...tempMsg,
       pending: true,
       direction: "outgoing",
       client_id,
       reply_to: tempMsg.reply_to || null,
+      flow_id: tempMsg.flow_id || flowId || null,
     };
 
     setAllMessages((prev) => {
-      const next = upsertByKeySortedAsc(prev, optimistic);
+      const next = upsertByKeySortedAsc(prev, optimistic, { allowInsertIfNotFound: true });
       messageCacheRef.current.set(userIdSelecionado, next);
       return next;
     });
