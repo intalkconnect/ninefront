@@ -3,40 +3,48 @@ import { apiGet, apiPost } from '../../../../../../shared/apiClient';
 import './styles/Transfer.css';
 import useConversationsStore from '../../../../store/useConversationsStore';
 
-export default function TransferModal({ userId, onClose }) {
+/* Util: anexa ?flow_id=... (ou &flow_id=...) quando existir */
+function withFlow(url, flowId) {
+  if (!flowId) return url;
+  return url.includes('?')
+    ? `${url}&flow_id=${encodeURIComponent(flowId)}`
+    : `${url}?flow_id=${encodeURIComponent(flowId)}`;
+}
+
+export default function TransferModal({ userId, flowId, onClose }) {
   const {
     userEmail,
     mergeConversation,
     setSelectedUserId,
-    settings,
     getSettingValue
   } = useConversationsStore();
 
-  /* ──────────────────────── Permissões globais ──────────────────────── */
-  const permiteAtendente =
-    getSettingValue('permitir_transferencia_atendente') === 'true';
+  /* Permissões globais (settings) */
+  const permiteAtendente = getSettingValue('permitir_transferencia_atendente') === 'true';
 
-  /* ────────────────────────── States locais ─────────────────────────── */
+  /* State */
   const [filas, setFilas] = useState([]);
   const [filaSelecionada, setFilaSelecionada] = useState('');
   const [responsavel, setResponsavel] = useState('');
   const [atendentes, setAtendentes] = useState([]);
 
-  /* ───────────────── Carrega filas onde usuário pode transferir ───────────────── */
+  /* Carrega filas em que o usuário PODE transferir (filtradas por flow_id) */
   useEffect(() => {
     (async () => {
       try {
-        const data = await apiGet(`/queues/queues-permission/${userEmail}`);
-        setFilas(data);
+        // OBS: mantendo o prefixo "/queues/queues-permission" conforme seu código
+        const url = withFlow(`/queues/queues-permission/${encodeURIComponent(userEmail)}`, flowId);
+        const data = await apiGet(url);
+        setFilas(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Erro ao buscar filas:', err);
         alert('Erro ao carregar filas disponíveis.');
         onClose();
       }
     })();
-  }, [userEmail, onClose]);
+  }, [userEmail, flowId, onClose]);
 
-  /* ─────────── Carrega atendentes da fila (se permitido & selecionada) ─────────── */
+  /* Carrega atendentes da fila (se permitido & fila selecionada) — respeita flow_id */
   useEffect(() => {
     (async () => {
       if (!filaSelecionada || !permiteAtendente) {
@@ -44,31 +52,34 @@ export default function TransferModal({ userId, onClose }) {
         return;
       }
 
-      const filaNome = filas.find(f => f.id.toString() === filaSelecionada)?.nome;
+      const fila = filas.find(f => String(f.id) === String(filaSelecionada));
+      const filaNome = fila?.nome;
       if (!filaNome) {
         setAtendentes([]);
         return;
       }
 
       try {
-        const resp = await apiGet(`/queues/agents/${filaNome}`);
-        const lista = Array.isArray(resp.atendentes) ? resp.atendentes : resp;
-        setAtendentes(lista.filter(a => a.email !== userEmail)); // remove próprio usuário
+        const url = withFlow(`/queues/agents/${encodeURIComponent(filaNome)}`, flowId);
+        const resp = await apiGet(url);
+        const lista = Array.isArray(resp?.atendentes) ? resp.atendentes : (Array.isArray(resp) ? resp : []);
+        setAtendentes(lista.filter(a => a.email !== userEmail)); // remove o próprio usuário
       } catch (err) {
         console.error('Erro ao buscar atendentes:', err);
         setAtendentes([]);
       }
     })();
-  }, [filaSelecionada, filas, permiteAtendente, userEmail]);
+  }, [filaSelecionada, filas, permiteAtendente, userEmail, flowId]);
 
-  /* ─────────────────────────── Confirmar transferência ─────────────────────────── */
+  /* Confirmar transferência — inclui flow_id no corpo */
   const confirmarTransferencia = async () => {
     if (!filaSelecionada) {
       alert('Selecione uma fila para transferir.');
       return;
     }
 
-    const filaNome = filas.find(f => f.id.toString() === filaSelecionada)?.nome;
+    const fila = filas.find(f => String(f.id) === String(filaSelecionada));
+    const filaNome = fila?.nome;
     if (!filaNome) {
       alert('Fila inválida selecionada.');
       return;
@@ -77,9 +88,10 @@ export default function TransferModal({ userId, onClose }) {
     try {
       const body = {
         from_user_id: userId,
-        to_fila: filaNome,                         // nome da fila
+        to_fila: filaNome,
         to_assigned_to: permiteAtendente ? (responsavel || null) : null,
-        transferido_por: userEmail
+        transferido_por: userEmail,
+        ...(flowId ? { flow_id: flowId } : {})
       };
 
       await apiPost('/tickets/transferir', body);
@@ -93,7 +105,6 @@ export default function TransferModal({ userId, onClose }) {
     }
   };
 
-  /* ─────────────────────────────── JSX ──────────────────────────────── */
   return (
     <div className="modal-overlay">
       <div className="modal">
@@ -104,10 +115,7 @@ export default function TransferModal({ userId, onClose }) {
           Fila:
           <select
             value={filaSelecionada}
-            onChange={(e) => {
-              setFilaSelecionada(e.target.value);
-              setResponsavel('');
-            }}
+            onChange={(e) => { setFilaSelecionada(e.target.value); setResponsavel(''); }}
           >
             <option value="">Selecione uma fila</option>
             {filas.map((f) => (
@@ -116,19 +124,14 @@ export default function TransferModal({ userId, onClose }) {
           </select>
         </label>
 
-        {/* Seleção de Atendente (somente se permitido e após fila escolhida) */}
+        {/* Seleção de Atendente (opcional, se permitido) */}
         {permiteAtendente && filaSelecionada && (
           <label>
             Atribuir para (opcional):
             {atendentes.length === 0 ? (
-              <div className="info-text">
-                Nenhum atendente disponível nesta fila.
-              </div>
+              <div className="info-text">Nenhum atendente disponível nesta fila.</div>
             ) : (
-              <select
-                value={responsavel}
-                onChange={(e) => setResponsavel(e.target.value)}
-              >
+              <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)}>
                 <option value="">-- Qualquer atendente --</option>
                 {atendentes.map((a) => (
                   <option key={a.email} value={a.email}>
