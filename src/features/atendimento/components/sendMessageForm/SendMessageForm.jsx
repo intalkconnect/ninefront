@@ -1,299 +1,313 @@
-// src/hooks/useSendMessage.js
-import { useState } from 'react';
-import { toast } from 'react-toastify';
-import { apiPost } from '../../../shared/apiClient';
-import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
-import useConversationsStore from '../store/useConversationsStore';
+import React, { useState, useRef, useEffect } from "react";
+import { Smile, Paperclip, Image, Slash } from "lucide-react";
+import { toast } from "react-toastify";
+import "./styles/SendMessageForm.css";
 
-/* ================= helpers de canal/id ================= */
-const getChannelFromUserId = (userId) => {
-  if (!userId) return 'webchat';
-  if (userId.endsWith('@w.msgcli.net')) return 'whatsapp';
-  if (userId.endsWith('@t.msgcli.net')) return 'telegram';
-  return 'webchat';
-};
-const extractRawUserId = (userId) => userId.replace(/@[wt]\.msgcli\.net$/, '');
-const getTypeFromFile = (file) => {
-  if (!file) return 'text';
-  const mt = (file.type || '').toLowerCase();
-  if (mt.startsWith('image/')) return 'image';
-  if (mt.startsWith('audio/')) return 'audio';
-  if (mt.startsWith('video/')) return 'video';
-  return 'document';
-};
+import useConversationsStore from "../../store/useConversationsStore";
+import { useSendMessage } from "../../hooks/useSendMessage";
+import { useAudioRecorder } from "../../hooks/useAudioRecorder";
+import { useClickOutside } from "../../hooks/useClickOutside";
+import { apiGet } from "../../../../shared/apiClient";
 
-/* ================= helpers de reply ================= */
-function normalizeReplyContent(raw) {
-  if (!raw) return {};
-  if (typeof raw === 'string') return { body: raw };
+import FilePreview from "./FilePreview";
+import AutoResizingTextarea from "./AutoResizingTextarea";
+import EmojiPicker from "./EmojiPicker";
+import UploadFileModal from "./UploadFileModal";
+import QuickReplies from "./QuickReplies";
 
-  const c = { ...(raw || {}) };
-  if (typeof c.body === 'string' && c.body.trim()) return { body: c.body };
-  if (typeof c.text === 'string' && c.text.trim()) return { body: c.text };
-  if (typeof c.caption === 'string' && c.caption.trim()) return { body: c.caption };
+/* -------- helpers de preview de resposta (WhatsApp) -------- */
+function pickSnippetFromContent(c) {
+  if (!c) return '';
+  if (typeof c === 'string') return c;
+  if (typeof c === 'object') {
+    if (typeof c.body === 'string' && c.body.trim()) return c.body;
+    if (typeof c.text === 'string' && c.text.trim()) return c.text;
+    if (typeof c.caption === 'string' && c.caption.trim()) return c.caption;
 
-  return {
-    ...(c.url ? { url: c.url } : {}),
-    ...(c.filename ? { filename: c.filename } : {}),
-    ...(c.voice ? { voice: true } : {})
+    const url = String(c.url || '').toLowerCase();
+    if (!url) return '';
+
+    if (/\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
+    if (/\.(ogg|mp3|wav|m4a|opus)$/.test(url) || c.voice) return 'Áudio';
+    if (/\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
+    if (c.filename) return c.filename;
+    return 'Documento';
+  }
+  return '';
+}
+function buildReplyPreview(replyTo) {
+  if (!replyTo) return null;
+  if (typeof replyTo === 'object') {
+    const title = replyTo.direction === 'outgoing'
+      ? 'Você'
+      : (replyTo.name || replyTo.sender_name || '');
+    const snippet = pickSnippetFromContent(replyTo.content);
+    return { title, snippet };
+  }
+  if (typeof replyTo === 'string') {
+    const s = replyTo.trim();
+    const m = s.match(/^\*(.+?)\*:\s*(.*)$/);
+    if (m) return { title: m[1], snippet: m[2] };
+    return { title: '', snippet: s };
+  }
+  return null;
+}
+
+export default function SendMessageForm({
+  userIdSelecionado,
+  onMessageAdded,
+  replyTo,
+  setReplyTo,
+  canSendFreeform,
+}) {
+  /* Estados */
+  const [text, setText] = useState("");
+  const [file, setFile] = useState(null);
+  const [fileToConfirm, setFileToConfirm] = useState(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [hasQuickReplies, setHasQuickReplies] = useState(false);
+
+  /* Refs */
+  const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
+  const quickReplyRef = useRef(null);
+
+  /* Hooks */
+  const { isSending, sendMessage } = useSendMessage();
+  const {
+    isRecording, startRecording, stopRecording,
+    recordedFile, clearRecordedFile, recordingTime
+  } = useAudioRecorder();
+
+  /* Dados do atendente */
+  const { agentName, getSettingValue } = useConversationsStore();
+  const isSignatureEnabled = getSettingValue("enable_signature") === "true";
+
+  /* Canal atual */
+  const getChannelFromUserId = (userId) => {
+    if (!userId) return 'whatsapp';
+    if (userId.endsWith('@t.msgcli.net')) return 'telegram';
+    return 'whatsapp';
   };
-}
-function makeReplySnapshot(replyToFull) {
-  if (!replyToFull || typeof replyToFull !== 'object') return null;
-  const replyId =
-    replyToFull.message_id ||
-    replyToFull.whatsapp_message_id ||
-    replyToFull.telegram_message_id ||
-    replyToFull.provider_id ||
-    replyToFull.id ||
-    null;
+  const currentChannel = getChannelFromUserId(userIdSelecionado);
 
-  return {
-    message_id: replyId || undefined,
-    direction: replyToFull.direction,
-    name: replyToFull.name || replyToFull.sender_name || undefined,
-    type: replyToFull.type,
-    content: normalizeReplyContent(replyToFull.content),
-  };
-}
+  /* Fechar popovers */
+  useClickOutside([emojiPickerRef, quickReplyRef], () => {
+    setShowEmoji(false);
+    setShowQuickReplies(false);
+  });
 
-/* =========== helper para atualizar o “card” (Sidebar) =========== */
-function updateConversationCard(userId, patch) {
-  const store = useConversationsStore.getState();
-  store.setConversation(userId, patch);
-}
+  /* QuickReplies existe? */
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await apiGet("/quick-replies");
+        setHasQuickReplies(data.length > 0);
+      } catch (err) {
+        console.error("Erro ao checar quick replies:", err);
+      }
+    })();
+  }, []);
 
-/* ========================= hook ========================= */
-export function useSendMessage() {
-  const [isSending, setIsSending] = useState(false);
+  /* Troca de conversa => limpa input/arquivo/reply */
+  useEffect(() => {
+    setText('');
+    setFile(null);
+    setReplyTo?.(null);
+  }, [userIdSelecionado, setReplyTo]);
 
-  const sendMessage = async (
-    {
-      text,
-      file,
-      userId,
-      replyTo,      // id da msg original (message_id)
-      replyToFull,  // objeto completo da msg original (para preview)
-    },
-    onMessageAdded
-  ) => {
-    const channel = getChannelFromUserId(userId);
-    const to = extractRawUserId(userId || '');
+  /* fim da gravação */
+  useEffect(() => {
+    if (recordedFile) setFile(recordedFile);
+  }, [recordedFile]);
 
-    if (!text?.trim() && !file) {
-      toast.warn('Digite algo ou anexe um arquivo antes de enviar.', {
-        position: 'bottom-right',
-        autoClose: 2000,
-      });
+  /* Enviar */
+  const handleSend = (e) => {
+    e.preventDefault();
+    if (isRecording) return stopRecording();
+
+    const trimmedText = text.trim();
+    const hasTextOrFile = trimmedText || file;
+    if (!hasTextOrFile) {
+      startRecording();
       return;
     }
 
-    // pega flow_id da conversa atual (se houver)
-    const store = useConversationsStore.getState();
-    const flowId = store?.conversations?.[userId]?.flow_id || null;
-
-    // client_id fixo para ligar a otimista às atualizações subsequentes
-    const clientId = `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-    const now = new Date();
-    const provisionalType = file ? getTypeFromFile(file) : 'text';
-    const replySnapshot  = makeReplySnapshot(replyToFull);
-
-    // preview local para imagem
-    let localUrl;
-    if (file && provisionalType === 'image') {
-      try { localUrl = URL.createObjectURL(file); } catch {}
+    // Janela 24h (WhatsApp)
+    if (currentChannel === 'whatsapp' && !canSendFreeform) {
+      toast.warn('Fora da janela de 24h. Envie um template.', { position: 'bottom-right' });
+      return;
     }
 
-    /* ---------- Mensagem OTIMISTA ---------- */
-    const provisionalMessage = {
-      // não use id temporário; use apenas client_id para evitar colisão
-      id: null,
-      client_id: clientId,
-      direction: 'outgoing',
-      timestamp: now.getTime(),
-      readableTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'pending',                      // <— padronizado
-      type: provisionalType,
-      content: (() => {
-        if (!file) return text?.trim() || '';
-        if (provisionalType === 'image' && localUrl) {
-          return {
-            url: localUrl,
-            filename: file.name,
-            ...(text?.trim() ? { caption: text.trim() } : {}),
-          };
-        }
-        return { filename: file.name };
-      })(),
-      channel,
-      ...(flowId ? { flow_id: flowId } : {}),
-      ...(replyTo ? { reply_to: replyTo } : {}),
-      ...(replySnapshot ? { replyTo: replySnapshot } : {}),
-    };
-    if (typeof onMessageAdded === 'function') onMessageAdded(provisionalMessage);
-
-    /* ---------- Atualização do CARD (Sidebar) ---------- */
-    updateConversationCard(userId, {
-      content: provisionalMessage.content,
-      type: provisionalType,
-      timestamp: now.toISOString(),
-      channel,
-      ...(flowId ? { flow_id: flowId } : {}),
-    });
-
-    setIsSending(true);
-
-    let uploadedContent = null;
-
-    try {
-      /* ---------- Monta payload ---------- */
-      const payload = {
-        to,
-        channel,
-        type: provisionalType,
-        content: {},
-        ...(flowId ? { flow_id: flowId } : {}),     // <— envia flow_id
-        // importante: envie o client_id para o backend ecoar se for possível
-        client_id: clientId,
-      };
-
-      if (file) {
-        const { valid, errorMsg } = validateFile(file);
-        if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
-
-        // upload do arquivo
-        const fileUrl = await uploadFileAndGetURL(file);
-        if (!fileUrl) throw new Error('Falha no upload do arquivo');
-
-        uploadedContent = {
-          url: fileUrl,
-          ...(provisionalType !== 'audio' && file.name ? { filename: file.name } : {}),
-          ...(text?.trim() ? { caption: text.trim() } : {}),
-          ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
-        };
-
-        // atualiza a otimista com a URL definitiva (MANTENDO client_id)
-        if (typeof onMessageAdded === 'function') {
-          onMessageAdded({
-            ...provisionalMessage,
-            content: uploadedContent,
-            status: 'pending',
-            client_id: clientId,
-          });
-        }
-
-        updateConversationCard(userId, {
-          content: uploadedContent,
-          type: provisionalType,
-          timestamp: now.toISOString(),
-          ...(flowId ? { flow_id: flowId } : {}),
-        });
-
-        payload.content = uploadedContent;
-      } else {
-        payload.content = { body: text.trim() };
-      }
-
-      if (replyTo) payload.context = { message_id: replyTo };
-
-      /* ---------- Envia ---------- */
-      const response = await apiPost('/messages/send', payload);
-      const saved = response?.message || response; // compatível se sua API retorna direto
-
-      // atualiza a mesma mensagem OTIMISTA com id real + message_id + status=sent
-      if (typeof onMessageAdded === 'function') {
-        onMessageAdded({
-          ...provisionalMessage,
-          status: 'sent',
-          content: uploadedContent || provisionalMessage.content,
-          client_id: clientId,                 // <— chave para unir ao item existente
-          id: saved?.id || null,               // <— id REAL do banco
-          message_id: saved?.message_id,       // <— wamid/telegram id
-          provider_id: saved?.provider_id,     // se existir
-          flow_id: saved?.flow_id || flowId || null,
-          serverResponse: response,
-        });
-      }
-
-      updateConversationCard(userId, {
-        content: uploadedContent || provisionalMessage.content,
-        type: provisionalType,
-        timestamp: now.toISOString(),
-        ...(flowId ? { flow_id: flowId } : {}),
-      });
-
-      marcarMensagensAntesDoTicketComoLidas(userId);
-    } catch (err) {
-      console.error('[❌ Erro ao enviar mensagem]', err);
-
-      if (typeof onMessageAdded === 'function') {
-        onMessageAdded({
-          ...provisionalMessage,
-          content: uploadedContent || provisionalMessage.content,
-          status: 'failed',          // <— padronizado
-          client_id: clientId,
-          errorMessage:
-            err?.response?.data?.error ||
-            err?.response?.data?.details ||
-            err?.message ||
-            'Erro desconhecido',
-        });
-      }
-
-      updateConversationCard(userId, {
-        content: uploadedContent || provisionalMessage.content,
-        type: provisionalType,
-        timestamp: now.toISOString(),
-        ...(flowId ? { flow_id: flowId } : {}),
-      });
-
-      const platformError = err?.response?.data;
-      if (
-        platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
-        platformError?.error === 'Message outside 24h window'
-      ) {
-        toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', {
-          position: 'bottom-right', autoClose: 5000,
-        });
-      } else if (platformError?.error === 'Recipient not in allowed list' || platformError?.error?.code === 131030) {
-        toast.error('Número não permitido no WhatsApp. Use um número de teste cadastrado.', {
-          position: 'bottom-right', autoClose: 5000,
-        });
-      } else if (platformError?.error === 'Message text cannot be empty') {
-        toast.error('Mensagem vazia no Telegram.', {
-          position: 'bottom-right', autoClose: 3000,
-        });
-      } else {
-        toast.error(`Erro ao enviar mensagem: ${err.message}`, {
-          position: 'bottom-right', autoClose: 3000,
-        });
-      }
-    } finally {
-      setIsSending(false);
-      if (localUrl) { try { URL.revokeObjectURL(localUrl); } catch {} }
+    // Assinatura opcional no WhatsApp
+    let finalText = trimmedText;
+    if (isSignatureEnabled && trimmedText && currentChannel === 'whatsapp') {
+      finalText = `*${agentName}:*\n\n${trimmedText}`;
     }
+
+    sendMessage(
+      {
+        text: finalText,
+        file,
+        userId: userIdSelecionado,
+        replyTo: replyTo?.message_id || null,
+        // passa o objeto completo também — melhora o preview da resposta
+        replyToFull: replyTo || null,
+      },
+      onMessageAdded
+    );
+
+    setText('');
+    setFile(null);
+    setReplyTo(null);
+    setShowQuickReplies(false);
   };
 
-  return { isSending, sendMessage };
-}
+  const handleQuickReplySelect = (qr) => {
+    setText(qr.content);
+    setShowQuickReplies(false);
+    textareaRef.current?.focus();
+  };
 
-/* ===================== marcar como lidas ===================== */
-export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
-  const store = useConversationsStore.getState();
-  const conversation = store.conversations[userId] || {};
+  const handleTextChange = (e) => {
+    const value = e.target.value;
+    setText(value);
+    setShowQuickReplies(
+      hasQuickReplies && value.trim().startsWith("/") && value.trim().length === 1
+    );
+  };
 
-  if (!mensagens) mensagens = conversation.messages || [];
+  const handleRemoveFile = () => {
+    setFile(null);
+    clearRecordedFile();
+    fileInputRef.current.value = "";
+    imageInputRef.current.value = "";
+  };
 
-  const systemIndex = mensagens.findIndex((m) => m.type === 'system');
-  if (systemIndex === -1) return;
+  const preview = buildReplyPreview(replyTo);
 
-  const updatedMessages = mensagens.map((msg, idx) =>
-    idx < systemIndex ? { ...msg, status: 'read' } : msg
+  return (
+    <>
+      {replyTo && (
+        <div className="reply-preview">
+          <div className="reply-content">
+            <div className="reply-author">Você está respondendo:</div>
+            <div className="reply-text">
+              {preview && (
+                <>
+                  <strong>{preview.title || (replyTo?.direction === 'outgoing' ? 'Você' : '')}</strong>
+                  {preview.title && ' '}
+                  {preview.snippet}
+                </>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="reply-cancel"
+            onClick={() => setReplyTo(null)}
+            title="Cancelar resposta"
+          >
+            <Slash size={16} />
+          </button>
+        </div>
+      )}
+
+      <form className="send-message-form" onSubmit={(e) => e.preventDefault()}>
+        <div className="message-input-wrapper">
+          {hasQuickReplies && <span className="quick-reply-hash">/</span>}
+
+          <AutoResizingTextarea
+            ref={textareaRef}
+            className={`send-message-textarea ${isRecording ? "is-recording" : ""}`}
+            placeholder={
+              file
+                ? file.type.startsWith("audio/")
+                  ? "Gravação pronta..."
+                  : "Digite legenda..."
+                : isRecording
+                ? `⏱ ${String(Math.floor(recordingTime / 60)).padStart(2, "0")}:${String(recordingTime % 60).padStart(2, "0")}`
+                : "Escreva uma mensagem..."
+            }
+            value={text}
+            onChange={handleTextChange}
+            onSubmit={handleSend}
+            disabled={isSending || isRecording || (file && file.type.startsWith("audio/"))}
+            rows={1}
+          />
+        </div>
+
+        <div className="send-button-group">
+          <button type="button" className="btn-attachment" onClick={() => setShowEmoji((v) => !v)}>
+            <Smile size={24} color="#555" />
+          </button>
+
+          {(currentChannel === 'whatsapp' || currentChannel === 'telegram') && (
+            <>
+              <button type="button" className="btn-attachment" onClick={() => fileInputRef.current.click()}>
+                <Paperclip size={24} color="#555" />
+              </button>
+              <input type="file" ref={fileInputRef} style={{ display: "none" }} onChange={(e) => setFileToConfirm(e.target.files[0])} />
+
+              <button type="button" className="btn-attachment" onClick={() => imageInputRef.current.click()}>
+                <Image size={24} color="#555" />
+              </button>
+              <input type="file" ref={imageInputRef} style={{ display: "none" }} accept="image/*" onChange={(e) => setFileToConfirm(e.target.files[0])} />
+            </>
+          )}
+
+          <FilePreview file={file} onRemove={handleRemoveFile} isSending={isSending} isRecording={isRecording} />
+
+          <button type="submit" className="btn-send" onClick={handleSend} disabled={isSending}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff">
+              <path
+                d={
+                  isRecording
+                    ? "M6 6h12v12H6z"
+                    : text.trim() || file
+                    ? "M2.01 21l20.99-9L2.01 3v7l15 2-15 2z"
+                    : "M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zM17 11a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2z"
+                }
+              />
+            </svg>
+          </button>
+        </div>
+
+        {showEmoji && (
+          <div ref={emojiPickerRef} className="emoji-picker-container">
+            <EmojiPicker onSelect={(emoji) => setText((p) => p + emoji)} />
+          </div>
+        )}
+      </form>
+
+      {showQuickReplies && (
+        <div ref={quickReplyRef} className="quick-replies-container">
+          <QuickReplies onSelect={handleQuickReplySelect} onClose={() => setShowQuickReplies(false)} />
+        </div>
+      )}
+
+      {fileToConfirm && (
+        <UploadFileModal
+          file={fileToConfirm}
+          onClose={() => setFileToConfirm(null)}
+          onSubmit={async (file, caption) => {
+            await sendMessage(
+              {
+                text: caption,
+                file,
+                userId: userIdSelecionado,
+                replyTo: replyTo?.message_id || null,
+                replyToFull: replyTo || null,
+              },
+              onMessageAdded
+            );
+            setFileToConfirm(null);
+          }}
+        />
+      )}
+    </>
   );
-
-  store.setConversation(userId, {
-    ...conversation,
-    messages: updatedMessages,
-  });
 }
