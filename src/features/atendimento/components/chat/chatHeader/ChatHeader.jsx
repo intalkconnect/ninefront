@@ -182,7 +182,7 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
       let url = `/tickets/${encodeURIComponent(userId)}`;
       if (flowId) url += `?flow_id=${encodeURIComponent(flowId)}`;
       
-      await apiPut(`/tickets/${encodeURIComponent(userId)}`, { status: 'closed' });
+      await apiPut(url, { status: 'closed' });
       mergeConversation(userId, { status: 'closed' });
 
       // 4) socket + UI
@@ -264,4 +264,5 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
     </>
   );
 }
+
 
