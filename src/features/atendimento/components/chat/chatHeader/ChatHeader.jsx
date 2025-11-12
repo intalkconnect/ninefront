@@ -177,6 +177,11 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
       await saveCustomerTagsDiff(userId, serverCurrent, pending);
 
       // 3) Fecha o ticket
+
+      const flowId = conv.flow_id || st?.clienteAtivo?.flow_id || null;
+      let url = `/tickets/${encodeURIComponent(userId)}`;
+      if (flowId) url += `?flow_id=${encodeURIComponent(flowId)}`;
+      
       await apiPut(`/tickets/${encodeURIComponent(userId)}`, { status: 'closed' });
       mergeConversation(userId, { status: 'closed' });
 
@@ -259,3 +264,4 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
     </>
   );
 }
+
