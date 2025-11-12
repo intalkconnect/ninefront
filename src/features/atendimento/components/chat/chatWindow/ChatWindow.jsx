@@ -249,29 +249,14 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     (async () => {
       try {
-              // 👇 pega flow_id da conversa no store
-      const state   = useConversationsStore.getState();
-      const conv    = state.conversations?.[userIdSelecionado];
-      const flowId  = conv?.flow_id || null;
-
-      const flowParam   = flowId ? `flow_id=${encodeURIComponent(flowId)}` : "";
-      const baseUserId  = encodeURIComponent(userIdSelecionado);
-
-      const messagesUrl = `/messages/${baseUserId}?limit=${PAGE_LIMIT}&sort=asc` +
-        (flowParam ? `&${flowParam}` : "");
-      const customersUrl = `/customers/${baseUserId}` +
-        (flowParam ? `?${flowParam}` : "");
-      const ticketsUrl = `/tickets/${baseUserId}` +
-        (flowParam ? `?${flowParam}` : "");
-      const check24hUrl = `/messages/check-24h/${baseUserId}` +
-        (flowParam ? `?${flowParam}` : "");
+        // pega flow_id da conversa no store
         const state   = useConversationsStore.getState();
         const conv    = state.conversations?.[userIdSelecionado];
         const flowId  = conv?.flow_id || null;
-        
+
         const flowParam   = flowId ? `flow_id=${encodeURIComponent(flowId)}` : "";
         const baseUserId  = encodeURIComponent(userIdSelecionado);
-        
+
         const messagesUrl = `/messages/${baseUserId}?limit=${PAGE_LIMIT}&sort=asc` +
           (flowParam ? `&${flowParam}` : "");
         const customersUrl = `/customers/${baseUserId}` +
@@ -280,14 +265,13 @@ export default function ChatWindow({ userIdSelecionado }) {
           (flowParam ? `?${flowParam}` : "");
         const check24hUrl = `/messages/check-24h/${baseUserId}` +
           (flowParam ? `?${flowParam}` : "");
-        
+
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
           apiGet(messagesUrl),
           apiGet(customersUrl),
           apiGet(ticketsUrl),
           apiGet(check24hUrl),
         ]);
-
 
         const { status, assigned_to, fila } = (ticketRes || {});
         if (status !== "open" || assigned_to !== userEmail || !(userFilas || []).includes(fila)) {
@@ -321,6 +305,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           content: lastText,
           timestamp: lastMsg?.timestamp || lastMsg?.created_at,
           type: (lastMsg?.type || "text").toLowerCase(),
+          flow_id: flowId || clienteRes?.flow_id || null,
         }));
 
         marcarMensagensAntesDoTicketComoLidas(userIdSelecionado, msgs);
@@ -370,7 +355,18 @@ export default function ChatWindow({ userIdSelecionado }) {
           before_ts: String(oldestTsRef.current),
           sort: "desc",
         });
-        const older = await apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`);
+
+        // inclui flow_id na paginação, se existir
+        const state   = useConversationsStore.getState();
+        const conv    = state.conversations?.[userIdSelecionado];
+        const flowId  = conv?.flow_id || null;
+        if (flowId) {
+          qs.set("flow_id", flowId);
+        }
+
+        const older = await apiGet(
+          `/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`
+        );
         const arr = Array.isArray(older) ? older : (older?.data || []);
         arr.reverse(); // mantém ASC
 
