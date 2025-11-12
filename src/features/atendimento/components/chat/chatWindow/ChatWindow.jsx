@@ -249,6 +249,22 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     (async () => {
       try {
+              // 👇 pega flow_id da conversa no store
+      const state   = useConversationsStore.getState();
+      const conv    = state.conversations?.[userIdSelecionado];
+      const flowId  = conv?.flow_id || null;
+
+      const flowParam   = flowId ? `flow_id=${encodeURIComponent(flowId)}` : "";
+      const baseUserId  = encodeURIComponent(userIdSelecionado);
+
+      const messagesUrl = `/messages/${baseUserId}?limit=${PAGE_LIMIT}&sort=asc` +
+        (flowParam ? `&${flowParam}` : "");
+      const customersUrl = `/customers/${baseUserId}` +
+        (flowParam ? `?${flowParam}` : "");
+      const ticketsUrl = `/tickets/${baseUserId}` +
+        (flowParam ? `?${flowParam}` : "");
+      const check24hUrl = `/messages/check-24h/${baseUserId}` +
+        (flowParam ? `?${flowParam}` : "");
         const [msgRes, clienteRes, ticketRes, check24hRes] = await Promise.all([
           apiGet(`/messages/${encodeURIComponent(userIdSelecionado)}?limit=${PAGE_LIMIT}&sort=asc`),
           apiGet(`/customers/${encodeURIComponent(userIdSelecionado)}`),
