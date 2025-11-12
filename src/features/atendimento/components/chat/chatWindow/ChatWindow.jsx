@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { connectSocket, getSocket } from "../../../services/socket";
 import { apiGet } from "../../../../../shared/apiClient";
 import useConversationsStore from "../../../store/useConversationsStore";
@@ -34,9 +29,8 @@ function extractText(c) {
     }
     return s;
   }
-  if (typeof c === "object") {
+  if (typeof c === "object")
     return String(c.text || c.caption || c.body || "").trim();
-  }
   return String(c).trim();
 }
 
@@ -50,9 +44,8 @@ function extractUrlOrFilename(c) {
       return "";
     }
   }
-  if (typeof c === "object") {
+  if (typeof c === "object")
     return String(c.url || c.filename || "").trim().toLowerCase();
-  }
   return "";
 }
 
@@ -63,22 +56,19 @@ function contentToText(content) {
   return uf ? "[arquivo]" : "[mensagem]";
 }
 
-/* ranking de status para escolher o "mais avançado" */
 const STATUS_RANK = {
-  pending: 2,
-  sent: 3,
-  delivered: 4,
   read: 5,
-  failed: 1,
+  delivered: 4,
+  sent: 3,
+  pending: 2,
   error: 1,
+  failed: 1,
   undefined: 0,
   null: 0,
 };
 
 function rankStatus(s) {
-  if (!s) return 0;
-  const v = String(s).toLowerCase();
-  return STATUS_RANK[v] ?? 0;
+  return STATUS_RANK[s] ?? 0;
 }
 
 function tsOf(m) {
@@ -87,105 +77,82 @@ function tsOf(m) {
   return Number.isFinite(n) ? n : 0;
 }
 
-/* coleta IDs que realmente existem no banco/socket */
-function collectIds(m) {
-  return [
-    m?.id,          // UUID do banco
-    m?.message_id,  // wamid.*
-  ]
-    .filter(Boolean)
-    .map(String);
-}
-
 /**
- * Tenta encontrar a mensagem "igual" na lista:
- *  1) Primeiro por id/message_id.
- *  2) Se não achar e for uma mensagem de saída, tenta casar com a última
- *     mensagem pendente (sem id/message_id) com o mesmo texto (união
- *     otimista ↔ real).
+ * Procura a mensagem existente para fazer merge:
+ * 1) Tenta por id/message_id/provider_id/client_id
+ * 2) Se não achar, tenta casar com uma mensagem de saída pendente
+ *    (sem id) com mesmo user_id e mesmo texto.
  */
 function findIndexByAnyId(list, msg) {
-  const ids = collectIds(msg);
-  if (ids.length) {
-    const keySet = new Set(ids);
-    const idxById = list.findIndex((m) =>
-      collectIds(m).some((k) => keySet.has(k))
-    );
-    if (idxById !== -1) return idxById;
+  const keys = new Set(
+    [msg?.id, msg?.message_id, msg?.provider_id, msg?.client_id]
+      .filter(Boolean)
+      .map(String)
+  );
+
+  if (keys.size) {
+    const idxById = list.findIndex((m) => {
+      const ks = [m?.id, m?.message_id, m?.provider_id, m?.client_id]
+        .filter(Boolean)
+        .map(String);
+      return ks.some((k) => keys.has(k));
+    });
+    if (idxById >= 0) return idxById;
   }
 
-  // fallback: casar resposta do servidor com a mensagem otimista pendente
-  if (msg.direction === "outgoing") {
-    const msgText = contentToText(msg.content);
-    const msgTs = tsOf(msg);
-
-    for (let i = list.length - 1; i >= 0; i--) {
-      const m = list[i];
-      if (!m) continue;
-      if (m.direction !== "outgoing") continue;
-      // já tem id/message_id? então é mensagem "real", pula
-      if (m.id || m.message_id) continue;
-
-      const mText = contentToText(m.content);
-      if (mText !== msgText) continue;
-
-      const mTs = tsOf(m);
-      const diff = Math.abs(mTs - msgTs);
-
-      // se timestamps forem próximos (ou algum estiver 0), considera o mesmo envio
-      if (!mTs || !msgTs || diff <= 60_000) {
-        return i;
-      }
+  // Fallback: mensagem de saída pendente ainda sem id no array
+  if (msg?.direction === "outgoing" && msg?.user_id) {
+    const text = contentToText(msg.content);
+    if (text) {
+      const idxPending = list.findIndex(
+        (m) =>
+          m &&
+          m.direction === "outgoing" &&
+          m.user_id === msg.user_id &&
+          m.pending &&
+          !m.id &&
+          !m.message_id &&
+          !m.provider_id &&
+          contentToText(m.content) === text
+      );
+      if (idxPending >= 0) return idxPending;
     }
   }
 
   return -1;
 }
 
-/* merge de duas versões da mesma mensagem, preferindo status mais avançado */
 function mergeOutgoing(a, b) {
-  const aRank = rankStatus(a?.status);
-  const bRank = rankStatus(b?.status);
-
-  const first = aRank >= bRank ? a : b;
+  const first = rankStatus(a.status) >= rankStatus(b.status) ? a : b;
   const second = first === a ? b : a;
 
-  const merged = {
+  return {
     ...first,
     id: first.id || second.id,
     message_id: first.message_id || second.message_id,
-
-    // se continuarmos sem ids de servidor, mantém pending
+    provider_id: first.provider_id || second.provider_id,
+    client_id: first.client_id || second.client_id,
     pending:
-      first.pending &&
-      !first.id &&
-      !first.message_id
+      first.pending && !first.id && !first.message_id && !first.provider_id
         ? true
         : false,
-
     timestamp: first.timestamp || second.timestamp,
-    created_at: first.created_at || second.created_at,
-
     content: first.content ?? second.content,
     channel: first.channel || second.channel,
     type: first.type || second.type,
     reply_to: first.reply_to ?? second.reply_to,
     reply_direction: first.reply_direction ?? second.reply_direction,
-
     status: first.status || second.status,
   };
-
-  return merged;
 }
 
 /** Inserção ordenada ASC por timestamp (evita sort global) */
 function insertSortedAsc(list, msg) {
   const t = tsOf(msg);
   if (!list.length || tsOf(list[list.length - 1]) <= t) return [...list, msg];
-
-  let lo = 0;
-  let hi = list.length - 1;
-  let mid;
+  let lo = 0,
+    hi = list.length - 1,
+    mid;
   while (lo <= hi) {
     mid = (lo + hi) >> 1;
     if (tsOf(list[mid]) <= t) lo = mid + 1;
@@ -200,21 +167,15 @@ function upsertByKeySortedAsc(list, msg) {
   const idx = findIndexByAnyId(list, msg);
   if (idx >= 0) {
     const merged = mergeOutgoing(list[idx], msg);
-
-    // se o timestamp não andar, mantemos na mesma posição
     if (tsOf(merged) >= tsOf(list[idx])) {
       const copy = list.slice();
       copy[idx] = merged;
       return copy;
     }
-
-    // se por algum motivo o ts "voltar", reposiciona
     const copy = list.slice();
     copy.splice(idx, 1);
     return insertSortedAsc(copy, merged);
   }
-
-  // não achou: insere já ordenado
   return insertSortedAsc(list, msg);
 }
 
@@ -230,7 +191,7 @@ function pruneEmpty(obj) {
 /* remove campos que não devem ser alterados por update_message */
 function stripTicketFields(obj) {
   const blocked = new Set([
-    "status", // status do ticket (open/closed/etc) — NÃO o status da mensagem
+    "status", // status do ticket (open/closed/etc)
     "assigned_to",
     "fila",
     "ticket_number",
@@ -290,10 +251,7 @@ export default function ChatWindow({ userIdSelecionado }) {
       if (!msg || msg.user_id !== userIdSelecionado) return;
 
       setAllMessages((prev) => {
-        const next = upsertByKeySortedAsc(prev, {
-          ...msg,
-          pending: false,
-        });
+        const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
 
         const ts = msg.timestamp || new Date().toISOString();
@@ -306,7 +264,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           direction: msg.direction,
           timestamp: ts,
           type: (msg.type || "text").toLowerCase(),
-          // não mexe em status de ticket aqui
+          // sem status aqui
         });
 
         mergeConversation(msg.user_id, mergeData);
@@ -321,13 +279,11 @@ export default function ChatWindow({ userIdSelecionado }) {
       if (!msg || msg.user_id !== userIdSelecionado) return;
 
       setAllMessages((prev) => {
-        const next = upsertByKeySortedAsc(prev, {
-          ...msg,
-          pending: false,
-        });
+        const next = upsertByKeySortedAsc(prev, { ...msg, pending: false });
         messageCacheRef.current.set(msg.user_id, next);
 
         const ts = msg.timestamp || new Date().toISOString();
+        // constrói payload SEM campos de ticket e SEM undefined/null
         const base = {
           content:
             extractText(msg.content) ||
@@ -337,7 +293,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           direction: msg.direction,
           timestamp: ts,
           type: (msg.type || "text").toLowerCase(),
-          // aqui NÃO mandamos status/fila/assigned_to de ticket
+          // NUNCA enviar `status` aqui
         };
         const safe = pruneEmpty(stripTicketFields(base));
         mergeConversation(msg.user_id, safe);
@@ -385,15 +341,15 @@ export default function ChatWindow({ userIdSelecionado }) {
 
     (async () => {
       try {
-        // pega flow_id atual da conversa no store (se já tiver)
+        // pega flow_id da conversa no store
         const state = useConversationsStore.getState();
         const conv = state.conversations?.[userIdSelecionado];
-        const flowIdFromStore = conv?.flow_id || null;
+        const flowId = conv?.flow_id || null;
 
-        const baseUserId = encodeURIComponent(userIdSelecionado);
-        const flowParam = flowIdFromStore
-          ? `flow_id=${encodeURIComponent(flowIdFromStore)}`
+        const flowParam = flowId
+          ? `flow_id=${encodeURIComponent(flowId)}`
           : "";
+        const baseUserId = encodeURIComponent(userIdSelecionado);
 
         const messagesUrl =
           `/messages/${baseUserId}?limit=${PAGE_LIMIT}&sort=asc` +
@@ -413,15 +369,7 @@ export default function ChatWindow({ userIdSelecionado }) {
           apiGet(check24hUrl),
         ]);
 
-        const {
-          status,
-          assigned_to,
-          fila,
-          flow_id: ticketFlowId,
-        } = ticketRes || {};
-
-        // segurança: só deixa abrir se o ticket está "open"
-        // e se estiver atribuído ao usuário logado E em uma fila que ele tem
+        const { status, assigned_to, fila } = ticketRes || {};
         if (
           status !== "open" ||
           assigned_to !== userEmail ||
@@ -444,11 +392,7 @@ export default function ChatWindow({ userIdSelecionado }) {
 
         const lastMsg = msgs[msgs.length - 1] || {};
         const lastText = contentToText(lastMsg?.content);
-
-        const effectiveFlowId =
-          flowIdFromStore || ticketFlowId || clienteRes?.flow_id || null;
-
-        // carga inicial: aqui pode setar dados de ticket/conversa (incluindo flow_id)
+        // carga inicial: AQUI PODE setar status/fila/assigned_to do ticket
         mergeConversation(
           userIdSelecionado,
           pruneEmpty({
@@ -465,7 +409,6 @@ export default function ChatWindow({ userIdSelecionado }) {
             content: lastText,
             timestamp: lastMsg?.timestamp || lastMsg?.created_at,
             type: (lastMsg?.type || "text").toLowerCase(),
-            flow_id: effectiveFlowId,
           })
         );
 
@@ -512,7 +455,9 @@ export default function ChatWindow({ userIdSelecionado }) {
             sort: "desc",
           });
           const older = await apiGet(
-            `/messages/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`
+            `/messages/${encodeURIComponent(
+              userIdSelecionado
+            )}?${qs.toString()}`
           );
           const arr = Array.isArray(older) ? older : older?.data || [];
           arr.reverse(); // mantém ASC
@@ -546,20 +491,25 @@ export default function ChatWindow({ userIdSelecionado }) {
     return () => observer.disconnect();
   }, [userIdSelecionado]);
 
-  /* ------ envio otimista (mantém a visualização no fim) ------ */
+  /* ------ envio otimista ------ */
   const onMessageAdded = useCallback(
     (tempMsg) => {
       if (!tempMsg) return;
 
+      const hasRealId =
+        !!tempMsg.id || !!tempMsg.message_id || !!tempMsg.provider_id;
+
       const client_id =
         tempMsg.client_id ||
-        `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        (!hasRealId
+          ? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+          : undefined);
 
       const optimistic = {
         ...tempMsg,
-        pending: true,
         direction: "outgoing",
         client_id,
+        pending: tempMsg.pending ?? !hasRealId,
         reply_to: tempMsg.reply_to || null,
       };
 
@@ -569,6 +519,7 @@ export default function ChatWindow({ userIdSelecionado }) {
         return next;
       });
 
+      // não tocar em status/fila/assigned_to aqui
       mergeConversation(
         userIdSelecionado,
         pruneEmpty({
@@ -633,7 +584,6 @@ export default function ChatWindow({ userIdSelecionado }) {
         onPdfClick={setPdfModal}
         onReply={setReplyTo}
         loaderRef={oldestTsRef.current ? loaderRef : null}
-        // onRetry é opcional; se quiser, você pode passar um handler aqui
       />
 
       <div className="chat-input">
