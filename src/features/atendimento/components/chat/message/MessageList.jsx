@@ -26,7 +26,7 @@ function timeKey(m) {
  * - Inicializa já no final (useLayoutEffect no mount)
  * - Em mudanças de mensagens:
  *     • Se chegou item NOVO no fim → desce para o fim (sem efeito)
- *     • Se vieram itens no topo (paginações) → mantém posição
+ *     • Se vierem itens no topo (paginações) → mantém posição
  * - Não tem auto-scroll “suave” / sem animação
  */
 const MessageList = forwardRef(
@@ -36,7 +36,7 @@ const MessageList = forwardRef(
       onImageClick,
       onPdfClick,
       onReply,
-      onRetry,        // <<< NOVO
+      onRetry,        // handler de retry para falha
       loaderRef = null, // sentinel no topo (IntersectionObserver vem do pai)
     },
     ref
@@ -52,13 +52,13 @@ const MessageList = forwardRef(
       scrollToBottomInstant: () => {
         const el = containerRef.current;
         if (el) {
-          el.scrollTop = el.scrollHeight; // sem efeito
+          el.scrollTop = el.scrollHeight;
         }
       },
       getContainer: () => containerRef.current,
     }));
 
-    // 1) Ao montar, já desce pro final (sem efeito)
+    // 1) Ao montar, já desce pro final
     useLayoutEffect(() => {
       const el = containerRef.current;
       if (!el) return;
@@ -98,7 +98,7 @@ const MessageList = forwardRef(
 
       if (appended) {
         // novas mensagens ao fim → acompanha a conversa
-        el.scrollTop = el.scrollHeight; // sem efeito
+        el.scrollTop = el.scrollHeight;
       }
       // se foi prepend, não mexe no scroll (o pai já ajusta a posição ao carregar antigas)
 
@@ -125,7 +125,7 @@ const MessageList = forwardRef(
               systemText = msg.content.text;
             }
             return (
-              <div key={msg.id || index} className="ticket-divider">
+              <div key={msg.id || msg.message_id || msg.provider_id || msg.client_id || index} className="ticket-divider">
                 {systemText}
               </div>
             );
@@ -153,7 +153,15 @@ const MessageList = forwardRef(
           }
 
           return (
-            <React.Fragment key={msg.id || msg.message_id || index}>
+            <React.Fragment
+              key={
+                msg.id ||
+                msg.message_id ||
+                msg.provider_id ||
+                msg.client_id ||
+                index
+              }
+            >
               {showTicketDivider && (
                 <div className="ticket-divider">
                   Ticket #{msg.ticket_number}
@@ -164,7 +172,7 @@ const MessageList = forwardRef(
                 onImageClick={onImageClick}
                 onPdfClick={onPdfClick}
                 onReply={onReply}
-                onRetry={onRetry}  // repassa o handler para o bubble
+                onRetry={onRetry}
               />
             </React.Fragment>
           );
