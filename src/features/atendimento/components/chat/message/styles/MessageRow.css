@@ -1,19 +1,17 @@
-/* src/components/ChatWindow/MessageRow.css */
-
 :root {
-  /* Variáveis opcionais para facilitar manutenção */
   --color-incoming-bg: #fefeff;
   --color-outgoing-bg: #6d788f;
   --color-text-light: #ffffff;
   --message-font-size: 0.95rem;
   --message-line-height: 1.4;
-  --message-gap: 4px;   /* espaçamento interno entre cada linha */
+  --message-gap: 4px;
   --border-radius: 16px;
   --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Ícone de lido (2 checks AZUIS) */
 .check.read {
-  color: #34b7f1; /* verde de leitura, ou ajuste ao seu tema */
+  color: #34b7f1; /* azul de leitura */
   font-size: 0.6rem;
   line-height: 1;
 }
@@ -22,7 +20,6 @@
   text-align: center;
   margin: 22px 0 10px 0;
 }
-
 .show-more-messages button {
   background: #fff;
   color: #2271e6;
@@ -33,16 +30,10 @@
   font-weight: 500;
   box-shadow: 0 2px 8px rgba(30, 42, 65, 0.04);
   cursor: pointer;
-  transition: 
-    background 0.18s,
-    color 0.18s,
-    border-color 0.18s,
-    box-shadow 0.18s,
-    transform 0.18s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.18s;
   outline: none;
   letter-spacing: 0.01em;
 }
-
 .show-more-messages button:active {
   background: #edf1f7;
   color: #2155a2;
@@ -50,40 +41,22 @@
   transform: scale(0.98);
 }
 
-
 /* Texto principal */
-.message-bubble.incoming .text-message {
-  color: #000000;
-}
-.message-bubble.outgoing .text-message {
-  color: #ffffff;
-}
+.message-bubble.incoming .text-message { color: #000000; }
+.message-bubble.outgoing .text-message { color: #ffffff; }
 
 /* Horário */
-.message-bubble.incoming .message-time {
-  color: #000000;
-}
-.message-bubble.outgoing .message-time {
-  color: #ffffff;
-}
-
+.message-bubble.incoming .message-time { color: #000000; }
+.message-bubble.outgoing .message-time { color: #ffffff; }
 
 .message-row {
   display: flex;
-  /* O “gap” entre mensagens agora vem do padding-bottom,
-     que será medido pelo Virtuoso como parte da altura total da linha */
   padding-bottom: var(--message-gap);
 }
+.message-row.incoming { justify-content: flex-start; }
+.message-row.outgoing { justify-content: flex-end; }
 
-.message-row.incoming {
-  justify-content: flex-start;
-}
-
-.message-row.outgoing {
-  justify-content: flex-end;
-}
-
-/* Bolha de mensagem: sem margens externas! (gap já vem do padding do .message-row) */
+/* Bolha */
 .message-bubble {
   position: relative;
   max-width: 60%;
@@ -92,26 +65,15 @@
   box-shadow: var(--box-shadow);
   font-size: var(--message-font-size);
   word-wrap: break-word;
-  overflow: visible; /* para não cortar sombras, modais e imagens */
+  overflow: visible;
 }
+.message-bubble.incoming { background-color: --color-incoming-bg; background: var(--color-incoming-bg); color: var(--color-text-light); }
+.message-bubble.outgoing { background-color: --color-outgoing-bg; background: var(--color-outgoing-bg); color: var(--color-text-light); }
 
-/* Cores diferentes para incoming / outgoing */
-.message-bubble.incoming {
-  background-color: var(--color-incoming-bg);
-  color: var(--color-text-light);
-}
+/* Conteúdo */
+.message-content { line-height: var(--message-line-height); }
 
-.message-bubble.outgoing {
-  background-color: var(--color-outgoing-bg);
-  color: var(--color-text-light);
-}
-
-/* Conteúdo textual */
-.message-content {
-  line-height: var(--message-line-height);
-}
-
-/* Horário + status (ícones) abaixo do conteúdo */
+/* Horário + status */
 .message-time {
   font-size: 0.7rem;
   margin-top: 6px;
@@ -122,89 +84,24 @@
   color: var(--color-text-light);
 }
 
-/* Esconder “check” em incoming */
-.message-bubble.incoming .check {
-  display: none;
-}
+/* Esconde ícones em incoming */
+.message-bubble.incoming .check { display: none; }
 
-/* Cores do check em outgoing */
-.check.sent {
-  color: #999999;
-  font-size: 0.6rem;
-  line-height: 1;
-}
-.check.delivered {
-  color: #34b7f1;
-  font-size: 0.6rem;
-  line-height: 1;
-}
-.check.pending {
-  color: #999999;
-  font-size: 0.6rem;
-  line-height: 1;
-}
+/* CORES CORRETAS DOS STATUS (outgoing) */
+.check.sent {       color: #9aa3b2; font-size: 0.6rem; line-height: 1; }  /* 1 check cinza */
+.check.delivered {  color: #9aa3b2; font-size: 0.6rem; line-height: 1; }  /* 2 checks cinza */
+.check.pending {    color: #9aa3b2; font-size: 0.6rem; line-height: 1; }  /* relógio cinza */
+/* .check.read está no topo (azul) */
 
-/* Botão de responder dentro da bolha */
-.reply-btn {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  background: none;
-  border: none;
-  color: #cccccc;
-  cursor: pointer;
-  padding: 2px;
-  opacity: 0.5;
-  transition: opacity 0.2s ease;
-}
+/* Botão de responder / menu */
+.menu-arrow { position: absolute; top: 4px; right: 4px; display: none; z-index: 2; }
+.message-bubble:hover .menu-arrow { display: block; }
+.menu-button { background: none; border: none; cursor: pointer; padding: 2px; opacity: 0.6; color: var(--color-text-light); font-size: 14px; }
+.menu-button:hover { opacity: 1; }
 
-.reply-btn:hover {
-  opacity: 1;
-}
-
-/* Garantir que anexos (imagem, vídeo, iframe, PDF embed) não quebrem a largura */
-.message-bubble img,
-.message-bubble video,
-.message-bubble iframe {
-  max-width: 100%;
-  border-radius: 8px;
-}
-
-
-/* Botão com seta no canto superior direito */
-.menu-arrow {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  display: none;
-  z-index: 2;
-}
-
-/* Aparecer só ao passar o mouse na bolha */
-.message-bubble:hover .menu-arrow {
-  display: block;
-}
-
-/* Estilo do botão da seta */
-.menu-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  opacity: 0.6;
-  color: var(--color-text-light);
-  font-size: 14px;
-}
-
-.menu-button:hover {
-  opacity: 1;
-}
-
-/* Estilo do dropdown */
 .menu-dropdown {
   position: absolute;
   top: 20px;
-  right: 0;
   background: white;
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -213,7 +110,8 @@
   z-index: 999;
   min-width: 140px;
 }
-
+.menu-dropdown.right { right: 0; }
+.menu-dropdown.left  { left: 0; }
 .menu-dropdown button {
   display: flex;
   align-items: center;
@@ -226,35 +124,9 @@
   gap: 6px;
   color: #333;
 }
+.menu-dropdown button:hover { background-color: #f0f0f0; }
 
-.menu-dropdown button:hover {
-  background-color: #f0f0f0;
-}
-
-.menu-dropdown {
-  position: absolute;
-  top: 20px;
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 4px 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  z-index: 999;
-  min-width: 140px;
-}
-
-/* Posição correta para cada lado */
-.menu-dropdown.right {
-  right: 0;
-}
-
-.menu-dropdown.left {
-  left: 0;
-}
-
-
-
-
+/* Respostas (preview) */
 .replied-message {
   border-left: 3px solid rgba(255, 255, 255, 0.4);
   padding-left: 8px;
@@ -262,7 +134,6 @@
   opacity: 0.85;
   font-size: 0.85rem;
 }
-
 .reply-preview {
   display: flex;
   align-items: center;
@@ -275,19 +146,8 @@
   border-radius: 6px;
   position: relative;
 }
-
-.reply-content {
-  flex: 1;
-}
-
-.reply-cancel {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: #999;
-  cursor: pointer;
-  margin-left: 8px;
-}
+.reply-content { flex: 1; }
+.reply-cancel { background: none; border: none; font-size: 16px; color: #999; cursor: pointer; margin-left: 8px; }
 
 .reply-snippet {
   background-color: rgba(255, 255, 255, 0.1);
@@ -297,21 +157,18 @@
   margin-bottom: 8px;
   font-size: 0.85rem;
 }
+.reply-snippet strong { font-weight: bold; display: block; margin-bottom: 4px; }
+.reply-preview-content { display: block; font-size: 0.85rem; }
 
-.reply-snippet strong {
-  font-weight: bold;
-  display: block;
-  margin-bottom: 4px;
+/* Mensagem de falha */
+.delivery-failed-note {
+  color: #d9534f;
+  font-size: 12px;
+  margin: 6px 8px 0;
 }
 
-.reply-preview-content {
-  display: block;
-  font-size: 0.85rem;
-}
-
-.ticket-divider.ticket-flash {
-  animation: ticketFlash 0.6s ease;
-}
+/* Divider do ticket */
+.ticket-divider.ticket-flash { animation: ticketFlash 0.6s ease; }
 @keyframes ticketFlash {
   0%   { background: rgba(255, 208, 0, .35); }
   100% { background: transparent; }
