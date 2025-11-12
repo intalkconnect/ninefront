@@ -1,4 +1,3 @@
-// src/app/features/chat/components/header/ChatHeader.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import { Share2, CheckCircle, Tag as TagIcon } from 'lucide-react';
 import useConversationsStore from '../../../store/useConversationsStore';
@@ -7,6 +6,14 @@ import { getSocket } from '../../../services/socket';
 import TransferModal from '../modals/transfer/Transfer';
 import { useConfirm } from '../../../../../app/provider/ConfirmProvider.jsx';
 import './styles/ChatHeader.css';
+
+/* Util: anexa ?flow_id=... (ou &flow_id=...) quando existir */
+function withFlow(url, flowId) {
+  if (!flowId) return url;
+  return url.includes('?')
+    ? `${url}&flow_id=${encodeURIComponent(flowId)}`
+    : `${url}?flow_id=${encodeURIComponent(flowId)}`;
+}
 
 /** ===== Combo/Listbox: clica no item para ADICIONAR (sem checkbox) ===== */
 function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag...' }) {
@@ -107,7 +114,7 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
   const mergeConversation = useConversationsStore(s => s.mergeConversation);
   const setSelectedUserId = useConversationsStore(s => s.setSelectedUserId);
 
-  // 👉 fonte de verdade do cliente (store OU prop)
+  // Fonte de verdade do cliente (store OU prop)
   const cliente = clienteAtivoStore || clienteInfo || {};
 
   const [ticketCatalog, setTicketCatalog] = useState([]);
@@ -117,10 +124,15 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
   const name         = cliente?.name || 'Cliente';
   const userId       = cliente?.user_id || userIdSelecionado;
 
+  // flow_id da conversa atual
+  const st     = useConversationsStore.getState();
+  const conv   = (st.conversations && (userId ? st.conversations[userId] : null)) || {};
+  const flowId = conv?.flow_id || cliente?.flow_id || null;
+
   const addTicketTag    = (tag) => setTicketTags(prev => prev.includes(tag) ? prev : [...prev, tag]);
   const removeTicketTag = (tag) => setTicketTags(prev => prev.filter(t => t !== tag));
 
-  // carrega catálogo aplicável pela fila do ticket
+  // Carrega catálogo aplicável (respeitando flow_id)
   useEffect(() => {
     let alive = true;
     setTicketTags([]);
@@ -130,7 +142,8 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
 
     (async () => {
       try {
-        const r = await apiGet(`/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`);
+        const url = withFlow(`/tags/ticket/${encodeURIComponent(ticketNumber)}/catalog`, flowId);
+        const r = await apiGet(url);
         if (!alive) return;
         setTicketCatalog(Array.isArray(r?.catalog) ? r.catalog : []);
       } catch {
@@ -139,12 +152,11 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
     })();
 
     return () => { alive = false; };
-  }, [ticketNumber]);
+  }, [ticketNumber, flowId]);
 
-  // se nem userId temos, não faz sentido renderizar header
   if (!userId) return null;
 
-  /** ===== FINALIZAR (ticket + customer) ===== */
+  /** Finalizar atendimento */
   const finalizarAtendimento = async () => {
     const ok = await confirm({
       title: 'Finalizar atendimento?',
@@ -156,36 +168,32 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
     if (!ok) return;
 
     try {
-      // 1) Salva tags do TICKET
+      // 1) Tags do ticket
       if (ticketTags.length) {
-        await apiPost(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, { tags: ticketTags });
+        const url = withFlow(`/tags/ticket/${encodeURIComponent(ticketNumber)}`, flowId);
+        await apiPost(url, { tags: ticketTags });
       }
 
-      // 2) Salva DIFF de tags do CUSTOMER
-      const st   = useConversationsStore.getState();
-      const conv = (st.conversations && st.conversations[userId]) || {};
+      // 2) Diff de tags do customer
+      const stLocal   = useConversationsStore.getState();
+      const convLocal = (stLocal.conversations && stLocal.conversations[userId]) || {};
       const pendentesRaw =
-        Array.isArray(conv.pending_customer_tags) ? conv.pending_customer_tags :
-        Array.isArray(st?.clienteAtivo?.pending_customer_tags) ? st.clienteAtivo.pending_customer_tags :
-        Array.isArray(conv.customer_tags) ? conv.customer_tags :
-        Array.isArray(st?.clienteAtivo?.customer_tags) ? st.clienteAtivo.customer_tags :
+        Array.isArray(convLocal.pending_customer_tags) ? convLocal.pending_customer_tags :
+        Array.isArray(stLocal?.clienteAtivo?.pending_customer_tags) ? stLocal.clienteAtivo.pending_customer_tags :
+        Array.isArray(convLocal.customer_tags) ? convLocal.customer_tags :
+        Array.isArray(stLocal?.clienteAtivo?.customer_tags) ? stLocal.clienteAtivo.customer_tags :
         [];
 
       const pending = [...new Set((pendentesRaw || []).map(t => String(t).trim()).filter(Boolean))];
-
       const serverCurrent = await fetchServerCustomerTags(userId);
       await saveCustomerTagsDiff(userId, serverCurrent, pending);
 
-      // 3) Fecha o ticket
-
-      const flowId = conv.flow_id || st?.clienteAtivo?.flow_id || null;
-      let url = `/tickets/${encodeURIComponent(userId)}`;
-      if (flowId) url += `?flow_id=${encodeURIComponent(flowId)}`;
-      
-      await apiPut(url, { status: 'closed' });
+      // 3) Fecha ticket com flow_id
+      let closeUrl = withFlow(`/tickets/${encodeURIComponent(userId)}`, flowId);
+      await apiPut(closeUrl, { status: 'closed' });
       mergeConversation(userId, { status: 'closed' });
 
-      // 4) socket + UI
+      // 4) Socket + UI
       const socket = getSocket();
       if (socket?.connected) socket.emit('leave_room', userId);
       try { window.dispatchEvent(new CustomEvent('room-closed', { detail: { userId } })); } catch {}
@@ -206,18 +214,11 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
     <>
       {/* BARRA PRINCIPAL */}
       <div className="chat-header header-inline">
-        {/* ESQUERDA: título + número */}
         <div className="h-left">
           <span className="h-title">{name}</span>
-          {ticketNumber && (
-            <span className="h-badge">#{String(ticketNumber).padStart(6,'0')}</span>
-          )}
+          {ticketNumber && <span className="h-badge">#{String(ticketNumber).padStart(6,'0')}</span>}
         </div>
-
-        {/* CENTRO (vazio – as tags vão na sub-barra) */}
         <div className="h-center" />
-
-        {/* DIREITA: botões */}
         <div className="h-right">
           <button className="btn-transferir" onClick={() => setShowTransferModal(true)}>
             <Share2 size={14} /> <span>Transferir</span>
@@ -228,7 +229,7 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
         </div>
       </div>
 
-      {/* SUB-BARRA: só aparece se HOUVER CATÁLOGO */}
+      {/* SUB-BARRA: só aparece se houver catálogo */}
       {ticketCatalog.length > 0 && (
         <div className="tag-subbar">
           <div className="tag-subbar__inner">
@@ -243,13 +244,7 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
                 {ticketTags.map(t => (
                   <span key={t} className="chip">
                     <span>{t}</span>
-                    <button
-                      className="chip__x"
-                      onClick={() => removeTicketTag(t)}
-                      aria-label={`Remover ${t}`}
-                    >
-                      ×
-                    </button>
+                    <button className="chip__x" onClick={() => removeTicketTag(t)} aria-label={`Remover ${t}`}>×</button>
                   </span>
                 ))}
               </div>
@@ -259,10 +254,12 @@ export default function ChatHeader({ userIdSelecionado, clienteInfo }) {
       )}
 
       {showTransferModal && (
-        <TransferModal userId={userId} onClose={() => setShowTransferModal(false)} />
+        <TransferModal
+          userId={userId}
+          flowId={flowId}                 {/* << repassa o flow_id para o modal */}
+          onClose={() => setShowTransferModal(false)}
+        />
       )}
     </>
   );
 }
-
-
