@@ -5,7 +5,7 @@ import { apiPost } from '../../../shared/apiClient';
 import { uploadFileAndGetURL, validateFile } from '../utils/fileUtils';
 import useConversationsStore from '../store/useConversationsStore';
 
-// --------- helpers de canal/id ---------
+/* ================= helpers de canal/id ================= */
 const getChannelFromUserId = (userId) => {
   if (!userId) return 'webchat';
   if (userId.endsWith('@w.msgcli.net')) return 'whatsapp';
@@ -22,7 +22,7 @@ const getTypeFromFile = (file) => {
   return 'document';
 };
 
-// --------- helpers de reply ---------
+/* ================= helpers de reply ================= */
 function normalizeReplyContent(raw) {
   if (!raw) return {};
   if (typeof raw === 'string') return { body: raw };
@@ -57,12 +57,13 @@ function makeReplySnapshot(replyToFull) {
   };
 }
 
-// --------- helper para atualizar o “card” (Sidebar) ---------
+/* =========== helper para atualizar o “card” (Sidebar) =========== */
 function updateConversationCard(userId, patch) {
   const store = useConversationsStore.getState();
   store.setConversation(userId, patch);
 }
 
+/* ========================= hook ========================= */
 export function useSendMessage() {
   const [isSending, setIsSending] = useState(false);
 
@@ -71,7 +72,7 @@ export function useSendMessage() {
       text,
       file,
       userId,
-      replyTo,      // id da msg original
+      replyTo,      // id da msg original (message_id)
       replyToFull,  // objeto completo da msg original (para preview)
     },
     onMessageAdded
@@ -87,52 +88,58 @@ export function useSendMessage() {
       return;
     }
 
-    const tempId = Date.now();
+    // pega flow_id da conversa atual (se houver)
+    const store = useConversationsStore.getState();
+    const flowId = store?.conversations?.[userId]?.flow_id || null;
+
+    // client_id fixo para ligar a otimista às atualizações subsequentes
+    const clientId = `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
     const now = new Date();
     const provisionalType = file ? getTypeFromFile(file) : 'text';
     const replySnapshot  = makeReplySnapshot(replyToFull);
 
-    // 🔹 para imagem, criamos uma URL local (preview) para renderizar na hora
+    // preview local para imagem
     let localUrl;
     if (file && provisionalType === 'image') {
-      try {
-        localUrl = URL.createObjectURL(file);
-      } catch {}
+      try { localUrl = URL.createObjectURL(file); } catch {}
     }
 
-    // ---------- Mensagem provisória (ChatWindow) ----------
+    /* ---------- Mensagem OTIMISTA ---------- */
     const provisionalMessage = {
-      id: tempId,
+      // não use id temporário; use apenas client_id para evitar colisão
+      id: null,
+      client_id: clientId,
       direction: 'outgoing',
       timestamp: now.getTime(),
       readableTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: 'sending',
+      status: 'pending',                      // <— padronizado
       type: provisionalType,
       content: (() => {
         if (!file) return text?.trim() || '';
         if (provisionalType === 'image' && localUrl) {
-          // já nasce com url local para aparecer imediatamente
           return {
             url: localUrl,
             filename: file.name,
             ...(text?.trim() ? { caption: text.trim() } : {}),
           };
         }
-        // demais tipos mantêm nome até o upload retornar a URL
         return { filename: file.name };
       })(),
       channel,
+      ...(flowId ? { flow_id: flowId } : {}),
       ...(replyTo ? { reply_to: replyTo } : {}),
       ...(replySnapshot ? { replyTo: replySnapshot } : {}),
     };
     if (typeof onMessageAdded === 'function') onMessageAdded(provisionalMessage);
 
-    // ---------- Atualização do CARD (Sidebar) ----------
+    /* ---------- Atualização do CARD (Sidebar) ---------- */
     updateConversationCard(userId, {
       content: provisionalMessage.content,
       type: provisionalType,
       timestamp: now.toISOString(),
       channel,
+      ...(flowId ? { flow_id: flowId } : {}),
     });
 
     setIsSending(true);
@@ -140,19 +147,22 @@ export function useSendMessage() {
     let uploadedContent = null;
 
     try {
-      // ---------- Monta payload ----------
+      /* ---------- Monta payload ---------- */
       const payload = {
         to,
         channel,
         type: provisionalType,
         content: {},
+        ...(flowId ? { flow_id: flowId } : {}),     // <— envia flow_id
+        // importante: envie o client_id para o backend ecoar se for possível
+        client_id: clientId,
       };
 
       if (file) {
         const { valid, errorMsg } = validateFile(file);
         if (!valid) throw new Error(errorMsg || 'Arquivo inválido');
 
-        // Sobe arquivo
+        // upload do arquivo
         const fileUrl = await uploadFileAndGetURL(file);
         if (!fileUrl) throw new Error('Falha no upload do arquivo');
 
@@ -163,19 +173,21 @@ export function useSendMessage() {
           ...(provisionalType === 'audio' && file?._isVoice ? { voice: true } : {}),
         };
 
-        // ChatWindow: troca o conteúdo da provisória para a URL do bucket
+        // atualiza a otimista com a URL definitiva (MANTENDO client_id)
         if (typeof onMessageAdded === 'function') {
           onMessageAdded({
             ...provisionalMessage,
             content: uploadedContent,
-            status: 'sending',
+            status: 'pending',
+            client_id: clientId,
           });
         }
-        // Sidebar: atualiza snippet com a URL definitiva
+
         updateConversationCard(userId, {
           content: uploadedContent,
           type: provisionalType,
           timestamp: now.toISOString(),
+          ...(flowId ? { flow_id: flowId } : {}),
         });
 
         payload.content = uploadedContent;
@@ -185,26 +197,30 @@ export function useSendMessage() {
 
       if (replyTo) payload.context = { message_id: replyTo };
 
-      // ---------- Envia ----------
+      /* ---------- Envia ---------- */
       const response = await apiPost('/messages/send', payload);
-      const saved = response?.message;
+      const saved = response?.message || response; // compatível se sua API retorna direto
 
-      // ChatWindow: marca como sent mantendo o conteúdo atual (com url do bucket)
+      // atualiza a mesma mensagem OTIMISTA com id real + message_id + status=sent
       if (typeof onMessageAdded === 'function') {
         onMessageAdded({
           ...provisionalMessage,
           status: 'sent',
           content: uploadedContent || provisionalMessage.content,
-          message_id: saved?.message_id,
+          client_id: clientId,                 // <— chave para unir ao item existente
+          id: saved?.id || null,               // <— id REAL do banco
+          message_id: saved?.message_id,       // <— wamid/telegram id
+          provider_id: saved?.provider_id,     // se existir
+          flow_id: saved?.flow_id || flowId || null,
           serverResponse: response,
         });
       }
 
-      // Sidebar: garante card atualizado
       updateConversationCard(userId, {
         content: uploadedContent || provisionalMessage.content,
         type: provisionalType,
         timestamp: now.toISOString(),
+        ...(flowId ? { flow_id: flowId } : {}),
       });
 
       marcarMensagensAntesDoTicketComoLidas(userId);
@@ -215,7 +231,8 @@ export function useSendMessage() {
         onMessageAdded({
           ...provisionalMessage,
           content: uploadedContent || provisionalMessage.content,
-          status: 'error',
+          status: 'failed',          // <— padronizado
+          client_id: clientId,
           errorMessage:
             err?.response?.data?.error ||
             err?.response?.data?.details ||
@@ -224,16 +241,18 @@ export function useSendMessage() {
         });
       }
 
-      // Mantém o card com o último conteúdo
       updateConversationCard(userId, {
         content: uploadedContent || provisionalMessage.content,
         type: provisionalType,
         timestamp: now.toISOString(),
+        ...(flowId ? { flow_id: flowId } : {}),
       });
 
       const platformError = err?.response?.data;
-      if (platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
-          platformError?.error === 'Message outside 24h window') {
+      if (
+        platformError?.error?.toString?.().toLowerCase?.().includes('24h') ||
+        platformError?.error === 'Message outside 24h window'
+      ) {
         toast.warn('Fora da janela de 24h no WhatsApp. Envie um template.', {
           position: 'bottom-right', autoClose: 5000,
         });
@@ -252,17 +271,14 @@ export function useSendMessage() {
       }
     } finally {
       setIsSending(false);
-      // opcional: revogar URL local para liberar memória
-      if (localUrl) {
-        try { URL.revokeObjectURL(localUrl); } catch {}
-      }
+      if (localUrl) { try { URL.revokeObjectURL(localUrl); } catch {} }
     }
   };
 
   return { isSending, sendMessage };
 }
 
-// Marca mensagens como lidas antes do primeiro "system"
+/* ===================== marcar como lidas ===================== */
 export function marcarMensagensAntesDoTicketComoLidas(userId, mensagens) {
   const store = useConversationsStore.getState();
   const conversation = store.conversations[userId] || {};
