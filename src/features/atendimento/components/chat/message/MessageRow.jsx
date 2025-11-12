@@ -9,7 +9,16 @@ import AudioMessage from './messageTypes/AudioMessage';
 import ContactsMessage from './messageTypes/ContactsMessage';
 import UnknownMessage from './messageTypes/UnknownMessage';
 import './styles/MessageRow.css';
-import { CheckCheck, Check, Download, Copy, CornerDownLeft, ChevronDown, RotateCcw } from 'lucide-react';
+import {
+  CheckCheck,
+  Check,
+  Download,
+  Copy,
+  CornerDownLeft,
+  ChevronDown,
+  RotateCcw,
+  Clock,
+} from 'lucide-react';
 
 // -------- helpers para o cabeçalho de resposta --------
 function pickSnippet(c) {
@@ -21,8 +30,10 @@ function pickSnippet(c) {
 
   if (typeof c === 'object') {
     if (c.type === 'contacts' || Array.isArray(c.contacts) || Array.isArray(c.vcards)) {
-      const n = Array.isArray(c.contacts) ? c.contacts.length
-        : Array.isArray(c.vcards)   ? c.vcards.length
+      const n = Array.isArray(c.contacts)
+        ? c.contacts.length
+        : Array.isArray(c.vcards)
+        ? c.vcards.length
         : 1;
       return n > 1 ? `${n} contatos` : 'Contato';
     }
@@ -34,12 +45,15 @@ function pickSnippet(c) {
     const typ = c.type || '';
     const url = String(c.url || '').toLowerCase();
 
-    if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url)) return 'Imagem';
-    if (mt.startsWith('audio/') || typ === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(url)) return 'Áudio';
+    if (mt.startsWith('image/') || typ === 'image' || /\.(jpe?g|png|gif|webp|bmp|svg)$/.test(url))
+      return 'Imagem';
+    if (mt.startsWith('audio/') || typ === 'audio' || c.voice || /\.(ogg|mp3|wav|m4a|opus)$/.test(url))
+      return 'Áudio';
     if (mt.startsWith('video/') || typ === 'video' || /\.(mp4|mov|webm)$/.test(url)) return 'Vídeo';
 
     if (c.filename) return c.filename;
-    if (mt === 'application/pdf' || (c.filename && c.filename.toLowerCase().endsWith('.pdf'))) return 'PDF';
+    if (mt === 'application/pdf' || (c.filename && c.filename.toLowerCase().endsWith('.pdf')))
+      return 'PDF';
 
     return 'Documento';
   }
@@ -56,9 +70,7 @@ function buildReplyPreview(raw) {
     return { title: '', snippet: s };
   }
 
-  const title = raw.direction === 'outgoing'
-    ? 'Você'
-    : (raw.name || raw.sender_name || '');
+  const title = raw.direction === 'outgoing' ? 'Você' : raw.name || raw.sender_name || '';
 
   const snippet = pickSnippet(raw.content);
   return { title, snippet };
@@ -69,6 +81,7 @@ function normalizeStatus(s) {
   if (!s) return s;
   const v = String(s).toLowerCase();
   if (v === 'error') return 'failed';
+  if (v === 'queue' || v === 'queued' || v === 'pending') return 'pending';
   return v;
 }
 
@@ -82,7 +95,11 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
     if (!/^\d+$/.test(content)) {
       const s = content.trim();
       if (s.startsWith('{') || s.startsWith('[')) {
-        try { content = JSON.parse(s); } catch { /* noop */ }
+        try {
+          content = JSON.parse(s);
+        } catch {
+          /* noop */
+        }
       }
     }
   }
@@ -96,24 +113,34 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
 
   const renderTimeAndStatus = () => (
     <div className="message-time">
-      {new Date(msg.timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}
+      {msg.timestamp &&
+        new Date(msg.timestamp).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })}
       {isOutgoing && (
         <span className="message-status">
-          {status === 'read' ? (
+          {/* PRIORIDADE:
+              1) falha → sem ícone aqui (aviso aparece embaixo)
+              2) pending/otimista → relógio
+              3) sent → 1 check
+              4) delivered → 2 checks cinza
+              5) read → 2 checks azuis
+           */}
+          {status === 'failed' ? null : // sem ícone no relógio quando falha
+          (msg.pending && (!status || status === 'pending')) ? (
+            <Clock size={14} className="check pending" />
+          ) : status === 'read' ? (
             <CheckCheck size={14} className="check read" />
           ) : status === 'delivered' ? (
             <CheckCheck size={14} className="check delivered" />
           ) : status === 'sent' ? (
-            <CheckCheck size={14} className="check sent" />
-          ) : status === 'failed' ? (
-            // sem ícone no timestamp quando falha
-            null
+            <Check size={14} className="check sent" />
+          ) : status === 'pending' ? (
+            <Clock size={14} className="check pending" />
           ) : (
-            // pending ou indefinido
-            <Check size={14} className="check pending" />
+            // fallback: se nada bater mas é mensagem de saída, mostra relógio também
+            <Clock size={14} className="check pending" />
           )}
         </span>
       )}
@@ -148,7 +175,8 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
 
   const isPdf =
     (msg.type === 'document' || content?.filename || content?.mime_type === 'application/pdf') &&
-    (content?.filename?.toLowerCase?.().endsWith('.pdf') || content?.mime_type === 'application/pdf');
+    (content?.filename?.toLowerCase?.().endsWith('.pdf') ||
+      content?.mime_type === 'application/pdf');
 
   const isList =
     (content?.type === 'list' || content?.body?.type === 'list') &&
@@ -161,7 +189,7 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
   if (isSystem) {
     messageContent = (
       <div className="system-message">
-        {typeof content === 'object' ? (content.text || content.body || content.caption) : content}
+        {typeof content === 'object' ? content.text || content.body || content.caption : content}
       </div>
     );
   }
@@ -182,13 +210,13 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
         />
       );
     } else if (isContacts) {
-      // Mesmo que chegue string placeholder, o componente mostra fallback amigável
       messageContent = <ContactsMessage data={content} />;
     } else if (isVideo) {
-      // heurística “sticker de vídeo”: mp4/webm sem filename OU backend sinaliza
       const isLikelySticker =
         !!content?.is_sticker ||
-        (!!content?.mime_type && /^video\/(mp4|webm)$/i.test(content.mime_type) && !content?.filename);
+        (!!content?.mime_type &&
+          /^video\/(mp4|webm)$/i.test(content.mime_type) &&
+          !content?.filename);
 
       messageContent = (
         <VideoMessage
@@ -199,8 +227,9 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
           loop={isLikelySticker}
           muted={true}
           controls={!isLikelySticker}
-          // opcional: ajuda Safari/Chrome a escolher o demuxer certo
-          mimeType={content?.mime_type || (urlLower.endsWith('.webm') ? 'video/webm' : 'video/mp4')}
+          mimeType={
+            content?.mime_type || (urlLower.endsWith('.webm') ? 'video/webm' : 'video/mp4')
+          }
         />
       );
     } else if (isPdf) {
@@ -219,8 +248,13 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
       messageContent = <QuickReplyMessage data={content} />;
     } else if (typeof content === 'string') {
       messageContent = <TextMessage content={content} />;
-    } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
-      messageContent = <TextMessage content={content.body || content.text || content.caption} />;
+    } else if (
+      typeof content === 'object' &&
+      (content?.body || content?.text || content?.caption)
+    ) {
+      messageContent = (
+        <TextMessage content={content.body || content.text || content.caption} />
+      );
     } else {
       messageContent = <UnknownMessage />;
     }
@@ -229,7 +263,10 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
   const handleCopy = () => {
     if (typeof content === 'string') {
       navigator.clipboard.writeText(content);
-    } else if (typeof content === 'object' && (content?.body || content?.text || content?.caption)) {
+    } else if (
+      typeof content === 'object' &&
+      (content?.body || content?.text || content?.caption)
+    ) {
       navigator.clipboard.writeText(content.body || content.text || content.caption);
     }
     setMenuOpen(false);
@@ -283,23 +320,33 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
           <div className={bubbleClass}>
             <div className="message-bubble-content">
               <div className="menu-arrow" ref={menuRef}>
-                <button onClick={toggleMenu} className="menu-button" title="Mais opções">
+                <button
+                  onClick={toggleMenu}
+                  className="menu-button"
+                  title="Mais opções"
+                >
                   <ChevronDown size={16} />
                 </button>
                 {menuOpen && (
                   <div className={`menu-dropdown ${isOutgoing ? 'right' : 'left'}`}>
                     {onReply && (
-                      <button onClick={() => { onReply(msg); setMenuOpen(false); }}>
+                      <button
+                        onClick={() => {
+                          onReply(msg);
+                          setMenuOpen(false);
+                        }}
+                      >
                         <CornerDownLeft size={14} /> Responder
                       </button>
                     )}
                     {(typeof content === 'string' ||
-                      (typeof content === 'object' && (content?.body || content?.text || content?.caption))) && (
+                      (typeof content === 'object' &&
+                        (content?.body || content?.text || content?.caption))) && (
                       <button onClick={handleCopy}>
                         <Copy size={14} /> Copiar
                       </button>
                     )}
-                    {((content?.url && (isImage || isPdf || isVideo))) && (
+                    {content?.url && (isImage || isPdf || isVideo) && (
                       <button onClick={handleDownload}>
                         <Download size={14} /> Baixar
                       </button>
@@ -314,19 +361,16 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
                   <div className="replied-content">
                     <div className="replied-title">
                       <strong>
-                        {replyPreview.title || (msg.reply_direction === 'outgoing' ? 'Você' : '')}
+                        {replyPreview.title ||
+                          (msg.reply_direction === 'outgoing' ? 'Você' : '')}
                       </strong>
                     </div>
-                    <div className="replied-text">
-                      {replyPreview.snippet}
-                    </div>
+                    <div className="replied-text">{replyPreview.snippet}</div>
                   </div>
                 </div>
               )}
 
-              <div className="message-content">
-                {messageContent}
-              </div>
+              <div className="message-content">{messageContent}</div>
 
               {renderTimeAndStatus()}
             </div>
@@ -334,7 +378,11 @@ export default function MessageRow({ msg, onImageClick, onPdfClick, onReply, onR
 
           {/* AVISO DE FALHA — abaixo do bubble (sem motivo e com botão) */}
           {isOutgoing && status === 'failed' && (
-            <div className="delivery-failed-note" role="status" aria-live="polite">
+            <div
+              className="delivery-failed-note"
+              role="status"
+              aria-live="polite"
+            >
               <span>Falha ao entregar.</span>
               <button
                 type="button"
