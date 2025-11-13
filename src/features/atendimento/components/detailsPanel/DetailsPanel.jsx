@@ -82,7 +82,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
   const mergeConversation = useConversationsStore(s => s.mergeConversation);
 
-  // 🔎 pega o flow_id da conversa corrente (mesma estratégia dos outros componentes)
+  // flow_id atual (store ou prop)
   const state   = useConversationsStore.getState();
   const conv    = (state.conversations && (userIdSelecionado ? state.conversations[userIdSelecionado] : null)) || {};
   const flowId  = conv?.flow_id || conversaSelecionada?.flow_id || null;
@@ -105,7 +105,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       return next;
     });
 
-  // catálogo e tags do cliente (normalmente não dependem de flow, mantive sem flow_id)
   useEffect(() => {
     let alive = true;
     setCustomerCatalog([]); setCustomerTagsSelected([]);
@@ -140,16 +139,21 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     return () => { alive = false; };
   }, [userIdSelecionado, mergeConversation]);
 
-  /* ======= Histórico (COM flow_id) ======= */
+  /* ======= Histórico (COM flow_id obrigatório) ======= */
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
 
-    const qs = new URLSearchParams({ q: String(userIdSelecionado), page_size: '40', page: '1' });
+    // novo endpoint exige path :userId e flow_id na query
+    const qs = new URLSearchParams({
+      include: 'messages',
+      messages_limit: '2000'
+    });
+    // se quiser, ainda podemos mandar from/to; se o backend não usar, filtramos no cliente
     if (from) qs.set('from', from);
     if (to)   qs.set('to', to);
 
-    const url = withFlow(`/tickets/history?${qs.toString()}`, flowId);
+    const url = withFlow(`/tickets/history/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`, flowId);
 
     apiGet(url)
       .then(res => setHistorico(res?.data || []))
@@ -160,13 +164,22 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
   const historicoFiltrado = useMemo(() => {
     const toks = (tokens || []).map(t => t.toLowerCase());
     if (!toks.length) return historico;
+
     return historico.filter(item => {
       const tk = String(item.ticket_number || '').toLowerCase();
       const fi = String(item.fila || '').toLowerCase();
       const ag = String(item.assigned_to || '').toLowerCase();
-      return toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q));
+
+      // filtro por período no cliente (caso backend ignore from/to)
+      const when = new Date(item.updated_at || item.created_at || 0);
+      const okDate =
+        (!from || new Date(from) <= when) &&
+        (!to   || when <= new Date(`${to}T23:59:59`));
+
+      const okTokens = toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q));
+      return okTokens && okDate;
     });
-  }, [historico, tokens]);
+  }, [historico, tokens, from, to]);
 
   if (!userIdSelecionado || !conversaSelecionada) {
     return (
@@ -299,7 +312,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         userId={userIdSelecionado}
         ticketId={chapterModal.ticketId}
         ticketNumber={chapterModal.ticketNumber}
-        flowId={flowId}              
+        flowId={flowId}  
       />
     </>
   );
