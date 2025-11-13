@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiPost } from "../../../shared/apiClient";
+import { apiPost } from "../../../../../shared/apiClient";
 
 /**
  * WhatsAppEmbeddedSignupButton
