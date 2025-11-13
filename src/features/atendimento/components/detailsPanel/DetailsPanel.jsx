@@ -299,7 +299,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         userId={userIdSelecionado}
         ticketId={chapterModal.ticketId}
         ticketNumber={chapterModal.ticketNumber}
-        flowId={flowId}               {/* <<< repassando flow_id para o modal */}
+        flowId={flowId}              
       />
     </>
   );
