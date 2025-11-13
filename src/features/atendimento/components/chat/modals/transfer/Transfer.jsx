@@ -84,7 +84,7 @@ export default function TransferModal({ userId, flowId, onClose }) {
         transferido_por: userEmail,
         ...(flowId ? { flow_id: flowId } : {})
       };
-      await apiPost('/tickets/transferir', body);
+      await apiPost('/tickets/transfer', body);
       mergeConversation(userId, { status: 'closed' });
       setSelectedUserId(null);
       onClose();
