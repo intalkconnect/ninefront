@@ -1,5 +1,6 @@
+// webapp/src/components/WhatsAppEmbeddedSignupButton.jsx
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiPost } from "../../../../../shared/apiClient";
+import { apiPost } from "../../../shared/apiClient";
 
 /**
  * WhatsAppEmbeddedSignupButton
@@ -9,15 +10,14 @@ import { apiPost } from "../../../../../shared/apiClient";
  * - label: string (default: "Conectar WhatsApp")
  * - className, style, title, disabled
  * - onPickSuccess: (payload) => void
- *      payload esperado: { phone_number_id: string, display?: string }
+ *      payload: { phone_number_id: string, display?: string }
  * - onError: (err) => void
  *
- * Comportamento:
- * - Abre popup do Embedded Signup (WAES) usando business.facebook.com.
- * - Usa redirect_uri = `${AUTH_ORIGIN}/oauth/wa` (rota existente no seu server).
- * - Escuta postMessage do domínio AUTH_ORIGIN com { type: "wa:oauth", code, state }.
- * - Finaliza a conexão chamando sua API `/whatsapp/finalize` e, se ok,
- *   dispara onPickSuccess(payload).
+ * Fluxo:
+ * 1) Abre popup para https://business.facebook.com/messaging/whatsapp/onboard/
+ * 2) Meta redireciona para {AUTH_ORIGIN}/oauth/wa?code=...&state=...
+ * 3) Sua rota /oauth/wa faz postMessage({ type: "wa:oauth", code, state }) para window.opener
+ * 4) Este componente recebe, chama POST /whatsapp/finalize, e retorna phone_number_id via onPickSuccess
  */
 export default function WhatsAppEmbeddedSignupButton({
   tenant,
@@ -29,14 +29,9 @@ export default function WhatsAppEmbeddedSignupButton({
   onPickSuccess,
   onError,
 }) {
-  const APP_ID =
-    import.meta.env.VITE_META_APP_ID ||
-    import.meta.env.VITE_FACEBOOK_APP_ID; // fallback opcional
-  const CONFIG_ID =
-    import.meta.env.VITE_WA_CONFIG_ID ||
-    import.meta.env.VITE_META_LOGIN_CONFIG_ID; // aceita os dois nomes
-  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;        // ex.: https://auth.seu-dominio.com
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || "";     // ex.: https://hmg.seu-dominio.com
+  const APP_ID = import.meta.env.VITE_META_APP_ID;
+  const CONFIG_ID = import.meta.env.VITE_META_LOGIN_CONFIG_ID; // ou VITE_WA_CONFIG_ID
+  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;        // ex.: https://auth.northgate.ninechat.com.br
 
   const [loading, setLoading] = useState(false);
   const popupRef = useRef(null);
@@ -54,59 +49,75 @@ export default function WhatsAppEmbeddedSignupButton({
     setLoading(false);
   }, []);
 
-  // Listener do postMessage enviado por /oauth/wa (no AUTH_ORIGIN)
+  // recebe o postMessage do /oauth/wa
   useEffect(() => {
-    async function onMessage(ev) {
+    function onMessage(ev) {
       try {
         if (!AUTH_ORIGIN || ev.origin !== AUTH_ORIGIN) return; // segurança
-        const d = ev.data || {};
-        if (d?.type !== "wa:oauth") return;
+        const data = ev.data || {};
+        if (data?.type !== "wa:oauth") return;
 
-        // d = { type: "wa:oauth", code, state }
-        const code = d.code || "";
-        let ctx = {};
-        try { ctx = d.state ? JSON.parse(atob(d.state)) : {}; } catch {}
+        const { code, state } = data;
+        // redirect_uri deve ser exatamente o mesmo usado na abertura
         const redirect_uri = `${AUTH_ORIGIN}/oauth/wa`;
-        const sub = ctx?.tenant || tenant;
+        const sub = (() => {
+          try {
+            const s = state ? JSON.parse(atob(state)) : {};
+            return s?.tenant || tenant;
+          } catch {
+            return tenant;
+          }
+        })();
 
-        // Finaliza no backend (troca code -> tokens/phone)
-        const res = await apiPost("/whatsapp/finalize", {
-          subdomain: sub,
-          code,
-          redirect_uri
-        });
+        // finaliza no backend para obter o phone_number_id
+        (async () => {
+          try {
+            const res = await apiPost("/whatsapp/finalize", {
+              subdomain: sub,
+              code,
+              redirect_uri,
+            });
 
-        if (res?.ok) {
-          // normaliza payload esperado
-          const phoneId =
-            res.phone_number_id ||
-            res?.phone?.id ||
-            res?.phone_id ||
-            "";
-          const display =
-            res?.phone?.display_phone_number ||
-            res?.display ||
-            null;
+            if (!res?.ok) {
+              throw new Error(res?.error || "Falha ao finalizar o WhatsApp");
+            }
 
-          onPickSuccess?.({ phone_number_id: String(phoneId), display });
-        } else {
-          throw new Error(res?.error || "Falha ao finalizar WhatsApp");
-        }
+            // normaliza possíveis formatos
+            const phoneId =
+              res.phone_number_id ||
+              res.phone_id ||
+              res.phone?.id ||
+              res.phone?.phone_number_id ||
+              "";
+            const display =
+              res.phone?.display_phone_number ||
+              res.display_phone_number ||
+              res.phone?.verified_name ||
+              null;
+
+            if (!phoneId) throw new Error("phone_number_id ausente na resposta");
+
+            onPickSuccess?.({ phone_number_id: String(phoneId), display });
+          } catch (e) {
+            onError?.(e instanceof Error ? e : new Error(String(e)));
+          } finally {
+            cleanup();
+          }
+        })();
       } catch (e) {
-        onError?.(e);
-      } finally {
+        onError?.(e instanceof Error ? e : new Error(String(e)));
         cleanup();
       }
     }
 
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [AUTH_ORIGIN, cleanup, onPickSuccess, onError, tenant]);
+  }, [AUTH_ORIGIN, tenant, cleanup, onPickSuccess, onError]);
 
   const start = useCallback(() => {
     if (!tenant)       { onError?.(new Error("Tenant não detectado")); return; }
     if (!APP_ID)       { onError?.(new Error("VITE_META_APP_ID ausente")); return; }
-    if (!CONFIG_ID)    { onError?.(new Error("VITE_WA_CONFIG_ID / VITE_META_LOGIN_CONFIG_ID ausente")); return; }
+    if (!CONFIG_ID)    { onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente")); return; }
     if (!AUTH_ORIGIN)  { onError?.(new Error("VITE_EMBED_ORIGIN ausente")); return; }
     if (loading) return;
 
@@ -114,26 +125,28 @@ export default function WhatsAppEmbeddedSignupButton({
 
     const redirectUri = `${AUTH_ORIGIN}/oauth/wa`;
 
-    // infos que o callback poderá usar
-    const state = btoa(JSON.stringify({
-      tenant,
-      origin: window.location.origin,
-      api: API_BASE,
-      redirectUri
-    }));
+    // state em base64 para round-trip (tenha o que precisar)
+    const state = btoa(
+      JSON.stringify({
+        tenant,
+        origin: window.location.origin,
+        redirectUri, // útil para o backend/rota
+      })
+    );
 
-    // URL oficial do WhatsApp Embedded Signup
-    const extras = encodeURIComponent(JSON.stringify({ sessionInfoVersion: "3", version: "v3" }));
-    const params = new URLSearchParams({
-      app_id: String(APP_ID),
-      config_id: String(CONFIG_ID),
-      redirect_uri: redirectUri,
-      state,
-      extras
-    });
-    const url = `https://business.facebook.com/messaging/whatsapp/onboard/?${params.toString()}`;
+    // ⚠️ IMPORTANTE: extras deve ir como JSON cru (sem encode),
+    // pois a página da Meta faz JSON.parse(extras) sem decodeURIComponent.
+    const extrasRaw = JSON.stringify({ sessionInfoVersion: "3", version: "v3" });
 
-    const feat = "width=800,height=720,menubar=0,toolbar=0";
+    const url =
+      `https://business.facebook.com/messaging/whatsapp/onboard/` +
+      `?app_id=${encodeURIComponent(APP_ID)}` +
+      `&config_id=${encodeURIComponent(CONFIG_ID)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&state=${encodeURIComponent(state)}` +
+      `&extras=${extrasRaw}`; // <- SEM encode aqui
+
+    const feat = "width=520,height=720,menubar=0,toolbar=0";
     popupRef.current = window.open(url, "wa-embed", feat);
 
     if (!popupRef.current) {
@@ -142,15 +155,17 @@ export default function WhatsAppEmbeddedSignupButton({
       return;
     }
 
-    // watchdog: se o usuário fechar a janela, cancelamos o loading
+    // watchdog: se fechar o popup, limpamos estado
     timerRef.current = setInterval(() => {
       try {
         if (!popupRef.current || popupRef.current.closed) {
           cleanup();
         }
-      } catch { /* ignore */ }
+      } catch {
+        // ignore cross-origin
+      }
     }, 500);
-  }, [tenant, APP_ID, CONFIG_ID, AUTH_ORIGIN, API_BASE, loading, cleanup, onError]);
+  }, [tenant, APP_ID, CONFIG_ID, AUTH_ORIGIN, loading, cleanup, onError]);
 
   return (
     <button
