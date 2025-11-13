@@ -12,6 +12,14 @@ function toIsoDate(s){ if(!s)return''; const t=String(s).trim(); if(/^\d{4}-\d{2
 function parseSearch(q){ const raw=String(q||'').trim(); if(!raw)return{tokens:[],from:'',to:''}; let from='',to='',text=raw; const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/); if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();} const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i); const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i); if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;} if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;} text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim(); const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean); return {tokens,from,to}; }
 function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
 
+/* anexa flow_id quando houver */
+function withFlow(url, flowId){
+  if (!flowId) return url;
+  return url.includes('?')
+    ? `${url}&flow_id=${encodeURIComponent(flowId)}`
+    : `${url}?flow_id=${encodeURIComponent(flowId)}`;
+}
+
 /** Listbox – clica para ADICIONAR; chips têm “x” para remover */
 function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag' }) {
   const [open, setOpen] = useState(false);
@@ -24,12 +32,7 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  // remove do dropdown qualquer tag já selecionada
-  const base = useMemo(
-    () => options.filter(o => !selected.includes(o.tag)),
-    [options, selected]
-  );
-
+  const base = useMemo(() => options.filter(o => !selected.includes(o.tag)), [options, selected]);
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return base;
@@ -79,6 +82,11 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
   const mergeConversation = useConversationsStore(s => s.mergeConversation);
 
+  // 🔎 pega o flow_id da conversa corrente (mesma estratégia dos outros componentes)
+  const state   = useConversationsStore.getState();
+  const conv    = (state.conversations && (userIdSelecionado ? state.conversations[userIdSelecionado] : null)) || {};
+  const flowId  = conv?.flow_id || conversaSelecionada?.flow_id || null;
+
   /* ======= TAGS DO CLIENTE ======= */
   const [customerCatalog, setCustomerCatalog] = useState([]);
   const [customerTagsSelected, setCustomerTagsSelected] = useState([]);
@@ -97,7 +105,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       return next;
     });
 
-  // carrega catálogo e as tags atuais do cliente SEMPRE
+  // catálogo e tags do cliente (normalmente não dependem de flow, mantive sem flow_id)
   useEffect(() => {
     let alive = true;
     setCustomerCatalog([]); setCustomerTagsSelected([]);
@@ -132,19 +140,22 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     return () => { alive = false; };
   }, [userIdSelecionado, mergeConversation]);
 
-  /* ======= Histórico ======= */
+  /* ======= Histórico (COM flow_id) ======= */
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
+
     const qs = new URLSearchParams({ q: String(userIdSelecionado), page_size: '40', page: '1' });
     if (from) qs.set('from', from);
     if (to)   qs.set('to', to);
 
-    apiGet(`/tickets/history?${qs.toString()}`)
+    const url = withFlow(`/tickets/history?${qs.toString()}`, flowId);
+
+    apiGet(url)
       .then(res => setHistorico(res?.data || []))
       .catch(() => setHistorico([]))
       .finally(() => setLoadingHistorico(false));
-  }, [userIdSelecionado, from, to]);
+  }, [userIdSelecionado, from, to, flowId]);
 
   const historicoFiltrado = useMemo(() => {
     const toks = (tokens || []).map(t => t.toLowerCase());
@@ -288,6 +299,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         userId={userIdSelecionado}
         ticketId={chapterModal.ticketId}
         ticketNumber={chapterModal.ticketNumber}
+        flowId={flowId}               {/* <<< repassando flow_id para o modal */}
       />
     </>
   );
