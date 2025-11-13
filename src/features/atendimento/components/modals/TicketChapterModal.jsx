@@ -1,10 +1,11 @@
+// src/app/features/chat/components/modals/TicketChapterModal.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { X } from "lucide-react";
 import { apiGet } from "../../../../shared/apiClient";
 import "./styles/TicketChapterModal.css";
 
-// 👉 importe os componentes enviados
-import MessageList from "../chat/message/MessageList";   // ajuste o caminho se necessário
+// Componentes do chat
+import MessageList from "../chat/message/MessageList";
 
 /* ===== utils ===== */
 function tsOf(m) {
@@ -14,10 +15,20 @@ function tsOf(m) {
 }
 function sortAsc(a, b) { return tsOf(a) - tsOf(b); }
 
-/* ===== fetch exclusivo por ticket ===== */
-async function fetchChapterMessagesByTicketId({ ticketId, messagesLimit = 2000 }) {
-  const qs = new URLSearchParams({ include: "messages", messages_limit: String(messagesLimit) });
+/* ===== fetch exclusivo por ticket (com flow_id) ===== */
+async function fetchChapterMessagesByTicketId({ ticketId, flowId, messagesLimit = 2000 }) {
+  if (!ticketId) throw new Error("ticketId obrigatório");
+  if (!flowId)   throw new Error("flow_id é obrigatório para carregar o histórico do ticket");
+
+  const qs = new URLSearchParams({
+    include: "messages",
+    messages_limit: String(messagesLimit),
+    flow_id: String(flowId),
+  });
+
   const res = await apiGet(`/tickets/history/${encodeURIComponent(ticketId)}?${qs.toString()}`);
+
+  // Em /tickets/history/:id o backend retorna { ...ticket, messages: [] }
   const msgs = Array.isArray(res?.messages) ? res.messages : [];
   return msgs.sort(sortAsc);
 }
@@ -26,44 +37,54 @@ async function fetchChapterMessagesByTicketId({ ticketId, messagesLimit = 2000 }
 export default function TicketChapterModal({
   open,
   onClose,
-  ticketId,        // usado no fetch
-  ticketNumber,    // só título
+  ticketId,       // usado no fetch
+  ticketNumber,   // só para título
+  flowId,         // 🔴 OBRIGATÓRIO: escopo do flow
 }) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
   const [messages, setMessages] = useState([]);
-  const [error, setError] = useState(null);
+  const [error, setError]       = useState(null);
 
-  const title = useMemo(() => `Histórico • Ticket #${ticketNumber || "—"}`, [ticketNumber]);
+  const title = useMemo(
+    () => `Histórico • Ticket #${ticketNumber || "—"}`,
+    [ticketNumber]
+  );
 
-  // reset sempre que trocar ticket
+  // reset sempre que trocar ticket/flow
   useEffect(() => {
     setMessages([]);
     setError(null);
     setLoading(true);
-  }, [ticketId]);
+  }, [ticketId, flowId]);
 
   const load = useCallback(async () => {
-    if (!open || !ticketId) return;
+    if (!open) return;
+    if (!ticketId || !flowId) {
+      setLoading(false);
+      setError(!ticketId ? "ticketId ausente" : "flow_id ausente");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const msgs = await fetchChapterMessagesByTicketId({ ticketId });
+      const msgs = await fetchChapterMessagesByTicketId({ ticketId, flowId });
       setMessages(msgs);
     } catch (e) {
       setError(e?.message || "Falha ao carregar histórico");
     } finally {
       setLoading(false);
     }
-  }, [open, ticketId]);
+  }, [open, ticketId, flowId]);
 
   useEffect(() => { load(); }, [load]);
 
   if (!open) return null;
 
-  // handlers opcionais para imagem/pdf (se você quiser abrir lightbox, por exemplo)
-  const handleImageClick = (url) => { /* TODO: abrir preview se quiser */ };
-  const handlePdfClick = (url) => { /* TODO: abrir visualizador se quiser */ };
-  const handleReply = () => {}; // no modal normalmente não precisa responder
+  // handlers opcionais para imagem/pdf
+  const handleImageClick = () => {};
+  const handlePdfClick   = () => {};
+  const handleReply      = () => {};
 
   return (
     <div
@@ -88,7 +109,6 @@ export default function TicketChapterModal({
           )}
 
           {!loading && !error && messages.length > 0 && (
-            // ⤵️ usa os componentes enviados para renderizar a conversa
             <MessageList
               messages={messages}
               onImageClick={handleImageClick}
