@@ -1,4 +1,3 @@
-// webapp/src/pages/Channels/Channels.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import { MessageCircle, Instagram as IgIcon, MessageSquareText as FbIcon, Send, CheckCircle2, PlugZap } from "lucide-react";
 import { apiGet, apiPost } from '../../../../shared/apiClient';
@@ -30,13 +29,13 @@ export default function Channels() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // WhatsApp (mesmo do seu código)
+  // WhatsApp
   const [wa, setWa] = useState({ loading: true, connected: false, phoneId: "", phone: null, stabilizing: false });
 
-  // Telegram (mesmo do seu código)
+  // Telegram
   const [tg, setTg] = useState({ loading: true, connected: false, botId: "", username: "", webhookUrl: "" });
 
-  // NOVOS: Facebook / Instagram
+  // Facebook / Instagram
   const [fb, setFb] = useState({ loading: true, connected: false, pageId: "", pageName: "" });
   const [ig, setIg] = useState({ loading: true, connected: false, pageId: "", pageName: "", igUserId: "", igUsername: "" });
 
@@ -111,7 +110,36 @@ export default function Channels() {
       const data = e.data || {};
       const type = data.type;
 
-      // Facebook: receber code e finalizar
+      // WhatsApp: receber code e finalizar
+      if (type === "wa:oauth") {
+        const { code, state } = data;
+        let ctx = {};
+        try { ctx = state ? JSON.parse(atob(state)) : {}; } catch {}
+        const redirect_uri = ctx?.redirectUri || `${AUTH_ORIGIN}/oauth/wa`;
+        const sub = ctx?.tenant || tenant;
+
+        toast.loading("Conectando WhatsApp…", { toastId: "wa-connecting" });
+        apiPost("/whatsapp/finalize", { subdomain: sub, code, redirect_uri })
+          .then(async (res) => {
+            if (res?.ok) {
+              // recarrega status
+              const ws = await apiGet(`/whatsapp/number?subdomain=${sub}`);
+              if (ws && ws.ok && ws.phone) {
+                setWa({ loading: false, connected: true, phoneId: ws.phone.id || "", phone: ws.phone, stabilizing: false });
+                toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
+              } else {
+                throw new Error("Conectado, mas não foi possível obter o número.");
+              }
+            } else {
+              throw new Error(res?.error || "Falha ao conectar WhatsApp");
+            }
+          })
+          .catch((err) => {
+            toast.update("wa-connecting", { render: err?.message || "Falha ao conectar WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
+          });
+      }
+
+      // Facebook
       if (type === "fb:oauth") {
         const { code, state } = data;
         let ctx = {};
@@ -122,15 +150,10 @@ export default function Channels() {
         toast.loading("Conectando Facebook…", { toastId: "fb-connecting" });
         apiPost("/facebook/finalize", { subdomain: sub, code, redirect_uri })
          .then(async (res) => {
-           // PASSO 1: a API retorna a lista de páginas + user_token
            if (res?.ok && res?.step === "pages_list") {
              const pages = Array.isArray(res.pages) ? res.pages : [];
              if (!pages.length) throw new Error("Nenhuma Página disponível nesta conta.");
-
-             // escolha simples: primeira página (ou abra um modal para o usuário escolher)
              const pick = pages[0];
-
-             // PASSO 2: finalizar de verdade com page_id + user_token
              const r2 = await apiPost("/facebook/finalize", {
                subdomain: sub,
                redirect_uri,
@@ -138,7 +161,6 @@ export default function Channels() {
                user_token: res.user_token,
                persist_token: true
              });
-
              if (r2?.ok && r2?.connected) {
                setFb((s) => ({
                  ...s,
@@ -152,8 +174,6 @@ export default function Channels() {
              }
              throw new Error(r2?.error || "Falha ao concluir conexão do Facebook");
            }
-
-           // Alguns ambientes podem já retornar conectado (caso só haja 1 página)
            if (res?.ok && res?.connected) {
              setFb((s) => ({
                ...s,
@@ -165,7 +185,6 @@ export default function Channels() {
              toast.update("fb-connecting", { render: "Facebook conectado.", type: "success", isLoading: false, autoClose: 2500 });
              return;
            }
-
            throw new Error(res?.error || "Falha ao conectar Facebook");
          })
          .catch((err) => {
@@ -173,7 +192,7 @@ export default function Channels() {
          });
       }
 
-      // Instagram: receber code e finalizar (1ª chamada retorna lista de páginas)
+      // Instagram
       if (type === "ig:oauth") {
         const { code, state } = data;
         let ctx = {};
@@ -185,8 +204,7 @@ export default function Channels() {
         apiPost("/instagram/finalize", { subdomain: sub, code, redirect_uri })
           .then(async (res) => {
             if (res?.ok && res?.step === "pages_list") {
-              // caso tenha várias páginas, pegue a primeira com instagram ou peça UI para escolha
-              const pick = res.pages.find(p => p.has_instagram) || res.pages[0];
+              const pick = (res.pages || []).find(p => p.has_instagram) || (res.pages || [])[0];
               if (!pick) throw new Error("Nenhuma Página disponível");
               const res2 = await apiPost("/instagram/finalize", { subdomain: sub, redirect_uri, page_id: pick.id, user_token: res.user_token });
               if (res2?.ok) {
@@ -323,7 +341,7 @@ export default function Channels() {
           </div>
         </div>
 
-        {/* Telegram (igual ao seu) */}
+        {/* Telegram */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
             {iconWrap(styles.tg, <Send size={18}/>)}
