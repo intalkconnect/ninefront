@@ -9,16 +9,26 @@ import useConversationsStore from '../../store/useConversationsStore';
 /* helpers */
 function padTicket(n){ if(n==null)return'—'; try{return String(n).padStart(6,'0');}catch{return String(n);} }
 function toIsoDate(s){ if(!s)return''; const t=String(s).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t; const m=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''; }
-function parseSearch(q){ const raw=String(q||'').trim(); if(!raw)return{tokens:[],from:'',to:''}; let from='',to='',text=raw; const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/); if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();} const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i); const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i); if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;} if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;} text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim(); const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean); return {tokens,from,to}; }
-function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
+function parseSearch(q){
+  const raw=String(q||'').trim();
+  if(!raw)return{tokens:[],from:'',to:''};
+  let from='',to='',text=raw;
 
-/* anexa flow_id quando houver */
-function withFlow(url, flowId){
-  if (!flowId) return url;
-  return url.includes('?')
-    ? `${url}&flow_id=${encodeURIComponent(flowId)}`
-    : `${url}?flow_id=${encodeURIComponent(flowId)}`;
+  // intervalo "22/08/2025..28/08/2025" ou "2025-08-22..2025-08-28"
+  const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/);
+  if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();}
+
+  // campos de: / ate:
+  const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i);
+  const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i);
+  if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;}
+  if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;}
+
+  text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim();
+  const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean);
+  return {tokens,from,to};
 }
+function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
 
 /** Listbox – clica para ADICIONAR; chips têm “x” para remover */
 function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag' }) {
@@ -32,7 +42,12 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
-  const base = useMemo(() => options.filter(o => !selected.includes(o.tag)), [options, selected]);
+  // remove do dropdown qualquer tag já selecionada
+  const base = useMemo(
+    () => options.filter(o => !selected.includes(o.tag)),
+    [options, selected]
+  );
+
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return base;
@@ -82,11 +97,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
 
   const mergeConversation = useConversationsStore(s => s.mergeConversation);
 
-  // flow_id atual (store ou prop)
-  const state   = useConversationsStore.getState();
-  const conv    = (state.conversations && (userIdSelecionado ? state.conversations[userIdSelecionado] : null)) || {};
-  const flowId  = conv?.flow_id || conversaSelecionada?.flow_id || null;
-
   /* ======= TAGS DO CLIENTE ======= */
   const [customerCatalog, setCustomerCatalog] = useState([]);
   const [customerTagsSelected, setCustomerTagsSelected] = useState([]);
@@ -105,6 +115,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       return next;
     });
 
+  // carrega catálogo e as tags atuais do cliente SEMPRE
   useEffect(() => {
     let alive = true;
     setCustomerCatalog([]); setCustomerTagsSelected([]);
@@ -139,44 +150,41 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
     return () => { alive = false; };
   }, [userIdSelecionado, mergeConversation]);
 
-  /* ======= Histórico (COM flow_id obrigatório) ======= */
+  /* ======= Histórico ======= */
   useEffect(() => {
     if (!userIdSelecionado) return;
     setLoadingHistorico(true);
 
-    // novo endpoint exige path :userId e flow_id na query
-    const qs = new URLSearchParams({
-      include: 'messages',
-      messages_limit: '2000'
-    });
-    // se quiser, ainda podemos mandar from/to; se o backend não usar, filtramos no cliente
-    if (from) qs.set('from', from);
-    if (to)   qs.set('to', to);
-
-    const url = withFlow(`/tickets/history/${encodeURIComponent(userIdSelecionado)}?${qs.toString()}`, flowId);
-
-    apiGet(url)
-      .then(res => setHistorico(res?.data || []))
+    // Lista tickets FECHADOS do cliente
+    apiGet(`/tickets/user/${encodeURIComponent(userIdSelecionado)}`)
+      .then(res => {
+        const data = Array.isArray(res?.tickets) ? res.tickets : [];
+        setHistorico(data);
+      })
       .catch(() => setHistorico([]))
       .finally(() => setLoadingHistorico(false));
-  }, [userIdSelecionado, from, to, flowId]);
+  }, [userIdSelecionado]);
 
   const historicoFiltrado = useMemo(() => {
     const toks = (tokens || []).map(t => t.toLowerCase());
-    if (!toks.length) return historico;
+    const fromDt = from ? new Date(`${from}T00:00:00`) : null;
+    const toDt   = to   ? new Date(`${to}T23:59:59.999`) : null;
 
-    return historico.filter(item => {
+    const list = Array.isArray(historico) ? historico : [];
+    return list.filter(item => {
       const tk = String(item.ticket_number || '').toLowerCase();
       const fi = String(item.fila || '').toLowerCase();
       const ag = String(item.assigned_to || '').toLowerCase();
 
-      // filtro por período no cliente (caso backend ignore from/to)
       const when = new Date(item.updated_at || item.created_at || 0);
       const okDate =
-        (!from || new Date(from) <= when) &&
-        (!to   || when <= new Date(`${to}T23:59:59`));
+        (!fromDt || when >= fromDt) &&
+        (!toDt   || when <= toDt);
 
-      const okTokens = toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q));
+      const okTokens = toks.length
+        ? toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q))
+        : true;
+
       return okTokens && okDate;
     });
   }, [historico, tokens, from, to]);
@@ -312,7 +320,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         userId={userIdSelecionado}
         ticketId={chapterModal.ticketId}
         ticketNumber={chapterModal.ticketNumber}
-        flowId={flowId}  
       />
     </>
   );
