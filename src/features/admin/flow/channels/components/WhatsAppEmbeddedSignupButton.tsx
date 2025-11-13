@@ -1,6 +1,6 @@
 // webapp/src/components/WhatsAppEmbeddedSignupButton.jsx
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiPost } from "../../../shared/apiClient";
+import { apiPost } from "../../../../../shared/apiClient";
 
 function mkNonce() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
