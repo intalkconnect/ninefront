@@ -1,23 +1,17 @@
 // webapp/src/components/WhatsAppEmbeddedSignupButton.jsx
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiPost } from "../../../../../shared/apiClient";
+import { apiPost } from "../../../shared/apiClient";
+
+function mkNonce() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 
 /**
- * WhatsAppEmbeddedSignupButton
- *
  * Props:
- * - tenant: string (obrigatório)
- * - label: string (default: "Conectar WhatsApp")
- * - className, style, title, disabled
- * - onPickSuccess: (payload) => void
- *      payload: { phone_number_id: string, display?: string }
- * - onError: (err) => void
- *
- * Fluxo:
- * 1) Abre popup para https://business.facebook.com/messaging/whatsapp/onboard/
- * 2) Meta redireciona para {AUTH_ORIGIN}/oauth/wa?code=...&state=...
- * 3) Sua rota /oauth/wa faz postMessage({ type: "wa:oauth", code, state }) para window.opener
- * 4) Este componente recebe, chama POST /whatsapp/finalize, e retorna phone_number_id via onPickSuccess
+ * - tenant (string)
+ * - label, className, style, title, disabled
+ * - onPickSuccess({ phone_number_id, display })
+ * - onError(err)
  */
 export default function WhatsAppEmbeddedSignupButton({
   tenant,
@@ -30,18 +24,27 @@ export default function WhatsAppEmbeddedSignupButton({
   onError,
 }) {
   const APP_ID = import.meta.env.VITE_META_APP_ID;
-  const CONFIG_ID = import.meta.env.VITE_META_LOGIN_CONFIG_ID; // ou VITE_WA_CONFIG_ID
-  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;        // ex.: https://auth.northgate.ninechat.com.br
+  const CONFIG_ID = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
+  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.northgate.ninechat.com.br
 
   const [loading, setLoading] = useState(false);
-  const popupRef = useRef(null);
-  const timerRef = useRef(null);
+
+  const popupRef     = useRef(null);
+  const timerRef     = useRef(null);
+  const activeNonce  = useRef(null);     // casa o state com a tentativa atual
+  const finishingRef = useRef(false);    // evita finalizar 2x
+  const startedRef   = useRef(false);    // evita abrir 2x
 
   const cleanup = useCallback(() => {
+    finishingRef.current = false;
+    startedRef.current = false;
+    activeNonce.current = null;
+
     if (popupRef.current && !popupRef.current.closed) {
       try { popupRef.current.close(); } catch {}
     }
     popupRef.current = null;
+
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -53,23 +56,26 @@ export default function WhatsAppEmbeddedSignupButton({
   useEffect(() => {
     function onMessage(ev) {
       try {
-        if (!AUTH_ORIGIN || ev.origin !== AUTH_ORIGIN) return; // segurança
+        if (!AUTH_ORIGIN || ev.origin !== AUTH_ORIGIN) return;
         const data = ev.data || {};
         if (data?.type !== "wa:oauth") return;
 
-        const { code, state } = data;
-        // redirect_uri deve ser exatamente o mesmo usado na abertura
-        const redirect_uri = `${AUTH_ORIGIN}/oauth/wa`;
-        const sub = (() => {
-          try {
-            const s = state ? JSON.parse(atob(state)) : {};
-            return s?.tenant || tenant;
-          } catch {
-            return tenant;
-          }
-        })();
+        // Garante que esta mensagem é da TENTATIVA atual
+        const stateStr = data.state || "";
+        let st = {};
+        try { st = stateStr ? JSON.parse(atob(stateStr)) : {}; } catch {}
+        if (!st?.nonce || st.nonce !== activeNonce.current) {
+          // mensagem antiga/duplicada — ignora
+          return;
+        }
 
-        // finaliza no backend para obter o phone_number_id
+        if (finishingRef.current) return;
+        finishingRef.current = true;
+
+        const code = data.code;
+        const redirect_uri = `${AUTH_ORIGIN}/oauth/wa`;
+        const sub = st?.tenant || tenant;
+
         (async () => {
           try {
             const res = await apiPost("/whatsapp/finalize", {
@@ -82,7 +88,6 @@ export default function WhatsAppEmbeddedSignupButton({
               throw new Error(res?.error || "Falha ao finalizar o WhatsApp");
             }
 
-            // normaliza possíveis formatos
             const phoneId =
               res.phone_number_id ||
               res.phone_id ||
@@ -115,27 +120,35 @@ export default function WhatsAppEmbeddedSignupButton({
   }, [AUTH_ORIGIN, tenant, cleanup, onPickSuccess, onError]);
 
   const start = useCallback(() => {
+    if (startedRef.current) {
+      // já iniciamos — apenas foca o popup existente
+      if (popupRef.current && !popupRef.current.closed) {
+        try { popupRef.current.focus(); } catch {}
+      }
+      return;
+    }
+
     if (!tenant)       { onError?.(new Error("Tenant não detectado")); return; }
     if (!APP_ID)       { onError?.(new Error("VITE_META_APP_ID ausente")); return; }
     if (!CONFIG_ID)    { onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente")); return; }
     if (!AUTH_ORIGIN)  { onError?.(new Error("VITE_EMBED_ORIGIN ausente")); return; }
-    if (loading) return;
 
+    startedRef.current = true;
     setLoading(true);
 
     const redirectUri = `${AUTH_ORIGIN}/oauth/wa`;
+    const nonce = mkNonce();
+    activeNonce.current = nonce;
 
-    // state em base64 para round-trip (tenha o que precisar)
-    const state = btoa(
-      JSON.stringify({
-        tenant,
-        origin: window.location.origin,
-        redirectUri, // útil para o backend/rota
-      })
-    );
+    // state: sempre base64
+    const state = btoa(JSON.stringify({
+      nonce,
+      tenant,
+      origin: window.location.origin,
+      redirectUri,
+    }));
 
-    // ⚠️ IMPORTANTE: extras deve ir como JSON cru (sem encode),
-    // pois a página da Meta faz JSON.parse(extras) sem decodeURIComponent.
+    // extras SEM encode (Meta faz JSON.parse(extras) cru)
     const extrasRaw = JSON.stringify({ sessionInfoVersion: "3", version: "v3" });
 
     const url =
@@ -144,34 +157,38 @@ export default function WhatsAppEmbeddedSignupButton({
       `&config_id=${encodeURIComponent(CONFIG_ID)}` +
       `&redirect_uri=${encodeURIComponent(redirectUri)}` +
       `&state=${encodeURIComponent(state)}` +
-      `&extras=${extrasRaw}`; // <- SEM encode aqui
+      `&extras=${extrasRaw}`;
 
     const feat = "width=520,height=720,menubar=0,toolbar=0";
-    popupRef.current = window.open(url, "wa-embed", feat);
+    const w = window.open(url, "wa-embed", feat);
 
-    if (!popupRef.current) {
+    if (!w) {
+      startedRef.current = false;
       setLoading(false);
       onError?.(new Error("Não foi possível abrir a janela de autenticação."));
       return;
     }
 
-    // watchdog: se fechar o popup, limpamos estado
+    popupRef.current = w;
+    try { w.focus(); } catch {}
+
+    // watchdog: se o usuário fechar a janela, limpamos estado
     timerRef.current = setInterval(() => {
       try {
         if (!popupRef.current || popupRef.current.closed) {
           cleanup();
         }
       } catch {
-        // ignore cross-origin
+        // cross-origin
       }
     }, 500);
-  }, [tenant, APP_ID, CONFIG_ID, AUTH_ORIGIN, loading, cleanup, onError]);
+  }, [tenant, APP_ID, CONFIG_ID, AUTH_ORIGIN, cleanup, onError]);
 
   return (
     <button
       type="button"
       className={className}
-      style={style}
+      style={{ pointerEvents: loading ? "none" : undefined, ...style }}
       title={title || label}
       onClick={start}
       disabled={disabled || loading}
