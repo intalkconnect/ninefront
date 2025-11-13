@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Mail, Phone, IdCard, IdCardLanyard, Search, Users, Share2, Tag as TagIcon } from 'lucide-react';
 import './styles/DetailsPanel.css';
 import { stringToColor } from '../../utils/color';
@@ -9,53 +9,21 @@ import useConversationsStore from '../../store/useConversationsStore';
 /* helpers */
 function padTicket(n){ if(n==null)return'—'; try{return String(n).padStart(6,'0');}catch{return String(n);} }
 function toIsoDate(s){ if(!s)return''; const t=String(s).trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(t))return t; const m=t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:''; }
-function parseSearch(q){
-  const raw=String(q||'').trim();
-  if(!raw)return{tokens:[],from:'',to:''};
-  let from='',to='',text=raw;
+function parseSearch(q){ const raw=String(q||'').trim(); if(!raw)return{tokens:[],from:'',to:''}; let from='',to='',text=raw; const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/); if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();} const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i); const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i); if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;} if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;} text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim(); const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean); return {tokens,from,to}; }
+function useDebounced(v,delay=250){ const [x,setX]=useState(v); useEffect(()=>{const id=setTimeout(()=>setX(v),delay); return()=>clearTimeout(id);},[v,delay]); return x; }
 
-  // intervalo "22/08/2025..28/08/2025" ou "2025-08-22..2025-08-28"
-  const range=raw.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})\s*\.\.\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}|\d{4}-\d{2}-\d{2})/);
-  if(range){from=toIsoDate(range[1]);to=toIsoDate(range[2]);text=raw.replace(range[0],' ').trim();}
-
-  // campos de: / ate:
-  const mFrom=raw.match(/(?:\bde:|\bfrom:)(\S+)/i);
-  const mTo=raw.match(/(?:\bate:|\bto:)(\S+)/i);
-  if(mFrom){const iso=toIsoDate(mFrom[1]); if(iso)from=iso;}
-  if(mTo){const iso=toIsoDate(mTo[1]); if(iso)to=iso;}
-
-  text=text.replace(/(?:\bde:|\bfrom:)(\S+)/i,' ').replace(/(?:\bate:|\bto:)(\S+)/i,' ').trim();
-  const tokens=text.split(/\s+/).map(t=>t.trim()).filter(Boolean);
-  return {tokens,from,to};
-}
-function useDebounced(value,delay=250){ const [v,setV]=useState(value); useEffect(()=>{const id=setTimeout(()=>setV(value),delay); return()=>clearTimeout(id);},[value,delay]); return v; }
-
-/** Listbox – clica para ADICIONAR; chips têm “x” para remover */
 function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar tag' }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
-
   useEffect(() => {
     const onDoc = (e) => { if (!ref.current) return; if (!ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
-
-  // remove do dropdown qualquer tag já selecionada
-  const base = useMemo(
-    () => options.filter(o => !selected.includes(o.tag)),
-    [options, selected]
-  );
-
-  const filtered = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    if (!t) return base;
-    return base.filter(o => (o.label || o.tag).toLowerCase().includes(t));
-  }, [q, base]);
-
+  const base = useMemo(() => options.filter(o => !selected.includes(o.tag)), [options, selected]);
+  const filtered = useMemo(() => { const t=q.trim().toLowerCase(); if(!t) return base; return base.filter(o => (o.label||o.tag).toLowerCase().includes(t)); }, [q, base]);
   if (!options.length) return null;
-
   return (
     <div className="lb" ref={ref}>
       <button type="button" className="lb__control" onClick={() => setOpen(o => !o)} aria-haspopup="listbox">
@@ -70,12 +38,7 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
             <div className="lb__empty">Sem etiquetas</div>
           ) : (
             filtered.map(opt => (
-              <button
-                key={opt.tag}
-                type="button"
-                className="lb__option"
-                onClick={() => { onAdd(opt.tag); setOpen(false); setQ(''); }}
-              >
+              <button key={opt.tag} type="button" className="lb__option" onClick={() => { onAdd(opt.tag); setOpen(false); setQ(''); }}>
                 {(opt.label || opt.tag)}
               </button>
             ))
@@ -89,13 +52,18 @@ function ComboTags({ options = [], selected = [], onAdd, placeholder = 'Procurar
 export default function DetailsPanel({ userIdSelecionado, conversaSelecionada }) {
   const [historico, setHistorico] = useState([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
-  const [chapterModal, setChapterModal] = useState({ open: false, ticketId: null, ticketNumber: null });
+  const [chapterModal, setChapterModal] = useState({ open: false, ticketId: null, ticketNumber: null, flowId: null });
 
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounced(query, 250);
   const { tokens, from, to } = useMemo(() => parseSearch(debouncedQuery), [debouncedQuery]);
 
   const mergeConversation = useConversationsStore(s => s.mergeConversation);
+
+  // flow_id do contexto atual (conversa/cliente)
+  const flowIdFromCliente = useConversationsStore(s => s.clienteAtivo?.flow_id || null);
+  const flowIdFromConv    = useConversationsStore(s => s.conversations?.[userIdSelecionado]?.flow_id || null);
+  const flowId = flowIdFromConv || flowIdFromCliente || null;
 
   /* ======= TAGS DO CLIENTE ======= */
   const [customerCatalog, setCustomerCatalog] = useState([]);
@@ -115,7 +83,6 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
       return next;
     });
 
-  // carrega catálogo e as tags atuais do cliente SEMPRE
   useEffect(() => {
     let alive = true;
     setCustomerCatalog([]); setCustomerTagsSelected([]);
@@ -127,67 +94,59 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           apiGet(`/tags/customer/${encodeURIComponent(userIdSelecionado)}`)
         ]);
         if (!alive) return;
-
         const catalog = Array.isArray(cat?.data) ? cat.data : [];
         const current = Array.isArray(tags?.tags)
           ? tags.tags.map(x => (typeof x === 'string' ? x : (x.tag || ''))).filter(Boolean)
           : [];
-
         setCustomerCatalog(catalog);
         setCustomerTagsSelected(current);
-
-        mergeConversation(userIdSelecionado, {
-          customer_tags: current,
-          pending_customer_tags: current,
-        });
+        mergeConversation(userIdSelecionado, { customer_tags: current, pending_customer_tags: current });
       } catch {
         if (!alive) return;
-        setCustomerCatalog([]);
-        setCustomerTagsSelected([]);
+        setCustomerCatalog([]); setCustomerTagsSelected([]);
         mergeConversation(userIdSelecionado, { customer_tags: [], pending_customer_tags: [] });
       }
     })();
     return () => { alive = false; };
   }, [userIdSelecionado, mergeConversation]);
 
-  /* ======= Histórico ======= */
-  useEffect(() => {
-    if (!userIdSelecionado) return;
-    setLoadingHistorico(true);
+  /* ======= Histórico (por FLOW) ======= */
+  const loadHistory = useCallback(async () => {
+    if (!userIdSelecionado || !flowId) { setHistorico([]); setLoadingHistorico(false); return; }
 
-    // Lista tickets FECHADOS do cliente
-    apiGet(`/tickets/user/${encodeURIComponent(userIdSelecionado)}`)
-      .then(res => {
-        const data = Array.isArray(res?.tickets) ? res.tickets : [];
-        setHistorico(data);
-      })
-      .catch(() => setHistorico([]))
-      .finally(() => setLoadingHistorico(false));
-  }, [userIdSelecionado]);
+    setLoadingHistorico(true);
+    try {
+      const p = new URLSearchParams({
+        page: '1',
+        page_size: '40',
+        q: String(userIdSelecionado),           // filtra pelos tickets desse cliente
+        flow_id: String(flowId),                // OBRIGATÓRIO: escopo do flow
+      });
+      if (from) p.set('from', from);
+      if (to)   p.set('to', to);
+
+      const resp = await apiGet(`/tickets/history?${p.toString()}`);
+      const list = Array.isArray(resp?.data) ? resp.data : [];
+      setHistorico(list);
+    } catch {
+      setHistorico([]);
+    } finally {
+      setLoadingHistorico(false);
+    }
+  }, [userIdSelecionado, flowId, from, to]);
+
+  useEffect(() => { loadHistory(); }, [loadHistory]);
 
   const historicoFiltrado = useMemo(() => {
     const toks = (tokens || []).map(t => t.toLowerCase());
-    const fromDt = from ? new Date(`${from}T00:00:00`) : null;
-    const toDt   = to   ? new Date(`${to}T23:59:59.999`) : null;
-
-    const list = Array.isArray(historico) ? historico : [];
-    return list.filter(item => {
+    return (historico || []).filter(item => {
       const tk = String(item.ticket_number || '').toLowerCase();
       const fi = String(item.fila || '').toLowerCase();
       const ag = String(item.assigned_to || '').toLowerCase();
-
-      const when = new Date(item.updated_at || item.created_at || 0);
-      const okDate =
-        (!fromDt || when >= fromDt) &&
-        (!toDt   || when <= toDt);
-
-      const okTokens = toks.length
-        ? toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q))
-        : true;
-
-      return okTokens && okDate;
+      if (toks.length && !toks.every(q => tk.includes(q) || fi.includes(q) || ag.includes(q))) return false;
+      return true;
     });
-  }, [historico, tokens, from, to]);
+  }, [historico, tokens]);
 
   if (!userIdSelecionado || !conversaSelecionada) {
     return (
@@ -248,7 +207,7 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
           </div>
         </div>
 
-        {/* ===== Histórico de tickets ===== */}
+        {/* ===== Histórico de tickets (fechados por FLOW) ===== */}
         <div className="card historico-card">
           <h4 className="card-title">Histórico de tickets</h4>
 
@@ -289,12 +248,12 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
                 {historicoFiltrado.map((t) => {
                   const when = t.updated_at || t.created_at;
                   return (
-                    <li key={`${t.ticket_number}-${t.id}`} className="ticket-item">
+                    <li key={`${t.id}`} className="ticket-item">
                       <button
                         type="button"
                         className="ticket-card"
                         aria-label={`Abrir capítulo do ticket ${padTicket(t.ticket_number)}`}
-                        onClick={() => setChapterModal({ open: true, ticketId: t.id, ticketNumber: t.ticket_number })}
+                        onClick={() => setChapterModal({ open: true, ticketId: t.id, ticketNumber: t.ticket_number, flowId })}
                       >
                         <div className="ticket-row">
                           <div className="ticket-title">Ticket: <code>{padTicket(t.ticket_number)}</code></div>
@@ -314,12 +273,14 @@ export default function DetailsPanel({ userIdSelecionado, conversaSelecionada })
         </div>
       </div>
 
+      {/* Ao abrir um ticket do histórico, abrimos pelo ID e passamos flow_id */}
       <TicketChapterModal
         open={chapterModal.open}
-        onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null })}
+        onClose={() => setChapterModal({ open: false, ticketId: null, ticketNumber: null, flowId: null })}
         userId={userIdSelecionado}
-        ticketId={chapterModal.ticketId}
+        ticketId={chapterModal.ticketId}       // abrir por ID evita colisão de número
         ticketNumber={chapterModal.ticketNumber}
+        flowId={chapterModal.flowId}           // obrigatório nos endpoints /tickets/history/:id em seu ambiente
       />
     </>
   );
