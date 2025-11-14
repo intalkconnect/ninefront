@@ -13,7 +13,7 @@ export default function WhatsAppEmbeddedSignupButton({
 }) {
   const APP_ID      = import.meta.env.VITE_META_APP_ID;
   const CONFIG_ID   = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
-  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seu-dominio.com
+  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;
   const API_BASE    = import.meta.env.VITE_API_BASE_URL || "";
 
   const [loading, setLoading] = useState(false);
@@ -25,14 +25,10 @@ export default function WhatsAppEmbeddedSignupButton({
       try { popupRef.current.close(); } catch {}
     }
     popupRef.current = null;
-    if (watchdogRef.current) {
-      clearInterval(watchdogRef.current);
-      watchdogRef.current = null;
-    }
+    if (watchdogRef.current) { clearInterval(watchdogRef.current); watchdogRef.current = null; }
     setLoading(false);
   }, []);
 
-  // recebe o code do /oauth/wa (no AUTH_ORIGIN)
   useEffect(() => {
     const expectedOrigin = (() => { try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; } })();
     function onMessage(ev) {
@@ -41,7 +37,9 @@ export default function WhatsAppEmbeddedSignupButton({
         const d = ev.data || {};
         if (d?.type === "wa:oauth") {
           const redirectUri = `${expectedOrigin}/oauth/wa`;
-          onOAuthCode?.({ code: d.code, stateB64: d.state, redirectUri });
+          // state pode não vir no ES → não travar fluxo
+          onOAuthCode?.({ code: d.code, stateB64: d.state || "", redirectUri });
+          // cleanup após entregar o code
           cleanup();
         } else if (d?.type === "wa:oauth:error") {
           onError?.(new Error(d?.error_description || d?.error || "Falha no OAuth do WhatsApp"));
@@ -62,7 +60,6 @@ export default function WhatsAppEmbeddedSignupButton({
     if (!CONFIG_ID)   return onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente"));
     if (!AUTH_ORIGIN) return onError?.(new Error("VITE_EMBED_ORIGIN ausente"));
 
-    // reutiliza o mesmo popup se já estiver aberto
     if (popupRef.current && !popupRef.current.closed) {
       try { popupRef.current.focus(); } catch {}
       return;
@@ -70,22 +67,18 @@ export default function WhatsAppEmbeddedSignupButton({
 
     setLoading(true);
 
-    // STATE só pra recuperar tenant depois do redirect
-    const rawState  = JSON.stringify({ tenant, origin: window.location.origin, api: API_BASE });
-    const stateB64  = btoa(rawState).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
+    const rawState = JSON.stringify({ tenant, origin: window.location.origin, api: API_BASE });
+    const stateB64 = btoa(rawState).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
 
-    // vamos abrir seu endpoint /oauth/wa?start=1 (ele redireciona ao wizard do business.facebook.com)
     const base = (() => { try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; } })();
-    const url  = new URL(`${base}/oauth/wa`);
+    const url = new URL(`${base}/oauth/wa`);
     url.searchParams.set("start", "1");
+    url.searchParams.set("state", stateB64);
     url.searchParams.set("app_id", APP_ID);
     url.searchParams.set("config_id", CONFIG_ID);
-    url.searchParams.set("state", stateB64);
-    // mesmo extras do fluxo oficial (igual ao seu print)
-    url.searchParams.set("extras", encodeURIComponent(JSON.stringify({ sessionInfoVersion: "3", version: "v3" })));
-    url.searchParams.set("display", "popup");
+    // extras agora é responsabilidade do backend
 
-    // tamanho padrão do modal de Embedded Signup da Meta
+    // tamanho padrão do Embedded Signup
     const feat = "width=700,height=820,menubar=0,toolbar=0,location=0,status=0,resizable=1,scrollbars=1";
     popupRef.current = window.open(url.toString(), "wa-es-onboard", feat);
 
@@ -95,7 +88,6 @@ export default function WhatsAppEmbeddedSignupButton({
       return;
     }
 
-    // se o usuário fechar manualmente
     watchdogRef.current = setInterval(() => {
       try {
         if (!popupRef.current || popupRef.current.closed) cleanup();
