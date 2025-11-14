@@ -185,27 +185,25 @@ export default function Channels() {
 
   /** FINALIZE do WhatsApp (chama o endpoint correto e atualiza estado) */
   // dentro do Channels.jsx
-const handleWaOAuthCode = useCallback(async ({ code, stateB64 /*, redirectUri*/ }) => {
+const handleWaOAuthCode = useCallback(async ({ code, stateB64 }) => {
   if (!code) return toast.error("Retorno do OAuth sem code.");
-
   try {
     let ctx = {};
-    try {
-      if (stateB64) ctx = JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/")));
-    } catch {}
-    const sub = ctx?.tenant || tenant; // <- fallback no tenant atual
+    try { if (stateB64) ctx = JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))); } catch {}
+    const sub = ctx?.tenant || tenant; // fallback no tenant atual
 
     toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
 
     const res = await apiPost("/whatsapp/embedded/es/finalize", { subdomain: sub, code });
-
     if (res?.error) throw new Error(res.error);
+
     await fetchWaStatus();
     toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
   } catch (e) {
     toast.update("wa-connecting", { render: e?.message || "Falha ao concluir WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
   }
 }, [tenant, fetchWaStatus]);
+
 
 
   const goToWaProfile = () =>
