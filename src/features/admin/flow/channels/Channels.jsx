@@ -98,15 +98,15 @@ export default function Channels() {
     })();
   }, [tenant, fetchWaStatus]);
 
-  /* OAuth popup → postMessage (FB/IG apenas; WA é via wa-embed no botão) */
+  /* OAuth popup → postMessage (FB/IG só) */
   useEffect(() => {
-    const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seudominio.com
+    const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;
     function onMsg(e) {
       if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return;
       const data = e.data || {};
       const type = data.type;
 
-      // Facebook: recebe code/state e finaliza
+      // Facebook
       if (type === "fb:oauth") {
         const { code, state } = data;
         let ctx = {};
@@ -198,14 +198,22 @@ export default function Channels() {
     return () => window.removeEventListener("message", onMsg);
   }, [tenant]);
 
-  // sucesso do WA após embed
-  const handleWaSuccess = useCallback(async ({ phone_number_id, display }) => {
+  /** FINALIZE do WhatsApp (garante registro no banco) */
+  const handleWaOAuthCode = useCallback(async ({ code, stateB64, redirectUri }) => {
     try {
+      let ctx = {};
+      try { ctx = stateB64 ? JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))) : {}; } catch {}
+      const sub = ctx?.tenant || tenant;
+
       toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
-      // persiste a escolha do número (ajuste o endpoint conforme o seu backend)
-      await apiPost("/whatsapp/finalize", { subdomain: tenant, phone_number_id, display });
-      await fetchWaStatus();
-      toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
+      const res = await apiPost("/whatsapp/finalize", { subdomain: sub, code, redirect_uri: redirectUri });
+
+      if (res?.ok) {
+        await fetchWaStatus();
+        toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
+      } else {
+        throw new Error(res?.error || "Falha ao concluir WhatsApp");
+      }
     } catch (e) {
       toast.update("wa-connecting", { render: e?.message || "Falha ao concluir WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
     }
@@ -240,12 +248,12 @@ export default function Channels() {
           <div className={styles.cardBody}>
             {!wa.connected ? (
               <>
-                <p className={styles.cardDesc}>Conecte via <strong>Meta Embedded Signup</strong> e selecione o número.</p>
+                <p className={styles.cardDesc}>Conecte via <strong>Meta Embedded Signup</strong> (popup único) e finalize a configuração.</p>
                 <div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
                   <WhatsAppEmbeddedSignupButton
                     tenant={tenant}
                     label="Conectar"
-                    onPickSuccess={handleWaSuccess}
+                    onOAuthCode={handleWaOAuthCode}
                     onError={(e) => toast.error(e?.message || "Erro ao conectar WhatsApp")}
                   />
                   <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
