@@ -1,4 +1,3 @@
-// webapp/src/components/WhatsAppEmbeddedSignupButton.jsx
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function WhatsAppEmbeddedSignupButton({
@@ -8,7 +7,7 @@ export default function WhatsAppEmbeddedSignupButton({
   style,
   title,
   disabled = false,
-  onOAuthCode, // ({ code, stateB64, redirectUri })
+  onOAuthCode,  // ({ code, stateB64, redirectUri })
   onError,
 }) {
   const APP_ID      = import.meta.env.VITE_META_APP_ID;
@@ -19,6 +18,7 @@ export default function WhatsAppEmbeddedSignupButton({
   const [loading, setLoading] = useState(false);
   const popupRef = useRef(null);
   const watchdogRef = useRef(null);
+  const clickGuardRef = useRef(false); // evita double click
 
   const cleanup = useCallback(() => {
     if (popupRef.current && !popupRef.current.closed) {
@@ -26,6 +26,7 @@ export default function WhatsAppEmbeddedSignupButton({
     }
     popupRef.current = null;
     if (watchdogRef.current) { clearInterval(watchdogRef.current); watchdogRef.current = null; }
+    clickGuardRef.current = false;
     setLoading(false);
   }, []);
 
@@ -37,9 +38,7 @@ export default function WhatsAppEmbeddedSignupButton({
         const d = ev.data || {};
         if (d?.type === "wa:oauth") {
           const redirectUri = `${expectedOrigin}/oauth/wa`;
-          // state pode não vir no ES → não travar fluxo
           onOAuthCode?.({ code: d.code, stateB64: d.state || "", redirectUri });
-          // cleanup após entregar o code
           cleanup();
         } else if (d?.type === "wa:oauth:error") {
           onError?.(new Error(d?.error_description || d?.error || "Falha no OAuth do WhatsApp"));
@@ -55,13 +54,18 @@ export default function WhatsAppEmbeddedSignupButton({
   }, [AUTH_ORIGIN, cleanup, onOAuthCode, onError]);
 
   const start = useCallback(() => {
+    if (clickGuardRef.current) return; // debouce
+    clickGuardRef.current = true;
+
     if (!tenant)      return onError?.(new Error("Tenant não detectado"));
     if (!APP_ID)      return onError?.(new Error("VITE_META_APP_ID ausente"));
     if (!CONFIG_ID)   return onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente"));
     if (!AUTH_ORIGIN) return onError?.(new Error("VITE_EMBED_ORIGIN ausente"));
 
+    // Reusar a mesma janela se já existir
     if (popupRef.current && !popupRef.current.closed) {
       try { popupRef.current.focus(); } catch {}
+      clickGuardRef.current = false;
       return;
     }
 
@@ -76,14 +80,15 @@ export default function WhatsAppEmbeddedSignupButton({
     url.searchParams.set("state", stateB64);
     url.searchParams.set("app_id", APP_ID);
     url.searchParams.set("config_id", CONFIG_ID);
-    // extras agora é responsabilidade do backend
+    // sem "display=popup" (o nosso popup já existe)
 
-    // tamanho padrão do Embedded Signup
+    // Tamanho padrão do wizard
     const feat = "width=700,height=820,menubar=0,toolbar=0,location=0,status=0,resizable=1,scrollbars=1";
     popupRef.current = window.open(url.toString(), "wa-es-onboard", feat);
 
     if (!popupRef.current) {
       setLoading(false);
+      clickGuardRef.current = false;
       onError?.(new Error("Não foi possível abrir a janela de autenticação."));
       return;
     }
@@ -92,7 +97,10 @@ export default function WhatsAppEmbeddedSignupButton({
       try {
         if (!popupRef.current || popupRef.current.closed) cleanup();
       } catch {}
-    }, 600);
+    }, 800);
+
+    // libera novo clique depois de 1s (mas janela já aberta)
+    setTimeout(() => { clickGuardRef.current = false; }, 1000);
   }, [tenant, APP_ID, CONFIG_ID, AUTH_ORIGIN, API_BASE, cleanup, onError]);
 
   return (
