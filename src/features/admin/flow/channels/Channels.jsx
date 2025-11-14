@@ -98,11 +98,15 @@ export default function Channels() {
     })();
   }, [tenant, fetchWaStatus]);
 
-  /* OAuth popup → postMessage (FB/IG só) */
+  /* OAuth popup → postMessage (FB/IG) */
   useEffect(() => {
     const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;
+    const expectedOrigin = (() => {
+      try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; }
+    })();
+
     function onMsg(e) {
-      if (!AUTH_ORIGIN || e.origin !== AUTH_ORIGIN) return;
+      if (!expectedOrigin || e.origin !== expectedOrigin) return;
       const data = e.data || {};
       const type = data.type;
 
@@ -121,32 +125,19 @@ export default function Channels() {
               const pages = Array.isArray(res.pages) ? res.pages : [];
               if (!pages.length) throw new Error("Nenhuma Página disponível nesta conta.");
               const pick = pages[0];
-              const r2 = await apiPost("/facebook/finalize", {
-                subdomain: sub,
-                redirect_uri,
-                page_id: pick.id,
-                user_token: res.user_token,
-                persist_token: true
+              return apiPost("/facebook/finalize", {
+                subdomain: sub, redirect_uri, page_id: pick.id, user_token: res.user_token, persist_token: true
               });
-              if (r2?.ok && r2?.connected) {
-                setFb((s) => ({
-                  ...s, connected: true, loading: false,
-                  pageId: r2.page_id || s.pageId, pageName: r2.page_name || s.pageName
-                }));
-                toast.update("fb-connecting", { render: "Facebook conectado.", type: "success", isLoading: false, autoClose: 2500 });
-                return;
-              }
-              throw new Error(r2?.error || "Falha ao concluir conexão do Facebook");
             }
-            if (res?.ok && res?.connected) {
-              setFb((s) => ({
-                ...s, connected: true, loading: false,
-                pageId: res.page_id || s.pageId, pageName: res.page_name || s.pageName
-              }));
+            return res;
+          })
+          .then((fin) => {
+            if (fin?.ok && (fin?.connected || fin?.page_id)) {
+              setFb((s) => ({ ...s, connected: true, loading: false, pageId: fin.page_id || s.pageId, pageName: fin.page_name || s.pageName }));
               toast.update("fb-connecting", { render: "Facebook conectado.", type: "success", isLoading: false, autoClose: 2500 });
-              return;
+            } else {
+              throw new Error(fin?.error || "Falha ao conectar Facebook");
             }
-            throw new Error(res?.error || "Falha ao conectar Facebook");
           })
           .catch((err) => {
             toast.update("fb-connecting", { render: err?.message || "Falha ao conectar Facebook", type: "error", isLoading: false, autoClose: 4000 });
@@ -167,26 +158,20 @@ export default function Channels() {
             if (res?.ok && res?.step === "pages_list") {
               const pick = res.pages.find(p => p.has_instagram) || res.pages[0];
               if (!pick) throw new Error("Nenhuma Página disponível");
-              const res2 = await apiPost("/instagram/finalize", { subdomain: sub, redirect_uri, page_id: pick.id, user_token: res.user_token });
-              if (res2?.ok) {
-                setIg((s) => ({
-                  ...s, connected: true, loading:false,
-                  pageId: res2.page_id || s.pageId, pageName: res2.page_name || s.pageName,
-                  igUserId: res2.ig_user_id || s.igUserId, igUsername: res2.ig_username || s.igUsername
-                }));
-                toast.update("ig-connecting", { render: "Instagram conectado.", type: "success", isLoading: false, autoClose: 2500 });
-              } else {
-                throw new Error(res2?.error || "Falha ao concluir Instagram");
-              }
-            } else if (res?.ok && res?.connected) {
+              return apiPost("/instagram/finalize", { subdomain: sub, redirect_uri, page_id: pick.id, user_token: res.user_token });
+            }
+            return res;
+          })
+          .then((fin) => {
+            if (fin?.ok && (fin?.connected || fin?.ig_user_id)) {
               setIg((s) => ({
                 ...s, connected:true, loading:false,
-                pageId: res.page_id || s.pageId, pageName: res.page_name || s.pageName,
-                igUserId: res.ig_user_id || s.igUserId, igUsername: res.ig_username || s.igUsername
+                pageId: fin.page_id || s.pageId, pageName: fin.page_name || s.pageName,
+                igUserId: fin.ig_user_id || s.igUserId, igUsername: fin.ig_username || s.igUsername
               }));
               toast.update("ig-connecting", { render: "Instagram conectado.", type: "success", isLoading: false, autoClose: 2500 });
             } else {
-              throw new Error(res?.error || "Falha ao conectar Instagram");
+              throw new Error(fin?.error || "Falha ao conectar Instagram");
             }
           })
           .catch((err) => {
@@ -198,33 +183,30 @@ export default function Channels() {
     return () => window.removeEventListener("message", onMsg);
   }, [tenant]);
 
-  /** FINALIZE do WhatsApp (garante registro no banco) */
-// ...
-const handleWaOAuthCode = useCallback(async ({ code, stateB64, redirectUri }) => {
-  if (!code) {
-    toast.error("Retorno do OAuth sem code.");
-    return;
-  }
-  try {
-    let ctx = {};
-    try { ctx = stateB64 ? JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))) : {}; } catch {}
-    const sub = ctx?.tenant || tenant;
+  /** FINALIZE do WhatsApp (chama o endpoint correto e atualiza estado) */
+  const handleWaOAuthCode = useCallback(async ({ code, stateB64 /*, redirectUri*/ }) => {
+    if (!code) {
+      toast.error("Retorno do OAuth sem code.");
+      return;
+    }
+    try {
+      let ctx = {};
+      try { ctx = stateB64 ? JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))) : {}; } catch {}
+      const sub = ctx?.tenant || tenant;
 
-    toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
-    const res = await apiPost("/whatsapp/finalize", { subdomain: sub, code, redirect_uri: redirectUri });
+      toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
 
-    if (res?.ok) {
+      // ✅ endpoint correto
+      const res = await apiPost("/whatsapp/embedded/es/finalize", { subdomain: sub, code });
+
+      if (res?.error) throw new Error(res.error);
+
       await fetchWaStatus();
       toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
-    } else {
-      throw new Error(res?.error || "Falha ao concluir WhatsApp");
+    } catch (e) {
+      toast.update("wa-connecting", { render: e?.message || "Falha ao concluir WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
     }
-  } catch (e) {
-    toast.update("wa-connecting", { render: e?.message || "Falha ao concluir WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
-  }
-}, [tenant, fetchWaStatus]);
-
-
+  }, [tenant, fetchWaStatus]);
 
   const goToWaProfile = () =>
     navigate("/channels/whatsapp", { state: { returnTo: location.pathname + location.search } });
