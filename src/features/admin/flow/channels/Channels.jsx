@@ -184,73 +184,22 @@ export default function Channels() {
   }, [tenant]);
 
   /** FINALIZE do WhatsApp (chama o endpoint correto e atualiza estado) */
-  const handleWaOAuthCode = useCallback(async ({ code, stateB64 /*, redirectUri*/ }) => {
-  if (!code) {
-    toast.error("Retorno do OAuth sem code.");
-    return;
-  }
+  // dentro do Channels.jsx
+const handleWaOAuthCode = useCallback(async ({ code, stateB64 /*, redirectUri*/ }) => {
+  if (!code) return toast.error("Retorno do OAuth sem code.");
+
   try {
     let ctx = {};
-    try { ctx = stateB64 ? JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))) : {}; } catch {}
-    const sub = ctx?.tenant || tenant;
+    try {
+      if (stateB64) ctx = JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/")));
+    } catch {}
+    const sub = ctx?.tenant || tenant; // <- fallback no tenant atual
 
     toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
 
-    // 1) Descobre portfólios e números (persiste sem ativar)
     const res = await apiPost("/whatsapp/embedded/es/finalize", { subdomain: sub, code });
-    if (!res?.ok) throw new Error(res?.error || "Falha ao finalizar");
 
-    const portfolios = Array.isArray(res.portfolios) ? res.portfolios : [];
-    const numbers = Array.isArray(res.numbers) ? res.numbers : [];
-
-    if (!numbers.length) {
-      toast.update("wa-connecting", { render: "Nenhum número encontrado neste usuário.", type: "warning", isLoading: false, autoClose: 4000 });
-      await fetchWaStatus();
-      return;
-    }
-
-    // 2) Escolher portfólio (WABA)
-    const uniqWabas = [...new Set(numbers.map(n => n.waba_id))];
-    let chosenWaba = uniqWabas[0];
-
-    if (uniqWabas.length > 1) {
-      const labelled = uniqWabas.map((id, i) => {
-        const name = portfolios.find(p => p.id === id)?.name || id;
-        return `${i}: ${name} (${id})`;
-      }).join("\n");
-
-      const idxStr = window.prompt(`Selecione o portfólio (WABA):\n${labelled}\n\nDigite o índice:`, "0");
-      const idx = Number.parseInt(idxStr, 10);
-      if (Number.isNaN(idx) || idx < 0 || idx >= uniqWabas.length) {
-        throw new Error("Seleção de portfólio inválida.");
-      }
-      chosenWaba = uniqWabas[idx];
-    }
-
-    // 3) Escolher número dentro do portfólio escolhido
-    const cand = numbers.filter(n => n.waba_id === chosenWaba);
-    let chosenPhone = cand[0];
-
-    if (cand.length > 1) {
-      const labelled = cand.map((n, i) => {
-        const disp = n.display_phone_number || n.verified_name || n.id;
-        return `${i}: ${disp} [${n.id}]`;
-      }).join("\n");
-
-      const idxStr = window.prompt(`Selecione o número:\n${labelled}\n\nDigite o índice:`, "0");
-      const idx = Number.parseInt(idxStr, 10);
-      if (Number.isNaN(idx) || idx < 0 || idx >= cand.length) {
-        throw new Error("Seleção de número inválida.");
-      }
-      chosenPhone = cand[idx];
-    }
-
-    // 4) Ativar o número escolhido
-    await apiPost("/whatsapp/embedded/es/pick-number", {
-      subdomain: sub,
-      phone_number_id: chosenPhone.id,
-    });
-
+    if (res?.error) throw new Error(res.error);
     await fetchWaStatus();
     toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
   } catch (e) {
