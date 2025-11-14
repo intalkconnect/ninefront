@@ -1,18 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/**
- * WhatsAppEmbeddedSignupButton
- *
- * Abre UM popup apontando para o seu AUTH_ORIGIN (/oauth/wa), que por sua vez
- * redireciona para o OAuth/Embedded da Meta e retorna com { type:"wa:oauth", code, state }.
- *
- * Props:
- * - tenant: string (obrigatório)
- * - label: string (default: "Conectar WhatsApp")
- * - className, style, title, disabled
- * - onOAuthCode: ({ code, stateB64, redirectUri }) => void   // entrega o code pra quem chamar
- * - onError: (err) => void
- */
 export default function WhatsAppEmbeddedSignupButton({
   tenant,
   label = "Conectar WhatsApp",
@@ -25,7 +12,7 @@ export default function WhatsAppEmbeddedSignupButton({
 }) {
   const APP_ID      = import.meta.env.VITE_META_APP_ID;
   const CONFIG_ID   = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
-  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;     // ex.: https://auth.seu-dominio.com
+  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;
   const API_BASE    = import.meta.env.VITE_API_BASE_URL || "";
 
   const [loading, setLoading] = useState(false);
@@ -46,11 +33,24 @@ export default function WhatsAppEmbeddedSignupButton({
       try {
         if (!AUTH_ORIGIN || ev.origin !== AUTH_ORIGIN) return;
         const d = ev.data || {};
-        if (d?.type !== "wa:oauth") return;
 
-        const { code, state } = d;
-        const redirectUri = `${AUTH_ORIGIN}/oauth/wa`;
-        onOAuthCode?.({ code, stateB64: state, redirectUri });
+        // sucesso
+        if (d?.type === "wa:oauth") {
+          const { code, state } = d;
+          if (!code) {
+            onError?.(new Error("Retorno do OAuth sem 'code'."));
+            return;
+          }
+          const redirectUri = `${AUTH_ORIGIN}/oauth/wa`;
+          onOAuthCode?.({ code, stateB64: state, redirectUri });
+          return;
+        }
+
+        // erro vindo do popup
+        if (d?.type === "wa:oauth:error") {
+          onError?.(new Error(d?.error_description || d?.error || "Falha no OAuth do WhatsApp"));
+          return;
+        }
       } catch (e) {
         onError?.(e);
       } finally {
@@ -67,7 +67,6 @@ export default function WhatsAppEmbeddedSignupButton({
     if (!CONFIG_ID)   { onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente")); return; }
     if (!AUTH_ORIGIN) { onError?.(new Error("VITE_EMBED_ORIGIN ausente")); return; }
 
-    // garante 1 popup só
     if (popupRef.current && !popupRef.current.closed) {
       try { popupRef.current.focus(); } catch {}
       return;
@@ -75,11 +74,9 @@ export default function WhatsAppEmbeddedSignupButton({
 
     setLoading(true);
 
-    // state base64URL-safe (sem + / =)
     const rawState = JSON.stringify({ tenant, origin: window.location.origin, api: API_BASE });
     const stateB64 = btoa(rawState).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
 
-    // Nosso popup → /oauth/wa  (ele vai montar a URL do OAuth/Embedded e redirecionar)
     const url = new URL(`${AUTH_ORIGIN}/oauth/wa`);
     url.searchParams.set("start", "1");
     url.searchParams.set("state", stateB64);
