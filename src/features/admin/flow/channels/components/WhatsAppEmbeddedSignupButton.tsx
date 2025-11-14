@@ -3,17 +3,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /**
  * WhatsAppEmbeddedSignupButton
  *
+ * Abre UM popup apontando para o seu AUTH_ORIGIN (/oauth/wa), que por sua vez
+ * redireciona para o OAuth/Embedded da Meta e retorna com { type:"wa:oauth", code, state }.
+ *
  * Props:
  * - tenant: string (obrigatório)
  * - label: string (default: "Conectar WhatsApp")
  * - className, style, title, disabled
- * - onPickSuccess: ({ phone_number_id, display? }) => void
+ * - onOAuthCode: ({ code, stateB64, redirectUri }) => void   // entrega o code pra quem chamar
  * - onError: (err) => void
- *
- * Fluxo:
- * - Abre o popup do Meta Onboard (Business Manager) com app_id, config_id, state e extras.
- * - NÃO usa mais redirect/callback HTML.
- * - Recebe postMessage do seu AUTH_ORIGIN com { source: "wa-embed", ok, phone_number_id, display? }.
  */
 export default function WhatsAppEmbeddedSignupButton({
   tenant,
@@ -22,7 +20,7 @@ export default function WhatsAppEmbeddedSignupButton({
   style,
   title,
   disabled = false,
-  onPickSuccess,
+  onOAuthCode,
   onError,
 }) {
   const APP_ID      = import.meta.env.VITE_META_APP_ID;
@@ -43,22 +41,16 @@ export default function WhatsAppEmbeddedSignupButton({
     setLoading(false);
   }, []);
 
-  // listener do AUTH_ORIGIN (relay do embed)
   useEffect(() => {
     function onMessage(ev) {
       try {
         if (!AUTH_ORIGIN || ev.origin !== AUTH_ORIGIN) return;
         const d = ev.data || {};
-        if (d?.source !== "wa-embed") return;
+        if (d?.type !== "wa:oauth") return;
 
-        if (d?.ok) {
-          onPickSuccess?.({
-            phone_number_id: String(d.phone_number_id || ""),
-            display: d.display || null,
-          });
-        } else {
-          onError?.(new Error(d?.error || "wa_embed_failed"));
-        }
+        const { code, state } = d;
+        const redirectUri = `${AUTH_ORIGIN}/oauth/wa`;
+        onOAuthCode?.({ code, stateB64: state, redirectUri });
       } catch (e) {
         onError?.(e);
       } finally {
@@ -67,7 +59,7 @@ export default function WhatsAppEmbeddedSignupButton({
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [AUTH_ORIGIN, cleanup, onPickSuccess, onError]);
+  }, [AUTH_ORIGIN, cleanup, onOAuthCode, onError]);
 
   const start = useCallback(() => {
     if (!tenant)      { onError?.(new Error("Tenant não detectado")); return; }
@@ -75,7 +67,7 @@ export default function WhatsAppEmbeddedSignupButton({
     if (!CONFIG_ID)   { onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente")); return; }
     if (!AUTH_ORIGIN) { onError?.(new Error("VITE_EMBED_ORIGIN ausente")); return; }
 
-    // se já existir popup aberto, apenas foca; evita abrir 2
+    // garante 1 popup só
     if (popupRef.current && !popupRef.current.closed) {
       try { popupRef.current.focus(); } catch {}
       return;
@@ -83,20 +75,19 @@ export default function WhatsAppEmbeddedSignupButton({
 
     setLoading(true);
 
-    // state em base64URL-safe (sem + / =) para não quebrar parse do lado da Meta
+    // state base64URL-safe (sem + / =)
     const rawState = JSON.stringify({ tenant, origin: window.location.origin, api: API_BASE });
     const stateB64 = btoa(rawState).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
 
-    // monta URL do onboard — extras em JSON simples; o browser codifica 1x (sem double-encode)
-    const u = new URL("https://business.facebook.com/messaging/whatsapp/onboard/");
-    const extras = { sessionInfoVersion: "3", version: "v3" };
-    u.searchParams.set("app_id", APP_ID);
-    u.searchParams.set("config_id", CONFIG_ID);
-    u.searchParams.set("state", stateB64);
-    u.searchParams.set("extras", JSON.stringify(extras));
+    // Nosso popup → /oauth/wa  (ele vai montar a URL do OAuth/Embedded e redirecionar)
+    const url = new URL(`${AUTH_ORIGIN}/oauth/wa`);
+    url.searchParams.set("start", "1");
+    url.searchParams.set("state", stateB64);
+    url.searchParams.set("app_id", APP_ID);
+    url.searchParams.set("config_id", CONFIG_ID);
 
     const feat = "width=520,height=720,menubar=0,toolbar=0";
-    popupRef.current = window.open(u.toString(), "wa-embed", feat);
+    popupRef.current = window.open(url.toString(), "wa-onboard", feat);
 
     if (!popupRef.current) {
       setLoading(false);
@@ -104,7 +95,6 @@ export default function WhatsAppEmbeddedSignupButton({
       return;
     }
 
-    // watchdog: se o usuário fechar o popup, encerra loading
     timerRef.current = setInterval(() => {
       try {
         if (!popupRef.current || popupRef.current.closed) {
