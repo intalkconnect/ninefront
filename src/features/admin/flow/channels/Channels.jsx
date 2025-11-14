@@ -199,25 +199,32 @@ export default function Channels() {
   }, [tenant]);
 
   /** FINALIZE do WhatsApp (garante registro no banco) */
-  const handleWaOAuthCode = useCallback(async ({ code, stateB64, redirectUri }) => {
-    try {
-      let ctx = {};
-      try { ctx = stateB64 ? JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))) : {}; } catch {}
-      const sub = ctx?.tenant || tenant;
+// ...
+const handleWaOAuthCode = useCallback(async ({ code, stateB64, redirectUri }) => {
+  if (!code) {
+    toast.error("Retorno do OAuth sem code.");
+    return;
+  }
+  try {
+    let ctx = {};
+    try { ctx = stateB64 ? JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))) : {}; } catch {}
+    const sub = ctx?.tenant || tenant;
 
-      toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
-      const res = await apiPost("/whatsapp/finalize", { subdomain: sub, code, redirect_uri: redirectUri });
+    toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
+    const res = await apiPost("/whatsapp/finalize", { subdomain: sub, code, redirect_uri: redirectUri });
 
-      if (res?.ok) {
-        await fetchWaStatus();
-        toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
-      } else {
-        throw new Error(res?.error || "Falha ao concluir WhatsApp");
-      }
-    } catch (e) {
-      toast.update("wa-connecting", { render: e?.message || "Falha ao concluir WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
+    if (res?.ok) {
+      await fetchWaStatus();
+      toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
+    } else {
+      throw new Error(res?.error || "Falha ao concluir WhatsApp");
     }
-  }, [tenant, fetchWaStatus]);
+  } catch (e) {
+    toast.update("wa-connecting", { render: e?.message || "Falha ao concluir WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
+  }
+}, [tenant, fetchWaStatus]);
+
+
 
   const goToWaProfile = () =>
     navigate("/channels/whatsapp", { state: { returnTo: location.pathname + location.search } });
