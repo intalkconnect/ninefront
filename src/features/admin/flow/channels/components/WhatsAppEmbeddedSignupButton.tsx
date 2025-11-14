@@ -12,7 +12,7 @@ export default function WhatsAppEmbeddedSignupButton({
 }) {
   const APP_ID      = import.meta.env.VITE_META_APP_ID;
   const CONFIG_ID   = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
-  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seudominio.com
+  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // e.g. https://auth.seudominio.com
   const API_BASE    = import.meta.env.VITE_API_BASE_URL || "";
 
   const [loading, setLoading] = useState(false);
@@ -38,34 +38,43 @@ export default function WhatsAppEmbeddedSignupButton({
         if (!expectedOrigin || ev.origin !== expectedOrigin) return;
         const d = ev.data || {};
 
+        // sucesso
         if (d?.type === "wa:oauth") {
           const { code, state } = d;
           if (!code) {
             onError?.(new Error("Retorno do OAuth sem 'code'."));
-            cleanup();
+            // não limpamos aqui pra não fechar o popup antes de o usuário ver
             return;
           }
+
+          // envia ACK ao popup (ele só fecha depois de receber este ACK)
+          try {
+            ev.source?.postMessage?.({ type: "wa:ack" }, ev.origin);
+          } catch {}
+
           const redirectUri = `${expectedOrigin}/oauth/wa`;
+
+          // agora podemos prosseguir com a finalização
           onOAuthCode?.({ code, stateB64: state, redirectUri });
-          cleanup();
+
+          // NÃO chamamos cleanup aqui; deixamos o popup fechar sozinho após ACK
           return;
         }
 
+        // erro vindo do popup
         if (d?.type === "wa:oauth:error") {
+          // não fechamos automaticamente; deixamos o popup aberto para o usuário ler
           onError?.(new Error(d?.error_description || d?.error || "Falha no OAuth do WhatsApp"));
-          cleanup();
           return;
         }
-
-        // Mensagens desconhecidas do mesmo origin: ignora sem fechar
       } catch (e) {
         onError?.(e);
-        cleanup();
       }
     }
+
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [AUTH_ORIGIN, cleanup, onOAuthCode, onError]);
+  }, [AUTH_ORIGIN, onOAuthCode, onError]);
 
   const start = useCallback(() => {
     if (!tenant)      { onError?.(new Error("Tenant não detectado")); return; }
@@ -99,6 +108,7 @@ export default function WhatsAppEmbeddedSignupButton({
       return;
     }
 
+    // vigia o fechamento para limpar estado
     timerRef.current = setInterval(() => {
       try {
         if (!popupRef.current || popupRef.current.closed) {
