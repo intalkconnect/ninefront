@@ -7,12 +7,12 @@ export default function WhatsAppEmbeddedSignupButton({
   style,
   title,
   disabled = false,
-  onOAuthCode,
+  onOAuthCode, // ({ code, stateB64, redirectUri })
   onError,
 }) {
   const APP_ID      = import.meta.env.VITE_META_APP_ID;
   const CONFIG_ID   = import.meta.env.VITE_META_LOGIN_CONFIG_ID;
-  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;
+  const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN; // ex.: https://auth.seudominio.com
   const API_BASE    = import.meta.env.VITE_API_BASE_URL || "";
 
   const [loading, setLoading] = useState(false);
@@ -29,31 +29,37 @@ export default function WhatsAppEmbeddedSignupButton({
   }, []);
 
   useEffect(() => {
+    const expectedOrigin = (() => {
+      try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; }
+    })();
+
     function onMessage(ev) {
       try {
-        if (!AUTH_ORIGIN || ev.origin !== AUTH_ORIGIN) return;
+        if (!expectedOrigin || ev.origin !== expectedOrigin) return;
         const d = ev.data || {};
 
-        // sucesso
         if (d?.type === "wa:oauth") {
           const { code, state } = d;
           if (!code) {
             onError?.(new Error("Retorno do OAuth sem 'code'."));
+            cleanup();
             return;
           }
-          const redirectUri = `${AUTH_ORIGIN}/oauth/wa`;
+          const redirectUri = `${expectedOrigin}/oauth/wa`;
           onOAuthCode?.({ code, stateB64: state, redirectUri });
+          cleanup();
           return;
         }
 
-        // erro vindo do popup
         if (d?.type === "wa:oauth:error") {
           onError?.(new Error(d?.error_description || d?.error || "Falha no OAuth do WhatsApp"));
+          cleanup();
           return;
         }
+
+        // Mensagens desconhecidas do mesmo origin: ignora sem fechar
       } catch (e) {
         onError?.(e);
-      } finally {
         cleanup();
       }
     }
@@ -77,7 +83,8 @@ export default function WhatsAppEmbeddedSignupButton({
     const rawState = JSON.stringify({ tenant, origin: window.location.origin, api: API_BASE });
     const stateB64 = btoa(rawState).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
 
-    const url = new URL(`${AUTH_ORIGIN}/oauth/wa`);
+    const base = (() => { try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; } })();
+    const url = new URL(`${base}/oauth/wa`);
     url.searchParams.set("start", "1");
     url.searchParams.set("state", stateB64);
     url.searchParams.set("app_id", APP_ID);
