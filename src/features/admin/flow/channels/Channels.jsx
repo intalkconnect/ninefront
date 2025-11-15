@@ -1,5 +1,12 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
-import { MessageCircle, Instagram as IgIcon, MessageSquareText as FbIcon, Send, CheckCircle2, PlugZap } from "lucide-react";
+import {
+  MessageCircle,
+  Instagram as IgIcon,
+  MessageSquareText as FbIcon,
+  Send,
+  CheckCircle2,
+  PlugZap,
+} from "lucide-react";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
 import styles from "./styles/Channels.module.css";
 import WhatsAppEmbeddedSignupButton from "../../components/WhatsAppEmbeddedSignupButton";
@@ -17,7 +24,10 @@ function getTenantFromHost() {
   return parts[0] || "";
 }
 function formatPhone(p) {
-  const raw = typeof p === "string" ? p : (p && (p.display_phone_number || p.phone_number || p.number)) || "";
+  const raw =
+    typeof p === "string"
+      ? p
+      : (p && (p.display_phone_number || p.phone_number || p.number)) || "";
   const digits = (raw || "").replace(/[^\d+]/g, "");
   if (!digits) return "—";
   if (digits.startsWith("+")) return digits;
@@ -30,24 +40,66 @@ export default function Channels() {
   const location = useLocation();
 
   // WhatsApp
-  const [wa, setWa] = useState({ loading: true, connected: false, phoneId: "", phone: null, stabilizing: false });
+  const [wa, setWa] = useState({
+    loading: true,
+    connected: false,
+    phoneId: "",
+    phone: null,
+    stabilizing: false,
+  });
   // Telegram
-  const [tg, setTg] = useState({ loading: true, connected: false, botId: "", username: "", webhookUrl: "" });
+  const [tg, setTg] = useState({
+    loading: true,
+    connected: false,
+    botId: "",
+    username: "",
+    webhookUrl: "",
+  });
   // Facebook / Instagram
-  const [fb, setFb] = useState({ loading: true, connected: false, pageId: "", pageName: "" });
-  const [ig, setIg] = useState({ loading: true, connected: false, pageId: "", pageName: "", igUserId: "", igUsername: "" });
+  const [fb, setFb] = useState({
+    loading: true,
+    connected: false,
+    pageId: "",
+    pageName: "",
+  });
+  const [ig, setIg] = useState({
+    loading: true,
+    connected: false,
+    pageId: "",
+    pageName: "",
+    igUserId: "",
+    igUsername: "",
+  });
 
   /* loaders */
   const fetchWaStatus = useCallback(async () => {
     try {
       const ws = await apiGet(`/whatsapp/number?subdomain=${tenant}`);
       if (ws && ws.ok && ws.phone) {
-        setWa({ loading: false, connected: true, phoneId: ws.phone.id || "", phone: ws.phone, stabilizing: false });
+        setWa({
+          loading: false,
+          connected: true,
+          phoneId: ws.phone.id || "",
+          phone: ws.phone,
+          stabilizing: false,
+        });
       } else {
-        setWa({ loading: false, connected: false, phoneId: "", phone: null, stabilizing: false });
+        setWa({
+          loading: false,
+          connected: false,
+          phoneId: "",
+          phone: null,
+          stabilizing: false,
+        });
       }
     } catch {
-      setWa({ loading: false, connected: false, phoneId: "", phone: null, stabilizing: false });
+      setWa({
+        loading: false,
+        connected: false,
+        phoneId: "",
+        phone: null,
+        stabilizing: false,
+      });
       toast.error("Não foi possível obter o status do WhatsApp.");
     }
   }, [tenant]);
@@ -61,10 +113,23 @@ export default function Channels() {
       try {
         const ts = await apiGet(`/telegram/status?subdomain=${tenant}`);
         if (ts && ts.ok) {
-          setTg({ loading: false, connected: !!ts.connected, botId: ts.bot_id || "", username: ts.username || "", webhookUrl: ts.webhook_url || "" });
-        } else setTg((prev) => ({ ...prev, loading: false, connected: false }));
+          setTg({
+            loading: false,
+            connected: !!ts.connected,
+            botId: ts.bot_id || "",
+            username: ts.username || "",
+            webhookUrl: ts.webhook_url || "",
+          });
+        } else
+          setTg((prev) => ({ ...prev, loading: false, connected: false }));
       } catch {
-        setTg({ loading: false, connected: false, botId: "", username: "", webhookUrl: "" });
+        setTg({
+          loading: false,
+          connected: false,
+          botId: "",
+          username: "",
+          webhookUrl: "",
+        });
         toast.error("Não foi possível obter o status do Telegram.");
       }
     })();
@@ -73,10 +138,21 @@ export default function Channels() {
       try {
         const fs = await apiGet(`/facebook/status?subdomain=${tenant}`);
         if (fs && fs.ok) {
-          setFb({ loading: false, connected: !!fs.connected, pageId: fs.page_id || "", pageName: fs.page_name || "" });
-        } else setFb((prev) => ({ ...prev, loading: false, connected: false }));
+          setFb({
+            loading: false,
+            connected: !!fs.connected,
+            pageId: fs.page_id || "",
+            pageName: fs.page_name || "",
+          });
+        } else
+          setFb((prev) => ({ ...prev, loading: false, connected: false }));
       } catch {
-        setFb({ loading: false, connected: false, pageId: "", pageName: "" });
+        setFb({
+          loading: false,
+          connected: false,
+          pageId: "",
+          pageName: "",
+        });
         toast.error("Não foi possível obter o status do Facebook.");
       }
     })();
@@ -86,13 +162,24 @@ export default function Channels() {
         const is = await apiGet(`/instagram/status?subdomain=${tenant}`);
         if (is && is.ok) {
           setIg({
-            loading: false, connected: !!is.connected,
-            pageId: is.page_id || "", pageName: is.page_name || "",
-            igUserId: is.ig_user_id || "", igUsername: is.ig_username || ""
+            loading: false,
+            connected: !!is.connected,
+            pageId: is.page_id || "",
+            pageName: is.page_name || "",
+            igUserId: is.ig_user_id || "",
+            igUsername: is.ig_username || "",
           });
-        } else setIg((prev) => ({ ...prev, loading: false, connected: false }));
+        } else
+          setIg((prev) => ({ ...prev, loading: false, connected: false }));
       } catch {
-        setIg({ loading: false, connected: false, pageId: "", pageName: "", igUserId: "", igUsername: "" });
+        setIg({
+          loading: false,
+          connected: false,
+          pageId: "",
+          pageName: "",
+          igUserId: "",
+          igUsername: "",
+        });
         toast.error("Não foi possível obter o status do Instagram.");
       }
     })();
@@ -102,7 +189,11 @@ export default function Channels() {
   useEffect(() => {
     const AUTH_ORIGIN = import.meta.env.VITE_EMBED_ORIGIN;
     const expectedOrigin = (() => {
-      try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; }
+      try {
+        return new URL(AUTH_ORIGIN).origin;
+      } catch {
+        return AUTH_ORIGIN;
+      }
     })();
 
     function onMsg(e) {
@@ -114,7 +205,9 @@ export default function Channels() {
       if (type === "fb:oauth") {
         const { code, state } = data;
         let ctx = {};
-        try { ctx = state ? JSON.parse(atob(state)) : {}; } catch {}
+        try {
+          ctx = state ? JSON.parse(atob(state)) : {};
+        } catch {}
         const redirect_uri = ctx?.redirectUri;
         const sub = ctx?.tenant || tenant;
 
@@ -123,24 +216,45 @@ export default function Channels() {
           .then(async (res) => {
             if (res?.ok && res?.step === "pages_list") {
               const pages = Array.isArray(res.pages) ? res.pages : [];
-              if (!pages.length) throw new Error("Nenhuma Página disponível nesta conta.");
+              if (!pages.length)
+                throw new Error("Nenhuma Página disponível nesta conta.");
               const pick = pages[0];
               return apiPost("/facebook/finalize", {
-                subdomain: sub, redirect_uri, page_id: pick.id, user_token: res.user_token, persist_token: true
+                subdomain: sub,
+                redirect_uri,
+                page_id: pick.id,
+                user_token: res.user_token,
+                persist_token: true,
               });
             }
             return res;
           })
           .then((fin) => {
             if (fin?.ok && (fin?.connected || fin?.page_id)) {
-              setFb((s) => ({ ...s, connected: true, loading: false, pageId: fin.page_id || s.pageId, pageName: fin.page_name || s.pageName }));
-              toast.update("fb-connecting", { render: "Facebook conectado.", type: "success", isLoading: false, autoClose: 2500 });
+              setFb((s) => ({
+                ...s,
+                connected: true,
+                loading: false,
+                pageId: fin.page_id || s.pageId,
+                pageName: fin.page_name || s.pageName,
+              }));
+              toast.update("fb-connecting", {
+                render: "Facebook conectado.",
+                type: "success",
+                isLoading: false,
+                autoClose: 2500,
+              });
             } else {
               throw new Error(fin?.error || "Falha ao conectar Facebook");
             }
           })
           .catch((err) => {
-            toast.update("fb-connecting", { render: err?.message || "Falha ao conectar Facebook", type: "error", isLoading: false, autoClose: 4000 });
+            toast.update("fb-connecting", {
+              render: err?.message || "Falha ao conectar Facebook",
+              type: "error",
+              isLoading: false,
+              autoClose: 4000,
+            });
           });
       }
 
@@ -148,7 +262,9 @@ export default function Channels() {
       if (type === "ig:oauth") {
         const { code, state } = data;
         let ctx = {};
-        try { ctx = state ? JSON.parse(atob(state)) : {}; } catch {}
+        try {
+          ctx = state ? JSON.parse(atob(state)) : {};
+        } catch {}
         const redirect_uri = ctx?.redirectUri;
         const sub = ctx?.tenant || tenant;
 
@@ -156,26 +272,46 @@ export default function Channels() {
         apiPost("/instagram/finalize", { subdomain: sub, code, redirect_uri })
           .then(async (res) => {
             if (res?.ok && res?.step === "pages_list") {
-              const pick = res.pages.find(p => p.has_instagram) || res.pages[0];
+              const pick =
+                res.pages.find((p) => p.has_instagram) || res.pages[0];
               if (!pick) throw new Error("Nenhuma Página disponível");
-              return apiPost("/instagram/finalize", { subdomain: sub, redirect_uri, page_id: pick.id, user_token: res.user_token });
+              return apiPost("/instagram/finalize", {
+                subdomain: sub,
+                redirect_uri,
+                page_id: pick.id,
+                user_token: res.user_token,
+              });
             }
             return res;
           })
           .then((fin) => {
             if (fin?.ok && (fin?.connected || fin?.ig_user_id)) {
               setIg((s) => ({
-                ...s, connected:true, loading:false,
-                pageId: fin.page_id || s.pageId, pageName: fin.page_name || s.pageName,
-                igUserId: fin.ig_user_id || s.igUserId, igUsername: fin.ig_username || s.igUsername
+                ...s,
+                connected: true,
+                loading: false,
+                pageId: fin.page_id || s.pageId,
+                pageName: fin.page_name || s.pageName,
+                igUserId: fin.ig_user_id || s.igUserId,
+                igUsername: fin.ig_username || s.igUsername,
               }));
-              toast.update("ig-connecting", { render: "Instagram conectado.", type: "success", isLoading: false, autoClose: 2500 });
+              toast.update("ig-connecting", {
+                render: "Instagram conectado.",
+                type: "success",
+                isLoading: false,
+                autoClose: 2500,
+              });
             } else {
               throw new Error(fin?.error || "Falha ao conectar Instagram");
             }
           })
           .catch((err) => {
-            toast.update("ig-connecting", { render: err?.message || "Falha ao conectar Instagram", type: "error", isLoading: false, autoClose: 4000 });
+            toast.update("ig-connecting", {
+              render: err?.message || "Falha ao conectar Instagram",
+              type: "error",
+              isLoading: false,
+              autoClose: 4000,
+            });
           });
       }
     }
@@ -184,43 +320,84 @@ export default function Channels() {
   }, [tenant]);
 
   /** FINALIZE do WhatsApp (chama o endpoint correto e atualiza estado) */
-  // dentro do Channels.jsx
-const handleWaOAuthCode = useCallback(async ({ code, stateB64 }) => {
-  if (!code) return toast.error("Retorno do OAuth sem code.");
-  try {
-    let ctx = {};
-    try { if (stateB64) ctx = JSON.parse(atob(stateB64.replace(/-/g, "+").replace(/_/g, "/"))); } catch {}
-    const sub = ctx?.tenant || tenant; // fallback no tenant atual
+  const handleWaOAuthCode = useCallback(
+    async ({ code, stateB64, redirectUri }) => {
+      if (!code) return toast.error("Retorno do OAuth sem code.");
+      try {
+        let ctx = {};
+        try {
+          if (stateB64) {
+            ctx = JSON.parse(
+              atob(
+                stateB64
+                  .replace(/-/g, "+")
+                  .replace(/_/g, "/")
+              )
+            );
+          }
+        } catch {}
 
-    toast.loading("Finalizando conexão do WhatsApp…", { toastId: "wa-connecting" });
+        const sub = ctx?.tenant || tenant; // fallback no tenant atual
 
-    const res = await apiPost("/whatsapp/embedded/es/finalize", { subdomain: sub, code });
-    if (res?.error) throw new Error(res.error);
+        toast.loading("Finalizando conexão do WhatsApp…", {
+          toastId: "wa-connecting",
+        });
 
-    await fetchWaStatus();
-    toast.update("wa-connecting", { render: "WhatsApp conectado.", type: "success", isLoading: false, autoClose: 2500 });
-  } catch (e) {
-    toast.update("wa-connecting", { render: e?.message || "Falha ao concluir WhatsApp", type: "error", isLoading: false, autoClose: 4000 });
-  }
-}, [tenant, fetchWaStatus]);
+        const res = await apiPost("/whatsapp/embedded/es/finalize", {
+          subdomain: sub,
+          code,
+          redirect_uri: redirectUri, // ✅ repassa redirect_uri pro backend
+        });
+        if (res?.error) throw new Error(res.error);
 
-
+        await fetchWaStatus();
+        toast.update("wa-connecting", {
+          render: "WhatsApp conectado.",
+          type: "success",
+          isLoading: false,
+          autoClose: 2500,
+        });
+      } catch (e) {
+        toast.update("wa-connecting", {
+          render: e?.message || "Falha ao concluir WhatsApp",
+          type: "error",
+          isLoading: false,
+          autoClose: 4000,
+        });
+      }
+    },
+    [tenant, fetchWaStatus]
+  );
 
   const goToWaProfile = () =>
-    navigate("/channels/whatsapp", { state: { returnTo: location.pathname + location.search } });
+    navigate("/channels/whatsapp", {
+      state: { returnTo: location.pathname + location.search },
+    });
   const goToTgConnect = () =>
-    navigate("/channels/telegram", { state: { returnTo: location.pathname + location.search } });
+    navigate("/channels/telegram", {
+      state: { returnTo: location.pathname + location.search },
+    });
 
-  const iconWrap = (cls, icon) => <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>;
+  const iconWrap = (cls, icon) => (
+    <div className={`${styles.cardIconWrap} ${cls}`}>{icon}</div>
+  );
   const waHasData = !wa.loading && !wa.stabilizing;
   const waDisplayNumber = formatPhone(wa.phone);
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <div><p className={styles.subtitle}>Conecte seus canais de atendimento.</p></div>
+        <div>
+          <p className={styles.subtitle}>Conecte seus canais de atendimento.</p>
+        </div>
         <div className={styles.tenantBadge}>
-          {tenant ? <>id: <strong>{tenant}</strong></> : <span className={styles.subtle}>defina o tenant</span>}
+          {tenant ? (
+            <>
+              id: <strong>{tenant}</strong>
+            </>
+          ) : (
+            <span className={styles.subtle}>defina o tenant</span>
+          )}
         </div>
       </div>
 
@@ -230,29 +407,64 @@ const handleWaOAuthCode = useCallback(async ({ code, stateB64 }) => {
           <div className={styles.cardHead}>
             {iconWrap(styles.wa, <MessageCircle size={18} />)}
             <div className={styles.cardTitle}>WhatsApp</div>
-            {waHasData ? (wa.connected ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span> : <span className={styles.statusOff}>Não conectado</span>) : (<span className={styles.statusNeutral || styles.statusOff}>Checando…</span>)}
+            {waHasData ? (
+              wa.connected ? (
+                <span className={styles.statusOk}>
+                  <CheckCircle2 size={14} /> Conectado
+                </span>
+              ) : (
+                <span className={styles.statusOff}>Não conectado</span>
+              )
+            ) : (
+              <span className={styles.statusNeutral || styles.statusOff}>
+                Checando…
+              </span>
+            )}
           </div>
           <div className={styles.cardBody}>
             {!wa.connected ? (
               <>
-                <p className={styles.cardDesc}>Conecte via <strong>Meta Embedded Signup</strong> (popup único) e finalize a configuração.</p>
+                <p className={styles.cardDesc}>
+                  Conecte via <strong>Meta Embedded Signup</strong> (popup
+                  único) e finalize a configuração.
+                </p>
                 <div className={`${styles.btnWrap} ${styles.btnWrapWa}`}>
                   <WhatsAppEmbeddedSignupButton
                     tenant={tenant}
                     label="Conectar"
                     onOAuthCode={handleWaOAuthCode}
-                    onError={(e) => toast.error(e?.message || "Erro ao conectar WhatsApp")}
+                    onError={(e) =>
+                      toast.error(e?.message || "Erro ao conectar WhatsApp")
+                    }
                   />
-                  <div className={styles.hint}><PlugZap size={14}/> Login ocorre em janela do domínio seguro.</div>
+                  <div className={styles.hint}>
+                    <PlugZap size={14} /> Login ocorre em janela do domínio
+                    seguro.
+                  </div>
                 </div>
               </>
             ) : (
               <>
                 <div className={styles.connectedBlock}>
-                  <div className={styles.kv}><span className={styles.k}>Número WABA</span><span className={styles.v}>{waDisplayNumber}</span></div>
-                  {wa.phone?.verified_name && (<div className={styles.kv}><span className={styles.k}>Nome verificado</span><span className={styles.v}>{wa.phone.verified_name}</span></div>)}
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Número WABA</span>
+                    <span className={styles.v}>{waDisplayNumber}</span>
+                  </div>
+                  {wa.phone?.verified_name && (
+                    <div className={styles.kv}>
+                      <span className={styles.k}>Nome verificado</span>
+                      <span className={styles.v}>{wa.phone.verified_name}</span>
+                    </div>
+                  )}
                 </div>
-                <div className={styles.cardActions}><button className={styles.btnSecondary} onClick={goToWaProfile}>Perfil</button></div>
+                <div className={styles.cardActions}>
+                  <button
+                    className={styles.btnSecondary}
+                    onClick={goToWaProfile}
+                  >
+                    Perfil
+                  </button>
+                </div>
               </>
             )}
           </div>
@@ -261,25 +473,47 @@ const handleWaOAuthCode = useCallback(async ({ code, stateB64 }) => {
         {/* Facebook */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            {iconWrap(styles.fb, <FbIcon size={18}/>)}
+            {iconWrap(styles.fb, <FbIcon size={18} />)}
             <div className={styles.cardTitle}>Facebook Messenger</div>
-            {fb.loading ? <span className={styles.statusNeutral || styles.statusOff}>Checando…</span> :
-              fb.connected ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span> :
-              <span className={styles.statusOff}>Não conectado</span>}
+            {fb.loading ? (
+              <span className={styles.statusNeutral || styles.statusOff}>
+                Checando…
+              </span>
+            ) : fb.connected ? (
+              <span className={styles.statusOk}>
+                <CheckCircle2 size={14} /> Conectado
+              </span>
+            ) : (
+              <span className={styles.statusOff}>Não conectado</span>
+            )}
           </div>
           <div className={styles.cardBody}>
             {!fb.connected ? (
               <>
-                <p className={styles.cardDesc}>Conecte sua <strong>Página do Facebook</strong> para receber mensagens.</p>
+                <p className={styles.cardDesc}>
+                  Conecte sua <strong>Página do Facebook</strong> para receber
+                  mensagens.
+                </p>
                 <div className={styles.cardActions}>
-                  <FacebookConnectButton tenant={tenant} label="Conectar Facebook" />
+                  <FacebookConnectButton
+                    tenant={tenant}
+                    label="Conectar Facebook"
+                  />
                 </div>
               </>
             ) : (
               <>
                 <div className={styles.connectedBlock}>
-                  <div className={styles.kv}><span className={styles.k}>Página</span><span className={styles.v}>{fb.pageName || fb.pageId}</span></div>
-                  <div className={styles.kv}><span className={styles.k}>Page ID</span><span className={styles.v}>{fb.pageId}</span></div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Página</span>
+                    <span className={styles.v}>
+                      {fb.pageName || fb.pageId}
+                    </span>
+                  </div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Page ID</span>
+                    <span className={styles.v}>{fb.pageId}</span>
+                  </div>
                 </div>
               </>
             )}
@@ -289,25 +523,49 @@ const handleWaOAuthCode = useCallback(async ({ code, stateB64 }) => {
         {/* Instagram */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            {iconWrap(styles.ig, <IgIcon size={18}/>)}
+            {iconWrap(styles.ig, <IgIcon size={18} />)}
             <div className={styles.cardTitle}>Instagram</div>
-            {ig.loading ? <span className={styles.statusNeutral || styles.statusOff}>Checando…</span> :
-              ig.connected ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span> :
-              <span className={styles.statusOff}>Não conectado</span>}
+            {ig.loading ? (
+              <span className={styles.statusNeutral || styles.statusOff}>
+                Checando…
+              </span>
+            ) : ig.connected ? (
+              <span className={styles.statusOk}>
+                <CheckCircle2 size={14} /> Conectado
+              </span>
+            ) : (
+              <span className={styles.statusOff}>Não conectado</span>
+            )}
           </div>
           <div className={styles.cardBody}>
             {!ig.connected ? (
               <>
-                <p className={styles.cardDesc}>Conecte sua conta <strong>Instagram Profissional</strong> (via Página FB vinculada).</p>
+                <p className={styles.cardDesc}>
+                  Conecte sua conta <strong>Instagram Profissional</strong> (via
+                  Página FB vinculada).
+                </p>
                 <div className={styles.cardActions}>
-                  <InstagramConnectButton tenant={tenant} label="Conectar Instagram" />
+                  <InstagramConnectButton
+                    tenant={tenant}
+                    label="Conectar Instagram"
+                  />
                 </div>
               </>
             ) : (
               <>
                 <div className={styles.connectedBlock}>
-                  <div className={styles.kv}><span className={styles.k}>IG</span><span className={styles.v}>{ig.igUsername || ig.igUserId}</span></div>
-                  <div className={styles.kv}><span className={styles.k}>Página</span><span className={styles.v}>{ig.pageName || ig.pageId}</span></div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>IG</span>
+                    <span className={styles.v}>
+                      {ig.igUsername || ig.igUserId}
+                    </span>
+                  </div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Página</span>
+                    <span className={styles.v}>
+                      {ig.pageName || ig.pageId}
+                    </span>
+                  </div>
                 </div>
               </>
             )}
@@ -317,28 +575,66 @@ const handleWaOAuthCode = useCallback(async ({ code, stateB64 }) => {
         {/* Telegram */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            {iconWrap(styles.tg, <Send size={18}/>)}
+            {iconWrap(styles.tg, <Send size={18} />)}
             <div className={styles.cardTitle}>Telegram</div>
-            {tg.loading ? <span className={styles.statusNeutral || styles.statusOff}>Checando…</span> :
-              tg.connected ? <span className={styles.statusOk}><CheckCircle2 size={14}/> Conectado</span> :
-              <span className={styles.statusOff}>Não conectado</span>}
+            {tg.loading ? (
+              <span className={styles.statusNeutral || styles.statusOff}>
+                Checando…
+              </span>
+            ) : tg.connected ? (
+              <span className={styles.statusOk}>
+                <CheckCircle2 size={14} /> Conectado
+              </span>
+            ) : (
+              <span className={styles.statusOff}>Não conectado</span>
+            )}
           </div>
           <div className={styles.cardBody}>
             {!tg.connected ? (
               <>
-                <p className={styles.cardDesc}>Conecte informando <strong>Bot Token</strong>.</p>
+                <p className={styles.cardDesc}>
+                  Conecte informando <strong>Bot Token</strong>.
+                </p>
                 <div className={styles.cardActions}>
-                  <button className={styles.btnTgPrimary} onClick={() => navigate("/channels/telegram", { state:{ returnTo: location.pathname + location.search } })}>Conectar</button>
+                  <button
+                    className={styles.btnTgPrimary}
+                    onClick={() =>
+                      navigate("/channels/telegram", {
+                        state: {
+                          returnTo: location.pathname + location.search,
+                        },
+                      })
+                    }
+                  >
+                    Conectar
+                  </button>
                 </div>
               </>
             ) : (
               <>
                 <div className={styles.connectedBlock}>
-                  <div className={styles.kv}><span className={styles.k}>Bot</span><span className={styles.v}>{tg.username || "—"}</span></div>
-                  <div className={styles.kv}><span className={styles.k}>Bot ID</span><span className={styles.v}>{tg.botId || "—"}</span></div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Bot</span>
+                    <span className={styles.v}>{tg.username || "—"}</span>
+                  </div>
+                  <div className={styles.kv}>
+                    <span className={styles.k}>Bot ID</span>
+                    <span className={styles.v}>{tg.botId || "—"}</span>
+                  </div>
                 </div>
                 <div className={styles.cardActions}>
-                  <button className={styles.btnSecondary} onClick={() => navigate("/channels/telegram", { state:{ returnTo: location.pathname + location.search } })}>Gerenciar</button>
+                  <button
+                    className={styles.btnSecondary}
+                    onClick={() =>
+                      navigate("/channels/telegram", {
+                        state: {
+                          returnTo: location.pathname + location.search,
+                        },
+                      })
+                    }
+                  >
+                    Gerenciar
+                  </button>
                 </div>
               </>
             )}
