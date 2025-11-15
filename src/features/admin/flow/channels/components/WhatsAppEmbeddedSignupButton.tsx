@@ -31,7 +31,9 @@ export default function WhatsAppEmbeddedSignupButton({
   }, []);
 
   useEffect(() => {
-    const expectedOrigin = (() => { try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; } })();
+    const expectedOrigin = (() => {
+      try { return new URL(AUTH_ORIGIN).origin; } catch { return AUTH_ORIGIN; }
+    })();
     function onMessage(ev) {
       if (!expectedOrigin || ev.origin !== expectedOrigin) return;
       try {
@@ -57,10 +59,10 @@ export default function WhatsAppEmbeddedSignupButton({
     if (clickGuardRef.current) return;
     clickGuardRef.current = true;
 
-    if (!tenant)      return onError?.(new Error("Tenant não detectado"));
-    if (!APP_ID)      return onError?.(new Error("VITE_META_APP_ID ausente"));
-    if (!CONFIG_ID)   return onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente"));
-    if (!AUTH_ORIGIN) return onError?.(new Error("VITE_EMBED_ORIGIN ausente"));
+    if (!tenant)      { onError?.(new Error("Tenant não detectado")); clickGuardRef.current = false; return; }
+    if (!APP_ID)      { onError?.(new Error("VITE_META_APP_ID ausente")); clickGuardRef.current = false; return; }
+    if (!CONFIG_ID)   { onError?.(new Error("VITE_META_LOGIN_CONFIG_ID ausente")); clickGuardRef.current = false; return; }
+    if (!AUTH_ORIGIN) { onError?.(new Error("VITE_EMBED_ORIGIN ausente")); clickGuardRef.current = false; return; }
 
     // Reusa a mesma janela
     if (popupRef.current && !popupRef.current.closed) {
