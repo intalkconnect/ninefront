@@ -146,17 +146,13 @@ export default function Agents() {
     }
   }
 
-  const baseAgentsPath = inFlowContext
-    ? `/development/flowhub/${encodeURIComponent(flowId)}/agents`
-    : "/management/users";
-
   return (
     <div className={styles.page}>
       {/* HEADER NO PADRÃO DO FLOW (Voltar + título + meta + busca/ações) */}
       <div className={styles.headerCard}>
         <button
           className={styles.btn}
-          onClick={() => navigate("/development/flowhub")}
+          onClick={() => navigate(-1)}
         >
           <ArrowLeft size={14} />
           <span>Voltar</span>
