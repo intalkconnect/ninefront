@@ -383,7 +383,7 @@ export default function Customers() {
       <div className={styles.headerCard}>
         <button
           className={styles.btn}
-          onClick={() => navigate("/development/flowhub")}
+          onClick={() => navigate(-1)}
         >
           <ArrowLeft size={14} />
           <span>Voltar</span>
