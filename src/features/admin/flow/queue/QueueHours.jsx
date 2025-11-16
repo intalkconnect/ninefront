@@ -424,7 +424,7 @@ export default function QueueHours() {
           <button
             type="button"
             className={css.btnGhost}
-            onClick={goBack}
+            onClick={() => navigate(-1)}
           >
             Cancelar
           </button>
