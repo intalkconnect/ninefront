@@ -1,5 +1,5 @@
 /* File: styles/Admin.module.css */
-.wrapper{display:flex;flex-direction:column;min-height:100vh;background:#f6f7fb;color:#111827}
+.wrapper{display:flex;flex-direction:column;min-height:100vh;color:#111827}
 
 /* ===================== Topbar (azul) ===================== */
 .topbar{
@@ -175,4 +175,5 @@
   outline:2px solid rgba(29,78,216,0.25);
   outline-offset:2px;
 }
+
 
