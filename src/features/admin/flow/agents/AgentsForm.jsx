@@ -177,15 +177,12 @@ export default function AgentsForm() {
     }
   }
 
-  const handleCancel = () => {
-    navigate(baseAgentsPath, { state: { flowId: effectiveFlowId } });
-  };
 
   return (
     <div className={styles.page} ref={topRef}>
       {/* HEADER NO PADRÃO DOS OUTROS (Voltar + meta do flow) */}
       <div className={styles.headerCard}>
-        <button className={styles.btn} onClick={handleCancel}>
+        <button className={styles.btn} onClick={() => navigate(-1)}>
           <ArrowLeft size={14} />
           <span>Voltar</span>
         </button>
