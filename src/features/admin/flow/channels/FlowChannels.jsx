@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { ArrowLeft, CheckCircle2, RefreshCw, Settings2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { apiGet } from "../../../shared/apiClient";
+import { apiGet } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 
 import WhatsAppEmbeddedSignupButton from "./components/WhatsAppEmbeddedSignupButton";
