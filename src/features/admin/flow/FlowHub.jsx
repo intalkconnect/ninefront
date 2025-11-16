@@ -11,6 +11,7 @@ import {
   History,
   IdCard,
   Route as RouteIcon,
+  MoreVertical,
 } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
@@ -31,6 +32,7 @@ export default function FlowHub() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
   const [showNewModal, setShowNewModal] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const load = async () => {
     try {
@@ -51,47 +53,78 @@ export default function FlowHub() {
     load();
   }, [tenant]);
 
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(`.${styles.dropdownContainer}`)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   /* ====== navegação por flow (sempre usando f.id) ====== */
 
-  const openStudio = (f) =>
+  const openStudio = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/studio/${f.id}`, {
       state: { meta: { flowId: f.id, name: f.name } },
     });
+  };
 
-  const openChannels = (f) =>
+  const openChannels = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/flowhub/${f.id}/channels`, {
       state: { from: "/development/flowhub" },
     });
+  };
 
-  const openQueues = (f) =>
+  const openQueues = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/flowhub/${f.id}/queues`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
+  };
 
-  const openAgents = (f) =>
+  const openAgents = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/flowhub/${f.id}/agents`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
+  };
 
-  const openCustomers = (f) =>
+  const openCustomers = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/flowhub/${f.id}/customers`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
+  };
 
-  const openTicketHistory = (f) =>
+  const openTicketHistory = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/flowhub/${f.id}/ticket-history`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
+  };
 
-  const openQuickReplies = (f) =>
+  const openQuickReplies = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/flowhub/${f.id}/quick-replies`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
+  };
 
-    const openTracker = (f) =>
+  const openTracker = (f) => {
+    setOpenDropdown(null);
     navigate(`/development/flowhub/${f.id}/tracker`, {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
+  };
+
+  const toggleDropdown = (flowId) => {
+    setOpenDropdown(openDropdown === flowId ? null : flowId);
+  };
 
   return (
     <div className={styles.page}>
@@ -118,80 +151,89 @@ export default function FlowHub() {
         <div className={styles.grid}>
           {rows.map((f) => (
             <div key={f.id} className={styles.card}>
-              {/* Cabeçalho do card: ações por flow */}
+              {/* Cabeçalho do card: apenas dropdown */}
               <div className={styles.cardHead}>
-                <div className={styles.cardHeadActions}>
-                  <IconButton
-                    title="Canais"
-                    onClick={() => openChannels(f)}
-                    variant="channels"
+                <div className={styles.dropdownContainer}>
+                  <button
+                    className={styles.dropdownTrigger}
+                    onClick={() => toggleDropdown(f.id)}
+                    title="Ações"
                   >
-                    <PlugZap size={16} />
-                  </IconButton>
+                    <MoreVertical size={20} />
+                  </button>
 
-                  <IconButton
-                    title="Studio"
-                    onClick={() => openStudio(f)}
-                    variant="studio"
-                  >
-                    <Bot size={16} />
-                  </IconButton>
+                  {openDropdown === f.id && (
+                    <div className={styles.dropdownMenu}>
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openChannels(f)}
+                      >
+                        <PlugZap size={16} />
+                        <span>Canais</span>
+                      </button>
 
-                   <IconButton
-                    title="Tracker"
-                    onClick={() => openTracker(f)}
-                    variant="tracker"
-                  >
-                    <RouteIcon size={16} />
-                  </IconButton>
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openStudio(f)}
+                      >
+                        <Bot size={16} />
+                        <span>Studio</span>
+                      </button>
 
-                  <IconButton
-                    title="Filas"
-                    onClick={() => openQueues(f)}
-                    variant="queues"
-                  >
-                    <ListChecks size={16} />
-                  </IconButton>
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openTracker(f)}
+                      >
+                        <RouteIcon size={16} />
+                        <span>Tracker</span>
+                      </button>
 
-                  <IconButton
-                    title="Atendentes"
-                    onClick={() => openAgents(f)}
-                    variant="agents"
-                  >
-                    <Headphones size={16} />
-                  </IconButton>
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openQueues(f)}
+                      >
+                        <ListChecks size={16} />
+                        <span>Filas</span>
+                      </button>
 
-                  <IconButton
-                    title="Respostas rápidas"
-                    onClick={() => openQuickReplies(f)}
-                    variant="quick"
-                  >
-                    <MessageSquare size={16} />
-                  </IconButton>
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openAgents(f)}
+                      >
+                        <Headphones size={16} />
+                        <span>Atendentes</span>
+                      </button>
 
-                  <IconButton
-                    title="Histórico de ticket"
-                    onClick={() => openTicketHistory(f)}
-                    variant="history"
-                  >
-                    <History size={16} />
-                  </IconButton>
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openQuickReplies(f)}
+                      >
+                        <MessageSquare size={16} />
+                        <span>Respostas rápidas</span>
+                      </button>
 
-                  <IconButton
-                    title="Clientes"
-                    onClick={() => openCustomers(f)}
-                    variant="customer"
-                  >
-                    <IdCard size={16} />
-                  </IconButton>
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openTicketHistory(f)}
+                      >
+                        <History size={16} />
+                        <span>Histórico de ticket</span>
+                      </button>
+
+                      <button
+                        className={styles.dropdownItem}
+                        onClick={() => openCustomers(f)}
+                      >
+                        <IdCard size={16} />
+                        <span>Clientes</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Título / descrição */}
-              <div
-                className={styles.cardTitle}
-                title={f.name || "Sem nome"}
-              >
+              <div className={styles.cardTitle} title={f.name || "Sem nome"}>
                 {f.name || "Sem nome"}
               </div>
 
@@ -258,24 +300,6 @@ export default function FlowHub() {
 
 /* ---------- Aux components ---------- */
 
-function IconButton({ title, onClick, children, variant }) {
-  const classes = [styles.iconButton];
-  if (variant && styles[`iconButton_${variant}`]) {
-    classes.push(styles[`iconButton_${variant}`]);
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      className={classes.join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
-
 function NewFlowModal({ onClose, onCreate }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -298,10 +322,7 @@ function NewFlowModal({ onClose, onCreate }) {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
-      <div
-        className={styles.modal}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHead}>
           <strong>Novo Flow</strong>
           <button onClick={onClose} className={styles.linkBtn}>
@@ -350,7 +371,8 @@ function NewFlowModal({ onClose, onCreate }) {
 
         <div className={styles.modalFoot}>
           <button onClick={onClose} className={styles.btnGhost}>
-            Cancelar</button>
+            Cancelar
+          </button>
           <button
             disabled={!canSave}
             onClick={submit}
