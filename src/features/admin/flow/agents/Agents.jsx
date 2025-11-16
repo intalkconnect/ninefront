@@ -185,14 +185,9 @@ export default function Agents() {
             className={styles.iconBtnPrimary}
             title="Novo atendente"
             onClick={() =>
-              inFlowContext
-                ? navigate(
-                    `/development/flowhub/${encodeURIComponent(
-                      flowId
-                    )}/agents/new`,
+              navigate(`/workflow/hub/${encodeURIComponent(flowId)}/agents/new`,
                     { state: { flowId } }
                   )
-                : navigate("/management/users/new")
             }
           >
             <Plus size={18} />
@@ -291,13 +286,7 @@ export default function Agents() {
                         <div className={styles.actions}>
                           <Link
                             to={
-                              inFlowContext
-                                ? `/development/flowhub/${encodeURIComponent(
-                                    flowId
-                                  )}/agents/${encodeURIComponent(u.id)}/edit`
-                                : `/management/users/${encodeURIComponent(
-                                    u.id
-                                  )}/edit`
+                               `/workflow/hub/${encodeURIComponent(flowId)}/agents/${encodeURIComponent(u.id)}/edit`
                             }
                             state={{ flowId }}
                             className={styles.qrIconBtn}
