@@ -883,7 +883,7 @@ export default function Admin() {
           <Route path="campaigns/campaigns" element={<Campaigns />} />
           <Route path="campaigns/campaigns/new" element={<CampaignCreate />} />
 
-          {/* ✅ CORREÇÃO: Rotas de settings com paths absolutos */}
+          {/* settings (paths absolutos) */}
           <Route
             path="/settings/preferences"
             element={
@@ -914,111 +914,136 @@ export default function Admin() {
           <Route path="channels/telegram" element={<TelegramConnect />} />
 
           {/* development – admin only */}
-<Route
-    path="development/flowhub"               // <- agora abre a GALERIA
-    element={
-      <RequireRole allow={isAdmin}>
-        <FlowHub />
-      </RequireRole>
-    }
-  />
-<Route
-  path="development/flowhub/:flowId/channels" // << página de canais por flow
-  element={
-    <RequireRole allow={isAdmin}>
-      <FlowChannels />
-    </RequireRole>
-  }
-/>
-          <Route path="development/flowhub/:flowId/quick-replies" element={<QuickReplies />} />
-  <Route
-    path="development/studio/:flowId"       // <- rota para o Builder em si
-    element={
-      <RequireRole allow={isAdmin}>
-        <Builder />
-      </RequireRole>
-    }
-  />
-<Route
-  path="development/flowhub/:flowId/queues"
-  element={
-    <RequireRole allow={isAdmin}>
-      <Queues />
-    </RequireRole>
-  }
-/>
+          <Route
+            path="development/flowhub"
+            element={
+              <RequireRole allow={isAdmin}>
+                <FlowHub />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="development/flowhub/:flowId/channels"
+            element={
+              <RequireRole allow={isAdmin}>
+                <FlowChannels />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="development/flowhub/:flowId/quick-replies"
+            element={<QuickReplies />}
+          />
+          <Route
+            path="development/studio/:flowId"
+            element={
+              <RequireRole allow={isAdmin}>
+                <Builder />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="development/flowhub/:flowId/queues"
+            element={
+              <RequireRole allow={isAdmin}>
+                <Queues />
+              </RequireRole>
+            }
+          />
 
-{/* development – queues (new / edit / hours) */}
-<Route
-  path="/development/queues/new"
-  element={
-    <RequireRole allow={isAdmin}>
-      <QueueForm />
-    </RequireRole>
-  }
-/>
-
-<Route
-  path="/development/queues/:id"
-  element={
-    <RequireRole allow={isAdmin}>
-      <QueueForm />
-    </RequireRole>
-  }
-/>
-
-<Route
-  path="/development/queues/:name/hours"
-  element={
-    <RequireRole allow={isAdmin}>
-      <QueueHours />
-    </RequireRole>
-  }
-/>
+          {/* development – queues (new / edit / hours) */}
+          <Route
+            path="/development/queues/new"
+            element={
+              <RequireRole allow={isAdmin}>
+                <QueueForm />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/development/queues/:id"
+            element={
+              <RequireRole allow={isAdmin}>
+                <QueueForm />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/development/queues/:name/hours"
+            element={
+              <RequireRole allow={isAdmin}>
+                <QueueHours />
+              </RequireRole>
+            }
+          />
 
           <Route
-  path="/development/flowhub/:flowId/agents"
-  element={<Agents />}
-/>
-<Route
-  path="/development/flowhub/:flowId/agents/new"
-  element={<AgentsForm />}
-/>
-<Route
-  path="/development/flowhub/:flowId/agents/:userId/edit"
-  element={<AgentsForm />}
-/>
+            path="/development/flowhub/:flowId/agents"
+            element={<Agents />}
+          />
           <Route
-  path="/development/flowhub/:flowId/ticket-history"
-  element={<TicketsHistory />}
-/>
-
-<Route
-  path="/development/flowhub/:flowId/ticket-history/:id"
-  element={<TicketDetail />}
-/>
+            path="/development/flowhub/:flowId/agents/new"
+            element={<AgentsForm />}
+          />
           <Route
-  path="/development/flowhub/:flowId/customers"
-  element={<Customers />}
-/>
-<Route
-  path="/development/flowhub/:flowId/tracker"
-  element={
-    <RequireRole allow={isAdmin}>
-      <JourneyTracker />
-    </RequireRole>
-  }
-/>
+            path="/development/flowhub/:flowId/agents/:userId/edit"
+            element={<AgentsForm />}
+          />
 
-<Route
-  path="/development/flowhub/:flowId/tracker/:userId"
-  element={
-    <RequireRole allow={isAdmin}>
-      <JourneyBeholder />
-    </RequireRole>
-  }
-/>
+          <Route
+            path="/development/flowhub/:flowId/ticket-history"
+            element={<TicketsHistory />}
+          />
+          <Route
+            path="/development/flowhub/:flowId/ticket-history/:id"
+            element={<TicketDetail />}
+          />
+
+          <Route
+            path="/development/flowhub/:flowId/customers"
+            element={<Customers />}
+          />
+
+          <Route
+            path="/development/flowhub/:flowId/tracker"
+            element={
+              <RequireRole allow={isAdmin}>
+                <JourneyTracker />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/development/flowhub/:flowId/tracker/:userId"
+            element={
+              <RequireRole allow={isAdmin}>
+                <JourneyBeholder />
+              </RequireRole>
+            }
+          />
+
+          {/* tracker global (sem flow) */}
+          <Route
+            path="development/tracker"
+            element={
+              <RequireRole allow={isAdmin}>
+                <JourneyTracker />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/development/tracker/:userId"
+            element={
+              <RequireRole allow={isAdmin}>
+                <JourneyBeholder />
+              </RequireRole>
+            }
+          />
+
+          {/* fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
-
+    </div>
   );
 }
+
