@@ -109,14 +109,6 @@ export default function TicketsHistory() {
 
   const clearSearch = () => setQ("");
 
-  const goBack = () => {
-    if (inFlowContext) {
-      navigate("/development/flowhub");
-    } else {
-      navigate(-1);
-    }
-  };
-
   return (
     <div className={styles.page}>
       {/* HEADER EM CARTÃO (padrão FlowHub) */}
@@ -126,7 +118,7 @@ export default function TicketsHistory() {
           <button
             type="button"
             className={styles.btn}
-            onClick={goBack}
+            onClick={() => navigate(-1)}
             title="Voltar"
           >
             <ArrowLeft size={16} />
@@ -265,7 +257,7 @@ export default function TicketsHistory() {
                       tabIndex={0}
                       onClick={() =>
                         navigate(
-                          `/development/flowhub/${encodeURIComponent(
+                          `/workflow/hub/${encodeURIComponent(
                             flowId
                           )}/ticket-history/${t.id}`,
                           {
