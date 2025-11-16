@@ -49,15 +49,6 @@ export default function TicketDetail() {
   const [err, setErr] = useState(null);
   const [activeTab, setActiveTab] = useState("conversation");
 
-  const backTo = useMemo(() => {
-
-      // volta para o histórico dentro do FlowHub
-      return `/development/flowhub/${encodeURIComponent(
-        flowId
-      )}/ticket-history`;
-
-  }, [flowId]);
-
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -152,7 +143,7 @@ export default function TicketDetail() {
       {/* Header card: Voltar | Ticket # | Exportar */}
       <div className={styles.pageHeader}>
         <div className={styles.headerLeft}>
-          <button className={styles.backBtn} onClick={() => nav(backTo)}>
+          <button className={styles.backBtn} onClick={() => navigate(-1)}>
             <ArrowLeft size={16} /> Voltar
           </button>
         </div>
