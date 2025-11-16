@@ -42,7 +42,7 @@ import {
 
 import FlowHub from "./flow/FlowHub";
 import Builder from "./flow/studio/Builder";
-import FlowChannels from "./flow/FlowChannels";
+import FlowChannels from "./flow/channels/FlowChannels";
 import Queues from "./flow/queue/Queues";
 import QueueForm from "./flow/queue/QueueForm";
 import QueueHours from "./flow/queue/QueueHours";
