@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 import { toast, ToastContainer } from 'react-toastify';
 import { useConfirm } from '../../../../app/provider/ConfirmProvider';
 import { apiGet, apiPost } from '../../../../shared/apiClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import {
   User, MessageCircle, AlertTriangle, BarChart3, Search,
   Eye, RefreshCw, RefreshCcw, Plus, Headset
@@ -28,6 +28,16 @@ const fmtTime = (sec = 0) => {
 export default function CustomerJourneyTracker({ onOpenJourney }) {
   const confirm = useConfirm();
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
+
+  // flowId pode vir da URL (/development/flowhub/:flowId/tracker)
+  // ou do state ({ meta: { flowId } })
+  const flowIdParam = params.flowId || null;
+  const flowIdFromState =
+    location.state?.flowId || location.state?.meta?.flowId || null;
+  const flowId = flowIdParam || flowIdFromState || null;
+  const inFlowContext = !!flowId;
 
   // filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +63,8 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
     let mounted = true;
     (async () => {
       try {
-        const mtResp = await apiGet('/tracert/metrics').catch(() => null);
+        const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+        const mtResp = await apiGet(`/tracert/metrics${qs}`).catch(() => null);
         const data = mtResp?.data ?? mtResp ?? {};
         if (mounted) setMetrics(data || {});
       } catch {
@@ -61,7 +72,7 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [flowId]);
 
   /* ----- lista ----- */
   const fetchList = useCallback(async () => {
@@ -72,6 +83,7 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
       params.set('page', String(currentPage));
       params.set('pageSize', String(itemsPerPage));
       params.set('exclude_start', 'true');
+      if (flowId) params.set('flow_id', flowId);
       const resp = await apiGet(`/tracert/customers?${params.toString()}`);
       const data = resp?.data ?? resp;
       const safeRows = (Array.isArray(data?.rows) ? data.rows : []).filter((r) => {
@@ -87,7 +99,7 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
     } finally {
       setRefreshing(false);
     }
-  }, [debouncedSearch, currentPage, itemsPerPage]);
+  }, [debouncedSearch, currentPage, itemsPerPage, flowId]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
 
@@ -108,7 +120,11 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
     });
     if (!ok) return;
     try {
-      await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/reset`, {});
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+      await apiPost(
+        `/tracert/customers/${encodeURIComponent(userId)}/reset${qs}`,
+        {}
+      );
       toast.success('Sessão resetada');
       fetchList();
     } catch (e) {
@@ -126,7 +142,14 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
     });
     if (!ok) return;
     try {
-      await apiPost(`/tracert/customers/${encodeURIComponent(userId)}/ticket`, { queue: queueName });
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : '';
+      await apiPost(
+        `/tracert/customers/${encodeURIComponent(userId)}/ticket${qs}`,
+        {
+          queue: queueName,
+          ...(flowId ? { flow_id: flowId } : {}),
+        }
+      );
       toast.success('Ticket criado com sucesso');
       fetchList();
     } catch (e) {
@@ -308,8 +331,13 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
                           if (typeof onOpenJourney === 'function') {
                             onOpenJourney(r);
                           } else {
-                            // navegação SPA para a rota registrada no Admin.jsx
-                            navigate(`/development/tracker/${encodeURIComponent(r.user_id)}`);
+                            // navegação SPA respeitando o contexto de flow (se existir)
+                            const base = inFlowContext
+                              ? `/development/flowhub/${encodeURIComponent(flowId)}/tracker`
+                              : `/development/tracker`;
+                            navigate(`${base}/${encodeURIComponent(r.user_id)}`, {
+                              state: { meta: { flowId } },
+                            });
                           }
                         }}
                       >
