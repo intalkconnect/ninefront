@@ -473,6 +473,17 @@
   border-color: #4f46e5;
 }
 
+.iconButton_tracker {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: #ecfeff;
+  color: #0891b2;
+}
+
+.iconButton_tracker:hover {
+  background: #cffafe;
+  border-color: #06b6d4;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .page {
