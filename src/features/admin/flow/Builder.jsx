@@ -1070,14 +1070,6 @@ function run(context) {
               gap: 12,
             }}
           >
-            <span>
-              Flow: <b>{meta.name || meta.flowId}</b>
-            </span>
-            {meta.channelKey && (
-              <span>
-                Canal: <b>{meta.channelKey}</b>
-              </span>
-            )}
             {meta.activeVersionId && (
               <span>
                 Versão ativa: <b>{meta.activeVersionId.slice(0, 8)}</b>
