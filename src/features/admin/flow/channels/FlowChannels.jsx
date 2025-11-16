@@ -130,17 +130,17 @@ export default function FlowChannels() {
   );
 
   const openWaProfile = () =>
-    navigate("/channels/whatsapp", {
+    navigate("/workflow/hub/channels/whatsapp", {
       state: {
-        returnTo: `/development/flowhub/${flowId}/channels`,
+        returnTo: `/workflow/hub/${flowId}/channels`,
         flowId,
         channelKey: waBinding?.channel_key || null,
       },
     });
 
   const openTgConnect = () =>
-    navigate("/channels/telegram", {
-      state: { returnTo: `/development/flowhub/${flowId}/channels`, flowId },
+    navigate("/workflow/hub/channels/telegram", {
+      state: { returnTo: `/workflow/hub/${flowId}/channels`, flowId },
     });
 
   return (
