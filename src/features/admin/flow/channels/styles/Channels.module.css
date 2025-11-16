@@ -4,7 +4,6 @@
 
 /* use o mesmo token do Preferences */
 :root{
-  --app-bg: #f6f7fb;
   --page-inline: clamp(12px, 2vw, 24px);
   /* grid responsiva – ajuste se quiser cards mais largos/estreitos */
   --card-min: 320px;
@@ -18,12 +17,11 @@ html, body {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
-  background: var(--app-bg);
+
 }
 
 /* wrappers herdam o fundo (evita faixas diferentes) */
 #root, #app, .layout, .main, .content, .page {
-  background: var(--app-bg) !important;
   height: auto !important;
   min-height: auto !important;
   overflow: visible !important;
