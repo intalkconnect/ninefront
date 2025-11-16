@@ -1,6 +1,6 @@
 // File: JourneyBeholder.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   ChevronLeft, Clock, User, MessageCircle, AlertTriangle,
@@ -163,9 +163,17 @@ function KVViewer({ data }) {
 /* ---------------- FIM KV VIEWER ---------------- */
 
 export default function JourneyBeholder({ userId: propUserId, onBack }) {
-  const { userId: routeUserId } = useParams();
-  const userId = propUserId ?? routeUserId;
+  const { userId: routeUserId, flowId: routeFlowId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+
+  const flowIdParam = routeFlowId || null;
+  const flowIdFromState =
+    location.state?.flowId || location.state?.meta?.flowId || null;
+  const flowId = flowIdParam || flowIdFromState || null;
+  const inFlowContext = !!flowId;
+
+  const userId = propUserId ?? routeUserId;
 
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -188,7 +196,10 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     if (!userId) return;
     setRefreshing(true);
     try {
-      const resp = await apiGet(`/tracert/customers/${encodeURIComponent(userId)}`);
+      const qs = flowId ? `?flow_id=${encodeURIComponent(flowId)}` : "";
+      const resp = await apiGet(
+        `/tracert/customers/${encodeURIComponent(userId)}${qs}`
+      );
       const det = resp?.data ?? resp;
       setDetail({
         user_id: det?.user_id || userId,
@@ -209,7 +220,7 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId]);
+  }, [userId, flowId]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
   useEffect(() => {
@@ -245,13 +256,22 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
     setModalOpen(true);
   };
 
+const trackerBasePath = inFlowContext
+    ? `/development/flowhub/${encodeURIComponent(flowId)}/tracker`
+    : `/development/tracker`;
+  
   return (
     <div className={styles.page}>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.heading}>
           <div className={styles.breadcrumbs}>
-            <span className={styles.bcLink} onClick={() => navigate("/development/tracker")}>Journey</span>
+                 <span
+              className={styles.bcLink}
+              onClick={() => navigate(trackerBasePath)}
+            >
+              Journey
+            </span>
             <span className={styles.bcSep}>/</span>
             <span>{detail?.user_id || userId || "—"}</span>
           </div>
@@ -262,7 +282,9 @@ export default function JourneyBeholder({ userId: propUserId, onBack }) {
           <button
             type="button"
             className={styles.backBtn}
-            onClick={() => (onBack ? onBack() : navigate(-1))}
+             onClick={() =>
+              onBack ? onBack() : navigate(trackerBasePath)
+            }
           >
             <ChevronLeft size={18} />
             Voltar
