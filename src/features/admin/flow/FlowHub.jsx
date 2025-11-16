@@ -68,57 +68,57 @@ export default function FlowHub() {
 
   const openStudio = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/studio/${f.id}`, {
+    navigate(`/workflow/hub/studio/${f.id}`, {
       state: { meta: { flowId: f.id, name: f.name } },
     });
   };
 
   const openChannels = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/channels`, {
-      state: { from: "/development/flowhub" },
+    navigate(`/workflow/hub/${f.id}/channels`, {
+      state: { from: "/workflow/hub" },
     });
   };
 
   const openQueues = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/queues`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    navigate(`/workflow/hub/${f.id}/queues`, {
+      state: { from: "/workflow/hub", meta: { flowId: f.id } },
     });
   };
 
   const openAgents = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/agents`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    navigate(`/workflow/hub/${f.id}/agents`, {
+      state: { from: "/workflow/hub", meta: { flowId: f.id } },
     });
   };
 
   const openCustomers = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/customers`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    navigate(`/workflow/hub/${f.id}/customers`, {
+      state: { from: "/workflow/hub", meta: { flowId: f.id } },
     });
   };
 
   const openTicketHistory = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/ticket-history`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    navigate(`/workflow/hub/${f.id}/ticket-history`, {
+      state: { from: "/workflow/hub", meta: { flowId: f.id } },
     });
   };
 
   const openQuickReplies = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/quick-replies`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    navigate(`/workflow/hub/${f.id}/quick-replies`, {
+      state: { from: "/workflow/hub", meta: { flowId: f.id } },
     });
   };
 
   const openTracker = (f) => {
     setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/tracker`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    navigate(`/workflow/hub/${f.id}/tracker`, {
+      state: { from: "/workflow/hub", meta: { flowId: f.id } },
     });
   };
 
