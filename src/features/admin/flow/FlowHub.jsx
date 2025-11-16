@@ -1,389 +1,464 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import { apiGet, apiPost } from "../../../shared/apiClient";
-import {
-  Bot,
-  PlugZap,
-  ListChecks,
-  Headphones,
-  MessageSquare,
-  History,
-  IdCard,
-  Route as RouteIcon,
-  MoreVertical,
-} from "lucide-react";
-import LogoLoader from "../../../components/common/LogoLoader";
-import BrandIcon from "./BrandIcon";
-import styles from "./styles/FlowHub.module.css";
-
-/* ========= tenant util ========= */
-function getTenantFromHost() {
-  if (typeof window === "undefined") return "";
-  const host = window.location.hostname;
-  const parts = host.split(".");
-  if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
-  return parts[0] || "";
+:root {
+  --panel-bg: #ffffff;
+  --text-primary: #0f172a;
+  --text-muted: #64748b;
+  --text-secondary: #475569;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --brand: #3b82f6;
+  --brand-hover: #2563eb;
+  --tag-bg: #eff6ff;
+  --tag-fg: #1e40af;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --bg: #f8fafc;
 }
 
-export default function FlowHub() {
-  const tenant = useMemo(() => getTenantFromHost(), []);
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState([]);
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null);
-
-  const load = async () => {
-    try {
-      setLoading(true);
-      const data = await apiGet(
-        `/flows/meta${tenant ? `?subdomain=${tenant}` : ""}`
-      );
-      setRows(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error(e);
-      toast.error("Falha ao carregar flows");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, [tenant]);
-
-  // Fechar dropdown ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest(`.${styles.dropdownContainer}`)) {
-        setOpenDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  /* ====== navegação por flow (sempre usando f.id) ====== */
-
-  const openStudio = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/studio/${f.id}`, {
-      state: { meta: { flowId: f.id, name: f.name } },
-    });
-  };
-
-  const openChannels = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/channels`, {
-      state: { from: "/development/flowhub" },
-    });
-  };
-
-  const openQueues = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/queues`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
-    });
-  };
-
-  const openAgents = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/agents`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
-    });
-  };
-
-  const openCustomers = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/customers`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
-    });
-  };
-
-  const openTicketHistory = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/ticket-history`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
-    });
-  };
-
-  const openQuickReplies = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/quick-replies`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
-    });
-  };
-
-  const openTracker = (f) => {
-    setOpenDropdown(null);
-    navigate(`/development/flowhub/${f.id}/tracker`, {
-      state: { from: "/development/flowhub", meta: { flowId: f.id } },
-    });
-  };
-
-  const toggleDropdown = (flowId) => {
-    setOpenDropdown(openDropdown === flowId ? null : flowId);
-  };
-
-  return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.titleRow}>
-          <span className={styles.title}>Workflow Hub</span>
-        </div>
-
-        <button
-          onClick={() => setShowNewModal(true)}
-          className={styles.btnPrimary}
-        >
-          + Novo Flow
-        </button>
-      </div>
-
-      {loading ? (
-        <LogoLoader full size={56} src="/logo.svg" />
-      ) : rows.length === 0 ? (
-        <div className={styles.emptyHint}>
-          Nenhum flow ainda. Crie o primeiro!
-        </div>
-      ) : (
-        <div className={styles.grid}>
-          {rows.map((f) => (
-            <div key={f.id} className={styles.card}>
-              {/* Cabeçalho do card: apenas dropdown */}
-              <div className={styles.cardHead}>
-                <div className={styles.dropdownContainer}>
-                  <button
-                    className={styles.dropdownTrigger}
-                    onClick={() => toggleDropdown(f.id)}
-                    title="Ações"
-                  >
-                    <MoreVertical size={20} />
-                  </button>
-
-                  {openDropdown === f.id && (
-                    <div className={styles.dropdownMenu}>
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openChannels(f)}
-                      >
-                        <PlugZap size={16} />
-                        <span>Canais</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openStudio(f)}
-                      >
-                        <Bot size={16} />
-                        <span>Studio</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openTracker(f)}
-                      >
-                        <RouteIcon size={16} />
-                        <span>Tracker</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openQueues(f)}
-                      >
-                        <ListChecks size={16} />
-                        <span>Filas</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openAgents(f)}
-                      >
-                        <Headphones size={16} />
-                        <span>Atendentes</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openQuickReplies(f)}
-                      >
-                        <MessageSquare size={16} />
-                        <span>Respostas rápidas</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openTicketHistory(f)}
-                      >
-                        <History size={16} />
-                        <span>Histórico de ticket</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openCustomers(f)}
-                      >
-                        <IdCard size={16} />
-                        <span>Clientes</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Título / descrição */}
-              <div className={styles.cardTitle} title={f.name || "Sem nome"}>
-                {f.name || "Sem nome"}
-              </div>
-
-              <div
-                className={
-                  f.description ? styles.cardDesc : styles.cardDescMuted
-                }
-                title={f.description ? f.description : "Sem descrição"}
-              >
-                {f.description ? f.description : "Sem descrição"}
-              </div>
-
-              {/* Rodapé: canais vinculados */}
-              <div className={styles.cardFoot}>
-                {Array.isArray(f.channels) && f.channels.length ? (
-                  f.channels
-                    .filter((c) => c?.is_active)
-                    .slice(0, 8)
-                    .map((c, i) => (
-                      <span
-                        key={`${c.channel_type}-${i}`}
-                        title={c.display_name || c.channel_type}
-                        className={styles.channelBadge}
-                      >
-                        <BrandIcon type={c.channel_type} />
-                      </span>
-                    ))
-                ) : (
-                  <span className={styles.noChannels}>
-                    Nenhum canal vinculado
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showNewModal && (
-        <NewFlowModal
-          onClose={() => setShowNewModal(false)}
-          onCreate={async (form) => {
-            if (!form.name || !form.name.trim()) {
-              toast.warn("Informe um nome para o flow.");
-              return;
-            }
-            try {
-              const created = await apiPost("/flows", {
-                name: form.name.trim(),
-                description: form.description?.trim() || null,
-              });
-              toast.success(`Flow "${created?.name}" criado!`);
-              setShowNewModal(false);
-              await load();
-            } catch {
-              toast.error("Erro ao criar flow");
-            }
-          }}
-        />
-      )}
-    </div>
-  );
+/* Page */
+.page {
+  padding: 24px;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-/* ---------- Aux components ---------- */
+/* Header */
+.header {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow);
+  gap: 16px;
+}
 
-function NewFlowModal({ onClose, onCreate }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [touchedName, setTouchedName] = useState(false);
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 
-  const trimmed = name.trim();
-  const nameError =
-    touchedName && trimmed.length === 0
-      ? "Informe um nome para o flow."
-      : "";
-  const canSave = trimmed.length > 0;
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
 
-  const submit = () => {
-    if (!canSave) {
-      setTouchedName(true);
-      return;
-    }
-    onCreate({ name: trimmed, description });
-  };
+/* Buttons */
+.btnPrimary {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+}
 
-  return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHead}>
-          <strong>Novo Flow</strong>
-          <button onClick={onClose} className={styles.linkBtn}>
-            Fechar
-          </button>
-        </div>
+.btnPrimary:hover {
+  background: var(--brand-hover);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
 
-        <div className={styles.modalBody}>
-          <label className={styles.label} htmlFor="flow-name">
-            Nome<span className={styles.reqStar}>*</span>
-          </label>
-          <input
-            id="flow-name"
-            autoFocus
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => setTouchedName(true)}
-            placeholder="ex.: Atendimento"
-            aria-invalid={!!nameError}
-            className={`${styles.input} ${
-              nameError ? styles.inputInvalid : ""
-            }`}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submit();
-              }
-            }}
-          />
-          {nameError ? (
-            <div className={styles.fieldError}>{nameError}</div>
-          ) : null}
+.btnGhost {
+  background: #fff;
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 
-          <label className={styles.label} htmlFor="flow-desc">
-            Descrição (opcional)
-          </label>
-          <textarea
-            id="flow-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="breve descrição"
-            className={`${styles.input} ${styles.textarea}`}
-          />
-        </div>
+.btnGhost:hover {
+  background: var(--bg);
+  border-color: var(--text-muted);
+}
 
-        <div className={styles.modalFoot}>
-          <button onClick={onClose} className={styles.btnGhost}>
-            Cancelar
-          </button>
-          <button
-            disabled={!canSave}
-            onClick={submit}
-            className={`${styles.btnPrimary} ${
-              !canSave ? styles.btnDisabled : ""
-            }`}
-          >
-            Criar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+.btnDisabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.linkBtn {
+  background: transparent;
+  color: var(--brand);
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.linkBtn:hover {
+  background: var(--tag-bg);
+}
+
+/* Grid & cards */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: visible;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--text-muted);
+}
+
+/* Head do card: container do dropdown */
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 32px;
+}
+
+/* ===== DROPDOWN ===== */
+.dropdownContainer {
+  position: relative;
+}
+
+.dropdownTrigger {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.dropdownTrigger:hover {
+  background: var(--bg);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  min-width: 220px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  z-index: 100;
+  animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: left;
+}
+
+.dropdownItem:hover {
+  background: var(--bg);
+  color: var(--brand);
+}
+
+.dropdownItem svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.dropdownItem:hover svg {
+  color: var(--brand);
+}
+
+/* Title & description */
+.cardTitle {
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--text-primary);
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.cardDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.cardDescMuted {
+  composes: cardDesc;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* Footer */
+.cardFoot {
+  border-top: 1px solid var(--border-light);
+  padding-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.channelBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: all 0.2s ease;
+}
+
+.channelBadge:hover {
+  background: #fff;
+  border-color: var(--text-muted);
+  transform: scale(1.05);
+}
+
+.noChannels {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Empty state */
+.emptyHint {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 48px 24px;
+  font-size: 15px;
+}
+
+/* Modal */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: min(540px, 96vw);
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modalHead strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.modalBody {
+  display: grid;
+  gap: 16px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.input,
+.textarea {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--panel-bg);
+  transition: all 0.2s ease;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.textarea {
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.modalFoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Validation */
+.inputInvalid {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.fieldError {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reqStar {
+  color: var(--danger);
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .titleRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dropdownMenu {
+    right: 0;
+    min-width: 200px;
+  }
 }
