@@ -126,14 +126,6 @@ export default function Queues() {
     }
   }
 
-  const goBack = () => {
-    if (inFlowContext) {
-      navigate("/development/flowhub");
-    } else {
-      navigate(-1);
-    }
-  };
-
   const handleNewQueue = () => {
     navigate("/development/queues/new", { state: { flowId } });
   };
@@ -163,7 +155,7 @@ export default function Queues() {
           <button
             type="button"
             className={styles.btn}
-            onClick={goBack}
+            onClick={() => navigate(-1)}
             title="Voltar"
           >
             <ArrowLeft size={16} />
