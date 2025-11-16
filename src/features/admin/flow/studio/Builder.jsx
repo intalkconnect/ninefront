@@ -15,16 +15,16 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { toast } from "react-toastify";
-import { apiGet, apiPost, apiPut } from "../../../shared/apiClient";
+import { apiGet, apiPost, apiPut } from "../../../../shared/apiClient";
 
-import { nodeTemplates } from "./studio/components/NodeTemplates";
-import VersionHistoryModal from "./studio/components/VersionControlModal";
-import MacDock from "./studio/components/MacDock";
-import { useConfirm } from "../../../app/provider/ConfirmProvider.jsx";
+import { nodeTemplates } from "./components/NodeTemplates";
+import VersionHistoryModal from "./components/VersionControlModal";
+import MacDock from "./components/MacDock";
+import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 
-import ScriptEditor from "./studio/components/editor/scriptEditor";
-import NodeQuadrado from "./studio/components/NodeQuadrado";
-import NodeConfigPanel from "./studio/components/NodeConfigPanel";
+import ScriptEditor from "./components/editor/scriptEditor";
+import NodeQuadrado from "./components/NodeQuadrado";
+import NodeConfigPanel from "./components/NodeConfigPanel";
 import {
   Zap,
   MessageCircle,
