@@ -1045,7 +1045,7 @@ function run(context) {
       >
         <button
           onClick={() => navigate(-1)}
-          title="Voltar ao FlowHub"
+          title="Voltar"
           style={{
             border: `1px solid ${THEME.border}`,
             background: "#fff",
