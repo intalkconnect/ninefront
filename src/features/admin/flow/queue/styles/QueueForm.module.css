@@ -2,7 +2,7 @@
   --border:#e5e7eb; --border2:#eef2f7;
   --text:#0f172a; --text2:#374151; --muted:#6b7280;
   --brand:#3b82f6; --brand-600:#2563eb; --brand-100:rgba(59,130,246,.14);
-  --bg:#f7f8fb; --card:#fff;
+  --card:#fff;
   --shadow-sm:0 1px 3px rgba(2,6,23,.08);
   --shadow-md:0 8px 24px rgba(2,6,23,.12);
 }
@@ -12,7 +12,6 @@
   padding:20px 24px 96px;
   max-width:1400px;
   margin:0 auto;
-  background:var(--bg);
 }
 
 /* ================= HEADER NO PADRÃO DAS OUTRAS TELAS ================= */
