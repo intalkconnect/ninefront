@@ -215,10 +215,6 @@ export default function QueueHours() {
     }
   };
 
-  const goBack = () => {
-    navigate(baseQueuesPath);
-  };
-
   return (
     <div className={css.page}>
       {/* HEADER NO MESMO PADRÃO DO FLOW/QUEUES */}
@@ -228,7 +224,7 @@ export default function QueueHours() {
           <button
             type="button"
             className={css.btn}
-            onClick={goBack}
+            onClick={() => navigate(-1)}
             title="Voltar"
           >
             <ArrowLeft size={16} />
