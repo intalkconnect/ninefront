@@ -4,11 +4,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { apiGet } from "../../../shared/apiClient";
 import { toast } from "react-toastify";
 
-import WhatsAppEmbeddedSignupButton from "./channels/components/WhatsAppEmbeddedSignupButton";
-import FacebookConnectButton from "./channels/components/FacebookConnectButton";
-import InstagramConnectButton from "./channels/components/InstagramConnectButton";
-import LogoLoader from "../../../components/common/LogoLoader";
-import BrandIcon from "./BrandIcon";
+import WhatsAppEmbeddedSignupButton from "./components/WhatsAppEmbeddedSignupButton";
+import FacebookConnectButton from "./components/FacebookConnectButton";
+import InstagramConnectButton from "./components/InstagramConnectButton";
+import LogoLoader from "../../../../components/common/LogoLoader";
+import BrandIcon from "../BrandIcon";
 
 import styles from "./styles/FlowChannels.module.css";
 
