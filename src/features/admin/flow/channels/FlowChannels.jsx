@@ -148,7 +148,7 @@ export default function FlowChannels() {
       <div className={styles.header}>
         <div className={styles.titleRow}>
           <button
-            onClick={() => navigate("/development/flowhub")}
+            onClick={() => navigate(-1)}
             className={styles.btn}
             title="Voltar"
           >
