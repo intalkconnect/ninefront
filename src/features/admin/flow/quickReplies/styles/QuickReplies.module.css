@@ -1,6 +1,5 @@
 /* src/pages/QuickReplies/styles/QuickReplies.module.css */
 :root {
-  --q-bg: #f8fafc;
   --q-panel: #ffffff;
   --q-text: #0f172a;
   --q-text-secondary: #475569;
@@ -28,7 +27,6 @@
   max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
-  background: var(--q-bg);
 }
 
 /* HEADER CARD */
