@@ -8,6 +8,7 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
   --brand: #3b82f6;
   --brand-hover: #2563eb;
   --tag-bg: #eff6ff;
@@ -15,6 +16,7 @@
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
+  --bg: #f8fafc;
 }
 
 /* Page */
@@ -49,7 +51,7 @@
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--q-text);
+  color: var(--text-primary);
 }
 
 /* Buttons */
@@ -120,9 +122,7 @@
 /* Grid & cards */
 .grid {
   display: grid;
-  /* principal ajuste: card um pouco mais largo
-     pra caber os 7 botões com folga dos lados */
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 20px;
 }
 
@@ -137,7 +137,7 @@
   box-shadow: var(--shadow);
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .card:hover {
@@ -146,27 +146,26 @@
   border-color: var(--text-muted);
 }
 
-/* Head do card: linha de ícones */
+/* Head do card: container do dropdown */
 .cardHead {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
+  min-height: 32px;
 }
 
-.cardHeadActions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
+/* ===== DROPDOWN ===== */
+.dropdownContainer {
+  position: relative;
 }
 
-/* botão de ação */
-.iconButton {
-  width: 36px;
-  height: 36px;
+.dropdownTrigger {
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: #fff;
   cursor: pointer;
@@ -174,24 +173,67 @@
   color: var(--text-secondary);
 }
 
-.iconButton:hover {
+.dropdownTrigger:hover {
   background: var(--bg);
   border-color: var(--text-muted);
   color: var(--text-primary);
 }
 
-/* Tag (se quiser voltar a usar em algum lugar) */
-.tagFlow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 12px;
+.dropdownMenu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  min-width: 220px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: var(--tag-bg);
-  color: var(--tag-fg);
-  border: 1px solid rgba(30, 64, 175, 0.1);
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  z-index: 100;
+  animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: left;
+}
+
+.dropdownItem:hover {
+  background: var(--bg);
+  color: var(--brand);
+}
+
+.dropdownItem svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.dropdownItem:hover svg {
+  color: var(--brand);
 }
 
 /* Title & description */
@@ -321,11 +363,10 @@
   margin-bottom: 20px;
 }
 
-.modalHead h2 {
+.modalHead strong {
   font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0;
 }
 
 .modalBody {
@@ -395,95 +436,6 @@
   font-weight: 700;
 }
 
-/* Variantes coloridas dos botões de ação */
-.iconButton_channels {
-  border-color: rgba(59, 130, 246, 0.3);
-  background: #eff6ff;
-  color: var(--brand);
-}
-
-.iconButton_channels:hover {
-  background: #dbeafe;
-  border-color: var(--brand-hover);
-}
-
-.iconButton_studio {
-  border-color: rgba(129, 140, 248, 0.35);
-  background: #eef2ff;
-  color: #4f46e5;
-}
-
-.iconButton_studio:hover {
-  background: #e0e7ff;
-  border-color: #4f46e5;
-}
-
-.iconButton_queues {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: #fffbeb;
-  color: var(--warning);
-}
-
-.iconButton_queues:hover {
-  background: #fef3c7;
-  border-color: #f59e0b;
-}
-
-.iconButton_agents {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: #ecfdf5;
-  color: var(--success);
-}
-
-.iconButton_agents:hover {
-  background: #d1fae5;
-  border-color: #10b981;
-}
-
-.iconButton_quick {
-  border-color: rgba(59, 130, 246, 0.3);
-  background: #e0f2fe;
-  color: #0284c7;
-}
-
-.iconButton_quick:hover {
-  background: #bae6fd;
-  border-color: #0284c7;
-}
-
-.iconButton_history {
-  border-color: rgba(148, 163, 184, 0.4);
-  background: #f8fafc;
-  color: #0f172a;
-}
-
-.iconButton_history:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
-}
-
-.iconButton_customers {
-  border-color: rgba(99, 102, 241, 0.35);
-  background: #eef2ff;
-  color: #4f46e5;
-}
-
-.iconButton_customers:hover {
-  background: #e0e7ff;
-  border-color: #4f46e5;
-}
-
-.iconButton_tracker {
-  border-color: rgba(56, 189, 248, 0.35);
-  background: #ecfeff;
-  color: #0891b2;
-}
-
-.iconButton_tracker:hover {
-  background: #cffafe;
-  border-color: #06b6d4;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .page {
@@ -503,5 +455,10 @@
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .dropdownMenu {
+    right: 0;
+    min-width: 200px;
   }
 }
