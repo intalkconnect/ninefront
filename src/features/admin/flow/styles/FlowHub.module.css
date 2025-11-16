@@ -146,12 +146,13 @@
   border-color: var(--text-muted);
 }
 
-/* Head do card: container do dropdown */
+/* Head do card: título + dropdown */
 .cardHead {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-height: 32px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 /* ===== DROPDOWN ===== */
@@ -162,6 +163,7 @@
 .dropdownTrigger {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -242,13 +244,14 @@
   font-size: 18px;
   line-height: 1.3;
   color: var(--text-primary);
-  margin-top: 4px;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: break-word;
+  flex: 1;
+  min-width: 0;
 }
 
 .cardDesc {
