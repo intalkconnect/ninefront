@@ -2,7 +2,6 @@
 
 /* TOKENS */
 :root {
-  --th-bg: #f8fafc;
   --th-panel: #ffffff;
   --th-text: #0f172a;
   --th-text-secondary: #475569;
@@ -24,7 +23,6 @@
   max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
-  background: var(--th-bg);
 }
 
 /* HEADER CARD */
