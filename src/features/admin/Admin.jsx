@@ -56,8 +56,8 @@ import { apiGet, setActorContext } from "../../shared/apiClient";
 import Preferences from "./preferences/settings/Settings";
 import ClientsMonitor from "./monitoring/clientsMonitor/ClientsMonitor";
 import AgentsMonitor from "./monitoring/agentsMonitor/AgentsMonitor";
-import JourneyTracker from "./monitoring/journeyTracker/JourneyTracker";
-import JourneyBeholder from "./monitoring/journeyTracker/JourneyBeholder";
+import JourneyTracker from "./flow/journeyTracker/JourneyTracker";
+import JourneyBeholder from "./flow/journeyTracker/JourneyBeholder";
 
 import QuickReplies from "./flow/quickReplies/QuickReplies";
 import Templates from "./campaigns/template/Templates";
@@ -1001,25 +1001,23 @@ export default function Admin() {
   path="/development/flowhub/:flowId/customers"
   element={<Customers />}
 />
-          <Route
-            path="development/tracker"
-            element={
-              <RequireRole allow={isAdmin}>
-                <JourneyTracker />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/development/tracker/:userId"
-            element={
-              <RequireRole allow={isAdmin}>
-                <JourneyBeholder />
-              </RequireRole>
-            }
-          />
+<Route
+  path="/development/flowhub/:flowId/tracker"
+  element={
+    <RequireRole allow={isAdmin}>
+      <JourneyTracker />
+    </RequireRole>
+  }
+/>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+<Route
+  path="/development/flowhub/:flowId/tracker/:userId"
+  element={
+    <RequireRole allow={isAdmin}>
+      <JourneyBeholder />
+    </RequireRole>
+  }
+/>
       </main>
     </div>
   );
