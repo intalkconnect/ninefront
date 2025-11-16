@@ -41,7 +41,7 @@ import {
 } from "react-router-dom";
 
 import FlowHub from "./flow/FlowHub";
-import Builder from "./flow/Builder";
+import Builder from "./flow/studio/Builder";
 import FlowChannels from "./flow/FlowChannels";
 import Queues from "./flow/queue/Queues";
 import QueueForm from "./flow/queue/QueueForm";
