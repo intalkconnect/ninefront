@@ -260,7 +260,6 @@ export default function WhatsAppProfile() {
       <div className={styles.pageHeader}>
         <div className={styles.titleWrap}>
           <h1 className={styles.title}>WhatsApp - Perfil</h1>
-          <div className={styles.metaRow}>{metaLine}</div>
         </div>
         <div className={styles.headerActions}>
           <button className={styles.backBtn} onClick={() => navigate(backTo)}>
