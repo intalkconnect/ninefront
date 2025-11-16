@@ -1019,6 +1019,6 @@ export default function Admin() {
   }
 />
       </main>
-    </div>
+
   );
 }
