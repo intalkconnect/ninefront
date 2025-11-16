@@ -151,8 +151,12 @@ export default function FlowHub() {
         <div className={styles.grid}>
           {rows.map((f) => (
             <div key={f.id} className={styles.card}>
-              {/* Cabeçalho do card: apenas dropdown */}
+              {/* Cabeçalho do card: título e dropdown na mesma linha */}
               <div className={styles.cardHead}>
+                <h3 className={styles.cardTitle} title={f.name || "Sem nome"}>
+                  {f.name || "Sem nome"}
+                </h3>
+
                 <div className={styles.dropdownContainer}>
                   <button
                     className={styles.dropdownTrigger}
@@ -232,19 +236,14 @@ export default function FlowHub() {
                 </div>
               </div>
 
-              {/* Título / descrição */}
-              <div className={styles.cardTitle} title={f.name || "Sem nome"}>
-                {f.name || "Sem nome"}
-              </div>
-
-              <div
+              <p
                 className={
                   f.description ? styles.cardDesc : styles.cardDescMuted
                 }
                 title={f.description ? f.description : "Sem descrição"}
               >
                 {f.description ? f.description : "Sem descrição"}
-              </div>
+              </p>
 
               {/* Rodapé: canais vinculados */}
               <div className={styles.cardFoot}>
