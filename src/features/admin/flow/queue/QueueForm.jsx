@@ -500,8 +500,6 @@ export default function QueueForm() {
     }
   }
 
-  const goBack = () => navigate(baseQueuesPath);
-
   return (
     <div className={styles.page} ref={topRef}>
       {/* HEADER NO MESMO PADRÃO DAS OUTRAS TELAS */}
@@ -510,7 +508,7 @@ export default function QueueForm() {
           <button
             type="button"
             className={styles.btn}
-            onClick={goBack}
+            onClick={() => navigate(-1)}
             title="Voltar"
           >
             <ArrowLeft size={16} />
