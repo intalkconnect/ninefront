@@ -391,13 +391,6 @@ export default function Customers() {
 
         <div className={styles.headerCenter}>
           <div className={styles.headerTitle}>Clientes</div>
-          {inFlowContext && (
-            <div className={styles.flowInfo}>
-              <span className={styles.dim}>Flow</span>
-              <span className={styles.sep}>•</span>
-              <span className={styles.flowIdMono}>{flowId}</span>
-            </div>
-          )}
         </div>
 
         <div className={styles.headerRight}>
