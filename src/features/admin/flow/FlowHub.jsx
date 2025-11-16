@@ -10,6 +10,7 @@ import {
   MessageSquare,
   History,
   IdCard,
+  Route as RouteIcon,
 } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "./BrandIcon";
@@ -87,6 +88,11 @@ export default function FlowHub() {
       state: { from: "/development/flowhub", meta: { flowId: f.id } },
     });
 
+    const openTracker = (f) =>
+    navigate(`/development/flowhub/${f.id}/tracker`, {
+      state: { from: "/development/flowhub", meta: { flowId: f.id } },
+    });
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -129,6 +135,14 @@ export default function FlowHub() {
                     variant="studio"
                   >
                     <Bot size={16} />
+                  </IconButton>
+
+                   <IconButton
+                    title="Tracker"
+                    onClick={() => openTracker(f)}
+                    variant="tracker"
+                  >
+                    <RouteIcon size={16} />
                   </IconButton>
 
                   <IconButton
