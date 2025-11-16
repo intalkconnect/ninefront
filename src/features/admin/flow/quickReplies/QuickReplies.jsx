@@ -79,14 +79,6 @@ export default function QuickReplies() {
 
   const clearSearch = () => setQuery("");
 
-  function goBack() {
-    if (inFlowContext) {
-      navigate("/development/flowhub");
-    } else {
-      navigate(-1);
-    }
-  }
-
   function startEdit(item) {
     setEditingId(item.id);
     setEditTitle(item.title || "");
@@ -165,7 +157,7 @@ export default function QuickReplies() {
           <button
             type="button"
             className={styles.btn}
-            onClick={goBack}
+            onClick={() => navigate(-1)}
             title="Voltar"
           >
             <ArrowLeft size={16} />
