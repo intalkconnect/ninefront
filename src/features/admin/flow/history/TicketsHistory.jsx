@@ -257,7 +257,7 @@ export default function TicketsHistory() {
                       tabIndex={0}
                       onClick={() =>
                         navigate(
-                          `/workflow/hub/${encodeURIComponent(
+                          `/workflows/w/hub/${encodeURIComponent(
                             flowId
                           )}/ticket-history/${t.id}`,
                           {
