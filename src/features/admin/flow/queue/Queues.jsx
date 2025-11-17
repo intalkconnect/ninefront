@@ -24,8 +24,7 @@ export default function Queues() {
   const location = useLocation();
   const params = useParams();
 
-  // flowId pode vir da URL (ex.: /workflows/hub/:flowId/queues)
-  // ou do state enviado pelo FlowHub
+  // rota: /workflows/hub/:flowId/queues
   const flowId =
     params.flowId ||
     location.state?.flowId ||
@@ -132,7 +131,7 @@ export default function Queues() {
     }
   }
 
-  // base de rota respeitando ou não contexto de flow
+  // ✅ basePath respeitando :flowId na URL
   const basePath = inFlowContext
     ? `/workflows/hub/${encodeURIComponent(flowId)}/queues`
     : `/workflows/hub/queues`;
