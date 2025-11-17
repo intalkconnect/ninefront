@@ -358,7 +358,7 @@ export default function AgentsForm() {
               <button
                 type="button"
                 className={styles.btnGhost}
-                onClick={handleCancel}
+                onClick={() => navigate(-1)}
               >
                 Cancelar
               </button>
