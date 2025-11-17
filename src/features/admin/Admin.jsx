@@ -336,10 +336,10 @@ export default function Admin() {
         ],
       },
 {
-  key: "workflow",
-  label: "Workflow",
+  key: "workflows",
+  label: "Workflows",
   icon: <Workflow size={18} />,
-  to: "workflow/hub",   // 👈 rota que será aberta ao clicar
+  to: "workflows/hub",   // 👈 rota que será aberta ao clicar
   exact: false,               // opcional, se quiser controlar match exato
 },
       {
@@ -893,12 +893,12 @@ export default function Admin() {
           />
 
           {/* channels */}
-          <Route path="workflow/hub/channels/whatsapp" element={<WhatsAppProfile />} />
-          <Route path="workflow/hub/channels/telegram" element={<TelegramConnect />} />
+          <Route path="workflows/hub/channels/whatsapp" element={<WhatsAppProfile />} />
+          <Route path="workflows/hub/channels/telegram" element={<TelegramConnect />} />
 
           {/* development – admin only */}
           <Route
-            path="workflow/hub"
+            path="workflows/hub"
             element={
               <RequireRole allow={isAdmin}>
                 <FlowHub />
@@ -906,7 +906,7 @@ export default function Admin() {
             }
           />
           <Route
-            path="workflow/hub/:flowId/channels"
+            path="workflows/hub/:flowId/channels"
             element={
               <RequireRole allow={isAdmin}>
                 <FlowChannels />
@@ -914,11 +914,11 @@ export default function Admin() {
             }
           />
           <Route
-            path="workflow/hub/:flowId/quick-replies"
+            path="workflows/hub/:flowId/quick-replies"
             element={<QuickReplies />}
           />
           <Route
-            path="workflow/hub/studio/:flowId"
+            path="workflows/hub/studio/:flowId"
             element={
               <RequireRole allow={isAdmin}>
                 <Builder />
@@ -926,7 +926,7 @@ export default function Admin() {
             }
           />
           <Route
-            path="workflow/hub/:flowId/queues"
+            path="workflows/hub/:flowId/queues"
             element={
               <RequireRole allow={isAdmin}>
                 <Queues />
@@ -936,7 +936,7 @@ export default function Admin() {
 
           {/* development – queues (new / edit / hours) */}
           <Route
-            path="workflow/hub/queues/new"
+            path="workflows/hub/queues/new"
             element={
               <RequireRole allow={isAdmin}>
                 <QueueForm />
@@ -944,7 +944,7 @@ export default function Admin() {
             }
           />
           <Route
-            path="workflow/hub/queues/:id"
+            path="workflows/hub/queues/:id"
             element={
               <RequireRole allow={isAdmin}>
                 <QueueForm />
@@ -952,7 +952,7 @@ export default function Admin() {
             }
           />
           <Route
-            path="workflow/hub/queues/:name/hours"
+            path="workflows/hub/queues/:name/hours"
             element={
               <RequireRole allow={isAdmin}>
                 <QueueHours />
@@ -961,34 +961,34 @@ export default function Admin() {
           />
 
           <Route
-            path="workflow/hub/:flowId/agents"
+            path="workflows/hub/:flowId/agents"
             element={<Agents />}
           />
           <Route
-            path="workflow/hub/:flowId/agents/new"
+            path="workflows/hub/:flowId/agents/new"
             element={<AgentsForm />}
           />
           <Route
-            path="workflow/hub/:flowId/agents/:userId/edit"
+            path="workflows/hub/:flowId/agents/:userId/edit"
             element={<AgentsForm />}
           />
 
           <Route
-            path="workflow/hub/:flowId/ticket-history"
+            path="workflows/hub/:flowId/ticket-history"
             element={<TicketsHistory />}
           />
           <Route
-            path="workflow/hub/:flowId/ticket-history/:id"
+            path="workflows/hub/:flowId/ticket-history/:id"
             element={<TicketDetail />}
           />
 
           <Route
-            path="workflow/hub/:flowId/customers"
+            path="workflows/hub/:flowId/customers"
             element={<Customers />}
           />
 
           <Route
-            path="workflow/hub/:flowId/tracker"
+            path="workflows/hub/:flowId/tracker"
             element={
               <RequireRole allow={isAdmin}>
                 <JourneyTracker />
@@ -996,7 +996,7 @@ export default function Admin() {
             }
           />
           <Route
-            path="workflow/hub/:flowId/tracker/:userId"
+            path="workflows/hub/:flowId/tracker/:userId"
             element={
               <RequireRole allow={isAdmin}>
                 <JourneyBeholder />
