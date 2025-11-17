@@ -36,7 +36,7 @@ const fmtBytes = (n) => {
 
 export default function TicketDetail() {
   const { id, flowId: flowIdParam } = useParams();
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const location = useLocation();
 
   // flowId pode vir da URL (FlowHub) ou do state
