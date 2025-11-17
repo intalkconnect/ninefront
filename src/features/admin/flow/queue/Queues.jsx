@@ -24,7 +24,7 @@ export default function Queues() {
   const location = useLocation();
   const params = useParams();
 
-  // flowId pode vir da URL (ex.: /development/flowhub/:flowId/queues)
+  // flowId pode vir da URL (ex.: /workflows/hub/:flowId/queues)
   // ou do state enviado pelo FlowHub
   const flowId =
     params.flowId ||
@@ -46,7 +46,13 @@ export default function Queues() {
     if (!c) return null;
     if (!c.startsWith("#")) c = `#${c}`;
     if (/^#([0-9a-fA-F]{3})$/.test(c)) {
-      c = "#" + c.slice(1).split("").map((ch) => ch + ch).join("");
+      c =
+        "#" +
+        c
+          .slice(1)
+          .split("")
+          .map((ch) => ch + ch)
+          .join("");
     }
     return /^#([0-9a-fA-F]{6})$/.test(c) ? c.toUpperCase() : null;
   };
@@ -126,14 +132,19 @@ export default function Queues() {
     }
   }
 
+  // base de rota respeitando ou não contexto de flow
+  const basePath = inFlowContext
+    ? `/workflows/hub/${encodeURIComponent(flowId)}/queues`
+    : `/workflows/hub/queues`;
+
   const handleNewQueue = () => {
-    navigate("/workflows//hub/queues/new", { state: { flowId } });
+    navigate(`${basePath}/new`, { state: { flowId } });
   };
 
   const handleEdit = (queue) => {
     const id = queue.id ?? queue.nome ?? queue.name;
     if (!id) return;
-    navigate(`/workflows//hub/queues/${encodeURIComponent(id)}`, {
+    navigate(`${basePath}/${encodeURIComponent(id)}`, {
       state: { flowId },
     });
   };
@@ -141,7 +152,7 @@ export default function Queues() {
   const handleHours = (queue) => {
     const nomeFila = queue.nome ?? queue.name ?? "";
     if (!nomeFila) return;
-    navigate(`/workflows//hub/queues/${encodeURIComponent(nomeFila)}/hours`, {
+    navigate(`${basePath}/${encodeURIComponent(nomeFila)}/hours`, {
       state: { flowId },
     });
   };
@@ -164,9 +175,7 @@ export default function Queues() {
 
           {/* Título centralizado */}
           <div className={styles.headerCenter}>
-            <div className={styles.title}>
-              Filas
-            </div>
+            <div className={styles.headerTitle}>Filas</div>
           </div>
 
           {/* Direita: busca + nova fila + recarregar */}
@@ -194,7 +203,7 @@ export default function Queues() {
 
             <button
               type="button"
-              className={`${styles.btnPrimary} ${styles.iconBtn}`}
+              className={`${styles.iconBtn} ${styles.btnPrimary}`}
               onClick={handleNewQueue}
               title="Nova fila"
               aria-label="Nova fila"
@@ -204,7 +213,7 @@ export default function Queues() {
 
             <button
               type="button"
-              className={`${styles.btn} ${styles.iconBtn}`}
+              className={`${styles.iconBtn} ${styles.btnGhost}`}
               onClick={load}
               title="Recarregar"
               aria-label="Recarregar"
@@ -242,11 +251,9 @@ export default function Queues() {
                       />
                       <span className={styles.queueName}>{nomeFila}</span>
                       <span
-                        className={
-                          ativa
-                            ? styles.statusChipOk
-                            : styles.statusChipOff
-                        }
+                        className={`${styles.statusChip} ${
+                          ativa ? styles.statusChipOk : styles.statusChipOff
+                        }`}
                       >
                         {ativa ? "Ativa" : "Inativa"}
                       </span>
