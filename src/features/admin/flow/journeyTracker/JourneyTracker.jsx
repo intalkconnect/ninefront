@@ -333,8 +333,8 @@ export default function CustomerJourneyTracker({ onOpenJourney }) {
                           } else {
                             // navegação SPA respeitando o contexto de flow (se existir)
                             const base = inFlowContext
-                              ? `/workflow/hub/${encodeURIComponent(flowId)}/tracker`
-                              : `/workflow/hub/tracker`;
+                              ? `/workflows//hub/${encodeURIComponent(flowId)}/tracker`
+                              : `/workflows//hub/tracker`;
                             navigate(`${base}/${encodeURIComponent(r.user_id)}`, {
                               state: { meta: { flowId } },
                             });
