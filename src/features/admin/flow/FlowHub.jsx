@@ -68,22 +68,22 @@ export default function FlowHub() {
 
   const openStudio = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/studio/${f.id}`, {
+    navigate(`/workflows/hub/studio/${f.id}`, {
       state: { meta: { flowId: f.id, name: f.name } },
     });
   };
 
   const openChannels = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/${f.id}/channels`, {
-      state: { from: "/workflows//hub" },
+    navigate(`/workflows/hub/${f.id}/channels`, {
+      state: { from: "/workflows/hub" },
     });
   };
 
   const openQueues = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/${f.id}/queues`, {
-      state: { from: "/workflows//hub", meta: { flowId: f.id } },
+    navigate(`/workflows/hub/${f.id}/queues`, {
+      state: { from: "/workflows/hub", meta: { flowId: f.id } },
     });
   };
 
@@ -103,22 +103,22 @@ export default function FlowHub() {
 
   const openTicketHistory = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/${f.id}/ticket-history`, {
-      state: { from: "/workflows//hub", meta: { flowId: f.id } },
+    navigate(`/workflows/hub/${f.id}/ticket-history`, {
+      state: { from: "/workflows/hub", meta: { flowId: f.id } },
     });
   };
 
   const openQuickReplies = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/${f.id}/quick-replies`, {
-      state: { from: "/workflows//hub", meta: { flowId: f.id } },
+    navigate(`/workflows/hub/${f.id}/quick-replies`, {
+      state: { from: "/workflows/hub", meta: { flowId: f.id } },
     });
   };
 
   const openTracker = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/${f.id}/tracker`, {
-      state: { from: "/workflows//hub", meta: { flowId: f.id } },
+    navigate(`/workflows/hub/${f.id}/tracker`, {
+      state: { from: "/workflows/hub", meta: { flowId: f.id } },
     });
   };
 
@@ -130,7 +130,7 @@ export default function FlowHub() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div className={styles.titleRow}>
-          <span className={styles.title}>workflows/ Hub</span>
+          <span className={styles.title}>Workflows Hub</span>
         </div>
 
         <button
