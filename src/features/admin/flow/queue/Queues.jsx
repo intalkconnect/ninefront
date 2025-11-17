@@ -127,13 +127,13 @@ export default function Queues() {
   }
 
   const handleNewQueue = () => {
-    navigate("/workflow/hub/queues/new", { state: { flowId } });
+    navigate("/workflows//hub/queues/new", { state: { flowId } });
   };
 
   const handleEdit = (queue) => {
     const id = queue.id ?? queue.nome ?? queue.name;
     if (!id) return;
-    navigate(`/workflow/hub/queues/${encodeURIComponent(id)}`, {
+    navigate(`/workflows//hub/queues/${encodeURIComponent(id)}`, {
       state: { flowId },
     });
   };
@@ -141,7 +141,7 @@ export default function Queues() {
   const handleHours = (queue) => {
     const nomeFila = queue.nome ?? queue.name ?? "";
     if (!nomeFila) return;
-    navigate(`/workflow/hub/queues/${encodeURIComponent(nomeFila)}/hours`, {
+    navigate(`/workflows//hub/queues/${encodeURIComponent(nomeFila)}/hours`, {
       state: { flowId },
     });
   };
