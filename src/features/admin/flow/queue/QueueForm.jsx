@@ -796,7 +796,7 @@ export default function QueueForm() {
               <button
                 type="button"
                 className={styles.btnGhost}
-                onClick={goBack}
+                onClick={() => navigate(-1)}
               >
                 Cancelar
               </button>
