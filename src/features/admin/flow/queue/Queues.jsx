@@ -24,14 +24,12 @@ export default function Queues() {
   const location = useLocation();
   const params = useParams();
 
-  // rota: /workflows/hub/:flowId/queues
+  // rota da lista: /workflows/hub/:flowId/queues
   const flowId =
     params.flowId ||
     location.state?.flowId ||
     location.state?.meta?.flowId ||
     null;
-
-  const inFlowContext = !!flowId;
 
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -131,19 +129,17 @@ export default function Queues() {
     }
   }
 
-  // ✅ basePath respeitando :flowId na URL
-  const basePath = inFlowContext
-    ? `/workflows/hub/${encodeURIComponent(flowId)}/queues`
-    : `/workflows/hub/queues`;
+  // 🔹 base das rotas de formulário (sem :flowId), igual em Admin.jsx
+  const formBasePath = "/workflows/hub/queues";
 
   const handleNewQueue = () => {
-    navigate(`${basePath}/new`, { state: { flowId } });
+    navigate(`${formBasePath}/new`, { state: { flowId } });
   };
 
   const handleEdit = (queue) => {
     const id = queue.id ?? queue.nome ?? queue.name;
     if (!id) return;
-    navigate(`${basePath}/${encodeURIComponent(id)}`, {
+    navigate(`${formBasePath}/${encodeURIComponent(id)}`, {
       state: { flowId },
     });
   };
@@ -151,7 +147,7 @@ export default function Queues() {
   const handleHours = (queue) => {
     const nomeFila = queue.nome ?? queue.name ?? "";
     if (!nomeFila) return;
-    navigate(`${basePath}/${encodeURIComponent(nomeFila)}/hours`, {
+    navigate(`${formBasePath}/${encodeURIComponent(nomeFila)}/hours`, {
       state: { flowId },
     });
   };
