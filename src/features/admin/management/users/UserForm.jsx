@@ -5,8 +5,8 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { Save } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Save, ArrowLeft } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 import styles from "./styles/UserForm.module.css";
@@ -90,7 +90,7 @@ export default function UserForm() {
           name: "",
           lastname: "",
           email: "",
-          perfil: "atendente", // novo usuário sempre atendente
+          perfil: "atendente",
           filas: [],
         });
       }
@@ -99,9 +99,6 @@ export default function UserForm() {
       toast.error("Falha ao carregar dados.");
     } finally {
       setLoading(false);
-      requestAnimationFrame(() =>
-        topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-      );
     }
   }, [isEdit, userId, flowId]);
 
@@ -170,36 +167,65 @@ export default function UserForm() {
   };
 
   return (
-    <div className={styles.page} ref={topRef}>
-      {/* Breadcrumbs */}
-      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-        <ol className={styles.bcList}>
-          <li>
-            <Link to="/management/users" className={styles.bcLink}>
-              Usuários
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <span className={styles.bcCurrent}>
-              {isEdit ? `Editar ${userId}` : "Novo atendente"}
-            </span>
-          </li>
-        </ol>
-      </nav>
+    <div className={styles.container} ref={topRef}>
+      {/* HEADER NO PADRÃO DAS OUTRAS TELAS */}
+      <div className={styles.headerCard}>
+        <div className={styles.headerRow}>
+          <button
+            onClick={handleCancel}
+            type="button"
+            className={styles.backBtn}
+            title="Voltar"
+          >
+            <ArrowLeft size={14} />
+            <span>Voltar</span>
+          </button>
 
-      {/* Título/descrição */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.pageTitle}>
-            {isEdit ? "Editar usuário" : "Novo atendente"}
-          </h1>
-          <p className={styles.subtitle}>
-            Preencha os dados básicos e vincule o atendente às filas
-            correspondentes.
-          </p>
+          <div className={styles.headerCenter}>
+            <div className={styles.headerTitle}>
+              {isEdit ? "Editar Usuário" : "Novo Atendente"}
+            </div>
+            <div className={styles.headerSubtitle}>
+              {isEdit
+                ? "Atualize os dados e filas vinculadas."
+                : "Preencha os dados básicos e vincule às filas correspondentes."}
+            </div>
+          </div>
+
+          <div className={styles.headerRight}>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleSave}
+              disabled={!canSubmit}
+            >
+              <Save size={16} />
+              {saving ? "Salvando…" : "Salvar"}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Alertas */}
+      {(err || isTryingToSaveAsAdmin) && (
+        <div className={styles.alertsStack}>
+          {err && (
+            <div className={styles.alertErr}>
+              <div className={styles.alertIcon}>⚠</div>
+              <span>{err}</span>
+            </div>
+          )}
+          {isTryingToSaveAsAdmin && (
+            <div className={styles.alertErr}>
+              <div className={styles.alertIcon}>⚠</div>
+              <span>
+                Seu perfil não permite definir "Admin". Selecione outro perfil
+                para continuar.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Conteúdo */}
       {loading ? (
@@ -209,79 +235,73 @@ export default function UserForm() {
         </div>
       ) : (
         <>
-          {err && <div className={styles.alert}>{err}</div>}
-          {isTryingToSaveAsAdmin && (
-            <div className={styles.alert}>
-              Seu perfil não permite definir "Admin". Selecione outro perfil
-              para continuar.
-            </div>
-          )}
-
           {/* Identificação */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Identificação</h2>
-              <p className={styles.cardDesc}>
+              <div className={styles.cardTitle}>Identificação</div>
+              <div className={styles.cardDesc}>
                 Informações básicas do atendente.
-              </p>
+              </div>
             </div>
-            <div className={styles.cardBodyGrid3}>
-              <div className={styles.group}>
-                <label className={styles.label}>
-                  Nome <span className={styles.req}>(obrigatório)</span>
-                </label>
-                <input
-                  className={`${styles.input} ${
-                    touched.name && nameInvalid ? styles.invalid : ""
-                  }`}
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm({ ...form, name: e.target.value })
-                  }
-                  onBlur={() => setTouched((t) => ({ ...t, name: true }))}
-                  placeholder="Ex.: Ana"
-                />
-                {touched.name && nameInvalid && (
-                  <span className={styles.errMsg}>Informe o nome.</span>
-                )}
-              </div>
+            <div className={styles.cardBody}>
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Nome <span className={styles.req}>*</span>
+                  </label>
+                  <input
+                    className={`${styles.input} ${
+                      touched.name && nameInvalid ? styles.invalid : ""
+                    }`}
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm({ ...form, name: e.target.value })
+                    }
+                    onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                    placeholder="Ex.: Ana"
+                  />
+                  {touched.name && nameInvalid && (
+                    <span className={styles.errMsg}>Informe o nome.</span>
+                  )}
+                </div>
 
-              <div className={styles.group}>
-                <label className={styles.label}>Sobrenome</label>
-                <input
-                  className={styles.input}
-                  value={form.lastname}
-                  onChange={(e) =>
-                    setForm({ ...form, lastname: e.target.value })
-                  }
-                  placeholder="Ex.: Silva"
-                />
-              </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Sobrenome</label>
+                  <input
+                    className={styles.input}
+                    value={form.lastname}
+                    onChange={(e) =>
+                      setForm({ ...form, lastname: e.target.value })
+                    }
+                    placeholder="Ex.: Silva"
+                  />
+                </div>
 
-              <div className={styles.group}>
-                <label className={styles.label}>
-                  E-mail <span className={styles.req}>(obrigatório)</span>
-                </label>
-                <input
-                  className={`${styles.input} ${
-                    touched.email && emailInvalid ? styles.invalid : ""
-                  }`}
-                  type="email"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm({ ...form, email: e.target.value })
-                  }
-                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
-                  placeholder="exemplo@dominio.com"
-                />
-                {touched.email && emailInvalid && (
-                  <span className={styles.errMsg}>
-                    Informe um e-mail válido.
-                  </span>
-                )}
-                <small className={styles.hint}>
-                  O e-mail é usado para login e notificações.
-                </small>
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    E-mail <span className={styles.req}>*</span>
+                  </label>
+                  <input
+                    className={`${styles.input} ${
+                      touched.email && emailInvalid ? styles.invalid : ""
+                    }`}
+                    type="email"
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm({ ...form, email: e.target.value })
+                    }
+                    onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                    placeholder="exemplo@dominio.com"
+                  />
+                  {touched.email && emailInvalid && (
+                    <span className={styles.errMsg}>
+                      Informe um e-mail válido.
+                    </span>
+                  )}
+                  <small className={styles.hint}>
+                    O e-mail é usado para login e notificações.
+                  </small>
+                </div>
               </div>
             </div>
           </section>
@@ -289,135 +309,114 @@ export default function UserForm() {
           {/* Acesso & Filas */}
           <section className={styles.card}>
             <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Acesso & Filas</h2>
-              <p className={styles.cardDesc}>
-                Nesta tela só é possível criar atendentes e definir as filas
-                que cada um atende.
-              </p>
+              <div className={styles.cardTitle}>Acesso & Filas</div>
+              <div className={styles.cardDesc}>
+                Defina o perfil e vincule às filas de atendimento.
+              </div>
             </div>
+            <div className={styles.cardBody}>
+              <div className={styles.formGrid}>
+                {/* Perfil */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Perfil</label>
 
-            <div className={styles.cardBodyGrid3}>
-              {/* Perfil */}
-              <div className={styles.group}>
-                <label className={styles.label}>Perfil</label>
-
-                {isNew ? (
-                  <>
-                    <div className={styles.fixedPerfilChip}>Atendente</div>
-                    <small className={styles.hint}>
-                      Criação restrita ao perfil <strong>Atendente</strong>.
-                    </small>
-                  </>
-                ) : (
-                  <>
-                    <select
-                      className={styles.select}
-                      value={form.perfil}
-                      onChange={(e) =>
-                        setForm({ ...form, perfil: e.target.value })
-                      }
-                    >
-                      {canCreateAdmin && <option value="admin">Admin</option>}
-                      {!canCreateAdmin && isEditingAdmin && (
-                        <option value="admin" disabled>
-                          Admin (restrito)
-                        </option>
-                      )}
-                      <option value="supervisor">Supervisor</option>
-                      <option value="atendente">Atendente</option>
-                    </select>
-                    {!canCreateAdmin && (
+                  {isNew ? (
+                    <>
+                      <div className={styles.fixedPerfilChip}>Atendente</div>
                       <small className={styles.hint}>
-                        Seu perfil não permite definir novos admins.
+                        Criação restrita ao perfil <strong>Atendente</strong>.
                       </small>
-                    )}
-                  </>
-                )}
-              </div>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        className={styles.select}
+                        value={form.perfil}
+                        onChange={(e) =>
+                          setForm({ ...form, perfil: e.target.value })
+                        }
+                      >
+                        {canCreateAdmin && <option value="admin">Admin</option>}
+                        {!canCreateAdmin && isEditingAdmin && (
+                          <option value="admin" disabled>
+                            Admin (restrito)
+                          </option>
+                        )}
+                        <option value="supervisor">Supervisor</option>
+                        <option value="atendente">Atendente</option>
+                      </select>
+                      {!canCreateAdmin && (
+                        <small className={styles.hint}>
+                          Seu perfil não permite definir novos admins.
+                        </small>
+                      )}
+                    </>
+                  )}
+                </div>
 
-              {/* Select para adicionar fila */}
-              <div className={styles.group}>
-                <label className={styles.label}>Adicionar fila</label>
-                <select
-                  className={styles.select}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v) toggleFila(v);
-                    e.target.value = "";
-                  }}
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Selecionar…
-                  </option>
-                  {qsQueues
-                    .filter((q) => !form.filas.includes(String(q.id)))
-                    .map((q) => (
-                      <option key={q.id} value={q.id}>
-                        {q.nome}
-                      </option>
-                    ))}
-                </select>
-                <small className={styles.hint}>
-                  Selecione uma fila para adicionar. Você pode adicionar várias.
-                </small>
-              </div>
+                {/* Select para adicionar fila */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Adicionar fila</label>
+                  <select
+                    className={styles.select}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v) toggleFila(v);
+                      e.target.value = "";
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Selecionar…
+                    </option>
+                    {qsQueues
+                      .filter((q) => !form.filas.includes(String(q.id)))
+                      .map((q) => (
+                        <option key={q.id} value={q.id}>
+                          {q.nome}
+                        </option>
+                      ))}
+                  </select>
+                  <small className={styles.hint}>
+                    Selecione filas para vincular ao atendente.
+                  </small>
+                </div>
 
-              {/* Chips de filas vinculadas */}
-              <div className={styles.group}>
-                <label className={styles.label}>Filas vinculadas</label>
-                <div className={styles.chipsBox}>
-                  <div className={styles.chips}>
+                {/* Chips de filas vinculadas */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Filas vinculadas</label>
+                  <div className={styles.chipsBox}>
                     {form.filas.length === 0 ? (
                       <span className={styles.muted}>
                         Nenhuma fila selecionada
                       </span>
                     ) : (
-                      form.filas.map((fid) => {
-                        const q = qsQueues.find(
-                          (x) => String(x.id) === String(fid)
-                        );
-                        return (
-                          <span key={fid} className={styles.chip}>
-                            {q?.nome ?? fid}
-                            <button
-                              type="button"
-                              className={styles.chipX}
-                              onClick={() => toggleFila(String(fid))}
-                              aria-label={`Remover fila ${q?.nome ?? fid}`}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        );
-                      })
+                      <div className={styles.chips}>
+                        {form.filas.map((fid) => {
+                          const q = qsQueues.find(
+                            (x) => String(x.id) === String(fid)
+                          );
+                          return (
+                            <span key={fid} className={styles.chip}>
+                              {q?.nome ?? fid}
+                              <button
+                                type="button"
+                                className={styles.chipX}
+                                onClick={() => toggleFila(String(fid))}
+                                aria-label={`Remover fila ${q?.nome ?? fid}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
           </section>
-
-          {/* Rodapé fixo */}
-          <div className={styles.stickyFooter} role="region" aria-label="Ações">
-            <div className={styles.stickyInner}>
-              <button
-                type="button"
-                className={styles.btnGhost}
-                onClick={handleCancel}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className={styles.btnPrimary}
-                onClick={handleSave}
-                disabled={!canSubmit}
-              >
-                <Save size={16} /> {saving ? "Salvando…" : "Salvar"}
-              </button>
-            </div>
-          </div>
         </>
       )}
     </div>
