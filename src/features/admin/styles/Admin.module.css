@@ -7,6 +7,7 @@
   --bg-tertiary: #2a3546;
   --bg-card: #1e293b;
   --bg-hover: #334155;
+  --color-background: #0f1419;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-tertiary: #64748b;
@@ -681,3 +682,4 @@
 .mobileDrawer::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
