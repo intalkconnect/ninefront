@@ -1,31 +1,30 @@
 /* File: styles/Admin.module.css */
 
-/* ===================== Variáveis (Dark Theme) ===================== */
+/* ===================== Variables & Reset ===================== */
 :root {
-  --bg-primary: #020617;
-  --bg-secondary: #020617;
-  --bg-tertiary: #0f172a;
-  --bg-card: #020617;
-  --bg-hover: #111827;
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-card: #1e293b;
+  --bg-hover: #334155;
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-tertiary: #64748b;
-  --border-color: #1f2933;
+  --border-color: #334155;
   --accent-primary: #3b82f6;
   --accent-hover: #2563eb;
   --accent-light: #60a5fa;
 }
 
-/* Wrapper geral da página admin */
 .wrapper {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #0b1120 0%, #020617 52%, #000 100%);
+  background: var(--bg-primary);
   color: var(--text-primary);
 }
 
-/* ===================== TOPBAR ===================== */
+/* ===================== Topbar (Dark) ===================== */
 .topbar {
   position: sticky;
   top: 0;
@@ -33,21 +32,57 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 24px;
-  background: linear-gradient(180deg, #020617 0%, #020617 45%, #020617 100%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.9);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   min-height: 64px;
+  backdrop-filter: blur(10px);
 }
 
-/* lado esquerdo: burger + (poderia ter) logo */
+/* Brand area */
 .brandArea {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-/* botão "hamburger" para mobile */
+.brand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  pointer-events: auto;
+  z-index: 1;
+  transition: opacity 0.2s ease;
+}
+
+.brand:hover {
+  opacity: 0.85;
+}
+
+.brand img {
+  height: 36px;
+  display: block;
+  filter: brightness(1);
+}
+
+.brand span {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: inherit;
+  font-weight: 500;
+}
+
+/* Burger menu */
 .burger {
   display: inline-flex;
   flex-direction: column;
@@ -55,292 +90,160 @@
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  border: 1px solid rgba(15, 23, 42, 0.9);
-  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border-color);
+  background: transparent;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
   color: var(--text-primary);
+  transition: all 0.2s ease;
 }
+
 .burger:hover {
-  background: #111827;
-  border-color: rgba(148, 163, 184, 0.55);
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
 }
+
 .burger span {
   display: block;
   width: 18px;
   height: 2px;
   background: var(--text-primary);
-  border-radius: 999px;
-}
-
-/* Logo centralizado na topbar */
-.brand {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  color: var(--text-primary);
-}
-.brand img {
-  height: 32px;
-  display: block;
-}
-
-/* Área da direita (help + profile) */
-.profileArea {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* divisor vertical */
-.toolbarDivider {
-  width: 1px;
-  height: 28px;
-  background: rgba(15, 23, 42, 0.8);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.8);
-}
-
-/* Botão "ícone" genérico (help, profile) */
-.userButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 40px;
-  padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: rgba(15, 23, 42, 0.9);
-  color: var(--text-primary);
-  cursor: pointer;
+  border-radius: 2px;
   transition: all 0.2s ease;
-  gap: 8px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.7);
-}
-.userButton:hover {
-  background: #111827;
-  border-color: rgba(148, 163, 184, 0.45);
-}
-.userButton:focus {
-  outline: 2px solid rgba(148, 163, 184, 0.7);
-  outline-offset: 2px;
 }
 
-/* Avatar do usuário */
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 14px;
-  border: 2px solid rgba(15, 23, 42, 0.9);
-  overflow: hidden;
-}
-
-/* setinha do profile */
-.userChevron {
-  transition: transform 0.18s ease;
-  opacity: 0.9;
-}
-.isOpen .userChevron {
-  transform: rotate(180deg);
-}
-
-/* ===================== Dropdown de Perfil / Ajuda ===================== */
-.profileDropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 10px);
-  width: 260px;
-  background: #020617;
-  border: 1px solid rgba(15, 23, 42, 0.9);
-  border-radius: 20px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.9);
-  padding: 10px;
-  z-index: 70;
-}
-
-.pdHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px 10px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.9);
-  margin-bottom: 6px;
-}
-.pdName {
-  font-weight: 600;
-  color: var(--text-primary);
-  font-size: 14px;
-}
-.pdEmail {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.pdList {
-  list-style: none;
-  margin: 0;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.pdItem {
-  display: flex;
-}
-.pdItem a,
-.pdItem button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  text-decoration: none;
-  cursor: pointer;
-  font-weight: 400;
-  font-size: 13px;
-  transition: all 0.15s ease;
-}
-.pdItem a:hover,
-.pdItem button:hover {
-  background: #111827;
-  color: var(--text-primary);
-  border-color: rgba(31, 41, 55, 0.9);
-}
-.pdIcon {
-  display: flex;
-  align-items: center;
-}
-.pdSeparator {
-  height: 1px;
-  background: rgba(15, 23, 42, 0.8);
-  margin: 6px 0;
-}
-.pdAction {
-  width: 100%;
-  justify-content: flex-start;
-  color: #fecaca;
-}
-.pdAction svg {
-  flex-shrink: 0;
-}
-.pdAction:hover {
-  background: rgba(248, 113, 113, 0.08);
-  border-color: rgba(248, 113, 113, 0.4);
-  color: #fecaca;
-}
-
-/* ===================== MENUBAR (NAV PILL) ===================== */
+/* ===================== Menubar (Dark) ===================== */
 .menubar {
   position: sticky;
   top: 64px;
   z-index: 45;
-  background: linear-gradient(180deg, #020617 0%, #020617 100%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.9);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .menubarInner {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 10px 24px 12px;
+  padding: 0 24px;
   display: flex;
   justify-content: center;
 }
 
-/* nav horizontal */
+/* Horizontal nav */
 .hnav {
-  display: flex;
+  display: none;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
+  padding: 8px 0;
 }
 
-/* cada item raiz */
 .hitem {
   position: relative;
 }
 
-/* pill button */
 .hlink {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.9);
-  background: radial-gradient(circle at top, #111827 0%, #020617 70%);
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.18s ease;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7);
-}
-.hlink svg {
-  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 .hlink:hover {
   color: var(--text-primary);
-  border-color: rgba(148, 163, 184, 0.5);
-  background: radial-gradient(circle at top, #1f2937 0%, #020617 70%);
+  background: var(--bg-hover);
 }
 
-/* ativo: pill azul igual screenshot */
+.hlink svg {
+  flex: 0 0 auto;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.hlink:hover svg {
+  opacity: 1;
+}
+
 .active {
-  color: #fff !important;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover)) !important;
-  border-color: var(--accent-primary) !important;
-  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.55);
+  color: var(--accent-light) !important;
+  background: rgba(59, 130, 246, 0.1);
 }
 
-/* não precisamos da barrinha inferior aqui */
-.active::after {
-  content: none;
+.active svg {
+  opacity: 1;
 }
 
-/* item com filhos (setinha) */
+/* Indicador do item ativo */
+.menubar .active::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 8px;
+  height: 2px;
+  background: var(--accent-primary);
+  border-radius: 999px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .hasChildren > .hlink {
-  padding-right: 14px;
+  padding-right: 12px;
 }
+
 .hasChildren > .hlink svg:last-child {
   margin-left: 4px;
+  transition: transform 0.2s ease;
 }
 
-/* ===================== MEGA MENU (dropdown escuro) ===================== */
+.open > .hlink svg:last-child {
+  transform: rotate(180deg);
+}
+
+.open > .hlink,
+.hlink:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.25);
+  outline-offset: 2px;
+}
+
+/* ===================== Mega menu (Dark) ===================== */
 .megamenu {
   position: absolute;
   left: 0;
-  top: calc(100% + 12px);
-  background: #020617;
-  border: 1px solid rgba(15, 23, 42, 0.95);
-  border-radius: 22px;
-  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.95);
-  padding: 12px 14px;
-  min-width: 260px;
-  max-width: 320px;
+  top: calc(100% + 8px);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  padding: 12px;
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(-8px);
   pointer-events: none;
-  transition: all 0.18s ease;
+  transition: all 0.2s ease;
+  min-width: 280px;
+  max-width: 380px;
   z-index: 60;
 }
+
 .open .megamenu {
   opacity: 1;
   transform: translateY(0);
@@ -350,31 +253,30 @@
 .megagrid {
   list-style: none;
   margin: 0;
-  padding: 4px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .megagroup {
-  padding: 4px 4px 8px;
+  padding: 4px 8px;
 }
 
-/* header "TEMPO REAL" */
 .megahdr {
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.08em;
   color: var(--text-tertiary);
-  padding: 6px 8px 4px;
-  margin-bottom: 4px;
+  padding: 8px 12px 6px;
+  margin: 0 0 6px;
 }
 
 .megasublist {
   list-style: none;
   margin: 0;
-  padding: 0 0 4px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -387,44 +289,227 @@
 .megalink {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 14px;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
   text-decoration: none;
   color: var(--text-secondary);
   border: 1px solid transparent;
-  font-weight: 400;
-  font-size: 13px;
-  transition: all 0.18s ease;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
+
 .megalink:hover {
-  background: #111827;
+  background: var(--bg-hover);
+  border-color: var(--border-color);
   color: var(--text-primary);
-  border-color: rgba(31, 41, 55, 0.9);
 }
+
 .megalink.active {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--accent-primary);
   color: var(--accent-light);
-  background: rgba(59, 130, 246, 0.12);
 }
+
 .megaicon {
   display: flex;
   align-items: center;
-  justify-content: center;
+  opacity: 0.7;
 }
 
-/* ===================== MOBILE DRAWER ===================== */
+.megalink:hover .megaicon {
+  opacity: 1;
+}
+
+/* ===================== Profile / Help ===================== */
+.profileArea {
+  display: flex;
+  align-items: center;
+  position: relative;
+  gap: 12px;
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--border-color);
+  margin: 0 4px;
+  opacity: 0.5;
+}
+
+.userButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.userButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+}
+
+.userButton:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.userChevron {
+  transition: transform 0.2s ease;
+  opacity: 0.7;
+}
+
+.isOpen .userChevron {
+  transform: rotate(180deg);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+}
+
+.profileDropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 12px);
+  width: 260px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  padding: 12px;
+  z-index: 70;
+  animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pdHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: var(--bg-hover);
+}
+
+.pdName {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.pdEmail {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.pdList {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pdItem {
+  display: flex;
+}
+
+.pdItem a,
+.pdItem button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pdItem a:hover,
+.pdItem button:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.pdIcon {
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.pdItem a:hover .pdIcon,
+.pdItem button:hover .pdIcon {
+  opacity: 1;
+}
+
+.pdSeparator {
+  height: 1px;
+  background: var(--border-color);
+  margin: 8px 0;
+}
+
+.pdAction {
+  width: 100%;
+  justify-content: flex-start;
+  color: #ef4444 !important;
+}
+
+.pdAction:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* ===================== Mobile drawer (Dark) ===================== */
 .mobileDrawer {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 84%;
-  max-width: 340px;
-  background: #020617;
-  border-right: 1px solid rgba(15, 23, 42, 0.9);
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.9);
+  width: 85%;
+  max-width: 360px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
   transform: translateX(-100%);
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease;
   z-index: 60;
+  overflow-y: auto;
 }
+
 .mobileDrawer.open {
   transform: translateX(0);
 }
@@ -433,26 +518,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 14px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.9);
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
+
 .drawerTitle {
   font-weight: 600;
   color: var(--text-primary);
+  font-size: 16px;
 }
+
 .drawerClose {
   background: transparent;
   border: none;
-  font-size: 22px;
+  font-size: 28px;
   cursor: pointer;
   color: var(--text-secondary);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.drawerClose:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .drawerList {
   list-style: none;
   margin: 0;
-  padding: 8px;
+  padding: 16px 12px;
 }
+
 .drawerItem {
   padding: 2px 0;
 }
@@ -461,70 +566,80 @@
 .drawerItem summary {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 12px;
+  padding: 14px 16px;
   border-radius: 12px;
   color: var(--text-secondary);
   text-decoration: none;
   border: 1px solid transparent;
   cursor: pointer;
-  font-weight: 400;
-  font-size: 14px;
-  transition: all 0.18s ease;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
+
 .drawerItem a:hover,
 .drawerItem summary:hover {
-  background: #111827;
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
+
 .drawerItem a.active {
-  color: #fff;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+  background: rgba(59, 130, 246, 0.15);
   border-color: var(--accent-primary);
+  color: var(--accent-light);
 }
 
 .drawerItem details {
-  border-radius: 14px;
+  border-radius: 12px;
+  margin: 4px 0;
 }
+
 .drawerItem details[open] {
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(15, 23, 42, 0.9);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  padding: 8px;
 }
+
 .drawerItem details summary {
   list-style: none;
+}
+
+.drawerItem details summary::-webkit-details-marker {
+  display: none;
 }
 
 .drawerGroupHdr {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--text-tertiary);
-  padding: 8px 12px;
-  margin: 8px 0 4px 6px;
-  border-left: 2px solid rgba(15, 23, 42, 0.9);
+  padding: 12px 16px 8px;
+  margin: 8px 0 4px;
+  border-left: 2px solid var(--accent-primary);
 }
+
 .drawerSubList {
   list-style: none;
   margin: 0;
-  padding: 6px 6px 10px 26px;
+  padding: 4px 0 8px 24px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-/* ===================== CONTEÚDO PRINCIPAL ===================== */
+/* ===================== Content ===================== */
 .content {
   flex: 1;
   min-height: 0;
   padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
+  background: var(--bg-primary);
 }
 
-/* ===================== RESPONSIVO ===================== */
+/* ===================== Responsive ===================== */
 @media (min-width: 1024px) {
   .burger {
     display: none;
@@ -537,18 +652,41 @@
   }
 }
 
-@media (max-width: 1023px) {
-  .hnav {
-    display: none;
+@media (max-width: 768px) {
+  .topbar {
+    padding: 12px 16px;
+  }
+  .content {
+    padding: 16px;
+  }
+  .menubarInner {
+    padding: 0 16px;
   }
 }
 
-/* ===================== FOCUS GENÉRICO ===================== */
+/* ===================== Focus states ===================== */
 .hlink:focus,
 .megalink:focus,
 .drawerItem a:focus,
-.drawerItem summary:focus,
-.userButton:focus {
-  outline: 2px solid rgba(59, 130, 246, 0.6);
+.drawerItem summary:focus {
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
+}
+
+/* ===================== Scrollbar (Dark) ===================== */
+.mobileDrawer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mobileDrawer::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.mobileDrawer::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 4px;
+}
+
+.mobileDrawer::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
 }
