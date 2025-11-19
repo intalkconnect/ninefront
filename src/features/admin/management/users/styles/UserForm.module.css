@@ -27,11 +27,10 @@
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: var(--bg) !important; /* força fundo dark */
+  background: #0f1419;
   color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
   min-height: 100vh;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-    Helvetica, Arial, sans-serif;
 }
 
 /* ================= HEADER CARD NO PADRÃO USERS ================= */
