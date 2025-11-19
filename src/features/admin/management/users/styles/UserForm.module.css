@@ -10,7 +10,6 @@
   --primary-600: #2563eb;
   --primary-100: rgba(59, 130, 246, 0.25);
 
-  /* aliases antigos, caso use em outro lugar */
   --brand: var(--primary);
   --brand-600: var(--primary-600);
   --brand-100: var(--primary-100);
@@ -22,7 +21,7 @@
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
-/* ================= CONTAINER NO PADRÃO USERS ================= */
+/* ================= CONTAINER ================= */
 .container {
   padding: 24px;
   max-width: 1400px;
@@ -34,9 +33,9 @@
     Helvetica, Arial, sans-serif;
 }
 
-/* ================= HEADER CARD NO PADRÃO USERS ================= */
+/* ================= HEADER CARD ================= */
 .headerCard {
-  background: #1e293b !important;
+  background: #1e293b;
   border-radius: 16px;
   border: 1px solid var(--border2);
   box-shadow: var(--shadow-sm);
@@ -94,7 +93,7 @@
   gap: 10px;
 }
 
-/* ================= ALERTAS (MESMO PADRÃO USERS) ================= */
+/* ================= ALERTAS ================= */
 .alertsStack {
   display: flex;
   flex-direction: column;
@@ -127,9 +126,9 @@
   font-size: 14px;
 }
 
-/* ================= CARDS DO FORM (PARECIDAS COM A "TABELA" DO USERS) ================= */
+/* ================= CARDS DO FORM ================= */
 .card {
-  background: var(--card) !important; /* escuro igual Users.card */
+  background: var(--card);
   border: 1px solid var(--border2);
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
@@ -139,7 +138,7 @@
 .cardHead {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border2);
-  background: #0f1419 !important; /* mesmo tom do thead da tabela de Users */
+  background: #0f1419; /* cabeçalho tipo thead da tabela */
 }
 .cardTitle {
   margin: 0;
@@ -152,9 +151,11 @@
   color: #94a3b8;
   font-size: 13px;
 }
-.cardBody {
+
+/* Miolo da card (onde estavam as áreas brancas) */
+.sectionBody {
   padding: 16px;
-  background: var(--card) !important; /* tira qualquer branco do corpo */
+  background: var(--card);
 }
 
 /* Grid de campos (3 colunas em desktop) */
@@ -198,7 +199,7 @@
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #0f1419 !important;
+  background: #0f1419;
   outline: none;
   font-size: 15px;
   line-height: 22px;
@@ -246,7 +247,7 @@
 .chipsBox {
   border: 1px dashed var(--border);
   border-radius: 12px;
-  background: #0f1419 !important;
+  background: #0f1419;
   padding: 8px 10px;
   min-height: 44px;
 }
@@ -319,7 +320,7 @@
   }
 }
 
-/* Botão primário (reutilizado no headerRight) */
+/* Botão primário */
 .btnPrimary {
   display: inline-flex;
   align-items: center;
