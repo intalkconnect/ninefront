@@ -27,7 +27,7 @@
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: var(--bg);
+  background: var(--bg) !important; /* força fundo dark */
   color: var(--text);
   min-height: 100vh;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
@@ -36,7 +36,7 @@
 
 /* ================= HEADER CARD NO PADRÃO USERS ================= */
 .headerCard {
-  background: #1e293b;
+  background: #1e293b !important;
   border-radius: 16px;
   border: 1px solid var(--border2);
   box-shadow: var(--shadow-sm);
@@ -129,7 +129,7 @@
 
 /* ================= CARDS DO FORM ================= */
 .card {
-  background: var(--card);
+  background: var(--card) !important;
   border: 1px solid var(--border2);
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
@@ -139,7 +139,7 @@
 .cardHead {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border2);
-  background: #0f1419; /* header da card no mesmo tom da tabela de Users */
+  background: #0f1419 !important; /* header da card */
 }
 .cardTitle {
   margin: 0;
@@ -154,7 +154,7 @@
 }
 .cardBody {
   padding: 16px;
-  background: var(--card); /* garante fundo dark no corpo da card */
+  background: var(--card) !important; /* corpo dark */
 }
 
 /* Grid de campos (3 colunas em desktop) */
@@ -198,7 +198,7 @@
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #0f1419;
+  background: #0f1419 !important;
   outline: none;
   font-size: 15px;
   line-height: 22px;
@@ -246,7 +246,7 @@
 .chipsBox {
   border: 1px dashed var(--border);
   border-radius: 12px;
-  background: #0f1419;
+  background: #0f1419 !important;
   padding: 8px 10px;
   min-height: 44px;
 }
