@@ -11,92 +11,98 @@
     Helvetica, Arial, sans-serif;
 }
 
-/* Toolbar (botões no topo à direita) */
-.toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin: 12px 0 10px;
+/* ================= HEADER CARD NO PADRÃO USERS ================= */
+.headerCard {
+  background: #1e293b;
+  border-radius: 16px;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  padding: 14px 18px;
+  margin-bottom: 16px;
 }
-.headerActions {
+.headerRow {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
 }
 
-/* Header da página */
-.header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 18px;
-  position: relative;
-}
-.header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -16px;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    #3b82f6 0%,
-    rgba(59, 130, 246, 0.18) 55%,
-    transparent 100%
-  );
-}
-.title {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: #f1f5f9;
-}
-.subtitle {
-  margin: 6px 0 0;
-  color: #94a3b8;
-  font-size: 14px;
-}
-
-/* Botões (toolbar) */
-.btn,
-.btnPrimary {
-  appearance: none;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 700;
+.backBtn {
+  border: 1px solid #334155;
+  background: #334155;
+  padding: 8px 12px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
   cursor: pointer;
   transition: all 0.18s ease;
 }
-
-.btn {
-  border: 1px solid #334155;
-  background: #0f1419;
-  color: #e2e8f0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-.btn:hover {
-  background: #334155;
+.backBtn:hover {
+  background: #475569;
+  border-color: #475569;
   color: #f1f5f9;
 }
 
-.btnPrimary {
-  border: 0;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: #ffffff;
-  padding: 10px 16px;
-  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+.headerCenter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
-.btnPrimary:hover {
+.headerTitle {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #94a3b8;
+}
+.headerSubtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Botões circulares como em Users */
+.iconCircle,
+.iconCirclePrimary {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: all 0.18s ease;
+}
+.iconCircle:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+.iconCirclePrimary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+.iconCirclePrimary:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-/* Alerts simples */
+/* ===== Alerts simples ===== */
 .alertErr,
 .alertOk {
   margin-top: 10px;
@@ -178,7 +184,7 @@
   border-color: #2563eb;
 }
 
-/* Busca */
+/* ===== Busca ===== */
 .searchGroup {
   position: relative;
 }
@@ -387,6 +393,22 @@
 }
 
 @media (max-width: 700px) {
+  .container {
+    padding: 16px;
+  }
+
+  .headerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .headerCenter {
+    align-items: flex-start;
+  }
+  .headerRight {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
   .table thead {
     display: none;
   }
