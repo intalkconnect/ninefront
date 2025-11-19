@@ -27,10 +27,11 @@
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: #0f1419;
+  background: var(--bg) !important;
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
   min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
 /* ================= HEADER CARD NO PADRÃO USERS ================= */
@@ -126,9 +127,9 @@
   font-size: 14px;
 }
 
-/* ================= CARDS DO FORM ================= */
+/* ================= CARDS DO FORM (PARECIDAS COM A "TABELA" DO USERS) ================= */
 .card {
-  background: var(--card) !important;
+  background: var(--card) !important; /* escuro igual Users.card */
   border: 1px solid var(--border2);
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
@@ -138,7 +139,7 @@
 .cardHead {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border2);
-  background: #0f1419 !important; /* header da card */
+  background: #0f1419 !important; /* mesmo tom do thead da tabela de Users */
 }
 .cardTitle {
   margin: 0;
@@ -153,7 +154,7 @@
 }
 .cardBody {
   padding: 16px;
-  background: var(--card) !important; /* corpo dark */
+  background: var(--card) !important; /* tira qualquer branco do corpo */
 }
 
 /* Grid de campos (3 colunas em desktop) */
