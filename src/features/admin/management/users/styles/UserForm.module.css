@@ -33,6 +33,11 @@
     Helvetica, Arial, sans-serif;
 }
 
+/* 👇 Mata qualquer fundo branco global em <section> dentro do UserForm */
+.container section {
+  background: transparent !important;
+}
+
 /* ================= HEADER CARD ================= */
 .headerCard {
   background: #1e293b;
@@ -138,7 +143,7 @@
 .cardHead {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border2);
-  background: #0f1419; /* cabeçalho tipo thead da tabela */
+  background: #0f1419; /* estilo cabeçalho da tabela */
 }
 .cardTitle {
   margin: 0;
@@ -152,8 +157,7 @@
   font-size: 13px;
 }
 
-/* Miolo da card (onde estavam as áreas brancas) */
-.sectionBody {
+.cardBody {
   padding: 16px;
   background: var(--card);
 }
