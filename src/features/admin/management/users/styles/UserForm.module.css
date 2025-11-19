@@ -127,7 +127,7 @@
   font-size: 14px;
 }
 
-/* ================= CARDS DO FORM (REAPROVEITANDO SEU PADRÃO) ================= */
+/* ================= CARDS DO FORM ================= */
 .card {
   background: var(--card);
   border: 1px solid var(--border2);
@@ -139,7 +139,7 @@
 .cardHead {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border2);
-  background: rgba(30, 41, 59, 0.5);
+  background: #0f1419; /* header da card no mesmo tom da tabela de Users */
 }
 .cardTitle {
   margin: 0;
@@ -154,6 +154,7 @@
 }
 .cardBody {
   padding: 16px;
+  background: var(--card); /* garante fundo dark no corpo da card */
 }
 
 /* Grid de campos (3 colunas em desktop) */
@@ -296,7 +297,7 @@
   font-size: 12px;
 }
 
-/* Skeleton de carregamento (igual vibe do users) */
+/* Skeleton de carregamento */
 .skeleton {
   display: grid;
   gap: 16px;
@@ -327,7 +328,11 @@
   border-radius: 12px;
   border: 0;
   cursor: pointer;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-600) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-600) 100%
+  );
   color: #fff;
   font-weight: 800;
   box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
