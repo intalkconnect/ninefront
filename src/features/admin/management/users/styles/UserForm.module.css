@@ -128,40 +128,54 @@
 
 /* ================= CARDS DO FORM (padrão Users) ================= */
 .card {
-  background: var(--card);
+  background: var(--card) !important;
   border: 1px solid var(--border2);
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
   overflow: hidden;
 }
+
 .cardHead {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border2);
-  background: #0f1419; /* similar ao thead da tabela de Users */
+  background: #0f1419 !important; /* igual thead da tabela */
 }
+
 .cardTitle {
   margin: 0;
   font-size: 16px;
   font-weight: 800;
   color: var(--text);
 }
+
 .cardDesc {
   margin: 2px 0 0;
   color: #94a3b8;
   font-size: 13px;
 }
+
+/* 👇 garante que o miolo inteiro fique escuro, cobrindo qualquer bg branco global */
 .cardBody {
   padding: 16px;
-  background: var(--card);
+  background: var(--card) !important;
 }
 
-/* Grid de campos (3 colunas em desktop) */
 .formGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
+  background: var(--card) !important;
 }
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--card) !important;
+}
+
+/* Grid responsivo */
 @media (max-width: 1200px) {
   .formGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -173,12 +187,7 @@
   }
 }
 
-/* Grupos de formulário */
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+/* Labels */
 .label {
   font-size: 14px;
   font-weight: 700;
