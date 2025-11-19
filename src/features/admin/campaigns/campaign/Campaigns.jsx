@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Plus, X as XIcon } from "lucide-react";
+import { RefreshCw, Plus, X as XIcon, ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet } from "../../../../shared/apiClient";
 import styles from "./styles/Campaigns.module.css";
@@ -109,7 +109,7 @@ export default function Campaigns() {
           return (
             st === "queued" ||
             st === "scheduled" ||
-            (total > processed)
+            total > processed
           );
         }
         return true;
@@ -126,39 +126,51 @@ export default function Campaigns() {
       .reverse();
   }, [items, filter, query]);
 
+  const handleBack = () => {
+    // se quiser outro destino, troque aqui (ex: navigate("/management") )
+    navigate(-1);
+  };
+
   return (
     <div className={styles.container}>
-      {/* Toolbar (direita) */}
-      <div className={styles.toolbar}>
-        <div className={styles.leftGroup} />
-        <div className={styles.headerActions}>
+      {/* HEADER NO PADRÃO USERS */}
+      <div className={styles.headerCard}>
+        <div className={styles.headerRow}>
           <button
-            className={styles.btn}
-            onClick={async () => {
-              await load();
-              toast.success("Lista atualizada!");
-            }}
+            onClick={handleBack}
             type="button"
+            className={styles.backBtn}
+            title="Voltar"
           >
-            <RefreshCw size={16} /> Atualizar
+            <ArrowLeft size={14} />
+            <span>Voltar</span>
           </button>
-          <button
-            className={styles.btnPrimary}
-            onClick={() => navigate("/campaigns/campaigns/new")}
-            type="button"
-          >
-            <Plus size={16} /> Nova campanha
-          </button>
-        </div>
-      </div>
 
-      {/* Header da página */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Campanhas</h1>
-          <p className={styles.subtitle}>
-            Envie imediatamente ou agende. Acompanhe progresso e resultados.
-          </p>
+          <div className={styles.headerCenter}>
+            <div className={styles.headerTitle}>Campanhas</div>
+            <div className={styles.headerSubtitle}>
+              Envie imediatamente ou agende. Acompanhe progresso e resultados.
+            </div>
+          </div>
+
+          <div className={styles.headerRight}>
+            <button
+              className={styles.iconCircle}
+              onClick={load}
+              type="button"
+              title="Atualizar"
+            >
+              <RefreshCw size={18} />
+            </button>
+            <button
+              className={styles.iconCirclePrimary}
+              onClick={() => navigate("/campaigns/campaigns/new")}
+              type="button"
+              title="Nova campanha"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
