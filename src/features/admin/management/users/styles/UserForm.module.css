@@ -27,7 +27,7 @@
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: var(--bg) !important;
+  background: #0f1419;
   color: var(--text);
   min-height: 100vh;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
