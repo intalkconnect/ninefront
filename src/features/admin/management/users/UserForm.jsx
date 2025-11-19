@@ -236,14 +236,14 @@ export default function UserForm() {
       ) : (
         <>
           {/* Identificação */}
-          <section className={styles.card}>
+          <div className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>Identificação</div>
               <div className={styles.cardDesc}>
                 Informações básicas do atendente.
               </div>
             </div>
-            <div className={styles.sectionBody}>
+            <div className={styles.cardBody}>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>
@@ -304,17 +304,17 @@ export default function UserForm() {
                 </div>
               </div>
             </div>
-          </section>
+          </div>
 
           {/* Acesso & Filas */}
-          <section className={styles.card}>
+          <div className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>Acesso & Filas</div>
               <div className={styles.cardDesc}>
                 Defina o perfil e vincule às filas de atendimento.
               </div>
             </div>
-            <div className={styles.sectionBody}>
+            <div className={styles.cardBody}>
               <div className={styles.formGrid}>
                 {/* Perfil */}
                 <div className={styles.formGroup}>
@@ -416,7 +416,7 @@ export default function UserForm() {
                 </div>
               </div>
             </div>
-          </section>
+          </div>
         </>
       )}
     </div>
