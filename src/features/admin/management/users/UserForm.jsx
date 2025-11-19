@@ -236,7 +236,7 @@ export default function UserForm() {
       ) : (
         <>
           {/* Identificação */}
-          <div className={styles.card}>
+          <section className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>Identificação</div>
               <div className={styles.cardDesc}>
@@ -304,10 +304,10 @@ export default function UserForm() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Acesso & Filas */}
-          <div className={styles.card}>
+          <section className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>Acesso & Filas</div>
               <div className={styles.cardDesc}>
@@ -416,7 +416,7 @@ export default function UserForm() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </>
       )}
     </div>
