@@ -33,11 +33,6 @@
     Helvetica, Arial, sans-serif;
 }
 
-/* 👇 Mata qualquer fundo branco global em <section> dentro do UserForm */
-.container section {
-  background: transparent !important;
-}
-
 /* ================= HEADER CARD ================= */
 .headerCard {
   background: #1e293b;
@@ -131,7 +126,7 @@
   font-size: 14px;
 }
 
-/* ================= CARDS DO FORM ================= */
+/* ================= CARDS DO FORM (padrão Users) ================= */
 .card {
   background: var(--card);
   border: 1px solid var(--border2);
@@ -143,7 +138,7 @@
 .cardHead {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border2);
-  background: #0f1419; /* estilo cabeçalho da tabela */
+  background: #0f1419; /* similar ao thead da tabela de Users */
 }
 .cardTitle {
   margin: 0;
@@ -156,7 +151,6 @@
   color: #94a3b8;
   font-size: 13px;
 }
-
 .cardBody {
   padding: 16px;
   background: var(--card);
