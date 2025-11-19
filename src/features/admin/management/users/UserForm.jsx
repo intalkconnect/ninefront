@@ -243,7 +243,7 @@ export default function UserForm() {
                 Informações básicas do atendente.
               </div>
             </div>
-            <div className={styles.cardBody}>
+            <div className={styles.sectionBody}>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
                   <label className={styles.label}>
@@ -314,7 +314,7 @@ export default function UserForm() {
                 Defina o perfil e vincule às filas de atendimento.
               </div>
             </div>
-            <div className={styles.cardBody}>
+            <div className={styles.sectionBody}>
               <div className={styles.formGrid}>
                 {/* Perfil */}
                 <div className={styles.formGroup}>
