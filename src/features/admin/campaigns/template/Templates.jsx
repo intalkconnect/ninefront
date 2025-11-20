@@ -220,16 +220,14 @@ export default function Templates() {
               onClick={load}
               title="Atualizar lista"
             >
-              <RefreshCw size={16} />
-              <span>Atualizar</span>
+              <RefreshCw size={18} />
             </button>
             <button
               className={styles.iconCirclePrimary}
               type="button"
               onClick={() => navigate("/campaigns/templates/new")}
             >
-              <Plus size={16} />
-              <span>Criar Template</span>
+              <Plus size={18} />
             </button>
           </div>
         </div>
