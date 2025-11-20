@@ -215,7 +215,7 @@ export default function Templates() {
 
           <div className={styles.headerRight}>
             <button
-              className={styles.btn}
+              className={styles.iconCircle}
               type="button"
               onClick={load}
               title="Atualizar lista"
@@ -224,7 +224,7 @@ export default function Templates() {
               <span>Atualizar</span>
             </button>
             <button
-              className={styles.btnPrimary}
+              className={styles.iconCirclePrimary}
               type="button"
               onClick={() => navigate("/campaigns/templates/new")}
             >
