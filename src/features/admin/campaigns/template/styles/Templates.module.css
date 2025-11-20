@@ -57,74 +57,35 @@
 /* Botões do header */
 /* ================= BOTÕES TOPO (Atualizar / Criar) ================= */
 
-.btn,
-.btnPrimary {
+.iconCircle,
+.iconCirclePrimary {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  width: 40px;
-  height: 40px;
-  padding: 0;
-
-  border-radius: 999px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   transition: all 0.18s ease;
-
-  /* esconde o texto "Atualizar" / "Criar Template",
-     mas mantém o ícone (lucide usa width/height, não font-size) */
-  font-size: 0;
-  gap: 0;
 }
-
-/* Secundário (ícone de refresh) */
-.btn {
-  border: 1px solid #1f2937;              /* borda escura */
-  background: #020617;                    /* quase preto */
-  box-shadow: 0 0 0 1px rgba(15,23,42,.9);
-  color: #9ca3af;                         /* ícone cinza claro */
+.iconCircle:hover {
+  background: #334155;
+  color: #f1f5f9;
 }
-
-.btn:hover {
-  background: #020617;
-  border-color: #4b5563;
-  box-shadow: 0 0 0 1px #4b5563;
-  color: #e5e7eb;
-}
-
-/* Primário (bolinha azul com +) */
-.btnPrimary {
-  border: none;
+.iconCirclePrimary {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  box-shadow:
-    0 0 0 4px rgba(37,99,235,0.28),
-    0 8px 18px rgba(15,23,42,0.65);
-  color: #ffffff;                         /* ícone branco */
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
-
-.btnPrimary:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow:
-    0 0 0 4px rgba(37,99,235,0.32),
-    0 10px 22px rgba(15,23,42,0.8);
+.iconCirclePrimary:hover {
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
-
-.btnPrimary:active {
-  transform: translateY(0);
-  box-shadow:
-    0 0 0 3px rgba(37,99,235,0.4),
-    0 4px 10px rgba(15,23,42,0.8);
-}
-
-.btnPrimary:disabled,
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
 
 /* ================= GRID PRINCIPAL ================= */
 .mainGrid {
