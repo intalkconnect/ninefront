@@ -126,26 +126,11 @@ export default function Campaigns() {
       .reverse();
   }, [items, filter, query]);
 
-  const handleBack = () => {
-    // se quiser outro destino, troque aqui (ex: navigate("/management") )
-    navigate(-1);
-  };
-
   return (
     <div className={styles.container}>
       {/* HEADER NO PADRÃO USERS */}
       <div className={styles.headerCard}>
         <div className={styles.headerRow}>
-          <button
-            onClick={handleBack}
-            type="button"
-            className={styles.backBtn}
-            title="Voltar"
-          >
-            <ArrowLeft size={14} />
-            <span>Voltar</span>
-          </button>
-
           <div className={styles.headerCenter}>
             <div className={styles.headerTitle}>Campanhas</div>
             <div className={styles.headerSubtitle}>
