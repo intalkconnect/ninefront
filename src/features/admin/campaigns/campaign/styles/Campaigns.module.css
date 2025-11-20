@@ -26,6 +26,26 @@
   gap: 16px;
 }
 
+.backBtn {
+  border: 1px solid #334155;
+  background: #334155;
+  padding: 8px 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.backBtn:hover {
+  background: #475569;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
 .headerCenter {
   flex: 1;
   display: flex;
