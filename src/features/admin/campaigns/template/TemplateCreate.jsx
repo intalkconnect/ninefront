@@ -570,7 +570,6 @@ export default function TemplateCreate() {
   const [headerText, setHeaderText] = useState("");
   const [headerMediaUrl, setHeaderMediaUrl] = useState("");
 
-  thead
   const [bodyText, setBodyText] = useState("");
   const [footerText, setFooterText] = useState("");
 
@@ -862,7 +861,7 @@ export default function TemplateCreate() {
         />
       </div>
 
-      {/* Rodapé simples com Cancelar (sem botão de envio aqui) */}
+      {/* Rodapé apenas com Cancelar */}
       <div className={styles.stickyFooter}>
         <div className={styles.stickyInner}>
           <button
