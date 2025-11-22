@@ -1,13 +1,11 @@
-// src/pages/admin/management/templates/TemplateCreate.jsx
 import React, {
   useMemo,
   useRef,
   useState,
   useCallback,
-  useEffect,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Save as SaveIcon, Plus, X } from "lucide-react";
+import { Save as SaveIcon } from "lucide-react";
 import { apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 
@@ -16,9 +14,9 @@ import styles from "./styles/TemplateCreate.module.css";
 
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
-  { value: "UTILITY", label: "Utility" },
+  { value: "UTILITY", label: "Utilitário" },
   { value: "MARKETING", label: "Marketing" },
-  { value: "AUTHENTICATION", label: "Authentication" },
+  { value: "AUTHENTICATION", label: "Autenticação" },
 ];
 
 const LANGS = [
@@ -100,6 +98,9 @@ const fitsTypeByExt = (type, ext) => {
   if (type === "VIDEO") return MP4_EXT.includes(ext);
   return true;
 };
+
+const newId = () =>
+  Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 
 /* ---------------- Form Sections ---------------- */
 
@@ -250,7 +251,8 @@ const ContentSection = ({
               placeholder="Digite o cabeçalho"
             />
             <small className={styles.helperInline}>
-              {headerTextLeft} caracteres restantes (máx. {LIMITS.headerText})
+              {headerTextLeft} caracteres restantes (máx.{" "}
+              {LIMITS.headerText})
             </small>
           </div>
         </div>
@@ -324,100 +326,71 @@ const ButtonsSection = ({
   quicks,
   setQuicks,
 }) => {
-  const newId = () => Date.now() + "-" + Math.random().toString(36).slice(2);
+  const [ctaDraft, setCtaDraft] = useState("");
+  const [quickDraft, setQuickDraft] = useState("");
+  const [activeCtaId, setActiveCtaId] = useState(null);
+  const [activeQuickId, setActiveQuickId] = useState(null);
 
   const clampCtaText = (s) => clamp(s, LIMITS.ctaText);
   const clampQuickText = (s) => clamp(s, LIMITS.quickText);
 
-  // CTA state
-  const [selectedCtaId, setSelectedCtaId] = useState(null);
-  const [creatingCta, setCreatingCta] = useState(false);
-  const [ctaDraft, setCtaDraft] = useState("");
-  const ctaDraftRef = useRef(null);
+  const handleModeChange = (mode) => {
+    setButtonMode(mode);
+    if (mode !== "cta") setCtas([]);
+    if (mode !== "quick") setQuicks([]);
+    setActiveCtaId(null);
+    setActiveQuickId(null);
+  };
 
-  // Quick replies state
-  const [creatingQuick, setCreatingQuick] = useState(false);
-  const [quickDraft, setQuickDraft] = useState("");
-  const quickDraftRef = useRef(null);
-
-  // Seleciona automaticamente o primeiro CTA
-  useEffect(() => {
-    if (buttonMode !== "cta") return;
-    if (!ctas.length) {
-      setSelectedCtaId(null);
-      return;
-    }
-    if (!selectedCtaId || !ctas.find((c) => c.id === selectedCtaId)) {
-      setSelectedCtaId(ctas[0].id);
-    }
-  }, [buttonMode, ctas, selectedCtaId]);
-
-  useEffect(() => {
-    if (creatingCta && ctaDraftRef.current) {
-      ctaDraftRef.current.focus();
-    }
-  }, [creatingCta]);
-
-  useEffect(() => {
-    if (creatingQuick && quickDraftRef.current) {
-      quickDraftRef.current.focus();
-    }
-  }, [creatingQuick]);
-
-  const selectedCta =
-    buttonMode === "cta"
-      ? ctas.find((c) => c.id === selectedCtaId) || null
-      : null;
-
-  const handleCreateCta = () => {
-    const label = clampCtaText(ctaDraft.trim());
-    if (!label) return;
-    if (ctas.length >= MAX_BTNS) return;
-
-    const btn = {
-      id: newId(),
-      type: "URL",
-      text: label,
+  const handleAddCtaFromDraft = () => {
+    const text = ctaDraft.trim();
+    if (!text || ctas.length >= MAX_BTNS) return;
+    const id = newId();
+    const cta = {
+      id,
+      type: "PHONE_NUMBER",
+      text: clampCtaText(text),
       url: "",
       phone_number: "",
     };
-    setCtas((prev) => [...prev, btn]);
-    setSelectedCtaId(btn.id);
+    const next = [...ctas, cta];
+    setCtas(next);
     setCtaDraft("");
-    setCreatingCta(false);
+    setActiveCtaId(id);
   };
 
-  const handleCreateQuick = () => {
-    const label = clampQuickText(quickDraft.trim());
-    if (!label) return;
-    if (quicks.length >= MAX_BTNS) return;
-
-    const q = { id: newId(), text: label };
-    setQuicks((prev) => [...prev, q]);
+  const handleAddQuickFromDraft = () => {
+    const text = quickDraft.trim();
+    if (!text || quicks.length >= MAX_BTNS) return;
+    const id = newId();
+    const quick = { id, text: clampQuickText(text) };
+    const next = [...quicks, quick];
+    setQuicks(next);
     setQuickDraft("");
-    setCreatingQuick(false);
+    setActiveQuickId(id);
   };
 
   const removeCta = (id) => {
-    setCtas((prev) => {
-      const next = prev.filter((c) => c.id !== id);
-      if (selectedCtaId === id) {
-        setSelectedCtaId(next[0]?.id || null);
-      }
-      return next;
-    });
+    const next = ctas.filter((c) => c.id !== id);
+    setCtas(next);
+    if (activeCtaId === id) {
+      setActiveCtaId(next[0]?.id || null);
+    }
   };
 
   const removeQuick = (id) => {
-    setQuicks((prev) => prev.filter((q) => q.id !== id));
+    const next = quicks.filter((q) => q.id !== id);
+    setQuicks(next);
+    if (activeQuickId === id) {
+      setActiveQuickId(next[0]?.id || null);
+    }
   };
 
-  const updateSelectedCta = (patch) => {
-    if (!selectedCtaId) return;
-    setCtas((prev) =>
-      prev.map((c) => (c.id === selectedCtaId ? { ...c, ...patch } : c))
-    );
-  };
+  const activeCta =
+    ctas.find((c) => c.id === activeCtaId) || (ctas.length ? ctas[0] : null);
+  const activeQuick =
+    quicks.find((q) => q.id === activeQuickId) ||
+    (quicks.length ? quicks[0] : null);
 
   return (
     <section className={styles.card}>
@@ -428,8 +401,8 @@ const ButtonsSection = ({
         </p>
       </div>
 
+      {/* Tipo de botão */}
       <div className={styles.cardBodyGrid}>
-        {/* Tipo de botão */}
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de botão</label>
           <div className={styles.pills} role="tablist">
@@ -438,9 +411,7 @@ const ButtonsSection = ({
               className={`${styles.pill} ${
                 buttonMode === "none" ? styles.pillActive : ""
               }`}
-              onClick={() => {
-                setButtonMode("none");
-              }}
+              onClick={() => handleModeChange("none")}
             >
               Nenhum
             </button>
@@ -449,9 +420,7 @@ const ButtonsSection = ({
               className={`${styles.pill} ${
                 buttonMode === "cta" ? styles.pillActive : ""
               }`}
-              onClick={() => {
-                setButtonMode("cta");
-              }}
+              onClick={() => handleModeChange("cta")}
             >
               Call-to-Action
             </button>
@@ -460,9 +429,7 @@ const ButtonsSection = ({
               className={`${styles.pill} ${
                 buttonMode === "quick" ? styles.pillActive : ""
               }`}
-              onClick={() => {
-                setButtonMode("quick");
-              }}
+              onClick={() => handleModeChange("quick")}
             >
               Resposta rápida
             </button>
@@ -471,93 +438,89 @@ const ButtonsSection = ({
             Máximo de {MAX_BTNS} botões por template.
           </p>
         </div>
+      </div>
 
-        {/* CTA MODE */}
-        {buttonMode === "cta" && (
+      {/* CTA TAGS + EDITOR */}
+      {buttonMode === "cta" && (
+        <div className={styles.cardBodyGrid}>
           <div className={styles.groupFull}>
             <label className={styles.label}>Botões de Call-to-Action</label>
 
-            {/* Tags + input inline */}
+            {/* TAGS */}
             <div className={styles.tagRow}>
-              {ctas.map((btn) => (
+              {ctas.map((cta) => (
                 <button
-                  key={btn.id}
+                  key={cta.id}
                   type="button"
-                  className={`${styles.btnTag} ${
-                    btn.id === selectedCtaId ? styles.btnTagActive : ""
+                  className={`${styles.tagChip} ${
+                    (activeCtaId || activeCta?.id) === cta.id
+                      ? styles.tagChipActive
+                      : ""
                   }`}
-                  onClick={() => setSelectedCtaId(btn.id)}
+                  onClick={() => setActiveCtaId(cta.id)}
                 >
-                  <span className={styles.btnTagLabel}>
-                    {btn.text || "Sem texto"}
+                  <span className={styles.tagLabel}>
+                    {cta.text || "Texto do botão"}
                   </span>
                   <span
-                    className={styles.btnTagRemove}
+                    className={styles.tagRemove}
                     onClick={(e) => {
                       e.stopPropagation();
-                      removeCta(btn.id);
+                      removeCta(cta.id);
                     }}
                   >
-                    <X size={14} />
+                    ✕
                   </span>
                 </button>
               ))}
 
-              {creatingCta && ctas.length < MAX_BTNS && (
+              {ctas.length < MAX_BTNS && (
                 <input
-                  ref={ctaDraftRef}
                   className={styles.tagInput}
+                  placeholder="Digite o texto do botão e pressione Enter"
                   value={ctaDraft}
-                  maxLength={LIMITS.ctaText}
-                  placeholder="Texto do botão (Enter para adicionar)"
                   onChange={(e) =>
-                    setCtaDraft(clampCtaText(e.target.value || ""))
+                    setCtaDraft(clampCtaText(e.target.value))
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      handleCreateCta();
-                    } else if (e.key === "Escape") {
-                      e.preventDefault();
-                      setCreatingCta(false);
-                      setCtaDraft("");
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!ctaDraft.trim()) {
-                      setCreatingCta(false);
-                      setCtaDraft("");
+                      handleAddCtaFromDraft();
                     }
                   }}
                 />
               )}
             </div>
 
-            {ctas.length < MAX_BTNS && !creatingCta && (
-              <button
-                type="button"
-                className={styles.addTagBox}
-                onClick={() => setCreatingCta(true)}
-              >
-                <Plus size={16} />
-                <span>Adicionar outro botão</span>
-              </button>
-            )}
-
-            {/* Editor do CTA selecionado */}
-            {selectedCta && (
-              <div className={styles.ctaEditPanel}>
+            {/* EDITOR DO CTA SELECIONADO */}
+            {activeCta && (
+              <div className={styles.ctaEditor}>
                 <div className={styles.group}>
-                  <label className={styles.label}>Ação do botão</label>
+                  <label className={styles.label}>Tipo de ação</label>
                   <select
                     className={styles.select}
-                    value={selectedCta.type}
-                    onChange={(e) =>
-                      updateSelectedCta({ type: e.target.value })
-                    }
+                    value={activeCta.type}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCtas((prev) =>
+                        prev.map((c) =>
+                          c.id === activeCta.id
+                            ? {
+                                ...c,
+                                type: value,
+                                url: value === "URL" ? c.url : "",
+                                phone_number:
+                                  value === "PHONE_NUMBER"
+                                    ? c.phone_number
+                                    : "",
+                              }
+                            : c
+                        )
+                      );
+                    }}
                   >
-                    <option value="URL">Abrir URL</option>
                     <option value="PHONE_NUMBER">Número de telefone</option>
+                    <option value="URL">Link do website</option>
                   </select>
                 </div>
 
@@ -565,121 +528,156 @@ const ButtonsSection = ({
                   <label className={styles.label}>Texto do botão</label>
                   <input
                     className={styles.input}
-                    value={selectedCta.text}
-                    maxLength={LIMITS.ctaText}
-                    onChange={(e) =>
-                      updateSelectedCta({
-                        text: clampCtaText(e.target.value || ""),
-                      })
-                    }
-                    placeholder="Ex: Falar com atendente"
+                    value={activeCta.text}
+                    placeholder="Texto do botão"
+                    onChange={(e) => {
+                      const value = clampCtaText(e.target.value);
+                      setCtas((prev) =>
+                        prev.map((c) =>
+                          c.id === activeCta.id
+                            ? { ...c, text: value }
+                            : c
+                        )
+                      );
+                    }}
                   />
                   <small className={styles.helperInline}>
-                    Máx. {LIMITS.ctaText} caracteres
+                    {LIMITS.ctaText -
+                      (activeCta.text?.length || 0)}{" "}
+                    restantes (máx. {LIMITS.ctaText})
                   </small>
                 </div>
 
-                {selectedCta.type === "URL" ? (
+                {activeCta.type === "PHONE_NUMBER" ? (
                   <div className={styles.group}>
-                    <label className={styles.label}>URL de destino</label>
+                    <label className={styles.label}>
+                      Número de telefone
+                    </label>
                     <input
                       className={styles.input}
-                      value={selectedCta.url}
-                      onChange={(e) =>
-                        updateSelectedCta({ url: e.target.value || "" })
-                      }
-                      placeholder="https://exemplo.com"
+                      placeholder="+5511999999999"
+                      value={activeCta.phone_number || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setCtas((prev) =>
+                          prev.map((c) =>
+                            c.id === activeCta.id
+                              ? { ...c, phone_number: value }
+                              : c
+                          )
+                        );
+                      }}
                     />
                   </div>
                 ) : (
                   <div className={styles.group}>
-                    <label className={styles.label}>Número de telefone</label>
+                    <label className={styles.label}>Link do website</label>
                     <input
                       className={styles.input}
-                      value={selectedCta.phone_number}
-                      onChange={(e) =>
-                        updateSelectedCta({
-                          phone_number: e.target.value || "",
-                        })
-                      }
-                      placeholder="+5511999999999"
+                      placeholder="https://exemplo.com"
+                      value={activeCta.url || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setCtas((prev) =>
+                          prev.map((c) =>
+                            c.id === activeCta.id
+                              ? { ...c, url: value }
+                              : c
+                          )
+                        );
+                      }}
                     />
                   </div>
                 )}
               </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* QUICK REPLY MODE */}
-        {buttonMode === "quick" && (
+      {/* QUICK TAGS + EDITOR */}
+      {buttonMode === "quick" && (
+        <div className={styles.cardBodyGrid}>
           <div className={styles.groupFull}>
             <label className={styles.label}>Respostas rápidas</label>
 
             <div className={styles.tagRow}>
               {quicks.map((q) => (
-                <span key={q.id} className={styles.btnTag}>
-                  <span className={styles.btnTagLabel}>
-                    {q.text || "Sem texto"}
+                <button
+                  key={q.id}
+                  type="button"
+                  className={`${styles.tagChip} ${
+                    (activeQuickId || activeQuick?.id) === q.id
+                      ? styles.tagChipActive
+                      : ""
+                  }`}
+                  onClick={() => setActiveQuickId(q.id)}
+                >
+                  <span className={styles.tagLabel}>
+                    {q.text || "Resposta rápida"}
                   </span>
-                  <button
-                    type="button"
-                    className={styles.btnTagRemove}
-                    onClick={() => removeQuick(q.id)}
+                  <span
+                    className={styles.tagRemove}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeQuick(q.id);
+                    }}
                   >
-                    <X size={14} />
-                  </button>
-                </span>
+                    ✕
+                  </span>
+                </button>
               ))}
 
-              {creatingQuick && quicks.length < MAX_BTNS && (
+              {quicks.length < MAX_BTNS && (
                 <input
-                  ref={quickDraftRef}
                   className={styles.tagInput}
+                  placeholder="Digite o texto e pressione Enter"
                   value={quickDraft}
-                  maxLength={LIMITS.quickText}
-                  placeholder="Texto da resposta (Enter para adicionar)"
                   onChange={(e) =>
-                    setQuickDraft(clampQuickText(e.target.value || ""))
+                    setQuickDraft(clampQuickText(e.target.value))
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      handleCreateQuick();
-                    } else if (e.key === "Escape") {
-                      e.preventDefault();
-                      setCreatingQuick(false);
-                      setQuickDraft("");
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!quickDraft.trim()) {
-                      setCreatingQuick(false);
-                      setQuickDraft("");
+                      handleAddQuickFromDraft();
                     }
                   }}
                 />
               )}
             </div>
 
-            {quicks.length < MAX_BTNS && !creatingQuick && (
-              <button
-                type="button"
-                className={styles.addTagBox}
-                onClick={() => setCreatingQuick(true)}
-              >
-                <Plus size={16} />
-                <span>Adicionar resposta</span>
-              </button>
+            {activeQuick && (
+              <div className={styles.quickEditor}>
+                <div className={styles.group}>
+                  <label className={styles.label}>
+                    Texto da resposta rápida
+                  </label>
+                  <input
+                    className={styles.input}
+                    value={activeQuick.text}
+                    onChange={(e) => {
+                      const value = clampQuickText(e.target.value);
+                      setQuicks((prev) =>
+                        prev.map((q) =>
+                          q.id === activeQuick.id
+                            ? { ...q, text: value }
+                            : q
+                        )
+                      );
+                    }}
+                    placeholder="Texto exibido no botão"
+                  />
+                  <small className={styles.helperInline}>
+                    {LIMITS.quickText -
+                      (activeQuick.text?.length || 0)}{" "}
+                    restantes (máx. {LIMITS.quickText})
+                  </small>
+                </div>
+              </div>
             )}
-
-            <small className={styles.helperInline}>
-              Pressione Enter para criar a resposta. Para alterar, remova a tag
-              e crie novamente.
-            </small>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 };
@@ -698,7 +696,9 @@ export default function TemplateCreate() {
   const [headerText, setHeaderText] = useState("");
   const [headerMediaUrl, setHeaderMediaUrl] = useState("");
 
-  const [bodyText, setBodyText] = useState("");
+  const [bodyText, setBodyText] = useState(
+    "Olá {{1}}, digite sua mensagem aqui..."
+  );
   const [footerText, setFooterText] = useState("");
 
   const [buttonMode, setButtonMode] = useState("none");
@@ -789,6 +789,7 @@ export default function TemplateCreate() {
         }
       }
     }
+
     if (buttonMode === "quick") {
       for (const q of quicks) {
         if (!q.text?.trim()) {
@@ -810,15 +811,16 @@ export default function TemplateCreate() {
     if (headerType === "TEXT" && !headerText.trim()) return false;
     if (
       buttonMode === "cta" &&
-      ctas.some(
-        (b) =>
-          !b.text?.trim() ||
-          (b.type === "URL" && !b.url?.trim()) ||
-          (b.type === "PHONE_NUMBER" && !b.phone_number?.trim())
-      )
+      (!ctas.length ||
+        ctas.some(
+          (b) =>
+            !b.text?.trim() ||
+            (b.type === "URL" && !b.url?.trim()) ||
+            (b.type === "PHONE_NUMBER" && !b.phone_number?.trim())
+        ))
     )
       return false;
-    if (buttonMode === "quick" && quicks.some((q) => !q.text?.trim()))
+    if (buttonMode === "quick" && (!quicks.length || quicks.some((q) => !q.text?.trim())))
       return false;
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
@@ -911,7 +913,7 @@ export default function TemplateCreate() {
   );
 
   return (
-    <div className={styles.page} ref={topRef}>
+    <div className={styles.container} ref={topRef}>
       {/* Breadcrumbs */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
@@ -933,36 +935,41 @@ export default function TemplateCreate() {
         </ol>
       </nav>
 
-      {/* Header compacto com ação principal */}
-      <header className={styles.pageHeader}>
-        <div className={styles.pageTitleWrap}>
-          <h1 className={styles.pageTitle}>Criar Template WhatsApp</h1>
-          <p className={styles.pageSubtitle}>
-            Configure seu modelo em 2 etapas simples e envie para aprovação da
-            Meta.
-          </p>
-        </div>
-        <div className={styles.pageHeaderActions}>
-          <button
-            type="button"
-            className={styles.btnGhost}
-            onClick={() => navigate("/management/templates")}
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className={styles.btnPrimary}
-            onClick={handleSubmit}
-            disabled={!canSave || saving}
-          >
-            <SaveIcon size={16} />
-            {saving ? "Enviando…" : "Enviar para avaliação"}
-          </button>
+      {/* Header card no padrão das outras páginas */}
+      <header className={styles.headerCard}>
+        <div className={styles.headerRow}>
+          <div className={styles.headerCenter}>
+            <div className={styles.headerTitle}>
+              Criar Template WhatsApp
+            </div>
+            <div className={styles.headerSubtitle}>
+              Configure seu modelo em 2 etapas simples e envie para
+              aprovação da Meta.
+            </div>
+          </div>
+
+          <div className={styles.headerRight}>
+            <button
+              type="button"
+              className={styles.btnGhost}
+              onClick={() => navigate("/management/templates")}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleSubmit}
+              disabled={!canSave || saving}
+            >
+              <SaveIcon size={16} />
+              {saving ? "Enviando…" : "Enviar para avaliação"}
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Conteúdo: formulário + preview */}
+      {/* GRID: formulário + preview telefone */}
       <div className={styles.mainGrid}>
         <div className={styles.colForm}>
           <TemplateInfoSection
