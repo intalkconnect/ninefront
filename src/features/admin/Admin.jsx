@@ -35,7 +35,8 @@ import FlowChannels from "./flow/channels/FlowChannels";
 import Queues from "./flow/queue/Queues";
 import QueueForm from "./flow/queue/QueueForm";
 import QueueHours from "./flow/queue/QueueHours";
-import Dashboard from "./dashboard/Dashboard";
+// import Dashboard antigo – não vamos mais usar aqui
+// import Dashboard from "./dashboard/Dashboard";
 import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../app/utils/auth";
@@ -80,6 +81,109 @@ function RequireRole({ allow, children }) {
   return children;
 }
 
+/**
+ * NOVA PÁGINA INICIAL – NOVIDADES & COISAS ÚTEIS
+ */
+function HomeUpdates() {
+  return (
+    <div className={styles.home}>
+      <header className={styles.homeHeader}>
+        <div>
+          <h1 className={styles.homeTitle}>Novidades do NineChat</h1>
+          <p className={styles.homeSubtitle}>
+            Veja o que mudou, dicas para aproveitar melhor a plataforma
+            e links rápidos para a documentação.
+          </p>
+        </div>
+      </header>
+
+      <section className={styles.homeGrid}>
+        <article className={styles.homeCard}>
+          <h2 className={styles.homeCardTitle}>O que há de novo</h2>
+          <p className={styles.homeCardText}>
+            • Novo módulo de <strong>Workflows</strong> para organizar seus fluxos omnichannel. <br />
+            • Melhorias de performance no monitor de atendimento em tempo real. <br />
+            • Ajustes de segurança e auditoria em <strong>Configurações &gt; Logs</strong>.
+          </p>
+          <p className={styles.homeCardHint}>
+            Dica: use a área de Workflows para centralizar jornadas e canais em um único lugar.
+          </p>
+        </article>
+
+        <article className={styles.homeCard}>
+          <h2 className={styles.homeCardTitle}>Atalhos rápidos</h2>
+          <ul className={styles.homeLinks}>
+            <li>
+              <button
+                type="button"
+                className={styles.homeLinkBtn}
+                onClick={() => (window.location.href = "/workflows/hub")}
+              >
+                Abrir Workflows
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className={styles.homeLinkBtn}
+                onClick={() =>
+                  (window.location.href = "/monitoring/realtime/queues")
+                }
+              >
+                Ver filas em tempo real
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className={styles.homeLinkBtn}
+                onClick={() =>
+                  (window.location.href = "/settings/preferences")
+                }
+              >
+                Preferências do workspace
+              </button>
+            </li>
+          </ul>
+        </article>
+
+        <article className={styles.homeCard}>
+          <h2 className={styles.homeCardTitle}>Dicas rápidas</h2>
+          <ul className={styles.homeList}>
+            <li>
+              Use <strong>Mensagens Ativas</strong> para campanhas pontuais
+              e comunicações proativas com seus clientes.
+            </li>
+            <li>
+              Configure horários de fila em{" "}
+              <strong>Workflows &gt; Filas</strong> para evitar atendimentos
+              fora do horário.
+            </li>
+            <li>
+              Acompanhe a <strong>qualidade</strong> dos atendimentos em{" "}
+              <strong>Analytics &gt; Qualidade</strong>.
+            </li>
+          </ul>
+        </article>
+
+        <article className={styles.homeCard}>
+          <h2 className={styles.homeCardTitle}>Documentação & suporte</h2>
+          <p className={styles.homeCardText}>
+            Acesse nossa base de conhecimento com tutoriais passo a passo.
+          </p>
+          <button
+            type="button"
+            className={styles.homeLinkBtn}
+            onClick={() => window.open("https://docs.ninechat.com.br", "_blank")}
+          >
+            Abrir NineDocs
+          </button>
+        </article>
+      </section>
+    </div>
+  );
+}
+
 export default function Admin() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -99,7 +203,6 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    // define contexto de ator
     if (jwt?.sub || email) {
       setActorContext({
         id: jwt?.sub || email,
@@ -135,12 +238,10 @@ export default function Admin() {
     };
   }, [email, jwt?.sub, jwt?.name, jwt?.email]);
 
-  // fecha dropdowns ao trocar de rota
   useEffect(() => {
     closeDropdowns();
   }, [location.pathname]);
 
-  // ESC fecha dropdowns
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -187,7 +288,7 @@ export default function Admin() {
     const base = [
       {
         key: "dashboard",
-        label: "Dashboard",
+        label: "Novidades", // será exibido em CAIXA ALTA via CSS
         to: DASHBOARD_PATH,
         icon: <LayoutDashboard size={18} />,
       },
@@ -375,7 +476,7 @@ export default function Admin() {
 
   return (
     <div className={styles.wrapper}>
-      {/* TOPBAR ESCURA */}
+      {/* TOPBAR ESCURA COM MAIS DESTAQUE */}
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <NavLink
@@ -526,16 +627,15 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* BODY: menu "solto" à esquerda + conteúdo à direita */}
+      {/* BODY: menu à esquerda + conteúdo à direita */}
       <div className={styles.body}>
         <div className={styles.bodyInner}>
-          {/* Menu em coluna, parece parte do body */}
+          {/* Menu tipo “body”, não parece sidebar separada */}
           <aside className={styles.sidebar}>
             <nav className={styles.navRoot}>
               {menus.map((menu) => {
                 const activeMenu = isMenuActive(menu);
 
-                // menu simples (Dashboard, Workflows)
                 if (!menu.children) {
                   return (
                     <button
@@ -547,21 +647,29 @@ export default function Admin() {
                       onClick={() => handleNavigation(menu.to)}
                     >
                       <span className={styles.menuLeafIcon}>{menu.icon}</span>
-                      <span>{menu.label}</span>
+                      <span className={styles.menuLeafLabel}>{menu.label}</span>
                     </button>
                   );
                 }
 
-                // menu com grupos
                 return (
                   <section key={menu.key} className={styles.menuSection}>
                     <div className={styles.menuSectionHeader}>
-                      <span className={styles.menuSectionIcon}>{menu.icon}</span>
-                      <span>{menu.label}</span>
+                      <span className={styles.menuSectionIcon}>
+                        {menu.icon}
+                      </span>
+                      <span className={styles.menuSectionLabel}>
+                        {menu.label}
+                      </span>
                     </div>
                     {menu.children.map((grp) => (
-                      <div key={grp.key || grp.label} className={styles.menuGroup}>
-                        <div className={styles.menuGroupTitle}>{grp.label}</div>
+                      <div
+                        key={grp.key || grp.label}
+                        className={styles.menuGroup}
+                      >
+                        <div className={styles.menuGroupTitle}>
+                          {grp.label}
+                        </div>
                         <ul className={styles.menuGroupList}>
                           {(grp.children || []).map((leaf) => {
                             const leafActive = isLeafActive(leaf.to);
@@ -579,7 +687,9 @@ export default function Admin() {
                                       {leaf.icon}
                                     </span>
                                   )}
-                                  <span>{leaf.label}</span>
+                                  <span className={styles.menuLeafLabel}>
+                                    {leaf.label}
+                                  </span>
                                 </button>
                               </li>
                             );
@@ -597,7 +707,8 @@ export default function Admin() {
           <main className={styles.main}>
             <div className={styles.content}>
               <Routes>
-                <Route index element={<Dashboard />} />
+                {/* NOVA HOME DE NOVIDADES */}
+                <Route index element={<HomeUpdates />} />
 
                 {/* monitoring */}
                 <Route
