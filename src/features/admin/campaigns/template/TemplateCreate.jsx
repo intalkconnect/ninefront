@@ -1,37 +1,41 @@
-import React, { useMemo, useRef, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Save as SaveIcon } from 'lucide-react';
-import { apiPost } from '../../../../shared/apiClient';
-import { toast } from 'react-toastify';
-import styles from './styles/TemplateCreate.module.css';
+import React, {
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Save as SaveIcon } from "lucide-react";
+import { apiPost } from "../../../../shared/apiClient";
+import { toast } from "react-toastify";
 
-// preview compartilhado
-import PreviewWhatsApp from './PreviewWhatsApp';
+import styles from "./styles/TemplateCreate.module.css";
+import PreviewWhatsApp from "./PreviewWhatsApp";
 
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
-  { value: 'UTILITY', label: 'Utility' },
-  { value: 'MARKETING', label: 'Marketing' },
-  { value: 'AUTHENTICATION', label: 'Authentication' },
+  { value: "UTILITY", label: "Utility" },
+  { value: "MARKETING", label: "Marketing" },
+  { value: "AUTHENTICATION", label: "Authentication" },
 ];
 
 const LANGS = [
-  { value: 'pt_BR', label: 'Português (BR)' },
-  { value: 'en_US', label: 'Inglês (US)' },
-  { value: 'es_ES', label: 'Espanhol (ES)' },
-  { value: 'pt_PT', label: 'Português (PT)' },
-  { value: 'es_MX', label: 'Espanhol (MX)' },
-  { value: 'fr_FR', label: 'Francês (FR)' },
-  { value: 'it_IT', label: 'Italiano (IT)' },
-  { value: 'de_DE', label: 'Alemão (DE)' },
+  { value: "pt_BR", label: "Português (BR)" },
+  { value: "en_US", label: "Inglês (US)" },
+  { value: "es_ES", label: "Espanhol (ES)" },
+  { value: "pt_PT", label: "Português (PT)" },
+  { value: "es_MX", label: "Espanhol (MX)" },
+  { value: "fr_FR", label: "Francês (FR)" },
+  { value: "it_IT", label: "Italiano (IT)" },
+  { value: "de_DE", label: "Alemão (DE)" },
 ];
 
 const HEADER_TYPES = [
-  { value: 'NONE', label: 'Nenhum' },
-  { value: 'TEXT', label: 'Texto' },
-  { value: 'IMAGE', label: 'Imagem' },
-  { value: 'DOCUMENT', label: 'Documento' },
-  { value: 'VIDEO', label: 'Vídeo' },
+  { value: "NONE", label: "Nenhum" },
+  { value: "TEXT", label: "Texto" },
+  { value: "IMAGE", label: "Imagem" },
+  { value: "DOCUMENT", label: "Documento" },
+  { value: "VIDEO", label: "Vídeo" },
 ];
 
 const MAX_BTNS = 3;
@@ -46,51 +50,52 @@ const LIMITS = {
 };
 
 /* ---------------- Media rules ---------------- */
-const IMG_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-const PDF_EXT = ['pdf'];
-const MP4_EXT = ['mp4'];
+const IMG_EXT = ["jpg", "jpeg", "png", "webp", "gif"];
+const PDF_EXT = ["pdf"];
+const MP4_EXT = ["mp4"];
 
 /* ---------------- Helpers ---------------- */
 function sanitizeTemplateName(raw) {
-  if (!raw) return '';
+  if (!raw) return "";
   let s = String(raw)
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9_]+/g, '_')
-    .replace(/_{2,}/g, '_')
-    .replace(/^_+|_+$/g, '');
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/_{2,}/g, "_")
+    .replace(/^_+|_+$/g, "");
   if (s.length > 512) s = s.slice(0, 512);
   return s;
 }
 
-const clamp = (s, max) => (s?.length > max ? s.slice(0, max) : s || '');
+const clamp = (s, max) => (s?.length > max ? s.slice(0, max) : s || "");
 
-const getUrlExt = (url = '') => {
+const getUrlExt = (url = "") => {
   try {
     const u = new URL(url);
-    const pathname = u.pathname || '';
-    const last = pathname.split('/').pop() || '';
-    const clean = last.split('?')[0].split('#')[0];
-    const ext = (clean.split('.').pop() || '').toLowerCase();
+    const pathname = u.pathname || "";
+    const last = pathname.split("/").pop() || "";
+    const clean = last.split("?")[0].split("#")[0];
+    const ext = (clean.split(".").pop() || "").toLowerCase();
     return ext;
   } catch {
-    return '';
+    return "";
   }
 };
 
-const isValidHttpUrl = (value = '') => {
+const isValidHttpUrl = (value = "") => {
   try {
     const u = new URL(value);
-    return u.protocol === 'http:' || u.protocol === 'https:';
+    return u.protocol === "http:" || u.protocol === "https:";
   } catch {
     return false;
   }
 };
 
 const fitsTypeByExt = (type, ext) => {
-  if (type === 'IMAGE') return IMG_EXT.includes(ext);
-  if (type === 'DOCUMENT') return PDF_EXT.includes(ext);
-  if (type === 'VIDEO') return MP4_EXT.includes(ext);
+  if (type === "IMAGE") return IMG_EXT.includes(ext);
+  if (type === "DOCUMENT") return PDF_EXT.includes(ext);
+  if (type === "VIDEO") return MP4_EXT.includes(ext);
   return true;
 };
 
@@ -107,7 +112,7 @@ const TemplateInfoSection = ({
     <div className={styles.cardHead}>
       <h2 className={styles.cardTitle}>Informações do template</h2>
       <p className={styles.cardDesc}>
-        Defina categoria, idioma e o identificador interno do modelo.
+        Defina a categoria, idioma e o identificador interno do modelo.
       </p>
     </div>
 
@@ -117,10 +122,12 @@ const TemplateInfoSection = ({
         <select
           className={styles.select}
           value={category}
-          onChange={e => setCategory(e.target.value)}
+          onChange={(e) => setCategory(e.target.value)}
         >
-          {CATEGORIES.map(c => (
-            <option key={c.value} value={c.value}>{c.label}</option>
+          {CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
           ))}
         </select>
       </div>
@@ -130,10 +137,12 @@ const TemplateInfoSection = ({
         <select
           className={styles.select}
           value={language}
-          onChange={e => setLanguage(e.target.value)}
+          onChange={(e) => setLanguage(e.target.value)}
         >
-          {LANGS.map(l => (
-            <option key={l.value} value={l.value}>{l.label}</option>
+          {LANGS.map((l) => (
+            <option key={l.value} value={l.value}>
+              {l.label}
+            </option>
           ))}
         </select>
       </div>
@@ -146,7 +155,7 @@ const TemplateInfoSection = ({
         <input
           className={styles.input}
           value={name}
-          onChange={e => setName(sanitizeTemplateName(e.target.value))}
+          onChange={(e) => setName(sanitizeTemplateName(e.target.value))}
           placeholder="ex: welcome_message_1"
           inputMode="latin"
           autoCapitalize="off"
@@ -175,7 +184,7 @@ const ContentSection = ({
   const footerTextLeft = LIMITS.footerText - (footerText?.length || 0);
 
   const safeSetHeaderText = (val) => setHeaderText(clamp(val, LIMITS.headerText));
-  const safeSetBodyText   = (val) => setBodyText(clamp(val, LIMITS.bodyText));
+  const safeSetBodyText = (val) => setBodyText(clamp(val, LIMITS.bodyText));
   const safeSetFooterText = (val) => setFooterText(clamp(val, LIMITS.footerText));
 
   const onMediaUrlChange = (val) => {
@@ -184,9 +193,12 @@ const ContentSection = ({
     if (!isValidHttpUrl(val)) return;
     const ext = getUrlExt(val);
     if (!fitsTypeByExt(headerType, ext)) {
-      if (headerType === 'DOCUMENT') toast.error('Documento: apenas PDF é aceito (.pdf).');
-      if (headerType === 'VIDEO')    toast.error('Vídeo: apenas MP4 é aceito (.mp4).');
-      if (headerType === 'IMAGE')    toast.error('Imagem: use jpg, jpeg, png, webp ou gif.');
+      if (headerType === "DOCUMENT")
+        toast.error("Documento: apenas PDF é aceito (.pdf).");
+      if (headerType === "VIDEO")
+        toast.error("Vídeo: apenas MP4 é aceito (.mp4).");
+      if (headerType === "IMAGE")
+        toast.error("Imagem: use jpg, jpeg, png, webp ou gif.");
     }
   };
 
@@ -199,16 +211,18 @@ const ContentSection = ({
         </p>
       </div>
 
-      {/* Tipo de cabeçalho */}
-      <div className={styles.cardBodyGrid}>
+      {/* Header Type Selection */}
+      <div className={styles.cardBodyGrid3}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de cabeçalho</label>
           <div className={styles.segmented} role="tablist">
-            {HEADER_TYPES.map(h => (
+            {HEADER_TYPES.map((h) => (
               <button
                 key={h.value}
                 type="button"
-                className={`${styles.segItem} ${headerType === h.value ? styles.segActive : ''}`}
+                className={`${styles.segItem} ${
+                  headerType === h.value ? styles.segActive : ""
+                }`}
                 onClick={() => onChangeHeaderType(h.value)}
                 aria-pressed={headerType === h.value}
               >
@@ -219,15 +233,15 @@ const ContentSection = ({
         </div>
       </div>
 
-      {/* Conteúdo do cabeçalho */}
-      {headerType === 'TEXT' && (
-        <div className={styles.cardBodyGrid}>
+      {/* Header Content */}
+      {headerType === "TEXT" && (
+        <div className={styles.cardBodyGrid3}>
           <div className={styles.groupFull}>
             <label className={styles.label}>Texto do cabeçalho *</label>
             <input
               className={styles.input}
               value={headerText}
-              onChange={e => safeSetHeaderText(e.target.value)}
+              onChange={(e) => safeSetHeaderText(e.target.value)}
               placeholder="Digite o texto do cabeçalho"
             />
             <small className={styles.helper}>
@@ -237,40 +251,42 @@ const ContentSection = ({
         </div>
       )}
 
-      {headerType !== 'TEXT' && headerType !== 'NONE' && (
-        <div className={styles.cardBodyGrid}>
+      {headerType !== "TEXT" && headerType !== "NONE" && (
+        <div className={styles.cardBodyGrid3}>
           <div className={styles.groupFull}>
             <label className={styles.label}>
-              URL da mídia{' '}
-              {headerType === 'IMAGE'    && '(jpg, jpeg, png, webp, gif)'}
-              {headerType === 'DOCUMENT' && '(apenas .pdf)'}
-              {headerType === 'VIDEO'    && '(apenas .mp4)'}
+              URL da mídia{" "}
+              {headerType === "IMAGE"
+                ? "(jpg, jpeg, png, webp, gif)"
+                : headerType === "DOCUMENT"
+                ? "(apenas .pdf)"
+                : "(apenas .mp4)"}
             </label>
             <input
               className={styles.input}
               value={headerMediaUrl}
-              onChange={e => onMediaUrlChange(e.target.value)}
+              onChange={(e) => onMediaUrlChange(e.target.value)}
               placeholder={
-                headerType === 'IMAGE'
-                  ? 'https://exemplo.com/arquivo.jpg'
-                  : headerType === 'DOCUMENT'
-                    ? 'https://exemplo.com/arquivo.pdf'
-                    : 'https://exemplo.com/video.mp4'
+                headerType === "IMAGE"
+                  ? "https://exemplo.com/arquivo.jpg"
+                  : headerType === "DOCUMENT"
+                  ? "https://exemplo.com/arquivo.pdf"
+                  : "https://exemplo.com/video.mp4"
               }
             />
           </div>
         </div>
       )}
 
-      {/* Corpo e rodapé */}
-      <div className={styles.cardBodyGrid}>
+      {/* Body & Footer */}
+      <div className={styles.cardBodyGrid3}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Corpo da mensagem *</label>
           <textarea
             className={styles.textarea}
             rows={5}
             value={bodyText}
-            onChange={e => safeSetBodyText(e.target.value)}
+            onChange={(e) => safeSetBodyText(e.target.value)}
             placeholder="Olá {{1}}, sua mensagem aqui..."
           />
           <small className={styles.helper}>
@@ -283,7 +299,7 @@ const ContentSection = ({
           <input
             className={styles.input}
             value={footerText}
-            onChange={e => safeSetFooterText(e.target.value)}
+            onChange={(e) => safeSetFooterText(e.target.value)}
             placeholder="Texto do rodapé"
           />
           <small className={styles.helper}>
@@ -303,56 +319,75 @@ const ButtonsSection = ({
   quicks,
   setQuicks,
 }) => {
-  const newId = () => Date.now() + '-' + Math.random().toString(36).slice(2);
+  const newId = () => Date.now() + "-" + Math.random().toString(36).slice(2);
 
-  const clampCtaText   = (s) => clamp(s, LIMITS.ctaText);
+  const clampCtaText = (s) => clamp(s, LIMITS.ctaText);
   const clampQuickText = (s) => clamp(s, LIMITS.quickText);
 
   const addCta = () => {
     if (ctas.length >= MAX_BTNS) return;
-    setCtas(prev => [
+    setCtas((prev) => [
       ...prev,
-      { id: newId(), type: 'URL', text: '', url: '', phone_number: '' },
+      { id: newId(), type: "URL", text: "", url: "", phone_number: "" },
     ]);
   };
 
   const addQuick = () => {
     if (quicks.length >= MAX_BTNS) return;
-    setQuicks(prev => [...prev, { id: newId(), text: '' }]);
+    setQuicks((prev) => [...prev, { id: newId(), text: "" }]);
   };
 
-  const removeCta   = (id) => setCtas(prev => prev.filter(cta   => cta.id   !== id));
-  const removeQuick = (id) => setQuicks(prev => prev.filter(quick => quick.id !== id));
+  const removeCta = (id) => setCtas((prev) => prev.filter((cta) => cta.id !== id));
+  const removeQuick = (id) =>
+    setQuicks((prev) => prev.filter((quick) => quick.id !== id));
 
   return (
     <section className={styles.card}>
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle}>Botões de ação</h2>
-        <p className={styles.cardDesc}>Adicione CTAs ou respostas rápidas.</p>
+        <p className={styles.cardDesc}>
+          Adicione botões de call-to-action ou respostas rápidas.
+        </p>
       </div>
 
-      <div className={styles.cardBodyGrid}>
+      <div className={styles.cardBodyGrid3}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de botão</label>
           <div className={styles.pills} role="tablist">
             <button
               type="button"
-              className={`${styles.pill} ${buttonMode === 'none' ? styles.pillActive : ''}`}
-              onClick={() => { setButtonMode('none'); setCtas([]); setQuicks([]); }}
+              className={`${styles.pill} ${
+                buttonMode === "none" ? styles.pillActive : ""
+              }`}
+              onClick={() => {
+                setButtonMode("none");
+                setCtas([]);
+                setQuicks([]);
+              }}
             >
               Nenhum
             </button>
             <button
               type="button"
-              className={`${styles.pill} ${buttonMode === 'cta' ? styles.pillActive : ''}`}
-              onClick={() => { setButtonMode('cta'); setQuicks([]); }}
+              className={`${styles.pill} ${
+                buttonMode === "cta" ? styles.pillActive : ""
+              }`}
+              onClick={() => {
+                setButtonMode("cta");
+                setQuicks([]);
+              }}
             >
               Call-to-Action
             </button>
             <button
               type="button"
-              className={`${styles.pill} ${buttonMode === 'quick' ? styles.pillActive : ''}`}
-              onClick={() => { setButtonMode('quick'); setCtas([]); }}
+              className={`${styles.pill} ${
+                buttonMode === "quick" ? styles.pillActive : ""
+              }`}
+              onClick={() => {
+                setButtonMode("quick");
+                setCtas([]);
+              }}
             >
               Resposta rápida
             </button>
@@ -360,50 +395,70 @@ const ButtonsSection = ({
         </div>
       </div>
 
-      {buttonMode === 'cta' && (
-        <div className={styles.cardBodyGrid}>
+      {buttonMode === "cta" && (
+        <div className={styles.cardBodyGrid3}>
           <div className={styles.groupFull}>
-            {ctas.map(cta => (
+            {ctas.map((cta) => (
               <div key={cta.id} className={styles.ctaEditRow}>
                 <select
                   className={styles.select}
                   value={cta.type}
-                  onChange={e => setCtas(prev => prev.map(c =>
-                    c.id === cta.id ? { ...c, type: e.target.value } : c
-                  ))}
+                  onChange={(e) =>
+                    setCtas((prev) =>
+                      prev.map((c) =>
+                        c.id === cta.id ? { ...c, type: e.target.value } : c
+                      )
+                    )
+                  }
                 >
                   <option value="URL">Abrir URL</option>
                   <option value="PHONE_NUMBER">Chamar</option>
                 </select>
 
-                <div className={styles.flexCol}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <input
                     className={styles.input}
                     placeholder="Texto do botão"
                     value={cta.text}
-                    onChange={e => setCtas(prev => prev.map(c =>
-                      c.id === cta.id ? { ...c, text: clampCtaText(e.target.value) } : c
-                    ))}
+                    onChange={(e) =>
+                      setCtas((prev) =>
+                        prev.map((c) =>
+                          c.id === cta.id
+                            ? { ...c, text: clampCtaText(e.target.value) }
+                            : c
+                        )
+                      )
+                    }
                   />
                 </div>
 
-                {cta.type === 'URL' ? (
+                {cta.type === "URL" ? (
                   <input
                     className={styles.input}
                     placeholder="https://exemplo.com"
                     value={cta.url}
-                    onChange={e => setCtas(prev => prev.map(c =>
-                      c.id === cta.id ? { ...c, url: e.target.value } : c
-                    ))}
+                    onChange={(e) =>
+                      setCtas((prev) =>
+                        prev.map((c) =>
+                          c.id === cta.id ? { ...c, url: e.target.value } : c
+                        )
+                      )
+                    }
                   />
                 ) : (
                   <input
                     className={styles.input}
                     placeholder="+5511999999999"
                     value={cta.phone_number}
-                    onChange={e => setCtas(prev => prev.map(c =>
-                      c.id === cta.id ? { ...c, phone_number: e.target.value } : c
-                    ))}
+                    onChange={(e) =>
+                      setCtas((prev) =>
+                        prev.map((c) =>
+                          c.id === cta.id
+                            ? { ...c, phone_number: e.target.value }
+                            : c
+                        )
+                      )
+                    }
                   />
                 )}
 
@@ -430,22 +485,33 @@ const ButtonsSection = ({
         </div>
       )}
 
-      {buttonMode === 'quick' && (
-        <div className={styles.cardBodyGrid}>
+      {buttonMode === "quick" && (
+        <div className={styles.cardBodyGrid3}>
           <div className={styles.groupFull}>
-            {quicks.map(quick => {
+            {quicks.map((quick) => {
               const left = LIMITS.quickText - (quick.text?.length || 0);
               return (
                 <div key={quick.id} className={styles.quickEditRow}>
-                  <div className={styles.flexCol}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 4,
+                      flex: 1,
+                    }}
+                  >
                     <input
                       className={styles.input}
                       placeholder="Texto da resposta rápida"
                       value={quick.text}
-                      onChange={e =>
-                        setQuicks(prev => prev.map(q =>
-                          q.id === quick.id ? { ...q, text: clampQuickText(e.target.value) } : q
-                        ))
+                      onChange={(e) =>
+                        setQuicks((prev) =>
+                          prev.map((q) =>
+                            q.id === quick.id
+                              ? { ...q, text: clampQuickText(e.target.value) }
+                              : q
+                          )
+                        )
                       }
                     />
                     <small className={styles.helper}>
@@ -485,92 +551,116 @@ export default function TemplateCreate() {
   const navigate = useNavigate();
   const topRef = useRef(null);
 
-  const [name, setName]           = useState('');
-  const [language, setLanguage]   = useState('pt_BR');
-  const [category, setCategory]   = useState('MARKETING');
+  const [name, setName] = useState("");
+  const [language, setLanguage] = useState("pt_BR");
+  const [category, setCategory] = useState("MARKETING");
 
-  const [headerType, setHeaderType]       = useState('TEXT');
-  const [headerText, setHeaderText]       = useState('');
-  const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+  const [headerType, setHeaderType] = useState("TEXT");
+  const [headerText, setHeaderText] = useState("");
+  const [headerMediaUrl, setHeaderMediaUrl] = useState("");
 
-  const [bodyText, setBodyText]   = useState('');
-  const [footerText, setFooterText] = useState('');
+  const [bodyText, setBodyText] = useState("");
+  const [footerText, setFooterText] = useState("");
 
-  const [buttonMode, setButtonMode] = useState('none');
-  const [ctas, setCtas]           = useState([]);
-  const [quicks, setQuicks]       = useState([]);
-  const [saving, setSaving]       = useState(false);
+  const [buttonMode, setButtonMode] = useState("none");
+  const [ctas, setCtas] = useState([]);
+  const [quicks, setQuicks] = useState([]);
+  const [saving, setSaving] = useState(false);
 
-  const handleChangeHeaderType = useCallback((nextType) => {
-    if (nextType === headerType) return;
-    setHeaderType(nextType);
-    setHeaderText('');
-    setHeaderMediaUrl('');
-  }, [headerType]);
+  const handleChangeHeaderType = useCallback(
+    (nextType) => {
+      if (nextType === headerType) return;
+      setHeaderType(nextType);
+      setHeaderText("");
+      setHeaderMediaUrl("");
+    },
+    [headerType]
+  );
 
   const validateBeforeSubmit = () => {
     if (!name.trim()) {
-      toast.error('Informe o nome do template.');
+      toast.error("Informe o nome do template.");
       return false;
     }
     if (!bodyText.trim()) {
-      toast.error('O corpo da mensagem é obrigatório.');
+      toast.error("O corpo da mensagem é obrigatório.");
       return false;
     }
-    if (headerType === 'TEXT' && !headerText.trim()) {
-      toast.error('O texto do cabeçalho é obrigatório.');
+    if (headerType === "TEXT" && !headerText.trim()) {
+      toast.error("O texto do cabeçalho é obrigatório.");
       return false;
     }
 
-    if (headerType !== 'TEXT' && headerType !== 'NONE') {
+    if (headerType !== "TEXT" && headerType !== "NONE") {
       if (!headerMediaUrl?.trim()) {
-        toast.error('Informe a URL da mídia do cabeçalho.');
+        toast.error("Informe a URL da mídia do cabeçalho.");
         return false;
       }
       if (!isValidHttpUrl(headerMediaUrl)) {
-        toast.error('URL de mídia inválida.');
+        toast.error("URL de mídia inválida.");
         return false;
       }
       const ext = getUrlExt(headerMediaUrl);
       if (!fitsTypeByExt(headerType, ext)) {
         toast.error(
-          headerType === 'IMAGE'
-            ? 'Imagem inválida. Use jpg, jpeg, png, webp ou gif.'
-            : headerType === 'DOCUMENT'
-              ? 'Documento inválido. Use apenas PDF (.pdf).'
-              : 'Vídeo inválido. Use apenas MP4 (.mp4).'
+          headerType === "IMAGE"
+            ? "Imagem inválida. Use jpg, jpeg, png, webp ou gif."
+            : headerType === "DOCUMENT"
+            ? "Documento inválido. Use apenas PDF (.pdf)."
+            : "Vídeo inválido. Use apenas MP4 (.mp4)."
         );
         return false;
       }
     }
 
-    if (headerText.length > LIMITS.headerText) { toast.error('Cabeçalho excede o limite.'); return false; }
-    if (bodyText.length   > LIMITS.bodyText)   { toast.error('Corpo excede o limite.');     return false; }
-    if (footerText.length > LIMITS.footerText) { toast.error('Rodapé excede o limite.');    return false; }
+    if (headerText.length > LIMITS.headerText) {
+      toast.error("Cabeçalho excede o limite.");
+      return false;
+    }
+    if (bodyText.length > LIMITS.bodyText) {
+      toast.error("Corpo excede o limite.");
+      return false;
+    }
+    if (footerText.length > LIMITS.footerText) {
+      toast.error("Rodapé excede o limite.");
+      return false;
+    }
 
-    if (buttonMode === 'cta') {
+    if (buttonMode === "cta") {
       for (const b of ctas) {
-        if (!b.text?.trim())                 { toast.error('Texto do botão CTA é obrigatório.'); return false; }
-        if (b.text.length > LIMITS.ctaText)  { toast.error('Texto do CTA excede o limite.');     return false; }
-        if (b.type === 'URL' && !b.url?.trim()) {
-          toast.error('URL do CTA é obrigatória.');
+        if (!b.text?.trim()) {
+          toast.error("Texto do botão CTA é obrigatório.");
           return false;
         }
-        if (b.type === 'URL' && !isValidHttpUrl(b.url)) {
-          toast.error('URL do CTA inválida.');
+        if (b.text.length > LIMITS.ctaText) {
+          toast.error("Texto do CTA excede o limite.");
           return false;
         }
-        if (b.type === 'PHONE_NUMBER' && !b.phone_number?.trim()) {
-          toast.error('Telefone do CTA é obrigatório.');
+        if (b.type === "URL" && !b.url?.trim()) {
+          toast.error("URL do CTA é obrigatória.");
+          return false;
+        }
+        if (b.type === "URL" && !isValidHttpUrl(b.url)) {
+          toast.error("URL do CTA inválida.");
+          return false;
+        }
+        if (b.type === "PHONE_NUMBER" && !b.phone_number?.trim()) {
+          toast.error("Telefone do CTA é obrigatório.");
           return false;
         }
       }
     }
 
-    if (buttonMode === 'quick') {
+    if (buttonMode === "quick") {
       for (const q of quicks) {
-        if (!q.text?.trim())                 { toast.error('Texto da resposta rápida é obrigatório.'); return false; }
-        if (q.text.length > LIMITS.quickText){ toast.error('Resposta rápida excede o limite.');        return false; }
+        if (!q.text?.trim()) {
+          toast.error("Texto da resposta rápida é obrigatório.");
+          return false;
+        }
+        if (q.text.length > LIMITS.quickText) {
+          toast.error("Resposta rápida excede o limite.");
+          return false;
+        }
       }
     }
 
@@ -580,130 +670,171 @@ export default function TemplateCreate() {
   const canSave = useMemo(() => {
     if (!name.trim()) return false;
     if (!bodyText.trim()) return false;
-    if (headerType === 'TEXT' && !headerText.trim()) return false;
-
-    if (buttonMode === 'cta' && ctas.some(b =>
-      !b.text?.trim() ||
-      (b.type === 'URL' && !b.url?.trim()) ||
-      (b.type === 'PHONE_NUMBER' && !b.phone_number?.trim())
-    )) return false;
-
-    if (buttonMode === 'quick' && quicks.some(q => !q.text?.trim())) return false;
-
+    if (headerType === "TEXT" && !headerText.trim()) return false;
+    if (
+      buttonMode === "cta" &&
+      ctas.some(
+        (b) =>
+          !b.text?.trim() ||
+          (b.type === "URL" && !b.url?.trim()) ||
+          (b.type === "PHONE_NUMBER" && !b.phone_number?.trim())
+      )
+    )
+      return false;
+    if (
+      buttonMode === "quick" &&
+      quicks.some((q) => !q.text?.trim())
+    )
+      return false;
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
 
-  const handleSubmit = useCallback(async (e) => {
-    e?.preventDefault?.();
-    if (saving) return;
-    if (!validateBeforeSubmit()) return;
+  const handleSubmit = useCallback(
+    async (e) => {
+      e?.preventDefault?.();
+      if (saving) return;
+      if (!validateBeforeSubmit()) return;
 
-    setSaving(true);
-    try {
-      let buttons = null;
-      if (buttonMode === 'cta' && ctas.length) {
-        buttons = ctas.map(b =>
-          b.type === 'URL'
-            ? { type: 'URL', text: b.text.trim(), url: b.url.trim() }
-            : { type: 'PHONE_NUMBER', text: b.text.trim(), phone_number: b.phone_number.trim() }
-        );
-      } else if (buttonMode === 'quick' && quicks.length) {
-        buttons = quicks.map(q => ({ type: 'QUICK_REPLY', text: q.text.trim() }));
+      setSaving(true);
+      try {
+        let buttons = null;
+        if (buttonMode === "cta" && ctas.length) {
+          buttons = ctas.map((b) =>
+            b.type === "URL"
+              ? { type: "URL", text: b.text.trim(), url: b.url.trim() }
+              : {
+                  type: "PHONE_NUMBER",
+                  text: b.text.trim(),
+                  phone_number: b.phone_number.trim(),
+                }
+          );
+        } else if (buttonMode === "quick" && quicks.length) {
+          buttons = quicks.map((q) => ({
+            type: "QUICK_REPLY",
+            text: q.text.trim(),
+          }));
+        }
+
+        const payload = {
+          name: sanitizeTemplateName(name),
+          language_code: language,
+          category,
+          header_type: headerType || "NONE",
+          header_text:
+            headerType === "TEXT"
+              ? headerText.trim() || null
+              : null,
+          header_media_url:
+            headerType !== "TEXT" && headerType !== "NONE"
+              ? headerMediaUrl.trim() || null
+              : null,
+          body_text: bodyText.trim(),
+          footer_text: footerText.trim() || null,
+          buttons,
+          example: null,
+        };
+
+        const created = await apiPost("/templates", payload);
+        await apiPost(`/templates/${created.id}/submit`, {});
+        await apiPost(`/templates/${created.id}/sync`, {});
+
+        toast.success("Template enviado para avaliação!");
+        navigate("/management/templates");
+      } catch (err) {
+        console.error(err);
+        toast.error("Falha ao enviar template.");
+      } finally {
+        setSaving(false);
       }
+    },
+    [
+      saving,
+      name,
+      language,
+      category,
+      headerType,
+      headerText,
+      headerMediaUrl,
+      bodyText,
+      footerText,
+      buttonMode,
+      ctas,
+      quicks,
+      navigate,
+    ]
+  );
 
-      const payload = {
-        name: sanitizeTemplateName(name),
-        language_code: language,
-        category,
-        header_type: headerType || 'NONE',
-        header_text: headerType === 'TEXT' ? (headerText.trim() || null) : null,
-        header_media_url: headerType !== 'TEXT' && headerType !== 'NONE'
-          ? (headerMediaUrl.trim() || null)
-          : null,
-        body_text: bodyText.trim(),
-        footer_text: footerText.trim() || null,
-        buttons,
-        example: null,
-      };
-
-      const created = await apiPost('/templates', payload);
-      await apiPost(`/templates/${created.id}/submit`, {});
-      await apiPost(`/templates/${created.id}/sync`, {});
-      toast.success('Template enviado para avaliação!');
-      navigate('/management/templates');
-    } catch (err) {
-      console.error(err);
-      toast.error('Falha ao enviar template.');
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    saving,
-    name,
-    language,
-    category,
-    headerType,
-    headerText,
-    headerMediaUrl,
-    bodyText,
-    footerText,
-    buttonMode,
-    ctas,
-    quicks,
-    navigate,
-  ]);
-
-  const previewCtas   = useMemo(() => buttonMode === 'cta'   ? ctas   : [], [buttonMode, ctas]);
-  const previewQuicks = useMemo(() => buttonMode === 'quick' ? quicks : [], [buttonMode, quicks]);
+  const previewCtas = useMemo(
+    () => (buttonMode === "cta" ? ctas : []),
+    [buttonMode, ctas]
+  );
+  const previewQuicks = useMemo(
+    () => (buttonMode === "quick" ? quicks : []),
+    [buttonMode, quicks]
+  );
 
   return (
     <div className={styles.page} ref={topRef}>
       {/* Breadcrumbs */}
       <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
         <ol className={styles.bcList}>
-          <li><Link to="/" className={styles.bcLink}>Dashboard</Link></li>
+          <li>
+            <Link to="/" className={styles.bcLink}>
+              Dashboard
+            </Link>
+          </li>
           <li className={styles.bcSep}>/</li>
-          <li><Link to="/management/templates" className={styles.bcLink}>Templates</Link></li>
+          <li>
+            <Link
+              to="/management/templates"
+              className={styles.bcLink}
+            >
+              Templates
+            </Link>
+          </li>
           <li className={styles.bcSep}>/</li>
-          <li><span className={styles.bcCurrent}>Novo template</span></li>
+          <li>
+            <span className={styles.bcCurrent}>Novo template</span>
+          </li>
         </ol>
       </nav>
 
-      {/* Header principal (padrão das telas de formulário) */}
+      {/* Header card no padrão Templates */}
       <header className={styles.headerCard}>
-        <div className={styles.headerLeft}>
-          <button
-            type="button"
-            className={styles.backBtn}
-            onClick={() => navigate('/campaigns/templates')}
-          >
-            <span className={styles.backIcon}>←</span>
-            <span>Voltar</span>
-          </button>
-
-          <div className={styles.headerTitleWrap}>
+        <div className={styles.headerRow}>
+          <div className={styles.headerCenter}>
             <h1 className={styles.headerTitle}>Novo template</h1>
             <p className={styles.headerSubtitle}>
-              Crie o template de mensagem do WhatsApp Business e envie para avaliação da Meta.
+              Crie o template de mensagem do WhatsApp Business e
+              envie para avaliação da Meta.
             </p>
           </div>
-        </div>
 
-        <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.headerPrimaryBtn}
-            onClick={handleSubmit}
-            disabled={!canSave || saving}
-          >
-            <SaveIcon size={16} />
-            <span>{saving ? 'Enviando…' : 'Enviar para avaliação'}</span>
-          </button>
+          <div className={styles.headerRight}>
+            <button
+              type="button"
+              className={styles.headerGhost}
+              onClick={() => navigate("/management/templates")}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className={styles.headerPrimary}
+              onClick={handleSubmit}
+              disabled={!canSave || saving}
+            >
+              <SaveIcon size={16} />
+              <span>
+                {saving ? "Enviando…" : "Enviar para avaliação"}
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Grid principal: formulário + preview */}
-      <div className={styles.mainGrid}>
+      {/* Grid form + preview */}
+      <div className={styles.grid}>
         <div className={styles.colForm}>
           <TemplateInfoSection
             name={name}
@@ -737,29 +868,17 @@ export default function TemplateCreate() {
           />
         </div>
 
-        <aside className={styles.colPreview} aria-label="Prévia do template">
-          <PreviewWhatsApp
-            name={sanitizeTemplateName(name) || 'template_name'}
-            headerType={headerType}
-            headerText={headerText}
-            headerMediaUrl={headerMediaUrl}
-            bodyText={bodyText}
-            footerText={footerText}
-            ctas={previewCtas}
-            quicks={previewQuicks}
-          />
-        </aside>
-      </div>
-
-      {/* Rodapé simples só com Cancelar (sem sticky / gradiente) */}
-      <div className={styles.footerBar}>
-        <button
-          type="button"
-          className={styles.footerCancelBtn}
-          onClick={() => navigate('/campaigns/templates')}
-        >
-          Cancelar
-        </button>
+        {/* Preview lateral (usa o CSS do próprio PreviewWhatsApp) */}
+        <PreviewWhatsApp
+          name={sanitizeTemplateName(name) || "template_name"}
+          headerType={headerType}
+          headerText={headerText}
+          headerMediaUrl={headerMediaUrl}
+          bodyText={bodyText}
+          footerText={footerText}
+          ctas={previewCtas}
+          quicks={previewQuicks}
+        />
       </div>
     </div>
   );
