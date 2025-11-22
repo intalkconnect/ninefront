@@ -1,3 +1,4 @@
+/* src/pages/admin/management/templates/styles/TemplateCreate.module.css */
 :root {
   --bg-page: #0f1419;
   --card-bg: #1e293b;
@@ -12,6 +13,7 @@
   --accent-soft: rgba(59, 130, 246, 0.25);
   --danger: #ef4444;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.7);
 }
 
 /* ===== Layout base ===== */
@@ -298,26 +300,105 @@
   color: #ffffff;
 }
 
-/* ===== Edição de botões (CTA detalhes) ===== */
-.ctaEditRow {
+/* ===== Tags de botões ===== */
+.tagRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  padding: 10px 10px;
-  margin-bottom: 8px;
-  background: rgba(15, 23, 42, 0.85);
-  border-radius: 12px;
-  border: 1px solid #1f2937;
-}
-.flexColumn {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-/* ===== Botões secundários ===== */
+.btnTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+}
+.btnTagActive {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+.btnTagLabel {
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.btnTagRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+}
+.btnTagRemove:hover {
+  color: #1d4ed8;
+}
+
+/* Input inline para criar nova tag */
+.tagInput {
+  min-width: 180px;
+  border-radius: 999px;
+  border: 1px dashed #60a5fa;
+  padding: 6px 10px;
+  background: #020617;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+}
+.tagInput::placeholder {
+  color: #6b7280;
+}
+.tagInput:focus {
+  border-style: solid;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* Botão "Adicionar outro botão" */
+.addTagBox {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px dashed #60a5fa;
+  background: rgba(15, 23, 42, 0.8);
+  color: #bfdbfe;
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.addTagBox:hover {
+  background: rgba(15, 23, 42, 0.95);
+}
+
+/* Painel de edição de CTA */
+.ctaEditPanel {
+  margin-top: 12px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid #1f2937;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+/* ===== Botões auxiliares dentro dos cards ===== */
 .btn,
 .btnSecondary {
   border-radius: 999px;
@@ -341,70 +422,6 @@
 }
 .btnSecondary:hover {
   background: rgba(37, 99, 235, 0.2);
-}
-
-/* ===== TAGS dos botões ===== */
-.tagRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: #020617;
-  border: 1px dashed #1f2937;
-}
-
-.btnTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.18);
-  border: 1px solid rgba(37, 99, 235, 0.6);
-  color: #e5e7eb;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.btnTagRemove {
-  border: none;
-  background: transparent;
-  color: #e5e7eb;
-  cursor: pointer;
-  font-size: 11px;
-  padding: 0 0 0 2px;
-  line-height: 1;
-}
-.btnTagRemove:hover {
-  color: #fecaca;
-}
-
-.addTagInput {
-  flex: 1 1 140px;
-  min-width: 120px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-}
-.addTagInput::placeholder {
-  color: #64748b;
-}
-
-.ctaOptionsList {
-  margin-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.btnTagLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e5e7eb;
-  min-width: 120px;
 }
 
 /* ===== Responsivo ===== */
@@ -438,9 +455,5 @@
 @media (max-width: 640px) {
   .page {
     padding: 14px 14px 32px;
-  }
-  .ctaEditRow {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
