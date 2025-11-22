@@ -10,7 +10,6 @@ import {
   Megaphone,
   FileText,
   Send,
-  ChevronRight,
   LogOut,
   Headset,
   User,
@@ -91,13 +90,10 @@ export default function Admin() {
 
   const [authLoading, setAuthLoading] = useState(true);
 
-  // estado do layout
-  const [openSubmenuKey, setOpenSubmenuKey] = useState(null);
   const [isProfileOpen, setProfileOpen] = useState(false);
   const [isHelpOpen, setHelpOpen] = useState(false);
 
-  const closeAllPanels = () => {
-    setOpenSubmenuKey(null);
+  const closeDropdowns = () => {
     setProfileOpen(false);
     setHelpOpen(false);
   };
@@ -137,18 +133,18 @@ export default function Admin() {
     return () => {
       mounted = false;
     };
-  }, [email]);
+  }, [email, jwt?.sub, jwt?.name, jwt?.email]);
 
-  // fecha painéis ao trocar de rota
+  // fecha dropdowns ao trocar de rota
   useEffect(() => {
-    closeAllPanels();
+    closeDropdowns();
   }, [location.pathname]);
 
-  // ESC fecha painéis
+  // ESC fecha dropdowns
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
-        closeAllPanels();
+        closeDropdowns();
       }
     };
     document.addEventListener("keydown", onKey);
@@ -172,7 +168,7 @@ export default function Admin() {
         if (m.key !== "monitoring") return m;
         const cloned = {
           ...m,
-          children: m.children?.map((g) => ({ ...g })), // clone raso
+          children: m.children?.map((g) => ({ ...g })),
         };
         cloned.children = cloned.children?.map((grp) => {
           if (grp.key !== "monitoring-analysis") return grp;
@@ -194,7 +190,6 @@ export default function Admin() {
         label: "Dashboard",
         to: DASHBOARD_PATH,
         icon: <LayoutDashboard size={18} />,
-        exact: true,
       },
 
       {
@@ -330,8 +325,6 @@ export default function Admin() {
     return filterMenusByRole(base);
   }, [isSupervisor]);
 
-  const isGroup = (n) => Array.isArray(n?.children) && n.children.length > 0;
-
   const handleNavigation = (path) => {
     const targetPath = path.startsWith("/") ? path : `/${path}`;
     navigate(targetPath);
@@ -350,6 +343,12 @@ export default function Admin() {
         return current.startsWith(leafPath);
       })
     );
+  };
+
+  const isLeafActive = (leafTo) => {
+    const current = location.pathname;
+    const leafPath = leafTo.startsWith("/") ? leafTo : `/${leafTo}`;
+    return current.startsWith(leafPath);
   };
 
   if (authLoading) {
@@ -376,440 +375,425 @@ export default function Admin() {
 
   return (
     <div className={styles.wrapper}>
-      {/* ===== TOPBAR (escura) ===== */}
+      {/* TOPBAR ESCURA */}
       <header className={styles.topbar}>
-        <div className={styles.topbarLeft}>
-          <button
-            type="button"
-            className={styles.brandButton}
-            onClick={() => handleNavigation("/")}
+        <div className={styles.topbarInner}>
+          <NavLink
+            to={DASHBOARD_PATH}
+            className={styles.brand}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate("/", { replace: true });
+            }}
           >
             <img
               src="/logo-front.png"
               alt="NineChat"
               className={styles.brandLogo}
             />
-          </button>
-        </div>
+          </NavLink>
 
-        <div className={styles.topbarCenter}>
-          {/* espaço para busca futura / título, por enquanto vazio */}
-        </div>
-
-        <div className={styles.topbarRight}>
-          {/* Ajuda */}
-          <div className={styles.topbarDropdownWrapper}>
-            <button
-              type="button"
-              className={styles.iconButton}
-              onClick={() => {
-                setHelpOpen((v) => !v);
-                setProfileOpen(false);
-              }}
-              aria-label="Ajuda"
-            >
-              <CircleHelp size={18} />
-            </button>
-
-            {isHelpOpen && (
-              <div className={styles.dropdownPanel}>
-                <button
-                  type="button"
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    window.open("https://docs.ninechat.com.br", "_blank");
-                    closeAllPanels();
-                  }}
-                >
-                  <FileText size={14} className={styles.dropdownIcon} />
-                  <span>NineDocs</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.dropdownItem}
-                  onClick={() => {
-                    // placeholder academy
-                    closeAllPanels();
-                  }}
-                >
-                  <GraduationCap size={14} className={styles.dropdownIcon} />
-                  <span>Nine Academy</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Perfil */}
-          {userData && (
-            <div className={styles.topbarDropdownWrapper}>
+          <div className={styles.topbarRight}>
+            {/* Ajuda */}
+            <div className={styles.iconWrapper}>
               <button
                 type="button"
-                className={styles.profileTrigger}
+                className={styles.iconButton}
                 onClick={() => {
-                  setProfileOpen((v) => !v);
-                  setHelpOpen(false);
+                  setHelpOpen((v) => !v);
+                  setProfileOpen(false);
                 }}
-                aria-haspopup="menu"
+                title="Ajuda"
+                aria-label="Ajuda"
               >
-                <div
-                  className={styles.avatar}
-                  style={{ backgroundColor: stringToColor(userData.email) }}
-                >
-                  {userData.name?.charAt(0).toUpperCase() || "U"}
-                </div>
+                <CircleHelp size={18} />
               </button>
-
-              {isProfileOpen && (
-                <div className={styles.dropdownPanel}>
-                  <div className={styles.dropdownHeader}>
-                    <div
-                      className={styles.avatar}
-                      style={{ backgroundColor: stringToColor(userData.email) }}
-                    >
-                      {userData.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                    <div>
-                      <div className={styles.dropdownName}>
-                        {userData.name || "Usuário"}
-                      </div>
-                      <div className={styles.dropdownEmail}>
-                        {userData.email}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={styles.dropdownItem}
-                    onClick={() => {
-                      handleNavigation("settings/preferences");
-                      closeAllPanels();
-                    }}
-                  >
-                    <User size={14} className={styles.dropdownIcon} />
-                    <span>Editar perfil</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`${styles.dropdownItem} ${styles.dropdownLogout}`}
-                  >
-                    <LogoutButton
-                      className={styles.logoutInner}
-                      onClick={closeAllPanels}
-                    >
-                      <LogOut size={14} className={styles.dropdownIcon} />
-                      <span>Logout</span>
-                    </LogoutButton>
-                  </button>
+              {isHelpOpen && (
+                <div className={styles.dropdown}>
+                  <ul className={styles.dropdownList}>
+                    {isAdmin && (
+                      <li>
+                        <button
+                          type="button"
+                          className={styles.dropdownItem}
+                          onClick={() => {
+                            window.open(
+                              "https://docs.ninechat.com.br",
+                              "_blank"
+                            );
+                            closeDropdowns();
+                          }}
+                        >
+                          <span className={styles.dropdownIcon}>
+                            <FileText size={14} />
+                          </span>
+                          <span>NineDocs</span>
+                        </button>
+                      </li>
+                    )}
+                    <li>
+                      <button
+                        type="button"
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          // placeholder Academy
+                          closeDropdowns();
+                        }}
+                      >
+                        <span className={styles.dropdownIcon}>
+                          <GraduationCap size={14} />
+                        </span>
+                        <span>Nine Academy</span>
+                      </button>
+                    </li>
+                  </ul>
                 </div>
               )}
             </div>
-          )}
+
+            {/* Perfil */}
+            {userData && (
+              <div className={styles.iconWrapper}>
+                <button
+                  type="button"
+                  className={styles.profileButton}
+                  onClick={() => {
+                    setProfileOpen((v) => !v);
+                    setHelpOpen(false);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileOpen}
+                >
+                  <div
+                    className={styles.avatar}
+                    style={{ backgroundColor: stringToColor(userData.email) }}
+                  >
+                    {userData.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                </button>
+
+                {isProfileOpen && (
+                  <div className={styles.dropdownProfile} role="menu">
+                    <div className={styles.profileHeader}>
+                      <div
+                        className={styles.avatar}
+                        style={{
+                          backgroundColor: stringToColor(userData.email),
+                        }}
+                      >
+                        {userData.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <div className={styles.profileName}>
+                          {userData.name || "Usuário"}
+                        </div>
+                      </div>
+                    </div>
+                    <ul className={styles.dropdownList}>
+                      <li>
+                        <button
+                          type="button"
+                          className={styles.dropdownItem}
+                          onClick={() => {
+                            handleNavigation("settings/preferences");
+                            closeDropdowns();
+                          }}
+                        >
+                          <span className={styles.dropdownIcon}>
+                            <User size={14} />
+                          </span>
+                          <span>Editar perfil</span>
+                        </button>
+                      </li>
+                      <li className={styles.dropdownSeparator} />
+                      <li>
+                        <LogoutButton
+                          className={`${styles.dropdownItem} ${styles.logout}`}
+                          onClick={closeDropdowns}
+                        >
+                          <span className={styles.dropdownIcon}>
+                            <LogOut size={14} />
+                          </span>
+                          <span>Logout</span>
+                        </LogoutButton>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* ===== SHELL (menu “aberto” + conteúdo) ===== */}
-      <div className={styles.shell}>
-        {/* Menu lateral dentro do body, sem “bar” separada */}
-        <aside className={styles.sidebar}>
-          <nav className={styles.nav}>
-            {menus.map((item, index) => {
-              const active = isMenuActive(item);
-              const hasSub = isGroup(item);
-              const isOpen = openSubmenuKey === item.key;
+      {/* BODY: menu "solto" à esquerda + conteúdo à direita */}
+      <div className={styles.body}>
+        <div className={styles.bodyInner}>
+          {/* Menu em coluna, parece parte do body */}
+          <aside className={styles.sidebar}>
+            <nav className={styles.navRoot}>
+              {menus.map((menu) => {
+                const activeMenu = isMenuActive(menu);
 
-              const handleClick = () => {
-                if (hasSub) {
-                  setOpenSubmenuKey((cur) =>
-                    cur === item.key ? null : item.key
+                // menu simples (Dashboard, Workflows)
+                if (!menu.children) {
+                  return (
+                    <button
+                      key={menu.key}
+                      type="button"
+                      className={`${styles.menuLeafButton} ${
+                        activeMenu ? styles.menuLeafActive : ""
+                      }`}
+                      onClick={() => handleNavigation(menu.to)}
+                    >
+                      <span className={styles.menuLeafIcon}>{menu.icon}</span>
+                      <span>{menu.label}</span>
+                    </button>
                   );
-                } else if (item.to) {
-                  handleNavigation(item.to);
                 }
-              };
 
-              return (
-                <div key={item.key} className={styles.navItem}>
-                  <button
-                    type="button"
-                    onClick={handleClick}
-                    className={`${styles.navButton} ${
-                      active ? styles.navButtonActive : ""
-                    }`}
-                  >
-                    <span className={styles.navIcon}>{item.icon}</span>
-                    <span className={styles.navLabel}>{item.label}</span>
-                    {hasSub && (
-                      <ChevronRight
-                        className={`${styles.navChevron} ${
-                          isOpen ? styles.navChevronOpen : ""
-                        }`}
-                      />
-                    )}
-                  </button>
-
-                  {hasSub && isOpen && (
-                    <div className={styles.submenuBox}>
-                      {item.children.map((grp) => (
-                        <div
-                          key={grp.key || grp.label}
-                          className={styles.submenuGroup}
-                        >
-                          <div className={styles.submenuHeader}>
-                            {grp.label}
-                          </div>
-                          <ul className={styles.submenuList}>
-                            {grp.children?.map((leaf) => {
-                              const leafPath = leaf.to.startsWith("/")
-                                ? leaf.to
-                                : `/${leaf.to}`;
-                              const leafActive =
-                                location.pathname.startsWith(leafPath);
-                              return (
-                                <li
-                                  key={leaf.to}
-                                  className={styles.submenuItem}
-                                >
-                                  <button
-                                    type="button"
-                                    className={`${styles.submenuItemLink} ${
-                                      leafActive
-                                        ? styles.submenuItemActive
-                                        : ""
-                                    }`}
-                                    onClick={() => {
-                                      handleNavigation(leaf.to);
-                                      closeAllPanels();
-                                    }}
-                                  >
-                                    {leaf.icon && (
-                                      <span
-                                        className={styles.submenuItemIcon}
-                                      >
-                                        {leaf.icon}
-                                      </span>
-                                    )}
-                                    <span>{leaf.label}</span>
-                                  </button>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      ))}
+                // menu com grupos
+                return (
+                  <section key={menu.key} className={styles.menuSection}>
+                    <div className={styles.menuSectionHeader}>
+                      <span className={styles.menuSectionIcon}>{menu.icon}</span>
+                      <span>{menu.label}</span>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-        </aside>
+                    {menu.children.map((grp) => (
+                      <div key={grp.key || grp.label} className={styles.menuGroup}>
+                        <div className={styles.menuGroupTitle}>{grp.label}</div>
+                        <ul className={styles.menuGroupList}>
+                          {(grp.children || []).map((leaf) => {
+                            const leafActive = isLeafActive(leaf.to);
+                            return (
+                              <li key={leaf.to}>
+                                <button
+                                  type="button"
+                                  className={`${styles.menuLeafButton} ${
+                                    leafActive ? styles.menuLeafActive : ""
+                                  }`}
+                                  onClick={() => handleNavigation(leaf.to)}
+                                >
+                                  {leaf.icon && (
+                                    <span className={styles.menuLeafIcon}>
+                                      {leaf.icon}
+                                    </span>
+                                  )}
+                                  <span>{leaf.label}</span>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </section>
+                );
+              })}
+            </nav>
+          </aside>
 
-        {/* Conteúdo da página (abre à direita do menu) */}
-        <div className={styles.main}>
-          <main className={styles.content}>
-            <Routes>
-              <Route index element={<Dashboard />} />
+          {/* Conteúdo principal */}
+          <main className={styles.main}>
+            <div className={styles.content}>
+              <Routes>
+                <Route index element={<Dashboard />} />
 
-              {/* monitoring */}
-              <Route
-                path="monitoring/realtime/agents"
-                element={<AgentsMonitor />}
-              />
-              <Route
-                path="monitoring/realtime/queues"
-                element={<ClientsMonitor />}
-              />
+                {/* monitoring */}
+                <Route
+                  path="monitoring/realtime/agents"
+                  element={<AgentsMonitor />}
+                />
+                <Route
+                  path="monitoring/realtime/queues"
+                  element={<ClientsMonitor />}
+                />
 
-              {/* analytics */}
-              <Route path="analytics/quality" element={<Quality />} />
-              <Route
-                path="analytics/sessions"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <BillingExtrato />
-                  </RequireRole>
-                }
-              />
+                {/* analytics */}
+                <Route path="analytics/quality" element={<Quality />} />
+                <Route
+                  path="analytics/sessions"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <BillingExtrato />
+                    </RequireRole>
+                  }
+                />
 
-              {/* management */}
-              <Route
-                path="management/users"
-                element={<UsersPage canCreateAdmin={isAdmin} />}
-              />
-              <Route path="management/users/new" element={<UserForm />} />
-              <Route
-                path="management/users/:userId/edit"
-                element={<UserForm />}
-              />
+                {/* management */}
+                <Route
+                  path="management/users"
+                  element={<UsersPage canCreateAdmin={isAdmin} />}
+                />
+                <Route path="management/users/new" element={<UserForm />} />
+                <Route
+                  path="management/users/:userId/edit"
+                  element={<UserForm />}
+                />
 
-              {/* campaigns */}
-              <Route path="campaigns/templates" element={<Templates />} />
-              <Route
-                path="campaigns/templates/new"
-                element={<TemplateCreate />}
-              />
-              <Route path="campaigns/campaigns" element={<Campaigns />} />
-              <Route
-                path="campaigns/campaigns/new"
-                element={<CampaignCreate />}
-              />
+                {/* campaigns */}
+                <Route path="campaigns/templates" element={<Templates />} />
+                <Route
+                  path="campaigns/templates/new"
+                  element={<TemplateCreate />}
+                />
+                <Route path="campaigns/campaigns" element={<Campaigns />} />
+                <Route
+                  path="campaigns/campaigns/new"
+                  element={<CampaignCreate />}
+                />
 
-              {/* settings (paths absolutos) */}
-              <Route
-                path="/settings/preferences"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <Preferences />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="/settings/security"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <TokensSecurity />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="/settings/logs"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <AuditLogs />
-                  </RequireRole>
-                }
-              />
+                {/* settings (paths absolutos) */}
+                <Route
+                  path="/settings/preferences"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <Preferences />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="/settings/security"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <TokensSecurity />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="/settings/logs"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <AuditLogs />
+                    </RequireRole>
+                  }
+                />
 
-              {/* channels */}
-              <Route
-                path="workflows/hub/channels/whatsapp"
-                element={<WhatsAppProfile />}
-              />
-              <Route
-                path="workflows/hub/channels/telegram"
-                element={<TelegramConnect />}
-              />
+                {/* channels */}
+                <Route
+                  path="workflows/hub/channels/whatsapp"
+                  element={<WhatsAppProfile />}
+                />
+                <Route
+                  path="workflows/hub/channels/telegram"
+                  element={<TelegramConnect />}
+                />
 
-              {/* workflows hub */}
-              <Route
-                path="workflows/hub"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <FlowHub />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="workflows/hub/:flowId/channels"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <FlowChannels />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="workflows/hub/:flowId/quick-replies"
-                element={<QuickReplies />}
-              />
-              <Route
-                path="workflows/hub/studio/:flowId"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <Builder />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="workflows/hub/:flowId/queues"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <Queues />
-                  </RequireRole>
-                }
-              />
+                {/* workflows hub */}
+                <Route
+                  path="workflows/hub"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <FlowHub />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="workflows/hub/:flowId/channels"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <FlowChannels />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="workflows/hub/:flowId/quick-replies"
+                  element={<QuickReplies />}
+                />
+                <Route
+                  path="workflows/hub/studio/:flowId"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <Builder />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="workflows/hub/:flowId/queues"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <Queues />
+                    </RequireRole>
+                  }
+                />
 
-              {/* queues (new / edit / hours) */}
-              <Route
-                path="workflows/hub/queues/new"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <QueueForm />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="workflows/hub/queues/:id"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <QueueForm />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="workflows/hub/queues/:name/hours"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    QueueHours
-                  </RequireRole>
-                }
-              />
+                {/* queues (new / edit / hours) */}
+                <Route
+                  path="workflows/hub/queues/new"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <QueueForm />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="workflows/hub/queues/:id"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <QueueForm />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="workflows/hub/queues/:name/hours"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <QueueHours />
+                    </RequireRole>
+                  }
+                />
 
-              <Route
-                path="workflows/hub/:flowId/agents"
-                element={<Agents />}
-              />
-              <Route
-                path="workflows/hub/:flowId/agents/new"
-                element={<AgentsForm />}
-              />
-              <Route
-                path="workflows/hub/:flowId/agents/:userId/edit"
-                element={<AgentsForm />}
-              />
+                <Route path="workflows/hub/:flowId/agents" element={<Agents />} />
+                <Route
+                  path="workflows/hub/:flowId/agents/new"
+                  element={<AgentsForm />}
+                />
+                <Route
+                  path="workflows/hub/:flowId/agents/:userId/edit"
+                  element={<AgentsForm />}
+                />
 
-              <Route
-                path="workflows/hub/:flowId/ticket-history"
-                element={<TicketsHistory />}
-              />
-              <Route
-                path="workflows/hub/:flowId/ticket-history/:id"
-                element={<TicketDetail />}
-              />
+                <Route
+                  path="workflows/hub/:flowId/ticket-history"
+                  element={<TicketsHistory />}
+                />
+                <Route
+                  path="workflows/hub/:flowId/ticket-history/:id"
+                  element={<TicketDetail />}
+                />
 
-              <Route
-                path="workflows/hub/:flowId/customers"
-                element={<Customers />}
-              />
+                <Route
+                  path="workflows/hub/:flowId/customers"
+                  element={<Customers />}
+                />
 
-              <Route
-                path="workflows/hub/:flowId/tracker"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <JourneyTracker />
-                  </RequireRole>
-                }
-              />
-              <Route
-                path="workflows/hub/:flowId/tracker/:userId"
-                element={
-                  <RequireRole allow={isAdmin}>
-                    <JourneyBeholder />
-                  </RequireRole>
-                }
-              />
+                <Route
+                  path="workflows/hub/:flowId/tracker"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <JourneyTracker />
+                    </RequireRole>
+                  }
+                />
+                <Route
+                  path="workflows/hub/:flowId/tracker/:userId"
+                  element={
+                    <RequireRole allow={isAdmin}>
+                      <JourneyBeholder />
+                    </RequireRole>
+                  }
+                />
 
-              {/* fallback */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                {/* fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </div>
           </main>
         </div>
       </div>
 
-      {/* Overlay para fechar menus/ dropdowns ao clicar fora */}
-      {(openSubmenuKey || isHelpOpen || isProfileOpen) && (
-        <div className={styles.overlay} onClick={closeAllPanels} />
+      {(isHelpOpen || isProfileOpen) && (
+        <div className={styles.overlay} onClick={closeDropdowns} />
       )}
     </div>
   );
