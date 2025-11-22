@@ -73,8 +73,8 @@
   top: 0;
   z-index: 40;
   background: #020617;
-  border-bottom: 1px solid #1f2937;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+  border-bottom: 1px solid #111827;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
 }
 
 .topbarInner {
@@ -86,7 +86,6 @@
   justify-content: space-between;
 }
 
-/* Brand */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -240,7 +239,6 @@
 .body {
   flex: 1;
   width: 100%;
-  background: #242730; /* fundo do workspace */
 }
 
 .bodyInner {
@@ -254,7 +252,7 @@
 
 /* ==== Menu "solto" à esquerda ==== */
 .sidebar {
-  width: 220px;
+  width: 240px;
   flex-shrink: 0;
 }
 
@@ -264,7 +262,39 @@
   gap: 24px;
 }
 
-/* seção (ACOMPANHAMENTO, GESTÃO, WORKFLOWS, CONFIGURAÇÕES) */
+/* botão principal do topo (INÍCIO) */
+.menuPrimaryButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 1px solid #111827;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.menuPrimaryButton:hover {
+  background: #0b1120;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.45);
+}
+
+.menuPrimaryActive {
+  background: #020817;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.7);
+}
+
+/* seção (Acompanhamento, Gestão, etc.) */
 .menuSection {
   border-radius: 10px;
 }
@@ -273,7 +303,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 4px;
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.menuSectionHeaderActive {
+  color: #e5e7eb;
 }
 
 .menuSectionIcon {
@@ -285,28 +324,20 @@
 }
 
 .menuSectionLabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: #e5e7eb;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
+  flex: 1;
 }
 
-/* grupo interno (sem título – só a lista) */
-.menuGroup {
-  margin-top: 4px;
-}
-
+/* lista de itens da seção (sem subtítulo) */
 .menuGroupList {
   list-style: none;
-  margin: 0;
+  margin: 4px 0 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-/* botão de item (INÍCIO, FILAS, AGENTES, WORKFLOWS etc.) */
+/* botão de item (filas, agentes, templates, etc.) */
 .menuLeafButton {
   width: 100%;
   display: flex;
@@ -317,23 +348,26 @@
   border: 1px solid transparent;
   background: transparent;
   color: #9ca3af;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   text-align: left;
   transition: all 0.18s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .menuLeafButton:hover {
-  background: #020617;
-  border-color: #111827;
+  background: #0b1120;
+  border-color: #1d4ed8;
   color: #e5e7eb;
 }
 
 .menuLeafActive {
-  background: #020617;
-  border-color: rgba(59, 130, 246, 0.7); /* azul de seleção */
+  background: #020817;
+  border-color: #1d4ed8;
   color: #e5e7eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.7);
 }
 
 .menuLeafIcon {
@@ -345,118 +379,21 @@
 }
 
 .menuLeafLabel {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  flex: 1;
 }
 
-/* ===== Conteúdo ===== */
+/* ===== Conteúdo / workspace ===== */
 .main {
   flex: 1;
   min-width: 0;
+  background: #242730; /* fundo do workspace */
+  border-radius: 16px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
 }
 
 .content {
   width: 100%;
-  padding-bottom: 32px;
-}
-
-/* ===== HOME (Início) ===== */
-.home {
-  padding-top: 4px;
-}
-
-.homeHeader {
-  margin-bottom: 24px;
-}
-
-.homeTitle {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #f9fafb;
-}
-
-.homeSubtitle {
-  margin-top: 4px;
-  font-size: 13px;
-  color: #9ca3af;
-}
-
-/* grid de cards */
-.homeGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.homeCard {
-  background: #020617;
-  border-radius: 14px;
-  border: 1px solid #111827;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
-  padding: 14px 16px;
-}
-
-.homeCardTitle {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #e5e7eb;
-  margin-bottom: 8px;
-}
-
-.homeCardText {
-  font-size: 13px;
-  line-height: 1.45;
-  color: #cbd5f5;
-}
-
-.homeCardHint {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #93c5fd;
-}
-
-/* listas / botões de link */
-.homeLinks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.homeLinkBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(59, 130, 246, 0.8);
-  background: rgba(37, 99, 235, 0.2);
-  color: #e5e7eb;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.homeLinkBtn:hover {
-  background: rgba(37, 99, 235, 0.35);
-}
-
-.homeList {
-  list-style: disc;
-  padding-left: 18px;
-  margin: 0;
-  font-size: 13px;
-  color: #cbd5f5;
-}
-
-.homeList li + li {
-  margin-top: 6px;
+  padding: 24px 24px 32px;
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -467,11 +404,118 @@
   background: transparent;
 }
 
+/* ===== Home / novidades ===== */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.homeHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.homeTitle {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f9fafb;
+  margin: 0 0 4px;
+}
+
+.homeSubtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #cbd5f5;
+  opacity: 0.9;
+}
+
+.homeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.homeCard {
+  background: #111827;
+  border-radius: 14px;
+  border: 1px solid #1f2937;
+  padding: 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.homeCardTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.homeCardText {
+  margin: 0;
+  font-size: 13px;
+  color: #e5e7eb;
+  line-height: 1.5;
+}
+
+.homeCardHint {
+  margin: 0;
+  font-size: 12px;
+  color: #93c5fd;
+}
+
+.homeLinks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.homeLinkBtn {
+  border-radius: 999px;
+  border: 1px solid #1d4ed8;
+  background: radial-gradient(circle at top left, #1d4ed8, #0f172a);
+  color: #f9fafb;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.homeLinkBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.65);
+  opacity: 0.96;
+}
+
+.homeList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #e5e7eb;
+  line-height: 1.55;
+}
+
 /* ===== Responsivo ===== */
 @media (max-width: 1024px) {
   .bodyInner {
     padding: 20px;
     gap: 24px;
+  }
+
+  .homeGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -479,11 +523,13 @@
   .bodyInner {
     flex-direction: column;
   }
+
   .sidebar {
     width: 100%;
   }
-  .homeGrid {
-    grid-template-columns: 1fr;
+
+  .main {
+    width: 100%;
   }
 }
 
@@ -491,7 +537,12 @@
   .topbarInner {
     padding: 8px 16px;
   }
+
   .bodyInner {
     padding: 16px;
+  }
+
+  .content {
+    padding: 16px 16px 24px;
   }
 }
