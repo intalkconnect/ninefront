@@ -386,7 +386,10 @@ export default function Admin() {
               alt="NineChat"
               className={styles.brandLogo}
             />
-            <span className={styles.brandTag}>OMNICHANNEL</span>
+            <div className={styles.brandText}>
+              <div className={styles.brandName}>NineChat</div>
+              <div className={styles.brandTag}>OMNICHANNEL</div>
+            </div>
           </div>
 
           {/* Menu principal */}
@@ -442,9 +445,8 @@ export default function Admin() {
                                 const leafPath = leaf.to.startsWith("/")
                                   ? leaf.to
                                   : `/${leaf.to}`;
-                                const leafActive = location.pathname.startsWith(
-                                  leafPath
-                                );
+                                const leafActive =
+                                  location.pathname.startsWith(leafPath);
                                 return (
                                   <li
                                     key={leaf.to}
@@ -530,7 +532,7 @@ export default function Admin() {
             )}
           </div>
 
-          {/* Perfil */}
+          {/* Perfil (sem exibir e-mail) */}
           {userData && (
             <div className={styles.footerItem}>
               <button
@@ -643,7 +645,10 @@ export default function Admin() {
               element={<UsersPage canCreateAdmin={isAdmin} />}
             />
             <Route path="management/users/new" element={<UserForm />} />
-            <Route path="management/users/:userId/edit" element={<UserForm />} />
+            <Route
+              path="management/users/:userId/edit"
+              element={<UserForm />}
+            />
 
             {/* campaigns */}
             <Route path="campaigns/templates" element={<Templates />} />
