@@ -67,32 +67,29 @@
   }
 }
 
-/* ===== TOPBAR ===== */
+/* ===== Topbar ===== */
 .topbar {
-  height: 56px;
-  padding: 0 20px;
-  border-bottom: 1px solid #0f172a;
-  background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
   position: sticky;
   top: 0;
-  z-index: 80;
+  z-index: 40;
+  background: #020617;
+  border-bottom: 1px solid #111827;
 }
 
-.topbarLeft {
+.topbarInner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
-.brandButton {
-  border: none;
-  background: transparent;
-  padding: 0;
+.brand {
   display: inline-flex;
   align-items: center;
-  cursor: pointer;
+  gap: 8px;
+  text-decoration: none;
 }
 
 .brandLogo {
@@ -100,20 +97,20 @@
   display: block;
 }
 
-.topbarCenter {
-  flex: 1;
-}
-
+/* Right area (ajuda + perfil) */
 .topbarRight {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-/* botões do topo (help, profile) */
+.iconWrapper {
+  position: relative;
+}
+
 .iconButton {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
   border: 1px solid #1f2937;
   background: #020617;
@@ -126,21 +123,22 @@
 }
 
 .iconButton:hover {
-  background: #111827;
-  border-color: #334155;
+  background: #0b1120;
+  border-color: #374151;
 }
 
-.profileTrigger {
+/* profile button (só avatar) */
+.profileButton {
   border: none;
-  padding: 0;
   background: transparent;
+  padding: 0;
   cursor: pointer;
 }
 
-/* generic avatar, usado no topo e dropdown */
+/* avatar */
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
   display: flex;
   align-items: center;
@@ -150,12 +148,9 @@
   color: #f9fafb;
 }
 
-/* dropdowns do topo */
-.topbarDropdownWrapper {
-  position: relative;
-}
-
-.dropdownPanel {
+/* ===== Dropdowns topo ===== */
+.dropdown,
+.dropdownProfile {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
@@ -163,42 +158,35 @@
   background: #020617;
   border-radius: 12px;
   border: 1px solid #1f2937;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
   padding: 6px;
-  z-index: 90;
+  z-index: 60;
 }
 
-.dropdownHeader {
+.dropdownProfile {
+  min-width: 260px;
+}
+
+.dropdownList {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 8px 6px;
-  border-bottom: 1px solid #111827;
-  margin-bottom: 6px;
-}
-
-.dropdownName {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f9fafb;
-}
-
-.dropdownEmail {
-  font-size: 11px;
-  color: #9ca3af;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .dropdownItem {
   width: 100%;
   border: none;
-  padding: 8px 9px;
-  border-radius: 10px;
   background: transparent;
   color: #e5e7eb;
   font-size: 13px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
   cursor: pointer;
   text-align: left;
   transition: all 0.18s ease;
@@ -209,224 +197,194 @@
 }
 
 .dropdownIcon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #9ca3af;
 }
 
-.dropdownLogout .dropdownIcon {
+.dropdownSeparator {
+  height: 1px;
+  background: #111827;
+  margin: 4px 0;
+}
+
+.logout {
   color: #fca5a5;
 }
 
-.dropdownLogout .logoutInner {
-  color: #fca5a5;
+.logout:hover {
+  background: rgba(185, 28, 28, 0.25);
 }
 
-.logoutInner {
-  border: none;
-  background: transparent;
-  padding: 0;
+/* header dentro do dropdown de perfil */
+.profileHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  cursor: pointer;
+  gap: 10px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid #111827;
+  margin-bottom: 4px;
 }
 
-/* ===== SHELL (menu + conteúdo) ===== */
-.shell {
-  display: flex;
+.profileName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+/* ===== Body (menu + conteúdo) ===== */
+.body {
   flex: 1;
-  min-height: 0;
+  width: 100%;
 }
 
-/* ===== Sidebar “aberta” dentro do body ===== */
+.bodyInner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+/* ==== Menu "solto" à esquerda ==== */
 .sidebar {
   width: 220px;
-  padding: 24px 16px;
-  border-right: 1px solid #0f172a;
-  background: transparent;
+  flex-shrink: 0;
+}
+
+.navRoot {
   display: flex;
   flex-direction: column;
+  gap: 24px;
 }
 
-.nav {
+/* seção (Acompanhamento, Gestão, etc.) */
+.menuSection {
+  border-radius: 10px;
+}
+
+.menuSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.menuSectionIcon {
+  width: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+/* grupo interno (Tempo real, Análise...) */
+.menuGroup {
+  margin-top: 4px;
+}
+
+.menuGroupTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  margin: 6px 0 4px;
+}
+
+.menuGroupList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
-.navItem {
-  position: relative;
-}
-
-.navButton {
+/* botão de item (tanto Dashboard/Workflows quanto folhas) */
+.menuLeafButton {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  border-radius: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
   border: 1px solid transparent;
-  padding: 8px 10px;
   background: transparent;
   color: #9ca3af;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  text-align: left;
   transition: all 0.18s ease;
 }
 
-.navButton:hover {
+.menuLeafButton:hover {
   background: #020617;
+  border-color: #111827;
   color: #e5e7eb;
 }
 
-.navButtonActive {
-  background: rgba(37, 99, 235, 0.12);
-  border-color: rgba(37, 99, 235, 0.7);
-  color: #bfdbfe;
+.menuLeafActive {
+  background: #020617;
+  border-color: rgba(59, 130, 246, 0.7);
+  color: #e5e7eb;
 }
 
-.navIcon {
+.menuLeafIcon {
+  width: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: inherit;
 }
 
-.navLabel {
-  flex: 1;
-  text-align: left;
-}
-
-.navChevron {
-  width: 14px;
-  height: 14px;
-  opacity: 0.6;
-  transition: transform 0.18s ease, opacity 0.18s ease;
-}
-
-.navChevronOpen {
-  transform: rotate(90deg);
-  opacity: 1;
-}
-
-/* submenu ao estilo “caixa” logo abaixo do item */
-.submenuBox {
-  margin-top: 4px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: #020617;
-  border: 1px solid #0f172a;
-}
-
-.submenuGroup + .submenuGroup {
-  margin-top: 6px;
-  border-top: 1px solid #0b1120;
-  padding-top: 4px;
-}
-
-.submenuHeader {
-  padding: 4px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #64748b;
-}
-
-.submenuList {
-  list-style: none;
-  margin: 0;
-  padding: 2px 0 0;
-}
-
-.submenuItem {
-  margin-bottom: 2px;
-}
-
-.submenuItemLink {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  color: #e5e7eb;
-  text-align: left;
-  transition: all 0.18s ease;
-}
-
-.submenuItemLink:hover {
-  background: #020617;
-  border-color: #111827;
-}
-
-.submenuItemActive {
-  background: rgba(37, 99, 235, 0.18);
-  border-color: rgba(37, 99, 235, 0.7);
-}
-
-.submenuItemIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-}
-
-/* ===== Main / content ===== */
+/* ===== Conteúdo ===== */
 .main {
   flex: 1;
-  min-height: calc(100vh - 56px);
-  background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+  min-width: 0;
 }
 
 .content {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 24px 24px 32px;
+  width: 100%;
+  padding-bottom: 32px;
 }
 
-/* ===== Overlay para fechar painéis ===== */
+/* ===== Overlay p/ fechar dropdowns ===== */
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 30;
   background: transparent;
 }
 
-/* ===== Responsivo básico ===== */
-@media (max-width: 960px) {
-  .sidebar {
-    width: 200px;
+/* ===== Responsivo ===== */
+@media (max-width: 1024px) {
+  .bodyInner {
+    padding: 20px;
+    gap: 24px;
   }
 }
 
-@media (max-width: 768px) {
-  .shell {
+@media (max-width: 840px) {
+  .bodyInner {
     flex-direction: column;
   }
   .sidebar {
     width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #0f172a;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
   }
-  .navItem {
-    width: 50%;
+}
+
+@media (max-width: 640px) {
+  .topbarInner {
+    padding: 8px 16px;
   }
-  .main {
-    min-height: auto;
-  }
-  .content {
+  .bodyInner {
     padding: 16px;
   }
 }
