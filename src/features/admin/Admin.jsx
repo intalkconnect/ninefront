@@ -386,10 +386,6 @@ export default function Admin() {
               alt="NineChat"
               className={styles.brandLogo}
             />
-            <div className={styles.brandText}>
-              <div className={styles.brandName}>NineChat</div>
-              <div className={styles.brandTag}>OMNICHANNEL</div>
-            </div>
           </div>
 
           {/* Menu principal */}
