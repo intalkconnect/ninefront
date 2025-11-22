@@ -240,7 +240,7 @@
 .body {
   flex: 1;
   width: 100%;
-  background: #02091a; /* um pouco diferente do wrapper, pra topbar aparecer */
+  background: #242730; /* um pouco diferente do wrapper, pra topbar aparecer */
 }
 
 .bodyInner {
@@ -503,3 +503,4 @@
     padding: 16px;
   }
 }
+
