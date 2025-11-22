@@ -1,7 +1,3 @@
-:root {
-  --admin-topbar-h: 64px;
-}
-
 /* ===== Layout base dark ===== */
 .wrapper {
   min-height: 100vh;
@@ -71,20 +67,18 @@
   }
 }
 
-/* ===== TOPBAR DARK ===== */
+/* ===== TOPBAR ===== */
 .topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--admin-topbar-h);
+  height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid #0f172a;
+  background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  background: #020617;
-  border-bottom: 1px solid #111827;
-  z-index: 70;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 80;
 }
 
 .topbarLeft {
@@ -92,191 +86,170 @@
   align-items: center;
 }
 
-.logoButton {
+.brandButton {
   border: none;
   background: transparent;
   padding: 0;
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
 }
 
-.topbarLogo {
+.brandLogo {
   height: 32px;
   display: block;
+}
+
+.topbarCenter {
+  flex: 1;
 }
 
 .topbarRight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.topbarItem {
-  position: relative;
-}
-
-.topIconButton {
-  width: 34px;
-  height: 34px;
+/* botões do topo (help, profile) */
+.iconButton {
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   border: 1px solid #1f2937;
   background: #020617;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #e5e7eb;
   cursor: pointer;
+  color: #e5e7eb;
   transition: all 0.18s ease;
 }
 
-.topIconButton:hover {
+.iconButton:hover {
   background: #111827;
-  border-color: #4b5563;
+  border-color: #334155;
 }
 
-.topProfileButton {
+.profileTrigger {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* generic avatar, usado no topo e dropdown */
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  border-radius: 999px;
-  border: 1px solid #1f2937;
-  padding: 3px 10px 3px 3px;
-  background: #020617;
-  cursor: pointer;
-  color: #e5e7eb;
-  font-size: 13px;
-  transition: all 0.18s ease;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f9fafb;
 }
 
-.topProfileButton:hover {
-  background: #111827;
-  border-color: #4b5563;
+/* dropdowns do topo */
+.topbarDropdownWrapper {
+  position: relative;
 }
 
-.topProfileName {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-/* dropdown genérico no header */
-.topDropdown {
+.dropdownPanel {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  width: 220px;
+  min-width: 220px;
   background: #020617;
   border-radius: 12px;
-  border: 1px solid #111827;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
+  border: 1px solid #1f2937;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85);
   padding: 6px;
-  z-index: 80;
+  z-index: 90;
 }
 
-.topDropdownItem {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: #e5e7eb;
-  font-size: 13px;
-  padding: 8px 10px;
-  border-radius: 10px;
+.dropdownHeader {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 8px 8px 6px;
+  border-bottom: 1px solid #111827;
+  margin-bottom: 6px;
+}
+
+.dropdownName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.dropdownEmail {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.dropdownItem {
+  width: 100%;
+  border: none;
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
   text-align: left;
   transition: all 0.18s ease;
 }
 
-.topDropdownItem:hover {
+.dropdownItem:hover {
   background: #111827;
 }
 
-.topDropdownIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dropdownIcon {
+  width: 14px;
+  height: 14px;
   color: #9ca3af;
 }
 
-/* profile dropdown específico */
-.topProfileDropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  width: 260px;
-  background: #020617;
-  border-radius: 14px;
-  border: 1px solid #111827;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
-  padding: 8px;
-  z-index: 80;
-}
-
-.topProfileHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px 8px;
-  border-bottom: 1px solid #111827;
-  margin-bottom: 6px;
-}
-
-.topProfileHeaderText {
-  display: flex;
-  flex-direction: column;
-}
-
-.topProfileHeaderName {
-  font-size: 14px;
-  font-weight: 600;
-  color: #f9fafb;
-}
-
-.topProfileList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 2px;
-}
-
-.topLogoutItem {
+.dropdownLogout .dropdownIcon {
   color: #fca5a5;
 }
 
-.topLogoutItem:hover {
-  background: rgba(185, 28, 28, 0.25);
+.dropdownLogout .logoutInner {
+  color: #fca5a5;
 }
 
-/* ===== Sidebar ===== */
+.logoutInner {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* ===== SHELL (menu + conteúdo) ===== */
+.shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== Sidebar “aberta” dentro do body ===== */
 .sidebar {
-  position: fixed;
-  top: var(--admin-topbar-h);
-  bottom: 0;
-  left: 0;
-  width: 256px;
-  background: rgba(15, 23, 42, 0.98);
-  border-right: 1px solid #1f2937;
-  box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+  width: 220px;
+  padding: 24px 16px;
+  border-right: 1px solid #0f172a;
+  background: transparent;
   display: flex;
   flex-direction: column;
-  z-index: 60;
 }
 
-.sidebarInner {
-  flex: 1;
-  padding: 16px 18px 12px;
-  overflow-y: auto;
-}
-
-.sidebarTitle {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: #6b7280;
-  margin-bottom: 12px;
-}
-
-/* nav */
 .nav {
   display: flex;
   flex-direction: column;
@@ -295,9 +268,9 @@
   gap: 8px;
   border-radius: 10px;
   border: 1px solid transparent;
-  padding: 9px 10px;
+  padding: 8px 10px;
   background: transparent;
-  color: #cbd5f5;
+  color: #9ca3af;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -305,13 +278,13 @@
 }
 
 .navButton:hover {
-  background: rgba(30, 64, 175, 0.18);
+  background: #020617;
   color: #e5e7eb;
 }
 
 .navButtonActive {
-  background: rgba(37, 99, 235, 0.16);
-  border-color: rgba(37, 99, 235, 0.5);
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.7);
   color: #bfdbfe;
 }
 
@@ -330,7 +303,7 @@
 .navChevron {
   width: 14px;
   height: 14px;
-  opacity: 0.7;
+  opacity: 0.6;
   transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
@@ -339,24 +312,23 @@
   opacity: 1;
 }
 
-/* submenu painel (abre à direita da sidebar, abaixo do header) */
-.submenuPanel {
-  position: fixed;
-  left: 256px;
-  width: 240px;
+/* submenu ao estilo “caixa” logo abaixo do item */
+.submenuBox {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 10px;
   background: #020617;
-  border-radius: 12px;
-  border: 1px solid #1f2937;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
-  z-index: 65;
+  border: 1px solid #0f172a;
 }
 
-.submenuContent {
-  padding: 8px 6px 8px 6px;
+.submenuGroup + .submenuGroup {
+  margin-top: 6px;
+  border-top: 1px solid #0b1120;
+  padding-top: 4px;
 }
 
 .submenuHeader {
-  padding: 6px 12px 4px;
+  padding: 4px 4px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -366,8 +338,8 @@
 
 .submenuList {
   list-style: none;
-  margin: 0 0 4px 0;
-  padding: 0 4px 4px 4px;
+  margin: 0;
+  padding: 2px 0 0;
 }
 
 .submenuItem {
@@ -378,8 +350,8 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 7px 8px;
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
@@ -391,12 +363,13 @@
 }
 
 .submenuItemLink:hover {
-  background: #111827;
+  background: #020617;
+  border-color: #111827;
 }
 
 .submenuItemActive {
   background: rgba(37, 99, 235, 0.18);
-  border-color: rgba(37, 99, 235, 0.6);
+  border-color: rgba(37, 99, 235, 0.7);
 }
 
 .submenuItemIcon {
@@ -406,76 +379,52 @@
   color: #9ca3af;
 }
 
-/* avatar reutilizado */
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: #f9fafb;
+/* ===== Main / content ===== */
+.main {
+  flex: 1;
+  min-height: calc(100vh - 56px);
+  background: radial-gradient(circle at top left, #020617 0, #020617 40%, #020617 100%);
+}
+
+.content {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 24px 24px 32px;
 }
 
 /* ===== Overlay para fechar painéis ===== */
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 55;
+  z-index: 50;
   background: transparent;
 }
 
-/* ===== Main / content ===== */
-.main {
-  flex: 1;
-  margin-left: 256px;
-  min-height: 100vh;
-  background: #020617;
-  padding-top: var(--admin-topbar-h);
-}
-
-.content {
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-/* ===== Responsivo ===== */
+/* ===== Responsivo básico ===== */
 @media (max-width: 960px) {
   .sidebar {
-    width: 220px;
-  }
-  .submenuPanel {
-    left: 220px;
-  }
-  .main {
-    margin-left: 220px;
+    width: 200px;
   }
 }
 
 @media (max-width: 768px) {
-  .sidebar {
-    width: 220px;
+  .shell {
+    flex-direction: column;
   }
-  .submenuPanel {
-    left: 220px;
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #0f172a;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .navItem {
+    width: 50%;
   }
   .main {
-    margin-left: 220px;
-  }
-}
-
-@media (max-width: 640px) {
-  .sidebar {
-    width: 220px;
-  }
-  .submenuPanel {
-    left: 220px;
-  }
-  .main {
-    margin-left: 220px;
+    min-height: auto;
   }
   .content {
     padding: 16px;
