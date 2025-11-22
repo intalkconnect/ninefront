@@ -20,7 +20,6 @@ import {
   Shield,
   SearchCheck,
   Workflow,
-  MessageSquare,
 } from "lucide-react";
 import {
   NavLink,
@@ -363,7 +362,11 @@ export default function Admin() {
             className={styles.loadingLogo}
           />
           <div className={styles.loadingText}>Carregando seu workspace…</div>
-          <div className={styles.loadingBar} aria-label="Carregando" role="status">
+          <div
+            className={styles.loadingBar}
+            aria-label="Carregando"
+            role="status"
+          >
             <div className={styles.loadingBarInner} />
           </div>
         </div>
@@ -376,15 +379,14 @@ export default function Admin() {
       {/* Sidebar fixa no estilo do layout novo */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarInner}>
-          {/* Brand */}
+          {/* Brand com logo-front.png */}
           <div className={styles.brandRow}>
-            <div className={styles.brandMark}>
-              <MessageSquare className={styles.brandIcon} />
-            </div>
-            <div className={styles.brandText}>
-              <div className={styles.brandName}>NineChat</div>
-              <div className={styles.brandTag}>OMNICHANNEL</div>
-            </div>
+            <img
+              src="/logo-front.png"
+              alt="NineChat"
+              className={styles.brandLogo}
+            />
+            <span className={styles.brandTag}>OMNICHANNEL</span>
           </div>
 
           {/* Menu principal */}
@@ -396,7 +398,9 @@ export default function Admin() {
 
               const handleClick = () => {
                 if (hasSub) {
-                  setOpenSubmenuKey((cur) => (cur === item.key ? null : item.key));
+                  setOpenSubmenuKey((cur) =>
+                    cur === item.key ? null : item.key
+                  );
                 } else if (item.to) {
                   handleNavigation(item.to);
                 }
@@ -442,11 +446,16 @@ export default function Admin() {
                                   leafPath
                                 );
                                 return (
-                                  <li key={leaf.to} className={styles.submenuItem}>
+                                  <li
+                                    key={leaf.to}
+                                    className={styles.submenuItem}
+                                  >
                                     <button
                                       type="button"
                                       className={`${styles.submenuItemLink} ${
-                                        leafActive ? styles.submenuItemActive : ""
+                                        leafActive
+                                          ? styles.submenuItemActive
+                                          : ""
                                       }`}
                                       onClick={() => {
                                         handleNavigation(leaf.to);
@@ -454,7 +463,9 @@ export default function Admin() {
                                       }}
                                     >
                                       {leaf.icon && (
-                                        <span className={styles.submenuItemIcon}>
+                                        <span
+                                          className={styles.submenuItemIcon}
+                                        >
                                           {leaf.icon}
                                         </span>
                                       )}
@@ -540,7 +551,6 @@ export default function Admin() {
                   <div className={styles.profileName}>
                     {userData.name || "Usuário"}
                   </div>
-                  <div className={styles.profileEmail}>{userData.email}</div>
                 </div>
               </button>
 
@@ -558,9 +568,6 @@ export default function Admin() {
                     <div>
                       <div className={styles.profileName}>
                         {userData.name || "Usuário"}
-                      </div>
-                      <div className={styles.profileEmail}>
-                        {userData.email}
                       </div>
                     </div>
                   </div>
