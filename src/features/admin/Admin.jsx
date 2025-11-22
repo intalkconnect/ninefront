@@ -35,7 +35,8 @@ import FlowChannels from "./flow/channels/FlowChannels";
 import Queues from "./flow/queue/Queues";
 import QueueForm from "./flow/queue/QueueForm";
 import QueueHours from "./flow/queue/QueueHours";
-// Dashboard antigo removido – usamos HomeUpdates
+// Dashboard antigo não é mais usado aqui
+// import Dashboard from "./dashboard/Dashboard";
 import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../app/utils/auth";
@@ -81,17 +82,17 @@ function RequireRole({ allow, children }) {
 }
 
 /**
- * PÁGINA INICIAL – INÍCIO / NOVIDADES & DICAS
+ * NOVA PÁGINA INICIAL – NOVIDADES & COISAS ÚTEIS
  */
 function HomeUpdates() {
   return (
     <div className={styles.home}>
       <header className={styles.homeHeader}>
         <div>
-          <h1 className={styles.homeTitle}>Início do workspace</h1>
+          <h1 className={styles.homeTitle}>Novidades do NineChat</h1>
           <p className={styles.homeSubtitle}>
-            Um resumo de novidades, boas práticas e atalhos para você tirar
-            mais proveito do NineChat.
+            Veja o que mudou, dicas para aproveitar melhor a plataforma
+            e links rápidos para a documentação.
           </p>
         </div>
       </header>
@@ -100,16 +101,12 @@ function HomeUpdates() {
         <article className={styles.homeCard}>
           <h2 className={styles.homeCardTitle}>O que há de novo</h2>
           <p className={styles.homeCardText}>
-            • Novo módulo de <strong>Workflows</strong> para organizar seus
-            fluxos omnichannel. <br />
-            • Melhorias de performance no monitor de atendimento em tempo real.{" "}
-            <br />
-            • Ajustes de segurança e auditoria em{" "}
-            <strong>Configurações &gt; Logs</strong>.
+            • Novo módulo de <strong>Workflows</strong> para organizar seus fluxos omnichannel. <br />
+            • Melhorias de performance no monitor de atendimento em tempo real. <br />
+            • Ajustes de segurança e auditoria em <strong>Configurações &gt; Logs</strong>.
           </p>
           <p className={styles.homeCardHint}>
-            Dica: use a área de Workflows para centralizar jornadas e canais em
-            um único lugar.
+            Dica: use a área de Workflows para centralizar jornadas e canais em um único lugar.
           </p>
         </article>
 
@@ -177,9 +174,7 @@ function HomeUpdates() {
           <button
             type="button"
             className={styles.homeLinkBtn}
-            onClick={() =>
-              window.open("https://docs.ninechat.com.br", "_blank")
-            }
+            onClick={() => window.open("https://docs.ninechat.com.br", "_blank")}
           >
             Abrir NineDocs
           </button>
@@ -293,9 +288,10 @@ export default function Admin() {
     const base = [
       {
         key: "dashboard",
-        label: "Início", // aparecerá em CAIXA ALTA via CSS
+        label: "Início",
         to: DASHBOARD_PATH,
         icon: <LayoutDashboard size={18} />,
+        kind: "primary", // botão principal em cima
       },
 
       {
@@ -387,12 +383,13 @@ export default function Admin() {
         ],
       },
 
-      // 🔹 Workflows volta a ser item principal clicável, sem submenu
+      // Workflows como SEÇÃO principal clicável
       {
         key: "workflows",
         label: "Workflows",
         icon: <Workflow size={18} />,
         to: "workflows/hub",
+        kind: "section-link",
       },
 
       {
@@ -445,7 +442,7 @@ export default function Admin() {
       const target = menu.to.startsWith("/") ? menu.to : `/${menu.to}`;
       return current.startsWith(target);
     }
-    if (!menu.children) return false;
+    if (!menu.children) return current === "/";
     return menu.children.some((grp) =>
       (grp.children || []).some((leaf) => {
         const leafPath = leaf.to.startsWith("/") ? leaf.to : `/${leaf.to}`;
@@ -644,14 +641,16 @@ export default function Admin() {
               {menus.map((menu) => {
                 const activeMenu = isMenuActive(menu);
 
-                if (!menu.children) {
-                  // INÍCIO e WORKFLOWS chegam aqui
+                const hasChildren = Array.isArray(menu.children);
+
+                // itens principais sem submenu (INÍCIO)
+                if (!hasChildren && menu.kind !== "section-link") {
                   return (
                     <button
                       key={menu.key}
                       type="button"
-                      className={`${styles.menuLeafButton} ${
-                        activeMenu ? styles.menuLeafActive : ""
+                      className={`${styles.menuPrimaryButton} ${
+                        activeMenu ? styles.menuPrimaryActive : ""
                       }`}
                       onClick={() => handleNavigation(menu.to)}
                     >
@@ -661,9 +660,44 @@ export default function Admin() {
                   );
                 }
 
+                // WORKFLOWS: seção principal clicável
+                if (!hasChildren && menu.kind === "section-link") {
+                  return (
+                    <section key={menu.key} className={styles.menuSection}>
+                      <button
+                        type="button"
+                        className={`${styles.menuSectionHeader} ${
+                          activeMenu ? styles.menuSectionHeaderActive : ""
+                        }`}
+                        onClick={() => handleNavigation(menu.to)}
+                      >
+                        <span className={styles.menuSectionIcon}>
+                          {menu.icon}
+                        </span>
+                        <span className={styles.menuSectionLabel}>
+                          {menu.label}
+                        </span>
+                      </button>
+                    </section>
+                  );
+                }
+
+                // seções com filhos (Acompanhamento, Gestão, etc.)
+                const leafItems =
+                  menu.children?.reduce((all, grp) => {
+                    if (Array.isArray(grp.children)) {
+                      return all.concat(grp.children);
+                    }
+                    return all;
+                  }, []) || [];
+
                 return (
                   <section key={menu.key} className={styles.menuSection}>
-                    <div className={styles.menuSectionHeader}>
+                    <div
+                      className={`${styles.menuSectionHeader} ${
+                        activeMenu ? styles.menuSectionHeaderActive : ""
+                      }`}
+                    >
                       <span className={styles.menuSectionIcon}>
                         {menu.icon}
                       </span>
@@ -671,39 +705,32 @@ export default function Admin() {
                         {menu.label}
                       </span>
                     </div>
-                    {menu.children.map((grp) => (
-                      <div
-                        key={grp.key || grp.label}
-                        className={styles.menuGroup}
-                      >
-                        {/* subtítulo (Tempo real, Análise...) foi removido */}
-                        <ul className={styles.menuGroupList}>
-                          {(grp.children || []).map((leaf) => {
-                            const leafActive = isLeafActive(leaf.to);
-                            return (
-                              <li key={leaf.to}>
-                                <button
-                                  type="button"
-                                  className={`${styles.menuLeafButton} ${
-                                    leafActive ? styles.menuLeafActive : ""
-                                  }`}
-                                  onClick={() => handleNavigation(leaf.to)}
-                                >
-                                  {leaf.icon && (
-                                    <span className={styles.menuLeafIcon}>
-                                      {leaf.icon}
-                                    </span>
-                                  )}
-                                  <span className={styles.menuLeafLabel}>
-                                    {leaf.label}
-                                  </span>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    ))}
+
+                    <ul className={styles.menuGroupList}>
+                      {leafItems.map((leaf) => {
+                        const leafActive = isLeafActive(leaf.to);
+                        return (
+                          <li key={leaf.to}>
+                            <button
+                              type="button"
+                              className={`${styles.menuLeafButton} ${
+                                leafActive ? styles.menuLeafActive : ""
+                              }`}
+                              onClick={() => handleNavigation(leaf.to)}
+                            >
+                              {leaf.icon && (
+                                <span className={styles.menuLeafIcon}>
+                                  {leaf.icon}
+                                </span>
+                              )}
+                              <span className={styles.menuLeafLabel}>
+                                {leaf.label}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </section>
                 );
               })}
@@ -714,7 +741,7 @@ export default function Admin() {
           <main className={styles.main}>
             <div className={styles.content}>
               <Routes>
-                {/* HOME INICIAL */}
+                {/* NOVA HOME DE NOVIDADES */}
                 <Route index element={<HomeUpdates />} />
 
                 {/* monitoring */}
