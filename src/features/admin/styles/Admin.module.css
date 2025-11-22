@@ -240,7 +240,7 @@
 .body {
   flex: 1;
   width: 100%;
-  background: #242730; /* 🔹 fundo do workspace */
+  background: #242730; /* fundo do workspace */
 }
 
 .bodyInner {
@@ -264,7 +264,7 @@
   gap: 24px;
 }
 
-/* seção (ACOMPANHAMENTO, GESTÃO, WORKFLOWS, etc.) */
+/* seção (ACOMPANHAMENTO, GESTÃO, WORKFLOWS, CONFIGURAÇÕES) */
 .menuSection {
   border-radius: 10px;
 }
@@ -292,17 +292,9 @@
   letter-spacing: 0.09em;
 }
 
-/* grupo interno (Tempo real, Geral, etc.) */
+/* grupo interno (sem título – só a lista) */
 .menuGroup {
   margin-top: 4px;
-}
-
-.menuGroupTitle {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #64748b;
-  margin: 6px 0 4px;
 }
 
 .menuGroupList {
@@ -314,7 +306,7 @@
   gap: 2px;
 }
 
-/* botão de item (Novidades, FILAS, AGENTES, HUB etc.) */
+/* botão de item (INÍCIO, FILAS, AGENTES, WORKFLOWS etc.) */
 .menuLeafButton {
   width: 100%;
   display: flex;
@@ -340,7 +332,7 @@
 
 .menuLeafActive {
   background: #020617;
-  border-color: rgba(59, 130, 246, 0.7);
+  border-color: rgba(59, 130, 246, 0.7); /* azul de seleção */
   color: #e5e7eb;
 }
 
@@ -368,7 +360,7 @@
   padding-bottom: 32px;
 }
 
-/* ===== HOME (Novidades) ===== */
+/* ===== HOME (Início) ===== */
 .home {
   padding-top: 4px;
 }
