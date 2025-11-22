@@ -35,7 +35,7 @@ import FlowChannels from "./flow/channels/FlowChannels";
 import Queues from "./flow/queue/Queues";
 import QueueForm from "./flow/queue/QueueForm";
 import QueueHours from "./flow/queue/QueueHours";
-// Dashboard antigo não é usado aqui
+// Dashboard antigo removido: usamos HomeUpdates
 import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../app/utils/auth";
@@ -100,12 +100,16 @@ function HomeUpdates() {
         <article className={styles.homeCard}>
           <h2 className={styles.homeCardTitle}>O que há de novo</h2>
           <p className={styles.homeCardText}>
-            • Novo módulo de <strong>Workflows</strong> para organizar seus fluxos omnichannel. <br />
-            • Melhorias de performance no monitor de atendimento em tempo real. <br />
-            • Ajustes de segurança e auditoria em <strong>Configurações &gt; Logs</strong>.
+            • Novo módulo de <strong>Workflows</strong> para organizar seus
+            fluxos omnichannel. <br />
+            • Melhorias de performance no monitor de atendimento em tempo real.{" "}
+            <br />
+            • Ajustes de segurança e auditoria em{" "}
+            <strong>Configurações &gt; Logs</strong>.
           </p>
           <p className={styles.homeCardHint}>
-            Dica: use a área de Workflows para centralizar jornadas e canais em um único lugar.
+            Dica: use a área de Workflows para centralizar jornadas e canais em
+            um único lugar.
           </p>
         </article>
 
@@ -173,7 +177,9 @@ function HomeUpdates() {
           <button
             type="button"
             className={styles.homeLinkBtn}
-            onClick={() => window.open("https://docs.ninechat.com.br", "_blank")}
+            onClick={() =>
+              window.open("https://docs.ninechat.com.br", "_blank")
+            }
           >
             Abrir NineDocs
           </button>
@@ -380,12 +386,27 @@ export default function Admin() {
           },
         ],
       },
+
+      /* 🔹 Workflows agora é SECTION, não leaf */
       {
         key: "workflows",
         label: "Workflows",
         icon: <Workflow size={18} />,
-        to: "workflows/hub",
+        children: [
+          {
+            key: "workflows-main",
+            label: "Geral",
+            children: [
+              {
+                to: "workflows/hub",
+                icon: <Workflow size={16} />,
+                label: "Hub",
+              },
+            ],
+          },
+        ],
       },
+
       {
         key: "settings",
         label: "Configurações",
@@ -635,6 +656,7 @@ export default function Admin() {
               {menus.map((menu) => {
                 const activeMenu = isMenuActive(menu);
 
+                // agora só tem section/children; dashboard e workflows também podem virar leaf se quiser
                 if (!menu.children) {
                   return (
                     <button
@@ -666,7 +688,9 @@ export default function Admin() {
                         key={grp.key || grp.label}
                         className={styles.menuGroup}
                       >
-                        {/* subtítulos como "Tempo real", "Análise", etc. REMOVIDOS */}
+                        <div className={styles.menuGroupTitle}>
+                          {grp.label}
+                        </div>
                         <ul className={styles.menuGroupList}>
                           {(grp.children || []).map((leaf) => {
                             const leafActive = isLeafActive(leaf.to);
