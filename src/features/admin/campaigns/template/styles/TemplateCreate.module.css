@@ -1,8 +1,8 @@
-/* src/pages/admin/management/templates/styles/TemplateCreate.module.css */
 :root {
   --bg-page: #0f1419;
   --card-bg: #1e293b;
   --card-border: #334155;
+  --card-head-bg: #020617;
   --input-bg: #020617;
   --input-border: #1f2937;
   --text: #e5e7eb;
@@ -10,16 +10,15 @@
   --label: #e2e8f0;
   --accent: #3b82f6;
   --accent-strong: #2563eb;
-  --accent-soft: rgba(59, 130, 246, 0.25);
+  --accent-soft: rgba(59, 130, 246, 0.35);
   --danger: #ef4444;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.7);
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.7);
 }
 
 /* ===== Layout base ===== */
-.page {
-  padding: 20px 24px 40px;
-  max-width: 1200px;
+.container {
+  padding: 24px;
+  max-width: 1400px;
   margin: 0 auto;
   background: var(--bg-page);
   min-height: 100vh;
@@ -30,7 +29,7 @@
 
 /* ===== Breadcrumbs ===== */
 .breadcrumbs {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .bcList {
   list-style: none;
@@ -57,53 +56,65 @@
   color: #f9fafb;
 }
 
-/* ===== Header com ação principal ===== */
-.pageHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  padding: 12px 0 18px;
-  border-bottom: 1px solid #1f2937;
+/* ================= HEADER CARD (padrão das outras telas) ================= */
+.headerCard {
+  background: #1e293b;
+  border-radius: 16px;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  padding: 14px 18px;
   margin-bottom: 18px;
 }
-.pageTitleWrap {
+
+.headerRow {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.pageTitle {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #f9fafb;
-}
-.pageSubtitle {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-.pageHeaderActions {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
+  align-items: center;
+  gap: 16px;
 }
 
-/* ===== Botões header ===== */
+.headerCenter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.headerTitle {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #e2e8f0;
+}
+
+.headerSubtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+  text-align: center;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Botões no header */
 .btnGhost,
 .btnPrimary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 9px 14px;
+  padding: 9px 16px;
   border-radius: 999px;
+  border: 1px solid transparent;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid transparent;
-  background: transparent;
   transition: all 0.18s ease;
+  white-space: nowrap;
 }
 
 .btnGhost {
@@ -117,9 +128,9 @@
 
 .btnPrimary {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: #fff;
+  color: #ffffff;
   border-color: transparent;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
 }
 .btnPrimary[disabled] {
   opacity: 0.6;
@@ -128,14 +139,14 @@
 }
 .btnPrimary:not(:disabled):hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.6);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.7);
 }
 
 /* ===== Grid principal (form + preview) ===== */
 .mainGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.9fr);
-  gap: 20px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.9fr);
+  gap: 24px;
   align-items: flex-start;
 }
 .colForm {
@@ -143,7 +154,7 @@
 }
 .colPreview {
   position: sticky;
-  top: 72px;
+  top: 90px;
 }
 
 /* ===== Cards ===== */
@@ -152,13 +163,14 @@
   border-radius: 16px;
   border: 1px solid var(--card-border);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   overflow: hidden;
 }
+
 .cardHead {
   padding: 14px 18px 10px;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.8);
-  background: #111827;
+  border-bottom: 1px solid #111827;
+  background: var(--card-head-bg);
 }
 .cardTitle {
   margin: 0 0 2px;
@@ -225,7 +237,7 @@
   font-size: 14px;
   outline: none;
   background: var(--input-bg);
-  color: var(--text);
+  color: var(--text) !important;
   transition: all 0.18s ease;
 }
 .select {
@@ -252,7 +264,7 @@
 .segmented {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 .segItem {
   border-radius: 999px;
@@ -300,7 +312,7 @@
   color: #ffffff;
 }
 
-/* ===== Tags de botões ===== */
+/* ===== TAGS (chips de botões) ===== */
 .tagRow {
   display: flex;
   flex-wrap: wrap;
@@ -308,56 +320,51 @@
   margin-bottom: 10px;
 }
 
-.btnTag {
+.tagChip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid #dbeafe;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border: 1px solid #1d4ed8;
+  background: rgba(37, 99, 235, 0.08);
+  color: #bfdbfe;
   font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
 }
-.btnTagActive {
-  background: #dbeafe;
-  border-color: #60a5fa;
+.tagChip:hover {
+  background: rgba(37, 99, 235, 0.18);
 }
-.btnTagLabel {
+.tagChipActive {
+  background: #1d4ed8;
+  color: #eff6ff;
+}
+.tagLabel {
   max-width: 140px;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.btnTagRemove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
-  color: #2563eb;
+.tagRemove {
+  font-size: 13px;
   cursor: pointer;
-  padding: 0;
-}
-.btnTagRemove:hover {
-  color: #1d4ed8;
 }
 
-/* Input inline para criar nova tag */
 .tagInput {
-  min-width: 180px;
+  min-width: 220px;
+  flex: 1;
   border-radius: 999px;
-  border: 1px dashed #60a5fa;
-  padding: 6px 10px;
-  background: #020617;
-  color: var(--text);
+  border: 1px dashed #1d4ed8;
+  padding: 7px 12px;
   font-size: 12px;
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text);
   outline: none;
 }
 .tagInput::placeholder {
-  color: #6b7280;
+  color: #64748b;
 }
 .tagInput:focus {
   border-style: solid;
@@ -365,76 +372,38 @@
   box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
-/* Botão "Adicionar outro botão" */
-.addTagBox {
-  width: 100%;
+/* ===== CTA / QUICK editor ===== */
+.ctaEditor,
+.quickEditor {
+  margin-top: 8px;
+  padding: 12px 12px 14px;
   border-radius: 12px;
-  border: 1px dashed #60a5fa;
-  background: rgba(15, 23, 42, 0.8);
-  color: #bfdbfe;
-  padding: 10px 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 2px;
-}
-.addTagBox:hover {
-  background: rgba(15, 23, 42, 0.95);
-}
-
-/* Painel de edição de CTA */
-.ctaEditPanel {
-  margin-top: 12px;
-  padding: 12px 12px;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.85);
   border: 1px solid #1f2937;
-  display: grid;
-  grid-template-columns: 1fr;
+  background: rgba(15, 23, 42, 0.9);
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-}
-
-/* ===== Botões auxiliares dentro dos cards ===== */
-.btn,
-.btnSecondary {
-  border-radius: 999px;
-  border: 1px solid #1f2937;
-  background: #020617;
-  color: var(--text);
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-.btn:hover {
-  background: #111827;
-}
-.btnSecondary {
-  margin-top: 4px;
-  background: rgba(37, 99, 235, 0.1);
-  border-color: rgba(37, 99, 235, 0.6);
-  color: #bfdbfe;
-}
-.btnSecondary:hover {
-  background: rgba(37, 99, 235, 0.2);
 }
 
 /* ===== Responsivo ===== */
 @media (max-width: 1120px) {
-  .page {
-    padding: 16px 18px 32px;
+  .container {
+    padding: 18px;
   }
+
   .mainGrid {
     grid-template-columns: 1fr;
   }
   .colPreview {
     position: static;
-    margin-top: 12px;
+    margin-top: 16px;
+  }
+
+  .headerCenter {
+    align-items: flex-start;
+  }
+  .headerSubtitle {
+    text-align: left;
   }
 }
 
@@ -442,18 +411,24 @@
   .infoGrid {
     grid-template-columns: 1fr;
   }
-  .pageHeader {
+
+  .headerRow {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
-  .pageHeaderActions {
-    align-self: stretch;
+  .headerRight {
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
 }
 
 @media (max-width: 640px) {
-  .page {
-    padding: 14px 14px 32px;
+  .container {
+    padding: 14px;
+  }
+
+  .ctaEditor,
+  .quickEditor {
+    padding: 10px;
   }
 }
