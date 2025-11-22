@@ -11,6 +11,7 @@ import {
   FileText,
   Send,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Headset,
   User,
@@ -376,10 +377,10 @@ export default function Admin() {
 
   return (
     <div className={styles.wrapper}>
-      {/* Sidebar fixa no estilo do layout novo */}
+      {/* Sidebar fixa */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarInner}>
-          {/* Brand com logo-front.png */}
+          {/* Brand da sidebar (fica como está) */}
           <div className={styles.brandRow}>
             <img
               src="/logo-front.png"
@@ -483,133 +484,177 @@ export default function Admin() {
             })}
           </nav>
         </div>
-
-        {/* Rodapé da sidebar: ajuda + perfil */}
-        <div className={styles.sidebarFooter}>
-          {/* Ajuda */}
-          <div className={styles.footerItem}>
-            <button
-              type="button"
-              className={styles.helpBtn}
-              onClick={() => {
-                setHelpOpen((v) => !v);
-                setProfileOpen(false);
-              }}
-            >
-              <div className={styles.helpAvatar}>?</div>
-              <span className={styles.helpLabel}>Ajuda</span>
-            </button>
-
-            {isHelpOpen && (
-              <div className={styles.helpPanel}>
-                <button
-                  type="button"
-                  className={styles.panelItem}
-                  onClick={() => {
-                    window.open("https://docs.ninechat.com.br", "_blank");
-                    setHelpOpen(false);
-                  }}
-                >
-                  <FileText className={styles.panelIcon} size={14} />
-                  <span>NineDocs</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.panelItem}
-                  onClick={() => {
-                    // placeholder academy
-                    setHelpOpen(false);
-                  }}
-                >
-                  <GraduationCap className={styles.panelIcon} size={14} />
-                  <span>Nine Academy</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Perfil (sem exibir e-mail) */}
-          {userData && (
-            <div className={styles.footerItem}>
-              <button
-                type="button"
-                className={styles.profileBtn}
-                onClick={() => {
-                  setProfileOpen((v) => !v);
-                  setHelpOpen(false);
-                }}
-              >
-                <div
-                  className={styles.avatar}
-                  style={{ backgroundColor: stringToColor(userData.email) }}
-                >
-                  {userData.name?.charAt(0).toUpperCase() || "U"}
-                </div>
-                <div className={styles.profileInfo}>
-                  <div className={styles.profileName}>
-                    {userData.name || "Usuário"}
-                  </div>
-                </div>
-              </button>
-
-              {isProfileOpen && (
-                <div className={styles.profilePanel}>
-                  <div className={styles.profileHeader}>
-                    <div
-                      className={styles.avatar}
-                      style={{
-                        backgroundColor: stringToColor(userData.email),
-                      }}
-                    >
-                      {userData.name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                    <div>
-                      <div className={styles.profileName}>
-                        {userData.name || "Usuário"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.panelList}>
-                    <button
-                      type="button"
-                      className={styles.panelItem}
-                      onClick={() => {
-                        handleNavigation("settings/preferences");
-                        closeAllPanels();
-                      }}
-                    >
-                      <User className={styles.panelIcon} size={14} />
-                      <span>Editar perfil</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`${styles.panelItem} ${styles.logoutBtn}`}
-                    >
-                      <LogoutButton
-                        className={styles.logoutInner}
-                        onClick={closeAllPanels}
-                      >
-                        <LogOut className={styles.panelIcon} size={14} />
-                        <span>Logout</span>
-                      </LogoutButton>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </aside>
 
-      {/* Overlay para fechar menus ao clicar fora */}
+      {/* Overlay para fechar dropdowns ao clicar fora */}
       {(openSubmenuKey || isHelpOpen || isProfileOpen) && (
         <div className={styles.overlay} onClick={closeAllPanels} />
       )}
 
-      {/* Conteúdo principal */}
+      {/* Área principal (barra superior + conteúdo) */}
       <div className={styles.main}>
+        {/* ===== Topbar com logo centralizada + ajuda/perfil à direita ===== */}
+        <header className={styles.topbar}>
+          {/* espaço à esquerda só pra equilibrar o flex */}
+          <div className={styles.topbarLeft} />
+
+          {/* logo centralizada */}
+          <NavLink
+            to={DASHBOARD_PATH}
+            className={styles.brand}
+            onClick={(e) => {
+              e.preventDefault();
+              handleNavigation(DASHBOARD_PATH);
+            }}
+          >
+            <img src="/logo-front.png" alt="NineChat" />
+          </NavLink>
+
+          {/* ajuda + perfil à direita */}
+          <div className={styles.profileArea}>
+            {/* Ajuda */}
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                className={styles.userButton}
+                onClick={() => {
+                  setHelpOpen((v) => !v);
+                  setProfileOpen(false);
+                }}
+                aria-label="Abrir ajuda"
+                aria-haspopup="menu"
+                aria-expanded={isHelpOpen}
+                title="Ajuda"
+              >
+                <CircleHelp size={18} />
+              </button>
+              {isHelpOpen && (
+                <div
+                  className={styles.profileDropdown}
+                  role="menu"
+                  aria-label="Ajuda"
+                >
+                  <ul className={styles.pdList}>
+                    <li className={styles.pdItem}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.open("https://docs.ninechat.com.br", "_blank");
+                          setHelpOpen(false);
+                        }}
+                      >
+                        <span className={styles.pdIcon}>
+                          <FileText size={16} />
+                        </span>
+                        NineDocs
+                      </button>
+                    </li>
+                    <li className={styles.pdItem}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // placeholder academy
+                          setHelpOpen(false);
+                        }}
+                      >
+                        <span className={styles.pdIcon}>
+                          <GraduationCap size={16} />
+                        </span>
+                        Nine Academy
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <span className={styles.toolbarDivider} aria-hidden="true" />
+
+            {/* Perfil (sem e-mail) */}
+            {userData && (
+              <div style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  className={`${styles.userButton} ${
+                    isProfileOpen ? styles.isOpen : ""
+                  }`}
+                  onClick={() => {
+                    setProfileOpen((v) => !v);
+                    setHelpOpen(false);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileOpen}
+                >
+                  <div
+                    className={styles.avatar}
+                    style={{ backgroundColor: stringToColor(userData.email) }}
+                    title={userData.name || "Usuário"}
+                  >
+                    {userData.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    className={styles.userChevron}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                {isProfileOpen && (
+                  <div className={styles.profileDropdown} role="menu">
+                    <div className={styles.pdHeader}>
+                      <div
+                        className={styles.avatar}
+                        style={{
+                          backgroundColor: stringToColor(userData.email),
+                          width: 36,
+                          height: 36,
+                        }}
+                      >
+                        {userData.name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <div className={styles.pdName}>
+                          {userData.name || "Usuário"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <ul className={styles.pdList}>
+                      <li className={styles.pdItem}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleNavigation("settings/preferences");
+                            closeAllPanels();
+                          }}
+                        >
+                          <span className={styles.pdIcon}>
+                            <User size={16} />
+                          </span>
+                          Editar perfil
+                        </button>
+                      </li>
+
+                      <li className={styles.pdSeparator} role="separator" />
+
+                      <li className={styles.pdItem}>
+                        <LogoutButton
+                          className={styles.pdAction}
+                          onClick={closeAllPanels}
+                        >
+                          <LogOut size={16} />
+                          Logout
+                        </LogoutButton>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Conteúdo principal */}
         <main className={styles.content}>
           <Routes>
             <Route index element={<Dashboard />} />
