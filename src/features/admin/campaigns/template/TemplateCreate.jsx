@@ -1,16 +1,12 @@
-import React, {
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+// src/pages/admin/management/templates/TemplateCreate.jsx
+import React, { useMemo, useRef, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Save as SaveIcon } from "lucide-react";
 import { apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 
-import styles from "./styles/TemplateCreate.module.css";
 import PreviewWhatsApp from "./PreviewWhatsApp";
+import styles from "./styles/TemplateCreate.module.css";
 
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
@@ -100,6 +96,7 @@ const fitsTypeByExt = (type, ext) => {
 };
 
 /* ---------------- Form Sections ---------------- */
+
 const TemplateInfoSection = ({
   name,
   setName,
@@ -112,7 +109,7 @@ const TemplateInfoSection = ({
     <div className={styles.cardHead}>
       <h2 className={styles.cardTitle}>Informações do template</h2>
       <p className={styles.cardDesc}>
-        Defina a categoria, idioma e o identificador interno do modelo.
+        Defina categoria, idioma e o identificador interno do modelo.
       </p>
     </div>
 
@@ -149,7 +146,7 @@ const TemplateInfoSection = ({
 
       <div className={styles.group}>
         <label className={styles.label}>
-          Nome do Template *
+          Nome do Template *{" "}
           <span className={styles.helper}>[a-z0-9_] apenas</span>
         </label>
         <input
@@ -183,9 +180,11 @@ const ContentSection = ({
   const bodyTextLeft = LIMITS.bodyText - (bodyText?.length || 0);
   const footerTextLeft = LIMITS.footerText - (footerText?.length || 0);
 
-  const safeSetHeaderText = (val) => setHeaderText(clamp(val, LIMITS.headerText));
+  const safeSetHeaderText = (val) =>
+    setHeaderText(clamp(val, LIMITS.headerText));
   const safeSetBodyText = (val) => setBodyText(clamp(val, LIMITS.bodyText));
-  const safeSetFooterText = (val) => setFooterText(clamp(val, LIMITS.footerText));
+  const safeSetFooterText = (val) =>
+    setFooterText(clamp(val, LIMITS.footerText));
 
   const onMediaUrlChange = (val) => {
     setHeaderMediaUrl(val);
@@ -211,8 +210,8 @@ const ContentSection = ({
         </p>
       </div>
 
-      {/* Header Type Selection */}
-      <div className={styles.cardBodyGrid3}>
+      {/* Tipo de cabeçalho */}
+      <div className={styles.cardBodyGrid}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de cabeçalho</label>
           <div className={styles.segmented} role="tablist">
@@ -233,9 +232,9 @@ const ContentSection = ({
         </div>
       </div>
 
-      {/* Header Content */}
+      {/* Conteúdo do cabeçalho */}
       {headerType === "TEXT" && (
-        <div className={styles.cardBodyGrid3}>
+        <div className={styles.cardBodyGrid}>
           <div className={styles.groupFull}>
             <label className={styles.label}>Texto do cabeçalho *</label>
             <input
@@ -244,7 +243,7 @@ const ContentSection = ({
               onChange={(e) => safeSetHeaderText(e.target.value)}
               placeholder="Digite o texto do cabeçalho"
             />
-            <small className={styles.helper}>
+            <small className={styles.helperInline}>
               {headerTextLeft} caracteres restantes (máx. {LIMITS.headerText})
             </small>
           </div>
@@ -252,7 +251,7 @@ const ContentSection = ({
       )}
 
       {headerType !== "TEXT" && headerType !== "NONE" && (
-        <div className={styles.cardBodyGrid3}>
+        <div className={styles.cardBodyGrid}>
           <div className={styles.groupFull}>
             <label className={styles.label}>
               URL da mídia{" "}
@@ -278,8 +277,8 @@ const ContentSection = ({
         </div>
       )}
 
-      {/* Body & Footer */}
-      <div className={styles.cardBodyGrid3}>
+      {/* Corpo / rodapé */}
+      <div className={styles.cardBodyGrid}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Corpo da mensagem *</label>
           <textarea
@@ -289,12 +288,12 @@ const ContentSection = ({
             onChange={(e) => safeSetBodyText(e.target.value)}
             placeholder="Olá {{1}}, sua mensagem aqui..."
           />
-          <small className={styles.helper}>
+          <small className={styles.helperInline}>
             {bodyTextLeft} caracteres restantes (máx. {LIMITS.bodyText})
           </small>
         </div>
 
-        <div className={styles.groupWide}>
+        <div className={styles.groupFull}>
           <label className={styles.label}>Rodapé (opcional)</label>
           <input
             className={styles.input}
@@ -302,7 +301,7 @@ const ContentSection = ({
             onChange={(e) => safeSetFooterText(e.target.value)}
             placeholder="Texto do rodapé"
           />
-          <small className={styles.helper}>
+          <small className={styles.helperInline}>
             {footerTextLeft} caracteres restantes (máx. {LIMITS.footerText})
           </small>
         </div>
@@ -346,11 +345,11 @@ const ButtonsSection = ({
       <div className={styles.cardHead}>
         <h2 className={styles.cardTitle}>Botões de ação</h2>
         <p className={styles.cardDesc}>
-          Adicione botões de call-to-action ou respostas rápidas.
+          Adicione botões de ação (URL/telefone) ou respostas rápidas.
         </p>
       </div>
 
-      <div className={styles.cardBodyGrid3}>
+      <div className={styles.cardBodyGrid}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de botão</label>
           <div className={styles.pills} role="tablist">
@@ -396,7 +395,7 @@ const ButtonsSection = ({
       </div>
 
       {buttonMode === "cta" && (
-        <div className={styles.cardBodyGrid3}>
+        <div className={styles.cardBodyGrid}>
           <div className={styles.groupFull}>
             {ctas.map((cta) => (
               <div key={cta.id} className={styles.ctaEditRow}>
@@ -415,7 +414,7 @@ const ButtonsSection = ({
                   <option value="PHONE_NUMBER">Chamar</option>
                 </select>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div className={styles.flexColumn}>
                   <input
                     className={styles.input}
                     placeholder="Texto do botão"
@@ -486,20 +485,13 @@ const ButtonsSection = ({
       )}
 
       {buttonMode === "quick" && (
-        <div className={styles.cardBodyGrid3}>
+        <div className={styles.cardBodyGrid}>
           <div className={styles.groupFull}>
             {quicks.map((quick) => {
               const left = LIMITS.quickText - (quick.text?.length || 0);
               return (
                 <div key={quick.id} className={styles.quickEditRow}>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 4,
-                      flex: 1,
-                    }}
-                  >
+                  <div className={styles.flexColumn}>
                     <input
                       className={styles.input}
                       placeholder="Texto da resposta rápida"
@@ -508,13 +500,16 @@ const ButtonsSection = ({
                         setQuicks((prev) =>
                           prev.map((q) =>
                             q.id === quick.id
-                              ? { ...q, text: clampQuickText(e.target.value) }
+                              ? {
+                                  ...q,
+                                  text: clampQuickText(e.target.value),
+                                }
                               : q
                           )
                         )
                       }
                     />
-                    <small className={styles.helper}>
+                    <small className={styles.helperInline}>
                       {left} restantes (máx. {LIMITS.quickText})
                     </small>
                   </div>
@@ -547,6 +542,7 @@ const ButtonsSection = ({
 };
 
 /* ---------------- Main Component ---------------- */
+
 export default function TemplateCreate() {
   const navigate = useNavigate();
   const topRef = useRef(null);
@@ -650,7 +646,6 @@ export default function TemplateCreate() {
         }
       }
     }
-
     if (buttonMode === "quick") {
       for (const q of quicks) {
         if (!q.text?.trim()) {
@@ -663,7 +658,6 @@ export default function TemplateCreate() {
         }
       }
     }
-
     return true;
   };
 
@@ -681,10 +675,7 @@ export default function TemplateCreate() {
       )
     )
       return false;
-    if (
-      buttonMode === "quick" &&
-      quicks.some((q) => !q.text?.trim())
-    )
+    if (buttonMode === "quick" && quicks.some((q) => !q.text?.trim()))
       return false;
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
@@ -721,9 +712,7 @@ export default function TemplateCreate() {
           category,
           header_type: headerType || "NONE",
           header_text:
-            headerType === "TEXT"
-              ? headerText.trim() || null
-              : null,
+            headerType === "TEXT" ? headerText.trim() || null : null,
           header_media_url:
             headerType !== "TEXT" && headerType !== "NONE"
               ? headerMediaUrl.trim() || null
@@ -738,7 +727,13 @@ export default function TemplateCreate() {
         await apiPost(`/templates/${created.id}/submit`, {});
         await apiPost(`/templates/${created.id}/sync`, {});
 
-        toast.success("Template enviado para avaliação!");
+        // mensagem mais completa pós-envio (inspirada no print)
+        toast.success(
+          "O template foi adicionado e está em fase de aprovação.\n\n" +
+            "O template será analisado (isto pode levar alguns minutos). " +
+            "Quando for aprovado pela Meta, você poderá sincronizar e utilizá-lo nas suas campanhas."
+        );
+
         navigate("/management/templates");
       } catch (err) {
         console.error(err);
@@ -785,10 +780,7 @@ export default function TemplateCreate() {
           </li>
           <li className={styles.bcSep}>/</li>
           <li>
-            <Link
-              to="/management/templates"
-              className={styles.bcLink}
-            >
+            <Link to="/management/templates" className={styles.bcLink}>
               Templates
             </Link>
           </li>
@@ -799,42 +791,37 @@ export default function TemplateCreate() {
         </ol>
       </nav>
 
-      {/* Header card no padrão Templates */}
-      <header className={styles.headerCard}>
-        <div className={styles.headerRow}>
-          <div className={styles.headerCenter}>
-            <h1 className={styles.headerTitle}>Novo template</h1>
-            <p className={styles.headerSubtitle}>
-              Crie o template de mensagem do WhatsApp Business e
-              envie para avaliação da Meta.
-            </p>
-          </div>
-
-          <div className={styles.headerRight}>
-            <button
-              type="button"
-              className={styles.headerGhost}
-              onClick={() => navigate("/management/templates")}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className={styles.headerPrimary}
-              onClick={handleSubmit}
-              disabled={!canSave || saving}
-            >
-              <SaveIcon size={16} />
-              <span>
-                {saving ? "Enviando…" : "Enviar para avaliação"}
-              </span>
-            </button>
-          </div>
+      {/* Header compacto com ação principal */}
+      <header className={styles.pageHeader}>
+        <div className={styles.pageTitleWrap}>
+          <h1 className={styles.pageTitle}>Novo template</h1>
+          <p className={styles.pageSubtitle}>
+            Crie o template de mensagem do WhatsApp Business e envie para
+            avaliação da Meta.
+          </p>
+        </div>
+        <div className={styles.pageHeaderActions}>
+          <button
+            type="button"
+            className={styles.btnGhost}
+            onClick={() => navigate("/management/templates")}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={handleSubmit}
+            disabled={!canSave || saving}
+          >
+            <SaveIcon size={16} />
+            {saving ? "Enviando…" : "Enviar para avaliação"}
+          </button>
         </div>
       </header>
 
-      {/* Grid form + preview */}
-      <div className={styles.grid}>
+      {/* Conteúdo: formulário + preview em layout mais enxuto */}
+      <div className={styles.mainGrid}>
         <div className={styles.colForm}>
           <TemplateInfoSection
             name={name}
@@ -868,17 +855,21 @@ export default function TemplateCreate() {
           />
         </div>
 
-        {/* Preview lateral (usa o CSS do próprio PreviewWhatsApp) */}
-        <PreviewWhatsApp
-          name={sanitizeTemplateName(name) || "template_name"}
-          headerType={headerType}
-          headerText={headerText}
-          headerMediaUrl={headerMediaUrl}
-          bodyText={bodyText}
-          footerText={footerText}
-          ctas={previewCtas}
-          quicks={previewQuicks}
-        />
+        <aside
+          className={styles.colPreview}
+          aria-label="Prévia do template WhatsApp"
+        >
+          <PreviewWhatsApp
+            name={sanitizeTemplateName(name) || "template_name"}
+            headerType={headerType}
+            headerText={headerText}
+            headerMediaUrl={headerMediaUrl}
+            bodyText={bodyText}
+            footerText={footerText}
+            ctas={previewCtas}
+            quicks={previewQuicks}
+          />
+        </aside>
       </div>
     </div>
   );
