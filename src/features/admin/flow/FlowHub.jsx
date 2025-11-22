@@ -89,15 +89,15 @@ export default function FlowHub() {
 
   const openAgents = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/${f.id}/agents`, {
-      state: { from: "/workflows//hub", meta: { flowId: f.id } },
+    navigate(`/workflows/hub/${f.id}/agents`, {
+      state: { from: "/workflows/hub", meta: { flowId: f.id } },
     });
   };
 
   const openCustomers = (f) => {
     setOpenDropdown(null);
-    navigate(`/workflows//hub/${f.id}/customers`, {
-      state: { from: "/workflows//hub", meta: { flowId: f.id } },
+    navigate(`/workflows/hub/${f.id}/customers`, {
+      state: { from: "/workflows/hub", meta: { flowId: f.id } },
     });
   };
 
@@ -128,18 +128,23 @@ export default function FlowHub() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
+      {/* Header dark no padrão das outras telas */}
+      <header className={styles.header}>
         <div className={styles.titleRow}>
-          <span className={styles.title}>Workflows Hub</span>
+          <h1 className={styles.title}>Workflows Hub</h1>
+          <p className={styles.subtitle}>
+            Gerencie seus fluxos omnichannel, canais e times de atendimento.
+          </p>
         </div>
 
         <button
           onClick={() => setShowNewModal(true)}
           className={styles.btnPrimary}
+          type="button"
         >
           + Novo Flow
         </button>
-      </div>
+      </header>
 
       {loading ? (
         <LogoLoader full size={56} src="/logo.svg" />
@@ -162,8 +167,9 @@ export default function FlowHub() {
                     className={styles.dropdownTrigger}
                     onClick={() => toggleDropdown(f.id)}
                     title="Ações"
+                    type="button"
                   >
-                    <MoreVertical size={20} />
+                    <MoreVertical size={18} />
                   </button>
 
                   {openDropdown === f.id && (
@@ -171,6 +177,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openChannels(f)}
+                        type="button"
                       >
                         <PlugZap size={16} />
                         <span>Canais</span>
@@ -179,6 +186,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openStudio(f)}
+                        type="button"
                       >
                         <Bot size={16} />
                         <span>Studio</span>
@@ -187,6 +195,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openTracker(f)}
+                        type="button"
                       >
                         <RouteIcon size={16} />
                         <span>Tracker</span>
@@ -195,6 +204,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openQueues(f)}
+                        type="button"
                       >
                         <ListChecks size={16} />
                         <span>Filas</span>
@@ -203,6 +213,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openAgents(f)}
+                        type="button"
                       >
                         <Headphones size={16} />
                         <span>Atendentes</span>
@@ -211,6 +222,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openQuickReplies(f)}
+                        type="button"
                       >
                         <MessageSquare size={16} />
                         <span>Respostas rápidas</span>
@@ -219,6 +231,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openTicketHistory(f)}
+                        type="button"
                       >
                         <History size={16} />
                         <span>Histórico de ticket</span>
@@ -227,6 +240,7 @@ export default function FlowHub() {
                       <button
                         className={styles.dropdownItem}
                         onClick={() => openCustomers(f)}
+                        type="button"
                       >
                         <IdCard size={16} />
                         <span>Clientes</span>
@@ -324,52 +338,56 @@ function NewFlowModal({ onClose, onCreate }) {
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHead}>
           <strong>Novo Flow</strong>
-          <button onClick={onClose} className={styles.linkBtn}>
+          <button onClick={onClose} className={styles.linkBtn} type="button">
             Fechar
           </button>
         </div>
 
         <div className={styles.modalBody}>
-          <label className={styles.label} htmlFor="flow-name">
-            Nome<span className={styles.reqStar}>*</span>
-          </label>
-          <input
-            id="flow-name"
-            autoFocus
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => setTouchedName(true)}
-            placeholder="ex.: Atendimento"
-            aria-invalid={!!nameError}
-            className={`${styles.input} ${
-              nameError ? styles.inputInvalid : ""
-            }`}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                submit();
-              }
-            }}
-          />
-          {nameError ? (
-            <div className={styles.fieldError}>{nameError}</div>
-          ) : null}
+          <div>
+            <label className={styles.label} htmlFor="flow-name">
+              Nome<span className={styles.reqStar}>*</span>
+            </label>
+            <input
+              id="flow-name"
+              autoFocus
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => setTouchedName(true)}
+              placeholder="ex.: Atendimento"
+              aria-invalid={!!nameError}
+              className={`${styles.input} ${
+                nameError ? styles.inputInvalid : ""
+              }`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+            />
+            {nameError ? (
+              <div className={styles.fieldError}>{nameError}</div>
+            ) : null}
+          </div>
 
-          <label className={styles.label} htmlFor="flow-desc">
-            Descrição (opcional)
-          </label>
-          <textarea
-            id="flow-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="breve descrição"
-            className={`${styles.input} ${styles.textarea}`}
-          />
+          <div>
+            <label className={styles.label} htmlFor="flow-desc">
+              Descrição (opcional)
+            </label>
+            <textarea
+              id="flow-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Breve descrição do fluxo"
+              className={`${styles.input} ${styles.textarea}`}
+            />
+          </div>
         </div>
 
         <div className={styles.modalFoot}>
-          <button onClick={onClose} className={styles.btnGhost}>
+          <button onClick={onClose} className={styles.btnGhost} type="button">
             Cancelar
           </button>
           <button
@@ -378,6 +396,7 @@ function NewFlowModal({ onClose, onCreate }) {
             className={`${styles.btnPrimary} ${
               !canSave ? styles.btnDisabled : ""
             }`}
+            type="button"
           >
             Criar
           </button>
