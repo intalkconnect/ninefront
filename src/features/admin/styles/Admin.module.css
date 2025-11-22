@@ -2,7 +2,7 @@
 .wrapper {
   min-height: 100vh;
   display: flex;
-  background: #020617; /* base única, evita faixa de cor diferente */
+  background: #020617;
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
@@ -85,11 +85,11 @@
   overflow-y: auto;
 }
 
-/* brand */
+/* brand sidebar */
 .brandRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center; /* deixa a logo centralizada na sidebar */
   margin-bottom: 24px;
 }
 
@@ -117,7 +117,7 @@
   color: #64748b;
 }
 
-/* nav */
+/* nav lateral */
 .nav {
   display: flex;
   flex-direction: column;
@@ -247,193 +247,198 @@
   color: #9ca3af;
 }
 
-/* footer da sidebar (base melhorada) */
-.sidebarFooter {
-  padding: 10px 14px 14px;
-  border-top: 1px solid #1f2937;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: #020617; /* mesma base escura do resto */
+/* ===== Topbar ===== */
+.main {
+  flex: 1;
+  margin-left: 256px;
+  min-height: 100vh;
+  background: #020617;
 }
 
-.footerItem {
+/* barra superior fixa */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px;
+  background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.6);
+  min-height: 56px;
+}
+
+.topbarLeft {
+  width: 80px; /* só para equilibrar o flex com a área da direita */
+}
+
+/* logo centralizada na barra */
+.brand {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.brand img {
+  height: 36px;
+  display: block;
+}
+
+/* área direita (ajuda + perfil) */
+.profileArea {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   position: relative;
 }
 
-/* ajuda */
-.helpBtn {
-  width: 100%;
-  display: flex;
+.toolbarDivider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 4px;
+}
+
+.userButton {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background: #020617;
-  cursor: pointer;
-  color: #e5e7eb;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.18s ease;
-}
-
-.helpBtn:hover {
-  background: #111827;
-}
-
-.helpAvatar {
-  width: 28px;
-  height: 28px;
+  gap: 8px;
+  background: transparent;
+  border: none;
   border-radius: 999px;
-  background: #1e293b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  color: #e5e7eb;
-}
-
-.helpLabel {
-  flex: 1;
-  text-align: left;
-}
-
-/* painel de ajuda */
-.helpPanel {
-  position: fixed;
-  left: 256px;
-  bottom: 88px;
-  width: 220px;
-  background: #020617;
-  border-radius: 12px;
-  border: 1px solid #1f2937;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
-  padding: 6px;
-  z-index: 70;
-}
-
-/* perfil */
-.profileBtn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  border: 1px solid #1f2937;
-  background: #020617;
+  padding: 4px 6px;
   cursor: pointer;
-  color: #e5e7eb;
-  font-size: 13px;
-  transition: all 0.18s ease;
+  color: #fff;
 }
 
-.profileBtn:hover {
-  background: #111827;
-  border-color: #4b5563;
+.userButton:hover {
+  background: rgba(15, 23, 42, 0.2);
 }
 
+.userButton:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+.userChevron {
+  transition: transform 0.18s ease, opacity 0.18s ease;
+  opacity: 0.9;
+}
+
+.isOpen .userChevron {
+  transform: rotate(180deg);
+}
+
+/* avatar compartilhado */
 .avatar {
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   font-size: 14px;
   font-weight: 700;
   color: #f9fafb;
 }
 
-.profileInfo {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.profileName {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f9fafb;
-}
-
-/* painel de perfil */
-.profilePanel {
-  position: fixed;
-  left: 256px;
-  bottom: 16px;
-  width: 260px;
-  background: #020617;
+/* dropdowns da topbar (ajuda e perfil) */
+.profileDropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 240px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 14px;
-  border: 1px solid #1f2937;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.16);
   padding: 8px;
   z-index: 70;
 }
 
-.profileHeader {
+.pdHeader {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 10px 8px;
-  border-bottom: 1px solid #111827;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f3f4f6;
   margin-bottom: 6px;
 }
 
-.panelList {
+.pdName {
+  font-weight: 800;
+  color: #111827;
+  font-size: 14px;
+}
+
+.pdList {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 2px;
+  gap: 4px;
 }
 
-.panelItem {
+.pdItem {
+  display: flex;
+}
+
+.pdItem button {
   width: 100%;
-  border: none;
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
   border-radius: 10px;
-  background: transparent;
-  color: #e5e7eb;
+  border: 1px solid transparent;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
   font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
   text-align: left;
-  transition: all 0.18s ease;
 }
 
-.panelItem:hover {
-  background: #111827;
+.pdItem button:hover {
+  background: #f9fafb;
+  border-color: #f3f4f6;
 }
 
-.panelIcon {
-  width: 14px;
-  height: 14px;
-  color: #9ca3af;
-}
-
-.logoutBtn {
-  padding: 0;
-}
-
-.logoutInner {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: #fca5a5;
+.pdIcon {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  cursor: pointer;
 }
 
-.logoutInner:hover {
-  background: rgba(185, 28, 28, 0.25);
+.pdSeparator {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 4px 0;
+}
+
+.pdAction {
+  width: 100%;
+  justify-content: flex-start;
+  color: #ef4444;
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: #ffffff;
+}
+
+.pdAction:hover {
+  background: #fef2f2;
 }
 
 /* ===== Overlay para fechar painéis ===== */
@@ -444,14 +449,7 @@
   background: transparent;
 }
 
-/* ===== Main / content ===== */
-.main {
-  flex: 1;
-  margin-left: 256px;
-  min-height: 100vh;
-  background: #020617; /* mesma base do wrapper */
-}
-
+/* ===== Conteúdo ===== */
 .content {
   max-width: 1320px;
   margin: 0 auto;
@@ -463,9 +461,7 @@
   .sidebar {
     width: 220px;
   }
-  .submenuPanel,
-  .helpPanel,
-  .profilePanel {
+  .submenuPanel {
     left: 220px;
   }
   .main {
