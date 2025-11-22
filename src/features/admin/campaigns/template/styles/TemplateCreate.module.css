@@ -10,35 +10,6 @@
     Helvetica, Arial, sans-serif;
 }
 
-/* ===== Breadcrumbs ===== */
-.breadcrumbs {
-  margin-bottom: 8px;
-}
-.bcList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  font-size: 12px;
-  color: #94a3b8;
-}
-.bcLink {
-  color: #94a3b8;
-  text-decoration: none;
-}
-.bcLink:hover {
-  color: #f9fafb;
-}
-.bcSep {
-  color: #64748b;
-}
-.bcCurrent {
-  font-weight: 700;
-  color: #f9fafb;
-}
-
 /* ================= HEADER CARD (padrão das outras telas) ================= */
 .headerCard {
   background: #1e293b;
