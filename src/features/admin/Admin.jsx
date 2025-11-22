@@ -35,7 +35,7 @@ import FlowChannels from "./flow/channels/FlowChannels";
 import Queues from "./flow/queue/Queues";
 import QueueForm from "./flow/queue/QueueForm";
 import QueueHours from "./flow/queue/QueueHours";
-// Dashboard antigo removido: usamos HomeUpdates
+// Dashboard antigo removido – usamos HomeUpdates
 import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../app/utils/auth";
@@ -81,17 +81,17 @@ function RequireRole({ allow, children }) {
 }
 
 /**
- * NOVA PÁGINA INICIAL – NOVIDADES & COISAS ÚTEIS
+ * PÁGINA INICIAL – INÍCIO / NOVIDADES & DICAS
  */
 function HomeUpdates() {
   return (
     <div className={styles.home}>
       <header className={styles.homeHeader}>
         <div>
-          <h1 className={styles.homeTitle}>Novidades do NineChat</h1>
+          <h1 className={styles.homeTitle}>Início do workspace</h1>
           <p className={styles.homeSubtitle}>
-            Veja o que mudou, dicas para aproveitar melhor a plataforma
-            e links rápidos para a documentação.
+            Um resumo de novidades, boas práticas e atalhos para você tirar
+            mais proveito do NineChat.
           </p>
         </div>
       </header>
@@ -293,7 +293,7 @@ export default function Admin() {
     const base = [
       {
         key: "dashboard",
-        label: "Novidades",
+        label: "Início", // aparecerá em CAIXA ALTA via CSS
         to: DASHBOARD_PATH,
         icon: <LayoutDashboard size={18} />,
       },
@@ -387,24 +387,12 @@ export default function Admin() {
         ],
       },
 
-      /* 🔹 Workflows agora é SECTION, não leaf */
+      // 🔹 Workflows volta a ser item principal clicável, sem submenu
       {
         key: "workflows",
         label: "Workflows",
         icon: <Workflow size={18} />,
-        children: [
-          {
-            key: "workflows-main",
-            label: "Geral",
-            children: [
-              {
-                to: "workflows/hub",
-                icon: <Workflow size={16} />,
-                label: "Hub",
-              },
-            ],
-          },
-        ],
+        to: "workflows/hub",
       },
 
       {
@@ -656,8 +644,8 @@ export default function Admin() {
               {menus.map((menu) => {
                 const activeMenu = isMenuActive(menu);
 
-                // agora só tem section/children; dashboard e workflows também podem virar leaf se quiser
                 if (!menu.children) {
+                  // INÍCIO e WORKFLOWS chegam aqui
                   return (
                     <button
                       key={menu.key}
@@ -688,9 +676,7 @@ export default function Admin() {
                         key={grp.key || grp.label}
                         className={styles.menuGroup}
                       >
-                        <div className={styles.menuGroupTitle}>
-                          {grp.label}
-                        </div>
+                        {/* subtítulo (Tempo real, Análise...) foi removido */}
                         <ul className={styles.menuGroupList}>
                           {(grp.children || []).map((leaf) => {
                             const leafActive = isLeafActive(leaf.to);
@@ -728,7 +714,7 @@ export default function Admin() {
           <main className={styles.main}>
             <div className={styles.content}>
               <Routes>
-                {/* NOVA HOME DE NOVIDADES */}
+                {/* HOME INICIAL */}
                 <Route index element={<HomeUpdates />} />
 
                 {/* monitoring */}
