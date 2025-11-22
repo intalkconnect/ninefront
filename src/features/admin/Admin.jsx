@@ -91,6 +91,7 @@ export default function Admin() {
 
   const [authLoading, setAuthLoading] = useState(true);
 
+  // estado do layout
   const [openSubmenuKey, setOpenSubmenuKey] = useState(null);
   const [isProfileOpen, setProfileOpen] = useState(false);
   const [isHelpOpen, setHelpOpen] = useState(false);
@@ -137,10 +138,12 @@ export default function Admin() {
     };
   }, [email]);
 
+  // fecha painéis ao trocar de rota
   useEffect(() => {
     closeAllPanels();
   }, [location.pathname]);
 
+  // ESC fecha painéis
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === "Escape") {
@@ -153,6 +156,7 @@ export default function Admin() {
 
   const DASHBOARD_PATH = "/";
 
+  /* ===== Permissões ===== */
   const role =
     userData?.role || userData?.perfil || userData?.profile || "user";
 
@@ -371,31 +375,28 @@ export default function Admin() {
 
   return (
     <div className={styles.wrapper}>
-      {/* ===== Topbar dark fixa, com logo à esquerda e ações à direita ===== */}
+      {/* ===== TOPBAR DARK (logo esquerda, ajuda + perfil direita) ===== */}
       <header className={styles.topbar}>
         <div className={styles.topbarLeft}>
-          <NavLink
-            to={DASHBOARD_PATH}
-            className={styles.brand}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate("/", { replace: true });
-            }}
+          <button
+            type="button"
+            className={styles.logoButton}
+            onClick={() => handleNavigation(DASHBOARD_PATH)}
           >
             <img
               src="/logo-front.png"
               alt="NineChat"
-              className={styles.brandLogo}
+              className={styles.topbarLogo}
             />
-          </NavLink>
+          </button>
         </div>
 
         <div className={styles.topbarRight}>
-          {/* Ajuda */}
-          <div className={styles.headerAction}>
+          {/* Ajuda no header */}
+          <div className={styles.topbarItem}>
             <button
               type="button"
-              className={styles.iconButton}
+              className={styles.topIconButton}
               onClick={() => {
                 setHelpOpen((v) => !v);
                 setProfileOpen(false);
@@ -406,39 +407,45 @@ export default function Admin() {
             </button>
 
             {isHelpOpen && (
-              <div className={styles.helpPanel}>
+              <div className={styles.topDropdown}>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className={styles.topDropdownItem}
+                    onClick={() => {
+                      window.open("https://docs.ninechat.com.br", "_blank");
+                      closeAllPanels();
+                    }}
+                  >
+                    <span className={styles.topDropdownIcon}>
+                      <FileText size={14} />
+                    </span>
+                    <span>NineDocs</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  className={styles.panelItem}
-                  onClick={() => {
-                    window.open("https://docs.ninechat.com.br", "_blank");
-                    setHelpOpen(false);
-                  }}
-                >
-                  <FileText className={styles.panelIcon} size={14} />
-                  <span>NineDocs</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.panelItem}
+                  className={styles.topDropdownItem}
                   onClick={() => {
                     // placeholder academy
-                    setHelpOpen(false);
+                    closeAllPanels();
                   }}
                 >
-                  <GraduationCap className={styles.panelIcon} size={14} />
+                  <span className={styles.topDropdownIcon}>
+                    <GraduationCap size={14} />
+                  </span>
                   <span>Nine Academy</span>
                 </button>
               </div>
             )}
           </div>
 
-          {/* Perfil (sem mostrar e-mail) */}
+          {/* Perfil no header (sem e-mail visível) */}
           {userData && (
-            <div className={styles.headerAction}>
+            <div className={styles.topbarItem}>
               <button
                 type="button"
-                className={styles.profileTrigger}
+                className={styles.topProfileButton}
                 onClick={() => {
                   setProfileOpen((v) => !v);
                   setHelpOpen(false);
@@ -450,51 +457,51 @@ export default function Admin() {
                 >
                   {userData.name?.charAt(0).toUpperCase() || "U"}
                 </div>
+                <span className={styles.topProfileName}>
+                  {userData.name || "Usuário"}
+                </span>
               </button>
 
               {isProfileOpen && (
-                <div className={styles.profilePanel}>
-                  <div className={styles.profileHeader}>
+                <div className={styles.topProfileDropdown}>
+                  <div className={styles.topProfileHeader}>
                     <div
                       className={styles.avatar}
-                      style={{
-                        backgroundColor: stringToColor(userData.email),
-                      }}
+                      style={{ backgroundColor: stringToColor(userData.email) }}
                     >
                       {userData.name?.charAt(0).toUpperCase() || "U"}
                     </div>
-                    <div className={styles.profileHeaderInfo}>
-                      <div className={styles.profileName}>
+                    <div className={styles.topProfileHeaderText}>
+                      <div className={styles.topProfileHeaderName}>
                         {userData.name || "Usuário"}
                       </div>
                     </div>
                   </div>
 
-                  <div className={styles.panelList}>
+                  <div className={styles.topProfileList}>
                     <button
                       type="button"
-                      className={styles.panelItem}
+                      className={styles.topDropdownItem}
                       onClick={() => {
                         handleNavigation("settings/preferences");
                         closeAllPanels();
                       }}
                     >
-                      <User className={styles.panelIcon} size={14} />
+                      <span className={styles.topDropdownIcon}>
+                        <User size={14} />
+                      </span>
                       <span>Editar perfil</span>
                     </button>
 
-                    <button
-                      type="button"
-                      className={`${styles.panelItem} ${styles.logoutBtn}`}
+                    <LogoutButton
+                      className={`${styles.topDropdownItem} ${styles.topLogoutItem}`}
+                      onClick={closeAllPanels}
                     >
-                      <LogoutButton
-                        className={styles.logoutInner}
-                        onClick={closeAllPanels}
-                      >
-                        <LogOut className={styles.panelIcon} size={14} />
-                        <span>Logout</span>
-                      </LogoutButton>
-                    </button>
+                      <span className={styles.topDropdownIcon}>
+                        <LogOut size={14} />
+                      </span>
+                      <span>Logout</span>
+                    </LogoutButton>
                   </div>
                 </div>
               )}
@@ -503,10 +510,12 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* Sidebar começa logo abaixo da topbar */}
+      {/* ===== SIDEBAR ===== */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarInner}>
-          {/* Menu principal */}
+          {/* Espaço pequeno abaixo da logo do header pra "respirar" */}
+          <div className={styles.sidebarTitle}>Menu</div>
+
           <nav className={styles.nav}>
             {menus.map((item, index) => {
               const active = isMenuActive(item);
@@ -546,7 +555,9 @@ export default function Admin() {
                   {hasSub && isOpen && (
                     <div
                       className={styles.submenuPanel}
-                      style={{ top: 72 + index * 52 }}
+                      style={{
+                        top: `calc(var(--admin-topbar-h) + ${80 + index * 52}px)`,
+                      }}
                     >
                       <div className={styles.submenuContent}>
                         {item.children.map((grp) => (
@@ -603,12 +614,12 @@ export default function Admin() {
         </div>
       </aside>
 
-      {/* Overlay para fechar menus ao clicar fora (fica abaixo da topbar) */}
+      {/* Overlay para fechar menus ao clicar fora */}
       {(openSubmenuKey || isHelpOpen || isProfileOpen) && (
         <div className={styles.overlay} onClick={closeAllPanels} />
       )}
 
-      {/* Conteúdo principal (deslocado pela topbar e sidebar) */}
+      {/* Conteúdo principal */}
       <div className={styles.main}>
         <main className={styles.content}>
           <Routes>
