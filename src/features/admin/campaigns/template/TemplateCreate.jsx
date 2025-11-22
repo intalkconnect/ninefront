@@ -1,6 +1,6 @@
 // src/pages/admin/management/templates/TemplateCreate.jsx
 import React, { useMemo, useRef, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Save as SaveIcon } from "lucide-react";
 import { apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
@@ -10,33 +10,44 @@ import styles from "./styles/TemplateCreate.module.css";
 
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
-  { value: "UTILITY", label: "Utility" },
-  { value: "MARKETING", label: "Marketing" },
-  { value: "AUTHENTICATION", label: "Authentication" },
+  {
+    value: "UTILITY",
+    label: "Utilitário",
+    desc: "Mensagens relacionadas a serviços prestados",
+  },
+  {
+    value: "MARKETING",
+    label: "Marketing",
+    desc: "Mensagens promocionais e de engajamento",
+  },
+  {
+    value: "AUTHENTICATION",
+    label: "Autenticação",
+    desc: "Códigos de autenticação e verificação",
+  },
 ];
 
 const LANGS = [
-  { value: "pt_BR", label: "Português (BR)" },
-  { value: "en_US", label: "Inglês (US)" },
-  { value: "es_ES", label: "Espanhol (ES)" },
-  { value: "pt_PT", label: "Português (PT)" },
-  { value: "es_MX", label: "Espanhol (MX)" },
-  { value: "fr_FR", label: "Francês (FR)" },
-  { value: "it_IT", label: "Italiano (IT)" },
-  { value: "de_DE", label: "Alemão (DE)" },
+  { value: "pt_BR", short: "BR", label: "Português (BR)" },
+  { value: "en_US", short: "US", label: "Inglês (US)" },
+  { value: "es_ES", short: "ES", label: "Espanhol (ES)" },
+  { value: "pt_PT", short: "PT", label: "Português (PT)" },
+  { value: "es_MX", short: "MX", label: "Espanhol (MX)" },
+  { value: "fr_FR", short: "FR", label: "Francês (FR)" },
+  { value: "it_IT", short: "IT", label: "Italiano (IT)" },
+  { value: "de_DE", short: "DE", label: "Alemão (DE)" },
 ];
 
 const HEADER_TYPES = [
   { value: "NONE", label: "Nenhum" },
   { value: "TEXT", label: "Texto" },
   { value: "IMAGE", label: "Imagem" },
-  { value: "DOCUMENT", label: "Documento" },
+  { value: "DOCUMENT", label: "Doc" },
   { value: "VIDEO", label: "Vídeo" },
 ];
 
 const MAX_BTNS = 3;
 
-/* ---------------- Meta character limits ---------------- */
 const LIMITS = {
   headerText: 60,
   bodyText: 1024,
@@ -45,7 +56,6 @@ const LIMITS = {
   quickText: 25,
 };
 
-/* ---------------- Media rules ---------------- */
 const IMG_EXT = ["jpg", "jpeg", "png", "webp", "gif"];
 const PDF_EXT = ["pdf"];
 const MP4_EXT = ["mp4"];
@@ -72,8 +82,7 @@ const getUrlExt = (url = "") => {
     const pathname = u.pathname || "";
     const last = pathname.split("/").pop() || "";
     const clean = last.split("?")[0].split("#")[0];
-    const ext = (clean.split(".").pop() || "").toLowerCase();
-    return ext;
+    return (clean.split(".").pop() || "").toLowerCase();
   } catch {
     return "";
   }
@@ -104,65 +113,87 @@ const TemplateInfoSection = ({
   setLanguage,
   category,
   setCategory,
-}) => (
-  <section className={styles.card}>
-    <div className={styles.cardHead}>
-      <h2 className={styles.cardTitle}>Informações do template</h2>
-      <p className={styles.cardDesc}>
-        Defina categoria, idioma e o identificador interno do modelo.
-      </p>
-    </div>
-
-    <div className={styles.infoGrid}>
-      <div className={styles.group}>
-        <label className={styles.label}>Categoria *</label>
-        <select
-          className={styles.select}
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+}) => {
+  return (
+    <section className={styles.card}>
+      <div className={styles.cardHead}>
+        <h2 className={styles.cardTitle}>Informações básicas</h2>
+        <p className={styles.cardDesc}>
+          Defina a categoria, idioma e o identificador interno do modelo.
+        </p>
       </div>
 
-      <div className={styles.group}>
-        <label className={styles.label}>Idioma *</label>
-        <select
-          className={styles.select}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-        >
-          {LANGS.map((l) => (
-            <option key={l.value} value={l.value}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className={styles.infoGrid}>
+        {/* Categoria como "cards" sem ícone */}
+        <div className={styles.groupFull}>
+          <div className={styles.labelRow}>
+            <span className={styles.label}>Categoria do template *</span>
+          </div>
+          <div className={styles.choiceRow}>
+            {CATEGORIES.map((c) => {
+              const active = c.value === category;
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  className={`${styles.choiceCard} ${
+                    active ? styles.choiceCardActive : ""
+                  }`}
+                  onClick={() => setCategory(c.value)}
+                >
+                  <div className={styles.choiceTitle}>{c.label}</div>
+                  <div className={styles.choiceDesc}>{c.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-      <div className={styles.group}>
-        <label className={styles.label}>
-          Nome do Template *{" "}
-          <span className={styles.helper}>[a-z0-9_] apenas</span>
-        </label>
-        <input
-          className={styles.input}
-          value={name}
-          onChange={(e) => setName(sanitizeTemplateName(e.target.value))}
-          placeholder="ex: welcome_message_1"
-          inputMode="latin"
-          autoCapitalize="off"
-          autoCorrect="off"
-          spellCheck={false}
-        />
+        {/* Idioma como "tags cards" */}
+        <div className={styles.groupFull}>
+          <div className={styles.labelRow}>
+            <span className={styles.label}>Idioma *</span>
+          </div>
+          <div className={styles.choiceRow}>
+            {LANGS.map((l) => {
+              const active = l.value === language;
+              return (
+                <button
+                  key={l.value}
+                  type="button"
+                  className={`${styles.langCard} ${
+                    active ? styles.langCardActive : ""
+                  }`}
+                  onClick={() => setLanguage(l.value)}
+                >
+                  <span className={styles.langShort}>{l.short}</span>
+                  <span className={styles.langLabel}>{l.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={styles.groupFull}>
+          <label className={styles.label}>
+            Nome do template *
+            <span className={styles.helper}> (apenas a-z, 0-9 e _)</span>
+          </label>
+          <input
+            className={styles.input}
+            value={name}
+            onChange={(e) => setName(sanitizeTemplateName(e.target.value))}
+            placeholder="ex: welcome_message_1"
+            inputMode="latin"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 const ContentSection = ({
   headerType,
@@ -210,8 +241,8 @@ const ContentSection = ({
         </p>
       </div>
 
-      {/* Tipo de cabeçalho */}
       <div className={styles.cardBodyGrid}>
+        {/* Tipo de cabeçalho - "tags" sem ícones */}
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de cabeçalho</label>
           <div className={styles.segmented} role="tablist">
@@ -230,11 +261,9 @@ const ContentSection = ({
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Conteúdo do cabeçalho */}
-      {headerType === "TEXT" && (
-        <div className={styles.cardBodyGrid}>
+        {/* Cabeçalho: texto ou mídia */}
+        {headerType === "TEXT" && (
           <div className={styles.groupFull}>
             <label className={styles.label}>Texto do cabeçalho *</label>
             <input
@@ -247,11 +276,9 @@ const ContentSection = ({
               {headerTextLeft} caracteres restantes (máx. {LIMITS.headerText})
             </small>
           </div>
-        </div>
-      )}
+        )}
 
-      {headerType !== "TEXT" && headerType !== "NONE" && (
-        <div className={styles.cardBodyGrid}>
+        {headerType !== "TEXT" && headerType !== "NONE" && (
           <div className={styles.groupFull}>
             <label className={styles.label}>
               URL da mídia{" "}
@@ -274,11 +301,9 @@ const ContentSection = ({
               }
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Corpo / rodapé */}
-      <div className={styles.cardBodyGrid}>
+        {/* Corpo e rodapé */}
         <div className={styles.groupFull}>
           <label className={styles.label}>Corpo da mensagem *</label>
           <textarea
@@ -392,10 +417,8 @@ const ButtonsSection = ({
             </button>
           </div>
         </div>
-      </div>
 
-      {buttonMode === "cta" && (
-        <div className={styles.cardBodyGrid}>
+        {buttonMode === "cta" && (
           <div className={styles.groupFull}>
             {ctas.map((cta) => (
               <div key={cta.id} className={styles.ctaEditRow}>
@@ -481,11 +504,9 @@ const ButtonsSection = ({
               </button>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {buttonMode === "quick" && (
-        <div className={styles.cardBodyGrid}>
+        {buttonMode === "quick" && (
           <div className={styles.groupFull}>
             {quicks.map((quick) => {
               const left = LIMITS.quickText - (quick.text?.length || 0);
@@ -535,17 +556,24 @@ const ButtonsSection = ({
               </button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 };
 
 /* ---------------- Main Component ---------------- */
 
+const STEPS = [
+  { id: 1, key: "info", label: "Informações" },
+  { id: 2, key: "content", label: "Conteúdo e Botões" },
+];
+
 export default function TemplateCreate() {
   const navigate = useNavigate();
   const topRef = useRef(null);
+
+  const [step, setStep] = useState(1);
 
   const [name, setName] = useState("");
   const [language, setLanguage] = useState("pt_BR");
@@ -576,24 +604,29 @@ export default function TemplateCreate() {
   const validateBeforeSubmit = () => {
     if (!name.trim()) {
       toast.error("Informe o nome do template.");
+      setStep(1);
       return false;
     }
     if (!bodyText.trim()) {
       toast.error("O corpo da mensagem é obrigatório.");
+      setStep(2);
       return false;
     }
     if (headerType === "TEXT" && !headerText.trim()) {
       toast.error("O texto do cabeçalho é obrigatório.");
+      setStep(2);
       return false;
     }
 
     if (headerType !== "TEXT" && headerType !== "NONE") {
       if (!headerMediaUrl?.trim()) {
         toast.error("Informe a URL da mídia do cabeçalho.");
+        setStep(2);
         return false;
       }
       if (!isValidHttpUrl(headerMediaUrl)) {
         toast.error("URL de mídia inválida.");
+        setStep(2);
         return false;
       }
       const ext = getUrlExt(headerMediaUrl);
@@ -605,6 +638,7 @@ export default function TemplateCreate() {
             ? "Documento inválido. Use apenas PDF (.pdf)."
             : "Vídeo inválido. Use apenas MP4 (.mp4)."
         );
+        setStep(2);
         return false;
       }
     }
@@ -727,11 +761,11 @@ export default function TemplateCreate() {
         await apiPost(`/templates/${created.id}/submit`, {});
         await apiPost(`/templates/${created.id}/sync`, {});
 
-        // mensagem mais completa pós-envio (inspirada no print)
         toast.success(
           "O template foi adicionado e está em fase de aprovação.\n\n" +
             "O template será analisado (isto pode levar alguns minutos). " +
-            "Quando for aprovado pela Meta, você poderá sincronizar e utilizá-lo nas suas campanhas."
+            "Quando for aprovado, você poderá sincronizar com a integração " +
+            "selecionada em Sincronizar Mensagens."
         );
 
         navigate("/management/templates");
@@ -768,91 +802,138 @@ export default function TemplateCreate() {
     [buttonMode, quicks]
   );
 
+  const goStep = (n) => {
+    setStep(n);
+    if (topRef.current) {
+      topRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <div className={styles.page} ref={topRef}>
-      {/* Breadcrumbs */}
-      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-        <ol className={styles.bcList}>
-          <li>
-            <Link to="/" className={styles.bcLink}>
-              Dashboard
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <Link to="/management/templates" className={styles.bcLink}>
-              Templates
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <span className={styles.bcCurrent}>Novo template</span>
-          </li>
-        </ol>
-      </nav>
+      {/* HEADER / WIZARD CARD */}
+      <div className={styles.wizardCard}>
+        <div className={styles.wizardTopRow}>
+          <div>
+            <h1 className={styles.wizardTitle}>Criar Template WhatsApp</h1>
+            <p className={styles.wizardSubtitle}>
+              Configure seu modelo em 2 etapas simples e envie para aprovação
+              da Meta.
+            </p>
+          </div>
 
-      {/* Header compacto com ação principal */}
-      <header className={styles.pageHeader}>
-        <div className={styles.pageTitleWrap}>
-          <h1 className={styles.pageTitle}>Novo template</h1>
-          <p className={styles.pageSubtitle}>
-            Crie o template de mensagem do WhatsApp Business e envie para
-            avaliação da Meta.
-          </p>
+          <div className={styles.wizardActions}>
+            <button
+              type="button"
+              className={styles.btnGhost}
+              onClick={() => navigate("/management/templates")}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleSubmit}
+              disabled={!canSave || saving}
+            >
+              <SaveIcon size={16} />
+              {saving ? "Enviando…" : "Enviar para avaliação"}
+            </button>
+          </div>
         </div>
-        <div className={styles.pageHeaderActions}>
-          <button
-            type="button"
-            className={styles.btnGhost}
-            onClick={() => navigate("/management/templates")}
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className={styles.btnPrimary}
-            onClick={handleSubmit}
-            disabled={!canSave || saving}
-          >
-            <SaveIcon size={16} />
-            {saving ? "Enviando…" : "Enviar para avaliação"}
-          </button>
-        </div>
-      </header>
 
-      {/* Conteúdo: formulário + preview em layout mais enxuto */}
+        <div
+          className={styles.stepperRow}
+          role="tablist"
+          aria-label="Etapas de criação do template"
+        >
+          {STEPS.map((s, idx) => {
+            const isActive = step === s.id;
+            const isDone = step > s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className={`${styles.stepItem} ${
+                  isActive ? styles.stepItemActive : ""
+                } ${isDone ? styles.stepItemDone : ""}`}
+                onClick={() => goStep(s.id)}
+                aria-pressed={isActive}
+              >
+                <span className={styles.stepCircle}>
+                  {isDone ? "✓" : s.id}
+                </span>
+                <span className={styles.stepLabel}>{s.label}</span>
+                {idx < STEPS.length - 1 && (
+                  <span className={styles.stepDivider} aria-hidden="true" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* GRID: FORM + PREVIEW */}
       <div className={styles.mainGrid}>
         <div className={styles.colForm}>
-          <TemplateInfoSection
-            name={name}
-            setName={setName}
-            language={language}
-            setLanguage={setLanguage}
-            category={category}
-            setCategory={setCategory}
-          />
+          {step === 1 && (
+            <TemplateInfoSection
+              name={name}
+              setName={setName}
+              language={language}
+              setLanguage={setLanguage}
+              category={category}
+              setCategory={setCategory}
+            />
+          )}
 
-          <ContentSection
-            headerType={headerType}
-            onChangeHeaderType={handleChangeHeaderType}
-            headerText={headerText}
-            setHeaderText={setHeaderText}
-            headerMediaUrl={headerMediaUrl}
-            setHeaderMediaUrl={setHeaderMediaUrl}
-            bodyText={bodyText}
-            setBodyText={setBodyText}
-            footerText={footerText}
-            setFooterText={setFooterText}
-          />
+          {step === 2 && (
+            <>
+              <ContentSection
+                headerType={headerType}
+                onChangeHeaderType={handleChangeHeaderType}
+                headerText={headerText}
+                setHeaderText={setHeaderText}
+                headerMediaUrl={headerMediaUrl}
+                setHeaderMediaUrl={setHeaderMediaUrl}
+                bodyText={bodyText}
+                setBodyText={setBodyText}
+                footerText={footerText}
+                setFooterText={setFooterText}
+              />
 
-          <ButtonsSection
-            buttonMode={buttonMode}
-            setButtonMode={setButtonMode}
-            ctas={ctas}
-            setCtas={setCtas}
-            quicks={quicks}
-            setQuicks={setQuicks}
-          />
+              <ButtonsSection
+                buttonMode={buttonMode}
+                setButtonMode={setButtonMode}
+                ctas={ctas}
+                setCtas={setCtas}
+                quicks={quicks}
+                setQuicks={setQuicks}
+              />
+            </>
+          )}
+
+          {/* Navegação de etapa (sem ícones) */}
+          <div className={styles.stepNav}>
+            {step > 1 && (
+              <button
+                type="button"
+                className={styles.stepNavBtn}
+                onClick={() => goStep(step - 1)}
+              >
+                Voltar
+              </button>
+            )}
+            {step < STEPS.length && (
+              <button
+                type="button"
+                className={styles.stepNavBtnPrimary}
+                onClick={() => goStep(step + 1)}
+              >
+                Próximo
+              </button>
+            )}
+          </div>
         </div>
 
         <aside
