@@ -1,172 +1,140 @@
-:root {
-  --bg-page: #0f1419;
-  --bg-card: #020617;
-  --bg-input: #020617;
-  --bg-input-alt: #020617;
-  --border-subtle: #111827;
-  --border-strong: #1f2937;
-
-  --text-primary: #e5e7eb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-
-  --accent: #3b82f6;
-  --accent-strong: #2563eb;
-  --accent-soft: rgba(37, 99, 235, 0.16);
-
-  --danger: #f97373;
-
-  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.6);
-  --shadow-card: 0 14px 30px rgba(0, 0, 0, 0.55);
-}
-
-/* ===== Layout geral ===== */
+/* ===== Layout base dark (mesma paleta do Templates) ===== */
 .page {
+  padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 24px;
-  color: var(--text-primary);
+  background: #0f1419;
+  color: #f1f5f9;
+  min-height: 100vh;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
 /* ===== Breadcrumbs ===== */
 .breadcrumbs {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .bcList {
   list-style: none;
-  margin: 0;
   padding: 0;
+  margin: 0;
   display: flex;
   gap: 8px;
+  align-items: center;
   font-size: 12px;
-  color: var(--text-muted);
 }
 
 .bcLink {
-  color: var(--text-muted);
+  color: #9ca3af;
   text-decoration: none;
 }
 
 .bcLink:hover {
-  color: var(--text-primary);
+  color: #e5e7eb;
 }
 
 .bcSep {
-  color: #4b5563;
+  color: #475569;
 }
 
 .bcCurrent {
-  color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 700;
+  color: #e5e7eb;
 }
 
-/* ===== Header principal (barra dark) ===== */
+/* ================= HEADER CARD (padrão Templates) ================= */
 .headerCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: radial-gradient(circle at 0 0, rgba(37, 99, 235, 0.15), transparent 55%),
-              radial-gradient(circle at 100% 0, rgba(8, 47, 73, 0.3), transparent 55%),
-              #020617;
+  background: #1e293b;
   border-radius: 16px;
-  border: 1px solid #1f2937;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  box-shadow: var(--shadow-lg);
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  padding: 14px 18px;
+  margin-bottom: 18px;
 }
 
-.headerLeft {
+.headerRow {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.headerCenter {
   flex: 1;
-  min-width: 0;
-}
-
-.backBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid #1f2937;
-  background: rgba(15, 23, 42, 0.8);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.backBtn:hover {
-  background: #020617;
-  border-color: #334155;
-  color: var(--text-primary);
-}
-
-.backIcon {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.headerTitleWrap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  align-items: center;
+  gap: 2px;
 }
 
 .headerTitle {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #e2e8f0;
 }
 
 .headerSubtitle {
-  margin: 0;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #94a3b8;
+  font-weight: 500;
+  text-align: center;
 }
 
-.headerActions {
+.headerRight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.headerPrimaryBtn {
+/* Botões do header */
+.headerGhost,
+.headerPrimary {
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid #60a5fa;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: #f9fafb;
-  font-size: 13px;
-  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.5);
+  border: 1px solid transparent;
   transition: all 0.18s ease;
 }
 
-.headerPrimaryBtn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.7);
+.headerGhost {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e5e7eb;
 }
 
-.headerPrimaryBtn:disabled {
-  opacity: 0.5;
+.headerGhost:hover {
+  background: #334155;
+  color: #f9fafb;
+}
+
+.headerPrimary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.headerPrimary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.headerPrimary:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-/* ===== Grid principal: formulário + preview ===== */
-.mainGrid {
+/* ================= GRID PRINCIPAL ================= */
+.grid {
   display: grid;
-  grid-template-columns: minmax(0, 2.1fr) minmax(320px, 1fr);
+  grid-template-columns: 1fr 380px;
   gap: 24px;
   align-items: flex-start;
 }
@@ -175,130 +143,119 @@
   min-width: 0;
 }
 
-.colPreview {
-  position: sticky;
-  top: 96px;
-}
-
-/* ===== Cards ===== */
+/* ================= CARDS & FORM SECTIONS ================= */
 .card {
-  background: var(--bg-card);
+  background: #1e293b;
+  border: 1px solid #334155;
   border-radius: 16px;
-  border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-card);
-  margin-bottom: 18px;
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.7);
+  margin-bottom: 16px;
   overflow: hidden;
 }
 
 .cardHead {
-  padding: 16px 20px 10px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 16px 20px;
+  border-bottom: 1px solid #334155;
+  background: #0f1419;
 }
 
 .cardTitle {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #e5e7eb;
 }
 
 .cardDesc {
   margin: 4px 0 0;
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #94a3b8;
 }
 
-/* ===== Layout interno dos cards ===== */
-.infoGrid {
-  padding: 18px 20px 20px;
+.cardBodyGrid3 {
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.cardBodyGrid {
-  padding: 18px 20px 20px;
-  display: grid;
-  gap: 14px;
   grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 20px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 20px;
 }
 
 .group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .groupWide {
   grid-column: span 2;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .groupFull {
   grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.flexCol {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* ===== Inputs ===== */
+/* ================= FORM CONTROLS ================= */
 .label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #e5e7eb;
 }
 
 .helper {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
 }
 
 .input,
 .select,
 .textarea {
   width: 100%;
-  border-radius: 10px;
-  border: 1px solid #1f2937;
-  background: var(--bg-input);
-  color: var(--text-primary);
   padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #020617;
+  color: #e5e7eb;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: all 0.18s ease;
 }
 
 .input::placeholder,
 .textarea::placeholder {
-  color: #6b7280;
+  color: #64748b;
 }
 
 .select {
-  appearance: none;
+  max-width: 340px;
 }
 
 .textarea {
   min-height: 120px;
   resize: vertical;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-color: var(--accent-strong);
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.6);
-  background: #020617;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
 }
 
-/* ===== Segmentos / Pills ===== */
+/* ================= SEGMENTED & PILLS ================= */
 .segmented {
   display: flex;
   flex-wrap: wrap;
@@ -308,171 +265,142 @@
 .segItem {
   border-radius: 999px;
   padding: 8px 14px;
-  border: 1px solid #1f2937;
-  background: rgba(15, 23, 42, 0.9);
-  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
+  border: 1px solid #334155;
+  background: #020617;
+  color: #e5e7eb;
   cursor: pointer;
   transition: all 0.18s ease;
 }
 
 .segItem:hover {
-  border-color: #334155;
-  background: #020617;
-  color: var(--text-primary);
+  background: #111827;
 }
 
 .segActive {
-  border-color: #60a5fa;
-  background: #1d4ed8;
-  color: #f9fafb;
-  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.6);
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
 }
 
 .pills {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .pill {
   border-radius: 999px;
   padding: 8px 14px;
-  border: 1px solid #1f2937;
-  background: rgba(15, 23, 42, 0.9);
-  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
+  border: 1px solid #334155;
+  background: #020617;
+  color: #e5e7eb;
   cursor: pointer;
   transition: all 0.18s ease;
 }
 
 .pill:hover {
-  background: #020617;
-  border-color: #334155;
-  color: var(--text-primary);
+  background: #111827;
 }
 
 .pillActive {
-  border-color: #60a5fa;
-  background: #1d4ed8;
-  color: #f9fafb;
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
 }
 
-/* ===== Edição de botões ===== */
+/* ================= BUTTONS SECTION ================= */
 .ctaEditRow,
 .quickEditRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding: 10px;
+  padding: 12px;
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px dashed #1f2937;
+  background: #020617;
+  border: 1px solid #334155;
+}
+
+.ctaEditRow .input,
+.quickEditRow .input {
+  max-width: 280px;
+  flex: 1;
 }
 
 .ctaEditRow .select {
   max-width: 150px;
 }
 
-/* ===== Botões menores (Remover / Adicionar etc.) ===== */
+/* Botões internos */
 .btn,
 .btnSecondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 999px;
+  appearance: none;
+  border-radius: 10px;
+  padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid #1f2937;
-  background: rgba(15, 23, 42, 0.9);
-  color: var(--text-secondary);
+  border: 1px solid #334155;
+  background: #020617;
+  color: #e5e7eb;
   transition: all 0.18s ease;
 }
 
 .btn:hover {
-  background: #020617;
-  border-color: #334155;
-  color: var(--text-primary);
+  background: #111827;
 }
 
 .btnSecondary {
-  border-color: rgba(37, 99, 235, 0.4);
-  background: rgba(15, 23, 42, 0.9);
+  margin-top: 8px;
+  border-color: #3b82f6;
   color: #bfdbfe;
 }
 
 .btnSecondary:hover {
-  background: rgba(37, 99, 235, 0.15);
-  border-color: #60a5fa;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
-/* ===== Rodapé simples ===== */
-.footerBar {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.footerCancelBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid #1f2937;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.footerCancelBtn:hover {
-  background: #020617;
-  border-color: #334155;
-  color: var(--text-primary);
-}
-
-/* ===== Responsivo ===== */
+/* ================= RESPONSIVO ================= */
 @media (max-width: 1200px) {
-  .mainGrid {
+  .grid {
     grid-template-columns: 1fr;
   }
+}
 
-  .colPreview {
-    position: static;
+@media (max-width: 900px) {
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+  .groupWide {
+    grid-column: 1;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 700px) {
   .page {
     padding: 16px;
   }
 
-  .headerCard {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .headerActions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .ctaEditRow,
-  .quickEditRow {
+  .headerRow {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .ctaEditRow .select {
-    max-width: none;
+  .headerCenter {
+    align-items: flex-start;
+  }
+
+  .headerSubtitle {
+    text-align: left;
+  }
+
+  .headerRight {
+    justify-content: flex-end;
+    flex-wrap: wrap;
   }
 }
