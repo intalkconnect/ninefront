@@ -914,27 +914,6 @@ export default function TemplateCreate() {
 
   return (
     <div className={styles.container} ref={topRef}>
-      {/* Breadcrumbs */}
-      <nav className={styles.breadcrumbs} aria-label="Breadcrumb">
-        <ol className={styles.bcList}>
-          <li>
-            <Link to="/" className={styles.bcLink}>
-              Dashboard
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <Link to="/management/templates" className={styles.bcLink}>
-              Templates
-            </Link>
-          </li>
-          <li className={styles.bcSep}>/</li>
-          <li>
-            <span className={styles.bcCurrent}>Novo template</span>
-          </li>
-        </ol>
-      </nav>
-
       {/* Header card no padrão das outras páginas */}
       <header className={styles.headerCard}>
         <div className={styles.headerRow}>
