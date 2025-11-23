@@ -3,30 +3,7 @@
   padding: 0;
   height: 100%;
   background: #242730;
-}
-
-/* Scrollbar global mais estilizado */
-:global(*) {
-  scrollbar-width: thin;
-  scrollbar-color: #4b5563 #020617;
-}
-
-:global(*::-webkit-scrollbar) {
-  width: 8px;
-  height: 8px;
-}
-
-:global(*::-webkit-scrollbar-track) {
-  background: #020617;
-}
-
-:global(*::-webkit-scrollbar-thumb) {
-  background: linear-gradient(180deg, #4b5563, #1f2937);
-  border-radius: 999px;
-}
-
-:global(*::-webkit-scrollbar-thumb:hover) {
-  background: linear-gradient(180deg, #6b7280, #374151);
+  overflow: hidden; /* ninguém rola aqui, só dentro do app */
 }
 
 /* ===== Layout base dark ===== */
@@ -38,7 +15,7 @@
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
-  overflow: hidden; /* ninguém além de .content rola */
+  overflow: hidden; /* quem rola é .content ou .sidebar */
 }
 
 /* ===== Loading (auth) ===== */
@@ -139,7 +116,7 @@
   position: relative;
 }
 
-/* Botão de ajuda discreto (quase só o ícone) */
+/* Botão de ajuda discreto (só o ícone) */
 .iconButton {
   width: 34px;
   height: 34px;
@@ -273,16 +250,16 @@
   background: #242730;
   display: flex;
   justify-content: center;
-  overflow: hidden;
+  overflow: hidden; /* ninguém aqui rola */
 }
 
 .bodyInner {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px 24px; /* <== padding vertical reduzido */
   display: flex;
   gap: 32px;
-  align-items: stretch; /* sidebar e main com mesma altura */
+  align-items: stretch;
   flex: 1;
   min-height: 0; /* permite o filho rolar */
   box-sizing: border-box;
@@ -293,8 +270,37 @@
   width: 240px;
   flex-shrink: 0;
   max-height: 100%;
-  overflow-y: auto; /* se estourar, rola só o menu */
+  overflow-y: auto; /* se o menu estourar, rola só ele */
   padding-right: 4px;
+}
+
+/* scrollbar estilizada só em sidebar e content */
+.sidebar,
+.content {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #020617;
+}
+
+.sidebar::-webkit-scrollbar,
+.content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.content::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4b5563, #1f2937);
+  border-radius: 999px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #6b7280, #374151);
 }
 
 .navRoot {
@@ -433,7 +439,7 @@
   min-width: 0;
   min-height: 0;
   background: #242730;
-  overflow-y: auto; /* scroll só na página aberta */
+  overflow-y: auto; /* scroll só na página aberta, e só se precisar */
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -549,7 +555,7 @@
 /* ===== Responsivo ===== */
 @media (max-width: 1024px) {
   .bodyInner {
-    padding: 20px;
+    padding: 16px 20px;
     gap: 24px;
   }
 
@@ -577,7 +583,11 @@
 
   .content {
     max-height: none;
-    overflow-y: visible; /* em telas menores volta a rolar geral */
+    overflow-y: visible; /* em telas menores volta a rolar a página inteira */
+  }
+
+  :global(html, body, #root) {
+    overflow: auto;
   }
 }
 
@@ -587,7 +597,7 @@
   }
 
   .bodyInner {
-    padding: 16px;
+    padding: 12px 16px 16px;
   }
 
   .home {
