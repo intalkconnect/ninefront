@@ -175,7 +175,7 @@
   padding: 16px 18px 18px;
 }
 
-/* Card compacto (donut / lista canal) */
+/* Card compacto (donut / lista / zero chart) */
 .cardCompact .cardBody {
   padding: 14px 14px 16px;
 }
@@ -288,6 +288,70 @@
   font-size: 13px;
   color: #94a3b8;
   text-align: center;
+}
+
+/* ===== Gráfico de sessões sem faturamento ===== */
+.zeroChart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.zeroSummary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.zeroTotal {
+  font-size: 18px;
+  font-weight: 700;
+  color: #f97316;
+}
+.zeroLabel {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.zeroList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.zeroRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zeroRowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.zeroChannel {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.zeroValue {
+  font-size: 12px;
+  color: #e5e7eb;
+}
+.zeroValueSub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+.zeroBarTrack {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #020617;
+  overflow: hidden;
+}
+.zeroBarFill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f97316, #f59e0b);
 }
 
 /* ===== Lista de valores por canal ===== */
