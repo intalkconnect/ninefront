@@ -413,8 +413,7 @@
 }
 
 .table thead th:first-child {
-  text-align: left;
-  padding-left: 24px;
+  text-align: center;
 }
 
 /* Células */
@@ -431,8 +430,7 @@
 }
 
 .table tbody td:first-child {
-  text-align: left;
-  padding-left: 24px;
+  text-align: center;
 }
 
 /* Linhas */
