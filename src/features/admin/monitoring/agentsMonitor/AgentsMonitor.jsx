@@ -6,13 +6,7 @@ import React, {
   useRef,
 } from "react";
 import { apiGet } from "../../../../shared/apiClient";
-import {
-  RefreshCw,
-  ToggleLeft,
-  PauseCircle,
-  Power,
-  Clock,
-} from "lucide-react";
+import { RefreshCw, ToggleLeft, PauseCircle, Power, Clock } from "lucide-react";
 import { toast } from "react-toastify";
 import styles from "./styles/AgentsMonitor.module.css";
 
@@ -45,10 +39,9 @@ export default function AgentsRealtime() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState(null);
-  const [now, setNow] = useState(new Date());
   const unmountedRef = useRef(false);
 
-  // limites de pausa vindos de /breaks
+  // limites de pausa vindos de /pause
   const [pauseCfg, setPauseCfg] = useState({ map: new Map(), def: 15 });
 
   // filtros
@@ -86,7 +79,6 @@ export default function AgentsRealtime() {
           : [];
         const map = new Map();
         let def = 15;
-
         for (const p of pList || []) {
           const label = String(p?.label || "").trim().toLowerCase();
           const code = String(p?.code || "").trim().toLowerCase();
@@ -100,7 +92,6 @@ export default function AgentsRealtime() {
         setPauseCfg({ map, def });
 
         setErro(null);
-        setNow(new Date());
         if (fromButton) toast.success("Atualizado com sucesso");
       } catch (e) {
         setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
@@ -140,12 +131,6 @@ export default function AgentsRealtime() {
     };
   }, [fetchAll]);
 
-  // “relógio” leve pra contagem visual
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(t);
-  }, []);
-
   /* ----- pausa config ----- */
   const getPauseLimit = useCallback(
     (reason) => {
@@ -182,10 +167,7 @@ export default function AgentsRealtime() {
     const all = agents.flatMap((a) =>
       Array.isArray(a.filas) ? a.filas : []
     );
-    return [
-      "todas",
-      ...uniq(all).sort((a, b) => a.localeCompare(b, "pt-BR")),
-    ];
+    return ["todas", ...uniq(all).sort((a, b) => a.localeCompare(b, "pt-BR"))];
   }, [agents]);
 
   /* ----- filtros + paginação ----- */
@@ -200,7 +182,6 @@ export default function AgentsRealtime() {
 
       const txt = filterText.trim().toLowerCase();
       if (!txt) return true;
-
       const hay =
         (a.agente || "").toLowerCase().includes(txt) ||
         (a.filas || []).some((f) =>
@@ -213,12 +194,10 @@ export default function AgentsRealtime() {
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
   const [pageSafe, start] = useMemo(() => {
     const p = Math.min(page, totalPages);
     return [p, (p - 1) * PAGE_SIZE];
   }, [page, totalPages]);
-
   const pageData = useMemo(
     () => filtered.slice(start, start + PAGE_SIZE),
     [filtered, start]
@@ -228,7 +207,7 @@ export default function AgentsRealtime() {
     setPage(1);
   }, [filterStatus, filterFila, filterText, agents]);
 
-  /* ----- subcomponentes ----- */
+  /* ----- render helpers ----- */
   const StatusPill = ({ s }) => (
     <span className={`${styles.stPill} ${styles["st_" + s]}`}>
       {s === "pause"
@@ -243,7 +222,6 @@ export default function AgentsRealtime() {
 
   const PauseInfo = ({ a }) => {
     if (a.status !== "pause") return "—";
-
     const motivo = a?.pausa?.motivo || "Pausa";
     const dur = Number(a?.pausa?.duracao_min ?? 0);
     const lim = getPauseLimit(motivo);
@@ -261,15 +239,11 @@ export default function AgentsRealtime() {
         <span className={styles.pauseReason}>{motivo}</span>
         <span className={styles.sep}>•</span>
         {state === "late" ? (
-          <span
-            className={`${styles.pauseBadge} ${styles.pbLate}`}
-          >
+          <span className={`${styles.pauseBadge} ${styles.pbLate}`}>
             excedido +{fmtMin(-rest)}
           </span>
         ) : state === "warn" ? (
-          <span
-            className={`${styles.pauseBadge} ${styles.pbWarn}`}
-          >
+          <span className={`${styles.pauseBadge} ${styles.pbWarn}`}>
             restam {fmtMin(rest)}
           </span>
         ) : (
@@ -324,24 +298,15 @@ export default function AgentsRealtime() {
   /* ---------- render ---------- */
   return (
     <div className={styles.container}>
-      {/* Header no padrão do workspace */}
+      {/* Header no padrão FlowHub / Monitor de Filas */}
       <header className={styles.header}>
         <div className={styles.titleRow}>
-          <h1 className={styles.title}>Monitor de agentes</h1>
+          <h1 className={styles.title}>Monitor de Agentes</h1>
           <p className={styles.subtitle}>
-            Acompanhe status, pausas e carga de tickets da equipe em
-            tempo real.
+            Acompanhe em tempo real quem está online, em pausa ou
+            offline.
           </p>
-
-          <div className={styles.headerInfo}>
-            <span className={styles.kpillBlue}>
-              Última atualização:{" "}
-              {now.toLocaleTimeString("pt-BR")}
-            </span>
-            {erro && (
-              <span className={styles.kpillAmber}>{erro}</span>
-            )}
-          </div>
+          {erro && <div className={styles.kpillAmber}>{erro}</div>}
         </div>
 
         <button
@@ -399,7 +364,7 @@ export default function AgentsRealtime() {
       {/* Filtros */}
       <section className={styles.filters}>
         <div className={styles.filterGroup}>
-          <h4 className={styles.filterTitle}>Status</h4>
+          <div className={styles.filterTitle}>Status</div>
           <div className={styles.filterChips}>
             {["todos", "online", "pause", "offline", "inativo"].map(
               (s) => (
@@ -419,7 +384,7 @@ export default function AgentsRealtime() {
         </div>
 
         <div className={styles.filterGroup}>
-          <h4 className={styles.filterTitle}>Fila</h4>
+          <div className={styles.filterTitle}>Fila</div>
           <select
             value={filterFila}
             onChange={(e) => setFilterFila(e.target.value)}
@@ -434,7 +399,7 @@ export default function AgentsRealtime() {
         </div>
 
         <div className={styles.filterGroupGrow}>
-          <h4 className={styles.filterTitle}>Buscar</h4>
+          <div className={styles.filterTitle}>Buscar</div>
           <input
             className={styles.input}
             placeholder="Nome, fila, motivo…"
@@ -468,10 +433,7 @@ export default function AgentsRealtime() {
             <tbody>
               {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
-                  <tr
-                    key={`sk-${i}`}
-                    className={styles.skelRow}
-                  >
+                  <tr key={`sk-${i}`} className={styles.skelRow}>
                     <td colSpan={6}>
                       <div className={styles.skeletonRow} />
                     </td>
@@ -479,10 +441,7 @@ export default function AgentsRealtime() {
                 ))
               ) : pageData.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className={styles.emptyCell}
-                  >
+                  <td colSpan={6} className={styles.emptyCell}>
                     Nenhum agente no filtro atual.
                   </td>
                 </tr>
@@ -519,16 +478,12 @@ export default function AgentsRealtime() {
                         !a.last_seen
                           ? styles.lastStale
                           : (Date.now() -
-                              new Date(
-                                a.last_seen
-                              ).getTime()) /
+                              new Date(a.last_seen).getTime()) /
                               1000 <=
                             60
                           ? styles.lastOk
                           : (Date.now() -
-                              new Date(
-                                a.last_seen
-                              ).getTime()) /
+                              new Date(a.last_seen).getTime()) /
                               1000 <=
                             180
                           ? styles.lastWarn
@@ -555,25 +510,19 @@ export default function AgentsRealtime() {
         <div className={styles.pagination}>
           <button
             className={styles.pageBtn}
-            onClick={() =>
-              setPage((p) => Math.max(1, p - 1))
-            }
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={pageSafe <= 1}
             type="button"
           >
             ‹ Anterior
           </button>
-
           <span className={styles.pageInfo}>
             Página {pageSafe} de {totalPages} • {total} registro(s)
           </span>
-
           <button
             className={styles.pageBtn}
             onClick={() =>
-              setPage((p) =>
-                Math.min(totalPages, p + 1)
-              )
+              setPage((p) => Math.min(totalPages, p + 1))
             }
             disabled={pageSafe >= totalPages}
             type="button"
