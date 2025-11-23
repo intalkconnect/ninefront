@@ -1,6 +1,5 @@
 /* ===== Layout base no padrão FlowHub ===== */
 .page {
-  /* Admin já dá padding lateral e fundo #242730 */
   padding: 4px 0 24px;
   margin: 0;
   max-width: 100%;
@@ -83,7 +82,7 @@
   align-items: center;
 }
 
-/* Botão de atualizar – ícone apenas, alinhado ao gradiente padrão */
+/* Botão de atualizar */
 .refreshBtn {
   width: 36px;
   height: 36px;
@@ -125,7 +124,7 @@
   }
 }
 
-/* ===== KPIs (cards) – cores alinhadas ao tema FlowHub ===== */
+/* ===== KPIs ===== */
 .cardGroup {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -237,7 +236,7 @@
   height: 40px;
 }
 
-/* ===== Filtros – card com a mesma base de cores ===== */
+/* ===== Filtros ===== */
 .filters {
   background: #2b303a;
   border: 1px solid #3a3f4b;
@@ -295,7 +294,7 @@
   color: #fff;
 }
 
-/* ===== Tabela – card em #2b303a, bordas no padrão ===== */
+/* ===== Tabela ===== */
 .tableCard {
   background: #2b303a;
   border: 1px solid #3a3f4b;
@@ -304,12 +303,12 @@
 }
 
 .tableHeader {
-  padding: 12px 18px;
+  padding: 12px 18px 8px;
   border-bottom: 1px solid #1f2937;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .tableTitle {
@@ -322,11 +321,12 @@
   color: #f9fafb;
 }
 
-/* Tabs da tabela (visões) – estilo texto + sublinhado */
+/* Tabs logo abaixo do título */
 .tableTabs {
   display: flex;
   gap: 24px;
   align-items: flex-end;
+  margin-top: 4px;
 }
 
 .tab {
@@ -363,7 +363,7 @@
 }
 
 .table thead th {
-  text-align: left;
+  text-align: center; /* cabeçalhos centralizados */
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -400,7 +400,7 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* Largura de colunas específicas (ajustado para caber 3 ícones em Ações) */
+/* Largura de colunas específicas */
 .colCanal {
   width: 90px;
 }
@@ -536,7 +536,7 @@
   white-space: nowrap;
 }
 
-/* Botões de ação em linha, no padrão FlowHub */
+/* Botões de ação */
 .linkBtn,
 .linkBtnDanger,
 .linkBtnSuccess {
@@ -561,15 +561,7 @@
   color: #bfdbfe;
 }
 
-.linkBtnDanger {
-  color: #60a5fa;
-}
-
-.linkBtnSuccess {
-  color: #22c55e;
-}
-
-/* Paginação – rodapé da tabela no mesmo card */
+/* Paginação */
 .pagination {
   display: flex;
   gap: 0.75rem;
@@ -653,7 +645,7 @@
   }
 
   .tableHeader {
-    padding: 12px 16px;
+    padding: 12px 16px 8px;
   }
 
   .table thead th,
