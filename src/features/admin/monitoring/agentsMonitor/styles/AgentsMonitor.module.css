@@ -377,7 +377,6 @@
 
 .table thead th {
   text-align: center;
-  vertical-align: middle;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -388,9 +387,11 @@
   font-weight: 700;
 }
 
-/* header da coluna Agente centralizado */
-.colAgente {
-  text-align: center;
+/* Cabeçalho da coluna AGENTE centralizado vertical/horizontal */
+.table thead th:nth-child(1) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Células */
@@ -402,45 +403,21 @@
   color: #e5e7eb;
   text-align: center;
   font-weight: 400; /* sem negrito nas linhas */
-  vertical-align: middle;
+  vertical-align: middle; /* centraliza verticalmente o conteúdo */
 }
 
 .table tbody td:first-child {
-  /* linha da coluna Agente também centralizada */
-  text-align: center;
-}
-
-.emptyCell {
-  text-align: center;
-  padding: 22px;
-  color: #64748b;
-  font-style: italic;
-}
-
-.skelRow td {
-  padding: 10px 16px;
-}
-
-.skeletonRow {
-  height: 18px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #2b303a 0%, #374151 50%, #2b303a 100%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+  text-align: left;
 }
 
 /* zebra: duas cores base */
-
-.row {
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
-}
 
 .table tbody tr:nth-child(odd) {
   background-color: #1f2937;
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: #374151;
+  background-color: #111827;
 }
 
 .table tbody tr:hover {
@@ -454,7 +431,7 @@
 }
 
 .tone_late {
-  background: rgba(239, 68, 68, 0.08) !important;
+  background: rgba(239, 68, 68, 0.08);
   box-shadow: inset 4px 0 0 0 #ef4444;
 }
 
@@ -501,12 +478,13 @@
   color: #e5e7eb;
 }
 
-/* célula do agente centralizada vertical e horizontalmente */
+/* célula do agente */
 
 .agentCell {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: center;       /* centro vertical */
+  justify-content: flex-start; /* texto alinhado à esquerda */
+  height: 100%;
 }
 
 .agentName {
