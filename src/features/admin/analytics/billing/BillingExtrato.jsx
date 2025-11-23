@@ -249,6 +249,65 @@ function BillingDonutByValue({ channels }) {
   );
 }
 
+/* ===== Gráfico de sessões sem faturamento ===== */
+
+function SessionsWithoutBillingChart({ data }) {
+  const rows = Array.isArray(data)
+    ? data.filter((d) => (d.zeroSessions || 0) > 0)
+    : [];
+
+  if (!rows.length) {
+    return (
+      <div className={styles.donutEmpty}>
+        Nenhuma sessão sem faturamento no período.
+      </div>
+    );
+  }
+
+  const maxZero = Math.max(...rows.map((r) => r.zeroSessions || 0));
+  const totalZero = rows.reduce(
+    (acc, r) => acc + (r.zeroSessions || 0),
+    0
+  );
+
+  return (
+    <div className={styles.zeroChart}>
+      <div className={styles.zeroSummary}>
+        <span className={styles.zeroTotal}>{fmtInt(totalZero)}</span>
+        <span className={styles.zeroLabel}>sessões sem faturamento</span>
+      </div>
+
+      <div className={styles.zeroList}>
+        {rows.map((r) => {
+          const width = maxZero ? (r.zeroSessions / maxZero) * 100 : 0;
+          const pctChannel = r.totalSessions
+            ? ((r.zeroSessions / r.totalSessions) * 100).toFixed(1)
+            : "0.0";
+          return (
+            <div key={r.channel} className={styles.zeroRow}>
+              <div className={styles.zeroRowHeader}>
+                <span className={styles.zeroChannel}>
+                  {r.channel || "default"}
+                </span>
+                <span className={styles.zeroValue}>
+                  {fmtInt(r.zeroSessions)}{" "}
+                  <span className={styles.zeroValueSub}>({pctChannel}%)</span>
+                </span>
+              </div>
+              <div className={styles.zeroBarTrack}>
+                <div
+                  className={styles.zeroBarFill}
+                  style={{ width: `${width}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ========================= Página ========================= */
 export default function BillingExtrato() {
   const now = new Date();
@@ -369,6 +428,24 @@ export default function BillingExtrato() {
         .sort((a, b) => (b.total_cents || 0) - (a.total_cents || 0)),
     [data.totals_by_channel]
   );
+
+  // dados para gráfico de sessões sem faturamento
+  const zeroSessionsData = useMemo(() => {
+    const map = {};
+    (data.rows || []).forEach((r) => {
+      const ch = r.channel || "default";
+      const sess = pickSessions(r);
+      const cents = pickCents(r);
+      if (!map[ch]) {
+        map[ch] = { channel: ch, zeroSessions: 0, totalSessions: 0 };
+      }
+      map[ch].totalSessions += sess;
+      if (!cents || cents <= 0) {
+        map[ch].zeroSessions += sess;
+      }
+    });
+    return Object.values(map);
+  }, [data.rows]);
 
   return (
     <div className={styles.container}>
@@ -507,6 +584,16 @@ export default function BillingExtrato() {
             ) : (
               <div className={styles.empty}>Sem dados por canal</div>
             )}
+          </div>
+        </div>
+
+        {/* Gráfico de sessões sem faturamento */}
+        <div className={`${styles.card} ${styles.cardCompact}`}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>Sessões sem faturamento</div>
+          </div>
+          <div className={styles.cardBody}>
+            <SessionsWithoutBillingChart data={zeroSessionsData} />
           </div>
         </div>
       </div>
