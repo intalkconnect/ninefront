@@ -132,7 +132,7 @@ const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
   URL.revokeObjectURL(url);
 };
 
-/* ========================= Página ========================= */
+/* ========================= Pagina ========================= */
 export default function BillingExtrato() {
   const now = new Date();
   const firstMonthDay = new Date(
@@ -349,41 +349,16 @@ export default function BillingExtrato() {
           </div>
         </div>
 
+        {/* Total por canal — agora gráfico de pizza */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Total por Canal</div>
+            <div className={styles.cardTitle}>Total por canal</div>
           </div>
           <div className={styles.cardBody}>
             {loading ? (
               <div className={styles.loading}>Carregando…</div>
             ) : data.totals_by_channel?.length ? (
-              <ul className={styles.channelList}>
-                {data.totals_by_channel
-                  .slice()
-                  .sort(
-                    (a, b) => (b.total_cents || 0) - (a.total_cents || 0)
-                  )
-                  .map((c) => (
-                    <li key={c.channel} className={styles.channelItem}>
-                      <span
-                        className={[
-                          styles.pill,
-                          c.channel === "whatsapp"
-                            ? styles["pill--whatsapp"]
-                            : c.channel === "telegram"
-                            ? styles["pill--telegram"]
-                            : styles["pill--default"],
-                        ].join(" ")}
-                      >
-                        {c.channel || "default"}
-                      </span>
-                      <span className={styles.channelStat}>
-                        {fmtInt(c.sessions || 0)} sessões •{" "}
-                        <strong>{BRL(c.total_cents || 0)}</strong>
-                      </span>
-                    </li>
-                  ))}
-              </ul>
+              <ChannelPie data={data.totals_by_channel} />
             ) : (
               <div className={styles.empty}>Sem dados por canal</div>
             )}
@@ -473,10 +448,7 @@ export default function BillingExtrato() {
             {data.rows?.length ? (
               <tfoot>
                 <tr>
-                  <td
-                    colSpan={5}
-                    className={`${styles.tfootLabel} ${styles.colSpanTotal}`}
-                  >
+                  <td colSpan={5} className={styles.tfootLabel}>
                     Total geral
                   </td>
                   <td className={styles.tfootValue}>{grandTotal}</td>
@@ -485,6 +457,124 @@ export default function BillingExtrato() {
             ) : null}
           </table>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Gráfico de Pizza por Canal ---------- */
+
+function ChannelPie({ data }) {
+  const totalCents =
+    data.reduce((acc, c) => acc + (c.total_cents || 0), 0) || 1;
+
+  const cx = 100;
+  const cy = 100;
+  const r = 80;
+
+  const describeArc = (cx, cy, r, startAngle, endAngle) => {
+    const rad = (deg) => (Math.PI / 180) * deg;
+    const start = {
+      x: cx + r * Math.cos(rad(startAngle)),
+      y: cy + r * Math.sin(rad(startAngle)),
+    };
+    const end = {
+      x: cx + r * Math.cos(rad(endAngle)),
+      y: cy + r * Math.sin(rad(endAngle)),
+    };
+    const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+    return [
+      `M ${cx} ${cy}`,
+      `L ${start.x} ${start.y}`,
+      `A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`,
+      "Z",
+    ].join(" ");
+  };
+
+  const colorForChannel = (ch) => {
+    const key = String(ch || "default").toLowerCase();
+    if (key === "whatsapp") return "#10b981";
+    if (key === "telegram") return "#60a5fa";
+    return "#9ca3af";
+  };
+
+  let currentAngle = -90; // começa no topo
+
+  const segments = data.map((c) => {
+    const value = c.total_cents || 0;
+    const pct = (value / totalCents) * 100;
+    const angle = (value / totalCents) * 360;
+    const start = currentAngle;
+    const end = currentAngle + angle;
+    currentAngle = end;
+    return {
+      channel: c.channel || "default",
+      value,
+      pct,
+      d: describeArc(cx, cy, r, start, end),
+      color: colorForChannel(c.channel),
+    };
+  });
+
+  return (
+    <div className={styles.pieWrap}>
+      <svg
+        viewBox="0 0 200 200"
+        className={styles.pieSvg}
+        aria-label="Distribuição de faturamento por canal"
+      >
+        {/* fundo */}
+        <circle cx={cx} cy={cy} r={r} fill="#020617" />
+        {segments.map((s) => (
+          <path
+            key={s.channel}
+            d={s.d}
+            fill={s.color}
+            stroke="#020617"
+            strokeWidth="1"
+          />
+        ))}
+        <circle cx={cx} cy={cy} r={40} fill="#020617" />
+        <text
+          x={cx}
+          y={cy - 4}
+          textAnchor="middle"
+          className={styles.pieCenterValue}
+        >
+          {BRL(totalCents)}
+        </text>
+        <text
+          x={cx}
+          y={cy + 14}
+          textAnchor="middle"
+          className={styles.pieCenterLabel}
+        >
+          Total
+        </text>
+      </svg>
+
+      <div className={styles.pieLegend}>
+        {segments.map((s) => (
+          <div key={s.channel} className={styles.legendItem}>
+            <div className={styles.legendLeft}>
+              <span
+                className={styles.legendDot}
+                style={{ backgroundColor: s.color }}
+              />
+              <span className={styles.legendLabel}>
+                {s.channel || "default"}
+              </span>
+            </div>
+            <div className={styles.legendRight}>
+              <span className={styles.legendValue}>
+                {BRL(s.value || 0)}
+              </span>
+              <span className={styles.legendPct}>
+                {s.pct.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
