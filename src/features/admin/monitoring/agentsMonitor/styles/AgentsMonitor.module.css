@@ -1,17 +1,23 @@
 /* File: src/features/admin/monitoring/agentsMonitor/styles/AgentsMonitor.module.css */
 
-/* ===== Layout base / container ===== */
-.container {
-  max-width: 1320px;
-  margin: 0 auto;
+/* ===== Layout base no padrão FlowHub / ClientsMonitor ===== */
+.page {
   padding: 4px 0 24px;
-  background: transparent;
+  margin: 0;
+  max-width: 100%;
   color: #e5e7eb;
+  background: transparent;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
 
-/* ===== HEADER – padronizado com ClientsMonitor ===== */
+.container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 0 24px;
+}
+
+/* ===== HEADER ===== */
 .header {
   background: #2b303a;
   border-radius: 14px;
@@ -77,7 +83,7 @@
   align-items: center;
 }
 
-/* Botão refresh (ícone) */
+/* Botão refresh (ícone apenas) */
 .refreshBtn {
   width: 36px;
   height: 36px;
@@ -119,7 +125,7 @@
   }
 }
 
-/* ===== KPIs (cards) ===== */
+/* ===== KPIs ===== */
 .cardGroup {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -242,18 +248,12 @@
 
 .filterRow {
   display: flex;
-  gap: 16px;
-  align-items: flex-end;
+  gap: 24px;
   flex-wrap: wrap;
 }
 
 .filterGroup {
   margin-bottom: 12px;
-}
-
-.filterGroupGrow {
-  margin-bottom: 0;
-  flex: 1;
 }
 
 .filterTitle {
@@ -328,7 +328,7 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
 
-/* ===== Tabela – padronizada com ClientsMonitor ===== */
+/* ===== Tabela ===== */
 .tableCard {
   background: #2b303a;
   border: 1px solid #3a3f4b;
@@ -340,9 +340,9 @@
   padding: 16px 18px 10px;
   border-bottom: 1px solid #1f2937;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .tableTitle {
@@ -363,7 +363,7 @@
   table-layout: fixed;
 }
 
-/* Cabeçalhos */
+/* Cabeçalho centralizado */
 .table thead th {
   text-align: center;
   font-size: 11px;
@@ -383,10 +383,11 @@
 /* Células */
 .table tbody td {
   padding: 12px 16px;
-  border-top: 1px solid #1f2937;
+  border-top: 1px solid #111827;
   font-size: 14px;
   color: #e5e7eb;
   text-align: center;
+  font-weight: 400; /* sem negrito nas linhas */
 }
 
 .table tbody td:first-child {
@@ -412,28 +413,33 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* ===== Linhas da tabela – zebra simples (sem warn) ===== */
-.rowEven,
-.rowOdd {
+/* Zebra das linhas (duas cores) */
+.row {
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.rowOdd {
-  background-color: #020617;
-}
-
 .rowEven {
-  background-color: #050816;
+  background: #020617;
 }
 
-.table tbody tr:hover {
-  background-color: #111827;
+.rowOdd {
+  background: #050816;
 }
 
-/* ===== Conteúdo específico ===== */
+/* Tom late: mantém zebra mas destaca borda lateral */
+.rowOk {
+  box-shadow: none;
+}
+
+.rowLate {
+  box-shadow: inset 4px 0 0 0 #ef4444;
+}
+
+/* células específicas */
 .agentCell {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .agentName {
@@ -441,119 +447,29 @@
   color: #f9fafb;
 }
 
-/* pill de fila */
-.filaPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 700;
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-}
-
-/* status pill */
-.stPill {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid transparent;
-}
-
-.st_online {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border-color: rgba(16, 185, 129, 0.35);
-}
-
-.st_pause {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-}
-
-.st_offline {
-  background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
-  border-color: rgba(148, 163, 184, 0.35);
-}
-
-.st_inativo {
-  background: rgba(129, 140, 248, 0.15);
-  color: #818cf8;
-  border-color: rgba(129, 140, 248, 0.35);
-}
-
-/* info de pausa */
-.pauseWrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
+.statusCell {
+  font-size: 13px;
   color: #e5e7eb;
 }
 
-.pauseReason {
-  font-weight: 500;
+.filasCell {
+  font-size: 13px;
+  color: #e5e7eb;
+  white-space: normal;
 }
 
-.sep {
-  opacity: 0.5;
+/* texto de pausa sem "pílula" forte */
+.pauseText {
+  font-size: 13px;
+  color: #e5e7eb;
 }
 
-.pauseBadge {
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.pbOk {
-  background: rgba(59, 130, 246, 0.12);
-  color: #bfdbfe;
-}
-
-.pbWarn {
-  background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
-}
-
-.pbLate {
-  background: rgba(239, 68, 68, 0.12);
-  color: #fecaca;
-}
-
-/* tempos / números */
-.bold {
-  font-weight: 700;
-  color: #f9fafb;
-}
-
-/* cor da última atividade */
+/* última atividade */
 .lastAct {
   font-size: 13px;
-  font-weight: 600;
 }
 
-.lastOk {
-  color: #bbf7d0;
-}
-
-.lastWarn {
-  color: #fde68a;
-}
-
-.lastStale {
-  color: #fecaca;
-}
-
-/* ===== Paginação ===== */
+/* Paginação */
 .pagination {
   display: flex;
   gap: 0.75rem;
@@ -590,57 +506,7 @@
   font-size: 12px;
 }
 
-/* texto apenas para leitores de tela */
-.srOnly {
-  position: absolute !important;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* ===== Responsivo ===== */
+/* Responsivo */
 @media (max-width: 768px) {
   .container {
-    padding: 0 16px 24px;
-  }
-
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .cardBody {
-    padding: 14px;
-  }
-
-  .cardHead {
-    padding: 10px 14px;
-  }
-
-  .cardGroup {
-    gap: 12px;
-  }
-
-  .filters {
-    padding: 12px;
-  }
-
-  .filterRow {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .tableHeader {
-    padding: 14px 16px 10px;
-  }
-
-  .table thead th,
-  .table tbody td {
-    padding: 10px 12px;
-  }
-}
+    p
