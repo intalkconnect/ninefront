@@ -11,7 +11,6 @@ import {
   CalendarRange,
   Download,
   RefreshCcw,
-  TrendingUp,
   Users,
   DollarSign,
 } from "lucide-react";
@@ -67,12 +66,7 @@ const pickCents = (row) => {
   return 0;
 };
 const pickSessions = (row) => {
-  const cands = [
-    row?.sessions,
-    row?.windows,
-    row?.billing_windows,
-    row?.janelas,
-  ];
+  const cands = [row?.sessions, row?.windows, row?.billing_windows, row?.janelas];
   const v = cands.find((x) => Number.isFinite(+x));
   return Number.isFinite(+v) ? +v : 0;
 };
@@ -106,7 +100,6 @@ const buildCsvFromState = (data) => {
     const sess = pickSessions(row);
     const first = pickFirstTs(row);
     const last = pickLastTs(row);
-
     return [
       escapeCSV(row.user_id || row.user || ""),
       escapeCSV(row.channel || "default"),
@@ -132,17 +125,150 @@ const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
   URL.revokeObjectURL(url);
 };
 
+/* ========================= Pequenos componentes ========================= */
+
+const CHANNEL_COLORS = {
+  whatsapp: "#22c55e",
+  telegram: "#3b82f6",
+  webchat: "#a855f7",
+  instagram: "#ec4899",
+  facebook: "#60a5fa",
+  default: "#9ca3af",
+};
+
+const normalizeChannelKey = (raw) => {
+  if (!raw) return "default";
+  const s = String(raw).toLowerCase();
+  if (s.includes("whats")) return "whatsapp";
+  if (s.includes("telegram")) return "telegram";
+  if (s.includes("web")) return "webchat";
+  if (s.includes("insta")) return "instagram";
+  if (s.includes("face")) return "facebook";
+  return s;
+};
+
+/** Donut chart por canal baseado em VALOR (total_cents) */
+function ChannelPie({ channels }) {
+  if (!channels?.length) {
+    return (
+      <div className={styles.emptySmall}>Sem dados por canal neste período.</div>
+    );
+  }
+
+  const total = channels.reduce(
+    (acc, c) => acc + (Number.isFinite(+c.total_cents) ? +c.total_cents : 0),
+    0
+  );
+  if (total <= 0) {
+    return (
+      <div className={styles.emptySmall}>Sem valores faturados por canal.</div>
+    );
+  }
+
+  const data = channels.map((c) => {
+    const key = normalizeChannelKey(c.channel);
+    const color = CHANNEL_COLORS[key] || CHANNEL_COLORS.default;
+    const value = Number.isFinite(+c.total_cents) ? +c.total_cents : 0;
+    const pct = (value / total) * 100;
+    return { label: c.channel || "default", value, pct, color };
+  });
+
+  const radius = 42;
+  const cx = 60;
+  const cy = 60;
+  const circumference = 2 * Math.PI * radius;
+
+  let offsetAcc = 0;
+
+  return (
+    <div className={styles.pieWrap}>
+      <div className={styles.pieSvgWrap}>
+        <svg
+          viewBox="0 0 120 120"
+          className={styles.pieSvg}
+          aria-label="Faturamento por canal"
+        >
+          {/* fundo */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius}
+            className={styles.pieBg}
+          />
+          {data.map((slice, idx) => {
+            const frac = slice.value / total;
+            const length = frac * circumference;
+            const strokeDasharray = `${length} ${circumference - length}`;
+            const strokeDashoffset = -offsetAcc;
+            offsetAcc += length;
+            return (
+              <circle
+                key={idx}
+                cx={cx}
+                cy={cy}
+                r={radius}
+                fill="transparent"
+                stroke={slice.color}
+                strokeWidth="16"
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="butt"
+              />
+            );
+          })}
+          {/* buraco central (donut) */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius - 15}
+            className={styles.pieHole}
+          />
+          <text
+            x={cx}
+            y={cy - 2}
+            textAnchor="middle"
+            className={styles.pieTotalValue}
+          >
+            {BRL(total)}
+          </text>
+          <text
+            x={cx}
+            y={cy + 10}
+            textAnchor="middle"
+            className={styles.pieTotalLabel}
+          >
+            Total
+          </text>
+        </svg>
+      </div>
+
+      <div className={styles.pieLegend}>
+        {data.map((slice) => (
+          <div key={slice.label} className={styles.pieLegendItem}>
+            <span
+              className={styles.pieDot}
+              style={{ backgroundColor: slice.color }}
+            />
+            <span className={styles.pieLegendText}>
+              <span className={styles.pieLegendChannel}>
+                {slice.label || "default"}
+              </span>
+              <span className={styles.pieLegendMoney}>{BRL(slice.value)}</span>
+              <span className={styles.pieLegendPct}>
+                {slice.pct.toFixed(1)}%
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ========================= Página ========================= */
 export default function BillingExtrato() {
   const now = new Date();
-  const firstMonthDay = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1,
-    0,
-    0,
-    0
-  );
+  const firstMonthDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
 
   const [from, setFrom] = useState(firstMonthDay.toISOString().slice(0, 16));
   const [to, setTo] = useState(new Date().toISOString().slice(0, 16));
@@ -203,8 +329,7 @@ export default function BillingExtrato() {
                 const ch = r.channel || "default";
                 const cents = pickCents(r);
                 const sess = pickSessions(r);
-                if (!acc[ch])
-                  acc[ch] = { channel: ch, sessions: 0, total_cents: 0 };
+                if (!acc[ch]) acc[ch] = { channel: ch, sessions: 0, total_cents: 0 };
                 acc[ch].sessions += sess;
                 acc[ch].total_cents += cents;
                 return acc;
@@ -244,387 +369,286 @@ export default function BillingExtrato() {
 
   const fmtDt = (ts) => (ts ? new Date(ts).toLocaleString("pt-BR") : "—");
 
+  // métricas extras
   const totalUsers = data.rows?.length || 0;
   const totalSessions =
     data.rows?.reduce((acc, r) => acc + pickSessions(r), 0) || 0;
   const avgPerUser = totalUsers > 0 ? data.total_cents / totalUsers : 0;
 
-  return (
-    <div className={styles.container}>
-      {/* Barra superior */}
-      <div className={styles.toolbar}>
-        <div className={styles.headerActions}>
-          <button
-            className={styles.btn}
-            type="button"
-            onClick={() => setRefreshKey((k) => k + 1)}
-            disabled={loading}
-            title="Atualizar"
-          >
-            <RefreshCcw size={16} className={loading ? styles.spin : ""} />
-            Atualizar
-          </button>
-
-          <button
-            className={styles.btnPrimary}
-            type="button"
-            onClick={handleExport}
-            disabled={loading}
-            title="Exportar CSV"
-          >
-            <Download size={16} />
-            Exportar CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Cabeçalho + filtros */}
-      <div className={styles.header}>
-        <div className={styles.headerRule} />
-        <div>
-          <p className={styles.subtitle}>
-            Análise detalhada do faturamento por sessões e usuários
-          </p>
-        </div>
-
-        <div className={styles.filters}>
-          <div className={styles.filterItem}>
-            <label>
-              <CalendarRange size={14} /> Período inicial
-            </label>
-            <input
-              className={styles.input}
-              type="datetime-local"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </div>
-          <div className={styles.filterItem}>
-            <label>
-              <CalendarRange size={14} /> Período final
-            </label>
-            <input
-              className={styles.input}
-              type="datetime-local"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className={styles.kpisGrid}>
-        {/* Faturamento total */}
-        <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>
-              <DollarSign size={18} />
-              Faturamento Total
-            </div>
-          </div>
-          <div className={styles.cardBody}>
-            <div className={styles.bigTotal}>{grandTotal}</div>
-            <div className={styles.subtle}>
-              Receita total gerada no período selecionado
-            </div>
-          </div>
-        </div>
-
-        {/* Usuários ativos */}
-        <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>
-              <Users size={18} />
-              Usuários Ativos
-            </div>
-          </div>
-          <div className={styles.cardBody}>
-            <div className={styles.bigNumber}>{totalUsers}</div>
-            <div className={styles.subtle}>
-              Total de usuários com sessões faturáveis
-            </div>
-            <div className={styles.inlineStat}>
-              <TrendingUp size={14} />
-              Média: {BRL(avgPerUser)} por usuário
-            </div>
-          </div>
-        </div>
-
-        {/* Card: gráfico de pizza por canal */}
-        <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Faturamento por canal</div>
-          </div>
-          <div className={styles.cardBody}>
-            {loading ? (
-              <div className={styles.loading}>Carregando…</div>
-            ) : data.totals_by_channel?.length ? (
-              <ChannelPie data={data.totals_by_channel} />
-            ) : (
-              <div className={styles.empty}>Sem dados por canal</div>
-            )}
-          </div>
-        </div>
-
-        {/* Card: valores totais por canal */}
-        <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Totais por canal</div>
-          </div>
-          <div className={styles.cardBody}>
-            {loading ? (
-              <div className={styles.loading}>Carregando…</div>
-            ) : data.totals_by_channel?.length ? (
-              <ul className={styles.channelList}>
-                {data.totals_by_channel
-                  .slice()
-                  .sort(
-                    (a, b) => (b.total_cents || 0) - (a.total_cents || 0)
-                  )
-                  .map((c) => (
-                    <li key={c.channel || "default"} className={styles.channelItem}>
-                      <div className={styles.channelLeft}>
-                        <span
-                          className={[
-                            styles.pill,
-                            c.channel === "whatsapp"
-                              ? styles["pill--whatsapp"]
-                              : c.channel === "telegram"
-                              ? styles["pill--telegram"]
-                              : styles["pill--default"],
-                          ].join(" ")}
-                        >
-                          {c.channel || "default"}
-                        </span>
-                      </div>
-                      <div className={styles.channelRight}>
-                        <span className={styles.channelStat}>
-                          {fmtInt(c.sessions || 0)} sessão(ões)
-                        </span>
-                        <span className={styles.channelValue}>
-                          {BRL(c.total_cents || 0)}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-              </ul>
-            ) : (
-              <div className={styles.empty}>Sem dados por canal</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tabela detalhada */}
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Detalhamento por usuário</div>
-          <div className={styles.tableMeta}>
-            {totalSessions} sessão(ões) totais
-          </div>
-        </div>
-
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.colUser}>User ID</th>
-                <th className={styles.colCanal}>Canal</th>
-                <th className={styles.colSess}>Sessões</th>
-                <th className={styles.colDate}>Primeira mensagem</th>
-                <th className={styles.colDate}>Última mensagem</th>
-                <th className={styles.colTotal}>Valor total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan={6} className={styles.loading}>
-                    Carregando dados...
-                  </td>
-                </tr>
-              )}
-              {!loading && (!data.rows || data.rows.length === 0) && (
-                <tr>
-                  <td colSpan={6} className={styles.empty}>
-                    Nenhum dado encontrado para o período selecionado
-                  </td>
-                </tr>
-              )}
-              {!loading &&
-                data.rows?.map((r, i) => {
-                  const cents = pickCents(r);
-                  const sessions = pickSessions(r);
-                  const first = pickFirstTs(r);
-                  const last = pickLastTs(r);
-                  return (
-                    <tr
-                      key={(r.user_id || r.user || "-") +
-                        (r.channel || "default") +
-                        i}
-                    >
-                      <td className={`${styles.cellStrong} ${styles.colUser}`}>
-                        {r.user_id || r.user || "—"}
-                      </td>
-                      <td className={styles.colCanal}>
-                        <span
-                          className={[
-                            styles.pill,
-                            r.channel === "whatsapp"
-                              ? styles["pill--whatsapp"]
-                              : r.channel === "telegram"
-                              ? styles["pill--telegram"]
-                              : styles["pill--default"],
-                          ].join(" ")}
-                        >
-                          {r.channel || "default"}
-                        </span>
-                      </td>
-                      <td
-                        className={`${styles.cellStrong} ${styles.colSess}`}
-                      >
-                        {fmtInt(sessions)}
-                      </td>
-                      <td className={styles.colDate}>{fmtDt(first)}</td>
-                      <td className={styles.colDate}>{fmtDt(last)}</td>
-                      <td className={`${styles.cellMoney} ${styles.colTotal}`}>
-                        {BRL(cents)}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-            {data.rows?.length ? (
-              <tfoot>
-                <tr>
-                  <td colSpan={5} className={styles.tfootLabel}>
-                    Total geral
-                  </td>
-                  <td className={styles.tfootValue}>{grandTotal}</td>
-                </tr>
-              </tfoot>
-            ) : null}
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Gráfico de Pizza por Canal ---------- */
-
-function ChannelPie({ data }) {
-  const totalCents =
-    data.reduce((acc, c) => acc + (c.total_cents || 0), 0) || 1;
-
-  const cx = 100;
-  const cy = 100;
-  const r = 80;
-
-  const describeArc = (cx, cy, r, startAngle, endAngle) => {
-    const rad = (deg) => (Math.PI / 180) * deg;
-    const start = {
-      x: cx + r * Math.cos(rad(startAngle)),
-      y: cy + r * Math.sin(rad(startAngle)),
-    };
-    const end = {
-      x: cx + r * Math.cos(rad(endAngle)),
-      y: cy + r * Math.sin(rad(endAngle)),
-    };
-    const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
-    return [
-      `M ${cx} ${cy}`,
-      `L ${start.x} ${start.y}`,
-      `A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`,
-      "Z",
-    ].join(" ");
-  };
-
-  const colorForChannel = (ch) => {
-    const key = String(ch || "default").toLowerCase();
-    if (key === "whatsapp") return "#10b981";
-    if (key === "telegram") return "#60a5fa";
-    return "#9ca3af";
-  };
-
-  let currentAngle = -90; // começa no topo
-
-  const segments = data.map((c) => {
-    const value = c.total_cents || 0;
-    const pct = (value / totalCents) * 100;
-    const angle = (value / totalCents) * 360;
-    const start = currentAngle;
-    const end = currentAngle + angle;
-    currentAngle = end;
-    return {
-      channel: c.channel || "default",
-      value,
-      pct,
-      d: describeArc(cx, cy, r, start, end),
-      color: colorForChannel(c.channel),
-    };
-  });
+  const channels = data.totals_by_channel || [];
 
   return (
-    <div className={styles.pieWrap}>
-      <svg
-        viewBox="0 0 200 200"
-        className={styles.pieSvg}
-        aria-label="Distribuição de faturamento por canal"
-      >
-        {/* fundo */}
-        <circle cx={cx} cy={cy} r={r} fill="#020617" />
-        {segments.map((s) => (
-          <path
-            key={s.channel}
-            d={s.d}
-            fill={s.color}
-            stroke="#020617"
-            strokeWidth="1"
-          />
-        ))}
-        <circle cx={cx} cy={cy} r={40} fill="#020617" />
-        <text
-          x={cx}
-          y={cy - 4}
-          textAnchor="middle"
-          className={styles.pieCenterValue}
-        >
-          {BRL(totalCents)}
-        </text>
-        <text
-          x={cx}
-          y={cy + 14}
-          textAnchor="middle"
-          className={styles.pieCenterLabel}
-        >
-          Total
-        </text>
-      </svg>
-
-      <div className={styles.pieLegend}>
-        {segments.map((s) => (
-          <div key={s.channel} className={styles.legendItem}>
-            <div className={styles.legendLeft}>
-              <span
-                className={styles.legendDot}
-                style={{ backgroundColor: s.color }}
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* Toolbar superior (igual padrão FlowHub) */}
+        <div className={styles.toolbar}>
+          <div className={styles.headerActions}>
+            <button
+              className={styles.btn}
+              type="button"
+              onClick={() => setRefreshKey((k) => k + 1)}
+              disabled={loading}
+              title="Atualizar"
+            >
+              <RefreshCcw
+                size={16}
+                className={loading ? styles.spin : ""}
               />
-              <span className={styles.legendLabel}>
-                {s.channel || "default"}
-              </span>
+              Atualizar
+            </button>
+
+            <button
+              className={styles.btnPrimary}
+              type="button"
+              onClick={handleExport}
+              disabled={loading}
+              title="Exportar CSV"
+            >
+              <Download size={16} />
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Header + filtros */}
+        <header className={styles.header}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Extrato de Faturamento</h1>
+            <p className={styles.subtitle}>
+              Análise detalhada do faturamento por sessões, usuários e canais.
+            </p>
+          </div>
+
+          <div className={styles.filters}>
+            <div className={styles.filterItem}>
+              <label>
+                <CalendarRange size={14} /> Período inicial
+              </label>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
             </div>
-            <div className={styles.legendRight}>
-              <span className={styles.legendValue}>
-                {BRL(s.value || 0)}
-              </span>
-              <span className={styles.legendPct}>
-                {s.pct.toFixed(1)}%
-              </span>
+            <div className={styles.filterItem}>
+              <label>
+                <CalendarRange size={14} /> Período final
+              </label>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
             </div>
           </div>
-        ))}
+        </header>
+
+        {/* KPIs + canais */}
+        <section className={styles.kpisGrid}>
+          {/* Faturamento total */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>
+                <DollarSign size={18} />
+                Faturamento total
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.bigTotal}>{grandTotal}</div>
+              <div className={styles.subtle}>
+                Receita total gerada no período selecionado.
+              </div>
+            </div>
+          </div>
+
+          {/* Usuários ativos */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>
+                <Users size={18} />
+                Usuários ativos
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.bigNumber}>{totalUsers}</div>
+              <div className={styles.subtle}>
+                Usuários com sessões faturáveis.
+              </div>
+              <div className={styles.inlineStat}>
+                Média: {BRL(avgPerUser)} por usuário
+              </div>
+            </div>
+          </div>
+
+          {/* Pizza por canal (valor) */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>Faturamento por canal</div>
+            </div>
+            <div className={styles.cardBody}>
+              {loading ? (
+                <div className={styles.loading}>Carregando…</div>
+              ) : (
+                <ChannelPie channels={channels} />
+              )}
+            </div>
+          </div>
+
+          {/* Totais por canal (lista) */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>Totais por canal</div>
+            </div>
+            <div className={styles.cardBody}>
+              {loading ? (
+                <div className={styles.loading}>Carregando…</div>
+              ) : channels?.length ? (
+                <ul className={styles.channelList}>
+                  {channels
+                    .slice()
+                    .sort(
+                      (a, b) =>
+                        (b.total_cents || 0) - (a.total_cents || 0)
+                    )
+                    .map((c) => {
+                      const key = normalizeChannelKey(c.channel);
+                      const color =
+                        CHANNEL_COLORS[key] || CHANNEL_COLORS.default;
+                      return (
+                        <li
+                          key={c.channel}
+                          className={styles.channelItem}
+                        >
+                          <div className={styles.channelLeft}>
+                            <span
+                              className={styles.channelDot}
+                              style={{ backgroundColor: color }}
+                            />
+                            <span className={styles.channelName}>
+                              {c.channel || "default"}
+                            </span>
+                          </div>
+                          <div className={styles.channelRight}>
+                            <span className={styles.channelSessions}>
+                              {fmtInt(c.sessions || 0)} sessões
+                            </span>
+                            <span className={styles.channelMoney}>
+                              {BRL(c.total_cents || 0)}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                </ul>
+              ) : (
+                <div className={styles.emptySmall}>
+                  Sem dados por canal.
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Tabela detalhada */}
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>Detalhamento por usuário</div>
+            <div className={styles.tableMeta}>
+              {fmtInt(totalSessions)} sessão(ões) totais
+            </div>
+          </div>
+
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.colUser}>User ID</th>
+                  <th className={styles.colChannel}>Canal</th>
+                  <th className={styles.colSessions}>Sessões</th>
+                  <th className={styles.colDate}>Primeira mensagem</th>
+                  <th className={styles.colDate}>Última mensagem</th>
+                  <th className={styles.colMoney}>Valor total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className={styles.loading}
+                    >
+                      Carregando dados...
+                    </td>
+                  </tr>
+                )}
+                {!loading && (!data.rows || data.rows.length === 0) && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className={styles.empty}
+                    >
+                      Nenhum dado encontrado para o período selecionado.
+                    </td>
+                  </tr>
+                )}
+                {!loading &&
+                  data.rows?.map((r, i) => {
+                    const cents = pickCents(r);
+                    const sessions = pickSessions(r);
+                    const first = pickFirstTs(r);
+                    const last = pickLastTs(r);
+                    const key =
+                      (r.user_id || r.user || "-") +
+                      (r.channel || "default") +
+                      i;
+                    const channelKey = normalizeChannelKey(r.channel);
+                    const color =
+                      CHANNEL_COLORS[channelKey] || CHANNEL_COLORS.default;
+
+                    return (
+                      <tr key={key}>
+                        <td className={styles.cellStrong}>
+                          {r.user_id || r.user || "—"}
+                        </td>
+                        <td>
+                          <span className={styles.pillChannel}>
+                            <span
+                              className={styles.channelDot}
+                              style={{ backgroundColor: color }}
+                            />
+                            {r.channel || "default"}
+                          </span>
+                        </td>
+                        <td className={styles.cellStrong}>
+                          {fmtInt(sessions)}
+                        </td>
+                        <td>{fmtDt(first)}</td>
+                        <td>{fmtDt(last)}</td>
+                        <td className={styles.cellMoney}>
+                          {BRL(cents)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+              {data.rows?.length ? (
+                <tfoot>
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className={styles.tfootLabel}
+                    >
+                      Total geral
+                    </td>
+                    <td className={styles.tfootValue}>{grandTotal}</td>
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );
