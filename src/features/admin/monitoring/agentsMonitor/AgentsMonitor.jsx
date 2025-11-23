@@ -394,7 +394,7 @@ export default function AgentsRealtime() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th className={styles.colAgente}>Agente</th>
+                  <th>Agente</th>
                   <th>Status</th>
                   <th>Detalhe</th>
                   <th>Filas</th>
