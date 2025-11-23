@@ -1,6 +1,5 @@
 /* Container alinhado ao FlowHub / ClientsMonitor */
 .container {
-  padding: 16px 24px 32px;
   max-width: 1320px;
   margin: 0 auto;
   background: transparent;
@@ -26,13 +25,13 @@
 .titleRow {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .title {
-  font-size: 18px;              /* igual FlowHub */
-  font-weight: 700;             /* igual FlowHub */
-  letter-spacing: -0.01em;      /* igual FlowHub */
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: #f9fafb;
   margin: 0;
 }
@@ -40,15 +39,8 @@
 .subtitle {
   margin: 0;
   color: #94a3b8;
-  font-size: 13px;              /* igual FlowHub */
+  font-size: 13px;
   font-weight: 400;
-}
-
-/* badges com info de atualização / erro */
-.headerInfo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 /* Pills de aviso / erro */
@@ -178,7 +170,7 @@
   gap: 10px;
   font-weight: 700;
   color: #f9fafb;
-  font-size: 13px; /* mesmo peso e tamanho dos outros cards */
+  font-size: 13px;
 }
 
 .cardIcon {
@@ -271,7 +263,7 @@
 }
 
 .filterTitle {
-  font-size: 14px; /* igual ClientsMonitor */
+  font-size: 14px;
   font-weight: 700;
   color: #f9fafb;
   margin: 0 0 8px;
@@ -368,7 +360,7 @@
 }
 
 .table thead th {
-  text-align: left;
+  text-align: center; /* alinhamento igual ao monitor de filas */
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -384,6 +376,7 @@
   border-top: 1px solid #1f2937;
   font-size: 14px;
   color: #e5e7eb;
+  text-align: center; /* conteúdo centralizado como no print */
 }
 
 .emptyCell {
