@@ -391,6 +391,24 @@
   text-align: left !important;
 }
 
+/* Zebra nas linhas (duas cores fixas) */
+
+.table tbody tr {
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.table tbody tr:nth-child(odd) {
+  background-color: #020617;
+}
+
+.table tbody tr:nth-child(even) {
+  background-color: #0b1220;
+}
+
+.table tbody tr:hover {
+  background-color: #111827;
+}
+
 /* Células */
 
 .table tbody td {
@@ -425,32 +443,18 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* zebra: duas cores base */
-
-.row {
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.rowEven {
-  background-color: #020617;
-}
-
-.rowOdd {
-  background-color: #050816;
-}
-
-.row:hover {
-  background-color: #111827;
-}
-
 /* tom da linha: apenas late sobrescreve a zebra */
 
+.row {
+  /* classe base do <tr>, usada só pra tom late */
+}
+
 .tone_ok {
-  /* mantém a cor da zebra */
+  /* nada, mantém zebra */
 }
 
 .tone_late {
-  background: rgba(239, 68, 68, 0.08);
+  background: rgba(239, 68, 68, 0.08) !important;
   box-shadow: inset 4px 0 0 0 #ef4444;
 }
 
