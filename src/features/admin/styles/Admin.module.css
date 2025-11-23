@@ -396,12 +396,10 @@
   min-width: 0;
   background: #242730; /* "card" de conteúdo em cima do body 242730 */
   border-radius: 16px;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
 }
 
 .content {
   width: 100%;
-  padding: 24px 24px 32px;
   background: #242730;
 }
 
@@ -553,4 +551,5 @@
     padding: 16px 16px 24px;
   }
 }
+
 
