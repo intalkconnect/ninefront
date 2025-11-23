@@ -11,9 +11,10 @@ import {
   CalendarRange,
   Download,
   RefreshCcw,
-  TrendingUp,
-  Users,
   DollarSign,
+  Users,
+  PieChart,
+  BarChart2,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import styles from "./styles/BillingExtrato.module.css";
@@ -43,8 +44,8 @@ const useDebounce = (value, delay = 300) => {
   return deb;
 };
 
-// ===== CSV helpers =====
-const CSV_DELIM = ";";
+// ===== CSV helpers (Excel-friendly pt-BR) =====
+const CSV_DELIM = ";"; // ; funciona melhor com Excel em pt-BR
 
 const escapeCSV = (val) => {
   if (val === null || val === undefined) return "";
@@ -67,7 +68,12 @@ const pickCents = (row) => {
   return 0;
 };
 const pickSessions = (row) => {
-  const cands = [row?.sessions, row?.windows, row?.billing_windows, row?.janelas];
+  const cands = [
+    row?.sessions,
+    row?.windows,
+    row?.billing_windows,
+    row?.janelas,
+  ];
   const v = cands.find((x) => Number.isFinite(+x));
   return Number.isFinite(+v) ? +v : 0;
 };
@@ -95,13 +101,11 @@ const buildCsvFromState = (data) => {
     "Última Mensagem",
     "Total (R$)",
   ];
-
   const lines = (data?.rows || []).map((row) => {
     const cents = pickCents(row);
     const sess = pickSessions(row);
     const first = pickFirstTs(row);
     const last = pickLastTs(row);
-
     return [
       escapeCSV(row.user_id || row.user || ""),
       escapeCSV(row.channel || "default"),
@@ -112,6 +116,7 @@ const buildCsvFromState = (data) => {
     ].join(CSV_DELIM);
   });
 
+  // BOM p/ Excel abrir acentuação corretamente
   return "\uFEFF" + [headers.join(CSV_DELIM), ...lines].join("\n");
 };
 
@@ -127,183 +132,147 @@ const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
   URL.revokeObjectURL(url);
 };
 
-/* ===================== Donut chart por VALOR ===================== */
+/* ========================= Gráficos ========================= */
 
-const CHANNEL_COLORS = [
+const COLORS = [
   "#22c55e",
   "#3b82f6",
   "#f97316",
-  "#eab308",
   "#a855f7",
-  "#ec4899",
-  "#14b8a6",
+  "#eab308",
+  "#06b6d4",
+  "#f97373",
 ];
 
-function BillingDonutByValue({ channels }) {
-  const data = Array.isArray(channels) ? channels : [];
+function ChannelRevenueDonut({ totalsByChannel = [], totalCents = 0 }) {
+  const items = (totalsByChannel || []).map((c, idx) => ({
+    label: c.channel || "default",
+    cents: pickCents(c),
+    color: COLORS[idx % COLORS.length],
+  }));
 
-  const totalCents = data.reduce(
-    (acc, c) => acc + (Number.isFinite(+c.total_cents) ? +c.total_cents : 0),
-    0
-  );
+  const total =
+    totalCents && Number.isFinite(+totalCents)
+      ? +totalCents
+      : items.reduce((acc, i) => acc + (i.cents || 0), 0);
 
-  if (!totalCents) {
+  if (!items.length) {
     return (
       <div className={styles.donutEmpty}>
-        Nenhum valor faturado no período.
+        <span className={styles.subtle}>Sem dados de faturamento por canal.</span>
       </div>
     );
   }
 
-  const withColor = data
-    .slice()
-    .sort((a, b) => (b.total_cents || 0) - (a.total_cents || 0))
-    .map((c, idx) => ({
-      ...c,
-      color: CHANNEL_COLORS[idx % CHANNEL_COLORS.length],
-      value: Number.isFinite(+c.total_cents) ? +c.total_cents : 0,
-    }))
-    .filter((c) => c.value > 0);
+  let acc = 0;
+  const segments = items.map((item) => {
+    const pct = total > 0 ? (item.cents / total) * 100 : 0;
+    const from = acc;
+    const to = acc + pct;
+    acc = to;
+    return { ...item, pct, from, to };
+  });
 
-  const radius = 32;
-  const stroke = 12;
-  const circumference = 2 * Math.PI * radius;
-
-  let offsetAcc = 0;
+  const gradient =
+    total > 0
+      ? segments
+          .map(
+            (s) => `${s.color} ${s.from.toFixed(2)}% ${s.to.toFixed(2)}%`
+          )
+          .join(", ")
+      : "#1f2937 0 100%";
 
   return (
-    <div className={styles.donutLayout}>
-      <div className={styles.donutSvgWrap}>
-        <svg
-          viewBox="0 0 80 80"
-          className={styles.donutSvg}
-          aria-hidden="true"
-        >
-          <circle
-            cx="40"
-            cy="40"
-            r={radius}
-            fill="none"
-            stroke="#020617"
-            strokeWidth={stroke}
-          />
-
-          {withColor.map((c, idx) => {
-            const pct = c.value / totalCents;
-            const segLength = pct * circumference;
-            const dashArray = `${segLength} ${circumference - segLength}`;
-            const dashOffset = -offsetAcc;
-            offsetAcc += segLength;
-
-            return (
-              <circle
-                key={c.channel || idx}
-                cx="40"
-                cy="40"
-                r={radius}
-                fill="none"
-                stroke={c.color}
-                strokeWidth={stroke}
-                strokeDasharray={dashArray}
-                strokeDashoffset={dashOffset}
-                className={styles.donutSegment}
-                transform="rotate(-90 40 40)"
-              />
-            );
-          })}
-        </svg>
-
-        <div className={styles.donutCenter}>
-          <span className={styles.donutTotal}>{BRL(totalCents)}</span>
-          <span className={styles.donutLabel}>Total faturado</span>
+    <div className={styles.donutWrapper}>
+      <div
+        className={styles.donutChart}
+        style={{
+          backgroundImage:
+            total > 0 ? `conic-gradient(${gradient})` : undefined,
+        }}
+      >
+        <div className={styles.donutInner}>
+          <div className={styles.donutValue}>{BRL(total)}</div>
+          <div className={styles.donutLabel}>Total faturado</div>
         </div>
       </div>
 
       <div className={styles.donutLegend}>
-        {withColor.map((c) => {
-          const pct = totalCents
-            ? ((c.value / totalCents) * 100).toFixed(1)
-            : "0.0";
-          return (
-            <div key={c.channel} className={styles.donutLegendItem}>
-              <span
-                className={styles.donutDot}
-                style={{ backgroundColor: c.color }}
-              />
-              <div className={styles.donutLegendText}>
-                <span className={styles.donutLegendChannel}>
-                  {c.channel || "default"}
+        {segments.map((s) => (
+          <div key={s.label} className={styles.legendItem}>
+            <span
+              className={styles.legendDot}
+              style={{ backgroundColor: s.color }}
+            />
+            <span className={styles.legendText}>
+              <span className={styles.legendLabel}>{s.label}</span>
+              <span className={styles.legendValue}>
+                {BRL(s.cents)}{" "}
+                <span className={styles.legendPct}>
+                  ({(s.pct || 0).toFixed(1)}%)
                 </span>
-                <span className={styles.donutLegendValue}>
-                  {BRL(c.value)} • {pct}%
-                </span>
-              </div>
-            </div>
-          );
-        })}
+              </span>
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-/* ===== Gráfico de QUANTIDADE de sessões por canal (sem custo) ===== */
+function SessionsPerChannel({ totalsByChannel = [], totalSessions = 0 }) {
+  const items = (totalsByChannel || []).map((c) => ({
+    label: c.channel || "default",
+    sessions: Number.isFinite(+c.sessions) ? +c.sessions : pickSessions(c),
+  }));
 
-function SessionsPerChannelChart({ channels }) {
-  const rows = Array.isArray(channels)
-    ? channels
-        .map((c) => ({
-          channel: c.channel || "default",
-          sessions: Number.isFinite(+c.sessions) ? +c.sessions : 0,
-        }))
-        .filter((c) => c.sessions > 0)
-    : [];
+  const maxSessions = items.reduce(
+    (m, i) => (i.sessions > m ? i.sessions : m),
+    0
+  );
 
-  if (!rows.length) {
+  if (!items.length) {
     return (
       <div className={styles.sessionsEmpty}>
-        Nenhuma sessão registrada no período.
+        <span className={styles.subtle}>Sem sessões no período.</span>
       </div>
     );
   }
 
-  const totalSessions = rows.reduce((acc, r) => acc + r.sessions, 0);
-  const maxSessions = Math.max(...rows.map((r) => r.sessions));
-
   return (
-    <div className={styles.sessionsChart}>
-      <div className={styles.sessionsSummary}>
-        <span className={styles.sessionsTotal}>{fmtInt(totalSessions)}</span>
-        <span className={styles.sessionsLabel}>sessões no período</span>
+    <div className={styles.sessionsWrapper}>
+      <div className={styles.sessionsTotalLine}>
+        <span className={styles.sessionsTotalNumber}>{totalSessions}</span>
+        <span className={styles.sessionsTotalLabel}>sessões no período</span>
       </div>
 
-      <div className={styles.sessionsList}>
-        {rows.map((r) => {
-          const width = maxSessions ? (r.sessions / maxSessions) * 100 : 0;
-          const pct = totalSessions
-            ? ((r.sessions / totalSessions) * 100).toFixed(1)
-            : "0.0";
-
+      <ul className={styles.sessionsList}>
+        {items.map((item) => {
+          const pct =
+            totalSessions > 0 ? (item.sessions / totalSessions) * 100 : 0;
+          const bar =
+            maxSessions > 0 ? (item.sessions / maxSessions) * 100 : 0;
           return (
-            <div key={r.channel} className={styles.sessionsRow}>
-              <div className={styles.sessionsRowHeader}>
-                <span className={styles.sessionsChannel}>
-                  {r.channel || "default"}
-                </span>
+            <li key={item.label} className={styles.sessionsItem}>
+              <div className={styles.sessionsHeaderRow}>
+                <span className={styles.sessionsChannel}>{item.label}</span>
                 <span className={styles.sessionsValue}>
-                  {fmtInt(r.sessions)}{" "}
-                  <span className={styles.sessionsValueSub}>({pct}%)</span>
+                  {item.sessions}{" "}
+                  <span className={styles.sessionsPct}>
+                    ({pct.toFixed(1)}%)
+                  </span>
                 </span>
               </div>
-              <div className={styles.sessionsBarTrack}>
+              <div className={styles.sessionsBarOuter}>
                 <div
-                  className={styles.sessionsBarFill}
-                  style={{ width: `${width}%` }}
+                  className={styles.sessionsBarInner}
+                  style={{ width: `${bar}%` }}
                 />
               </div>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }
@@ -335,7 +304,12 @@ export default function BillingExtrato() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    []
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -343,6 +317,7 @@ export default function BillingExtrato() {
       const params = { from: toISO(debFrom), to: toISO(debTo) };
       const res = await apiGet(`/billing/statement?${qs(params)}`);
 
+      // 1) linhas
       let rows = Array.isArray(res)
         ? res
         : Array.isArray(res?.rows)
@@ -352,6 +327,7 @@ export default function BillingExtrato() {
         : [];
       if (!Array.isArray(rows)) rows = [];
 
+      // 2) total do período
       let total_cents = 0;
       if (Number.isFinite(+res?.total_cents)) {
         total_cents = +res.total_cents;
@@ -363,6 +339,7 @@ export default function BillingExtrato() {
         total_cents = rows.reduce((acc, r) => acc + pickCents(r), 0);
       }
 
+      // 3) somatório por canal (se API não mandar pronto)
       const totals_by_channel =
         res?.totals_by_channel && Array.isArray(res.totals_by_channel)
           ? res.totals_by_channel
@@ -379,7 +356,8 @@ export default function BillingExtrato() {
               }, {})
             );
 
-      if (mounted.current) setData({ rows, total_cents, totals_by_channel });
+      if (mounted.current)
+        setData({ rows, total_cents, totals_by_channel });
     } catch (e) {
       console.error(e);
       if (mounted.current)
@@ -410,221 +388,258 @@ export default function BillingExtrato() {
     downloadBlob(csv, filename);
   };
 
-  const fmtDt = (ts) => (ts ? new Date(ts).toLocaleString("pt-BR") : "—");
+  const fmtDt = (ts) =>
+    ts ? new Date(ts).toLocaleString("pt-BR") : "—";
 
+  // métricas extras
   const totalUsers = data.rows?.length || 0;
   const totalSessions =
     data.rows?.reduce((acc, r) => acc + pickSessions(r), 0) || 0;
-  const avgPerUser = totalUsers > 0 ? data.total_cents / totalUsers : 0;
 
-  const channelsSorted = useMemo(
-    () =>
-      (data.totals_by_channel || [])
-        .slice()
-        .sort((a, b) => (b.total_cents || 0) - (a.total_cents || 0)),
-    [data.totals_by_channel]
-  );
+  /* ---------- render ---------- */
 
   return (
-    <div className={styles.container}>
-      {/* Toolbar */}
-      <div className={styles.toolbar}>
-        <div className={styles.headerActions}>
-          <button
-            className={styles.btn}
-            type="button"
-            onClick={() => setRefreshKey((k) => k + 1)}
-            disabled={loading}
-            title="Atualizar"
-          >
-            <RefreshCcw size={16} className={loading ? styles.spin : ""} />
-            Atualizar
-          </button>
-
-          <button
-            className={styles.btnPrimary}
-            type="button"
-            onClick={handleExport}
-            disabled={loading}
-            title="Exportar CSV"
-          >
-            <Download size={16} />
-            Exportar CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Cabeçalho + filtros */}
-      <div className={styles.header}>
-        <div className={styles.headerRule} />
-        <div>
-          <p className={styles.subtitle}>
-            Análise detalhada do faturamento por sessões, usuários e canais.
-          </p>
-        </div>
-
-        <div className={styles.filters}>
-          <div className={styles.filterItem}>
-            <label>
-              <CalendarRange size={14} /> Período inicial
-            </label>
-            <input
-              className={styles.input}
-              type="datetime-local"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* HEADER padrão FlowHub */}
+        <header className={styles.header}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Extrato de faturamento</h1>
+            <p className={styles.subtitle}>
+              Acompanhe o faturamento por usuário, canal e sessões no período
+              selecionado.
+            </p>
           </div>
-          <div className={styles.filterItem}>
-            <label>
-              <CalendarRange size={14} /> Período final
-            </label>
-            <input
-              className={styles.input}
-              type="datetime-local"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
 
-      {/* 4 cards principais em uma linha no desktop */}
-      <div className={styles.kpisGrid}>
-        {/* Faturamento total */}
-        <div className={styles.card}>
+          <div className={styles.headerActions}>
+            <button
+              className={styles.btn}
+              type="button"
+              onClick={() => setRefreshKey((k) => k + 1)}
+              disabled={loading}
+              title="Atualizar"
+            >
+              <RefreshCcw
+                size={16}
+                className={loading ? styles.spin : ""}
+              />
+              Atualizar
+            </button>
+
+            <button
+              className={styles.btnPrimary}
+              type="button"
+              onClick={handleExport}
+              disabled={loading}
+              title="Exportar CSV"
+            >
+              <Download size={16} />
+              Exportar CSV
+            </button>
+          </div>
+        </header>
+
+        {/* FILTROS */}
+        <section className={styles.filtersCard}>
+          <div className={styles.filtersRow}>
+            <div className={styles.filterItem}>
+              <span className={styles.filterLabel}>
+                <CalendarRange size={14} /> Período inicial
+              </span>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <span className={styles.filterLabel}>
+                <CalendarRange size={14} /> Período final
+              </span>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* KPIs – 4 cards na mesma linha */}
+        <section className={styles.kpisGrid}>
+          {/* Faturamento total */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>
+                <span className={styles.cardIcon}>
+                  <DollarSign size={18} />
+                </span>
+                <span>Faturamento total</span>
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.bigTotal}>{grandTotal}</div>
+              <div className={styles.subtle}>
+                Receita total gerada no período selecionado.
+              </div>
+            </div>
+          </div>
+
+          {/* Usuários ativos */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>
+                <span className={styles.cardIcon}>
+                  <Users size={18} />
+                </span>
+                <span>Usuários ativos</span>
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.bigNumber}>{totalUsers}</div>
+              <div className={styles.subtle}>
+                Usuários com sessões faturáveis no período.
+              </div>
+              <div className={styles.inlineStat}>
+                Média:{" "}
+                <span className={styles.inlineHighlight}>
+                  {BRL(
+                    totalUsers > 0
+                      ? data.total_cents / totalUsers
+                      : 0
+                  )}
+                </span>{" "}
+                por usuário.
+              </div>
+            </div>
+          </div>
+
+          {/* Faturamento por canal (pizza) */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>
+                <span className={styles.cardIcon}>
+                  <PieChart size={18} />
+                </span>
+                <span>Faturamento por canal</span>
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <ChannelRevenueDonut
+                totalsByChannel={data.totals_by_channel || []}
+                totalCents={data.total_cents || 0}
+              />
+            </div>
+          </div>
+
+          {/* Sessões por canal (quantidade) */}
+          <div className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>
+                <span className={styles.cardIcon}>
+                  <BarChart2 size={18} />
+                </span>
+                <span>Sessões por canal</span>
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <SessionsPerChannel
+                totalsByChannel={data.totals_by_channel || []}
+                totalSessions={totalSessions}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* TABELA DETALHADA */}
+        <section className={styles.card}>
           <div className={styles.cardHead}>
             <div className={styles.cardTitle}>
-              <DollarSign size={18} />
-              Faturamento total
+              <span className={styles.cardIcon}>
+                <BarChart2 size={18} />
+              </span>
+              <span>Detalhamento por usuário</span>
+            </div>
+            <div className={styles.tableMeta}>
+              {fmtInt(totalSessions)} sessão(ões) totais
             </div>
           </div>
-          <div className={styles.cardBody}>
-            <div className={styles.bigTotal}>{grandTotal}</div>
-            <div className={styles.subtle}>
-              Receita total gerada no período selecionado.
-            </div>
-          </div>
-        </div>
 
-        {/* Usuários ativos */}
-        <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>
-              <Users size={18} />
-              Usuários ativos
-            </div>
-          </div>
-          <div className={styles.cardBody}>
-            <div className={styles.bigNumber}>{totalUsers}</div>
-            <div className={styles.subtle}>
-              Total de usuários com sessões faturáveis.
-            </div>
-            <div className={styles.inlineStat}>
-              <TrendingUp size={14} />
-              Média: {BRL(avgPerUser)} por usuário.
-            </div>
-          </div>
-        </div>
-
-        {/* Donut por canal (VALOR) */}
-        <div className={`${styles.card} ${styles.cardCompact}`}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Faturamento por canal</div>
-          </div>
-          <div className={styles.cardBody}>
-            <BillingDonutByValue channels={channelsSorted} />
-          </div>
-        </div>
-
-        {/* Gráfico da QUANTIDADE de sessões por canal (sem custos) */}
-        <div className={`${styles.card} ${styles.cardCompact}`}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Sessões por canal</div>
-          </div>
-          <div className={styles.cardBody}>
-            <SessionsPerChannelChart channels={channelsSorted} />
-          </div>
-        </div>
-      </div>
-
-      {/* Tabela detalhada */}
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Detalhamento por usuário</div>
-          <div className={styles.tableMeta}>
-            {fmtInt(totalSessions)} sessão(ões) totais
-          </div>
-        </div>
-
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.colUser}>User ID</th>
-                <th className={styles.colChannel}>Canal</th>
-                <th>Sessões</th>
-                <th>Primeira mensagem</th>
-                <th>Última mensagem</th>
-                <th className={styles.colMoney}>Valor total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={6} className={styles.loading}>
-                    Carregando dados...
-                  </td>
+                  <th className={styles.colUser}>User ID</th>
+                  <th className={styles.colChannel}>Canal</th>
+                  <th className={styles.colSessions}>Sessões</th>
+                  <th className={styles.colDate}>Primeira mensagem</th>
+                  <th className={styles.colDate}>Última mensagem</th>
+                  <th className={styles.colMoney}>Valor total</th>
                 </tr>
-              )}
-              {!loading &&
-                (!data.rows || data.rows.length === 0) && (
+              </thead>
+              <tbody>
+                {loading && (
                   <tr>
-                    <td colSpan={6} className={styles.empty}>
-                      Nenhum dado encontrado para o período selecionado.
+                    <td colSpan={6} className={styles.loading}>
+                      Carregando dados...
                     </td>
                   </tr>
                 )}
-              {!loading &&
-                data.rows?.map((r, i) => {
-                  const cents = pickCents(r);
-                  const sessions = pickSessions(r);
-                  const first = pickFirstTs(r);
-                  const last = pickLastTs(r);
-                  return (
-                    <tr
-                      key={(r.user_id || r.user || "-") + (r.channel || "default") + i}
-                    >
-                      <td className={styles.cellStrong}>
-                        {r.user_id || r.user || "—"}
+
+                {!loading &&
+                  (!data.rows || data.rows.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className={styles.empty}>
+                        Nenhum dado encontrado para o período selecionado.
                       </td>
-                      <td className={styles.cellCenter}>
-                        <span className={styles.channelPill}>
-                          {r.channel || "default"}
-                        </span>
-                      </td>
-                      <td className={styles.cellCenter}>
-                        {fmtInt(sessions)}
-                      </td>
-                      <td className={styles.cellCenter}>{fmtDt(first)}</td>
-                      <td className={styles.cellCenter}>{fmtDt(last)}</td>
-                      <td className={styles.cellMoney}>{BRL(cents)}</td>
                     </tr>
-                  );
-                })}
-            </tbody>
-            {data.rows?.length ? (
-              <tfoot>
-                <tr>
-                  <td colSpan={5} className={styles.tfootLabel}>
-                    Total geral
-                  </td>
-                  <td className={styles.tfootValue}>{grandTotal}</td>
-                </tr>
-              </tfoot>
-            ) : null}
-          </table>
-        </div>
+                  )}
+
+                {!loading &&
+                  data.rows?.map((r, i) => {
+                    const cents = pickCents(r);
+                    const sessions = pickSessions(r);
+                    const first = pickFirstTs(r);
+                    const last = pickLastTs(r);
+
+                    return (
+                      <tr
+                        key={(r.user_id || r.user || "-") +
+                          (r.channel || "default") +
+                          i}
+                      >
+                        <td>{r.user_id || r.user || "—"}</td>
+                        <td>
+                          <span className={styles.pillTable}>
+                            {r.channel || "default"}
+                          </span>
+                        </td>
+                        <td>{fmtInt(sessions)}</td>
+                        <td>{fmtDt(first)}</td>
+                        <td>{fmtDt(last)}</td>
+                        <td className={styles.cellMoney}>
+                          {BRL(cents)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+
+              {data.rows?.length ? (
+                <tfoot>
+                  <tr>
+                    <td colSpan={5} className={styles.tfootLabel}>
+                      Total geral
+                    </td>
+                    <td className={styles.tfootValue}>{grandTotal}</td>
+                  </tr>
+                </tfoot>
+              ) : null}
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );
