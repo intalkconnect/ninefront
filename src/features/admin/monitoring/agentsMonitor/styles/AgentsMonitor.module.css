@@ -344,15 +344,17 @@
 /* ===== Tabela ===== */
 
 .tableCard {
-  background: #2b303a;
-  border: 1px solid #3a3f4b;
-  border-radius: 14px;
+  background: #1e232d;
+  border: 1px solid #2d3648;
+  border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .tableHeader {
-  padding: 16px 18px 12px;
-  border-bottom: 1px solid #1f2937;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #252b38 0%, #1e232d 100%);
+  border-bottom: 1px solid #2d3648;
 }
 
 .tableTitle {
@@ -360,10 +362,30 @@
   font-weight: 700;
   margin: 0;
   color: #f9fafb;
+  letter-spacing: -0.01em;
 }
 
 .tableScroll {
   overflow: hidden auto;
+  max-height: 70vh;
+}
+
+.tableScroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tableScroll::-webkit-scrollbar-track {
+  background: #0f1419;
+}
+
+.tableScroll::-webkit-scrollbar-thumb {
+  background: #3a3f4b;
+  border-radius: 4px;
+}
+
+.tableScroll::-webkit-scrollbar-thumb:hover {
+  background: #4a5061;
 }
 
 .table {
@@ -379,60 +401,70 @@
   text-align: center;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #9ca3af;
-  padding: 12px 16px;
-  background: #020617;
-  border-bottom: 1px solid #1f2937;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  padding: 14px 20px;
+  background: #0f1419;
+  border-bottom: 2px solid #2563eb;
   font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
-/* Cabeçalho da coluna AGENTE centralizado vertical/horizontal */
-.table thead th:nth-child(1) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.table thead th:first-child {
+  text-align: left;
+  padding-left: 24px;
 }
 
 /* Células */
 
 .table tbody td {
-  padding: 12px 16px;
-  border-top: 1px solid #111827;
+  padding: 16px 20px;
+  border-bottom: 1px solid #1a1f2a;
   font-size: 14px;
   color: #e5e7eb;
   text-align: center;
-  font-weight: 400; /* sem negrito nas linhas */
-  vertical-align: middle; /* centraliza verticalmente o conteúdo */
+  font-weight: 400;
+  vertical-align: middle;
+  transition: all 0.2s ease;
 }
 
 .table tbody td:first-child {
   text-align: left;
+  padding-left: 24px;
 }
 
-/* zebra: duas cores base */
+/* Linhas */
 
-.table tbody tr:nth-child(odd) {
-  background-color: #1f2937;
+.table tbody tr {
+  background-color: #1e232d;
+  transition: all 0.15s ease;
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: #111827;
+  background-color: #191e28;
 }
 
 .table tbody tr:hover {
-  background-color: #111827;
+  background-color: #252b38 !important;
+  transform: scale(1.001);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* tom da linha: apenas late sobrescreve a zebra */
+/* tom da linha: apenas late sobrescreve */
 
 .tone_ok {
-  /* mantém a cor da zebra */
+  /* mantém a cor padrão */
 }
 
 .tone_late {
-  background: rgba(239, 68, 68, 0.08);
-  box-shadow: inset 4px 0 0 0 #ef4444;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(239, 68, 68, 0.05) 100%) !important;
+  border-left: 3px solid #ef4444;
+}
+
+.tone_late:hover {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.18) 0%, rgba(239, 68, 68, 0.08) 100%) !important;
 }
 
 /* status pill */
