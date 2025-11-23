@@ -1,9 +1,9 @@
 :global(html, body, #root) {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  height: 100%;
   background: #242730;
-  /* sem overflow hidden aqui, para o scroll voltar a funcionar */
+  overflow: hidden; /* scroll só dentro do app, não na janela */
 }
 
 /* Scrollbar global mais estilizado */
@@ -32,13 +32,14 @@
 
 /* ===== Layout base dark ===== */
 .wrapper {
-  min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #020617;
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
+  overflow: hidden; /* nada rola aqui, só no conteúdo central */
 }
 
 /* ===== Loading (auth) ===== */
@@ -100,10 +101,9 @@
 }
 
 /* ===== Topbar ===== */
+/* não precisa ser sticky/fixed, porque quem rola é o conteúdo, não a página */
 .topbar {
-  position: sticky;    /* fica fixo quando rolar */
-  top: 0;
-  z-index: 40;
+  flex-shrink: 0;
   background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
   border-bottom: 1px solid #111827;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
@@ -141,25 +141,24 @@
   position: relative;
 }
 
-/* Botão de ajuda com fundo translúcido azul, não preto chapado */
+/* Botão de ajuda super discreto: sem fundo azul, só o ícone */
 .iconButton {
   width: 34px;
   height: 34px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(15, 23, 42, 0.3);
+  border: none;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: #e5e7eb;
-  backdrop-filter: blur(4px);
-  transition: all 0.18s ease;
+  transition: background 0.18s ease, transform 0.12s ease;
 }
 
 .iconButton:hover {
-  background: rgba(15, 23, 42, 0.55);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(15, 23, 42, 0.4);
+  transform: translateY(-1px);
 }
 
 /* profile button (só avatar) */
@@ -273,7 +272,8 @@
 .body {
   flex: 1;
   width: 100%;
-  background: #242730; /* fundo do "body" abaixo da topbar */
+  background: #242730;
+  overflow: hidden; /* scroll controlado dentro de bodyInner/main/content */
 }
 
 .bodyInner {
@@ -283,18 +283,17 @@
   display: flex;
   gap: 32px;
   align-items: flex-start;
+  height: calc(100% - 0px); /* ocupa todo o espaço disponível abaixo do topbar */
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ==== Menu "solto" à esquerda ==== */
 .sidebar {
   width: 240px;
   flex-shrink: 0;
-  /* menu fixo com scroll só no conteúdo */
-  position: sticky;
-  top: 24px;                /* mesmo padding-top do bodyInner */
-  align-self: flex-start;
-  max-height: calc(100vh - 24px - 16px);
-  overflow-y: auto;
+  max-height: 100%;
+  overflow-y: auto; /* se o menu for grande, rola só ele */
   padding-right: 4px;
 }
 
@@ -350,19 +349,6 @@
 }
 
 .menuSectionHeaderActive {
-  color: #e5e7eb;
-}
-
-.menuSectionHeaderClickable {
-  cursor: pointer;
-  border-radius: 8px;
-  padding: 6px 8px;
-  margin: 0 -4px 0;
-  transition: background 0.18s ease, color 0.18s ease;
-}
-
-.menuSectionHeaderClickable:hover {
-  background: #020617;
   color: #e5e7eb;
 }
 
@@ -435,13 +421,17 @@
 .main {
   flex: 1;
   min-width: 0;
-  background: #242730; /* "card" de conteúdo em cima do body 242730 */
+  background: #242730;
   border-radius: 16px;
+  display: flex;
+  overflow: hidden; /* quem rola é .content */
 }
 
 .content {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: #242730;
+  overflow-y: auto; /* scroll só dentro da página aberta */
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -564,27 +554,32 @@
   .homeGrid {
     grid-template-columns: 1fr;
   }
-
-  .sidebar {
-    top: 20px;
-    max-height: calc(100vh - 20px - 16px);
-  }
 }
 
 @media (max-width: 840px) {
   .bodyInner {
     flex-direction: column;
+    height: auto;
+    overflow: visible;
   }
 
   .sidebar {
     width: 100%;
-    position: static; /* em telas pequenas, deixa rolar tudo junto */
     max-height: none;
     overflow: visible;
   }
 
   .main {
     width: 100%;
+  }
+
+  .content {
+    max-height: none;
+    overflow-y: visible; /* em telas pequenas deixa rolar tudo */
+  }
+
+  :global(html, body, #root) {
+    overflow: auto; /* em mobile volta pro scroll normal da página */
   }
 }
 
