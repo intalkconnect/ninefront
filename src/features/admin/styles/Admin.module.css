@@ -293,7 +293,7 @@
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.8);
 }
 
-/* seção (Acompanhamento, Gestão, etc.) */
+/* seção (Acompanhamento, Gestão, Workflows, etc.) */
 .menuSection {
   border-radius: 10px;
 }
@@ -347,7 +347,7 @@
   gap: 2px;
 }
 
-/* botão de item (filas, agentes, templates, etc.) */
+/* botão de item (filas, agentes, templates, hub etc.) */
 .menuLeafButton {
   width: 100%;
   display: flex;
