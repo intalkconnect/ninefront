@@ -132,7 +132,7 @@
 /* KPIs */
 .kpisGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
   margin: 24px 0;
 }
@@ -260,23 +260,36 @@
   color: #9ca3af;
 }
 
-/* Lista por canal (não usada mais na UI, mas deixei por segurança)
-   – pode remover se quiser limpar o CSS */
+/* Lista por canal (card de totais) */
 .channelList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 .channelItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 0;
+}
+.channelLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.channelRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .channelStat {
   font-size: 13px;
-  color: #e2e8f0;
+  color: #cbd5f5;
+}
+.channelValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
 }
 
 /* Pills de canal */
