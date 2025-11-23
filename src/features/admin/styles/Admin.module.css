@@ -3,7 +3,6 @@
   padding: 0;
   height: 100%;
   background: #242730;
-  overflow: hidden; /* scroll só dentro do app */
 }
 
 /* Scrollbar global mais estilizado */
@@ -39,7 +38,7 @@
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
-  overflow: hidden;
+  overflow: hidden; /* ninguém além de .content rola */
 }
 
 /* ===== Loading (auth) ===== */
@@ -102,7 +101,7 @@
 
 /* ===== Topbar ===== */
 .topbar {
-  flex-shrink: 0; /* não encolhe, fica fixo no topo do layout */
+  flex-shrink: 0;
   background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
   border-bottom: 1px solid #111827;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
@@ -140,7 +139,7 @@
   position: relative;
 }
 
-/* Botão de ajuda discreto */
+/* Botão de ajuda discreto (quase só o ícone) */
 .iconButton {
   width: 34px;
   height: 34px;
@@ -273,7 +272,8 @@
   width: 100%;
   background: #242730;
   display: flex;
-  overflow: hidden; /* nada além do bodyInner rola */
+  justify-content: center;
+  overflow: hidden;
 }
 
 .bodyInner {
@@ -282,11 +282,10 @@
   padding: 24px;
   display: flex;
   gap: 32px;
-  align-items: flex-start;
+  align-items: stretch; /* sidebar e main com mesma altura */
   flex: 1;
-  min-height: 0;   /* ESSENCIAL pro flex child (.main) poder rolar */
+  min-height: 0; /* permite o filho rolar */
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 /* ==== Menu "solto" à esquerda ==== */
@@ -294,7 +293,7 @@
   width: 240px;
   flex-shrink: 0;
   max-height: 100%;
-  overflow-y: auto; /* se o menu for grande, rola só ele */
+  overflow-y: auto; /* se estourar, rola só o menu */
   padding-right: 4px;
 }
 
@@ -365,7 +364,7 @@
   flex: 1;
 }
 
-/* lista de itens da seção */
+/* lista de itens da seção (sem subtítulo) */
 .menuGroupList {
   list-style: none;
   margin: 4px 0 0 0;
@@ -375,7 +374,7 @@
   gap: 2px;
 }
 
-/* botão de item */
+/* botão de item (filas, agentes, templates, hub etc.) */
 .menuLeafButton {
   width: 100%;
   display: flex;
@@ -425,15 +424,16 @@
   background: #242730;
   border-radius: 16px;
   display: flex;
-  overflow: hidden; /* quem rola é .content */
-  min-height: 0;    /* ESSENCIAL */
+  overflow: hidden; /* quem rola é só .content */
+  min-height: 0;
 }
 
 .content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   background: #242730;
-  overflow-y: auto;  /* scroll só dentro da página aberta */
+  overflow-y: auto; /* scroll só na página aberta */
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -561,8 +561,7 @@
 @media (max-width: 840px) {
   .bodyInner {
     flex-direction: column;
-    height: auto;
-    overflow: visible;
+    min-height: auto;
   }
 
   .sidebar {
@@ -579,10 +578,6 @@
   .content {
     max-height: none;
     overflow-y: visible; /* em telas menores volta a rolar geral */
-  }
-
-  :global(html, body, #root) {
-    overflow: auto; /* mobile usa scroll normal da página */
   }
 }
 
