@@ -239,6 +239,7 @@
 .body {
   flex: 1;
   width: 100%;
+  background: #242730; /* fundo do "body" abaixo da topbar */
 }
 
 .bodyInner {
@@ -262,7 +263,7 @@
   gap: 24px;
 }
 
-/* botão principal do topo (INÍCIO) */
+/* botão principal do topo (Início) */
 .menuPrimaryButton {
   width: 100%;
   display: flex;
@@ -278,20 +279,18 @@
   cursor: pointer;
   text-align: left;
   transition: all 0.18s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .menuPrimaryButton:hover {
-  background: #0b1120;
-  border-color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.16);
+  border-color: rgba(37, 99, 235, 0.5);
   box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.45);
 }
 
 .menuPrimaryActive {
-  background: #020817;
-  border-color: #1d4ed8;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.7);
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.75);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.8);
 }
 
 /* seção (Acompanhamento, Gestão, etc.) */
@@ -304,14 +303,25 @@
   align-items: center;
   gap: 8px;
   padding: 4px 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .menuSectionHeaderActive {
+  color: #e5e7eb;
+}
+
+.menuSectionHeaderClickable {
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 6px 8px;
+  margin: 0 -4px 0;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.menuSectionHeaderClickable:hover {
+  background: #020617;
   color: #e5e7eb;
 }
 
@@ -320,7 +330,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: inherit;
 }
 
 .menuSectionLabel {
@@ -347,27 +357,25 @@
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: #9ca3af;
+  color: #cbd5f5;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   text-align: left;
   transition: all 0.18s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .menuLeafButton:hover {
-  background: #0b1120;
-  border-color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(37, 99, 235, 0.55);
   color: #e5e7eb;
 }
 
 .menuLeafActive {
-  background: #020817;
-  border-color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.8);
   color: #e5e7eb;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.7);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.8);
 }
 
 .menuLeafIcon {
@@ -386,7 +394,7 @@
 .main {
   flex: 1;
   min-width: 0;
-  background: #242730; /* fundo do workspace */
+  background: #111827; /* "card" de conteúdo em cima do body 242730 */
   border-radius: 16px;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
 }
@@ -440,7 +448,7 @@
 }
 
 .homeCard {
-  background: #111827;
+  background: #020617;
   border-radius: 14px;
   border: 1px solid #1f2937;
   padding: 16px 16px 14px;
@@ -488,8 +496,6 @@
   padding: 6px 12px;
   cursor: pointer;
   text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
 }
 
