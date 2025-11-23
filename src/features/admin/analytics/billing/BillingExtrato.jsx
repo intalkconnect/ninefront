@@ -11,9 +11,9 @@ import {
   CalendarRange,
   Download,
   RefreshCcw,
+  TrendingUp,
   Users,
   DollarSign,
-  TrendingUp,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import styles from "./styles/BillingExtrato.module.css";
@@ -44,7 +44,7 @@ const useDebounce = (value, delay = 300) => {
 };
 
 // ===== CSV helpers (Excel-friendly pt-BR) =====
-const CSV_DELIM = ";"; // ; funciona melhor com Excel em pt-BR
+const CSV_DELIM = ";";
 
 const escapeCSV = (val) => {
   if (val === null || val === undefined) return "";
@@ -67,7 +67,12 @@ const pickCents = (row) => {
   return 0;
 };
 const pickSessions = (row) => {
-  const cands = [row?.sessions, row?.windows, row?.billing_windows, row?.janelas];
+  const cands = [
+    row?.sessions,
+    row?.windows,
+    row?.billing_windows,
+    row?.janelas,
+  ];
   const v = cands.find((x) => Number.isFinite(+x));
   return Number.isFinite(+v) ? +v : 0;
 };
@@ -206,8 +211,7 @@ export default function BillingExtrato() {
               }, {})
             );
 
-      if (mounted.current)
-        setData({ rows, total_cents, totals_by_channel });
+      if (mounted.current) setData({ rows, total_cents, totals_by_channel });
     } catch (e) {
       console.error(e);
       if (mounted.current)
@@ -238,61 +242,56 @@ export default function BillingExtrato() {
     downloadBlob(csv, filename);
   };
 
-  const fmtDt = (ts) =>
-    ts ? new Date(ts).toLocaleString("pt-BR") : "—";
+  const fmtDt = (ts) => (ts ? new Date(ts).toLocaleString("pt-BR") : "—");
 
-  // métricas extras
   const totalUsers = data.rows?.length || 0;
   const totalSessions =
     data.rows?.reduce((acc, r) => acc + pickSessions(r), 0) || 0;
-  const avgPerUser =
-    totalUsers > 0 ? data.total_cents / totalUsers : 0;
+  const avgPerUser = totalUsers > 0 ? data.total_cents / totalUsers : 0;
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        {/* HEADER no padrão dos monitores */}
-        <div className={styles.header}>
-          <div className={styles.titleRow}>
-            <h1 className={styles.title}>Extrato de Faturamento</h1>
-            <p className={styles.subtitle}>
-              Análise detalhada do faturamento por sessões e usuários.
-            </p>
-          </div>
+    <div className={styles.container}>
+      {/* Barra superior */}
+      <div className={styles.toolbar}>
+        <div className={styles.headerActions}>
+          <button
+            className={styles.btn}
+            type="button"
+            onClick={() => setRefreshKey((k) => k + 1)}
+            disabled={loading}
+            title="Atualizar"
+          >
+            <RefreshCcw size={16} className={loading ? styles.spin : ""} />
+            Atualizar
+          </button>
 
-          <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.refreshBtn}
-              onClick={() => setRefreshKey((k) => k + 1)}
-              disabled={loading}
-              title="Atualizar agora"
-            >
-              <RefreshCcw
-                size={16}
-                className={loading ? styles.spinning : ""}
-              />
-            </button>
+          <button
+            className={styles.btnPrimary}
+            type="button"
+            onClick={handleExport}
+            disabled={loading}
+            title="Exportar CSV"
+          >
+            <Download size={16} />
+            Exportar CSV
+          </button>
+        </div>
+      </div>
 
-            <button
-              type="button"
-              className={styles.exportBtn}
-              onClick={handleExport}
-              disabled={loading}
-              title="Exportar CSV"
-            >
-              <Download size={16} />
-              <span>Exportar CSV</span>
-            </button>
-          </div>
+      {/* Cabeçalho + filtros */}
+      <div className={styles.header}>
+        <div className={styles.headerRule} />
+        <div>
+          <p className={styles.subtitle}>
+            Análise detalhada do faturamento por sessões e usuários
+          </p>
         </div>
 
-        {/* FILTROS em card */}
-        <section className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <div className={styles.filterTitle}>
+        <div className={styles.filters}>
+          <div className={styles.filterItem}>
+            <label>
               <CalendarRange size={14} /> Período inicial
-            </div>
+            </label>
             <input
               className={styles.input}
               type="datetime-local"
@@ -300,11 +299,10 @@ export default function BillingExtrato() {
               onChange={(e) => setFrom(e.target.value)}
             />
           </div>
-
-          <div className={styles.filterGroup}>
-            <div className={styles.filterTitle}>
+          <div className={styles.filterItem}>
+            <label>
               <CalendarRange size={14} /> Período final
-            </div>
+            </label>
             <input
               className={styles.input}
               type="datetime-local"
@@ -312,210 +310,181 @@ export default function BillingExtrato() {
               onChange={(e) => setTo(e.target.value)}
             />
           </div>
-        </section>
+        </div>
+      </div>
 
-        {/* KPIs */}
-        <section className={styles.kpisGrid}>
-          {/* Faturamento total */}
-          <div className={styles.card}>
-            <div className={styles.cardHead}>
-              <div className={styles.cardTitle}>
-                <DollarSign size={18} />
-                <span>Faturamento total</span>
-              </div>
-            </div>
-            <div className={styles.cardBody}>
-              <div className={styles.bigTotal}>{grandTotal}</div>
-              <div className={styles.subtle}>
-                Receita total gerada no período selecionado.
-              </div>
+      {/* KPIs */}
+      <div className={styles.kpisGrid}>
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>
+              <DollarSign size={18} />
+              Faturamento Total
             </div>
           </div>
-
-          {/* Usuários ativos */}
-          <div className={styles.card}>
-            <div className={styles.cardHead}>
-              <div className={styles.cardTitle}>
-                <Users size={18} />
-                <span>Usuários ativos</span>
-              </div>
-            </div>
-            <div className={styles.cardBody}>
-              <div className={styles.bigNumber}>{totalUsers}</div>
-              <div className={styles.subtle}>
-                Total de usuários com sessões faturáveis.
-              </div>
-              <div className={styles.inlineStat}>
-                <TrendingUp size={14} />
-                <span>Média: {BRL(avgPerUser)} por usuário</span>
-              </div>
+          <div className={styles.cardBody}>
+            <div className={styles.bigTotal}>{grandTotal}</div>
+            <div className={styles.subtle}>
+              Receita total gerada no período selecionado
             </div>
           </div>
+        </div>
 
-          {/* Total por canal */}
-          <div className={styles.card}>
-            <div className={styles.cardHead}>
-              <div className={styles.cardTitle}>
-                <span>Total por canal</span>
-              </div>
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>
+              <Users size={18} />
+              Usuários Ativos
             </div>
-            <div className={styles.cardBody}>
-              {loading ? (
-                <div className={styles.loading}>Carregando…</div>
-              ) : data.totals_by_channel?.length ? (
-                <ul className={styles.channelList}>
-                  {data.totals_by_channel
-                    .slice()
-                    .sort(
-                      (a, b) =>
-                        (b.total_cents || 0) -
-                        (a.total_cents || 0)
-                    )
-                    .map((c) => (
-                      <li
-                        key={c.channel}
-                        className={styles.channelItem}
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.bigNumber}>{totalUsers}</div>
+            <div className={styles.subtle}>
+              Total de usuários com sessões faturáveis
+            </div>
+            <div className={styles.inlineStat}>
+              <TrendingUp size={14} />
+              Média: {BRL(avgPerUser)} por usuário
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>Total por Canal</div>
+          </div>
+          <div className={styles.cardBody}>
+            {loading ? (
+              <div className={styles.loading}>Carregando…</div>
+            ) : data.totals_by_channel?.length ? (
+              <ul className={styles.channelList}>
+                {data.totals_by_channel
+                  .slice()
+                  .sort(
+                    (a, b) => (b.total_cents || 0) - (a.total_cents || 0)
+                  )
+                  .map((c) => (
+                    <li key={c.channel} className={styles.channelItem}>
+                      <span
+                        className={[
+                          styles.pill,
+                          c.channel === "whatsapp"
+                            ? styles["pill--whatsapp"]
+                            : c.channel === "telegram"
+                            ? styles["pill--telegram"]
+                            : styles["pill--default"],
+                        ].join(" ")}
                       >
+                        {c.channel || "default"}
+                      </span>
+                      <span className={styles.channelStat}>
+                        {fmtInt(c.sessions || 0)} sessões •{" "}
+                        <strong>{BRL(c.total_cents || 0)}</strong>
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <div className={styles.empty}>Sem dados por canal</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela detalhada */}
+      <div className={styles.card}>
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>Detalhamento por usuário</div>
+          <div className={styles.tableMeta}>
+            {totalSessions} sessão(ões) totais
+          </div>
+        </div>
+
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th className={styles.colUser}>User ID</th>
+                <th className={styles.colCanal}>Canal</th>
+                <th className={styles.colSess}>Sessões</th>
+                <th className={styles.colDate}>Primeira mensagem</th>
+                <th className={styles.colDate}>Última mensagem</th>
+                <th className={styles.colTotal}>Valor total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr>
+                  <td colSpan={6} className={styles.loading}>
+                    Carregando dados...
+                  </td>
+                </tr>
+              )}
+              {!loading && (!data.rows || data.rows.length === 0) && (
+                <tr>
+                  <td colSpan={6} className={styles.empty}>
+                    Nenhum dado encontrado para o período selecionado
+                  </td>
+                </tr>
+              )}
+              {!loading &&
+                data.rows?.map((r, i) => {
+                  const cents = pickCents(r);
+                  const sessions = pickSessions(r);
+                  const first = pickFirstTs(r);
+                  const last = pickLastTs(r);
+                  return (
+                    <tr
+                      key={(r.user_id || r.user || "-") +
+                        (r.channel || "default") +
+                        i}
+                    >
+                      <td className={`${styles.cellStrong} ${styles.colUser}`}>
+                        {r.user_id || r.user || "—"}
+                      </td>
+                      <td className={styles.colCanal}>
                         <span
                           className={[
                             styles.pill,
-                            c.channel === "whatsapp"
-                              ? styles["pill_whatsapp"]
-                              : c.channel === "telegram"
-                              ? styles["pill_telegram"]
-                              : styles["pill_default"],
+                            r.channel === "whatsapp"
+                              ? styles["pill--whatsapp"]
+                              : r.channel === "telegram"
+                              ? styles["pill--telegram"]
+                              : styles["pill--default"],
                           ].join(" ")}
                         >
-                          {c.channel || "default"}
+                          {r.channel || "default"}
                         </span>
-                        <span className={styles.channelStat}>
-                          {fmtInt(c.sessions || 0)} sessões •{" "}
-                          <strong>
-                            {BRL(c.total_cents || 0)}
-                          </strong>
-                        </span>
-                      </li>
-                    ))}
-                </ul>
-              ) : (
-                <div className={styles.empty}>
-                  Sem dados por canal.
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* TABELA */}
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <h2 className={styles.tableTitle}>
-              Detalhamento por usuário
-            </h2>
-            <span className={styles.tableMeta}>
-              {totalSessions} sessão(ões) totais
-            </span>
-          </div>
-
-          <div className={styles.tableScroll}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>User ID</th>
-                  <th>Canal</th>
-                  <th>Sessões</th>
-                  <th>Primeira mensagem</th>
-                  <th>Última mensagem</th>
-                  <th>Valor total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className={styles.loading}
-                    >
-                      Carregando dados…
-                    </td>
-                  </tr>
-                )}
-
-                {!loading &&
-                  (!data.rows || data.rows.length === 0) && (
-                    <tr>
+                      </td>
                       <td
-                        colSpan={6}
-                        className={styles.empty}
+                        className={`${styles.cellStrong} ${styles.colSess}`}
                       >
-                        Nenhum dado encontrado para o período
-                        selecionado.
+                        {fmtInt(sessions)}
+                      </td>
+                      <td className={styles.colDate}>{fmtDt(first)}</td>
+                      <td className={styles.colDate}>{fmtDt(last)}</td>
+                      <td className={`${styles.cellMoney} ${styles.colTotal}`}>
+                        {BRL(cents)}
                       </td>
                     </tr>
-                  )}
-
-                {!loading &&
-                  data.rows?.map((r, i) => {
-                    const cents = pickCents(r);
-                    const sessions = pickSessions(r);
-                    const first = pickFirstTs(r);
-                    const last = pickLastTs(r);
-
-                    return (
-                      <tr
-                        key={
-                          (r.user_id || r.user || "—") +
-                          (r.channel || "default") +
-                          i
-                        }
-                      >
-                        <td className={styles.cellStrong}>
-                          {r.user_id || r.user || "—"}
-                        </td>
-                        <td>
-                          <span
-                            className={[
-                              styles.pill,
-                              r.channel === "whatsapp"
-                                ? styles["pill_whatsapp"]
-                                : r.channel === "telegram"
-                                ? styles["pill_telegram"]
-                                : styles["pill_default"],
-                            ].join(" ")}
-                          >
-                            {r.channel || "default"}
-                          </span>
-                        </td>
-                        <td className={styles.cellStrong}>
-                          {fmtInt(sessions)}
-                        </td>
-                        <td>{fmtDt(first)}</td>
-                        <td>{fmtDt(last)}</td>
-                        <td className={styles.cellMoney}>
-                          {BRL(cents)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-              {data.rows?.length ? (
-                <tfoot>
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className={styles.tfootLabel}
-                    >
-                      Total geral
-                    </td>
-                    <td className={styles.tfootValue}>
-                      {grandTotal}
-                    </td>
-                  </tr>
-                </tfoot>
-              ) : null}
-            </table>
-          </div>
-        </section>
+                  );
+                })}
+            </tbody>
+            {data.rows?.length ? (
+              <tfoot>
+                <tr>
+                  <td
+                    colSpan={5}
+                    className={`${styles.tfootLabel} ${styles.colSpanTotal}`}
+                  >
+                    Total geral
+                  </td>
+                  <td className={styles.tfootValue}>{grandTotal}</td>
+                </tr>
+              </tfoot>
+            ) : null}
+          </table>
+        </div>
       </div>
     </div>
   );
