@@ -262,11 +262,10 @@ export default function AgentsRealtime() {
     return lista.join(", ");
   };
 
-  const rowClass = (a, index) => {
+  const rowClass = (a) => {
     const tone = rowTone(a);
-    const zebra = index % 2 === 0 ? styles.rowEven : styles.rowOdd;
     const toneClass = styles[`tone_${tone}`] || "";
-    return `${styles.row} ${zebra} ${toneClass}`;
+    return `${styles.row} ${toneClass}`;
   };
 
   /* ---------- render ---------- */
@@ -279,7 +278,8 @@ export default function AgentsRealtime() {
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Monitor de Agentes</h1>
             <p className={styles.subtitle}>
-              Acompanhe em tempo real quem está online, em pausa, offline ou inativo.
+              Acompanhe em tempo real quem está online, em pausa, offline ou
+              inativo.
             </p>
           </div>
 
@@ -421,7 +421,7 @@ export default function AgentsRealtime() {
                   pageData.map((a, index) => (
                     <tr
                       key={a.email || a.agente || index}
-                      className={rowClass(a, index)}
+                      className={rowClass(a)}
                     >
                       <td className={styles.agentCell}>
                         <span className={styles.agentName}>
