@@ -1,23 +1,15 @@
-/* File: src/features/admin/monitoring/agentsMonitor/styles/AgentsMonitor.module.css */
-
-/* ===== Layout base no padrão FlowHub / ClientsMonitor ===== */
-.page {
-  padding: 4px 0 24px;
-  margin: 0;
-  max-width: 100%;
-  color: #e5e7eb;
-  background: transparent;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
-}
-
+/* ===== Container alinhado ao padrão ===== */
 .container {
   max-width: 1320px;
   margin: 0 auto;
   padding: 0 0 24px;
+  background: transparent;
+  color: #e5e7eb;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
-/* ===== HEADER ===== */
+/* ===== HEADER no mesmo padrão do monitor de clientes ===== */
 .header {
   background: #2b303a;
   border-radius: 14px;
@@ -83,7 +75,7 @@
   align-items: center;
 }
 
-/* Botão refresh (ícone apenas) */
+/* Botão refresh (ícone) */
 .refreshBtn {
   width: 36px;
   height: 36px;
@@ -246,14 +238,20 @@
   margin-bottom: 20px;
 }
 
-.filterRow {
+.filtersRow {
   display: flex;
-  gap: 24px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 
 .filterGroup {
   margin-bottom: 12px;
+}
+
+.filterGroupGrow {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 220px;
 }
 
 .filterTitle {
@@ -328,7 +326,7 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
 
-/* ===== Tabela ===== */
+/* ===== Tabela – zebra + tipografia alinhada ===== */
 .tableCard {
   background: #2b303a;
   border: 1px solid #3a3f4b;
@@ -363,7 +361,7 @@
   table-layout: fixed;
 }
 
-/* Cabeçalho centralizado */
+/* Cabeçalhos */
 .table thead th {
   text-align: center;
   font-size: 11px;
@@ -380,18 +378,46 @@
   text-align: left !important;
 }
 
+/* Zebra nas linhas do corpo */
+.row {
+  transition: background-color 0.22s ease;
+}
+
+.table tbody tr:nth-child(odd) {
+  background: #020617;
+}
+
+.table tbody tr:nth-child(even) {
+  background: #050816;
+}
+
+.table tbody tr:hover {
+  background: #0b1120;
+}
+
 /* Células */
 .table tbody td {
   padding: 12px 16px;
-  border-top: 1px solid #111827;
+  border-top: 1px solid #1f2937;
   font-size: 14px;
   color: #e5e7eb;
   text-align: center;
-  font-weight: 400; /* sem negrito nas linhas */
+  font-weight: 400;
 }
 
 .table tbody td:first-child {
   text-align: left;
+}
+
+.agentCell {
+  white-space: nowrap;
+}
+
+.statusCell,
+.detailCell,
+.filasCell,
+.ticketsCell {
+  text-align: center;
 }
 
 .emptyCell {
@@ -401,7 +427,7 @@
   font-style: italic;
 }
 
-.skelRow td {
+.skelCell {
   padding: 10px 16px;
 }
 
@@ -413,60 +439,10 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* Zebra das linhas (duas cores) */
-.row {
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.rowEven {
-  background: #020617;
-}
-
-.rowOdd {
-  background: #050816;
-}
-
-/* Tom late: mantém zebra mas destaca borda lateral */
-.rowOk {
-  box-shadow: none;
-}
-
-.rowLate {
-  box-shadow: inset 4px 0 0 0 #ef4444;
-}
-
-/* células específicas */
-.agentCell {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.agentName {
-  font-weight: 400;
-  color: #f9fafb;
-}
-
-.statusCell {
-  font-size: 13px;
-  color: #e5e7eb;
-}
-
-.filasCell {
-  font-size: 13px;
-  color: #e5e7eb;
-  white-space: normal;
-}
-
-/* texto de pausa sem "pílula" forte */
-.pauseText {
-  font-size: 13px;
-  color: #e5e7eb;
-}
-
-/* última atividade */
+/* tempos / números */
 .lastAct {
   font-size: 13px;
+  font-weight: 500;
 }
 
 /* Paginação */
@@ -506,7 +482,7 @@
   font-size: 12px;
 }
 
-/* Responsivo */
+/* ===== Responsivo ===== */
 @media (max-width: 768px) {
   .container {
     padding: 0 16px 24px;
