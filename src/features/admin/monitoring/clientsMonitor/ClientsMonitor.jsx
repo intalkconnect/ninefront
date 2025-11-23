@@ -535,7 +535,7 @@ export default function ClientsMonitor() {
           <div className={styles.tableHeader}>
             <h2 className={styles.tableTitle}>Atendimentos em tempo real</h2>
 
-            {/* Tabs de visão (como no print: texto + sublinhado) */}
+            {/* Tabs de visão logo abaixo do título */}
             <div className={styles.tableTabs}>
               {tabDefs.map((tab) => (
                 <button
@@ -661,21 +661,21 @@ export default function ClientsMonitor() {
                           </button>
 
                           <button
-                            className={styles.linkBtnSuccess}
-                            aria-label="Finalizar atendimento"
-                            title="Finalizar atendimento"
-                            onClick={() => handleFinish(a)}
-                          >
-                            <CheckCircle size={16} />
-                          </button>
-
-                          <button
                             className={styles.linkBtnDanger}
                             aria-label="Transferir"
                             title="Transferir"
                             onClick={() => onOpenTransfer(a)}
                           >
                             <ArrowLeftRight size={16} />
+                          </button>
+
+                          <button
+                            className={styles.linkBtnSuccess}
+                            aria-label="Finalizar atendimento"
+                            title="Finalizar atendimento"
+                            onClick={() => handleFinish(a)}
+                          >
+                            <CheckCircle size={16} />
                           </button>
                         </div>
                       </td>
