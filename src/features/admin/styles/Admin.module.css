@@ -72,7 +72,7 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background: #020617;
+  background: linear-gradient(180deg,#1e3a8a 0%, #1d4ed8 100%);
   border-bottom: 1px solid #111827;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
 }
@@ -394,7 +394,7 @@
 .main {
   flex: 1;
   min-width: 0;
-  background: #111827; /* "card" de conteúdo em cima do body 242730 */
+  background: #242730; /* "card" de conteúdo em cima do body 242730 */
   border-radius: 16px;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75);
 }
@@ -402,6 +402,7 @@
 .content {
   width: 100%;
   padding: 24px 24px 32px;
+  background: #242730;
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -552,3 +553,4 @@
     padding: 16px 16px 24px;
   }
 }
+
