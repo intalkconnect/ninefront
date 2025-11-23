@@ -135,7 +135,7 @@
 /* ===== KPIs / Cards ===== */
 .kpisGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin: 24px 0 20px;
 }
@@ -359,29 +359,6 @@
   text-align: center;
 }
 
-/* ===== Lista de valores por canal (texto) ===== */
-.channelList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.channelItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 0;
-}
-.channelName {
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: capitalize;
-}
-.channelStat {
-  font-size: 12px;
-  color: #e2e8f0;
-}
-
 /* Pill simples da tabela */
 .channelPill {
   display: inline-flex;
@@ -521,6 +498,12 @@
 }
 
 /* Responsivo */
+@media (max-width: 1024px) {
+  .kpisGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 16px;
