@@ -1,3 +1,5 @@
+/* File: src/features/admin/monitoring/agentsMonitor/styles/AgentsMonitor.module.css */
+
 /* Container alinhado ao padrão FlowHub / ClientsMonitor */
 .container {
   max-width: 1320px;
@@ -8,7 +10,7 @@
     Helvetica, Arial, sans-serif;
 }
 
-/* ===== Header ===== */
+/* HEADER igual ao ClientsMonitor */
 .header {
   background: #2b303a;
   border-radius: 16px;
@@ -118,7 +120,7 @@
   }
 }
 
-/* ===== KPIs (cards) ===== */
+/* KPIs (cards) – mesmo padrão */
 .cardGroup {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -164,7 +166,6 @@
   gap: 10px;
   font-weight: 700;
   color: #f9fafb;
-  font-size: 14px;
 }
 
 .cardIcon {
@@ -200,7 +201,7 @@
   color: #fb923c;
 }
 
-/* Skeleton KPIs */
+/* Skeletons */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -230,35 +231,29 @@
   height: 40px;
 }
 
-/* ===== Filtros ===== */
+/* Filtros – mesmo padrão das filas */
 .filters {
   background: #2b303a;
   border: 1px solid #1f2937;
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 20px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 2fr);
-  gap: 16px;
 }
 
 .filterGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .filterGroupGrow {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 0;
+  flex: 1;
 }
 
 .filterTitle {
   font-size: 14px;
   font-weight: 700;
   color: #f9fafb;
-  margin: 0;
+  margin: 0 0 8px;
 }
 
 .filterChips {
@@ -289,31 +284,44 @@
   color: #fff;
 }
 
-/* Select & input */
-.select,
-.input {
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid #1f2937;
-  padding: 9px 11px;
-  font-size: 14px;
-  outline: none;
+/* select + input */
+.select {
   background: #020617;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  padding: 8px 10px;
+  font-size: 13px;
   color: #e5e7eb;
-  transition: all 0.18s ease;
+  min-width: 180px;
 }
 
-.select:focus,
-.input:focus {
+.select:focus {
+  outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+.input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #e5e7eb;
+  background: #020617;
 }
 
 .input::placeholder {
   color: #64748b;
 }
 
-/* ===== Tabela ===== */
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+/* ===== Tabela – replicando exatamente o ClientsMonitor ===== */
 .tableCard {
   background: #2b303a;
   border: 1px solid #1f2937;
@@ -330,43 +338,18 @@
   gap: 16px;
 }
 
-.tableTitleWrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .tableTitle {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
   display: flex;
+  gap: 8px;
   align-items: center;
   color: #f9fafb;
 }
 
-/* scroll da tabela */
 .tableScroll {
   overflow: hidden auto;
-  max-height: calc(100vh - 360px);
-}
-
-/* scrollbar mais agradável */
-.tableScroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.tableScroll::-webkit-scrollbar-track {
-  background: #020617;
-}
-
-.tableScroll::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 999px;
-}
-
-.tableScroll::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
 }
 
 .table {
@@ -376,6 +359,7 @@
   table-layout: fixed;
 }
 
+/* Cabeçalhos centralizados (igual filas) */
 .table thead th {
   text-align: center;
   font-size: 11px;
@@ -388,6 +372,11 @@
   font-weight: 700;
 }
 
+.colFirst {
+  text-align: left !important;
+}
+
+/* Células */
 .table tbody td {
   padding: 12px 16px;
   border-top: 1px solid #1f2937;
@@ -396,7 +385,7 @@
   text-align: center;
 }
 
-.colAgente {
+.table tbody td:first-child {
   text-align: left;
 }
 
@@ -419,9 +408,135 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* Linha da tabela: tom por pausa */
+/* Célula do agente com fonte igual ao cliente */
+.agentCell {
+  display: flex;
+  align-items: center;
+}
+
+.agentName {
+  font-weight: 400;
+  color: #f9fafb;
+}
+
+/* pill de fila */
+.filaPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* status pill */
+.stPill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.st_online {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.st_pause {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.st_offline {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.st_inativo {
+  background: rgba(129, 140, 248, 0.15);
+  color: #818cf8;
+  border-color: rgba(129, 140, 248, 0.35);
+}
+
+/* info de pausa */
+.pauseWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+.pauseReason {
+  font-weight: 500;
+}
+
+.sep {
+  opacity: 0.5;
+}
+
+.pauseBadge {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pbOk {
+  background: rgba(59, 130, 246, 0.12);
+  color: #bfdbfe;
+}
+
+.pbWarn {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+
+.pbLate {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+}
+
+/* tempos / números */
+.bold {
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+/* cor da última atividade */
+.lastAct {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lastOk {
+  color: #bbf7d0;
+}
+
+.lastWarn {
+  color: #fde68a;
+}
+
+.lastStale {
+  color: #fecaca;
+}
+
+/* Linha da tabela: tom por SLA (mesmo conceito do monitor de filas) */
 .row {
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.tone_none {
 }
 
 .tone_ok {
@@ -438,122 +553,7 @@
   box-shadow: inset 4px 0 0 0 #ef4444;
 }
 
-/* Células extras */
-.bold {
-  font-weight: 600;
-  color: #f9fafb;
-}
-
-/* Status pill */
-.stPill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid transparent;
-}
-
-.st_online {
-  background: rgba(16, 185, 129, 0.12);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.st_pause {
-  background: rgba(251, 191, 36, 0.12);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.3);
-}
-
-.st_offline {
-  background: rgba(148, 163, 184, 0.12);
-  color: #94a3b8;
-  border-color: rgba(148, 163, 184, 0.3);
-}
-
-.st_inativo {
-  background: rgba(129, 140, 248, 0.12);
-  color: #a5b4fc;
-  border-color: rgba(129, 140, 248, 0.3);
-}
-
-/* pausa */
-.pauseWrap {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.pauseReason {
-  font-size: 13px;
-  color: #e5e7eb;
-}
-
-.sep {
-  opacity: 0.6;
-}
-
-.pauseBadge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.pbOk {
-  background: rgba(59, 130, 246, 0.12);
-  color: #bfdbfe;
-}
-
-.pbWarn {
-  background: rgba(251, 191, 36, 0.18);
-  color: #fbbf24;
-}
-
-.pbLate {
-  background: rgba(239, 68, 68, 0.18);
-  color: #fecaca;
-}
-
-/* Filas do agente */
-.filaPill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(129, 140, 248, 0.1);
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  color: #e0e7ff;
-  font-size: 11px;
-  font-weight: 600;
-  margin: 2px;
-}
-
-/* Última atividade */
-.lastAct {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.lastOk {
-  color: #bbf7d0;
-}
-
-.lastWarn {
-  color: #fed7aa;
-}
-
-.lastStale {
-  color: #9ca3af;
-}
-
-/* Paginação */
+/* Paginação – mesmo card da outra tela */
 .pagination {
   display: flex;
   gap: 0.75rem;
@@ -614,7 +614,6 @@
 
   .filters {
     padding: 12px;
-    grid-template-columns: 1fr;
   }
 
   .tableHeader {
@@ -624,9 +623,5 @@
   .table thead th,
   .table tbody td {
     padding: 10px 12px;
-  }
-
-  .tableScroll {
-    max-height: none;
   }
 }
