@@ -1,3 +1,4 @@
+// File: src/features/admin/monitoring/agentsMonitor/AgentsMonitor.jsx
 import React, {
   useEffect,
   useMemo,
@@ -39,6 +40,7 @@ export default function AgentsRealtime() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState(null);
+  const [now, setNow] = useState(new Date());
   const unmountedRef = useRef(false);
 
   // limites de pausa vindos de /breaks
@@ -54,64 +56,64 @@ export default function AgentsRealtime() {
   const [page, setPage] = useState(1);
 
   /* ----- carrega dados ----- */
-  const fetchAll = useCallback(async ({ fromButton = false } = {}) => {
-    try {
-      setRefreshing(true);
+  const fetchAll = useCallback(
+    async ({ fromButton = false } = {}) => {
+      try {
+        setRefreshing(true);
+        const [ags, pauses] = await Promise.all([
+          apiGet("/analytics/agents/realtime"),
+          apiGet("/breaks?active=true"),
+        ]);
 
-      const [ags, pauses] = await Promise.all([
-        apiGet("/analytics/agents/realtime"),
-        apiGet("/breaks?active=true"),
-      ]);
+        if (unmountedRef.current) return;
 
-      if (unmountedRef.current) return;
+        const list = Array.isArray(ags)
+          ? ags
+          : Array.isArray(ags?.data)
+          ? ags.data
+          : [];
+        setAgents(list);
 
-      const list = Array.isArray(ags)
-        ? ags
-        : Array.isArray(ags?.data)
-        ? ags.data
-        : [];
-      setAgents(list);
+        const pList = Array.isArray(pauses)
+          ? pauses
+          : Array.isArray(pauses?.data)
+          ? pauses.data
+          : [];
+        const map = new Map();
+        let def = 15;
 
-      const pList = Array.isArray(pauses)
-        ? pauses
-        : Array.isArray(pauses?.data)
-        ? pauses.data
-        : [];
+        for (const p of pList || []) {
+          const label = String(p?.label || "").trim().toLowerCase();
+          const code = String(p?.code || "").trim().toLowerCase();
+          const mins = Number(p?.max_minutes);
 
-      const map = new Map();
-      let def = 15;
+          if (Number.isFinite(mins) && mins > 0) {
+            if (label) map.set(label, mins);
+            if (code) map.set(code, mins);
+            if (code === "default" || label === "default") def = mins;
+          }
+        }
 
-      for (const p of pList || []) {
-        const label = String(p?.label || "").trim().toLowerCase();
-        const code = String(p?.code || "").trim().toLowerCase();
-        const mins = Number(p?.max_minutes);
-
-        if (Number.isFinite(mins) && mins > 0) {
-          if (label) map.set(label, mins);
-          if (code) map.set(code, mins);
-          if (code === "default" || label === "default") def = mins;
+        setPauseCfg({ map, def });
+        setErro(null);
+        setNow(new Date());
+        if (fromButton) toast.success("Atualizado com sucesso");
+      } catch (e) {
+        setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
+        if (fromButton) toast.error("Não foi possível atualizar agora");
+      } finally {
+        if (!unmountedRef.current) {
+          setLoading(false);
+          setRefreshing(false);
         }
       }
-
-      setPauseCfg({ map, def });
-      setErro(null);
-
-      if (fromButton) toast.success("Atualizado com sucesso");
-    } catch (e) {
-      setErro("Falha ao atualizar. Tentaremos novamente em alguns instantes.");
-      if (fromButton) toast.error("Não foi possível atualizar agora");
-    } finally {
-      if (!unmountedRef.current) {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    }
-  }, []);
+    },
+    []
+  );
 
   // polling com pausa quando a aba está oculta
   useEffect(() => {
     unmountedRef.current = false;
-
     const run = () => fetchAll();
     run();
 
@@ -135,6 +137,12 @@ export default function AgentsRealtime() {
     };
   }, [fetchAll]);
 
+  // “relógio” leve pra contagem visual
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
   /* ----- pausa config ----- */
   const getPauseLimit = useCallback(
     (reason) => {
@@ -144,7 +152,7 @@ export default function AgentsRealtime() {
     [pauseCfg]
   );
 
-  // tom da linha: apenas ok / late (sem warn)
+  // tom da linha: só ok ou late (sem warn pra agents)
   const rowTone = useCallback(
     (a) => {
       if (a.status !== "pause") return "ok";
@@ -188,7 +196,9 @@ export default function AgentsRealtime() {
 
       const hay =
         (a.agente || "").toLowerCase().includes(txt) ||
-        (a.filas || []).some((f) => String(f).toLowerCase().includes(txt)) ||
+        (a.filas || []).some((f) =>
+          String(f).toLowerCase().includes(txt)
+        ) ||
         (a.pausa?.motivo || "").toLowerCase().includes(txt);
 
       return hay;
@@ -233,13 +243,13 @@ export default function AgentsRealtime() {
     const lim = getPauseLimit(motivo);
     const rest = lim - dur;
 
-    const state = rest <= 0 ? "late" : "ok";
+    const late = rest <= 0;
 
     return (
       <div className={styles.pauseWrap}>
         <span className={styles.pauseReason}>{motivo}</span>
         <span className={styles.sep}>•</span>
-        {state === "late" ? (
+        {late ? (
           <span className={`${styles.pauseBadge} ${styles.pbLate}`}>
             excedido +{fmtMin(-rest)}
           </span>
@@ -255,49 +265,10 @@ export default function AgentsRealtime() {
   const rowClass = (a) =>
     `${styles.row} ${styles["tone_" + rowTone(a)]}`;
 
-  /* ---------- Cards ---------- */
-  function KpiCard({ icon, label, value, tone = "blue" }) {
-    return (
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>
-            <span className={styles.cardIcon}>{icon}</span>
-            <span>{label}</span>
-          </div>
-        </div>
-        <div className={styles.cardBody}>
-          <div
-            className={`${styles.kpiValue} ${
-              styles[`tone_${tone}`]
-            }`}
-          >
-            {value}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function KpiSkeleton() {
-    return (
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>
-            <span className={`${styles.skeleton} ${styles.sq16}`} />
-            <span className={`${styles.skeleton} ${styles.sq120}`} />
-          </div>
-        </div>
-        <div className={styles.cardBody}>
-          <div className={`${styles.skeleton} ${styles.sq48}`} />
-        </div>
-      </div>
-    );
-  }
-
   /* ---------- render ---------- */
   return (
     <div className={styles.container}>
-      {/* HEADER padrão monitor de filas */}
+      {/* HEADER padronizado com ClientsMonitor */}
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <h1 className={styles.title}>Monitor de Agentes</h1>
@@ -305,6 +276,7 @@ export default function AgentsRealtime() {
             Acompanhe em tempo real quem está online, em pausa, offline
             ou inativo.
           </p>
+          {erro && <span className={styles.kpillAmber}>{erro}</span>}
         </div>
 
         <button
@@ -312,55 +284,126 @@ export default function AgentsRealtime() {
           onClick={() => fetchAll({ fromButton: true })}
           disabled={refreshing}
           title="Atualizar agora"
+          aria-label="Atualizar agora"
         >
           <RefreshCw
-            size={16}
+            size={18}
             className={refreshing ? styles.spinning : ""}
           />
         </button>
       </header>
 
-      {erro && (
-        <div className={styles.errorRow}>
-          <span className={styles.kpillAmber}>{erro}</span>
-        </div>
-      )}
-
       {/* KPIs */}
       <section className={styles.cardGroup}>
         {loading ? (
           <>
-            <KpiSkeleton />
-            <KpiSkeleton />
-            <KpiSkeleton />
-            <KpiSkeleton />
+            <div className={styles.card}>
+              <div className={styles.cardHead}>
+                <div className={styles.cardTitle}>
+                  <span className={`${styles.skeleton} ${styles.sq16}`} />
+                  <span className={`${styles.skeleton} ${styles.sq120}`} />
+                </div>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={`${styles.skeleton} ${styles.sq48}`} />
+              </div>
+            </div>
+            <div className={styles.card}>
+              <div className={styles.cardHead}>
+                <div className={styles.cardTitle}>
+                  <span className={`${styles.skeleton} ${styles.sq16}`} />
+                  <span className={`${styles.skeleton} ${styles.sq120}`} />
+                </div>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={`${styles.skeleton} ${styles.sq48}`} />
+              </div>
+            </div>
+            <div className={styles.card}>
+              <div className={styles.cardHead}>
+                <div className={styles.cardTitle}>
+                  <span className={`${styles.skeleton} ${styles.sq16}`} />
+                  <span className={`${styles.skeleton} ${styles.sq120}`} />
+                </div>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={`${styles.skeleton} ${styles.sq48}`} />
+              </div>
+            </div>
           </>
         ) : (
           <>
-            <KpiCard
-              icon={<ToggleLeft size={16} />}
-              label="Online"
-              value={kpis.online}
-              tone="green"
-            />
-            <KpiCard
-              icon={<PauseCircle size={16} />}
-              label="Em pausa"
-              value={kpis.pause}
-              tone="amber"
-            />
-            <KpiCard
-              icon={<Power size={16} />}
-              label="Offline"
-              value={kpis.offline}
-              tone="blue"
-            />
-            <KpiCard
-              icon={<Clock size={16} />}
-              label="Inativos"
-              value={kpis.inativo}
-              tone="orange"
-            />
+            <div className={styles.card}>
+              <div className={styles.cardHead}>
+                <div className={styles.cardTitle}>
+                  <span className={styles.cardIcon}>
+                    <ToggleLeft size={16} />
+                  </span>
+                  <span>Online</span>
+                </div>
+              </div>
+              <div className={styles.cardBody}>
+                <div
+                  className={`${styles.kpiValue} ${styles.tone_green}`}
+                >
+                  {kpis.online}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardHead}>
+                <div className={styles.cardTitle}>
+                  <span className={styles.cardIcon}>
+                    <PauseCircle size={16} />
+                  </span>
+                  <span>Em pausa</span>
+                </div>
+              </div>
+              <div className={styles.cardBody}>
+                <div
+                  className={`${styles.kpiValue} ${styles.tone_amber}`}
+                >
+                  {kpis.pause}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardHead}>
+                <div className={styles.cardTitle}>
+                  <span className={styles.cardIcon}>
+                    <Power size={16} />
+                  </span>
+                  <span>Offline</span>
+                </div>
+              </div>
+              <div className={styles.cardBody}>
+                <div
+                  className={`${styles.kpiValue} ${styles.tone_blue}`}
+                >
+                  {kpis.offline}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardHead}>
+                <div className={styles.cardTitle}>
+                  <span className={styles.cardIcon}>
+                    <Clock size={16} />
+                  </span>
+                  <span>Inativos</span>
+                </div>
+              </div>
+              <div className={styles.cardBody}>
+                <div
+                  className={`${styles.kpiValue} ${styles.tone_orange}`}
+                >
+                  {kpis.inativo}
+                </div>
+              </div>
+            </div>
           </>
         )}
       </section>
@@ -375,6 +418,7 @@ export default function AgentsRealtime() {
                 (s) => (
                   <button
                     key={s}
+                    type="button"
                     className={`${styles.chip} ${
                       filterStatus === s ? styles.chipActive : ""
                     }`}
@@ -417,17 +461,14 @@ export default function AgentsRealtime() {
       {/* Tabela */}
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
-          <h2 className={styles.tableTitle}>
-            Agentes em tempo real{" "}
-            <span className={styles.kpill}>{total}</span>
-          </h2>
+          <h2 className={styles.tableTitle}>Agentes em tempo real</h2>
         </div>
 
         <div className={styles.tableScroll}>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Agente</th>
+                <th className={styles.colFirst}>Agente</th>
                 <th>Status</th>
                 <th>Detalhe</th>
                 <th>Filas</th>
@@ -456,12 +497,10 @@ export default function AgentsRealtime() {
                     key={a.email || a.agente}
                     className={rowClass(a)}
                   >
-                    <td>
-                      <div className={styles.agentCell}>
-                        <span className={styles.agentName}>
-                          {a.agente}
-                        </span>
-                      </div>
+                    <td className={styles.agentCell}>
+                      <span className={styles.agentName}>
+                        {a.agente}
+                      </span>
                     </td>
                     <td>
                       <StatusPill s={a.status} />
@@ -493,6 +532,11 @@ export default function AgentsRealtime() {
                               1000 <=
                             60
                           ? styles.lastOk
+                          : (Date.now() -
+                              new Date(a.last_seen).getTime()) /
+                              1000 <=
+                            180
+                          ? styles.lastOk
                           : styles.lastStale
                       }`}
                       title={
@@ -512,13 +556,12 @@ export default function AgentsRealtime() {
           </table>
         </div>
 
-        {/* paginação */}
+        {/* Paginação */}
         <div className={styles.pagination}>
           <button
+            type="button"
             className={styles.pageBtn}
-            onClick={() =>
-              setPage((p) => Math.max(1, p - 1))
-            }
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={pageSafe <= 1}
           >
             ‹ Anterior
@@ -527,6 +570,7 @@ export default function AgentsRealtime() {
             Página {pageSafe} de {totalPages} • {total} registro(s)
           </span>
           <button
+            type="button"
             className={styles.pageBtn}
             onClick={() =>
               setPage((p) => Math.min(totalPages, p + 1))
