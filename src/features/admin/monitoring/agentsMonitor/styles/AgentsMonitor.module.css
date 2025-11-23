@@ -509,4 +509,36 @@
 /* Responsivo */
 @media (max-width: 768px) {
   .container {
-    p
+    padding: 0 16px 24px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cardBody {
+    padding: 14px;
+  }
+
+  .cardHead {
+    padding: 10px 14px;
+  }
+
+  .cardGroup {
+    gap: 12px;
+  }
+
+  .filters {
+    padding: 12px;
+  }
+
+  .tableHeader {
+    padding: 14px 16px 10px;
+  }
+
+  .table thead th,
+  .table tbody td {
+    padding: 10px 12px;
+  }
+}
