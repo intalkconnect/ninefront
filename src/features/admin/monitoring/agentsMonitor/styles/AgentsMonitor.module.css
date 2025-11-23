@@ -383,7 +383,7 @@
   color: #9ca3af;
   padding: 12px 16px;
   background: #020617;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid #0f172a; /* linha mais discreta sob o header */
   font-weight: 700;
 }
 
@@ -391,29 +391,11 @@
   text-align: left !important;
 }
 
-/* Zebra nas linhas (duas cores fixas) */
-
-.table tbody tr {
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.table tbody tr:nth-child(odd) {
-  background-color: #020617;
-}
-
-.table tbody tr:nth-child(even) {
-  background-color: #0b1220;
-}
-
-.table tbody tr:hover {
-  background-color: #111827;
-}
-
 /* Células */
 
 .table tbody td {
   padding: 12px 16px;
-  border-top: 1px solid #111827;
+  border-top: 1px solid #0f172a; /* linha discreta entre linhas */
   font-size: 14px;
   color: #e5e7eb;
   text-align: center;
@@ -443,18 +425,34 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* tom da linha: apenas late sobrescreve a zebra */
+/* zebra: duas cores base por linha */
 
 .row {
-  /* classe base do <tr>, usada só pra tom late */
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
+/* zebra usando nth-child, independente de classe adicional */
+.table tbody tr:nth-child(odd) {
+  background-color: #1f2937;
+}
+
+.table tbody tr:nth-child(even) {
+  background-color: #374151;
+}
+
+/* hover por cima da zebra */
+.table tbody tr:hover {
+  background-color: #111827;
+}
+
+/* tom da linha: apenas late sobrescreve a zebra */
+
 .tone_ok {
-  /* nada, mantém zebra */
+  /* mantém a cor da zebra */
 }
 
 .tone_late {
-  background: rgba(239, 68, 68, 0.08) !important;
+  background: rgba(239, 68, 68, 0.08);
   box-shadow: inset 4px 0 0 0 #ef4444;
 }
 
