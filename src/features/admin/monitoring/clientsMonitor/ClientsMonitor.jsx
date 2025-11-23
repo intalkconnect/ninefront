@@ -381,11 +381,11 @@ export default function ClientsMonitor() {
   const tabDefs = [
     {
       key: "em_atendimento",
-      label: "Atribuído/Em andamento",
+      label: "Em atendimento",
     },
     {
       key: "aguardando",
-      label: "Aguardando atendimento",
+      label: "Aguardando",
     },
   ];
 
