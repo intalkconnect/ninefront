@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { apiGet } from '../../../../shared/apiClient';
 import {
   Clock, User, MessageCircle, AlertTriangle, CheckCircle, Timer,
-  Headset, RefreshCw, Eye, ArrowLeftRight
+  RefreshCw, Eye, ArrowLeftRight
 } from 'lucide-react';
 import { FaWhatsapp, FaTelegramPlane, FaGlobe, FaInstagram, FaFacebookF } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -271,29 +271,27 @@ export default function ClientsMonitor() {
   /* Render ------------------------------------------------- */
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerInfo}>
+      {/* HEADER NO PADRÃO FLOW HUB */}
+      <header className={styles.header}>
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>Monitor em tempo real</h1>
+          <p className={styles.subtitle}>
+            Acompanhe quem está aguardando, quem está em atendimento e onde precisa de ajuda.
+          </p>
           {erro && <div className={styles.kpillAmber}>{erro}</div>}
         </div>
+
         <button
           className={styles.refreshBtn}
           onClick={() => fetchAll({ fromButton: true })}
           disabled={refreshing}
           title="Atualizar agora"
+          type="button"
         >
           <RefreshCw size={16} className={refreshing ? styles.spinning : ''} />
           Atualizar
         </button>
-      </div>
-
-      <div className={styles.subHeader}>
-        <div>
-          <p className={styles.subtitle}>
-            Operação em tempo real: quem espera, quem respondeu e quem precisa de ajuda.
-          </p>
-        </div>
-      </div>
+      </header>
 
       {/* KPIs */}
       <section className={styles.cardGroup}>
@@ -375,10 +373,10 @@ export default function ClientsMonitor() {
               <tr>
                 <th>Cliente</th>
                 <th>Fila</th>
-                <th>Canal</th>
+                <th className={styles.colCanal}>Canal</th>
                 <th>Agente</th>
-                <th>Ticket</th>
-                <th>Tempo</th>
+                <th className={styles.colTicket}>Ticket</th>
+                <th className={styles.colTempo}>Tempo</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -401,7 +399,7 @@ export default function ClientsMonitor() {
                     </div>
                   </td>
                   <td><span className={styles.queuePill}>{a.fila || '—'}</span></td>
-                  <td>
+                  <td className={styles.colCanal}>
                     {(() => {
                       const canalSlug = String(a.canal || 'default').toLowerCase();
                       return (
@@ -417,8 +415,8 @@ export default function ClientsMonitor() {
                     })()}
                   </td>
                   <td>{a.agente ? a.agente : <em className={styles.muted}>Não atribuído</em>}</td>
-                  <td>{a.ticket_number ?? '—'}</td>
-                  <td>
+                  <td className={styles.colTicket}>{a.ticket_number ?? '—'}</td>
+                  <td className={styles.colTempo}>
                     <div className={styles.bold}>{formatTime(a.tempoEspera)}</div>
                     <div className={styles.subtle}>
                       Início: {a?.inicioConversa instanceof Date && !isNaN(a.inicioConversa)
