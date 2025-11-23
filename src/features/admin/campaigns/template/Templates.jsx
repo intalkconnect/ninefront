@@ -5,7 +5,6 @@ import { apiGet, apiPost, apiDelete } from "../../../../shared/apiClient";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 import { toast } from "react-toastify";
 
-import PreviewWhatsApp from "./PreviewWhatsApp";
 import styles from "./styles/Templates.module.css";
 
 const STATUS_OPTIONS = [
@@ -398,28 +397,6 @@ export default function Templates() {
             )}
           </div>
         </div>
-
-        {/* Coluna: Preview lateral */}
-        <aside
-          className={styles.colPreview}
-          aria-label="Prévia do template selecionado"
-        >
-          {!selected ? (
-            <div className={styles.previewEmpty}>
-              Selecione um template na lista para visualizar a prévia.
-            </div>
-          ) : (
-            <PreviewWhatsApp
-              name={selected.name}
-              headerType={selected.header_type || "NONE"}
-              headerText={selected.header_text || ""}
-              headerMediaUrl={selected.header_media_url || ""}
-              bodyText={selected.body_text || ""}
-              footerText={selected.footer_text || ""}
-              buttons={selected.buttons || []}
-            />
-          )}
-        </aside>
       </div>
     </div>
   );
