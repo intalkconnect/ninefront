@@ -383,12 +383,23 @@ export default function Admin() {
         ],
       },
 
-      // Workflows como SEÇÃO principal (sem filhos), alinhado com as demais
+      // Workflows agora É seção, com "Hub" como item interno
       {
         key: "workflows",
         label: "Workflows",
         icon: <Workflow size={18} />,
-        to: "workflows/hub",
+        children: [
+          {
+            key: "workflows-main",
+            children: [
+              {
+                to: "workflows/hub",
+                icon: <Workflow size={16} />,
+                label: "Hub",
+              },
+            ],
+          },
+        ],
       },
 
       {
@@ -658,28 +669,7 @@ export default function Admin() {
                   );
                 }
 
-                // WORKFLOWS – seção sem filhos, mas clicável (mesmo alinhamento das outras)
-                if (!hasChildren) {
-                  return (
-                    <section key={menu.key} className={styles.menuSection}>
-                      <div
-                        className={`${styles.menuSectionHeader} ${
-                          activeMenu ? styles.menuSectionHeaderActive : ""
-                        } ${styles.menuSectionHeaderClickable}`}
-                        onClick={() => handleNavigation(menu.to)}
-                      >
-                        <span className={styles.menuSectionIcon}>
-                          {menu.icon}
-                        </span>
-                        <span className={styles.menuSectionLabel}>
-                          {menu.label}
-                        </span>
-                      </div>
-                    </section>
-                  );
-                }
-
-                // seções com filhos (Acompanhamento, Gestão, Campanhas, Configurações)
+                // seções (todas agora têm filhos, inclusive Workflows)
                 const leafItems =
                   menu.children?.reduce((all, grp) => {
                     if (Array.isArray(grp.children)) {
