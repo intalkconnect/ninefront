@@ -1,4 +1,3 @@
-// File: Admin.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
@@ -91,8 +90,8 @@ function HomeUpdates() {
         <div>
           <h1 className={styles.homeTitle}>Novidades do NineChat</h1>
           <p className={styles.homeSubtitle}>
-            Veja o que mudou, dicas para aproveitar melhor a plataforma
-            e links rápidos para a documentação.
+            Veja o que mudou, dicas para aproveitar melhor a plataforma e links
+            rápidos para a documentação.
           </p>
         </div>
       </header>
@@ -160,8 +159,9 @@ function HomeUpdates() {
               comunicações proativas com seus clientes.
             </li>
             <li>
-              Configure horários de fila em <strong>Workflows &gt; Filas</strong>{" "}
-              para evitar atendimentos fora do horário.
+              Configure horários de fila em{" "}
+              <strong>Workflows &gt; Filas</strong> para evitar atendimentos
+              fora do horário.
             </li>
             <li>
               Acompanhe a <strong>qualidade</strong> dos atendimentos em{" "}
@@ -308,14 +308,14 @@ export default function Admin() {
             key: "monitoring-realtime",
             children: [
               {
-                to: "monitoring/realtime/queues",
-                icon: <ListTree size={16} />,
-                label: "Filas",
-              },
-              {
                 to: "monitoring/realtime/agents",
                 icon: <Headset size={16} />,
                 label: "Agentes",
+              },
+              {
+                to: "monitoring/realtime/queues",
+                icon: <ListTree size={16} />,
+                label: "Filas",
               },
             ],
           },
@@ -338,38 +338,10 @@ export default function Admin() {
       },
 
       {
-        key: "management",
-        label: "Gestão",
-        icon: <Users size={18} />,
-        children: [
-          {
-            key: "mgmt-cadastros",
-            children: [
-              {
-                to: "management/users",
-                icon: <User size={16} />,
-                label: "Usuários",
-              },
-            ],
-          },
-        ],
-      },
-
-      {
         key: "campaigns",
         label: "Campanhas",
         icon: <Megaphone size={18} />,
         children: [
-          {
-            key: "camp-modelos",
-            children: [
-              {
-                to: "campaigns/templates",
-                icon: <FileText size={16} />,
-                label: "Templates",
-              },
-            ],
-          },
           {
             key: "camp-disparo",
             children: [
@@ -380,22 +352,13 @@ export default function Admin() {
               },
             ],
           },
-        ],
-      },
-
-      // Workflows agora É seção, com "Hub" como item interno
-      {
-        key: "workflows",
-        label: "Workflows",
-        icon: <Workflow size={18} />,
-        children: [
           {
-            key: "workflows-main",
+            key: "camp-modelos",
             children: [
               {
-                to: "workflows/hub",
-                icon: <Workflow size={16} />,
-                label: "Hub",
+                to: "campaigns/templates",
+                icon: <FileText size={16} />,
+                label: "Templates",
               },
             ],
           },
@@ -434,10 +397,70 @@ export default function Admin() {
           },
         ],
       },
+
+      {
+        key: "management",
+        label: "Gestão",
+        icon: <Users size={18} />,
+        children: [
+          {
+            key: "mgmt-cadastros",
+            children: [
+              {
+                to: "management/users",
+                icon: <User size={16} />,
+                label: "Usuários",
+              },
+            ],
+          },
+        ],
+      },
+
+      // Workflows agora é seção, com "Hub" como item interno
+      {
+        key: "workflows",
+        label: "Workflows",
+        icon: <Workflow size={18} />,
+        children: [
+          {
+            key: "workflows-main",
+            children: [
+              {
+                to: "workflows/hub",
+                icon: <Workflow size={16} />,
+                label: "Hub",
+              },
+            ],
+          },
+        ],
+      },
     ];
 
-    return filterMenusByRole(base);
-  }, [isSupervisor]);
+    // ---- Ordenação alfabética ----
+    // 1) Ordena itens internos (leafs) por label
+    base.forEach((menu) => {
+      if (Array.isArray(menu.children)) {
+        menu.children.forEach((group) => {
+          if (Array.isArray(group.children)) {
+            group.children.sort((a, b) =>
+              a.label.localeCompare(b.label, "pt-BR", {
+                sensitivity: "base",
+              })
+            );
+          }
+        });
+      }
+    });
+
+    // 2) Mantém "Início" em primeiro e ordena o resto das seções
+    const [dashboardMenu, ...rest] = base;
+    const sortedRest = [...rest].sort((a, b) =>
+      a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" })
+    );
+    const sortedMenus = [dashboardMenu, ...sortedRest];
+
+    return filterMenusByRole(sortedMenus);
+  }, [isSupervisor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNavigation = (path) => {
     const targetPath = path.startsWith("/") ? path : `/${path}`;
@@ -693,31 +716,33 @@ export default function Admin() {
                       </span>
                     </div>
 
-                    <ul className={styles.menuGroupList}>
-                      {leafItems.map((leaf) => {
-                        const leafActive = isLeafActive(leaf.to);
-                        return (
-                          <li key={leaf.to}>
-                            <button
-                              type="button"
-                              className={`${styles.menuLeafButton} ${
-                                leafActive ? styles.menuLeafActive : ""
-                              }`}
-                              onClick={() => handleNavigation(leaf.to)}
-                            >
-                              {leaf.icon && (
-                                <span className={styles.menuLeafIcon}>
-                                  {leaf.icon}
+                    {hasChildren && (
+                      <ul className={styles.menuGroupList}>
+                        {leafItems.map((leaf) => {
+                          const leafActive = isLeafActive(leaf.to);
+                          return (
+                            <li key={leaf.to}>
+                              <button
+                                type="button"
+                                className={`${styles.menuLeafButton} ${
+                                  leafActive ? styles.menuLeafActive : ""
+                                }`}
+                                onClick={() => handleNavigation(leaf.to)}
+                              >
+                                {leaf.icon && (
+                                  <span className={styles.menuLeafIcon}>
+                                    {leaf.icon}
+                                  </span>
+                                )}
+                                <span className={styles.menuLeafLabel}>
+                                  {leaf.label}
                                 </span>
-                              )}
-                              <span className={styles.menuLeafLabel}>
-                                {leaf.label}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </section>
                 );
               })}
