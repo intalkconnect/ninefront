@@ -132,7 +132,7 @@ const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
   URL.revokeObjectURL(url);
 };
 
-/* ========================= Pagina ========================= */
+/* ========================= Página ========================= */
 export default function BillingExtrato() {
   const now = new Date();
   const firstMonthDay = new Date(
@@ -315,6 +315,7 @@ export default function BillingExtrato() {
 
       {/* KPIs */}
       <div className={styles.kpisGrid}>
+        {/* Faturamento total */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
             <div className={styles.cardTitle}>
@@ -330,6 +331,7 @@ export default function BillingExtrato() {
           </div>
         </div>
 
+        {/* Usuários ativos */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
             <div className={styles.cardTitle}>
@@ -349,16 +351,64 @@ export default function BillingExtrato() {
           </div>
         </div>
 
-        {/* Total por canal — agora gráfico de pizza */}
+        {/* Card: gráfico de pizza por canal */}
         <div className={styles.card}>
           <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Total por canal</div>
+            <div className={styles.cardTitle}>Faturamento por canal</div>
           </div>
           <div className={styles.cardBody}>
             {loading ? (
               <div className={styles.loading}>Carregando…</div>
             ) : data.totals_by_channel?.length ? (
               <ChannelPie data={data.totals_by_channel} />
+            ) : (
+              <div className={styles.empty}>Sem dados por canal</div>
+            )}
+          </div>
+        </div>
+
+        {/* Card: valores totais por canal */}
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>Totais por canal</div>
+          </div>
+          <div className={styles.cardBody}>
+            {loading ? (
+              <div className={styles.loading}>Carregando…</div>
+            ) : data.totals_by_channel?.length ? (
+              <ul className={styles.channelList}>
+                {data.totals_by_channel
+                  .slice()
+                  .sort(
+                    (a, b) => (b.total_cents || 0) - (a.total_cents || 0)
+                  )
+                  .map((c) => (
+                    <li key={c.channel || "default"} className={styles.channelItem}>
+                      <div className={styles.channelLeft}>
+                        <span
+                          className={[
+                            styles.pill,
+                            c.channel === "whatsapp"
+                              ? styles["pill--whatsapp"]
+                              : c.channel === "telegram"
+                              ? styles["pill--telegram"]
+                              : styles["pill--default"],
+                          ].join(" ")}
+                        >
+                          {c.channel || "default"}
+                        </span>
+                      </div>
+                      <div className={styles.channelRight}>
+                        <span className={styles.channelStat}>
+                          {fmtInt(c.sessions || 0)} sessão(ões)
+                        </span>
+                        <span className={styles.channelValue}>
+                          {BRL(c.total_cents || 0)}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+              </ul>
             ) : (
               <div className={styles.empty}>Sem dados por canal</div>
             )}
