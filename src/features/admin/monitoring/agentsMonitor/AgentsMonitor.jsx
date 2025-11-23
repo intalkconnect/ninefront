@@ -32,7 +32,7 @@ const fmtRel = (iso) => {
   return `${days}d ${h % 24}h`;
 };
 
-const uniq = (arr) => Array.from(new Set(arr));
+const uniq = (arr) => Array.from(new Set(arr || []));
 
 /* ---------- componente ---------- */
 export default function AgentsRealtime() {
@@ -56,60 +56,60 @@ export default function AgentsRealtime() {
   const [page, setPage] = useState(1);
 
   /* ----- carrega dados ----- */
-  const fetchAll = useCallback(
-    async ({ fromButton = false } = {}) => {
-      try {
-        setRefreshing(true);
-        const [ags, pauses] = await Promise.all([
-          apiGet("/analytics/agents/realtime"),
-          apiGet("/breaks?active=true"),
-        ]);
+  const fetchAll = useCallback(async ({ fromButton = false } = {}) => {
+    try {
+      setRefreshing(true);
 
-        if (unmountedRef.current) return;
+      const [ags, pauses] = await Promise.all([
+        apiGet("/analytics/agents/realtime"),
+        apiGet("/breaks?active=true"),
+      ]);
 
-        const list = Array.isArray(ags)
-          ? ags
-          : Array.isArray(ags?.data)
-          ? ags.data
-          : [];
-        setAgents(list);
+      if (unmountedRef.current) return;
 
-        const pList = Array.isArray(pauses)
-          ? pauses
-          : Array.isArray(pauses?.data)
-          ? pauses.data
-          : [];
-        const map = new Map();
-        let def = 15;
+      const list = Array.isArray(ags)
+        ? ags
+        : Array.isArray(ags?.data)
+        ? ags.data
+        : [];
+      setAgents(list);
 
-        for (const p of pList || []) {
-          const label = String(p?.label || "").trim().toLowerCase();
-          const code = String(p?.code || "").trim().toLowerCase();
-          const mins = Number(p?.max_minutes);
+      const pList = Array.isArray(pauses)
+        ? pauses
+        : Array.isArray(pauses?.data)
+        ? pauses.data
+        : [];
 
-          if (Number.isFinite(mins) && mins > 0) {
-            if (label) map.set(label, mins);
-            if (code) map.set(code, mins);
-            if (code === "default" || label === "default") def = mins;
-          }
-        }
+      const map = new Map();
+      let def = 15;
 
-        setPauseCfg({ map, def });
-        setErro(null);
-        setNow(new Date());
-        if (fromButton) toast.success("Atualizado com sucesso");
-      } catch (e) {
-        setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
-        if (fromButton) toast.error("Não foi possível atualizar agora");
-      } finally {
-        if (!unmountedRef.current) {
-          setLoading(false);
-          setRefreshing(false);
+      for (const p of pList || []) {
+        const label = String(p?.label || "").trim().toLowerCase();
+        const code = String(p?.code || "").trim().toLowerCase();
+        const mins = Number(p?.max_minutes);
+
+        if (Number.isFinite(mins) && mins > 0) {
+          if (label) map.set(label, mins);
+          if (code) map.set(code, mins);
+          if (code === "default" || label === "default") def = mins;
         }
       }
-    },
-    []
-  );
+
+      setPauseCfg({ map, def });
+      setErro(null);
+      setNow(new Date());
+
+      if (fromButton) toast.success("Atualizado com sucesso");
+    } catch (e) {
+      setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
+      if (fromButton) toast.error("Não foi possível atualizar agora");
+    } finally {
+      if (!unmountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, []);
 
   // polling com pausa quando a aba está oculta
   useEffect(() => {
@@ -137,7 +137,7 @@ export default function AgentsRealtime() {
     };
   }, [fetchAll]);
 
-  // “relógio” leve pra contagem visual
+  // “relógio” leve pra atualizar info de tempo
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(t);
@@ -150,18 +150,6 @@ export default function AgentsRealtime() {
       return pauseCfg.map.get(key) ?? pauseCfg.def;
     },
     [pauseCfg]
-  );
-
-  // tom da linha: só ok ou late (sem warn pra agents)
-  const rowTone = useCallback(
-    (a) => {
-      if (a.status !== "pause") return "ok";
-      const dur = Number(a?.pausa?.duracao_min ?? 0);
-      const lim = getPauseLimit(a?.pausa?.motivo);
-      if (dur >= lim) return "late";
-      return "ok";
-    },
-    [getPauseLimit]
   );
 
   /* ----- KPIs ----- */
@@ -222,7 +210,7 @@ export default function AgentsRealtime() {
     setPage(1);
   }, [filterStatus, filterFila, filterText, agents]);
 
-  /* ----- render helpers ----- */
+  /* ----- componentes pequenos ----- */
   const StatusPill = ({ s }) => (
     <span className={`${styles.stPill} ${styles["st_" + s]}`}>
       {s === "pause"
@@ -243,15 +231,24 @@ export default function AgentsRealtime() {
     const lim = getPauseLimit(motivo);
     const rest = lim - dur;
 
-    const late = rest <= 0;
+    const state =
+      rest <= 0
+        ? "late"
+        : dur >= Math.max(1, Math.floor(lim * 0.8))
+        ? "warn"
+        : "ok";
 
     return (
       <div className={styles.pauseWrap}>
         <span className={styles.pauseReason}>{motivo}</span>
         <span className={styles.sep}>•</span>
-        {late ? (
+        {state === "late" ? (
           <span className={`${styles.pauseBadge} ${styles.pbLate}`}>
             excedido +{fmtMin(-rest)}
+          </span>
+        ) : state === "warn" ? (
+          <span className={`${styles.pauseBadge} ${styles.pbWarn}`}>
+            restam {fmtMin(rest)}
           </span>
         ) : (
           <span className={`${styles.pauseBadge} ${styles.pbOk}`}>
@@ -262,21 +259,59 @@ export default function AgentsRealtime() {
     );
   };
 
-  const rowClass = (a) =>
-    `${styles.row} ${styles["tone_" + rowTone(a)]}`;
+  /* ---------- Cards ---------- */
+  function KpiCard({ icon, label, value, tone = "blue" }) {
+    return (
+      <div className={styles.card}>
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>
+            <span className={styles.cardIcon}>{icon}</span>
+            <span>{label}</span>
+          </div>
+        </div>
+        <div className={styles.cardBody}>
+          <div
+            className={`${styles.kpiValue} ${styles["tone_" + tone]}`}
+          >
+            {value}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function KpiSkeleton() {
+    return (
+      <div className={styles.card}>
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>
+            <span className={`${styles.skeleton} ${styles.sq16}`} />
+            <span className={`${styles.skeleton} ${styles.sq120}`} />
+          </div>
+        </div>
+        <div className={styles.cardBody}>
+          <div className={`${styles.skeleton} ${styles.sq48}`} />
+        </div>
+      </div>
+    );
+  }
 
   /* ---------- render ---------- */
   return (
     <div className={styles.container}>
-      {/* HEADER padronizado com ClientsMonitor */}
+      {/* HEADER padronizado */}
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <h1 className={styles.title}>Monitor de Agentes</h1>
           <p className={styles.subtitle}>
-            Acompanhe em tempo real quem está online, em pausa, offline
-            ou inativo.
+            Acompanhe em tempo real quem está online, em pausa, offline ou
+            inativo.
           </p>
-          {erro && <span className={styles.kpillAmber}>{erro}</span>}
+          {erro && (
+            <span className={styles.kpillAmber}>
+              {erro}
+            </span>
+          )}
         </div>
 
         <button
@@ -284,12 +319,12 @@ export default function AgentsRealtime() {
           onClick={() => fetchAll({ fromButton: true })}
           disabled={refreshing}
           title="Atualizar agora"
-          aria-label="Atualizar agora"
         >
           <RefreshCw
-            size={18}
+            size={16}
             className={refreshing ? styles.spinning : ""}
           />
+          <span className={styles.srOnly}>Atualizar</span>
         </button>
       </header>
 
@@ -297,120 +332,44 @@ export default function AgentsRealtime() {
       <section className={styles.cardGroup}>
         {loading ? (
           <>
-            <div className={styles.card}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>
-                  <span className={`${styles.skeleton} ${styles.sq16}`} />
-                  <span className={`${styles.skeleton} ${styles.sq120}`} />
-                </div>
-              </div>
-              <div className={styles.cardBody}>
-                <div className={`${styles.skeleton} ${styles.sq48}`} />
-              </div>
-            </div>
-            <div className={styles.card}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>
-                  <span className={`${styles.skeleton} ${styles.sq16}`} />
-                  <span className={`${styles.skeleton} ${styles.sq120}`} />
-                </div>
-              </div>
-              <div className={styles.cardBody}>
-                <div className={`${styles.skeleton} ${styles.sq48}`} />
-              </div>
-            </div>
-            <div className={styles.card}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>
-                  <span className={`${styles.skeleton} ${styles.sq16}`} />
-                  <span className={`${styles.skeleton} ${styles.sq120}`} />
-                </div>
-              </div>
-              <div className={styles.cardBody}>
-                <div className={`${styles.skeleton} ${styles.sq48}`} />
-              </div>
-            </div>
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
           </>
         ) : (
           <>
-            <div className={styles.card}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>
-                  <span className={styles.cardIcon}>
-                    <ToggleLeft size={16} />
-                  </span>
-                  <span>Online</span>
-                </div>
-              </div>
-              <div className={styles.cardBody}>
-                <div
-                  className={`${styles.kpiValue} ${styles.tone_green}`}
-                >
-                  {kpis.online}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>
-                  <span className={styles.cardIcon}>
-                    <PauseCircle size={16} />
-                  </span>
-                  <span>Em pausa</span>
-                </div>
-              </div>
-              <div className={styles.cardBody}>
-                <div
-                  className={`${styles.kpiValue} ${styles.tone_amber}`}
-                >
-                  {kpis.pause}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>
-                  <span className={styles.cardIcon}>
-                    <Power size={16} />
-                  </span>
-                  <span>Offline</span>
-                </div>
-              </div>
-              <div className={styles.cardBody}>
-                <div
-                  className={`${styles.kpiValue} ${styles.tone_blue}`}
-                >
-                  {kpis.offline}
-                </div>
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>
-                  <span className={styles.cardIcon}>
-                    <Clock size={16} />
-                  </span>
-                  <span>Inativos</span>
-                </div>
-              </div>
-              <div className={styles.cardBody}>
-                <div
-                  className={`${styles.kpiValue} ${styles.tone_orange}`}
-                >
-                  {kpis.inativo}
-                </div>
-              </div>
-            </div>
+            <KpiCard
+              icon={<ToggleLeft size={16} />}
+              label="Online"
+              value={kpis.online}
+              tone="green"
+            />
+            <KpiCard
+              icon={<PauseCircle size={16} />}
+              label="Em pausa"
+              value={kpis.pause}
+              tone="amber"
+            />
+            <KpiCard
+              icon={<Power size={16} />}
+              label="Offline"
+              value={kpis.offline}
+              tone="blue"
+            />
+            <KpiCard
+              icon={<Clock size={16} />}
+              label="Inativos"
+              value={kpis.inativo}
+              tone="orange"
+            />
           </>
         )}
       </section>
 
       {/* Filtros */}
       <section className={styles.filters}>
-        <div className={styles.filtersRow}>
+        <div className={styles.filterRow}>
           <div className={styles.filterGroup}>
             <div className={styles.filterTitle}>Status</div>
             <div className={styles.filterChips}>
@@ -492,71 +451,61 @@ export default function AgentsRealtime() {
                   </td>
                 </tr>
               ) : (
-                pageData.map((a) => (
-                  <tr
-                    key={a.email || a.agente}
-                    className={rowClass(a)}
-                  >
-                    <td className={styles.agentCell}>
-                      <span className={styles.agentName}>
-                        {a.agente}
-                      </span>
-                    </td>
-                    <td>
-                      <StatusPill s={a.status} />
-                    </td>
-                    <td>
-                      <PauseInfo a={a} />
-                    </td>
-                    <td>
-                      {(Array.isArray(a.filas) ? a.filas : []).map(
-                        (f) => (
-                          <span
-                            key={f}
-                            className={styles.filaPill}
-                          >
+                pageData.map((a, idx) => {
+                  const rowClassName =
+                    idx % 2 === 0 ? styles.rowEven : styles.rowOdd;
+
+                  let lastClass = styles.lastStale;
+                  if (a.last_seen) {
+                    const diffSec =
+                      (Date.now() - new Date(a.last_seen).getTime()) / 1000;
+                    if (diffSec <= 60) lastClass = styles.lastOk;
+                    else if (diffSec <= 180) lastClass = styles.lastWarn;
+                    else lastClass = styles.lastStale;
+                  }
+
+                  return (
+                    <tr key={a.email || a.agente} className={rowClassName}>
+                      <td className={styles.agentCell}>
+                        <span className={styles.agentName}>
+                          {a.agente}
+                        </span>
+                      </td>
+                      <td>
+                        <StatusPill s={a.status} />
+                      </td>
+                      <td>
+                        <PauseInfo a={a} />
+                      </td>
+                      <td>
+                        {(Array.isArray(a.filas) ? a.filas : []).map((f) => (
+                          <span key={f} className={styles.filaPill}>
                             {f}
                           </span>
-                        )
-                      )}
-                    </td>
-                    <td className={styles.bold}>
-                      {a.tickets_abertos || 0}
-                    </td>
-                    <td
-                      className={`${styles.lastAct} ${
-                        !a.last_seen
-                          ? styles.lastStale
-                          : (Date.now() -
-                              new Date(a.last_seen).getTime()) /
-                              1000 <=
-                            60
-                          ? styles.lastOk
-                          : (Date.now() -
-                              new Date(a.last_seen).getTime()) /
-                              1000 <=
-                            180
-                          ? styles.lastOk
-                          : styles.lastStale
-                      }`}
-                      title={
-                        a.last_seen
-                          ? new Date(
-                              a.last_seen
-                            ).toLocaleString("pt-BR")
-                          : ""
-                      }
-                    >
-                      {fmtRel(a.last_seen)}
-                    </td>
-                  </tr>
-                ))
+                        ))}
+                      </td>
+                      <td className={styles.bold}>
+                        {a.tickets_abertos || 0}
+                      </td>
+                      <td
+                        className={`${styles.lastAct} ${lastClass}`}
+                        title={
+                          a.last_seen
+                            ? new Date(a.last_seen).toLocaleString("pt-BR")
+                            : ""
+                        }
+                      >
+                        {fmtRel(a.last_seen)}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Paginação */}
+        {/* paginação */}
         <div className={styles.pagination}>
           <button
             type="button"
@@ -572,9 +521,7 @@ export default function AgentsRealtime() {
           <button
             type="button"
             className={styles.pageBtn}
-            onClick={() =>
-              setPage((p) => Math.min(totalPages, p + 1))
-            }
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={pageSafe >= totalPages}
           >
             Próxima ›
