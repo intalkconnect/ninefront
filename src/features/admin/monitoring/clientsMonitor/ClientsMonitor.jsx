@@ -98,7 +98,13 @@ export default function ClientsMonitor() {
   // settings vindos da API (null até carregar)
   const [settings, setSettings] = useState(null);
 
-  const [selectedFilter, setSelectedFilter] = useState("todos");
+  // visão da tabela (tabs)
+  const [statusView, setStatusView] = useState("em_atendimento"); // tabs
+
+  // filtros adicionais
+  const [queueFilter, setQueueFilter] = useState("all");
+  const [channelFilter, setChannelFilter] = useState("all");
+
   const [atendimentos, setAtendimentos] = useState([]);
   const [filas, setFilas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -218,7 +224,7 @@ export default function ClientsMonitor() {
   }, [fetchAll]);
 
   const handleFinish = useCallback((a) => {
-    // TODO: implementar lógica de finalização de atendimento
+    // TODO: implementar lógica de finalização real
     console.log("Finalizar atendimento", a);
     toast.info("Ação de finalização ainda não implementada.");
   }, []);
@@ -256,28 +262,32 @@ export default function ClientsMonitor() {
 
   const filtered = useMemo(() => {
     return atendimentos.filter((a) => {
-      if (selectedFilter === "todos") return true;
-      if (selectedFilter === "aguardando") return a.status === "aguardando";
-      if (selectedFilter === "em_atendimento")
-        return a.status === "em_atendimento";
-      if (filasParaFiltro.some((f) => f.slug === selectedFilter))
-        return slugify(a.fila) === selectedFilter;
+      // visão (tab)
+      if (statusView === "aguardando" && a.status !== "aguardando") return false;
+      if (statusView === "em_atendimento" && a.status !== "em_atendimento")
+        return false;
+
+      // filtro por fila
+      if (queueFilter !== "all" && slugify(a.fila) !== queueFilter) {
+        return false;
+      }
+
+      // filtro por canal
       if (
-        canais
-          .map((c) => c.toLowerCase())
-          .includes(String(selectedFilter).toLowerCase())
-      )
-        return (
-          String(a.canal || "").toLowerCase() ===
-          String(selectedFilter).toLowerCase()
-        );
+        channelFilter !== "all" &&
+        String(a.canal || "").toLowerCase() !==
+          String(channelFilter).toLowerCase()
+      ) {
+        return false;
+      }
+
       return true;
     });
-  }, [atendimentos, selectedFilter, filasParaFiltro]);
+  }, [atendimentos, statusView, queueFilter, channelFilter]);
 
   useEffect(() => {
     setPage(1);
-  }, [selectedFilter, atendimentos]);
+  }, [statusView, queueFilter, channelFilter, atendimentos]);
 
   /* KPIs --------------------------------------------------- */
   const stats = useMemo(
@@ -369,9 +379,14 @@ export default function ClientsMonitor() {
   );
 
   const tabDefs = [
-    { key: "todos", label: "Todos" },
-    { key: "aguardando", label: "Aguardando" },
-    { key: "em_atendimento", label: "Em atendimento" },
+    {
+      key: "em_atendimento",
+      label: "Atribuído/Em andamento",
+    },
+    {
+      key: "aguardando",
+      label: "Aguardando atendimento",
+    },
   ];
 
   /* Render ------------------------------------------------- */
@@ -456,17 +471,27 @@ export default function ClientsMonitor() {
           )}
         </section>
 
-        {/* Filtros (apenas fila e canal, as visões viraram tabs) */}
+        {/* Filtros (fila / canal). “Todos” aqui significa nenhum filtro aplicado */}
         <section className={styles.filters}>
           <div className={styles.filterGroup}>
             <h4 className={styles.filterTitle}>Filtrar por fila</h4>
             <div className={styles.filterChips}>
+              <button
+                type="button"
+                onClick={() => setQueueFilter("all")}
+                className={`${styles.chip} ${
+                  queueFilter === "all" ? styles.chipActive : ""
+                }`}
+              >
+                Todos
+              </button>
+
               {filasParaFiltro.map(({ nome, slug }) => (
                 <button
                   key={slug}
-                  onClick={() => setSelectedFilter(slug)}
+                  onClick={() => setQueueFilter(slug)}
                   className={`${styles.chip} ${
-                    selectedFilter === slug ? styles.chipGreen : ""
+                    queueFilter === slug ? styles.chipGreen : ""
                   }`}
                   title={nome}
                 >
@@ -479,12 +504,22 @@ export default function ClientsMonitor() {
           <div className={styles.filterGroup}>
             <h4 className={styles.filterTitle}>Filtrar por canal</h4>
             <div className={styles.filterChips}>
+              <button
+                type="button"
+                onClick={() => setChannelFilter("all")}
+                className={`${styles.chip} ${
+                  channelFilter === "all" ? styles.chipActive : ""
+                }`}
+              >
+                Todos
+              </button>
+
               {canais.map((f) => (
                 <button
                   key={f}
-                  onClick={() => setSelectedFilter(f)}
+                  onClick={() => setChannelFilter(f)}
                   className={`${styles.chip} ${
-                    selectedFilter === f ? styles.chipPurple : ""
+                    channelFilter === f ? styles.chipPurple : ""
                   }`}
                   title={cap(f)}
                 >
@@ -500,15 +535,15 @@ export default function ClientsMonitor() {
           <div className={styles.tableHeader}>
             <h2 className={styles.tableTitle}>Atendimentos em tempo real</h2>
 
-            {/* Tabs de visão (Todos / Aguardando / Em atendimento) */}
+            {/* Tabs de visão (como no print: texto + sublinhado) */}
             <div className={styles.tableTabs}>
               {tabDefs.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setSelectedFilter(tab.key)}
+                  onClick={() => setStatusView(tab.key)}
                   className={`${styles.tab} ${
-                    selectedFilter === tab.key ? styles.tabActive : ""
+                    statusView === tab.key ? styles.tabActive : ""
                   }`}
                 >
                   {tab.label}
