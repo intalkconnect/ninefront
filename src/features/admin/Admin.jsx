@@ -1,3 +1,4 @@
+// File: Admin.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
@@ -34,8 +35,6 @@ import FlowChannels from "./flow/channels/FlowChannels";
 import Queues from "./flow/queue/Queues";
 import QueueForm from "./flow/queue/QueueForm";
 import QueueHours from "./flow/queue/QueueHours";
-// Dashboard antigo não é mais usado aqui
-// import Dashboard from "./dashboard/Dashboard";
 import LogoutButton from "../../components/common/LogoutButton";
 import styles from "./styles/Admin.module.css";
 import { parseJwt } from "../../app/utils/auth";
@@ -90,8 +89,8 @@ function HomeUpdates() {
         <div>
           <h1 className={styles.homeTitle}>Novidades do NineChat</h1>
           <p className={styles.homeSubtitle}>
-            Veja o que mudou, dicas para aproveitar melhor a plataforma e links
-            rápidos para a documentação.
+            Veja o que mudou, dicas para aproveitar melhor a plataforma
+            e links rápidos para a documentação.
           </p>
         </div>
       </header>
@@ -159,9 +158,8 @@ function HomeUpdates() {
               comunicações proativas com seus clientes.
             </li>
             <li>
-              Configure horários de fila em{" "}
-              <strong>Workflows &gt; Filas</strong> para evitar atendimentos
-              fora do horário.
+              Configure horários de fila em <strong>Workflows &gt; Filas</strong>{" "}
+              para evitar atendimentos fora do horário.
             </li>
             <li>
               Acompanhe a <strong>qualidade</strong> dos atendimentos em{" "}
@@ -308,14 +306,14 @@ export default function Admin() {
             key: "monitoring-realtime",
             children: [
               {
-                to: "monitoring/realtime/agents",
-                icon: <Headset size={16} />,
-                label: "Agentes",
-              },
-              {
                 to: "monitoring/realtime/queues",
                 icon: <ListTree size={16} />,
                 label: "Filas",
+              },
+              {
+                to: "monitoring/realtime/agents",
+                icon: <Headset size={16} />,
+                label: "Agentes",
               },
             ],
           },
@@ -331,6 +329,24 @@ export default function Admin() {
                 to: "analytics/sessions",
                 icon: <Clock size={16} />,
                 label: "Sessões",
+              },
+            ],
+          },
+        ],
+      },
+
+      {
+        key: "management",
+        label: "Gestão",
+        icon: <Users size={18} />,
+        children: [
+          {
+            key: "mgmt-cadastros",
+            children: [
+              {
+                to: "management/users",
+                icon: <User size={16} />,
+                label: "Usuários",
               },
             ],
           },
@@ -399,25 +415,6 @@ export default function Admin() {
       },
 
       {
-        key: "management",
-        label: "Gestão",
-        icon: <Users size={18} />,
-        children: [
-          {
-            key: "mgmt-cadastros",
-            children: [
-              {
-                to: "management/users",
-                icon: <User size={16} />,
-                label: "Usuários",
-              },
-            ],
-          },
-        ],
-      },
-
-      // Workflows agora é seção, com "Hub" como item interno
-      {
         key: "workflows",
         label: "Workflows",
         icon: <Workflow size={18} />,
@@ -436,31 +433,37 @@ export default function Admin() {
       },
     ];
 
-    // ---- Ordenação alfabética ----
-    // 1) Ordena itens internos (leafs) por label
-    base.forEach((menu) => {
-      if (Array.isArray(menu.children)) {
-        menu.children.forEach((group) => {
-          if (Array.isArray(group.children)) {
-            group.children.sort((a, b) =>
-              a.label.localeCompare(b.label, "pt-BR", {
-                sensitivity: "base",
-              })
-            );
-          }
-        });
-      }
+    // aplica regras de permissão
+    const filtered = filterMenusByRole(base);
+
+    // 1) top-level em ordem alfabética, mantendo "Início" primeiro
+    const dashboard = filtered.find((m) => m.key === "dashboard");
+    const others = filtered
+      .filter((m) => m.key !== "dashboard")
+      .sort((a, b) =>
+        String(a.label || "").localeCompare(String(b.label || ""), "pt-BR", {
+          sensitivity: "base",
+        })
+      );
+
+    // 2) filhos em ordem alfabética dentro de cada seção
+    others.forEach((menu) => {
+      if (!menu.children) return;
+      menu.children.forEach((grp) => {
+        if (Array.isArray(grp.children)) {
+          grp.children.sort((a, b) =>
+            String(a.label || "").localeCompare(
+              String(b.label || ""),
+              "pt-BR",
+              { sensitivity: "base" }
+            )
+          );
+        }
+      });
     });
 
-    // 2) Mantém "Início" em primeiro e ordena o resto das seções
-    const [dashboardMenu, ...rest] = base;
-    const sortedRest = [...rest].sort((a, b) =>
-      a.label.localeCompare(b.label, "pt-BR", { sensitivity: "base" })
-    );
-    const sortedMenus = [dashboardMenu, ...sortedRest];
-
-    return filterMenusByRole(sortedMenus);
-  }, [isSupervisor]); // eslint-disable-line react-hooks/exhaustive-deps
+    return dashboard ? [dashboard, ...others] : others;
+  }, [isSupervisor]);
 
   const handleNavigation = (path) => {
     const targetPath = path.startsWith("/") ? path : `/${path}`;
@@ -673,7 +676,6 @@ export default function Admin() {
             <nav className={styles.navRoot}>
               {menus.map((menu) => {
                 const activeMenu = isMenuActive(menu);
-                const hasChildren = Array.isArray(menu.children);
 
                 // INÍCIO – botão principal
                 if (menu.key === "dashboard") {
@@ -692,7 +694,6 @@ export default function Admin() {
                   );
                 }
 
-                // seções (todas agora têm filhos, inclusive Workflows)
                 const leafItems =
                   menu.children?.reduce((all, grp) => {
                     if (Array.isArray(grp.children)) {
@@ -716,40 +717,38 @@ export default function Admin() {
                       </span>
                     </div>
 
-                    {hasChildren && (
-                      <ul className={styles.menuGroupList}>
-                        {leafItems.map((leaf) => {
-                          const leafActive = isLeafActive(leaf.to);
-                          return (
-                            <li key={leaf.to}>
-                              <button
-                                type="button"
-                                className={`${styles.menuLeafButton} ${
-                                  leafActive ? styles.menuLeafActive : ""
-                                }`}
-                                onClick={() => handleNavigation(leaf.to)}
-                              >
-                                {leaf.icon && (
-                                  <span className={styles.menuLeafIcon}>
-                                    {leaf.icon}
-                                  </span>
-                                )}
-                                <span className={styles.menuLeafLabel}>
-                                  {leaf.label}
+                    <ul className={styles.menuGroupList}>
+                      {leafItems.map((leaf) => {
+                        const leafActive = isLeafActive(leaf.to);
+                        return (
+                          <li key={leaf.to}>
+                            <button
+                              type="button"
+                              className={`${styles.menuLeafButton} ${
+                                leafActive ? styles.menuLeafActive : ""
+                              }`}
+                              onClick={() => handleNavigation(leaf.to)}
+                            >
+                              {leaf.icon && (
+                                <span className={styles.menuLeafIcon}>
+                                  {leaf.icon}
                                 </span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
+                              )}
+                              <span className={styles.menuLeafLabel}>
+                                {leaf.label}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </section>
                 );
               })}
             </nav>
           </aside>
 
-          {/* Conteúdo principal */}
+          {/* Conteúdo principal – ÚNICO lugar com scroll vertical */}
           <main className={styles.main}>
             <div className={styles.content}>
               <Routes>
