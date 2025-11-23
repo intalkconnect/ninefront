@@ -217,6 +217,12 @@ export default function ClientsMonitor() {
     fetchAll();
   }, [fetchAll]);
 
+  const handleFinish = useCallback((a) => {
+    // TODO: implementar lógica de finalização de atendimento
+    console.log("Finalizar atendimento", a);
+    toast.info("Ação de finalização ainda não implementada.");
+  }, []);
+
   // polling a cada 10s + pausa quando aba oculta
   useEffect(() => {
     unmountedRef.current = false;
@@ -450,25 +456,8 @@ export default function ClientsMonitor() {
           )}
         </section>
 
-        {/* Filtros */}
+        {/* Filtros (apenas fila e canal, as visões viraram tabs) */}
         <section className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <h4 className={styles.filterTitle}>Filtros gerais</h4>
-            <div className={styles.filterChips}>
-              {["todos", "aguardando", "em_atendimento"].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setSelectedFilter(f)}
-                  className={`${styles.chip} ${
-                    selectedFilter === f ? styles.chipActive : ""
-                  }`}
-                >
-                  {cap(f)}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className={styles.filterGroup}>
             <h4 className={styles.filterTitle}>Filtrar por fila</h4>
             <div className={styles.filterChips}>
@@ -511,6 +500,7 @@ export default function ClientsMonitor() {
           <div className={styles.tableHeader}>
             <h2 className={styles.tableTitle}>Atendimentos em tempo real</h2>
 
+            {/* Tabs de visão (Todos / Aguardando / Em atendimento) */}
             <div className={styles.tableTabs}>
               {tabDefs.map((tab) => (
                 <button
@@ -619,29 +609,40 @@ export default function ClientsMonitor() {
                         </div>
                       </td>
                       <td className={styles.colAcoes}>
-                        <button
-                          className={styles.linkBtn}
-                          aria-label="Visualizar conversa"
-                          title="Visualizar conversa"
-                          onClick={() =>
-                            setPreview({
-                              userId: a.user_id,
-                              cliente: a.cliente,
-                              canal: a.canal,
-                            })
-                          }
-                        >
-                          <Eye size={16} />
-                        </button>
+                        <div className={styles.actionsCell}>
+                          <button
+                            className={styles.linkBtn}
+                            aria-label="Visualizar conversa"
+                            title="Visualizar conversa"
+                            onClick={() =>
+                              setPreview({
+                                userId: a.user_id,
+                                cliente: a.cliente,
+                                canal: a.canal,
+                              })
+                            }
+                          >
+                            <Eye size={16} />
+                          </button>
 
-                        <button
-                          className={styles.linkBtnDanger}
-                          aria-label="Transferir"
-                          title="Transferir"
-                          onClick={() => onOpenTransfer(a)}
-                        >
-                          <ArrowLeftRight size={16} />
-                        </button>
+                          <button
+                            className={styles.linkBtnSuccess}
+                            aria-label="Finalizar atendimento"
+                            title="Finalizar atendimento"
+                            onClick={() => handleFinish(a)}
+                          >
+                            <CheckCircle size={16} />
+                          </button>
+
+                          <button
+                            className={styles.linkBtnDanger}
+                            aria-label="Transferir"
+                            title="Transferir"
+                            onClick={() => onOpenTransfer(a)}
+                          >
+                            <ArrowLeftRight size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -716,9 +717,7 @@ function KpiCard({ icon, label, value, tone = "blue" }) {
         </div>
       </div>
       <div className={styles.cardBody}>
-        <div
-          className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}
-        >
+        <div className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}>
           {value}
         </div>
       </div>
