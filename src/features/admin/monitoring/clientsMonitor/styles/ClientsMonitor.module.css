@@ -322,7 +322,7 @@
   color: #f9fafb;
 }
 
-/* Tabs da tabela */
+/* Tabs da tabela (visões) */
 .tableTabs {
   display: inline-flex;
   background: #111827;
@@ -402,9 +402,9 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* Largura de colunas específicas (mais estreitas) */
+/* Largura de colunas específicas (ajustado para caber 3 ícones em Ações) */
 .colCanal {
-  width: 110px;
+  width: 90px;
 }
 
 .colTicket {
@@ -417,7 +417,7 @@
 }
 
 .colAcoes {
-  width: 90px;
+  width: 120px;
   text-align: center;
 }
 
@@ -451,7 +451,7 @@
   align-items: center;
   font-weight: 700;
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 8px;
   font-size: 12px;
   border: 1px solid;
 }
@@ -531,19 +531,24 @@
 
 /* Ações */
 .actionsCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   white-space: nowrap;
 }
 
-/* linkBtn no padrão FlowHub (usado para ícones na tabela) */
+/* Botões de ação em linha, no padrão FlowHub */
 .linkBtn,
-.linkBtnDanger {
+.linkBtnDanger,
+.linkBtnSuccess {
   background: transparent;
   border: none;
   color: #60a5fa;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 6px 6px;
   border-radius: 8px;
   transition: background 0.18s ease, color 0.18s ease, transform 0.12s ease;
   display: inline-flex;
@@ -551,7 +556,9 @@
   justify-content: center;
 }
 
-.linkBtn:hover {
+.linkBtn:hover,
+.linkBtnDanger:hover,
+.linkBtnSuccess:hover {
   background: rgba(37, 99, 235, 0.12);
   color: #bfdbfe;
 }
@@ -560,9 +567,8 @@
   color: #60a5fa;
 }
 
-.linkBtnDanger:hover {
-  background: rgba(37, 99, 235, 0.12);
-  color: #bfdbfe;
+.linkBtnSuccess {
+  color: #22c55e;
 }
 
 /* Paginação – rodapé da tabela no mesmo card */
