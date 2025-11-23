@@ -1,3 +1,4 @@
+// src/features/admin/monitoring/agentsMonitor/AgentsMonitor.jsx
 import React, {
   useEffect,
   useMemo,
@@ -41,7 +42,7 @@ export default function AgentsRealtime() {
   const [erro, setErro] = useState(null);
   const unmountedRef = useRef(false);
 
-  // limites de pausa vindos de /pause
+  // limites de pausa vindos de /breaks
   const [pauseCfg, setPauseCfg] = useState({ map: new Map(), def: 15 });
 
   // filtros
@@ -54,57 +55,57 @@ export default function AgentsRealtime() {
   const [page, setPage] = useState(1);
 
   /* ----- carrega dados ----- */
-  const fetchAll = useCallback(
-    async ({ fromButton = false } = {}) => {
-      try {
-        setRefreshing(true);
-        const [ags, pauses] = await Promise.all([
-          apiGet("/analytics/agents/realtime"),
-          apiGet("/breaks?active=true"),
-        ]);
+  const fetchAll = useCallback(async ({ fromButton = false } = {}) => {
+    try {
+      setRefreshing(true);
+      const [ags, pauses] = await Promise.all([
+        apiGet("/analytics/agents/realtime"),
+        apiGet("/breaks?active=true"),
+      ]);
 
-        if (unmountedRef.current) return;
+      if (unmountedRef.current) return;
 
-        const list = Array.isArray(ags)
-          ? ags
-          : Array.isArray(ags?.data)
-          ? ags.data
-          : [];
-        setAgents(list);
+      const list = Array.isArray(ags)
+        ? ags
+        : Array.isArray(ags?.data)
+        ? ags.data
+        : [];
+      setAgents(list);
 
-        const pList = Array.isArray(pauses)
-          ? pauses
-          : Array.isArray(pauses?.data)
-          ? pauses.data
-          : [];
-        const map = new Map();
-        let def = 15;
-        for (const p of pList || []) {
-          const label = String(p?.label || "").trim().toLowerCase();
-          const code = String(p?.code || "").trim().toLowerCase();
-          const mins = Number(p?.max_minutes);
-          if (Number.isFinite(mins) && mins > 0) {
-            if (label) map.set(label, mins);
-            if (code) map.set(code, mins);
-            if (code === "default" || label === "default") def = mins;
-          }
-        }
-        setPauseCfg({ map, def });
+      const pList = Array.isArray(pauses)
+        ? pauses
+        : Array.isArray(pauses?.data)
+        ? pauses.data
+        : [];
+      const map = new Map();
+      let def = 15;
 
-        setErro(null);
-        if (fromButton) toast.success("Atualizado com sucesso");
-      } catch (e) {
-        setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
-        if (fromButton) toast.error("Não foi possível atualizar agora");
-      } finally {
-        if (!unmountedRef.current) {
-          setLoading(false);
-          setRefreshing(false);
+      for (const p of pList || []) {
+        const label = String(p?.label || "").trim().toLowerCase();
+        const code = String(p?.code || "").trim().toLowerCase();
+        const mins = Number(p?.max_minutes);
+
+        if (Number.isFinite(mins) && mins > 0) {
+          if (label) map.set(label, mins);
+          if (code) map.set(code, mins);
+          if (code === "default" || label === "default") def = mins;
         }
       }
-    },
-    []
-  );
+
+      setPauseCfg({ map, def });
+      setErro(null);
+
+      if (fromButton) toast.success("Atualizado com sucesso");
+    } catch (e) {
+      setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
+      if (fromButton) toast.error("Não foi possível atualizar agora");
+    } finally {
+      if (!unmountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, []);
 
   // polling com pausa quando a aba está oculta
   useEffect(() => {
@@ -122,6 +123,7 @@ export default function AgentsRealtime() {
         it = setInterval(run, 10000);
       }
     };
+
     document.addEventListener("visibilitychange", onVis);
 
     return () => {
@@ -182,22 +184,26 @@ export default function AgentsRealtime() {
 
       const txt = filterText.trim().toLowerCase();
       if (!txt) return true;
+
       const hay =
         (a.agente || "").toLowerCase().includes(txt) ||
         (a.filas || []).some((f) =>
           String(f).toLowerCase().includes(txt)
         ) ||
         (a.pausa?.motivo || "").toLowerCase().includes(txt);
+
       return hay;
     });
   }, [agents, filterStatus, filterFila, filterText]);
 
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const [pageSafe, start] = useMemo(() => {
     const p = Math.min(page, totalPages);
     return [p, (p - 1) * PAGE_SIZE];
   }, [page, totalPages]);
+
   const pageData = useMemo(
     () => filtered.slice(start, start + PAGE_SIZE),
     [filtered, start]
@@ -255,8 +261,7 @@ export default function AgentsRealtime() {
     );
   };
 
-  const rowClass = (a) =>
-    `${styles.row} ${styles["tone_" + rowTone(a)]}`;
+  const rowClass = (a) => `${styles.row} ${styles["tone_" + rowTone(a)]}`;
 
   /* ---------- Cards ---------- */
   function KpiCard({ icon, label, value, tone = "blue" }) {
@@ -270,7 +275,7 @@ export default function AgentsRealtime() {
         </div>
         <div className={styles.cardBody}>
           <div
-            className={`${styles.kpiValue} ${styles[`tone_${tone}`]}`}
+            className={`${styles.kpiValue} ${styles["tone_" + tone]}`}
           >
             {value}
           </div>
@@ -298,13 +303,13 @@ export default function AgentsRealtime() {
   /* ---------- render ---------- */
   return (
     <div className={styles.container}>
-      {/* Header no padrão FlowHub / Monitor de Filas */}
+      {/* HEADER no padrão FlowHub / Monitor de filas */}
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <h1 className={styles.title}>Monitor de Agentes</h1>
           <p className={styles.subtitle}>
-            Acompanhe em tempo real quem está online, em pausa ou
-            offline.
+            Acompanhe em tempo real quem está online, em pausa, offline ou
+            inativo.
           </p>
           {erro && <div className={styles.kpillAmber}>{erro}</div>}
         </div>
@@ -364,27 +369,25 @@ export default function AgentsRealtime() {
       {/* Filtros */}
       <section className={styles.filters}>
         <div className={styles.filterGroup}>
-          <div className={styles.filterTitle}>Status</div>
+          <h4 className={styles.filterTitle}>Status</h4>
           <div className={styles.filterChips}>
-            {["todos", "online", "pause", "offline", "inativo"].map(
-              (s) => (
-                <button
-                  key={s}
-                  className={`${styles.chip} ${
-                    filterStatus === s ? styles.chipActive : ""
-                  }`}
-                  onClick={() => setFilterStatus(s)}
-                  type="button"
-                >
-                  {s[0].toUpperCase() + s.slice(1)}
-                </button>
-              )
-            )}
+            {["todos", "online", "pause", "offline", "inativo"].map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`${styles.chip} ${
+                  filterStatus === s ? styles.chipActive : ""
+                }`}
+                onClick={() => setFilterStatus(s)}
+              >
+                {s[0].toUpperCase() + s.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
 
         <div className={styles.filterGroup}>
-          <div className={styles.filterTitle}>Fila</div>
+          <h4 className={styles.filterTitle}>Fila</h4>
           <select
             value={filterFila}
             onChange={(e) => setFilterFila(e.target.value)}
@@ -392,14 +395,14 @@ export default function AgentsRealtime() {
           >
             {filasOptions.map((f) => (
               <option key={f} value={f}>
-                {f[0].toUpperCase() + f.slice(1)}
+              {f[0].toUpperCase() + f.slice(1)}
               </option>
             ))}
           </select>
         </div>
 
         <div className={styles.filterGroupGrow}>
-          <div className={styles.filterTitle}>Buscar</div>
+          <h4 className={styles.filterTitle}>Buscar</h4>
           <input
             className={styles.input}
             placeholder="Nome, fila, motivo…"
@@ -412,10 +415,10 @@ export default function AgentsRealtime() {
       {/* Tabela */}
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
-          <h2 className={styles.tableTitle}>
-            Agentes em tempo real{" "}
+          <div className={styles.tableTitleWrap}>
+            <h2 className={styles.tableTitle}>Agentes em tempo real</h2>
             <span className={styles.kpill}>{total}</span>
-          </h2>
+          </div>
         </div>
 
         <div className={styles.tableScroll}>
@@ -451,7 +454,9 @@ export default function AgentsRealtime() {
                     key={a.email || a.agente}
                     className={rowClass(a)}
                   >
-                    <td className={styles.bold}>{a.agente}</td>
+                    <td className={`${styles.bold} ${styles.colAgente}`}>
+                      {a.agente}
+                    </td>
                     <td>
                       <StatusPill s={a.status} />
                     </td>
@@ -506,7 +511,7 @@ export default function AgentsRealtime() {
           </table>
         </div>
 
-        {/* Paginação */}
+        {/* paginação */}
         <div className={styles.pagination}>
           <button
             className={styles.pageBtn}
