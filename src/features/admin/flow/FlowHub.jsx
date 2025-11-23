@@ -128,12 +128,12 @@ export default function FlowHub() {
 
   return (
     <div className={styles.page}>
-      {/* Header dark no padrão das outras telas */}
+      {/* Header no padrão do workspace */}
       <header className={styles.header}>
         <div className={styles.titleRow}>
-          <h1 className={styles.title}>Workflows Hub</h1>
+          <h1 className={styles.title}>Hub de Workflows</h1>
           <p className={styles.subtitle}>
-            Gerencie seus fluxos omnichannel, canais e times de atendimento.
+            Organize seus fluxos, canais e times de atendimento em um só lugar.
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export default function FlowHub() {
           className={styles.btnPrimary}
           type="button"
         >
-          + Novo Flow
+          + Novo flow
         </button>
       </header>
 
@@ -150,7 +150,7 @@ export default function FlowHub() {
         <LogoLoader full size={56} src="/logo.svg" />
       ) : rows.length === 0 ? (
         <div className={styles.emptyHint}>
-          Nenhum flow ainda. Crie o primeiro!
+          Nenhum flow ainda. Crie o primeiro.
         </div>
       ) : (
         <div className={styles.grid}>
@@ -337,7 +337,7 @@ function NewFlowModal({ onClose, onCreate }) {
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHead}>
-          <strong>Novo Flow</strong>
+          <strong>Novo flow</strong>
           <button onClick={onClose} className={styles.linkBtn} type="button">
             Fechar
           </button>
