@@ -1,6 +1,6 @@
 /* File: styles/BillingExtrato.module.css */
 
-/* ===== Layout base no padrão FlowHub ===== */
+/* ===== Layout base ===== */
 .page {
   padding: 4px 0 24px;
   margin: 0;
@@ -30,7 +30,7 @@
   flex-wrap: wrap;
 }
 
-/* Botões principais */
+/* Botões */
 .btn,
 .btnPrimary {
   appearance: none;
@@ -112,7 +112,7 @@
   font-weight: 400;
 }
 
-/* ===== Filtros ===== */
+/* Filtros */
 .filters {
   display: flex;
   gap: 12px;
@@ -151,10 +151,10 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
 
-/* ===== KPIs / cards ===== */
+/* ===== Cards / KPIs ===== */
 .kpisGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 em cima, 2 em baixo */
   gap: 16px;
   margin: 20px 0 24px;
 }
@@ -367,11 +367,7 @@
   letter-spacing: 0.06em;
   font-size: 11px;
   font-weight: 700;
-  text-align: center;
-}
-
-.table thead th:first-child {
-  text-align: left;
+  text-align: center; /* header centralizado */
 }
 
 .table tbody td {
@@ -379,36 +375,26 @@
   border-bottom: 1px solid #111827;
   font-size: 14px;
   color: #e5e7eb;
-  text-align: center;
+  text-align: center; /* conteúdo centralizado */
   font-weight: 400;
 }
 
-.table tbody td:first-child {
-  text-align: left;
-}
-
-/* zebra: duas cores fixas */
+/* zebra com mais contraste */
 .table tbody tr:nth-child(odd) {
-  background-color: #020617;
+  background-color: #111827 !important;
 }
 
 .table tbody tr:nth-child(even) {
-  background-color: #050816;
+  background-color: #1f2937 !important;
 }
 
 .table tbody tr:hover {
-  background-color: #111827;
+  background-color: #0b1120 !important;
 }
 
 .cellStrong {
   font-weight: 600;
   color: #f9fafb;
-}
-
-.channelText {
-  font-size: 13px;
-  text-transform: lowercase;
-  color: #e5e7eb;
 }
 
 .cellMoney {
@@ -421,7 +407,51 @@
   color: #94a3b8;
 }
 
-/* rodapé */
+/* coluna de canal com “ícones” */
+.chCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chCircle {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+.ch_whatsapp {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+}
+
+.ch_telegram {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+
+.ch_facebook {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(37, 99, 235, 0.5);
+  color: #bfdbfe;
+}
+
+.ch_default {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #e5e7eb;
+}
+
+/* Rodapé da tabela */
 .tfootLabel {
   text-align: right;
   padding: 14px 16px;
@@ -457,7 +487,7 @@
   font-size: 13px;
 }
 
-/* Animação ícone refresh */
+/* animação refresh */
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -473,7 +503,7 @@
 /* ===== Responsivo ===== */
 @media (max-width: 1024px) {
   .kpisGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .donutRow {
@@ -498,10 +528,6 @@
 
   .input {
     min-width: 0;
-  }
-
-  .kpisGrid {
-    grid-template-columns: 1fr;
   }
 
   .cardBody {
