@@ -101,12 +101,17 @@ function HomeUpdates() {
         <article className={styles.homeCard}>
           <h2 className={styles.homeCardTitle}>O que há de novo</h2>
           <p className={styles.homeCardText}>
-            • Novo módulo de <strong>Workflows</strong> para organizar seus fluxos omnichannel. <br />
-            • Melhorias de performance no monitor de atendimento em tempo real. <br />
-            • Ajustes de segurança e auditoria em <strong>Configurações &gt; Logs</strong>.
+            • Novo módulo de <strong>Workflows</strong> para organizar seus
+            fluxos omnichannel.
+            <br />
+            • Melhorias de performance no monitor de atendimento em tempo real.
+            <br />
+            • Ajustes de segurança e auditoria em{" "}
+            <strong>Configurações &gt; Logs</strong>.
           </p>
           <p className={styles.homeCardHint}>
-            Dica: use a área de Workflows para centralizar jornadas e canais em um único lugar.
+            Dica: use a área de Workflows para centralizar jornadas e canais em
+            um único lugar.
           </p>
         </article>
 
@@ -151,13 +156,12 @@ function HomeUpdates() {
           <h2 className={styles.homeCardTitle}>Dicas rápidas</h2>
           <ul className={styles.homeList}>
             <li>
-              Use <strong>Mensagens Ativas</strong> para campanhas pontuais
-              e comunicações proativas com seus clientes.
+              Use <strong>Mensagens Ativas</strong> para campanhas pontuais e
+              comunicações proativas com seus clientes.
             </li>
             <li>
-              Configure horários de fila em{" "}
-              <strong>Workflows &gt; Filas</strong> para evitar atendimentos
-              fora do horário.
+              Configure horários de fila em <strong>Workflows &gt; Filas</strong>{" "}
+              para evitar atendimentos fora do horário.
             </li>
             <li>
               Acompanhe a <strong>qualidade</strong> dos atendimentos em{" "}
@@ -174,7 +178,9 @@ function HomeUpdates() {
           <button
             type="button"
             className={styles.homeLinkBtn}
-            onClick={() => window.open("https://docs.ninechat.com.br", "_blank")}
+            onClick={() =>
+              window.open("https://docs.ninechat.com.br", "_blank")
+            }
           >
             Abrir NineDocs
           </button>
@@ -291,7 +297,6 @@ export default function Admin() {
         label: "Início",
         to: DASHBOARD_PATH,
         icon: <LayoutDashboard size={18} />,
-        kind: "primary", // botão principal em cima
       },
 
       {
@@ -301,7 +306,6 @@ export default function Admin() {
         children: [
           {
             key: "monitoring-realtime",
-            label: "Tempo real",
             children: [
               {
                 to: "monitoring/realtime/queues",
@@ -317,7 +321,6 @@ export default function Admin() {
           },
           {
             key: "monitoring-analysis",
-            label: "Análise",
             children: [
               {
                 to: "analytics/quality",
@@ -341,7 +344,6 @@ export default function Admin() {
         children: [
           {
             key: "mgmt-cadastros",
-            label: "Cadastros",
             children: [
               {
                 to: "management/users",
@@ -360,7 +362,6 @@ export default function Admin() {
         children: [
           {
             key: "camp-modelos",
-            label: "Modelos",
             children: [
               {
                 to: "campaigns/templates",
@@ -371,25 +372,23 @@ export default function Admin() {
           },
           {
             key: "camp-disparo",
-            label: "Mensagens Ativas",
             children: [
               {
                 to: "campaigns/campaigns",
                 icon: <Send size={16} />,
-                label: "Disparo Ativo",
+                label: "Disparo ativo",
               },
             ],
           },
         ],
       },
 
-      // Workflows como SEÇÃO principal clicável
+      // Workflows como SEÇÃO principal (sem filhos), alinhado com as demais
       {
         key: "workflows",
         label: "Workflows",
         icon: <Workflow size={18} />,
         to: "workflows/hub",
-        kind: "section-link",
       },
 
       {
@@ -399,7 +398,6 @@ export default function Admin() {
         children: [
           {
             key: "settings-geral",
-            label: "Geral",
             children: [
               {
                 to: "settings/preferences",
@@ -410,7 +408,6 @@ export default function Admin() {
           },
           {
             key: "settings-seguranca",
-            label: "Segurança",
             children: [
               {
                 to: "settings/security",
@@ -442,7 +439,9 @@ export default function Admin() {
       const target = menu.to.startsWith("/") ? menu.to : `/${menu.to}`;
       return current.startsWith(target);
     }
-    if (!menu.children) return current === "/";
+    if (!menu.children) {
+      return current === "/";
+    }
     return menu.children.some((grp) =>
       (grp.children || []).some((leaf) => {
         const leafPath = leaf.to.startsWith("/") ? leaf.to : `/${leaf.to}`;
@@ -481,7 +480,7 @@ export default function Admin() {
 
   return (
     <div className={styles.wrapper}>
-      {/* TOPBAR ESCURA COM MAIS DESTAQUE */}
+      {/* TOPBAR ESCURA COM DESTAQUE */}
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <NavLink
@@ -640,11 +639,10 @@ export default function Admin() {
             <nav className={styles.navRoot}>
               {menus.map((menu) => {
                 const activeMenu = isMenuActive(menu);
-
                 const hasChildren = Array.isArray(menu.children);
 
-                // itens principais sem submenu (INÍCIO)
-                if (!hasChildren && menu.kind !== "section-link") {
+                // INÍCIO – botão principal
+                if (menu.key === "dashboard") {
                   return (
                     <button
                       key={menu.key}
@@ -660,15 +658,14 @@ export default function Admin() {
                   );
                 }
 
-                // WORKFLOWS: seção principal clicável
-                if (!hasChildren && menu.kind === "section-link") {
+                // WORKFLOWS – seção sem filhos, mas clicável (mesmo alinhamento das outras)
+                if (!hasChildren) {
                   return (
                     <section key={menu.key} className={styles.menuSection}>
-                      <button
-                        type="button"
+                      <div
                         className={`${styles.menuSectionHeader} ${
                           activeMenu ? styles.menuSectionHeaderActive : ""
-                        }`}
+                        } ${styles.menuSectionHeaderClickable}`}
                         onClick={() => handleNavigation(menu.to)}
                       >
                         <span className={styles.menuSectionIcon}>
@@ -677,12 +674,12 @@ export default function Admin() {
                         <span className={styles.menuSectionLabel}>
                           {menu.label}
                         </span>
-                      </button>
+                      </div>
                     </section>
                   );
                 }
 
-                // seções com filhos (Acompanhamento, Gestão, etc.)
+                // seções com filhos (Acompanhamento, Gestão, Campanhas, Configurações)
                 const leafItems =
                   menu.children?.reduce((all, grp) => {
                     if (Array.isArray(grp.children)) {
