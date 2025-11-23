@@ -423,7 +423,7 @@ export default function AgentsRealtime() {
                       key={a.email || a.agente || index}
                       className={rowClass(a)}
                     >
-                      <td className={styles.agentCell}>
+                      <td>
                         <span className={styles.agentName}>
                           {a.agente || "—"}
                         </span>
