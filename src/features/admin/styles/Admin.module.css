@@ -2,19 +2,46 @@
   margin: 0;
   padding: 0;
   min-height: 100%;
+  height: 100%;
   background: #242730;
+  overflow: hidden; /* scroll só dentro do app, não na janela */
 }
 
+/* Scrollbar global mais estilizado */
+:global(*) {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #020617;
+}
+
+:global(*::-webkit-scrollbar) {
+  width: 8px;
+  height: 8px;
+}
+
+:global(*::-webkit-scrollbar-track) {
+  background: #020617;
+}
+
+:global(*::-webkit-scrollbar-thumb) {
+  background: linear-gradient(180deg, #4b5563, #1f2937);
+  border-radius: 999px;
+}
+
+:global(*::-webkit-scrollbar-thumb:hover) {
+  background: linear-gradient(180deg, #6b7280, #374151);
+}
 
 /* ===== Layout base dark ===== */
 .wrapper {
   min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #020617;
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
+  overflow: hidden;
 }
 
 /* ===== Loading (auth) ===== */
@@ -77,10 +104,8 @@
 
 /* ===== Topbar ===== */
 .topbar {
-  position: sticky;
-  top: 0;
   z-index: 40;
-  background: linear-gradient(180deg,#1e3a8a 0%, #1d4ed8 100%);
+  background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
   border-bottom: 1px solid #111827;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
 }
@@ -247,7 +272,8 @@
 .body {
   flex: 1;
   width: 100%;
-  background: #242730; /* fundo do "body" abaixo da topbar */
+  background: #242730;
+  overflow: hidden; /* impede scroll da página aqui */
 }
 
 .bodyInner {
@@ -257,12 +283,18 @@
   display: flex;
   gap: 32px;
   align-items: flex-start;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ==== Menu "solto" à esquerda ==== */
 .sidebar {
   width: 240px;
   flex-shrink: 0;
+  max-height: 100%;
+  overflow-y: auto; /* scroll independente do menu, se precisar */
+  padding-right: 4px;
 }
 
 .navRoot {
@@ -402,13 +434,17 @@
 .main {
   flex: 1;
   min-width: 0;
-  background: #242730; /* "card" de conteúdo em cima do body 242730 */
+  background: #242730;
   border-radius: 16px;
+  display: flex;
+  overflow: hidden;
 }
 
 .content {
   width: 100%;
   background: #242730;
+  flex: 1;
+  overflow-y: auto; /* scroll só aqui */
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -424,6 +460,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  padding: 24px 24px 28px;
 }
 
 .homeHeader {
@@ -539,6 +576,7 @@
 
   .sidebar {
     width: 100%;
+    max-height: 200px; /* evita sidebar gigante em telas pequenas */
   }
 
   .main {
@@ -555,10 +593,11 @@
     padding: 16px;
   }
 
+  .home {
+    padding: 16px 16px 20px;
+  }
+
   .content {
-    padding: 16px 16px 24px;
+    padding: 0 0 24px;
   }
 }
-
-
-
