@@ -1,55 +1,49 @@
-/* Container e layout base */
+/* Container alinhado ao FlowHub */
 .container{
-  padding: 24px;
+  padding: 16px 24px 32px;
   max-width: 1320px;
   margin: 0 auto;
   background: transparent;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-  color: #f1f5f9;
+  color: #e5e7eb;
 }
 
-/* Header + Refresh */
+/* HEADER no padrão FlowHub */
 .header{
+  background: #111827;
+  border-radius: 16px;
+  border: 1px solid #1f2937;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6);
+  padding: 14px 18px;
+  margin-bottom: 20px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-}
-
-.headerInfo{
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.subHeader{
-  display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 18px;
-  position: relative;
+  gap: 16px;
 }
 
-.subHeader::after{
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -16px;
-  height: 2px;
-  background: linear-gradient(90deg, #3b82f6 0%, rgba(59, 130, 246, 0.18) 55%, transparent 100%);
+.titleRow{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title{
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #f9fafb;
+  margin: 0;
 }
 
 .subtitle{
-  margin: 6px 0 0;
+  margin: 0;
   color: #94a3b8;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 400;
 }
 
-/* Pills */
+/* Pills de aviso / erro */
 .kpill,
 .kpillBlue,
 .kpillAmber{
@@ -58,12 +52,13 @@
   border-radius: 999px;
   padding: 6px 10px;
   border: 1px solid;
+  width: fit-content;
 }
 
 .kpill{
   color: #94a3b8;
-  background: #1e293b;
-  border-color: #334155;
+  background: #020617;
+  border-color: #1f2937;
 }
 
 .kpillBlue{
@@ -81,29 +76,34 @@
   align-items: center;
 }
 
-/* Botão de refresh */
+/* Botão de atualizar – estilo primary do FlowHub */
 .refreshBtn{
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #f1f5f9;
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-weight: 700;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
+  transition: all 0.18s ease;
 }
 
-.refreshBtn:hover{
-  background: #334155;
+.refreshBtn:hover:not(:disabled){
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.6);
 }
 
 .refreshBtn:disabled{
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .spinning{
@@ -119,8 +119,8 @@
 .cardGroup{
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-  margin: 16px 0 24px;
+  gap: 18px;
+  margin: 4px 0 20px;
 }
 
 @media (max-width: 1024px){
@@ -130,29 +130,29 @@
 }
 
 .card{
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #111827;
+  border: 1px solid #1f2937;
   border-radius: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
 }
 
 .card:hover{
   transform: translateY(-2px);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5);
-  border-color: #3b82f6;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
+  border-color: #2563eb;
 }
 
 .cardHead{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  border-bottom: 1px solid #334155;
-  background: rgba(30, 41, 59, 0.5);
+  padding: 12px 16px;
+  border-bottom: 1px solid #1f2937;
+  background: rgba(15, 23, 42, 0.8);
 }
 
 .cardTitle{
@@ -160,7 +160,7 @@
   align-items: center;
   gap: 10px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #f9fafb;
 }
 
 .cardIcon{
@@ -169,37 +169,20 @@
 }
 
 .cardBody{
-  padding: 18px;
+  padding: 16px;
 }
 
 .kpiValue{
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
 }
 
-.tone_blue{
-  color: #60a5fa;
-}
-
-.tone_green{
-  color: #10b981;
-}
-
-.tone_amber{
-  color: #fbbf24;
-}
-
-.tone_purple{
-  color: #a78bfa;
-}
-
-.tone_indigo{
-  color: #818cf8;
-}
-
-.tone_orange{
-  color: #fb923c;
-}
+.tone_blue{   color: #60a5fa; }
+.tone_green{  color: #10b981; }
+.tone_amber{  color: #fbbf24; }
+.tone_purple{ color: #a78bfa; }
+.tone_indigo{ color: #818cf8; }
+.tone_orange{ color: #fb923c; }
 
 /* Skeletons */
 @keyframes shimmer{
@@ -208,31 +191,20 @@
 }
 
 .skeleton{
-  background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+  background: linear-gradient(90deg, #111827 0%, #1f2937 50%, #111827 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
   border-radius: 8px;
 }
 
-.sq16{
-  width: 16px;
-  height: 16px;
-}
-
-.sq120{
-  width: 120px;
-  height: 14px;
-}
-
-.sq48{
-  width: 100%;
-  height: 48px;
-}
+.sq16{  width: 16px;  height: 16px; }
+.sq120{ width: 120px; height: 14px; }
+.sq48{  width: 100%;  height: 40px; }
 
 /* Filtros */
 .filters{
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #111827;
+  border: 1px solid #1f2937;
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 20px;
@@ -245,7 +217,7 @@
 .filterTitle{
   font-size: 14px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #f9fafb;
   margin: 0 0 8px;
 }
 
@@ -257,19 +229,19 @@
 
 .chip{
   border: 0;
-  background: #334155;
+  background: #1f2937;
   color: #94a3b8;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: 12px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .chip:hover{
-  background: #475569;
-  color: #f1f5f9;
+  background: #374151;
+  color: #f9fafb;
 }
 
 .chipActive{
@@ -289,15 +261,15 @@
 
 /* Tabela */
 .tableCard{
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #111827;
+  border: 1px solid #1f2937;
   border-radius: 16px;
   overflow: hidden;
 }
 
 .tableHeader{
-  padding: 16px 20px;
-  border-bottom: 1px solid #334155;
+  padding: 14px 18px;
+  border-bottom: 1px solid #1f2937;
 }
 
 .tableTitle{
@@ -307,7 +279,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  color: #f1f5f9;
+  color: #f9fafb;
 }
 
 .tableScroll{
@@ -326,18 +298,18 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: #9ca3af;
   padding: 12px 16px;
-  background: #0f1419;
-  border-bottom: 1px solid #334155;
+  background: #020617;
+  border-bottom: 1px solid #1f2937;
   font-weight: 700;
 }
 
 .table tbody td{
   padding: 12px 16px;
-  border-top: 1px solid #334155;
+  border-top: 1px solid #1f2937;
   font-size: 14px;
-  color: #e2e8f0;
+  color: #e5e7eb;
 }
 
 .emptyCell{
@@ -354,9 +326,23 @@
 .skeletonRow{
   height: 18px;
   border-radius: 8px;
-  background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+  background: linear-gradient(90deg, #111827 0%, #1f2937 50%, #111827 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
+}
+
+/* Largura de colunas específicas */
+.colCanal{
+  width: 110px;
+}
+
+.colTicket{
+  width: 90px;
+  white-space: nowrap;
+}
+
+.colTempo{
+  width: 140px;
 }
 
 /* Células */
@@ -366,26 +352,9 @@
   gap: 12px;
 }
 
-.avatar{
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(59, 130, 246, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
 .clientName{
   font-weight: 700;
-  color: #f1f5f9;
-}
-
-.clientSub{
-  font-size: 12px;
-  color: #94a3b8;
+  color: #f9fafb;
 }
 
 .queuePill{
@@ -448,7 +417,7 @@
 
 .bold{
   font-weight: 700;
-  color: #f1f5f9;
+  color: #f9fafb;
 }
 
 .subtle{
@@ -456,38 +425,25 @@
   font-size: 12px;
 }
 
-/* Status (hoje só influencia o tom da linha) */
-.status{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid;
+/* Linha da tabela: tom por SLA */
+.row{
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-.statusIcon{
-  vertical-align: middle;
+.tone_none{}
+
+.tone_ok{
+  background: transparent;
 }
 
-.statusWait{
-  background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.3);
+.tone_warn{
+  background: rgba(251, 191, 36, 0.08);
+  box-shadow: inset 4px 0 0 0 #f59e0b;
 }
 
-.statusLive{
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border-color: rgba(16, 185, 129, 0.3);
-}
-
-.statusDone{
-  background: rgba(100, 116, 139, 0.15);
-  color: #64748b;
-  border-color: rgba(100, 116, 139, 0.3);
+.tone_late{
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: inset 4px 0 0 0 #ef4444;
 }
 
 /* Ações */
@@ -523,28 +479,6 @@
   background: rgba(59, 130, 246, 0.15);
 }
 
-/* Linha da tabela */
-.row{
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-/* Tons de destaque na linha */
-.tone_none{}
-
-.tone_ok{
-  background: transparent;
-}
-
-.tone_warn{
-  background: rgba(251, 191, 36, 0.1);
-  box-shadow: inset 4px 0 0 0 #f59e0b;
-}
-
-.tone_late{
-  background: rgba(239, 68, 68, 0.1);
-  box-shadow: inset 4px 0 0 0 #ef4444;
-}
-
 /* Paginação */
 .pagination{
   display: flex;
@@ -552,23 +486,23 @@
   align-items: center;
   justify-content: flex-end;
   padding: 0.75rem 1rem 1rem 1rem;
-  background: #0f1419;
-  border-top: 1px solid #334155;
+  background: #111827;
+  border-top: 1px solid #1f2937;
 }
 
 .pageBtn{
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #1f2937;
+  border: 1px solid #374151;
   border-radius: 8px;
   padding: 0.4rem 0.7rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  color: #f1f5f9;
+  color: #e5e7eb;
   transition: all 0.2s ease;
 }
 
 .pageBtn:hover{
-  background: #334155;
+  background: #374151;
 }
 
 .pageBtn:disabled{
@@ -599,18 +533,23 @@
   border: 0;
 }
 
-/* A11y & small screens */
+/* Responsivo */
 @media (max-width: 768px){
   .container{
     padding: 16px;
   }
 
+  .header{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .cardBody{
-    padding: 16px;
+    padding: 14px;
   }
 
   .cardHead{
-    padding: 12px 16px;
+    padding: 10px 14px;
   }
 
   .cardGroup{
