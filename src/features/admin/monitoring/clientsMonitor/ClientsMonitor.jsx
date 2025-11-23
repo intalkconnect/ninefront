@@ -268,6 +268,12 @@ export default function ClientsMonitor() {
   const end = start + PAGE_SIZE;
   const paged = useMemo(() => filtered.slice(start, end), [filtered, start, end]);
 
+  const tabDefs = [
+    { key: 'todos', label: 'Todos' },
+    { key: 'aguardando', label: 'Aguardando' },
+    { key: 'em_atendimento', label: 'Em atendimento' },
+  ];
+
   /* Render ------------------------------------------------- */
   return (
     <div className={styles.container}>
@@ -289,7 +295,6 @@ export default function ClientsMonitor() {
           type="button"
         >
           <RefreshCw size={16} className={refreshing ? styles.spinning : ''} />
-          Atualizar
         </button>
       </header>
 
@@ -366,7 +371,23 @@ export default function ClientsMonitor() {
       <section className={styles.tableCard}>
         <div className={styles.tableHeader}>
           <h2 className={styles.tableTitle}>Atendimentos em tempo real</h2>
+
+          <div className={styles.tableTabs}>
+            {tabDefs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setSelectedFilter(tab.key)}
+                className={`${styles.tab} ${
+                  selectedFilter === tab.key ? styles.tabActive : ''
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
+
         <div className={styles.tableScroll}>
           <table className={styles.table}>
             <thead>
@@ -377,7 +398,7 @@ export default function ClientsMonitor() {
                 <th>Agente</th>
                 <th className={styles.colTicket}>Ticket</th>
                 <th className={styles.colTempo}>Tempo</th>
-                <th>Ações</th>
+                <th className={styles.colAcoes}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -424,7 +445,7 @@ export default function ClientsMonitor() {
                         : '--:--'}
                     </div>
                   </td>
-                  <td className={styles.actionsCell}>
+                  <td className={styles.colAcoes}>
                     <button
                       className={styles.linkBtn}
                       aria-label="Visualizar conversa"
