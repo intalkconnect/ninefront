@@ -552,7 +552,7 @@ export default function ClientsMonitor() {
             </div>
           </div>
 
-          <div className={styles.tableScroll}}>
+          <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
                 <tr>
