@@ -44,7 +44,7 @@ const useDebounce = (value, delay = 300) => {
   return deb;
 };
 
-/* ===== CSV helpers (Excel-friendly pt-BR) ===== */
+/* ===== CSV helpers ===== */
 const CSV_DELIM = ";";
 
 const escapeCSV = (val) => {
@@ -59,7 +59,8 @@ const escapeCSV = (val) => {
 const pickCents = (row) => {
   if (Number.isFinite(+row?.amount_cents)) return +row.amount_cents;
   if (Number.isFinite(+row?.total_cents)) return +row.total_cents;
-  if (Number.isFinite(+row?.total_value_cents)) return +row.total_value_cents;
+  if (Number.isFinite(+row?.total_value_cents))
+    return +row.total_value_cents;
   if (Number.isFinite(+row?.cents)) return +row.cents;
   if (Number.isFinite(+row?.total_brl)) return Math.round(+row.total_brl * 100);
   return 0;
@@ -123,7 +124,7 @@ const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
   URL.revokeObjectURL(url);
 };
 
-/* ========================= Donut chart (valor por canal) ========================= */
+/* ===== Donut chart (valor por canal) ===== */
 
 const DONUT_COLORS = [
   "#22c55e",
@@ -155,12 +156,8 @@ function DonutChart({ items, totalLabel }) {
 
   return (
     <div className={styles.donutRoot}>
-      <svg
-        viewBox="0 0 80 80"
-        className={styles.donutSvg}
-        aria-hidden="true"
-      >
-        {/* trilho */}
+      <svg viewBox="0 0 80 80" className={styles.donutSvg} aria-hidden="true">
+        {/* Trilho */}
         <circle
           cx={cx}
           cy={cy}
@@ -169,6 +166,7 @@ function DonutChart({ items, totalLabel }) {
           stroke="#020617"
           strokeWidth={strokeWidth}
         />
+        {/* Segmentos */}
         {items.map((item, idx) => {
           const fraction = item.value / total;
           const dash = fraction * circumference;
@@ -192,7 +190,7 @@ function DonutChart({ items, totalLabel }) {
             />
           );
         })}
-        {/* “buraco” central */}
+        {/* Buraco / texto */}
         <circle cx={cx} cy={cy} r={radius - strokeWidth} fill="#020617" />
         <text
           x={cx}
@@ -212,6 +210,38 @@ function DonutChart({ items, totalLabel }) {
         </text>
       </svg>
     </div>
+  );
+}
+
+/* ===== “Ícone” do canal (bolinha colorida com inicial) ===== */
+
+function ChannelBadge({ channel }) {
+  const key = String(channel || "default").toLowerCase();
+  const variant =
+    key === "whatsapp"
+      ? "whatsapp"
+      : key === "telegram"
+      ? "telegram"
+      : key === "facebook"
+      ? "facebook"
+      : "default";
+
+  const letter =
+    key === "whatsapp"
+      ? "W"
+      : key === "telegram"
+      ? "T"
+      : key === "facebook"
+      ? "F"
+      : "C";
+
+  return (
+    <span
+      className={`${styles.chCircle} ${styles["ch_" + variant]}`}
+      title={channel || "default"}
+    >
+      {letter}
+    </span>
   );
 }
 
@@ -250,7 +280,6 @@ export default function BillingExtrato() {
       const params = { from: toISO(debFrom), to: toISO(debTo) };
       const res = await apiGet(`/billing/statement?${qs(params)}`);
 
-      // 1) linhas
       let rows = Array.isArray(res)
         ? res
         : Array.isArray(res?.rows)
@@ -260,7 +289,6 @@ export default function BillingExtrato() {
         : [];
       if (!Array.isArray(rows)) rows = [];
 
-      // 2) total do período
       let total_cents = 0;
       if (Number.isFinite(+res?.total_cents)) {
         total_cents = +res.total_cents;
@@ -272,7 +300,6 @@ export default function BillingExtrato() {
         total_cents = rows.reduce((acc, r) => acc + pickCents(r), 0);
       }
 
-      // 3) somatório por canal (se API não mandar pronto)
       const totals_by_channel =
         res?.totals_by_channel && Array.isArray(res.totals_by_channel)
           ? res.totals_by_channel
@@ -281,7 +308,8 @@ export default function BillingExtrato() {
                 const ch = r.channel || "default";
                 const cents = pickCents(r);
                 const sess = pickSessions(r);
-                if (!acc[ch]) acc[ch] = { channel: ch, sessions: 0, total_cents: 0 };
+                if (!acc[ch])
+                  acc[ch] = { channel: ch, sessions: 0, total_cents: 0 };
                 acc[ch].sessions += sess;
                 acc[ch].total_cents += cents;
                 return acc;
@@ -352,7 +380,7 @@ export default function BillingExtrato() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* Barra superior com ações */}
+        {/* Barra superior */}
         <div className={styles.toolbar}>
           <div className={styles.headerActions}>
             <button
@@ -417,7 +445,7 @@ export default function BillingExtrato() {
           </div>
         </div>
 
-        {/* KPIs + gráficos (4 cards na mesma linha) */}
+        {/* KPIs + gráficos – 2x2 cards */}
         <div className={styles.kpisGrid}>
           {/* Faturamento total */}
           <div className={styles.card}>
@@ -464,10 +492,7 @@ export default function BillingExtrato() {
             </div>
             <div className={styles.cardBody}>
               <div className={styles.donutRow}>
-                <DonutChart
-                  items={channelsValue}
-                  totalLabel={grandTotal}
-                />
+                <DonutChart items={channelsValue} totalLabel={grandTotal} />
                 <div className={styles.donutLegend}>
                   {channelsValue.length === 0 ? (
                     <span className={styles.empty}>
@@ -507,7 +532,7 @@ export default function BillingExtrato() {
             </div>
           </div>
 
-          {/* Sessões por canal (quantidade apenas) */}
+          {/* Sessões por canal (quantidade somente) */}
           <div className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>
@@ -580,16 +605,12 @@ export default function BillingExtrato() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  {[
-                    "User ID",
-                    "Canal",
-                    "Sessões",
-                    "Primeira mensagem",
-                    "Última mensagem",
-                    "Valor total",
-                  ].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
+                  <th>User ID</th>
+                  <th>Canal</th>
+                  <th>Sessões</th>
+                  <th>Primeira mensagem</th>
+                  <th>Última mensagem</th>
+                  <th>Valor total</th>
                 </tr>
               </thead>
               <tbody>
@@ -623,10 +644,8 @@ export default function BillingExtrato() {
                         <td className={styles.cellStrong}>
                           {r.user_id || r.user || "—"}
                         </td>
-                        <td>
-                          <span className={styles.channelText}>
-                            {channel}
-                          </span>
+                        <td className={styles.chCell}>
+                          <ChannelBadge channel={channel} />
                         </td>
                         <td className={styles.cellStrong}>
                           {fmtInt(sessions)}
