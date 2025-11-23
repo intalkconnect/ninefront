@@ -43,7 +43,7 @@ const useDebounce = (value, delay = 300) => {
   return deb;
 };
 
-// ===== CSV helpers (Excel-friendly pt-BR) =====
+// ===== CSV helpers =====
 const CSV_DELIM = ";";
 
 const escapeCSV = (val) => {
@@ -489,7 +489,7 @@ export default function BillingExtrato() {
         </div>
       </div>
 
-      {/* KPIs / Cards principais */}
+      {/* 4 cards principais em uma linha no desktop */}
       <div className={styles.kpisGrid}>
         {/* Faturamento total */}
         <div className={styles.card}>
@@ -534,34 +534,6 @@ export default function BillingExtrato() {
           </div>
           <div className={styles.cardBody}>
             <BillingDonutByValue channels={channelsSorted} />
-          </div>
-        </div>
-
-        {/* Totais por canal (texto) */}
-        <div className={`${styles.card} ${styles.cardCompact}`}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Totais por canal</div>
-          </div>
-          <div className={styles.cardBody}>
-            {loading ? (
-              <div className={styles.loading}>Carregando…</div>
-            ) : channelsSorted.length ? (
-              <ul className={styles.channelList}>
-                {channelsSorted.map((c, idx) => (
-                  <li key={c.channel || idx} className={styles.channelItem}>
-                    <span className={styles.channelName}>
-                      {c.channel || "default"}
-                    </span>
-                    <span className={styles.channelStat}>
-                      {fmtInt(c.sessions || 0)} sessões •{" "}
-                      <strong>{BRL(c.total_cents || 0)}</strong>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className={styles.empty}>Sem dados por canal</div>
-            )}
           </div>
         </div>
 
