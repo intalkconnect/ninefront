@@ -11,6 +11,7 @@ import { toast } from "react-toastify";
 import styles from "./styles/AgentsMonitor.module.css";
 
 /* ---------- helpers ---------- */
+
 const fmtMin = (m) => {
   const n = Math.max(0, Math.floor(Number(m || 0)));
   const h = Math.floor(n / 60);
@@ -34,12 +35,12 @@ const fmtRel = (iso) => {
 const uniq = (arr) => Array.from(new Set(arr || []));
 
 /* ---------- componente ---------- */
+
 export default function AgentsRealtime() {
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState(null);
-  const [now, setNow] = useState(new Date());
   const unmountedRef = useRef(false);
 
   // limites de pausa vindos de /breaks
@@ -59,6 +60,7 @@ export default function AgentsRealtime() {
     async ({ fromButton = false } = {}) => {
       try {
         setRefreshing(true);
+
         const [ags, pauses] = await Promise.all([
           apiGet("/analytics/agents/realtime"),
           apiGet("/breaks?active=true"),
@@ -96,10 +98,9 @@ export default function AgentsRealtime() {
 
         setPauseCfg({ map, def });
         setErro(null);
-        setNow(new Date());
+
         if (fromButton) toast.success("Atualizado com sucesso");
       } catch (e) {
-        console.error(e);
         setErro("Falha ao atualizar. Tentaremos novamente em 10s.");
         if (fromButton) toast.error("Não foi possível atualizar agora");
       } finally {
@@ -138,13 +139,8 @@ export default function AgentsRealtime() {
     };
   }, [fetchAll]);
 
-  // “relógio” leve pra contagem visual
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(t);
-  }, []);
-
   /* ----- pausa config ----- */
+
   const getPauseLimit = useCallback(
     (reason) => {
       const key = String(reason || "").trim().toLowerCase();
@@ -153,7 +149,20 @@ export default function AgentsRealtime() {
     [pauseCfg]
   );
 
+  // tom da linha: só ok ou late (sem warn)
+  const rowTone = useCallback(
+    (a) => {
+      if (a.status !== "pause") return "ok";
+      const dur = Number(a?.pausa?.duracao_min ?? 0);
+      const lim = getPauseLimit(a?.pausa?.motivo);
+      if (dur >= lim) return "late";
+      return "ok";
+    },
+    [getPauseLimit]
+  );
+
   /* ----- KPIs ----- */
+
   const kpis = useMemo(() => {
     const online = agents.filter((a) => a.status === "online").length;
     const pause = agents.filter((a) => a.status === "pause").length;
@@ -163,6 +172,7 @@ export default function AgentsRealtime() {
   }, [agents]);
 
   /* ----- listas auxiliares ----- */
+
   const filasOptions = useMemo(() => {
     const all = agents.flatMap((a) =>
       Array.isArray(a.filas) ? a.filas : []
@@ -171,6 +181,7 @@ export default function AgentsRealtime() {
   }, [agents]);
 
   /* ----- filtros + paginação ----- */
+
   const filtered = useMemo(() => {
     return agents.filter((a) => {
       if (filterStatus !== "todos" && a.status !== filterStatus) return false;
@@ -211,7 +222,20 @@ export default function AgentsRealtime() {
     setPage(1);
   }, [filterStatus, filterFila, filterText, agents]);
 
-  /* ----- render helpers ----- */
+  /* ----- helpers de render ----- */
+
+  const StatusPill = ({ s }) => (
+    <span className={`${styles.stPill} ${styles["st_" + s]}`}>
+      {s === "pause"
+        ? "Pausa"
+        : s === "online"
+        ? "Online"
+        : s === "offline"
+        ? "Offline"
+        : "Inativo"}
+    </span>
+  );
+
   const PauseInfo = ({ a }) => {
     if (a.status !== "pause") return "—";
 
@@ -220,105 +244,112 @@ export default function AgentsRealtime() {
     const lim = getPauseLimit(motivo);
     const rest = lim - dur;
 
-    if (rest <= 0) {
-      return `${motivo} · excedido +${fmtMin(-rest)}`;
-    }
+    const late = rest <= 0;
 
-    return `${motivo} · ${fmtMin(dur)} de ${fmtMin(lim)}`;
+    return (
+      <span className={styles.pauseText}>
+        {motivo} •{" "}
+        {late
+          ? `excedido +${fmtMin(-rest)}`
+          : `${fmtMin(dur)} de ${fmtMin(lim)}`}
+      </span>
+    );
   };
 
-  const statusLabel = (s) => {
-    if (s === "online") return "Online";
-    if (s === "pause") return "Pausa";
-    if (s === "offline") return "Offline";
-    return "Inativo";
+  const filasTexto = (a) => {
+    const lista = Array.isArray(a.filas) ? a.filas : [];
+    if (!lista.length) return "—";
+    return lista.join(", ");
+  };
+
+  const rowClass = (a, index) => {
+    const tone = rowTone(a);
+    const zebra = index % 2 === 0 ? styles.rowEven : styles.rowOdd;
+    const toneClass = styles[`tone_${tone}`] || "";
+    return `${styles.row} ${zebra} ${toneClass}`;
   };
 
   /* ---------- render ---------- */
+
   return (
-    <div className={styles.container}>
-      {/* HEADER principal */}
-      <header className={styles.header}>
-        <div className={styles.titleRow}>
-          <h1 className={styles.title}>Monitor de Agentes</h1>
-          <p className={styles.subtitle}>
-            Acompanhe em tempo real quem está online, em pausa, offline ou
-            inativo.
-          </p>
-          {erro && <span className={styles.kpillAmber}>{erro}</span>}
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* HEADER no padrão do monitor de clientes */}
+        <div className={styles.header}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Monitor de Agentes</h1>
+            <p className={styles.subtitle}>
+              Acompanhe em tempo real quem está online, em pausa, offline ou inativo.
+            </p>
+          </div>
+
+          <button
+            className={styles.refreshBtn}
+            onClick={() => fetchAll({ fromButton: true })}
+            disabled={refreshing}
+            title="Atualizar agora"
+          >
+            <RefreshCw
+              size={16}
+              className={refreshing ? styles.spinning : ""}
+            />
+          </button>
         </div>
 
-        <button
-          className={styles.refreshBtn}
-          onClick={() => fetchAll({ fromButton: true })}
-          disabled={refreshing}
-          title="Atualizar agora"
-        >
-          <RefreshCw
-            size={16}
-            className={refreshing ? styles.spinning : ""}
-          />
-        </button>
-      </header>
+        {/* KPIs */}
+        <section className={styles.cardGroup}>
+          {loading ? (
+            <>
+              <KpiSkeleton />
+              <KpiSkeleton />
+              <KpiSkeleton />
+              <KpiSkeleton />
+            </>
+          ) : (
+            <>
+              <KpiCard
+                icon={<ToggleLeft size={16} />}
+                label="Online"
+                value={kpis.online}
+                tone="green"
+              />
+              <KpiCard
+                icon={<PauseCircle size={16} />}
+                label="Em pausa"
+                value={kpis.pause}
+                tone="amber"
+              />
+              <KpiCard
+                icon={<Power size={16} />}
+                label="Offline"
+                value={kpis.offline}
+                tone="blue"
+              />
+              <KpiCard
+                icon={<Clock size={16} />}
+                label="Inativos"
+                value={kpis.inativo}
+                tone="orange"
+              />
+            </>
+          )}
+        </section>
 
-      {/* KPIs */}
-      <section className={styles.cardGroup}>
-        {loading ? (
-          <>
-            <KpiSkeleton />
-            <KpiSkeleton />
-            <KpiSkeleton />
-            <KpiSkeleton />
-          </>
-        ) : (
-          <>
-            <KpiCard
-              icon={<ToggleLeft size={16} />}
-              label="Online"
-              value={kpis.online}
-              tone="green"
-            />
-            <KpiCard
-              icon={<PauseCircle size={16} />}
-              label="Em pausa"
-              value={kpis.pause}
-              tone="amber"
-            />
-            <KpiCard
-              icon={<Power size={16} />}
-              label="Offline"
-              value={kpis.offline}
-              tone="blue"
-            />
-            <KpiCard
-              icon={<Clock size={16} />}
-              label="Inativos"
-              value={kpis.inativo}
-              tone="orange"
-            />
-          </>
-        )}
-      </section>
-
-      {/* Filtros */}
-      <section className={styles.filters}>
-        <div className={styles.filtersRow}>
+        {/* Filtros */}
+        <section className={styles.filters}>
           <div className={styles.filterGroup}>
             <div className={styles.filterTitle}>Status</div>
-            <div className={styles.filterChips}>
-              {["todos", "online", "pause", "offline", "inativo"].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={`${styles.chip} ${
-                    filterStatus === s ? styles.chipActive : ""
-                  }`}
-                  onClick={() => setFilterStatus(s)}
-                >
-                  {statusLabel(s)}
-                </button>
-              ))}
-            </div>
+            {["todos", "online", "pause", "offline", "inativo"].map((s) => (
+              <button
+                key={s}
+                className={`${styles.chip} ${
+                  filterStatus === s ? styles.chipActive : ""
+                }`}
+                onClick={() => setFilterStatus(s)}
+              >
+                {s[0].toUpperCase() + s.slice(1)}
+              </button>
+            ))}
           </div>
 
           <div className={styles.filterGroup}>
@@ -345,105 +376,125 @@ export default function AgentsRealtime() {
               onChange={(e) => setFilterText(e.target.value)}
             />
           </div>
-        </div>
-      </section>
 
-      {/* Tabela */}
-      <section className={styles.tableCard}>
-        <div className={styles.tableHeader}>
-          <h2 className={styles.tableTitle}>Agentes em tempo real</h2>
-        </div>
+          {erro && (
+            <div className={styles.filterError}>
+              <span className={styles.kpillAmber}>{erro}</span>
+            </div>
+          )}
+        </section>
 
-        <div className={styles.tableScroll}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.colFirst}>Agente</th>
-                <th>Status</th>
-                <th>Detalhe</th>
-                <th>Filas</th>
-                <th>Tickets abertos</th>
-                <th>Última atividade</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={`sk-${i}`} className={styles.row}>
-                    <td colSpan={6} className={styles.skelCell}>
-                      <div className={styles.skeletonRow} />
-                    </td>
-                  </tr>
-                ))
-              ) : pageData.length === 0 ? (
-                <tr className={styles.row}>
-                  <td colSpan={6} className={styles.emptyCell}>
-                    Nenhum agente no filtro atual.
-                  </td>
+        {/* Tabela */}
+        <section className={styles.tableCard}>
+          <div className={styles.tableHeader}>
+            <h2 className={styles.tableTitle}>Agentes em tempo real</h2>
+          </div>
+
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.colFirst}>Agente</th>
+                  <th>Status</th>
+                  <th>Detalhe</th>
+                  <th>Filas</th>
+                  <th>Tickets abertos</th>
+                  <th>Última atividade</th>
                 </tr>
-              ) : (
-                pageData.map((a) => (
-                  <tr key={a.email || a.agente} className={styles.row}>
-                    <td className={styles.agentCell}>{a.agente}</td>
-                    <td className={styles.statusCell}>
-                      {statusLabel(a.status)}
-                    </td>
-                    <td className={styles.detailCell}>
-                      <PauseInfo a={a} />
-                    </td>
-                    <td className={styles.filasCell}>
-                      {Array.isArray(a.filas) && a.filas.length > 0
-                        ? a.filas.join(", ")
-                        : "—"}
-                    </td>
-                    <td className={styles.ticketsCell}>
-                      {a.tickets_abertos || 0}
-                    </td>
-                    <td
-                      className={styles.lastAct}
-                      title={
-                        a.last_seen
-                          ? new Date(a.last_seen).toLocaleString("pt-BR")
-                          : ""
-                      }
-                    >
-                      {fmtRel(a.last_seen)}
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={`sk-${i}`} className={styles.skelRow}>
+                      <td colSpan={6}>
+                        <div className={styles.skeletonRow} />
+                      </td>
+                    </tr>
+                  ))
+                ) : pageData.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className={styles.emptyCell}>
+                      Nenhum agente no filtro atual.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  pageData.map((a, index) => (
+                    <tr
+                      key={a.email || a.agente || index}
+                      className={rowClass(a, index)}
+                    >
+                      <td className={styles.agentCell}>
+                        <span className={styles.agentName}>
+                          {a.agente || "—"}
+                        </span>
+                      </td>
+                      <td>
+                        <StatusPill s={a.status} />
+                      </td>
+                      <td>
+                        <PauseInfo a={a} />
+                      </td>
+                      <td>{filasTexto(a)}</td>
+                      <td>{a.tickets_abertos || 0}</td>
+                      <td
+                        className={`${styles.lastAct} ${
+                          !a.last_seen
+                            ? styles.lastStale
+                            : (Date.now() -
+                                new Date(a.last_seen).getTime()) /
+                                1000 <=
+                              60
+                            ? styles.lastOk
+                            : (Date.now() -
+                                new Date(a.last_seen).getTime()) /
+                                1000 <=
+                              180
+                            ? styles.lastWarn
+                            : styles.lastStale
+                        }`}
+                        title={
+                          a.last_seen
+                            ? new Date(a.last_seen).toLocaleString("pt-BR")
+                            : ""
+                        }
+                      >
+                        {fmtRel(a.last_seen)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        {/* paginação */}
-        <div className={styles.pagination}>
-          <button
-            type="button"
-            className={styles.pageBtn}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={pageSafe <= 1}
-          >
-            ‹ Anterior
-          </button>
-          <span className={styles.pageInfo}>
-            Página {pageSafe} de {totalPages} • {total} registro(s)
-          </span>
-          <button
-            type="button"
-            className={styles.pageBtn}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={pageSafe >= totalPages}
-          >
-            Próxima ›
-          </button>
-        </div>
-      </section>
+          {/* paginação */}
+          <div className={styles.pagination}>
+            <button
+              className={styles.pageBtn}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={pageSafe <= 1}
+            >
+              ‹ Anterior
+            </button>
+            <span className={styles.pageInfo}>
+              Página {pageSafe} de {totalPages} • {total} registro(s)
+            </span>
+            <button
+              className={styles.pageBtn}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={pageSafe >= totalPages}
+            >
+              Próxima ›
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
-/* ---------- Cards auxiliares ---------- */
+/* ---------- subcomponentes de KPI ---------- */
+
 function KpiCard({ icon, label, value, tone = "blue" }) {
   return (
     <div className={styles.card}>
