@@ -3,7 +3,7 @@
   padding: 0;
   height: 100%;
   background: #242730;
-  overflow: hidden; /* scroll só dentro do app, não na janela */
+  overflow: hidden; /* scroll só dentro do app */
 }
 
 /* Scrollbar global mais estilizado */
@@ -39,7 +39,7 @@
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
-  overflow: hidden; /* nada rola aqui, só no conteúdo central */
+  overflow: hidden;
 }
 
 /* ===== Loading (auth) ===== */
@@ -101,9 +101,8 @@
 }
 
 /* ===== Topbar ===== */
-/* não precisa ser sticky/fixed, porque quem rola é o conteúdo, não a página */
 .topbar {
-  flex-shrink: 0;
+  flex-shrink: 0; /* não encolhe, fica fixo no topo do layout */
   background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 100%);
   border-bottom: 1px solid #111827;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
@@ -141,7 +140,7 @@
   position: relative;
 }
 
-/* Botão de ajuda super discreto: sem fundo azul, só o ícone */
+/* Botão de ajuda discreto */
 .iconButton {
   width: 34px;
   height: 34px;
@@ -273,7 +272,8 @@
   flex: 1;
   width: 100%;
   background: #242730;
-  overflow: hidden; /* scroll controlado dentro de bodyInner/main/content */
+  display: flex;
+  overflow: hidden; /* nada além do bodyInner rola */
 }
 
 .bodyInner {
@@ -283,7 +283,8 @@
   display: flex;
   gap: 32px;
   align-items: flex-start;
-  height: calc(100% - 0px); /* ocupa todo o espaço disponível abaixo do topbar */
+  flex: 1;
+  min-height: 0;   /* ESSENCIAL pro flex child (.main) poder rolar */
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -364,7 +365,7 @@
   flex: 1;
 }
 
-/* lista de itens da seção (sem subtítulo) */
+/* lista de itens da seção */
 .menuGroupList {
   list-style: none;
   margin: 4px 0 0 0;
@@ -374,7 +375,7 @@
   gap: 2px;
 }
 
-/* botão de item (filas, agentes, templates, hub etc.) */
+/* botão de item */
 .menuLeafButton {
   width: 100%;
   display: flex;
@@ -425,13 +426,14 @@
   border-radius: 16px;
   display: flex;
   overflow: hidden; /* quem rola é .content */
+  min-height: 0;    /* ESSENCIAL */
 }
 
 .content {
   flex: 1;
   min-width: 0;
   background: #242730;
-  overflow-y: auto; /* scroll só dentro da página aberta */
+  overflow-y: auto;  /* scroll só dentro da página aberta */
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -571,15 +573,16 @@
 
   .main {
     width: 100%;
+    min-height: auto;
   }
 
   .content {
     max-height: none;
-    overflow-y: visible; /* em telas pequenas deixa rolar tudo */
+    overflow-y: visible; /* em telas menores volta a rolar geral */
   }
 
   :global(html, body, #root) {
-    overflow: auto; /* em mobile volta pro scroll normal da página */
+    overflow: auto; /* mobile usa scroll normal da página */
   }
 }
 
