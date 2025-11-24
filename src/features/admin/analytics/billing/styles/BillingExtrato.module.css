@@ -1,6 +1,6 @@
 /* File: styles/BillingExtrato.module.css */
 
-/* ===== Layout base ===== */
+/* ===== Layout base no padrão FlowHub ===== */
 .page {
   padding: 4px 0 24px;
   margin: 0;
@@ -14,15 +14,97 @@
 .container {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 0 0 24px;
+  padding-bottom: 24px;
 }
 
-/* ===== Toolbar ===== */
-.toolbar {
+/* ===== Header ===== */
+.header {
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  padding: 14px 18px;
+  margin-bottom: 20px;
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  position: relative;
 }
+
+.header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -14px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #3b82f6 0%,
+    rgba(59, 130, 246, 0.18) 55%,
+    transparent 100%
+  );
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f9fafb;
+  margin: 0;
+}
+
+.subtitle {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.headerFilters {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filterItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.filterItem label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input {
+  padding: 8px 10px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #020617;
+  font-size: 13px;
+  min-width: 200px;
+  transition: all 0.2s ease;
+  color: #e5e7eb;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
 .headerActions {
   display: flex;
   gap: 10px;
@@ -34,7 +116,7 @@
 .btnPrimary {
   appearance: none;
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 9px 14px;
   font-size: 13px;
   font-weight: 600;
   display: inline-flex;
@@ -42,16 +124,20 @@
   gap: 8px;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
+
 .btn {
   border: 1px solid #334155;
-  background: #1f2937;
-  color: #f9fafb;
+  background: #020617;
+  color: #e5e7eb;
 }
-.btn:hover {
+
+.btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: #374151;
+  background: #111827;
 }
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -59,108 +145,59 @@
 
 .btnPrimary {
   border: none;
-  padding: 10px 16px;
+  padding-inline: 16px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
-.btnPrimary:hover {
-  filter: brightness(1.05);
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(1.06);
   transform: translateY(-1px);
 }
+
 .btnPrimary:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
 
-/* ===== HEADER padronizado (card) ===== */
-.header {
-  background: #2b303a;
-  border-radius: 14px;
-  border: 1px solid #3a3f4b;
-  padding: 14px 18px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.headerText {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #f9fafb;
-}
-
-.subtitle {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 13px;
-  font-weight: 400;
-}
-
-/* ===== Filtros ===== */
-.filters {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-}
-.filterItem {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-.filterItem label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.input {
-  padding: 8px 12px;
-  border: 1px solid #334155;
-  border-radius: 10px;
-  background: #020617;
-  font-size: 13px;
-  min-width: 190px;
-  transition: all 0.2s ease;
-  color: #f1f5f9;
-}
-.input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
-}
-
-/* ===== KPIs – 3 colunas ===== */
+/* ====== KPIs grid (3 cards, 2 linhas em telas menores) ====== */
 .kpisGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-  margin: 24px 0;
+  gap: 16px;
+  margin-top: 26px;
+  margin-bottom: 20px;
 }
 
-/* ===== Card ===== */
+@media (max-width: 1024px) {
+  .kpisGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .kpisGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Card base ===== */
 .card {
-  background: #1f2937;
+  background: #2b303a;
   border: 1px solid #3a3f4b;
   border-radius: 14px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   transition: all 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 140px;
 }
+
 .card:hover {
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.7);
   border-color: #2563eb;
 }
 
@@ -168,40 +205,38 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid #111827;
-  background: rgba(17, 24, 39, 0.8);
+  padding: 12px 16px;
+  border-bottom: 1px solid #1f2937;
+  background: rgba(17, 24, 39, 0.7);
 }
+
 .cardTitle {
   display: flex;
   gap: 8px;
   align-items: center;
+  font-size: 13px;
   font-weight: 700;
   color: #f9fafb;
-  font-size: 14px;
-}
-.cardBody {
-  padding: 18px;
 }
 
-/* valores grandes */
-.bigTotal {
-  font-size: 28px;
-  font-weight: 700;
-  color: #10b981;
-  margin-bottom: 6px;
+.cardBody {
+  padding: 16px;
+  flex: 1;
 }
+
+/* ===== Números principais ===== */
 .bigNumber {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
   color: #60a5fa;
   margin-bottom: 4px;
 }
+
 .subtle {
   color: #94a3b8;
   font-size: 13px;
 }
+
 .inlineStat {
   font-size: 13px;
   color: #60a5fa;
@@ -212,220 +247,217 @@
   margin-top: 10px;
 }
 
-/* ===== Donut ===== */
-.donutBody {
+/* ===== Donut layout ===== */
+.donutLayout {
   display: flex;
-  gap: 18px;
-  align-items: center;
-}
-.donutWrapper {
-  flex: 0 0 160px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.donutOuter {
-  width: 150px;
-  height: 150px;
-  position: relative;
-}
-.donutSvg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-.donutBg {
-  fill: none;
-  stroke: #020617;
-  stroke-width: 3;
-}
-.donutSegment {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-.seg0 {
-  stroke: #22c55e;
-}
-.seg1 {
-  stroke: #3b82f6;
-}
-.seg2 {
-  stroke: #f97316;
-}
-.seg3 {
-  stroke: #eab308;
-}
-.seg4 {
-  stroke: #a855f7;
-}
-.donutCenter {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-.donutValue {
-  font-size: 14px;
-  font-weight: 700;
-  color: #f9fafb;
-}
-.donutLabel {
-  font-size: 11px;
-  color: #9ca3af;
+  gap: 16px;
 }
 
-/* legenda donut */
+.donutSvg {
+  flex-shrink: 0;
+}
+
+.donutSegment {
+  transition: opacity 0.15s ease;
+}
+
+.donutSegment:hover {
+  opacity: 0.9;
+}
+
+.donutValue {
+  font-size: 13px;
+  font-weight: 700;
+  fill: #f9fafb;
+}
+
+.donutLabel {
+  font-size: 11px;
+  fill: #9ca3af;
+}
+
 .donutLegend {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  min-width: 140px;
 }
+
 .legendRow {
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 6px;
+  font-size: 12px;
 }
+
 .legendDot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 999px;
 }
+
 .legendLabel {
   color: #e5e7eb;
+  text-transform: capitalize;
 }
+
 .legendValue {
-  color: #f9fafb;
   font-weight: 600;
+  color: #e5e7eb;
 }
+
 .legendPct {
+  font-size: 11px;
   color: #9ca3af;
 }
-.legendDot.seg0 {
-  background: #22c55e;
+
+.emptyLegend {
+  font-size: 13px;
+  color: #64748b;
 }
-.legendDot.seg1 {
-  background: #3b82f6;
+
+.donutEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: #020617;
+  border: 1px dashed #1f2937;
 }
-.legendDot.seg2 {
-  background: #f97316;
-}
-.legendDot.seg3 {
-  background: #eab308;
-}
-.legendDot.seg4 {
-  background: #a855f7;
+
+.donutEmptyLabel {
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
 }
 
 /* ===== Sessões por canal ===== */
-.sessionsHeader {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 10px;
+.sessionsSummary {
+  margin-bottom: 8px;
 }
-.sessionsTotal {
-  font-size: 22px;
-  font-weight: 700;
-  color: #f9fafb;
-}
-.sessionsLabel {
-  font-size: 12px;
-  color: #9ca3af;
-}
+
 .sessionsList {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 6px;
+  max-height: 210px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
+
 .sessionRow {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.sessionLabel {
-  display: flex;
+
+.sessionHeader {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.sessionLabel {
+  text-transform: capitalize;
   color: #e5e7eb;
 }
-.sessionBarWrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+
+.sessionCount {
+  font-weight: 600;
+  color: #e5e7eb;
 }
+
+.sessionPct {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
 .sessionBarBg {
-  flex: 1;
+  width: 100%;
   height: 6px;
   border-radius: 999px;
   background: #020617;
   overflow: hidden;
 }
-.sessionBar {
+
+.sessionBarFill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #22c55e, #16a34a);
-}
-.sessionMeta {
-  font-size: 11px;
-  color: #9ca3af;
 }
 
-/* ===== LOGO dos canais (SVG container) ===== */
-.channelLogo {
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
+/* ===== Ícone de canal na tabela ===== */
+.channelIconWrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #020617;
-  border: 1px solid #1f2937;
-}
-.channelLogoSvg {
-  width: 20px;
-  height: 20px;
 }
 
-.chWhatsapp {
-  background: #022c22;
-  border-color: #16a34a;
+.channelIcon {
+  width: 24px;
+  height: 24px;
 }
-.chTelegram {
-  background: #021b33;
-  border-color: #3b82f6;
+
+/* ===== Tabela card ===== */
+.tableCard {
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  margin-top: 10px;
+  overflow: hidden;
 }
-.chFacebook {
-  background: #020b24;
-  border-color: #2563eb;
+
+.tableHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.chInstagram {
-  background: #251024;
-  border-color: #ec4899;
+
+.tableTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.chDefault {
-  background: #020617;
-  border-color: #374151;
+
+.tableTitleIcon {
+  display: inline-flex;
+  color: #9ca3af;
+}
+
+.tableTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+.tableMeta {
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 /* ===== Tabela ===== */
 .tableWrap {
   overflow: auto;
-  border-radius: 14px;
   background: #020617;
 }
+
 .table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
 }
+
+/* cabeçalho centralizado */
 .table thead th {
   padding: 12px 16px;
   background: #020617;
@@ -437,21 +469,17 @@
   font-weight: 700;
   text-align: center;
 }
-.table thead th:first-child {
-  text-align: left;
-}
 
-/* zebra */
+/* zebra nas linhas */
 .table tbody tr:nth-child(odd) {
   background-color: #020617;
 }
+
 .table tbody tr:nth-child(even) {
   background-color: #050816;
 }
-.table tbody tr:hover {
-  background-color: #111827;
-}
 
+/* células */
 .table tbody td {
   padding: 12px 16px;
   border-bottom: 1px solid #111827;
@@ -460,24 +488,9 @@
   text-align: center;
   font-weight: 400;
 }
-.cellUser {
-  text-align: left;
-}
-.cellChannel {
-  text-align: center;
-}
-.cellStrong {
-  font-weight: 600;
-  color: #f9fafb;
-}
-.cellMoney {
-  font-weight: 700;
-  color: #10b981;
-}
 
-.tableMeta {
-  font-size: 12px;
-  color: #94a3b8;
+.table tbody tr:hover {
+  background: #111827;
 }
 
 /* rodapé */
@@ -490,35 +503,34 @@
   font-size: 13px;
   background: #020617;
 }
+
 .tfootValue {
   font-weight: 700;
-  color: #10b981;
+  color: #22c55e;
   border-top: 2px solid #1f2937;
   padding: 14px 16px;
   font-size: 14px;
   background: #020617;
+  text-align: center;
 }
 
-/* estados */
+/* Estados */
 .loading {
   padding: 20px;
   color: #94a3b8;
   text-align: center;
   font-size: 14px;
 }
+
 .empty {
   color: #64748b;
   text-align: center;
   padding: 20px;
-  font-style: italic;
   font-size: 14px;
-}
-.emptySmall {
-  color: #64748b;
-  font-size: 12px;
+  font-style: italic;
 }
 
-/* animação refresh */
+/* Animação do ícone de refresh */
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -527,47 +539,49 @@
     transform: rotate(360deg);
   }
 }
+
 .spin {
   animation: spin 1s linear infinite;
 }
 
 /* ===== Responsivo ===== */
-@media (max-width: 1024px) {
-  .kpisGrid {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 768px) {
-  .container {
-    padding: 0 16px 24px;
-  }
+@media (max-width: 880px) {
   .header {
     flex-direction: column;
     align-items: flex-start;
   }
-  .filters {
+
+  .headerFilters {
+    width: 100%;
     flex-wrap: wrap;
+  }
+
+  .headerActions {
+    align-self: stretch;
     justify-content: flex-start;
   }
+
   .input {
     min-width: 160px;
   }
-  .cardHead {
-    padding: 12px 16px;
-  }
-  .cardBody {
-    padding: 16px;
-  }
-  .donutBody {
+
+  .donutLayout {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
   }
-  .donutWrapper {
-    flex: none;
-    align-self: center;
+
+  .donutLegend {
+    align-items: stretch;
   }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-inline: 16px;
+  }
+
   .table thead th,
   .table tbody td {
-    padding: 10px 12px;
+    padding: 10px 8px;
   }
 }
