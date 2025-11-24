@@ -209,7 +209,14 @@ const ChannelIcon = ({ channel }) => {
             ry="4"
             fill="url(#igGrad)"
           />
-          <circle cx="12" cy="12" r="4" fill="none" stroke="#f9fafb" strokeWidth="1.4" />
+          <circle
+            cx="12"
+            cy="12"
+            r="4"
+            fill="none"
+            stroke="#f9fafb"
+            strokeWidth="1.4"
+          />
           <circle cx="16" cy="8" r="1" fill="#f9fafb" />
         </svg>
       </span>
@@ -390,9 +397,8 @@ export default function BillingExtrato() {
           </div>
         </div>
 
-        {/* Cabeçalho + filtros */}
+        {/* HEADER padronizado (card) */}
         <div className={styles.header}>
-          <div className={styles.headerRule} />
           <div className={styles.headerText}>
             <h1 className={styles.title}>Extrato de faturamento</h1>
             <p className={styles.subtitle}>
@@ -426,7 +432,7 @@ export default function BillingExtrato() {
           </div>
         </div>
 
-        {/* KPIs – agora 3 cards na mesma linha */}
+        {/* KPIs – 3 cards na mesma linha */}
         <div className={styles.kpisGrid}>
           {/* Usuários ativos */}
           <div className={styles.card}>
