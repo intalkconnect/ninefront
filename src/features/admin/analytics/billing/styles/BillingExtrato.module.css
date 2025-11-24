@@ -73,33 +73,25 @@
   cursor: not-allowed;
 }
 
-/* ===== Cabeçalho ===== */
+/* ===== HEADER padronizado (card) ===== */
 .header {
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  padding: 14px 18px;
+  margin-bottom: 20px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
-  position: relative;
 }
-.headerRule {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -12px;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    #3b82f6 0%,
-    rgba(59, 130, 246, 0.2) 55%,
-    transparent 100%
-  );
-}
+
 .headerText {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
 .title {
   margin: 0;
   font-size: 18px;
@@ -107,6 +99,7 @@
   letter-spacing: -0.01em;
   color: #f9fafb;
 }
+
 .subtitle {
   margin: 0;
   color: #94a3b8;
@@ -149,7 +142,7 @@
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
 
-/* ===== KPIs – AGORA 3 colunas ===== */
+/* ===== KPIs – 3 colunas ===== */
 .kpisGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
