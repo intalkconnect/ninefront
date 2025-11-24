@@ -23,7 +23,7 @@
   border-radius: 14px;
   border: 1px solid #3a3f4b;
   padding: 14px 18px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -95,10 +95,71 @@
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.6);
 }
 
-/* ====== Grid dos cards ====== */
+/* ===== Card de Período (igual header, logo abaixo) ===== */
+.periodBar {
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  padding: 14px 18px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.periodHeaderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+.periodFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.periodField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.periodLabel {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.periodHint {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ===== Inputs ===== */
+.input {
+  padding: 8px 10px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #020617;
+  font-size: 13px;
+  min-width: 0;
+  transition: all 0.2s ease;
+  color: #e5e7eb;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+/* ====== Grid dos cards de dados (3 cards) ====== */
 .kpisGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -125,7 +186,7 @@
   transition: all 0.18s ease;
   display: flex;
   flex-direction: column;
-  min-height: 140px;
+  min-height: 160px;
 }
 
 .card:hover {
@@ -157,60 +218,9 @@
   flex: 1;
 }
 
-/* ===== Inputs / filtros ===== */
-.filterItem {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.input {
-  padding: 8px 10px;
-  border: 1px solid #334155;
-  border-radius: 10px;
-  background: #020617;
-  font-size: 13px;
-  min-width: 0;
-  transition: all 0.2s ease;
-  color: #e5e7eb;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
-}
-
-/* card Período */
-.periodGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.periodField {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.periodLabel {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.periodHint {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #64748b;
-}
-
 /* ===== Números principais ===== */
 .bigNumber {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: #60a5fa;
   margin-bottom: 4px;
@@ -236,7 +246,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .donutSvg {
@@ -252,13 +262,13 @@
 }
 
 .donutValue {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   fill: #f9fafb;
 }
 
 .donutLabel {
-  font-size: 10px;
+  font-size: 9px;
   fill: #9ca3af;
 }
 
@@ -266,7 +276,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 140px;
+  min-width: 145px;
 }
 
 .legendRow {
@@ -307,8 +317,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 130px;
-  height: 130px;
+  width: 120px;
+  height: 120px;
   border-radius: 999px;
   background: #020617;
   border: 1px dashed #1f2937;
@@ -325,7 +335,7 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .sessionsList {
@@ -541,7 +551,7 @@
     align-self: flex-end;
   }
 
-  .periodGrid {
+  .periodFields {
     grid-template-columns: 1fr;
   }
 
