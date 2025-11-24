@@ -11,10 +11,9 @@ import {
   CalendarRange,
   Download,
   RefreshCcw,
-  TrendingUp,
   Users,
   DollarSign,
-  BarChart2,
+  PieChart,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import styles from "./styles/BillingExtrato.module.css";
@@ -44,60 +43,21 @@ const useDebounce = (value, delay = 300) => {
   return deb;
 };
 
-// ===== CSV helpers =====
-const CSV_DELIM = ";";
+// ===== CSV helpers (Excel-friendly pt-BR) =====
+const CSV_DELIM = ";"; // ; funciona melhor com Excel em pt-BR
 
 const escapeCSV = (val) => {
   if (val === null || val === undefined) return "";
   const s = String(val);
   const needsQuotes =
-    s.includes('"') || s.includes("\n") || s.includes("\r") || s.includes(CSV_DELIM);
+    s.includes('"') ||
+    s.includes("\n") ||
+    s.includes("\r") ||
+    s.includes(CSV_DELIM);
   const esc = s.replace(/"/g, '""');
   return needsQuotes ? `"${esc}"` : esc;
 };
 
-const buildCsvFromState = (data) => {
-  const headers = [
-    "User ID",
-    "Canal",
-    "Janelas",
-    "Primeira Mensagem",
-    "Última Mensagem",
-    "Total (R$)",
-  ];
-
-  const lines = (data?.rows || []).map((row) => {
-    const cents = pickCents(row);
-    const sess = pickSessions(row);
-    const first = pickFirstTs(row);
-    const last = pickLastTs(row);
-
-    return [
-      escapeCSV(row.user_id || row.user || ""),
-      escapeCSV(row.channel || "default"),
-      escapeCSV(fmtInt(sess)),
-      escapeCSV(first ? new Date(first).toLocaleString("pt-BR") : ""),
-      escapeCSV(last ? new Date(last).toLocaleString("pt-BR") : ""),
-      escapeCSV(BRL(cents).replace("R$", "").trim()),
-    ].join(CSV_DELIM);
-  });
-
-  return "\uFEFF" + [headers.join(CSV_DELIM), ...lines].join("\n");
-};
-
-const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
-  const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-};
-
-// =========== Normalizadores ===========
 const pickCents = (row) => {
   if (Number.isFinite(+row?.amount_cents)) return +row.amount_cents;
   if (Number.isFinite(+row?.total_cents)) return +row.total_cents;
@@ -126,116 +86,112 @@ const pickLastTs = (row) =>
   row?.max_ts ||
   row?.last_msg_at;
 
-/* ==================== ChannelIcon (logo em SVG) ==================== */
+const buildCsvFromState = (data) => {
+  const headers = [
+    "User ID",
+    "Canal",
+    "Janelas",
+    "Primeira Mensagem",
+    "Última Mensagem",
+    "Total (R$)",
+  ];
+  const lines = (data?.rows || []).map((row) => {
+    const cents = pickCents(row);
+    const sess = pickSessions(row);
+    const first = pickFirstTs(row);
+    const last = pickLastTs(row);
+    return [
+      escapeCSV(row.user_id || row.user || ""),
+      escapeCSV(row.channel || "default"),
+      escapeCSV(fmtInt(sess)),
+      escapeCSV(first ? new Date(first).toLocaleString("pt-BR") : ""),
+      escapeCSV(last ? new Date(last).toLocaleString("pt-BR") : ""),
+      escapeCSV(BRL(cents).replace("R$", "").trim()),
+    ].join(CSV_DELIM);
+  });
+
+  // BOM p/ Excel abrir acentuação corretamente
+  return "\uFEFF" + [headers.join(CSV_DELIM), ...lines].join("\n");
+};
+
+const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+/* ========================= SVG dos canais ========================= */
 
 const ChannelIcon = ({ channel }) => {
   const ch = String(channel || "default").toLowerCase();
 
-  if (ch.includes("whats")) {
+  if (ch === "whatsapp") {
     return (
-      <span className={`${styles.channelLogo} ${styles.chWhatsapp}`}>
-        <svg
-          viewBox="0 0 24 24"
-          className={styles.channelLogoSvg}
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="10" fill="#22c55e" />
+      <span className={styles.channelIconWrap} title="WhatsApp">
+        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+          <circle cx="16" cy="16" r="16" fill="#22c55e" />
           <path
-            d="M9.2 7.7c.2-.3.3-.4.6-.4h.3c.2 0 .4 0 .6.5.2.4.7 1.3.8 1.4.1.2.1.3 0 .5-.1.2-.2.3-.4.4-.2.1-.3.2-.1.5.1.3.6 1 1.4 1.6.9.6 1.6.8 1.9.9.3.1.4 0 .5-.2.1-.3.6-.7.7-.9.1-.2.3-.2.5-.1.3.1 1.5.7 1.7.8.2.1.3.2.3.4 0 .2 0 .9-.4 1.7-.4.8-1.1 1.2-1.9 1.3-.5 0-1.1.1-1.9-.1-1.1-.3-2.3-.9-3.2-1.7-.8-.7-1.8-1.8-2.1-2.9-.2-.5-.3-1-.3-1.4 0-.4 0-.9.2-1.2z"
+            d="M16 7a7 7 0 0 0-6.02 10.58L9 25l2.49-.65A7 7 0 1 0 16 7z"
             fill="#022c22"
           />
-        </svg>
-      </span>
-    );
-  }
-
-  if (ch.includes("telegram")) {
-    return (
-      <span className={`${styles.channelLogo} ${styles.chTelegram}`}>
-        <svg
-          viewBox="0 0 24 24"
-          className={styles.channelLogoSvg}
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="10" fill="#3b82f6" />
           <path
-            d="M17.4 7.1 6.9 11.1c-.4.1-.4.6 0 .7l2.6.9 1 3.2c.1.4.6.4.7 0l.9-2.3 2.6 1.9c.3.2.8 0 .9-.4l1.4-7.1c.1-.4-.3-.8-.6-.7z"
-            fill="#e5f0ff"
+            d="M18.9 18.3c-.4.22-1.1.47-1.58.53-.4.05-.92.09-1.49-.09-.34-.1-.78-.25-1.3-.5-2.29-1.12-3.77-3.73-3.88-3.9-.11-.16-.93-1.24-.93-2.37 0-1.13.59-1.68.8-1.9.21-.22.46-.28.62-.28.16 0 .31.01.44.01.14.01.33-.05.51.39.19.45.64 1.55.69 1.66.05.11.08.24.02.4-.06.16-.09.24-.18.37-.09.13-.19.28-.27.38-.09.1-.18.21-.08.4.1.19.46.76.99 1.23.68.6 1.26.79 1.45.88.19.08.3.07.41-.04.11-.11.48-.56.6-.75.13-.19.26-.16.44-.1.19.07 1.19.56 1.39.66.2.1.34.15.39.23.05.07.05.83-.35 1.05z"
+            fill="#a7f3d0"
           />
         </svg>
       </span>
     );
   }
 
-  if (ch.includes("facebook")) {
+  if (ch === "facebook") {
     return (
-      <span className={`${styles.channelLogo} ${styles.chFacebook}`}>
-        <svg
-          viewBox="0 0 24 24"
-          className={styles.channelLogoSvg}
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="10" fill="#2563eb" />
+      <span className={styles.channelIconWrap} title="Facebook">
+        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+          <circle cx="16" cy="16" r="16" fill="#2563eb" />
           <path
-            d="M13 7h-1.2C10.3 7 9 8.3 9 9.8v1.2H8.1a.5.5 0 0 0-.5.5v1.6c0 .3.2.5.5.5H9v3.6c0 .3.2.5.5.5h1.8c.3 0 .5-.2.5-.5v-3.6h1.4c.3 0 .5-.2.5-.5v-1.6a.5.5 0 0 0-.5-.5h-1.4V9.9c0-.4.3-.7.7-.7H14c.3 0 .5-.2.5-.5V7.5A.5.5 0 0 0 14 7h-1z"
-            fill="#ffffff"
+            d="M18 9h2V5h-2c-3.31 0-6 2.69-6 6v2H9v4h3v8h4v-8h3l1-4h-4v-2c0-1.1.9-2 2-2z"
+            fill="#eff6ff"
           />
         </svg>
       </span>
     );
   }
 
-  if (ch.includes("insta")) {
+  if (ch === "telegram") {
     return (
-      <span className={`${styles.channelLogo} ${styles.chInstagram}`}>
-        <svg
-          viewBox="0 0 24 24"
-          className={styles.channelLogoSvg}
-          aria-hidden="true"
-        >
-          <defs>
-            <linearGradient id="igGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="40%" stopColor="#ec4899" />
-              <stop offset="100%" stopColor="#6366f1" />
-            </linearGradient>
-          </defs>
-          <rect
-            x="4"
-            y="4"
-            width="16"
-            height="16"
-            rx="4"
-            ry="4"
-            fill="url(#igGrad)"
+      <span className={styles.channelIconWrap} title="Telegram">
+        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+          <circle cx="16" cy="16" r="16" fill="#0ea5e9" />
+          <path
+            d="M23.4 9.2L8.7 15.1c-.7.3-.7 1.3 0 1.6l3.5 1.4 1.4 4.5c.2.6 1 .7 1.4.2l2-2.4 3.6 2.8c.5.4 1.3.1 1.4-.6l1.8-12.1c.1-.7-.6-1.2-1.4-.9z"
+            fill="#e0f2fe"
           />
-          <circle
-            cx="12"
-            cy="12"
-            r="4"
-            fill="none"
-            stroke="#f9fafb"
-            strokeWidth="1.4"
-          />
-          <circle cx="16" cy="8" r="1" fill="#f9fafb" />
         </svg>
       </span>
     );
   }
 
-  // default genérico
+  const initial = ch.charAt(0).toUpperCase() || "?";
   return (
-    <span className={`${styles.channelLogo} ${styles.chDefault}`}>
-      <svg
-        viewBox="0 0 24 24"
-        className={styles.channelLogoSvg}
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="10" fill="#4b5563" />
-        <path
-          d="M8.5 9.2c0-1.1.9-2 2-2h3c1.1 0 2 .9 2 2v5.6c0 .5-.4.9-.9.9H9.4a.9.9 0 0 1-.9-.9V9.2z"
+    <span className={styles.channelIconWrap} title={channel || "default"}>
+      <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+        <circle cx="16" cy="16" r="16" fill="#4b5563" />
+        <text
+          x="16"
+          y="20"
+          textAnchor="middle"
+          fontSize="14"
           fill="#e5e7eb"
-        />
+          fontFamily="system-ui, -apple-system, Segoe UI, sans-serif"
+        >
+          {initial}
+        </text>
       </svg>
     </span>
   );
@@ -244,7 +200,14 @@ const ChannelIcon = ({ channel }) => {
 /* ========================= Página ========================= */
 export default function BillingExtrato() {
   const now = new Date();
-  const firstMonthDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+  const firstMonthDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1,
+    0,
+    0,
+    0
+  );
 
   const [from, setFrom] = useState(firstMonthDay.toISOString().slice(0, 16));
   const [to, setTo] = useState(new Date().toISOString().slice(0, 16));
@@ -261,7 +224,12 @@ export default function BillingExtrato() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+    },
+    []
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -269,6 +237,7 @@ export default function BillingExtrato() {
       const params = { from: toISO(debFrom), to: toISO(debTo) };
       const res = await apiGet(`/billing/statement?${qs(params)}`);
 
+      // 1) linhas
       let rows = Array.isArray(res)
         ? res
         : Array.isArray(res?.rows)
@@ -278,6 +247,7 @@ export default function BillingExtrato() {
         : [];
       if (!Array.isArray(rows)) rows = [];
 
+      // 2) total do período
       let total_cents = 0;
       if (Number.isFinite(+res?.total_cents)) {
         total_cents = +res.total_cents;
@@ -289,6 +259,7 @@ export default function BillingExtrato() {
         total_cents = rows.reduce((acc, r) => acc + pickCents(r), 0);
       }
 
+      // 3) somatório por canal (se API não mandar pronto)
       const totals_by_channel =
         res?.totals_by_channel && Array.isArray(res.totals_by_channel)
           ? res.totals_by_channel
@@ -335,40 +306,158 @@ export default function BillingExtrato() {
     downloadBlob(csv, filename);
   };
 
-  const fmtDt = (ts) => (ts ? new Date(ts).toLocaleString("pt-BR") : "—");
+  const fmtDt = (ts) =>
+    ts ? new Date(ts).toLocaleString("pt-BR") : "—";
 
+  // métricas extras
   const totalUsers = data.rows?.length || 0;
   const totalSessions =
     data.rows?.reduce((acc, r) => acc + pickSessions(r), 0) || 0;
   const avgPerUser = totalUsers > 0 ? data.total_cents / totalUsers : 0;
 
-  const channelsSorted = useMemo(
-    () =>
-      (data.totals_by_channel || [])
-        .slice()
-        .sort((a, b) => (b.total_cents || 0) - (a.total_cents || 0)),
-    [data.totals_by_channel]
+  // dados por canal
+  const channels = useMemo(() => {
+    const arr = data.totals_by_channel || [];
+    return arr
+      .slice()
+      .sort((a, b) => (b.total_cents || 0) - (a.total_cents || 0));
+  }, [data.totals_by_channel]);
+
+  const totalByValue = channels.reduce(
+    (acc, c) => acc + (c.total_cents || 0),
+    0
+  );
+  const totalBySessions = channels.reduce(
+    (acc, c) => acc + (c.sessions || 0),
+    0
   );
 
-  const totalCentsChannels = useMemo(
-    () =>
-      channelsSorted.reduce((acc, c) => acc + (c.total_cents || 0), 0),
-    [channelsSorted]
-  );
+  // cores fixas para canais
+  const channelColor = (ch, index) => {
+    const key = String(ch || "default").toLowerCase();
+    if (key === "whatsapp") return "#22c55e";
+    if (key === "telegram") return "#3b82f6";
+    if (key === "facebook") return "#60a5fa";
+    const palette = ["#a855f7", "#f97316", "#eab308", "#f97373"];
+    return palette[index % palette.length];
+  };
 
-  const totalSessionsChannels = useMemo(
-    () => channelsSorted.reduce((acc, c) => acc + (c.sessions || 0), 0),
-    [channelsSorted]
-  );
+  // ========== Donut por valor faturado ==========
+  const DonutChart = () => {
+    if (!channels.length || totalByValue <= 0) {
+      return (
+        <div className={styles.donutEmpty}>
+          <span className={styles.donutEmptyLabel}>Sem faturamento no período</span>
+        </div>
+      );
+    }
 
-  const pct = (value, total) =>
-    total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+    // usa SVG simples em forma de anel
+    const size = 140;
+    const stroke = 20;
+    const radius = (size - stroke) / 2;
+    const cx = size / 2;
+    const cy = size / 2;
+    const circumference = 2 * Math.PI * radius;
+
+    let offsetAcumulado = 0;
+
+    return (
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className={styles.donutSvg}
+      >
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill="#020617"
+          stroke="#111827"
+          strokeWidth={stroke}
+        />
+        {channels.map((c, index) => {
+          const value = c.total_cents || 0;
+          const pct = value / totalByValue;
+          const dash = circumference * pct;
+          const gap = circumference - dash;
+          const offset = offsetAcumulado;
+          offsetAcumulado -= dash;
+
+          return (
+            <circle
+              key={c.channel || index}
+              cx={cx}
+              cy={cy}
+              r={radius}
+              fill="transparent"
+              stroke={channelColor(c.channel, index)}
+              strokeWidth={stroke}
+              strokeDasharray={`${dash} ${gap}`}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              className={styles.donutSegment}
+            />
+          );
+        })}
+        <text
+          x={cx}
+          y={cy - 4}
+          textAnchor="middle"
+          className={styles.donutValue}
+        >
+          {grandTotal}
+        </text>
+        <text
+          x={cx}
+          y={cy + 14}
+          textAnchor="middle"
+          className={styles.donutLabel}
+        >
+          Total faturado
+        </text>
+      </svg>
+    );
+  };
 
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* Toolbar superior */}
-        <div className={styles.toolbar}>
+        {/* HEADER no padrão FlowHub */}
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <h1 className={styles.title}>Extrato de faturamento</h1>
+            <p className={styles.subtitle}>
+              Análise detalhada do faturamento por sessões, usuários e canais.
+            </p>
+          </div>
+
+          <div className={styles.headerFilters}>
+            <div className={styles.filterItem}>
+              <label>
+                <CalendarRange size={14} /> Período inicial
+              </label>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>
+                <CalendarRange size={14} /> Período final
+              </label>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div className={styles.headerActions}>
             <button
               className={styles.btn}
@@ -395,216 +484,160 @@ export default function BillingExtrato() {
               Exportar CSV
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* HEADER padronizado (card) */}
-        <div className={styles.header}>
-          <div className={styles.headerText}>
-            <h1 className={styles.title}>Extrato de faturamento</h1>
-            <p className={styles.subtitle}>
-              Análise detalhada do faturamento por sessões, usuários e canais.
-            </p>
-          </div>
-
-          <div className={styles.filters}>
-            <div className={styles.filterItem}>
-              <label>
-                <CalendarRange size={14} /> Período inicial
-              </label>
-              <input
-                className={styles.input}
-                type="datetime-local"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-            </div>
-            <div className={styles.filterItem}>
-              <label>
-                <CalendarRange size={14} /> Período final
-              </label>
-              <input
-                className={styles.input}
-                type="datetime-local"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* KPIs – 3 cards na mesma linha */}
-        <div className={styles.kpisGrid}>
+        {/* GRID 3 CARDS (2 linhas em telas menores) */}
+        <section className={styles.kpisGrid}>
           {/* Usuários ativos */}
-          <div className={styles.card}>
+          <article className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>
                 <Users size={18} />
-                <span>Usuários ativos</span>
+                Usuários ativos
               </div>
             </div>
             <div className={styles.cardBody}>
               <div className={styles.bigNumber}>{totalUsers}</div>
               <div className={styles.subtle}>
-                Total de usuários com sessões faturáveis.
+                Usuários com sessões faturáveis no período.
               </div>
               <div className={styles.inlineStat}>
-                <TrendingUp size={14} />
+                <DollarSign size={14} />
                 Média: {BRL(avgPerUser)} por usuário.
               </div>
             </div>
-          </div>
+          </article>
 
-          {/* Faturamento por canal – rosca por valor */}
-          <div className={styles.card}>
+          {/* Faturamento por canal (rosca por valor) */}
+          <article className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>
-                <DollarSign size={18} />
-                <span>Faturamento por canal</span>
-              </div>
-            </div>
-            <div className={`${styles.cardBody} ${styles.donutBody}`}>
-              <div className={styles.donutWrapper}>
-                <div className={styles.donutOuter}>
-                  <svg
-                    viewBox="0 0 36 36"
-                    className={styles.donutSvg}
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className={styles.donutBg}
-                      cx="18"
-                      cy="18"
-                      r="15.915"
-                    />
-                    {channelsSorted.reduce(
-                      (acc, c, index) => {
-                        const value = c.total_cents || 0;
-                        const pctVal =
-                          totalCentsChannels > 0
-                            ? (value / totalCentsChannels) * 100
-                            : 0;
-                        const dash = Math.max(0, pctVal);
-                        const gap = 1.5;
-                        const circle = (
-                          <circle
-                            key={c.channel || index}
-                            className={`${styles.donutSegment} ${styles[`seg${index % 5}`]}`}
-                            cx="18"
-                            cy="18"
-                            r="15.915"
-                            strokeDasharray={`${dash} ${100 - dash}`}
-                            strokeDashoffset={acc.offset}
-                          />
-                        );
-                        const nextOffset = acc.offset - dash - gap;
-                        return {
-                          offset: nextOffset,
-                          nodes: [...acc.nodes, circle],
-                        };
-                      },
-                      { offset: 25, nodes: [] }
-                    ).nodes}
-                  </svg>
-                  <div className={styles.donutCenter}>
-                    <span className={styles.donutValue}>{grandTotal}</span>
-                    <span className={styles.donutLabel}>Total faturado</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.donutLegend}>
-                {channelsSorted.length === 0 && !loading && (
-                  <div className={styles.emptySmall}>Sem dados por canal.</div>
-                )}
-                {channelsSorted.map((c, index) => (
-                  <div
-                    key={c.channel || index}
-                    className={styles.legendRow}
-                  >
-                    <span
-                      className={`${styles.legendDot} ${styles[`seg${index % 5}`]}`}
-                    />
-                    <span className={styles.legendLabel}>
-                      {c.channel || "default"}
-                    </span>
-                    <span className={styles.legendValue}>
-                      {BRL(c.total_cents || 0)}
-                    </span>
-                    <span className={styles.legendPct}>
-                      {pct(c.total_cents || 0, totalCentsChannels)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Sessões por canal – apenas quantidade */}
-          <div className={styles.card}>
-            <div className={styles.cardHead}>
-              <div className={styles.cardTitle}>
-                <BarChart2 size={18} />
-                <span>Sessões por canal</span>
+                <PieChart size={18} />
+                Faturamento por canal
               </div>
             </div>
             <div className={styles.cardBody}>
-              <div className={styles.sessionsHeader}>
-                <span className={styles.sessionsTotal}>
-                  {fmtInt(totalSessions)}
-                </span>
-                <span className={styles.sessionsLabel}>
-                  sessões no período
+              <div className={styles.donutLayout}>
+                <DonutChart />
+                <div className={styles.donutLegend}>
+                  {channels.length === 0 ? (
+                    <span className={styles.emptyLegend}>
+                      Sem dados de canais.
+                    </span>
+                  ) : (
+                    channels.map((c, index) => {
+                      const value = c.total_cents || 0;
+                      const pct =
+                        totalByValue > 0
+                          ? (value / totalByValue) * 100
+                          : 0;
+                      return (
+                        <div
+                          key={c.channel || index}
+                          className={styles.legendRow}
+                        >
+                          <span
+                            className={styles.legendDot}
+                            style={{
+                              backgroundColor: channelColor(
+                                c.channel,
+                                index
+                              ),
+                            }}
+                          />
+                          <span className={styles.legendLabel}>
+                            {c.channel || "default"}
+                          </span>
+                          <span className={styles.legendValue}>
+                            {BRL(value)}
+                          </span>
+                          <span className={styles.legendPct}>
+                            {pct.toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          </article>
+
+          {/* Sessões por canal (quantidade) */}
+          <article className={styles.card}>
+            <div className={styles.cardHead}>
+              <div className={styles.cardTitle}>
+                <PieChart size={18} />
+                Sessões por canal
+              </div>
+            </div>
+            <div className={styles.cardBody}>
+              <div className={styles.sessionsSummary}>
+                <span className={styles.bigNumber}>{totalSessions}</span>
+                <span className={styles.subtle}>
+                  sessões no período.
                 </span>
               </div>
 
               <div className={styles.sessionsList}>
-                {channelsSorted.length === 0 && !loading && (
-                  <div className={styles.emptySmall}>
-                    Sem sessões agrupadas por canal.
-                  </div>
-                )}
-                {channelsSorted.map((c) => {
-                  const sess = c.sessions || 0;
-                  const perc = totalSessionsChannels
-                    ? (sess / totalSessionsChannels) * 100
-                    : 0;
-                  return (
-                    <div
-                      key={c.channel}
-                      className={styles.sessionRow}
-                    >
-                      <div className={styles.sessionLabel}>
-                        <ChannelIcon channel={c.channel} />
-                        <span>{c.channel || "default"}</span>
-                      </div>
-                      <div className={styles.sessionBarWrap}>
+                {channels.length === 0 ? (
+                  <div className={styles.empty}>Sem sessões por canal.</div>
+                ) : (
+                  channels.map((c, index) => {
+                    const sess = c.sessions || 0;
+                    const pct =
+                      totalBySessions > 0
+                        ? (sess / totalBySessions) * 100
+                        : 0;
+                    return (
+                      <div
+                        key={c.channel || index}
+                        className={styles.sessionRow}
+                      >
+                        <div className={styles.sessionHeader}>
+                          <ChannelIcon channel={c.channel} />
+                          <span className={styles.sessionLabel}>
+                            {c.channel || "default"}
+                          </span>
+                          <span className={styles.sessionCount}>
+                            {sess}
+                          </span>
+                          <span className={styles.sessionPct}>
+                            {pct.toFixed(1)}%
+                          </span>
+                        </div>
                         <div className={styles.sessionBarBg}>
                           <div
-                            className={styles.sessionBar}
-                            style={{ width: `${perc}%` }}
+                            className={styles.sessionBarFill}
+                            style={{
+                              width: `${Math.max(pct, 4)}%`,
+                              backgroundColor: channelColor(
+                                c.channel,
+                                index
+                              ),
+                            }}
                           />
                         </div>
-                        <span className={styles.sessionMeta}>
-                          {fmtInt(sess)} ({pct(sess, totalSessionsChannels)}%)
-                        </span>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
-          </div>
-        </div>
+          </article>
+        </section>
 
         {/* Tabela detalhada */}
-        <div className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>
-              <BarChart2 size={18} />
-              <span>Detalhamento por usuário</span>
+        <section className={styles.tableCard}>
+          <div className={styles.tableHeader}>
+            <div className={styles.tableTitleWrap}>
+              <span className={styles.tableTitleIcon}>
+                <PieChart size={16} />
+              </span>
+              <h2 className={styles.tableTitle}>Detalhamento por usuário</h2>
             </div>
             <div className={styles.tableMeta}>
-              {fmtInt(totalSessions)} sessão(ões) totais
+              {totalSessions} sessão(ões) totais
             </div>
           </div>
 
@@ -632,13 +665,14 @@ export default function BillingExtrato() {
                     </td>
                   </tr>
                 )}
-                {!loading && (!data.rows || data.rows.length === 0) && (
-                  <tr>
-                    <td colSpan={6} className={styles.empty}>
-                      Nenhum dado encontrado para o período selecionado.
-                    </td>
-                  </tr>
-                )}
+                {!loading &&
+                  (!data.rows || data.rows.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className={styles.empty}>
+                        Nenhum dado encontrado para o período selecionado.
+                      </td>
+                    </tr>
+                  )}
                 {!loading &&
                   data.rows?.map((r, i) => {
                     const cents = pickCents(r);
@@ -649,16 +683,14 @@ export default function BillingExtrato() {
                       <tr
                         key={(r.user_id || r.user || "-") + (r.channel || "default") + i}
                       >
-                        <td className={`${styles.cellUser} ${styles.cellStrong}`}>
-                          {r.user_id || r.user || "—"}
-                        </td>
-                        <td className={styles.cellChannel}>
+                        <td>{r.user_id || r.user || "—"}</td>
+                        <td>
                           <ChannelIcon channel={r.channel} />
                         </td>
-                        <td className={styles.cellStrong}>{fmtInt(sessions)}</td>
+                        <td>{fmtInt(sessions)}</td>
                         <td>{fmtDt(first)}</td>
                         <td>{fmtDt(last)}</td>
-                        <td className={styles.cellMoney}>{BRL(cents)}</td>
+                        <td>{BRL(cents)}</td>
                       </tr>
                     );
                   })}
@@ -675,7 +707,7 @@ export default function BillingExtrato() {
               ) : null}
             </table>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
