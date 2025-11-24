@@ -176,6 +176,46 @@ const ChannelIcon = ({ channel }) => {
     );
   }
 
+  if (ch === "instagram") {
+    return (
+      <span className={styles.channelIconWrap} title="Instagram">
+        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+          <defs>
+            <linearGradient id="ig" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#f97316" />
+              <stop offset="40%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#6366f1" />
+            </linearGradient>
+          </defs>
+          <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#ig)" />
+          <circle cx="16" cy="16" r="6" fill="none" stroke="#f9fafb" strokeWidth="2" />
+          <circle cx="22" cy="10" r="1.5" fill="#f9fafb" />
+        </svg>
+      </span>
+    );
+  }
+
+  if (ch === "webchat") {
+    return (
+      <span className={styles.channelIconWrap} title="Webchat">
+        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+          <rect x="4" y="6" width="24" height="18" rx="4" fill="#0f766e" />
+          <path
+            d="M10 22l3 4 3-4"
+            fill="none"
+            stroke="#022c22"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle cx="12" cy="14" r="1.5" fill="#ecfeff" />
+          <circle cx="16" cy="14" r="1.5" fill="#ecfeff" />
+          <circle cx="20" cy="14" r="1.5" fill="#ecfeff" />
+        </svg>
+      </span>
+    );
+  }
+
   const initial = ch.charAt(0).toUpperCase() || "?";
   return (
     <span className={styles.channelIconWrap} title={channel || "default"}>
@@ -331,6 +371,8 @@ export default function BillingExtrato() {
     if (key === "whatsapp") return "#22c55e";
     if (key === "telegram") return "#3b82f6";
     if (key === "facebook") return "#60a5fa";
+    if (key === "instagram") return "#ec4899";
+    if (key === "webchat") return "#0d9488";
     const palette = ["#a855f7", "#f97316", "#eab308", "#f97373"];
     return palette[index % palette.length];
   };
@@ -346,8 +388,8 @@ export default function BillingExtrato() {
       );
     }
 
-    const size = 130;
-    const stroke = 18;
+    const size = 120;
+    const stroke = 16;
     const radius = (size - stroke) / 2;
     const cx = size / 2;
     const cy = size / 2;
@@ -396,7 +438,7 @@ export default function BillingExtrato() {
         })}
         <text
           x={cx}
-          y={cy - 4}
+          y={cy - 2}
           textAnchor="middle"
           className={styles.donutValue}
         >
@@ -452,43 +494,39 @@ export default function BillingExtrato() {
           </div>
         </header>
 
-        {/* GRID – card de período + KPIs */}
-        <section className={styles.kpisGrid}>
-          {/* Card de período (filtros de data) */}
-          <article className={styles.card}>
-            <div className={styles.cardHead}>
-              <div className={styles.cardTitle}>
-                <CalendarRange size={18} />
-                Período
-              </div>
+        {/* PERÍODO – mesmo estilo do header, logo abaixo */}
+        <section className={styles.periodBar}>
+          <div className={styles.periodHeaderRow}>
+            <CalendarRange size={16} />
+            <span>Período de análise</span>
+          </div>
+          <div className={styles.periodFields}>
+            <div className={styles.periodField}>
+              <span className={styles.periodLabel}>Inicial</span>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
             </div>
-            <div className={styles.cardBody}>
-              <div className={styles.periodGrid}>
-                <div className={styles.periodField}>
-                  <span className={styles.periodLabel}>Inicial</span>
-                  <input
-                    className={styles.input}
-                    type="datetime-local"
-                    value={from}
-                    onChange={(e) => setFrom(e.target.value)}
-                  />
-                </div>
-                <div className={styles.periodField}>
-                  <span className={styles.periodLabel}>Final</span>
-                  <input
-                    className={styles.input}
-                    type="datetime-local"
-                    value={to}
-                    onChange={(e) => setTo(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className={styles.periodHint}>
-                Os dados abaixo consideram o período selecionado.
-              </div>
+            <div className={styles.periodField}>
+              <span className={styles.periodLabel}>Final</span>
+              <input
+                className={styles.input}
+                type="datetime-local"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
             </div>
-          </article>
+          </div>
+          <div className={styles.periodHint}>
+            Todos os indicadores abaixo consideram o período selecionado.
+          </div>
+        </section>
 
+        {/* GRID – 3 cards bem distribuídos */}
+        <section className={styles.kpisGrid}>
           {/* Usuários ativos */}
           <article className={styles.card}>
             <div className={styles.cardHead}>
@@ -680,7 +718,11 @@ export default function BillingExtrato() {
                     const last = pickLastTs(r);
                     return (
                       <tr
-                        key={(r.user_id || r.user || "-") + (r.channel || "default") + i}
+                        key={
+                          (r.user_id || r.user || "-") +
+                          (r.channel || "default") +
+                          i
+                        }
                       >
                         <td>{r.user_id || r.user || "—"}</td>
                         <td>
