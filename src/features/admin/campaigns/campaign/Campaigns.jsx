@@ -33,6 +33,21 @@ function calcProcessed(c) {
   return { processed: Math.min(safeTotal, sum), total: safeTotal };
 }
 
+/** Label + classe do chip de status */
+function getStatusUi(c) {
+  const st = String(c?.status || "").toLowerCase();
+  const { processed, total } = calcProcessed(c);
+  const remaining = Math.max(0, (total || 0) - processed);
+
+  if (st === "failed") return { label: "Falhou", cls: styles.stFailed };
+  if (st === "finished") return { label: "Concluída", cls: styles.stFinished };
+  if (st === "scheduled") return { label: "Agendada", cls: styles.stScheduled };
+  if (st === "queued" || remaining > 0)
+    return { label: "Em andamento", cls: styles.stActive };
+
+  return { label: st || "—", cls: styles.stDefault };
+}
+
 export default function Campaigns() {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -107,7 +122,7 @@ export default function Campaigns() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER no padrão dos demais dashboards */}
+        {/* HEADER no padrão dos outros monitores */}
         <header className={styles.header}>
           <div className={styles.headerLeft}>
             <h1 className={styles.title}>Campanhas</h1>
