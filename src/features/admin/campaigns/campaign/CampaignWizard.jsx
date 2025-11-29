@@ -6,13 +6,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "./styles/CampaignWizard.module.css";
 import { toast } from "react-toastify";
 
-/**
- * Wizard de criação de campanha/envio ativo
- * - Massa (CSV): POST /campaigns   (multipart: file + meta)
- * - Individual:  POST /messages/send/template (JSON)
- */
-
-// Helpers para normalizar filas
+// Normaliza filas vindas da API
 function normalizeQueues(queues) {
   return (Array.isArray(queues) ? queues : [])
     .map((q) => {
@@ -45,28 +39,28 @@ export default function CampaignWizard({ onCreated }) {
   const [blocksLoading, setBlocksLoading] = useState(false);
   const [blocksError, setBlocksError] = useState(null);
 
-  // formulário
+  // formulário principal
   const [form, setForm] = useState({
     // Etapa 0 — Configuração
     name: "",
     sendType: "mass", // 'mass' | 'single'
-    mode: "immediate", // 'immediate' | 'scheduled' (apenas mass)
+    mode: "immediate", // 'immediate' | 'scheduled'
     start_at: "",
 
     // Etapa 1 — Resposta (ação ao responder)
     actionType: "open_ticket", // 'open_ticket' | 'flow_goto'
 
-    // Para open_ticket:
-    fila: "", // nome da fila
-    assigned_to: "", // email do atendente
+    // open_ticket:
+    fila: "",
+    assigned_to: "",
 
-    // Para flow_goto:
-    flow_block: "", // bloco de destino (key)
+    // flow_goto:
+    flow_block: "",
 
     // Etapa 2 — Template & Destino
     template_id: "",
     file: null, // quando mass
-    to: "", // quando single (E.164)
+    to: "", // quando single
   });
 
   const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -142,11 +136,11 @@ export default function CampaignWizard({ onCreated }) {
           ? uRes
           : []
       );
-      toast.success("Dados carregados.");
+      // NÃO exibe toast de dados carregados
     } catch (e) {
       console.error(e);
-      setError("Falha ao carregar dados (templates/filas/usuários).");
-      toast.error("Falha ao carregar dados.");
+      setError("Falha ao carregar dados (templates, filas e usuários).");
+      toast.error("Falha ao carregar dados para o wizard.");
     }
   }, []);
 
@@ -154,52 +148,55 @@ export default function CampaignWizard({ onCreated }) {
     loadAll();
   }, [loadAll]);
 
-  // ====== Load blocks a partir do fluxo ativo ======
-  const loadBlocks = useCallback(async () => {
-    try {
-      setBlocksLoading(true);
-      setBlocksError(null);
+  // ====== Load blocks (fluxo ativo) ======
+  const loadBlocks = useCallback(
+    async () => {
+      try {
+        setBlocksLoading(true);
+        setBlocksError(null);
 
-      const latest = await apiGet("/flows/latest");
-      const active = Array.isArray(latest)
-        ? latest.find((f) => f.active) || latest[0]
-        : latest?.find?.((f) => f.active) || latest || null;
-      const id = active?.id;
-      if (!id) {
-        setFlowId(null);
+        const latest = await apiGet("/flows/latest");
+        const active = Array.isArray(latest)
+          ? latest.find((f) => f.active) || latest[0]
+          : latest?.find?.((f) => f.active) || latest || null;
+        const id = active?.id;
+        if (!id) {
+          setFlowId(null);
+          setBlocks([]);
+          setBlocksError("Nenhum fluxo ativo encontrado.");
+          return;
+        }
+
+        setFlowId(id);
+
+        const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
+        const raw =
+          data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
+
+        const list = Object.entries(raw)
+          .map(([key, b]) => ({
+            key,
+            name: b?.name || b?.title || b?.label || key,
+            type: String(b?.type || "").toLowerCase(),
+          }))
+          .filter((b) => !["script", "api_call"].includes(b.type))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        setBlocks(list);
+
+        if (form.flow_block && !list.some((x) => x.key === form.flow_block)) {
+          setField("flow_block", "");
+        }
+      } catch (e) {
+        console.error(e);
         setBlocks([]);
-        setBlocksError("Nenhum fluxo ativo encontrado.");
-        return;
+        setBlocksError("Falha ao carregar blocos do fluxo ativo.");
+      } finally {
+        setBlocksLoading(false);
       }
-
-      setFlowId(id);
-
-      const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
-      const raw =
-        data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
-
-      const list = Object.entries(raw)
-        .map(([key, b]) => ({
-          key,
-          name: b?.name || b?.title || b?.label || key,
-          type: String(b?.type || "").toLowerCase(),
-        }))
-        .filter((b) => !["script", "api_call"].includes(b.type))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      setBlocks(list);
-
-      if (form.flow_block && !list.some((x) => x.key === form.flow_block)) {
-        setField("flow_block", "");
-      }
-    } catch (e) {
-      console.error(e);
-      setBlocks([]);
-      setBlocksError("Falha ao carregar blocos do fluxo ativo.");
-    } finally {
-      setBlocksLoading(false);
-    }
-  }, [form.flow_block]);
+    },
+    [form.flow_block]
+  );
 
   useEffect(() => {
     if (step === 1 && form.actionType === "flow_goto") {
@@ -240,9 +237,10 @@ export default function CampaignWizard({ onCreated }) {
     setField("file", f);
   }
 
-  // ====== Montagem do reply_* ======
+  // ====== Monta reply_* ======
   const replyAction =
     form.actionType === "flow_goto" ? "flow_goto" : "open_ticket";
+
   const replyPayload = useMemo(() => {
     if (replyAction === "open_ticket") {
       return {
@@ -250,11 +248,10 @@ export default function CampaignWizard({ onCreated }) {
         ...(form.assigned_to ? { assigned_to: form.assigned_to } : {}),
       };
     }
-    // flow_goto
     return { block: form.flow_block };
   }, [replyAction, form.fila, form.assigned_to, form.flow_block]);
 
-  // ====== Criação ======
+  // ====== Criação / envio ======
   async function handleCreate() {
     if (!canCreate) {
       toast.warn("Confira os campos obrigatórios.");
@@ -290,8 +287,8 @@ export default function CampaignWizard({ onCreated }) {
         if (res?.ok) {
           toast.success(
             meta.start_at
-              ? "Campanha agendada! O scheduler disparará no horário definido."
-              : "Campanha criada! O scheduler iniciará o envio."
+              ? "Campanha agendada com sucesso."
+              : "Campanha criada e enfileirada."
           );
           onCreated?.(res);
         } else {
@@ -335,7 +332,7 @@ export default function CampaignWizard({ onCreated }) {
   // ====== Render ======
   return (
     <div className={styles.container}>
-      {/* HEADER NO PADRÃO LISTA DE CAMPANHAS */}
+      {/* HEADER NO PADRÃO DASHBOARD */}
       <div className={styles.headerCard}>
         <div className={styles.headerRow}>
           <button
@@ -344,11 +341,10 @@ export default function CampaignWizard({ onCreated }) {
             className={styles.backBtn}
             title="Voltar"
           >
-            <ArrowLeft size={14} />
-            <span>Voltar</span>
+            <ArrowLeft size={16} />
           </button>
 
-          <div className={styles.headerCenter}>
+          <div className={styles.headerMain}>
             <div className={styles.headerTitle}>Nova campanha</div>
             <div className={styles.headerSubtitle}>
               Configure o disparo em etapas antes de confirmar o envio.
@@ -360,17 +356,14 @@ export default function CampaignWizard({ onCreated }) {
               type="button"
               className={styles.iconCircle}
               onClick={loadAll}
-              title="Recarregar dados"
+              title="Recarregar dados do wizard"
             >
               <RefreshCw size={18} />
             </button>
           </div>
         </div>
-      </div>
 
-      {/* CONTEÚDO DO WIZARD */}
-      <div className={styles.page}>
-        {/* Stepper */}
+        {/* Stepper logo abaixo do título, dentro do mesmo card */}
         <div className={styles.stepper} role="navigation" aria-label="Etapas">
           {[0, 1, 2, 3].map((i) => {
             const active = step === i;
@@ -389,7 +382,10 @@ export default function CampaignWizard({ onCreated }) {
             );
           })}
         </div>
+      </div>
 
+      {/* CONTEÚDO DO WIZARD */}
+      <div className={styles.page}>
         {error && <div className={styles.alertErr}>⚠️ {error}</div>}
 
         {/* STEP 0 — Configuração */}
@@ -579,9 +575,9 @@ export default function CampaignWizard({ onCreated }) {
                       <option value="">Sem atendente específico</option>
                       {agentsForQueue.map((u) => {
                         const label = u.name
-                          ? `${u.name}${
-                              u.lastname ? ` ${u.lastname}` : ""
-                            } — ${u.email}`
+                          ? `${u.name}${u.lastname ? ` ${u.lastname}` : ""} — ${
+                              u.email
+                            }`
                           : u.email;
                         return (
                           <option key={u.email} value={u.email}>
@@ -602,13 +598,7 @@ export default function CampaignWizard({ onCreated }) {
                     <label className={styles.label}>
                       Bloco de destino (obrigatório)
                     </label>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr auto",
-                        gap: 8,
-                      }}
-                    >
+                    <div className={styles.blockRow}>
                       <select
                         className={styles.select}
                         value={form.flow_block}
@@ -635,7 +625,7 @@ export default function CampaignWizard({ onCreated }) {
                         onClick={loadBlocks}
                       >
                         <RefreshCw size={16} />
-                        <span style={{ marginLeft: 6 }}>Atualizar</span>
+                        <span className={styles.btnText}>Atualizar</span>
                       </button>
                     </div>
                     {blocksError && (
@@ -703,10 +693,10 @@ export default function CampaignWizard({ onCreated }) {
                         htmlFor="csvInput"
                         className={styles.fileButton}
                       >
-                        <Upload size={16} />{" "}
-                        {form.file
-                          ? "Trocar arquivo…"
-                          : "Selecionar arquivo…"}
+                        <Upload size={16} />
+                        <span className={styles.btnText}>
+                          {form.file ? "Trocar arquivo…" : "Selecionar arquivo…"}
+                        </span>
                       </label>
                       <span className={styles.fileName}>
                         {form.file
@@ -752,20 +742,12 @@ export default function CampaignWizard({ onCreated }) {
               <div className={styles.grid2}>
                 <div className={styles.group}>
                   <label className={styles.label}>Nome</label>
-                  <div
-                    className={styles.input}
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
-                    {form.name || "—"}
-                  </div>
+                  <div className={styles.readonly}>{form.name || "—"}</div>
                 </div>
 
                 <div className={styles.group}>
                   <label className={styles.label}>Tipo de envio</label>
-                  <div
-                    className={styles.input}
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
+                  <div className={styles.readonly}>
                     {form.sendType === "mass"
                       ? "Massa (CSV)"
                       : "Individual"}
@@ -776,13 +758,7 @@ export default function CampaignWizard({ onCreated }) {
                   <>
                     <div className={styles.group}>
                       <label className={styles.label}>Execução</label>
-                      <div
-                        className={styles.input}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
+                      <div className={styles.readonly}>
                         {form.mode === "scheduled"
                           ? form.start_at
                             ? new Date(
@@ -795,13 +771,7 @@ export default function CampaignWizard({ onCreated }) {
 
                     <div className={styles.group}>
                       <label className={styles.label}>Arquivo</label>
-                      <div
-                        className={styles.input}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
+                      <div className={styles.readonly}>
                         {form.file?.name || "—"}
                       </div>
                     </div>
@@ -809,13 +779,7 @@ export default function CampaignWizard({ onCreated }) {
                 ) : (
                   <div className={styles.group}>
                     <label className={styles.label}>Destinatário</label>
-                    <div
-                      className={styles.input}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
+                    <div className={styles.readonly}>
                       {form.to || "—"}
                     </div>
                   </div>
@@ -823,10 +787,7 @@ export default function CampaignWizard({ onCreated }) {
 
                 <div className={styles.group}>
                   <label className={styles.label}>Ação de resposta</label>
-                  <div
-                    className={styles.input}
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
+                  <div className={styles.readonly}>
                     {form.actionType === "open_ticket"
                       ? "Abrir ticket"
                       : "Ir para bloco do fluxo"}
@@ -837,26 +798,14 @@ export default function CampaignWizard({ onCreated }) {
                   <>
                     <div className={styles.group}>
                       <label className={styles.label}>Fila</label>
-                      <div
-                        className={styles.input}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
+                      <div className={styles.readonly}>
                         {form.fila || "—"}
                       </div>
                     </div>
 
                     <div className={styles.group}>
                       <label className={styles.label}>Atendente</label>
-                      <div
-                        className={styles.input}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                        }}
-                      >
+                      <div className={styles.readonly}>
                         {form.assigned_to || "—"}
                       </div>
                     </div>
@@ -864,13 +813,7 @@ export default function CampaignWizard({ onCreated }) {
                 ) : (
                   <div className={styles.group}>
                     <label className={styles.label}>Destino no fluxo</label>
-                    <div
-                      className={styles.input}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
+                    <div className={styles.readonly}>
                       {blocks.find((b) => b.key === form.flow_block)?.name ||
                         "—"}
                     </div>
@@ -879,10 +822,7 @@ export default function CampaignWizard({ onCreated }) {
 
                 <div className={styles.group}>
                   <label className={styles.label}>Template</label>
-                  <div
-                    className={styles.input}
-                    style={{ display: "flex", alignItems: "center" }}
-                  >
+                  <div className={styles.readonly}>
                     {selectedTemplate
                       ? `${selectedTemplate.name} • ${selectedTemplate.language_code}`
                       : "—"}
@@ -901,7 +841,7 @@ export default function CampaignWizard({ onCreated }) {
         >
           <div className={styles.stickyInner}>
             <div />
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className={styles.footerButtons}>
               {step > 0 && (
                 <button
                   type="button"
@@ -932,9 +872,7 @@ export default function CampaignWizard({ onCreated }) {
                   onClick={handleCreate}
                   disabled={loading || !canCreate}
                 >
-                  {loading ? (
-                    <Loader2 className={styles.spin} size={16} />
-                  ) : null}
+                  {loading && <Loader2 className={styles.spin} size={16} />}
                   {loading
                     ? "Processando…"
                     : form.sendType === "mass"
