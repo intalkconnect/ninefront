@@ -1,23 +1,20 @@
-/* ===== Layout base ===== */
+/* ===== Layout base no padrão Campaigns ===== */
 .container {
-  padding: 24px;
-  max-width: 1400px;
+  max-width: 1320px;
   margin: 0 auto;
-  background: #0f1419;
-  min-height: 100vh;
+  padding: 4px 0 24px;
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
 
-/* ================= HEADER CARD (padrão das outras telas) ================= */
+/* ================= HEADER CARD (igual Campanhas/Templates) ================= */
 .headerCard {
-  background: #1e293b;
-  border-radius: 16px;
-  border: 1px solid #334155;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
   padding: 14px 18px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .headerRow {
@@ -30,31 +27,29 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
 }
 
 .headerTitle {
   font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #e2e8f0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f9fafb;
 }
 
 .headerSubtitle {
   font-size: 13px;
-  color: #94a3b8;
-  font-weight: 500;
-  text-align: center;
+  color: #a0aec0;
 }
 
+/* Botões no header (Cancelar / Enviar) */
 .headerRight {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* Botões no header */
 .btnGhost,
 .btnPrimary {
   display: inline-flex;
@@ -111,12 +106,12 @@
   top: 90px;
 }
 
-/* ===== Cards ===== */
+/* ===== Cards (form sections) – seguem o mesmo “bloco” escuro ===== */
 .card {
-  background: #1e293b;
-  border-radius: 16px;
-  border: 1px solid #334155;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.7);
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
   margin-bottom: 16px;
   overflow: hidden;
 }
@@ -341,23 +336,12 @@
 
 /* ===== Responsivo ===== */
 @media (max-width: 1120px) {
-  .container {
-    padding: 18px;
-  }
-
   .mainGrid {
     grid-template-columns: 1fr;
   }
   .colPreview {
     position: static;
     margin-top: 16px;
-  }
-
-  .headerCenter {
-    align-items: flex-start;
-  }
-  .headerSubtitle {
-    text-align: left;
   }
 }
 
@@ -377,10 +361,6 @@
 }
 
 @media (max-width: 640px) {
-  .container {
-    padding: 14px;
-  }
-
   .ctaEditor,
   .quickEditor {
     padding: 10px;
