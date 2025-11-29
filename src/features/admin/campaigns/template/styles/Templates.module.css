@@ -1,11 +1,8 @@
 /* ===== Layout base dark (segue padrão das demais páginas) ===== */
 .container {
-  padding: 24px;
   max-width: 1320px;
   margin: 0 auto;
-  background: transparent; /* quem colore é o Admin.main (#242730) */
   color: #f1f5f9;
-  min-height: 100vh;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, sans-serif;
 }
