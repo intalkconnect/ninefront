@@ -1,21 +1,23 @@
 :global(html, body, #root) {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   background: #242730;
-  overflow: hidden; /* ninguém rola aqui, só dentro do app */
+  /* a página inteira pode rolar; só escondemos scroll horizontal */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ===== Layout base dark ===== */
 .wrapper {
-  height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: #020617;
   color: #e5e7eb;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
-  overflow: hidden; /* quem rola é .content ou .sidebar */
+  /* não bloqueia mais o scroll da página */
 }
 
 /* ===== Loading (auth) ===== */
@@ -250,18 +252,18 @@
   background: #242730;
   display: flex;
   justify-content: center;
-  overflow: hidden; /* ninguém aqui rola */
+  /* deixa o scroll para o documento, não bloqueia aqui */
 }
 
 .bodyInner {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 16px 24px; /* <== padding vertical reduzido */
+  padding: 16px 24px; /* padding vertical reduzido */
   display: flex;
   gap: 32px;
   align-items: stretch;
   flex: 1;
-  min-height: 0; /* permite o filho rolar */
+  min-height: 0;
   box-sizing: border-box;
 }
 
@@ -430,7 +432,7 @@
   background: #242730;
   border-radius: 16px;
   display: flex;
-  overflow: hidden; /* quem rola é só .content */
+  /* não segura mais o scroll aqui */
   min-height: 0;
 }
 
@@ -439,7 +441,8 @@
   min-width: 0;
   min-height: 0;
   background: #242730;
-  overflow-y: auto; /* scroll só na página aberta, e só se precisar */
+  padding: 0; /* cada página interna cuida do próprio padding */
+  /* não força mais scroll interno; quem rola é a página */
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -583,11 +586,6 @@
 
   .content {
     max-height: none;
-    overflow-y: visible; /* em telas menores volta a rolar a página inteira */
-  }
-
-  :global(html, body, #root) {
-    overflow: auto;
   }
 }
 
