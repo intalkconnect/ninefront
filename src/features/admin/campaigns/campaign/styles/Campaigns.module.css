@@ -113,7 +113,7 @@
   gap: 14px;
   padding: 16px 18px;
   border-bottom: 1px solid #1f2937;
-  background: #020617;
+  background: ##2b303a;
 }
 
 /* ===== Pílulas de filtro ===== */
@@ -133,7 +133,7 @@
   font-size: 13px;
   cursor: pointer;
   transition: all 0.18s ease;
-  background: #020617;
+  background: #1f2937;
   color: #e2e8f0;
 }
 
