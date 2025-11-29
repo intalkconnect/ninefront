@@ -1,11 +1,6 @@
+// File: CampaignWizard.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import {
-  Upload,
-  Calendar,
-  Loader2,
-  RefreshCw,
-  ArrowLeft,
-} from "lucide-react";
+import { Upload, Calendar, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
 import { useNavigate } from "react-router-dom";
 import styles from "./styles/CampaignWizard.module.css";
@@ -160,54 +155,51 @@ export default function CampaignWizard({ onCreated }) {
   }, [loadAll]);
 
   // ====== Load blocks a partir do fluxo ativo ======
-  const loadBlocks = useCallback(
-    async () => {
-      try {
-        setBlocksLoading(true);
-        setBlocksError(null);
+  const loadBlocks = useCallback(async () => {
+    try {
+      setBlocksLoading(true);
+      setBlocksError(null);
 
-        const latest = await apiGet("/flows/latest");
-        const active = Array.isArray(latest)
-          ? latest.find((f) => f.active) || latest[0]
-          : latest?.find?.((f) => f.active) || latest || null;
-        const id = active?.id;
-        if (!id) {
-          setFlowId(null);
-          setBlocks([]);
-          setBlocksError("Nenhum fluxo ativo encontrado.");
-          return;
-        }
-
-        setFlowId(id);
-
-        const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
-        const raw =
-          data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
-
-        const list = Object.entries(raw)
-          .map(([key, b]) => ({
-            key,
-            name: b?.name || b?.title || b?.label || key,
-            type: String(b?.type || "").toLowerCase(),
-          }))
-          .filter((b) => !["script", "api_call"].includes(b.type))
-          .sort((a, b) => a.name.localeCompare(b.name));
-
-        setBlocks(list);
-
-        if (form.flow_block && !list.some((x) => x.key === form.flow_block)) {
-          setField("flow_block", "");
-        }
-      } catch (e) {
-        console.error(e);
+      const latest = await apiGet("/flows/latest");
+      const active = Array.isArray(latest)
+        ? latest.find((f) => f.active) || latest[0]
+        : latest?.find?.((f) => f.active) || latest || null;
+      const id = active?.id;
+      if (!id) {
+        setFlowId(null);
         setBlocks([]);
-        setBlocksError("Falha ao carregar blocos do fluxo ativo.");
-      } finally {
-        setBlocksLoading(false);
+        setBlocksError("Nenhum fluxo ativo encontrado.");
+        return;
       }
-    },
-    [form.flow_block]
-  );
+
+      setFlowId(id);
+
+      const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
+      const raw =
+        data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
+
+      const list = Object.entries(raw)
+        .map(([key, b]) => ({
+          key,
+          name: b?.name || b?.title || b?.label || key,
+          type: String(b?.type || "").toLowerCase(),
+        }))
+        .filter((b) => !["script", "api_call"].includes(b.type))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setBlocks(list);
+
+      if (form.flow_block && !list.some((x) => x.key === form.flow_block)) {
+        setField("flow_block", "");
+      }
+    } catch (e) {
+      console.error(e);
+      setBlocks([]);
+      setBlocksError("Falha ao carregar blocos do fluxo ativo.");
+    } finally {
+      setBlocksLoading(false);
+    }
+  }, [form.flow_block]);
 
   useEffect(() => {
     if (step === 1 && form.actionType === "flow_goto") {
@@ -343,7 +335,7 @@ export default function CampaignWizard({ onCreated }) {
   // ====== Render ======
   return (
     <div className={styles.container}>
-      {/* HEADER NO PADRÃO USERS/CAMPAIGNS */}
+      {/* HEADER NO PADRÃO LISTA DE CAMPANHAS */}
       <div className={styles.headerCard}>
         <div className={styles.headerRow}>
           <button
