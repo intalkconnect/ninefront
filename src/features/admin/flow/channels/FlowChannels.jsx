@@ -8,7 +8,7 @@ import WhatsAppEmbeddedSignupButton from "./components/WhatsAppEmbeddedSignupBut
 import FacebookConnectButton from "./components/FacebookConnectButton";
 import InstagramConnectButton from "./components/InstagramConnectButton";
 import LogoLoader from "../../../../components/common/LogoLoader";
-import BrandIcon from "../BrandIcon";
+import BrandIcon from "../../icons/BrandIcon";
 
 import styles from "./styles/FlowChannels.module.css";
 
