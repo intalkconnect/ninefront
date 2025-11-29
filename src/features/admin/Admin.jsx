@@ -61,7 +61,7 @@ import Customers from "./flow/customers/Customers";
 import TicketsHistory from "./flow/history/TicketsHistory";
 import TicketDetail from "./flow/history/TicketDetail";
 import Campaigns from "./campaigns/campaign/Campaigns";
-import CampaignWizardPage from "./campaigns/campaign/CampaignWizard";
+import CampaignWizard from "./campaigns/campaign/CampaignWizard";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
 
@@ -796,7 +796,7 @@ export default function Admin() {
                 <Route path="campaigns/campaigns" element={<Campaigns />} />
                 <Route
                   path="campaigns/new"
-                  element={<CampaignWizardPage />}
+                  element={<CampaignWizard />}
                 />
 
                 {/* settings (paths absolutos) */}
