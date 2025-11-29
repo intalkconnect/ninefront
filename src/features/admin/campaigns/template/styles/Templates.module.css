@@ -1,19 +1,21 @@
-/* ===== Layout base dark ===== */
+/* ===== Layout base dark (segue padrão das demais páginas) ===== */
 .container {
   padding: 24px;
   max-width: 1320px;
   margin: 0 auto;
+  background: transparent; /* quem colore é o Admin.main (#242730) */
   color: #f1f5f9;
+  min-height: 100vh;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, sans-serif;
 }
 
-/* ================= HEADER CARD (padrão Users/Campaigns) ================= */
+/* ================= HEADER CARD (igual Campanhas) ================= */
 .headerCard {
-  background: #1e293b;
+  background: #1f2937;
   border-radius: 16px;
   border: 1px solid #334155;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.45);
   padding: 14px 18px;
   margin-bottom: 16px;
 }
@@ -28,7 +30,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 2px;
 }
 
@@ -36,23 +38,22 @@
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #e2e8f0;
+  color: #e5e7eb;
 }
 
 .headerSubtitle {
   font-size: 13px;
   color: #94a3b8;
   font-weight: 500;
-  text-align: center;
 }
 
+/* Botões do header (ícones circulares, mesmo padrão) */
 .headerRight {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* ================= BOTÕES TOPO (Atualizar / Criar) ================= */
 .iconCircle,
 .iconCirclePrimary {
   width: 36px;
@@ -62,63 +63,63 @@
   align-items: center;
   justify-content: center;
   border: 1px solid #334155;
-  background: #1e293b;
+  background: #111827;
   color: #94a3b8;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   transition: all 0.18s ease;
 }
+
 .iconCircle:hover {
-  background: #334155;
+  background: #1e293b;
   color: #f1f5f9;
 }
+
 .iconCirclePrimary {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   border-color: transparent;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
 }
+
 .iconCirclePrimary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.45);
 }
 
 /* ================= GRID PRINCIPAL ================= */
+/* vira apenas uma coluna cheia, sem espaço morto à direita */
 .mainGrid {
-  display: grid;
-  grid-template-columns: 1fr; /* apenas lista por enquanto */
-  gap: 24px;
-  align-items: flex-start;
+  display: block;
 }
 
 .colList {
   min-width: 0;
 }
 
-/* deixado caso no futuro tenha preview */
+/* colPreview fica preparada caso um dia volte a usar, mas some agora */
 .colPreview {
-  position: sticky;
-  top: 20px;
+  display: none;
 }
 
 /* ================= CARD LISTA ================= */
 .card {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #111827;
+  border: 1px solid #1f2937;
   border-radius: 16px;
-  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.7);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.65);
   overflow: hidden;
 }
 
-/* cabeçalho sólido, sem degradê */
+/* Cabeçalho do card: filtros + busca, igual Campanhas */
 .cardHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding: 16px 18px;
-  border-bottom: 1px solid #334155;
-  background: #0f1419;
+  border-bottom: 1px solid #1f2937;
+  background: #020617;
 }
 
 /* ================= PÍLULAS DE FILTRO ================= */
@@ -131,7 +132,7 @@
 
 .segBtn {
   appearance: none;
-  border-radius: 12px;
+  border-radius: 999px;
   padding: 8px 12px;
   font-weight: 700;
   font-size: 13px;
@@ -139,27 +140,29 @@
   transition: all 0.18s ease;
   background: #020617;
   color: #e2e8f0;
-  box-shadow: inset 0 0 0 1px #334155;
-  border: 0;
+  border: 1px solid #334155;
 }
+
 .segBtn:hover {
   background: #111827;
 }
+
 .segBtn:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
-  box-shadow: inset 0 0 0 1px #3b82f6;
 }
+
 .segBtnActive {
   background: #2563eb;
   color: #ffffff;
-  box-shadow: none;
+  border-color: #2563eb;
 }
 
 /* ================= BUSCA ================= */
 .searchGroup {
   position: relative;
 }
+
 .searchInput {
   width: min(420px, 48vw);
   height: 40px;
@@ -171,13 +174,16 @@
   font-size: 14px;
   color: #e5e7eb;
 }
+
 .searchInput::placeholder {
   color: #64748b;
 }
+
 .searchInput:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
   border-color: #3b82f6;
 }
+
 .searchClear {
   position: absolute;
   right: 6px;
@@ -192,13 +198,15 @@
   place-items: center;
   cursor: pointer;
   color: #94a3b8;
+  transition: all 0.18s ease;
 }
+
 .searchClear:hover {
   background: #111827;
   color: #f9fafb;
 }
 
-/* ================= TABELA ================= */
+/* ================= TABELA (padrão Campanhas) ================= */
 .tableWrap {
   overflow: auto;
 }
@@ -210,23 +218,19 @@
   font-size: 14px;
 }
 
-/* centraliza tudo, mas primeira coluna fica com classe própria */
+/* centraliza tudo (como Campanhas) */
 .table th,
 .table td {
   text-align: center;
   vertical-align: middle;
 }
 
-.colName {
-  text-align: left;
-}
-
-/* cabeçalho sólido */
+/* cabeçalho fixo, fundo sólido escuro */
 .table thead th {
   padding: 14px 18px;
   background: #020617;
-  border-bottom: 1px solid #334155;
-  color: #9ca3af;
+  border-bottom: 1px solid #1f2937;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 11px;
@@ -236,35 +240,39 @@
 }
 
 .table tbody td {
-  padding: 16px 18px;
-  border-bottom: 1px solid #1f2937;
+  padding: 14px 18px;
+  border-bottom: 1px solid #111827;
+  color: #e5e7eb;
 }
 
-/* zebra */
+/* zebra igual às demais telas */
 .table tbody tr:nth-child(odd) {
   background: #020617;
 }
+
 .table tbody tr:nth-child(even) {
-  background: #0b1120;
+  background: #020617ee;
 }
 
 .rowHover {
-  transition: background 0.18s ease, transform 0.08s ease;
+  transition: background 0.18s ease;
   cursor: pointer;
 }
 
 .rowHover:hover {
-  background: rgba(37, 99, 235, 0.16);
+  background: #0b1120;
 }
 
+/* linha selecionada (borda azul) */
 .rowSelected {
-  outline: 2px solid #3b82f6;
-  background: rgba(37, 99, 235, 0.22);
+  background: rgba(37, 99, 235, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.65);
 }
 
 .keyTitle {
   font-weight: 700;
-  color: #e5e7eb;
+  color: #f1f5f9;
+  text-align: left;
 }
 
 /* ================= AÇÕES ================= */
@@ -294,11 +302,13 @@
   color: #e5e7eb;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.7);
 }
+
 .qrIconBtn:hover {
   background: #111827;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.9);
 }
+
 .qrIconBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -310,6 +320,7 @@
   color: #fecaca !important;
   box-shadow: 0 2px 6px rgba(185, 28, 28, 0.6) !important;
 }
+
 .danger:hover {
   background: rgba(185, 28, 28, 1) !important;
 }
@@ -331,16 +342,19 @@
   color: #bbf7d0;
   border-color: rgba(34, 197, 94, 0.6);
 }
+
 .stRejected {
   background: rgba(185, 28, 28, 0.14);
   color: #fecaca;
   border-color: rgba(248, 113, 113, 0.6);
 }
+
 .stSubmitted {
   background: rgba(37, 99, 235, 0.16);
   color: #bfdbfe;
   border-color: rgba(59, 130, 246, 0.6);
 }
+
 .stDraft,
 .stDefault {
   background: #020617;
@@ -390,28 +404,7 @@
   background: rgba(6, 95, 70, 0.55);
 }
 
-/* ================= PREVIEW VAZIO (caso use futuramente) ================= */
-.previewEmpty {
-  background: #020617;
-  border: 1px dashed #334155;
-  color: #94a3b8;
-  border-radius: 16px;
-  padding: 20px;
-  text-align: center;
-  font-weight: 600;
-}
-
 /* ================= RESPONSIVO ================= */
-@media (max-width: 1024px) {
-  .mainGrid {
-    grid-template-columns: 1fr;
-  }
-  .colPreview {
-    position: static;
-    margin-top: 20px;
-  }
-}
-
 @media (max-width: 700px) {
   .container {
     padding: 16px;
@@ -421,12 +414,11 @@
     flex-direction: column;
     align-items: stretch;
   }
+
   .headerCenter {
     align-items: flex-start;
   }
-  .headerSubtitle {
-    text-align: left;
-  }
+
   .headerRight {
     justify-content: flex-end;
     flex-wrap: wrap;
@@ -445,6 +437,7 @@
   .table thead {
     display: none;
   }
+
   .table,
   .table tbody,
   .table tr,
@@ -452,10 +445,12 @@
     display: block;
     width: 100%;
   }
+
   .table tbody td {
     padding: 12px 14px;
     text-align: center;
   }
+
   .actionsCell {
     text-align: center;
   }
