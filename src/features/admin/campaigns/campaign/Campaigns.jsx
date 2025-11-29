@@ -204,13 +204,13 @@ export default function Campaigns() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th className={styles.colFirst}>Campanha</th>
-                  <th>Status</th>
-                  <th>Carregados</th>
-                  <th>Lidos</th>
-                  <th>Entregues</th>
-                  <th>Falhas</th>
-                  <th>Progresso</th>
+                  <th className={styles.colCampaign}>Campanha</th>
+                  <th className={styles.colStat}>Status</th>
+                  <th className={styles.colCount}>Carregados</th>
+                  <th className={styles.colCount}>Lidos</th>
+                  <th className={styles.colCount}>Entregues</th>
+                  <th className={styles.colCount}>Falhas</th>
+                  <th className={styles.colProg}>Progresso</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,13 +240,16 @@ export default function Campaigns() {
 
                     return (
                       <tr key={c.id}>
-                        <td data-label="Campanha" className={styles.firstCell}>
+                        <td
+                          data-label="Campanha"
+                          className={`${styles.firstCell} ${styles.colCampaign}`}
+                        >
                           <span className={styles.keyTitle}>
                             {c.name || "—"}
                           </span>
                         </td>
 
-                        <td data-label="Status">
+                        <td data-label="Status" className={styles.colStat}>
                           <span
                             className={`${styles.statusBadge} ${stUi.cls}`}
                           >
@@ -254,11 +257,11 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Carregados">
+                        <td data-label="Carregados" className={styles.colCount}>
                           {c.total_items ?? 0}
                         </td>
 
-                        <td data-label="Lidos">
+                        <td data-label="Lidos" className={styles.colCount}>
                           <span
                             className={`${styles.pill} ${styles.pillOk}`}
                           >
@@ -266,7 +269,7 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Entregues">
+                        <td data-label="Entregues" className={styles.colCount}>
                           <span
                             className={`${styles.pill} ${styles.pillWarn}`}
                           >
@@ -274,7 +277,7 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Falhas">
+                        <td data-label="Falhas" className={styles.colCount}>
                           <span
                             className={`${styles.pill} ${styles.pillErr}`}
                           >
@@ -282,7 +285,7 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Progresso">
+                        <td data-label="Progresso" className={styles.colProg}>
                           <div className={styles.progressWrap}>
                             <div
                               className={styles.progressBar}
