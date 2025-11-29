@@ -470,27 +470,53 @@ export default function Admin() {
     navigate(targetPath);
   };
 
+  // normaliza paths removendo barra final
+  const normalizePath = (p = "") =>
+    (p.startsWith("/") ? p : `/${p}`).replace(/\/+$/, "");
+
   const isMenuActive = (menu) => {
-    const current = location.pathname;
+    const current = normalizePath(location.pathname);
+
+    // menu de rota direta (só o "Início" hoje)
     if (menu.to) {
-      const target = menu.to.startsWith("/") ? menu.to : `/${menu.to}`;
-      return current.startsWith(target);
+      const target = normalizePath(menu.to);
+      return current === target || current.startsWith(`${target}/`);
     }
+
     if (!menu.children) {
-      return current === "/";
+      return current === normalizePath(DASHBOARD_PATH);
     }
+
+    // ativo se QUALQUER leaf daquele grupo estiver ativa
     return menu.children.some((grp) =>
-      (grp.children || []).some((leaf) => {
-        const leafPath = leaf.to.startsWith("/") ? leaf.to : `/${leaf.to}`;
-        return current.startsWith(leafPath);
-      })
+      (grp.children || []).some((leaf) => isLeafActive(leaf.to))
     );
   };
 
   const isLeafActive = (leafTo) => {
-    const current = location.pathname;
-    const leafPath = leafTo.startsWith("/") ? leafTo : `/${leafTo}`;
-    return current.startsWith(leafPath);
+    const current = normalizePath(location.pathname);
+    const leafPath = normalizePath(leafTo);
+
+    // regra especial: não deixar "Disparo ativo" ("/campaigns")
+    // ficar ativo quando estamos em "/campaigns/templates*"
+    if (
+      leafPath === "/campaigns" &&
+      current.startsWith("/campaigns/templates")
+    ) {
+      return false;
+    }
+
+    // "Templates" deve ficar ativo tanto em /campaigns/templates
+    // quanto em /campaigns/templates/new
+    if (leafPath === "/campaigns/templates") {
+      return (
+        current === "/campaigns/templates" ||
+        current.startsWith("/campaigns/templates/")
+      );
+    }
+
+    // padrão: ativo se for a rota exata ou algum subcaminho direto
+    return current === leafPath || current.startsWith(`${leafPath}/`);
   };
 
   if (authLoading) {
