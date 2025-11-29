@@ -1,50 +1,55 @@
-/* ===== Layout base dark (segue padrão das demais páginas) ===== */
+/* ===== Layout base no padrão Campanhas ===== */
 .container {
   max-width: 1320px;
   margin: 0 auto;
-  color: #f1f5f9;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+  padding: 0 0 24px;
+  color: #e5e7eb;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
 }
 
-/* ================= HEADER CARD (igual Campanhas) ================= */
+/* ================= HEADER CARD (mesmo estilo do Campaign) ================= */
 .headerCard {
-  background: #1f2937;
-  border-radius: 16px;
-  border: 1px solid #334155;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.45);
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
   padding: 14px 18px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .headerRow {
   display: flex;
   align-items: center;
   gap: 16px;
+  width: 100%;
 }
 
 .headerCenter {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  gap: 4px;
 }
 
 .headerTitle {
   font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #e5e7eb;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f9fafb;
+  margin: 0;
 }
 
 .headerSubtitle {
   font-size: 13px;
-  color: #94a3b8;
-  font-weight: 500;
+  color: #a0aec0;
+  margin: 0;
 }
 
-/* Botões do header (ícones circulares, mesmo padrão) */
+/* Botões do header (mesmo padrão dos de campanhas) */
 .headerRight {
   display: flex;
   align-items: center;
@@ -60,32 +65,40 @@
   align-items: center;
   justify-content: center;
   border: 1px solid #334155;
-  background: #111827;
-  color: #94a3b8;
+  background: #1f2937;
+  color: #e5e7eb;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   transition: all 0.18s ease;
 }
 
-.iconCircle:hover {
-  background: #1e293b;
-  color: #f1f5f9;
+.iconCircle:hover:not(:disabled) {
+  background: #374151;
+  color: #f9fafb;
 }
 
 .iconCirclePrimary {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   border-color: transparent;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
-.iconCirclePrimary:hover {
+.iconCirclePrimary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.45);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.6);
+}
+
+.iconCircle:disabled,
+.iconCirclePrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ================= GRID PRINCIPAL ================= */
-/* vira apenas uma coluna cheia, sem espaço morto à direita */
+/* Só uma coluna cheia (lista ocupa tudo) */
 .mainGrid {
   display: block;
 }
@@ -94,21 +107,20 @@
   min-width: 0;
 }
 
-/* colPreview fica preparada caso um dia volte a usar, mas some agora */
 .colPreview {
   display: none;
 }
 
-/* ================= CARD LISTA ================= */
+/* ================= CARD LISTA (mesmo card da tabela de campanhas) ================= */
 .card {
-  background: #111827;
-  border: 1px solid #1f2937;
-  border-radius: 16px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.65);
+  background: #2b303a;
+  border: 1px solid #3a3f4b;
+  border-radius: 14px;
   overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
 }
 
-/* Cabeçalho do card: filtros + busca, igual Campanhas */
+/* Cabeçalho do card: filtros + busca */
 .cardHead {
   display: flex;
   align-items: center;
@@ -116,10 +128,10 @@
   gap: 14px;
   padding: 16px 18px;
   border-bottom: 1px solid #1f2937;
-  background: #020617;
+  background: #2b303a;
 }
 
-/* ================= PÍLULAS DE FILTRO ================= */
+/* ================= PÍLULAS DE FILTRO (iguais às de campanhas) ================= */
 .segmentRow {
   display: flex;
   gap: 8px;
@@ -129,19 +141,19 @@
 
 .segBtn {
   appearance: none;
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-weight: 700;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 7px 12px;
+  font-weight: 600;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.18s ease;
-  background: #020617;
+  background: #1f2937;
   color: #e2e8f0;
-  border: 1px solid #334155;
 }
 
 .segBtn:hover {
-  background: #111827;
+  background: #1f2937;
 }
 
 .segBtn:focus-visible {
@@ -150,9 +162,9 @@
 }
 
 .segBtnActive {
-  background: #2563eb;
+  background: #3b82f6;
   color: #ffffff;
-  border-color: #2563eb;
+  border-color: #3b82f6;
 }
 
 /* ================= BUSCA ================= */
@@ -169,7 +181,7 @@
   outline: none;
   background: #020617;
   font-size: 14px;
-  color: #e5e7eb;
+  color: #f1f5f9;
 }
 
 .searchInput::placeholder {
@@ -199,13 +211,13 @@
 }
 
 .searchClear:hover {
-  background: #111827;
+  background: #1f2937;
   color: #f9fafb;
 }
 
-/* ================= TABELA (padrão Campanhas) ================= */
+/* ================= TABELA (copiando o “feeling” de Campaigns) ================= */
 .tableWrap {
-  overflow: auto;
+  overflow: hidden auto;
 }
 
 .table {
@@ -215,52 +227,52 @@
   font-size: 14px;
 }
 
-/* centraliza tudo (como Campanhas) */
+/* centraliza tudo igual Campanhas */
 .table th,
 .table td {
   text-align: center;
   vertical-align: middle;
 }
 
-/* cabeçalho fixo, fundo sólido escuro */
+/* cabeçalho */
 .table thead th {
-  padding: 14px 18px;
+  padding: 12px 16px;
   background: #020617;
   border-bottom: 1px solid #1f2937;
-  color: #94a3b8;
+  color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   font-size: 11px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  font-weight: 700;
 }
 
+/* corpo */
 .table tbody td {
-  padding: 14px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid #111827;
   color: #e5e7eb;
+  font-size: 14px;
 }
 
-/* zebra igual às demais telas */
+/* zebra igual campanhas */
 .table tbody tr:nth-child(odd) {
-  background: #020617;
+  background-color: #020617;
 }
 
 .table tbody tr:nth-child(even) {
-  background: #020617ee;
+  background-color: #050816;
 }
 
 .rowHover {
-  transition: background 0.18s ease;
+  transition: background-color 0.18s ease;
   cursor: pointer;
 }
 
 .rowHover:hover {
-  background: #0b1120;
+  background-color: #111827;
 }
 
-/* linha selecionada (borda azul) */
+/* linha selecionada com borda azul (extra) */
 .rowSelected {
   background: rgba(37, 99, 235, 0.18);
   box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.65);
@@ -369,9 +381,10 @@
 /* ================= STATES ================= */
 .loading,
 .empty {
-  padding: 24px;
+  padding: 22px;
   color: #94a3b8;
   text-align: center;
+  font-size: 14px;
 }
 
 /* ================= ALERTS ================= */
@@ -402,25 +415,22 @@
 }
 
 /* ================= RESPONSIVO ================= */
-@media (max-width: 700px) {
+@media (max-width: 768px) {
   .container {
-    padding: 16px;
+    padding: 0 16px 24px;
   }
 
-  .headerRow {
+  .headerCard {
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .headerCenter {
     align-items: flex-start;
   }
 
   .headerRight {
-    justify-content: flex-end;
-    flex-wrap: wrap;
+    align-self: flex-end;
   }
+}
 
+@media (max-width: 700px) {
   .cardHead {
     flex-direction: column;
     align-items: stretch;
@@ -441,6 +451,12 @@
   .table td {
     display: block;
     width: 100%;
+  }
+
+  .table tbody tr {
+    margin-bottom: 8px;
+    border-radius: 10px;
+    overflow: hidden;
   }
 
   .table tbody td {
