@@ -29,7 +29,7 @@ function normalizeQueues(queues) {
 /* ============================================================
  * Wrapper de página – usado direto na rota
  * ========================================================== */
-export default function CampaignWizard() {
+export default function CampaignWizardPage() {
   const navigate = useNavigate();
 
   const handleCreated = () =>
