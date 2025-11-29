@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Plus, X as XIcon, ArrowLeft } from "lucide-react";
+import { RefreshCw, Plus, X as XIcon } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet } from "../../../../shared/apiClient";
 import styles from "./styles/Campaigns.module.css";
@@ -119,23 +119,21 @@ export default function Campaigns() {
           !q || String(c.name || "").toLowerCase().includes(q)
       )
       .sort((a, b) =>
-        String(a.updated_at || "").localeCompare(
-          String(b.updated_at || "")
-        )
+        String(a.updated_at || "").localeCompare(String(b.updated_at || ""))
       )
       .reverse();
   }, [items, filter, query]);
 
   return (
-    <div className={styles.container}>
-      {/* HEADER NO PADRÃO USERS */}
-      <div className={styles.headerCard}>
-        <div className={styles.headerRow}>
-          <div className={styles.headerCenter}>
-            <div className={styles.headerTitle}>Campanhas</div>
-            <div className={styles.headerSubtitle}>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* HEADER no padrão dos demais dashboards */}
+        <header className={styles.header}>
+          <div className={styles.headerLeft}>
+            <h1 className={styles.title}>Campanhas</h1>
+            <p className={styles.subtitle}>
               Envie imediatamente ou agende. Acompanhe progresso e resultados.
-            </div>
+            </p>
           </div>
 
           <div className={styles.headerRight}>
@@ -156,189 +154,189 @@ export default function Campaigns() {
               <Plus size={18} />
             </button>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* Card da lista */}
-      <div className={styles.card}>
-        {/* Header do card: filtros (pílulas) + busca */}
-        <div className={styles.cardHead}>
-          <div
-            className={styles.segmentRow}
-            role="tablist"
-            aria-label="Filtro de status"
-          >
-            {FILTERS.map((opt) => {
-              const active = filter === opt.key;
-              return (
+        {/* CARD com filtros + tabela */}
+        <section className={styles.card}>
+          {/* Filtros + busca */}
+          <div className={styles.cardHead}>
+            <div
+              className={styles.segmentRow}
+              role="tablist"
+              aria-label="Filtro de status"
+            >
+              {FILTERS.map((opt) => {
+                const active = filter === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    className={`${styles.segBtn} ${
+                      active ? styles.segBtnActive : ""
+                    }`}
+                    onClick={() => setFilter(opt.key)}
+                    aria-pressed={active}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={styles.searchGroup}>
+              <input
+                className={styles.searchInput}
+                placeholder="Buscar por nome…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Buscar campanhas por nome"
+              />
+              {query && (
                 <button
-                  key={opt.key}
+                  className={styles.searchClear}
+                  onClick={() => setQuery("")}
+                  aria-label="Limpar busca"
                   type="button"
-                  className={`${styles.segBtn} ${
-                    active ? styles.segBtnActive : ""
-                  }`}
-                  onClick={() => setFilter(opt.key)}
-                  aria-pressed={active}
                 >
-                  {opt.label}
+                  <XIcon size={14} />
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
 
-          <div className={styles.searchGroup}>
-            <input
-              className={styles.searchInput}
-              placeholder="Buscar por nome…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Buscar campanhas por nome"
-            />
-            {query && (
-              <button
-                className={styles.searchClear}
-                onClick={() => setQuery("")}
-                aria-label="Limpar busca"
-                type="button"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Tabela */}
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th style={{ minWidth: 260 }}>Campanha</th>
-                <th>Status</th>
-                <th>Carregados</th>
-                <th>Lidos</th>
-                <th>Entregues</th>
-                <th>Falhas</th>
-                <th>Restantes</th>
-                <th>Execução</th>
-                <th>Progresso</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
+          {/* Tabela */}
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={9} className={styles.loading}>
-                    Carregando…
-                  </td>
+                  <th className={styles.colFirst}>Campanha</th>
+                  <th>Status</th>
+                  <th>Carregados</th>
+                  <th>Lidos</th>
+                  <th>Entregues</th>
+                  <th>Falhas</th>
+                  <th>Restantes</th>
+                  <th>Execução</th>
+                  <th>Progresso</th>
                 </tr>
-              )}
+              </thead>
+              <tbody>
+                {loading && (
+                  <tr>
+                    <td colSpan={9} className={styles.loading}>
+                      Carregando…
+                    </td>
+                  </tr>
+                )}
 
-              {!loading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9} className={styles.empty}>
-                    Nenhuma campanha encontrada.
-                  </td>
-                </tr>
-              )}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className={styles.empty}>
+                      Nenhuma campanha encontrada.
+                    </td>
+                  </tr>
+                )}
 
-              {!loading &&
-                filtered.map((c) => {
-                  const { processed, total } = calcProcessed(c);
-                  const pct = total
-                    ? Math.round((processed / total) * 100)
-                    : 0;
-                  const stUi = getStatusUi(c);
-                  const execAt =
-                    c.exec_at ||
-                    c.started_at ||
-                    c.start_at ||
-                    c.updated_at;
+                {!loading &&
+                  filtered.map((c) => {
+                    const { processed, total } = calcProcessed(c);
+                    const pct = total
+                      ? Math.round((processed / total) * 100)
+                      : 0;
+                    const stUi = getStatusUi(c);
+                    const execAt =
+                      c.exec_at ||
+                      c.started_at ||
+                      c.start_at ||
+                      c.updated_at;
 
-                  return (
-                    <tr key={c.id} className={styles.rowHover}>
-                      <td data-label="Campanha">
-                        <div className={styles.keyTitle}>
-                          {c.name || "—"}
-                        </div>
-                      </td>
+                    return (
+                      <tr key={c.id}>
+                        <td data-label="Campanha" className={styles.firstCell}>
+                          <span className={styles.keyTitle}>
+                            {c.name || "—"}
+                          </span>
+                        </td>
 
-                      <td data-label="Status">
-                        <span
-                          className={`${styles.statusBadge} ${stUi.cls}`}
-                        >
-                          {stUi.label}
-                        </span>
-                      </td>
-
-                      <td data-label="Carregados">
-                        {c.total_items ?? 0}
-                      </td>
-
-                      <td data-label="Lidos">
-                        <span
-                          className={`${styles.pill} ${styles.pillOk}`}
-                        >
-                          {c.read_count ?? 0}
-                        </span>
-                      </td>
-
-                      <td data-label="Entregues">
-                        <span
-                          className={`${styles.pill} ${styles.pillWarn}`}
-                        >
-                          {c.delivered_count ?? 0}
-                        </span>
-                      </td>
-
-                      <td data-label="Falhas">
-                        <span
-                          className={`${styles.pill} ${styles.pillErr}`}
-                        >
-                          {c.failed_count ?? 0}
-                        </span>
-                      </td>
-
-                      <td data-label="Restantes">
-                        {Math.max(
-                          0,
-                          (c.total_items || 0) - (processed || 0)
-                        )}
-                      </td>
-
-                      <td
-                        data-label="Execução"
-                        className={styles.execCell}
-                      >
-                        {formatDate(execAt)}
-                      </td>
-
-                      <td data-label="Progresso">
-                        <div className={styles.progressWrap}>
-                          <div
-                            className={styles.progressBar}
-                            aria-label="Progresso"
+                        <td data-label="Status">
+                          <span
+                            className={`${styles.statusBadge} ${stUi.cls}`}
                           >
-                            <span
-                              className={styles.progressFill}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <div className={styles.progressInfo}>
-                            {processed}/{total || 0}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+                            {stUi.label}
+                          </span>
+                        </td>
 
-        {error && (
-          <div className={styles.alertErr}>
-            <span>⚠ {error}</span>
+                        <td data-label="Carregados">
+                          {c.total_items ?? 0}
+                        </td>
+
+                        <td data-label="Lidos">
+                          <span
+                            className={`${styles.pill} ${styles.pillOk}`}
+                          >
+                            {c.read_count ?? 0}
+                          </span>
+                        </td>
+
+                        <td data-label="Entregues">
+                          <span
+                            className={`${styles.pill} ${styles.pillWarn}`}
+                          >
+                            {c.delivered_count ?? 0}
+                          </span>
+                        </td>
+
+                        <td data-label="Falhas">
+                          <span
+                            className={`${styles.pill} ${styles.pillErr}`}
+                          >
+                            {c.failed_count ?? 0}
+                          </span>
+                        </td>
+
+                        <td data-label="Restantes">
+                          {Math.max(
+                            0,
+                            (c.total_items || 0) - (processed || 0)
+                          )}
+                        </td>
+
+                        <td
+                          data-label="Execução"
+                          className={styles.execCell}
+                        >
+                          {formatDate(execAt)}
+                        </td>
+
+                        <td data-label="Progresso">
+                          <div className={styles.progressWrap}>
+                            <div
+                              className={styles.progressBar}
+                              aria-label="Progresso"
+                            >
+                              <span
+                                className={styles.progressFill}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <div className={styles.progressInfo}>
+                              {processed}/{total || 0}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
           </div>
-        )}
+
+          {error && (
+            <div className={styles.alertErr}>
+              <span>⚠ {error}</span>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
