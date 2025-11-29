@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import styles from "./styles/BillingExtrato.module.css";
+import BrandIcon from "../icons/BrandIcon";
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -125,80 +126,29 @@ const downloadBlob = (data, filename, mime = "text/csv;charset=utf-8") => {
   URL.revokeObjectURL(url);
 };
 
-/* ========================= SVG dos canais ========================= */
+/* ========================= Ícones dos canais ========================= */
 
-const ChannelIcon = ({ channel }) => {
+const ChannelIcon = ({ channel, size = 18 }) => {
   const ch = String(channel || "default").toLowerCase();
 
-  if (ch === "whatsapp") {
+  // canais que já existem no BrandIcon
+  if (["whatsapp", "facebook", "instagram", "telegram"].includes(ch)) {
     return (
-      <span className={styles.channelIconWrap} title="WhatsApp">
-        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
-          <circle cx="16" cy="16" r="16" fill="#22c55e" />
-          <path
-            d="M16 7a7 7 0 0 0-6.02 10.58L9 25l2.49-.65A7 7 0 1 0 16 7z"
-            fill="#022c22"
-          />
-          <path
-            d="M18.9 18.3c-.4.22-1.1.47-1.58.53-.4.05-.92.09-1.49-.09-.34-.1-.78-.25-1.3-.5-2.29-1.12-3.77-3.73-3.88-3.9-.11-.16-.93-1.24-.93-2.37 0-1.13.59-1.68.8-1.9.21-.22.46-.28.62-.28.16 0 .31.01.44.01.14.01.33-.05.51.39.19.45.64 1.55.69 1.66.05.11.08.24.02.4-.06.16-.09.24-.18.37-.09.13-.19.28-.27.38-.09.1-.18.21-.08.4.1.19.46.76.99 1.23.68.6 1.26.79 1.45.88.19.08.3.07.41-.04.11-.11.48-.56.6-.75.13-.19.26-.16.44-.1.19.07 1.19.56 1.39.66.2.1.34.15.39.23.05.07.05.83-.35 1.05z"
-            fill="#a7f3d0"
-          />
-        </svg>
+      <span className={styles.channelIconWrap} title={channel || ch}>
+        <BrandIcon type={ch} size={size} />
       </span>
     );
   }
 
-  if (ch === "facebook") {
-    return (
-      <span className={styles.channelIconWrap} title="Facebook">
-        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
-          <circle cx="16" cy="16" r="16" fill="#2563eb" />
-          <path
-            d="M18 9h2V5h-2c-3.31 0-6 2.69-6 6v2H9v4h3v8h4v-8h3l1-4h-4v-2c0-1.1.9-2 2-2z"
-            fill="#eff6ff"
-          />
-        </svg>
-      </span>
-    );
-  }
-
-  if (ch === "telegram") {
-    return (
-      <span className={styles.channelIconWrap} title="Telegram">
-        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
-          <circle cx="16" cy="16" r="16" fill="#0ea5e9" />
-          <path
-            d="M23.4 9.2L8.7 15.1c-.7.3-.7 1.3 0 1.6l3.5 1.4 1.4 4.5c.2.6 1 .7 1.4.2l2-2.4 3.6 2.8c.5.4 1.3.1 1.4-.6l1.8-12.1c.1-.7-.6-1.2-1.4-.9z"
-            fill="#e0f2fe"
-          />
-        </svg>
-      </span>
-    );
-  }
-
-  if (ch === "instagram") {
-    return (
-      <span className={styles.channelIconWrap} title="Instagram">
-        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
-          <defs>
-            <linearGradient id="ig" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f97316" />
-              <stop offset="40%" stopColor="#ec4899" />
-              <stop offset="100%" stopColor="#6366f1" />
-            </linearGradient>
-          </defs>
-          <rect x="2" y="2" width="28" height="28" rx="8" fill="url(#ig)" />
-          <circle cx="16" cy="16" r="6" fill="none" stroke="#f9fafb" strokeWidth="2" />
-          <circle cx="22" cy="10" r="1.5" fill="#f9fafb" />
-        </svg>
-      </span>
-    );
-  }
-
+  // webchat – mantemos um SVG próprio
   if (ch === "webchat") {
     return (
       <span className={styles.channelIconWrap} title="Webchat">
-        <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+        <svg
+          viewBox="0 0 32 32"
+          className={styles.channelIcon}
+          aria-label="Webchat"
+        >
           <rect x="4" y="6" width="24" height="18" rx="4" fill="#0f766e" />
           <path
             d="M10 22l3 4 3-4"
@@ -216,10 +166,15 @@ const ChannelIcon = ({ channel }) => {
     );
   }
 
+  // fallback genérico – bolinha com inicial do canal
   const initial = ch.charAt(0).toUpperCase() || "?";
   return (
     <span className={styles.channelIconWrap} title={channel || "default"}>
-      <svg viewBox="0 0 32 32" className={styles.channelIcon}>
+      <svg
+        viewBox="0 0 32 32"
+        className={styles.channelIcon}
+        aria-label={channel || "Canal"}
+      >
         <circle cx="16" cy="16" r="16" fill="#4b5563" />
         <text
           x="16"
@@ -235,6 +190,9 @@ const ChannelIcon = ({ channel }) => {
     </span>
   );
 };
+
+
+
 
 /* ========================= Página ========================= */
 export default function BillingExtrato() {
