@@ -793,7 +793,7 @@ export default function Admin() {
                   path="campaigns/templates/new"
                   element={<TemplateCreate />}
                 />
-                <Route path="campaigns" element={<Campaigns />} />
+                <Route path="campaigns/campaigns" element={<Campaigns />} />
                 <Route
                   path="campaigns/new"
                   element={<CampaignWizardPage />}
