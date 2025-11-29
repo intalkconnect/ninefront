@@ -362,7 +362,7 @@ export default function Admin() {
             key: "camp-disparo",
             children: [
               {
-                to: "campaigns/campaigns",
+                to: "campaigns",
                 icon: <Send size={16} />,
                 label: "Disparo ativo",
               },
@@ -793,7 +793,7 @@ export default function Admin() {
                   path="campaigns/templates/new"
                   element={<TemplateCreate />}
                 />
-                <Route path="campaigns/campaigns" element={<Campaigns />} />
+                <Route path="campaigns" element={<Campaigns />} />
                 <Route
                   path="campaigns/new"
                   element={<CampaignWizard />}
