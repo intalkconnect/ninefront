@@ -46,7 +46,7 @@ const LIMITS = {
   bodyText: 1024,
   footerText: 60,
   ctaText: 20,
-  quickText: 25,
+  quickText: 20,
 };
 
 /* ---------------- Media rules ---------------- */
