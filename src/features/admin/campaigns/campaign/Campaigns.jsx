@@ -33,26 +33,6 @@ function calcProcessed(c) {
   return { processed: Math.min(safeTotal, sum), total: safeTotal };
 }
 
-function formatDate(v) {
-  if (!v) return "—";
-  const d = new Date(v);
-  return isNaN(d.getTime()) ? "—" : d.toLocaleString("pt-BR");
-}
-
-/** Label + classe do chip de status */
-function getStatusUi(c) {
-  const st = String(c?.status || "").toLowerCase();
-  const { processed, total } = calcProcessed(c);
-  const remaining = Math.max(0, (total || 0) - processed);
-
-  if (st === "failed") return { label: "Falhou", cls: styles.stFailed };
-  if (st === "finished") return { label: "Concluída", cls: styles.stFinished };
-  if (st === "scheduled") return { label: "Agendada", cls: styles.stScheduled };
-  if (st === "queued" || remaining > 0)
-    return { label: "Em andamento", cls: styles.stActive };
-  return { label: st || "—", cls: styles.stDefault };
-}
-
 export default function Campaigns() {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -215,15 +195,13 @@ export default function Campaigns() {
                   <th>Lidos</th>
                   <th>Entregues</th>
                   <th>Falhas</th>
-                  <th>Restantes</th>
-                  <th>Execução</th>
                   <th>Progresso</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={9} className={styles.loading}>
+                    <td colSpan={7} className={styles.loading}>
                       Carregando…
                     </td>
                   </tr>
@@ -231,7 +209,7 @@ export default function Campaigns() {
 
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className={styles.empty}>
+                    <td colSpan={7} className={styles.empty}>
                       Nenhuma campanha encontrada.
                     </td>
                   </tr>
@@ -244,11 +222,6 @@ export default function Campaigns() {
                       ? Math.round((processed / total) * 100)
                       : 0;
                     const stUi = getStatusUi(c);
-                    const execAt =
-                      c.exec_at ||
-                      c.started_at ||
-                      c.start_at ||
-                      c.updated_at;
 
                     return (
                       <tr key={c.id}>
@@ -292,20 +265,6 @@ export default function Campaigns() {
                           >
                             {c.failed_count ?? 0}
                           </span>
-                        </td>
-
-                        <td data-label="Restantes">
-                          {Math.max(
-                            0,
-                            (c.total_items || 0) - (processed || 0)
-                          )}
-                        </td>
-
-                        <td
-                          data-label="Execução"
-                          className={styles.execCell}
-                        >
-                          {formatDate(execAt)}
                         </td>
 
                         <td data-label="Progresso">
