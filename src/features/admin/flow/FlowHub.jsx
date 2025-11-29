@@ -14,7 +14,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
-import BrandIcon from "./BrandIcon";
+import BrandIcon from "../icons/BrandIcon";
 import styles from "./styles/FlowHub.module.css";
 
 /* ========= tenant util ========= */
