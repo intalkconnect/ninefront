@@ -335,10 +335,6 @@
   border-color: rgba(239, 68, 68, 0.8);
 }
 
-.execCell {
-  white-space: nowrap;
-}
-
 /* ===== Progresso ===== */
 
 .progressWrap {
