@@ -61,7 +61,7 @@ import Customers from "./flow/customers/Customers";
 import TicketsHistory from "./flow/history/TicketsHistory";
 import TicketDetail from "./flow/history/TicketDetail";
 import Campaigns from "./campaigns/campaign/Campaigns";
-import CampaignWizardPage "./campaigns/campaign/CampaignWizard";
+import CampaignWizardPage from "./campaigns/campaign/CampaignWizard";
 import BillingExtrato from "./analytics/billing/BillingExtrato";
 import Quality from "./analytics/quality/Quality";
 
