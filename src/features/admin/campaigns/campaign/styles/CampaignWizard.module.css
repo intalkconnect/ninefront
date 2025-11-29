@@ -17,11 +17,11 @@
 
 /* ================= HEADER CARD ================= */
 .headerCard {
-  background: #020617;
+  background: #1e293b;
   border-radius: 16px;
-  border: 1px solid #1f2937;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
-  padding: 14px 18px 12px;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  padding: 14px 18px 16px;
   margin-bottom: 18px;
 }
 
@@ -36,8 +36,8 @@
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  border: 1px solid #1f2937;
-  background: #0b1220;
+  border: 1px solid #334155;
+  background: #1e293b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -46,9 +46,9 @@
   transition: all 0.18s ease;
 }
 .backBtn:hover {
-  background: #111827;
+  background: #334155;
   border-color: #334155;
-  color: #e5e7eb;
+  color: #f1f5f9;
 }
 
 .headerMain {
@@ -84,15 +84,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #1f2937;
-  background: #020617;
+  border: 1px solid #334155;
+  background: #1e293b;
   color: #9ca3af;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   transition: all 0.18s ease;
 }
 .iconCircle:hover {
-  background: #111827;
+  background: #334155;
   color: #f9fafb;
 }
 
@@ -110,14 +110,14 @@
   gap: 8px;
   padding: 8px 10px;
   border-radius: 999px;
-  border: 1px solid #1f2937;
+  border: 1px solid #334155;
   background: #020617;
   color: #e5e7eb;
   font-size: 13px;
 }
 
 .stepDone {
-  background: #0b1220;
+  background: #0f172a;
 }
 
 .stepActive {
@@ -161,16 +161,16 @@
 
 /* ================= Cards ================= */
 .card {
-  background: #020617;
-  border: 1px solid #1f2937;
+  background: #1e293b;
+  border: 1px solid #334155;
   border-radius: 12px;
   margin-bottom: 14px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
 }
 
 .cardHead {
   padding: 14px 16px 0;
-  border-bottom: 1px solid #111827;
+  border-bottom: 1px solid #334155;
 }
 
 .cardTitle {
@@ -230,7 +230,7 @@
 .select,
 .textarea {
   width: 100%;
-  border: 1px solid #1f2937;
+  border: 1px solid #334155;
   border-radius: 8px;
   padding: 9px 11px;
   font-size: 14px;
@@ -277,7 +277,7 @@
   align-items: center;
   gap: 6px;
   padding: 7px 10px;
-  border: 1px solid #1f2937;
+  border: 1px solid #334155;
   border-radius: 999px;
   cursor: pointer;
   user-select: none;
@@ -313,7 +313,7 @@
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
-  border: 1px solid #1f2937;
+  border: 1px solid #334155;
   color: #e5e7eb;
   font-size: 13px;
 }
@@ -350,7 +350,7 @@
 /* ================= Readonly review fields ================= */
 .readonly {
   border-radius: 8px;
-  border: 1px solid #1f2937;
+  border: 1px solid #334155;
   background: #020617;
   padding: 9px 11px;
   font-size: 14px;
@@ -372,7 +372,7 @@
   position: sticky;
   bottom: 0;
   background: #020617;
-  border-top: 1px solid #111827;
+  border-top: 1px solid #334155;
   padding: 10px 0;
   margin-top: 12px;
 }
@@ -424,7 +424,7 @@
 
 .btnGhost {
   background: #020617;
-  border-color: #1f2937;
+  border-color: #334155;
   color: #e5e7eb;
 }
 
@@ -437,6 +437,7 @@
   .grid2 {
     grid-template-columns: 1fr;
   }
+
   .stepper {
     grid-template-columns: 1fr 1fr;
   }
@@ -446,12 +447,7 @@
   .container {
     padding: 16px;
   }
-  .headerRow {
-    flex-direction: row;
-  }
-  .headerMain {
-    align-items: flex-start;
-  }
+
   .stickyInner {
     padding: 0 8px;
   }
