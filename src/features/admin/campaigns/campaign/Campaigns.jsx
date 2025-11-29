@@ -149,7 +149,7 @@ export default function Campaigns() {
             </button>
             <button
               className={styles.iconCirclePrimary}
-              onClick={() => navigate("/campaigns/campaigns/new")}
+              onClick={() => navigate("/campaigns/new")}
               type="button"
               title="Nova campanha"
             >
