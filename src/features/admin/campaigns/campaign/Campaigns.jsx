@@ -1,3 +1,4 @@
+// File: Campaigns.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, Plus, X as XIcon } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -93,11 +94,13 @@ export default function Campaigns() {
       .filter((c) => {
         if (filter === "finished")
           return String(c.status).toLowerCase() === "finished";
+
         if (filter === "failed")
           return (
             String(c.status).toLowerCase() === "failed" ||
             Number(c.failed_count || 0) > 0
           );
+
         if (filter === "active") {
           const st = String(c.status).toLowerCase();
           const { processed, total } = calcProcessed(c);
@@ -107,6 +110,7 @@ export default function Campaigns() {
             total > processed
           );
         }
+
         return true;
       })
       .filter(
@@ -114,7 +118,9 @@ export default function Campaigns() {
           !q || String(c.name || "").toLowerCase().includes(q)
       )
       .sort((a, b) =>
-        String(a.updated_at || "").localeCompare(String(b.updated_at || ""))
+        String(a.updated_at || "").localeCompare(
+          String(b.updated_at || "")
+        )
       )
       .reverse();
   }, [items, filter, query]);
@@ -122,16 +128,17 @@ export default function Campaigns() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER no padrão dos outros monitores */}
+        {/* HEADER padrão FlowHub */}
         <header className={styles.header}>
-          <div className={styles.headerLeft}>
+          <div className={styles.titleBlock}>
             <h1 className={styles.title}>Campanhas</h1>
             <p className={styles.subtitle}>
-              Envie imediatamente ou agende. Acompanhe progresso e resultados.
+              Envie imediatamente ou agende disparos em massa. Acompanhe o
+              progresso e os resultados em tempo real.
             </p>
           </div>
 
-          <div className={styles.headerRight}>
+          <div className={styles.headerActions}>
             <button
               className={styles.iconCircle}
               onClick={load}
@@ -151,9 +158,9 @@ export default function Campaigns() {
           </div>
         </header>
 
-        {/* CARD com filtros + tabela */}
-        <section className={styles.card}>
-          {/* Filtros + busca */}
+        {/* Card da lista */}
+        <section className={styles.tableCard}>
+          {/* Header do card: filtros (pílulas) + busca */}
           <div className={styles.cardHead}>
             <div
               className={styles.segmentRow}
@@ -205,12 +212,12 @@ export default function Campaigns() {
               <thead>
                 <tr>
                   <th className={styles.colCampaign}>Campanha</th>
-                  <th className={styles.colStat}>Status</th>
+                  <th className={styles.colStatus}>Status</th>
                   <th className={styles.colCount}>Carregados</th>
                   <th className={styles.colCount}>Lidos</th>
                   <th className={styles.colCount}>Entregues</th>
                   <th className={styles.colCount}>Falhas</th>
-                  <th className={styles.colProg}>Progresso</th>
+                  <th className={styles.colProgress}>Progresso</th>
                 </tr>
               </thead>
               <tbody>
@@ -239,17 +246,14 @@ export default function Campaigns() {
                     const stUi = getStatusUi(c);
 
                     return (
-                      <tr key={c.id}>
-                        <td
-                          data-label="Campanha"
-                          className={`${styles.firstCell} ${styles.colCampaign}`}
-                        >
-                          <span className={styles.keyTitle}>
+                      <tr key={c.id} className={styles.row}>
+                        <td className={styles.campaignCell} data-label="Campanha">
+                          <span className={styles.campaignName}>
                             {c.name || "—"}
                           </span>
                         </td>
 
-                        <td data-label="Status" className={styles.colStat}>
+                        <td data-label="Status">
                           <span
                             className={`${styles.statusBadge} ${stUi.cls}`}
                           >
@@ -257,11 +261,9 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Carregados" className={styles.colCount}>
-                          {c.total_items ?? 0}
-                        </td>
+                        <td data-label="Carregados">{c.total_items ?? 0}</td>
 
-                        <td data-label="Lidos" className={styles.colCount}>
+                        <td data-label="Lidos">
                           <span
                             className={`${styles.pill} ${styles.pillOk}`}
                           >
@@ -269,7 +271,7 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Entregues" className={styles.colCount}>
+                        <td data-label="Entregues">
                           <span
                             className={`${styles.pill} ${styles.pillWarn}`}
                           >
@@ -277,7 +279,7 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Falhas" className={styles.colCount}>
+                        <td data-label="Falhas">
                           <span
                             className={`${styles.pill} ${styles.pillErr}`}
                           >
@@ -285,7 +287,7 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Progresso" className={styles.colProg}>
+                        <td data-label="Progresso">
                           <div className={styles.progressWrap}>
                             <div
                               className={styles.progressBar}
