@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import styles from "./styles/BillingExtrato.module.css";
-import BrandIcon from "../icons/BrandIcon";
+import BrandIcon from "../../icons/BrandIcon";
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
