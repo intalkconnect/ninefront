@@ -1,10 +1,18 @@
 // File: CampaignWizard.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-import { Upload, Calendar, Loader2, RefreshCw, ArrowLeft } from "lucide-react";
-import { apiGet, apiPost } from "../../../../shared/apiClient";
+import {
+  Upload,
+  Calendar,
+  Loader2,
+  RefreshCw,
+  ArrowLeft,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { apiGet, apiPost } from "../../../../shared/apiClient";
 import styles from "./styles/CampaignWizard.module.css";
 import { toast } from "react-toastify";
+
+/* ---------- Helpers ---------- */
 
 // Normaliza filas vindas da API
 function normalizeQueues(queues) {
@@ -18,10 +26,29 @@ function normalizeQueues(queues) {
     .filter((q) => q.id && q.nome);
 }
 
-export default function CampaignWizard({ onCreated }) {
+/* ============================================================
+ * Wrapper de página – usado direto na rota
+ * ========================================================== */
+export default function CampaignWizardPage() {
   const navigate = useNavigate();
 
-  // ====== Estado geral ======
+  const handleCreated = () =>
+    navigate("/management/campaigns", { state: { created: true } });
+
+  const handleBack = () => navigate("/management/campaigns");
+
+  return (
+    <CampaignWizard
+      onCreated={handleCreated}
+      onBack={handleBack}
+    />
+  );
+}
+
+/* ============================================================
+ * Wizard em si (lógica + UI)
+ * ========================================================== */
+function CampaignWizard({ onCreated, onBack }) {
   const [step, setStep] = useState(0); // 0..3
   const maxStep = 3;
 
@@ -39,15 +66,15 @@ export default function CampaignWizard({ onCreated }) {
   const [blocksLoading, setBlocksLoading] = useState(false);
   const [blocksError, setBlocksError] = useState(null);
 
-  // formulário principal
+  // formulário
   const [form, setForm] = useState({
     // Etapa 0 — Configuração
     name: "",
-    sendType: "mass", // 'mass' | 'single'
-    mode: "immediate", // 'immediate' | 'scheduled'
+    sendType: "mass",      // 'mass' | 'single'
+    mode: "immediate",     // 'immediate' | 'scheduled' (apenas mass)
     start_at: "",
 
-    // Etapa 1 — Resposta (ação ao responder)
+    // Etapa 1 — Resposta
     actionType: "open_ticket", // 'open_ticket' | 'flow_goto'
 
     // open_ticket:
@@ -59,8 +86,8 @@ export default function CampaignWizard({ onCreated }) {
 
     // Etapa 2 — Template & Destino
     template_id: "",
-    file: null, // quando mass
-    to: "", // quando single
+    file: null,  // mass
+    to: "",      // single
   });
 
   const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -89,7 +116,8 @@ export default function CampaignWizard({ onCreated }) {
     });
   }, [users, selectedQueue]);
 
-  // ====== Validações de etapa ======
+  /* ---------- Validações por etapa ---------- */
+
   const canNextFromStep0 = useMemo(() => {
     if (!form.name.trim()) return false;
     if (form.sendType === "mass" && form.mode === "scheduled" && !form.start_at)
@@ -118,7 +146,8 @@ export default function CampaignWizard({ onCreated }) {
     [canNextFromStep0, canNextFromStep1, canNextFromStep2]
   );
 
-  // ====== Load inicial (templates/filas/usuários) ======
+  /* ---------- Load inicial (templates/filas/usuários) ---------- */
+
   const loadAll = useCallback(async () => {
     setError(null);
     try {
@@ -136,11 +165,11 @@ export default function CampaignWizard({ onCreated }) {
           ? uRes
           : []
       );
-      // NÃO exibe toast de dados carregados
+      // sem toast de sucesso aqui
     } catch (e) {
       console.error(e);
-      setError("Falha ao carregar dados (templates, filas e usuários).");
-      toast.error("Falha ao carregar dados para o wizard.");
+      setError("Falha ao carregar dados (templates/filas/usuários).");
+      toast.error("Falha ao carregar dados (templates/filas/usuários).");
     }
   }, []);
 
@@ -148,7 +177,8 @@ export default function CampaignWizard({ onCreated }) {
     loadAll();
   }, [loadAll]);
 
-  // ====== Load blocks (fluxo ativo) ======
+  /* ---------- Load de blocos do fluxo ativo ---------- */
+
   const loadBlocks = useCallback(
     async () => {
       try {
@@ -204,10 +234,12 @@ export default function CampaignWizard({ onCreated }) {
     }
   }, [step, form.actionType, loadBlocks]);
 
-  // ====== Navegação ======
+  /* ---------- Navegação ---------- */
+
   function goPrev() {
     setStep((s) => Math.max(0, s - 1));
   }
+
   function goNext() {
     if (step === 0 && !canNextFromStep0) {
       toast.warn("Preencha os campos obrigatórios.");
@@ -237,7 +269,8 @@ export default function CampaignWizard({ onCreated }) {
     setField("file", f);
   }
 
-  // ====== Monta reply_* ======
+  /* ---------- reply_* ---------- */
+
   const replyAction =
     form.actionType === "flow_goto" ? "flow_goto" : "open_ticket";
 
@@ -251,7 +284,8 @@ export default function CampaignWizard({ onCreated }) {
     return { block: form.flow_block };
   }, [replyAction, form.fila, form.assigned_to, form.flow_block]);
 
-  // ====== Criação / envio ======
+  /* ---------- Criação / envio ---------- */
+
   async function handleCreate() {
     if (!canCreate) {
       toast.warn("Confira os campos obrigatórios.");
@@ -287,8 +321,8 @@ export default function CampaignWizard({ onCreated }) {
         if (res?.ok) {
           toast.success(
             meta.start_at
-              ? "Campanha agendada com sucesso."
-              : "Campanha criada e enfileirada."
+              ? "Campanha agendada! O scheduler disparará no horário definido."
+              : "Campanha criada! O scheduler iniciará o envio."
           );
           onCreated?.(res);
         } else {
@@ -329,14 +363,15 @@ export default function CampaignWizard({ onCreated }) {
   const stepLabel = (i) =>
     ["Configuração", "Resposta", "Template & Destino", "Revisão"][i] || "";
 
-  // ====== Render ======
+  /* ---------- Render ---------- */
+
   return (
     <div className={styles.container}>
-      {/* HEADER NO PADRÃO DASHBOARD */}
+      {/* HEADER NO PADRÃO DAS DEMAIS TELAS */}
       <div className={styles.headerCard}>
         <div className={styles.headerRow}>
           <button
-            onClick={() => navigate("/campaigns/campaigns")}
+            onClick={onBack}
             type="button"
             className={styles.backBtn}
             title="Voltar"
@@ -356,14 +391,14 @@ export default function CampaignWizard({ onCreated }) {
               type="button"
               className={styles.iconCircle}
               onClick={loadAll}
-              title="Recarregar dados do wizard"
+              title="Recarregar dados"
             >
               <RefreshCw size={18} />
             </button>
           </div>
         </div>
 
-        {/* Stepper logo abaixo do título, dentro do mesmo card */}
+        {/* Stepper logo abaixo do header */}
         <div className={styles.stepper} role="navigation" aria-label="Etapas">
           {[0, 1, 2, 3].map((i) => {
             const active = step === i;
@@ -384,7 +419,7 @@ export default function CampaignWizard({ onCreated }) {
         </div>
       </div>
 
-      {/* CONTEÚDO DO WIZARD */}
+      {/* Conteúdo do wizard */}
       <div className={styles.page}>
         {error && <div className={styles.alertErr}>⚠️ {error}</div>}
 
@@ -575,9 +610,9 @@ export default function CampaignWizard({ onCreated }) {
                       <option value="">Sem atendente específico</option>
                       {agentsForQueue.map((u) => {
                         const label = u.name
-                          ? `${u.name}${u.lastname ? ` ${u.lastname}` : ""} — ${
-                              u.email
-                            }`
+                          ? `${u.name}${
+                              u.lastname ? ` ${u.lastname}` : ""
+                            } — ${u.email}`
                           : u.email;
                         return (
                           <option key={u.email} value={u.email}>
@@ -695,7 +730,9 @@ export default function CampaignWizard({ onCreated }) {
                       >
                         <Upload size={16} />
                         <span className={styles.btnText}>
-                          {form.file ? "Trocar arquivo…" : "Selecionar arquivo…"}
+                          {form.file
+                            ? "Trocar arquivo…"
+                            : "Selecionar arquivo…"}
                         </span>
                       </label>
                       <span className={styles.fileName}>
@@ -742,7 +779,9 @@ export default function CampaignWizard({ onCreated }) {
               <div className={styles.grid2}>
                 <div className={styles.group}>
                   <label className={styles.label}>Nome</label>
-                  <div className={styles.readonly}>{form.name || "—"}</div>
+                  <div className={styles.readonly}>
+                    {form.name || "—"}
+                  </div>
                 </div>
 
                 <div className={styles.group}>
@@ -872,7 +911,9 @@ export default function CampaignWizard({ onCreated }) {
                   onClick={handleCreate}
                   disabled={loading || !canCreate}
                 >
-                  {loading && <Loader2 className={styles.spin} size={16} />}
+                  {loading ? (
+                    <Loader2 className={styles.spin} size={16} />
+                  ) : null}
                   {loading
                     ? "Processando…"
                     : form.sendType === "mass"
