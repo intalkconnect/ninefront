@@ -35,7 +35,7 @@ export default function CampaignWizardPage() {
   const handleCreated = () =>
     navigate("/management/campaigns", { state: { created: true } });
 
-  const handleBack = () => navigate("/management/campaigns");
+  const handleBack = () => navigate(-1);
 
   return (
     <CampaignWizard
