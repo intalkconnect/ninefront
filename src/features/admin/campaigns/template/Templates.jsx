@@ -1,9 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Plus, RefreshCw, Trash2, X as XIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost, apiDelete } from "../../../../shared/apiClient";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
-import { toast } from "react-toastify";
 
 import styles from "./styles/Templates.module.css";
 
@@ -23,9 +28,7 @@ function StatusChip({ status }) {
     draft: { txt: "Rascunho", cls: styles.stDraft },
   };
   const it = map[status] || { txt: status || "—", cls: styles.stDefault };
-  return (
-    <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>
-  );
+  return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
 }
 
 function ScoreSemaforo({ value }) {
@@ -98,9 +101,7 @@ export default function Templates() {
       const qs = new URLSearchParams();
       if (statusFilter) qs.set("status", statusFilter);
       if (query.trim()) qs.set("q", query.trim());
-      const data = await apiGet(
-        `/templates${qs.toString() ? `?${qs}` : ""}`
-      );
+      const data = await apiGet(`/templates${qs.toString() ? `?${qs}` : ""}`);
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
@@ -114,6 +115,7 @@ export default function Templates() {
     load();
   }, [load]);
 
+  // polling para os que estão em "submitted"
   useEffect(() => {
     const ids = items
       .filter((t) => t.status === "submitted")
@@ -147,12 +149,8 @@ export default function Templates() {
       .filter(
         (t) =>
           !q ||
-          String(t.name || "")
-            .toLowerCase()
-            .includes(q) ||
-          String(t.body_text || "")
-            .toLowerCase()
-            .includes(q)
+          String(t.name || "").toLowerCase().includes(q) ||
+          String(t.body_text || "").toLowerCase().includes(q)
       )
       .sort((a, b) =>
         String(a.updated_at || "").localeCompare(
@@ -201,7 +199,7 @@ export default function Templates() {
 
   return (
     <div className={styles.container}>
-      {/* HEADER DARK NO PADRÃO USERS/CAMPAIGNS */}
+      {/* HEADER NO PADRÃO CAMPANHAS/USERS */}
       <div className={styles.headerCard}>
         <div className={styles.headerRow}>
           <div className={styles.headerCenter}>
@@ -225,6 +223,7 @@ export default function Templates() {
               className={styles.iconCirclePrimary}
               type="button"
               onClick={() => navigate("/campaigns/templates/new")}
+              title="Novo template"
             >
               <Plus size={18} />
             </button>
@@ -232,9 +231,8 @@ export default function Templates() {
         </div>
       </div>
 
-      {/* GRID COM LISTA À ESQUERDA E PREVIEW À DIREITA */}
+      {/* LISTA (apenas 1 coluna, sem preview) */}
       <div className={styles.mainGrid}>
-        {/* Coluna: Lista */}
         <div className={styles.colList}>
           <div className={styles.card}>
             <div className={styles.cardHead}>
@@ -286,9 +284,7 @@ export default function Templates() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th style={{ minWidth: 240, textAlign: "left" }}>
-                      Nome do modelo
-                    </th>
+                    <th style={{ minWidth: 240 }}>Nome do modelo</th>
                     <th>Categoria</th>
                     <th>Recategorizado</th>
                     <th>Idioma</th>
@@ -333,15 +329,10 @@ export default function Templates() {
                           role="button"
                           aria-label={`Selecionar ${t.name} para prévia`}
                         >
-                          <td
-                            data-label="Nome"
-                            style={{ textAlign: "left" }}
-                          >
+                          <td data-label="Nome" className={styles.colName}>
                             <div className={styles.keyTitle}>{t.name}</div>
                           </td>
-                          <td data-label="Categoria">
-                            {t.category || "—"}
-                          </td>
+                          <td data-label="Categoria">{t.category || "—"}</td>
                           <td data-label="Recategorizado">
                             {t.recategorized ? "Sim" : "Não"}
                           </td>
