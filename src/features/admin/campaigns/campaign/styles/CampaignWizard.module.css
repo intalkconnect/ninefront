@@ -1,11 +1,7 @@
-/* ===== Container geral (dark) ===== */
+/* ===== Container geral dentro do layout padrão ===== */
 .container {
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
-  background: #0f1419;
+  padding: 0 0 24px;
   color: #f1f5f9;
-  min-height: 100vh;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, sans-serif;
 }
@@ -15,12 +11,12 @@
   padding-bottom: 80px;
 }
 
-/* ================= HEADER CARD NO PADRÃO USERS/CAMPAIGNS ================= */
+/* ================= HEADER CARD (igual lista de campanhas) ================= */
 .headerCard {
-  background: #1e293b;
-  border-radius: 16px;
-  border: 1px solid #334155;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
   padding: 14px 18px;
   margin-bottom: 16px;
 }
@@ -31,8 +27,8 @@
 }
 
 .backBtn {
-  border: 1px solid #334155;
-  background: #334155;
+  border: 1px solid #3a3f4b;
+  background: #1f2937;
   padding: 8px 12px;
   border-radius: 999px;
   display: inline-flex;
@@ -40,14 +36,14 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #e5e7eb;
   cursor: pointer;
   transition: all 0.18s ease;
 }
 .backBtn:hover {
-  background: #475569;
-  border-color: #475569;
-  color: #f1f5f9;
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
 }
 
 .headerCenter {
@@ -59,13 +55,13 @@
 }
 .headerTitle {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  color: #94a3b8;
+  color: #f9fafb;
 }
 .headerSubtitle {
   font-size: 13px;
-  color: #94a3b8;
+  color: #a0aec0;
   font-weight: 500;
 }
 
@@ -82,16 +78,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #94a3b8;
+  border: 1px solid #3a3f4b;
+  background: #1f2937;
+  color: #e5e7eb;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: all 0.18s ease;
 }
 .iconCircle:hover {
-  background: #334155;
-  color: #f1f5f9;
+  background: #374151;
+  color: #ffffff;
 }
 
 /* ================= Stepper ================= */
@@ -106,13 +102,13 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid #334155;
+  border: 1px solid #3a3f4b;
   border-radius: 10px;
   background: #020617;
   color: #e2e8f0;
 }
 .stepDone {
-  background: #1e293b;
+  background: #111827;
 }
 .stepActive {
   border-color: #3b82f6;
@@ -152,25 +148,25 @@
 
 /* ================= Cards ================= */
 .card {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 12px;
+  background: #2b303a;
+  border: 1px solid #3a3f4b;
+  border-radius: 14px;
   margin-bottom: 14px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
 }
 .cardHead {
   padding: 14px 16px 0;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #1f2937;
 }
 .cardTitle {
   margin: 0 0 2px;
   font-size: 16px;
   font-weight: 700;
-  color: #e5e7eb;
+  color: #f9fafb;
 }
 .cardDesc {
   margin: 0 0 10px;
-  color: #9ca3af;
+  color: #a0aec0;
   font-size: 13px;
 }
 .cardBody {
@@ -212,7 +208,7 @@
 .select,
 .textarea {
   width: 100%;
-  border: 1px solid #334155;
+  border: 1px solid #4b5563;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 14px;
@@ -253,7 +249,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border: 1px solid #334155;
+  border: 1px solid #4b5563;
   border-radius: 999px;
   cursor: pointer;
   user-select: none;
@@ -285,7 +281,7 @@
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
-  border: 1px solid #334155;
+  border: 1px solid #4b5563;
   color: #e5e7eb;
   font-size: 13px;
 }
@@ -326,17 +322,17 @@
     rgba(15, 23, 42, 0.98) 60%,
     transparent 100%
   );
-  border-top: 1px solid #334155;
+  border-top: 1px solid #1f2937;
   padding: 10px 0;
   margin-top: 12px;
   backdrop-filter: blur(6px);
 }
 .stickyInner {
-  max-width: 1400px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
 }
 
@@ -370,7 +366,7 @@
 }
 .btnGhost {
   background: #020617;
-  border-color: #334155;
+  border-color: #4b5563;
   color: #e5e7eb;
 }
 .btnGhost:hover {
@@ -385,10 +381,6 @@
 }
 
 @media (max-width: 700px) {
-  .container {
-    padding: 16px;
-  }
-
   .headerRow {
     flex-direction: column;
     align-items: stretch;
