@@ -1,4 +1,4 @@
-/* ===== Layout base no padrão FlowHub dark ===== */
+/* ===== Layout base Dark ===== */
 .page {
   margin: 0;
   max-width: 100%;
@@ -14,13 +14,13 @@
   padding: 0 0 24px;
 }
 
-/* ===== HEADER (card escuro chapado) ===== */
+/* ===== HEADER – igual Campanhas/Templates/Logs ===== */
 .header {
-  background: #111827;
+  background: #2f3642;          /* cinza do header superior */
   border-radius: 14px;
-  border: 1px solid #1f2937;
-  padding: 14px 18px;
-  margin-bottom: 20px;
+  border: 1px solid #3b4352;
+  padding: 16px 20px;
+  margin-bottom: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -43,30 +43,30 @@
 
 .subtitle {
   margin: 0;
-  color: #94a3b8;
+  color: #cbd5f5;
   font-size: 13px;
 }
 
-/* ===== TOOLBAR (busca + ações) ===== */
+/* ===== TOOLBAR – barra com busca + botões ===== */
 .toolbar {
   display: flex;
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
   padding: 12px 16px;
-  background: #020617;
+  background: #111827;
   border: 1px solid #1f2937;
   border-radius: 14px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .searchGroup {
   position: relative;
   flex: 1 1 260px;
-  max-width: 360px;
+  max-width: 420px;
 }
 
-/* input chapado igual outras telas */
+/* input chapado */
 .searchInput {
   width: 100%;
   height: 40px;
@@ -113,7 +113,6 @@
   flex-wrap: wrap;
 }
 
-/* botões chapados */
 .toolbarBtn,
 .toolbarBtnPrimary {
   display: inline-flex;
@@ -129,6 +128,7 @@
   transition: all 0.18s ease;
 }
 
+/* botão de recarregar – chapado */
 .toolbarBtn {
   background: #020617;
   border-color: #374151;
@@ -142,6 +142,7 @@
   cursor: not-allowed;
 }
 
+/* botão azul tipo “+” dos prints */
 .toolbarBtnPrimary {
   background: #2563eb;
   border-color: #2563eb;
@@ -151,7 +152,7 @@
   background: #1d4ed8;
 }
 
-/* animação refresh */
+/* ícone de reload girando */
 .spinning {
   animation: spin 0.9s linear infinite;
 }
@@ -188,12 +189,12 @@
   border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
-/* ===== CARD / TABELA ===== */
+/* ===== CARD + TABELA (igual campanhas/templates) ===== */
 .card {
   background: #020617;
   border: 1px solid #111827;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
   overflow: hidden;
 }
 
@@ -208,7 +209,7 @@
   font-size: 14px;
 }
 
-/* cabeçalho todo centralizado, como nos prints */
+/* cabeçalho todo centralizado */
 .table thead th {
   padding: 14px 18px;
   background: #020617;
@@ -224,10 +225,7 @@
   text-align: center;
 }
 
-.colLeft {
-  text-align: center;
-}
-
+.colLeft,
 .colCenter {
   text-align: center;
 }
@@ -240,15 +238,12 @@
   text-align: center;
 }
 
-.cellLeft {
-  text-align: center;
-}
-
+.cellLeft,
 .cellCenter {
   text-align: center;
 }
 
-/* listrado leve igual outras telas */
+/* listrado leve */
 .rowHover {
   transition: background 0.18s ease;
 }
@@ -269,7 +264,7 @@
   font-style: italic;
 }
 
-/* Skeleton loading (mantém gradient só para shimmer) */
+/* Skeleton loading */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -296,7 +291,7 @@
   animation: shimmer 1.4s infinite;
 }
 
-/* ===== TAGS (perfil / filas) – cores chapadas ===== */
+/* ===== TAGS (perfil / filas) ===== */
 .tagsWrap {
   display: flex;
   flex-wrap: wrap;
@@ -316,7 +311,7 @@
   border: 1px solid transparent;
 }
 
-/* bolinha de perfil */
+/* “bolinha” de perfil – chapada */
 .tagRole {
   width: 32px;
   padding: 0;
@@ -325,26 +320,23 @@
   color: #e5e7eb;
   border-color: #4b5563;
 }
-
 .tagRole[data-role="admin"] {
   background: #1d4ed8;
   border-color: #2563eb;
   color: #e0f2fe;
 }
-
 .tagRole[data-role="supervisor"] {
   background: #047857;
   border-color: #059669;
   color: #a7f3d0;
 }
-
 .tagRole[data-role="atendente"] {
   background: #92400e;
   border-color: #ea580c;
   color: #fed7aa;
 }
 
-/* filas em chips chapados */
+/* chips de filas */
 .tagQueue {
   background: #111827;
   border-color: #374151;
@@ -355,7 +347,7 @@
   color: #6b7280;
 }
 
-/* ===== AÇÕES (botão redondo chapado, como no print) ===== */
+/* ===== AÇÕES – botão redondo vermelho, igual lixeira das telas ===== */
 .actionsCell {
   text-align: center;
 }
@@ -368,7 +360,7 @@
 .iconBtn {
   width: 32px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -395,7 +387,7 @@
 }
 .iconDanger:hover {
   background: #991b1b;
-  box-shadow: 0 0 10px rgba(248, 113, 113, 0.6);
+  box-shadow: 0 0 14px rgba(248, 113, 113, 0.7);
 }
 
 /* ===== Responsivo ===== */
