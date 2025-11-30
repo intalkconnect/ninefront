@@ -70,6 +70,9 @@ import TelegramConnect from "./flow/channels/telegram/TelegramConnect";
 import TokensSecurity from "./preferences/security/Tokens";
 import AuditLogs from "./preferences/logs/AuditLogs";
 
+// NOVA HOME SEPARADA
+import Home from "./home/Home";
+
 document.title = "NineChat - Gestão";
 
 function RequireRole({ allow, children }) {
@@ -77,157 +80,6 @@ function RequireRole({ allow, children }) {
     return <Navigate to="/" replace />;
   }
   return children;
-}
-
-/**
- * HOME ESTILO DASHBOARD (igual ao print – boas vindas + cards)
- */
-function HomeDashboard({ user }) {
-  const navigate = useNavigate();
-
-  const firstName =
-    user?.name?.split(" ")[0] ||
-    user?.nome?.split(" ")[0] ||
-    (user?.email ? user.email.split("@")[0] : "NineChatter");
-
-  // mocks apenas para visual, pode ligar em métricas reais depois
-  const stats = [
-    {
-      key: "done",
-      label: "Concluídas",
-      value: 3,
-      helper: "Soluções implementadas com sucesso",
-      percent: 14,
-    },
-    {
-      key: "in-progress",
-      label: "Em Progresso",
-      value: 13,
-      helper: "Implementações em andamento",
-      percent: 59,
-    },
-    {
-      key: "available",
-      label: "Disponíveis",
-      value: 22,
-      helper: "Total de soluções na plataforma",
-      percent: 82,
-    },
-  ];
-
-  const projects = [
-    {
-      key: "proj-1",
-      title: "SDR Automático no WhatsApp Plug and Play com Typebot",
-      tag: "Automação de vendas",
-    },
-    {
-      key: "proj-2",
-      title: "Criando um Board Estratégico com IA para a sua Empresa",
-      tag: "Gestão & estratégia",
-    },
-    {
-      key: "proj-3",
-      title: "Como Gerar Métricas nos grupos de WhatsApp",
-      tag: "Análises e métricas",
-    },
-  ];
-
-  return (
-    <div className={styles.home}>
-      {/* HERO / BOAS-VINDAS */}
-      <section className={styles.welcomeHero}>
-        <div className={styles.welcomeContent}>
-          <span className={styles.welcomeTag}>Bem-vindo de volta</span>
-          <h1 className={styles.welcomeTitle}>
-            Bom dia, {firstName}!{" "}
-            <span className={styles.welcomeEmoji}>👋</span>
-          </h1>
-          <p className={styles.welcomeSubtitle}>
-            Continue sua jornada de crescimento. Explore novas soluções e
-            desenvolva seu negócio com o NineChat.
-          </p>
-
-          <div className={styles.welcomeActions}>
-            <button
-              type="button"
-              className={styles.welcomeCta}
-              onClick={() => navigate("/workflows/hub")}
-            >
-              Explorar soluções
-            </button>
-            <p className={styles.welcomeNote}>
-              Dica: use o Hub de Workflows para centralizar suas jornadas e
-              canais.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* CARDS DE MÉTRICAS – 3 COLUNAS */}
-      <section className={styles.homeStatsSection}>
-        {stats.map((stat) => (
-          <article key={stat.key} className={styles.homeStatCard}>
-            <header className={styles.homeStatHeader}>
-              <span className={styles.homeStatIconWrapper}>
-                {/* só um círculo decorativo como no print */}
-                <span className={styles.homeStatIconDot} />
-              </span>
-              <div className={styles.homeStatHeaderText}>
-                <span className={styles.homeStatLabel}>{stat.label}</span>
-                <span className={styles.homeStatValue}>{stat.value}</span>
-              </div>
-            </header>
-
-            <p className={styles.homeStatHelper}>{stat.helper}</p>
-
-            <div className={styles.homeStatFooter}>
-              <div className={styles.homeStatProgressBar}>
-                <div
-                  className={styles.homeStatProgressInner}
-                  style={{ width: `${stat.percent}%` }}
-                />
-              </div>
-              <span className={styles.homeStatPercent}>
-                {stat.percent.toString().padStart(2, "0")}%
-              </span>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      {/* PROJETOS EM ANDAMENTO */}
-      <section className={styles.homeProjects}>
-        <header className={styles.homeProjectsHeader}>
-          <div>
-            <h2 className={styles.homeProjectsTitle}>Projetos em andamento</h2>
-            <p className={styles.homeProjectsSubtitle}>
-              Continue implementando esses projetos em seu negócio.
-            </p>
-          </div>
-        </header>
-
-        <div className={styles.homeProjectsScroller}>
-          {projects.map((proj) => (
-            <article key={proj.key} className={styles.homeProjectCard}>
-              <div className={styles.homeProjectGlow} />
-              <div className={styles.homeProjectBody}>
-                <span className={styles.homeProjectTag}>{proj.tag}</span>
-                <h3 className={styles.homeProjectTitle}>{proj.title}</h3>
-                <button
-                  type="button"
-                  className={styles.homeProjectButton}
-                  onClick={() => navigate("/workflows/hub")}
-                >
-                  Continuar projeto
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
 }
 
 export default function Admin() {
@@ -820,8 +672,8 @@ export default function Admin() {
           <main className={styles.main}>
             <div className={styles.content}>
               <Routes>
-                {/* HOME ESTILO DASHBOARD */}
-                <Route index element={<HomeDashboard user={userData} />} />
+                {/* HOME DE BOAS-VINDAS / NOVIDADES */}
+                <Route index element={<DashboardHome user={userData} />} />
 
                 {/* monitoring */}
                 <Route
