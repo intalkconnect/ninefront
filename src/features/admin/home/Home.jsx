@@ -59,17 +59,23 @@ export default function Home({ user }) {
           {/* NOVAS FUNCIONALIDADES */}
           <article className={styles.panel}>
             <div className={styles.panelHeader}>
-              <h3 className={styles.panelTitle}>Novas funcionalidades</h3>
-              <p className={styles.panelSubtitle}>
-                Recursos recém-lançados para você aproveitar hoje.
-              </p>
+              <div className={styles.panelIcon}>✨</div>
+              <div>
+                <h3 className={styles.panelTitle}>Novas funcionalidades</h3>
+                <p className={styles.panelSubtitle}>
+                  Recursos recém-lançados para você aproveitar hoje.
+                </p>
+              </div>
             </div>
 
             <div className={styles.featureList}>
               <div className={styles.featureCard}>
-                <span className={`${styles.badge} ${styles.badgeGreen}`}>
-                  Disponível agora
-                </span>
+                <div className={styles.featureHeader}>
+                  <div className={styles.featureIcon}>🚀</div>
+                  <span className={`${styles.badge} ${styles.badgeGreen}`}>
+                    Disponível agora
+                  </span>
+                </div>
                 <h4 className={styles.featureTitle}>
                   Novo Hub de Workflows Omnichannel
                 </h4>
@@ -80,7 +86,10 @@ export default function Home({ user }) {
               </div>
 
               <div className={styles.featureCard}>
-                <span className={styles.badge}>Atualização</span>
+                <div className={styles.featureHeader}>
+                  <div className={styles.featureIcon}>⚡</div>
+                  <span className={`${styles.badge} ${styles.badgeBlue}`}>Atualização</span>
+                </div>
                 <h4 className={styles.featureTitle}>
                   Monitor de Filas em Tempo Real
                 </h4>
@@ -91,7 +100,10 @@ export default function Home({ user }) {
               </div>
 
               <div className={styles.featureCard}>
-                <span className={styles.badge}>Novo</span>
+                <div className={styles.featureHeader}>
+                  <div className={styles.featureIcon}>📊</div>
+                  <span className={`${styles.badge} ${styles.badgePurple}`}>Novo</span>
+                </div>
                 <h4 className={styles.featureTitle}>
                   Templates aprimorados para campanhas
                 </h4>
@@ -106,52 +118,68 @@ export default function Home({ user }) {
           {/* ROADMAP */}
           <article className={`${styles.panel} ${styles.panelRight}`}>
             <div className={styles.panelHeader}>
-              <h3 className={styles.panelTitle}>Roadmap</h3>
-              <p className={styles.panelSubtitle}>
-                Visão do que estamos construindo para os próximos meses.
-              </p>
+              <div className={styles.panelIcon}>🗓️</div>
+              <div>
+                <h3 className={styles.panelTitle}>Roadmap</h3>
+                <p className={styles.panelSubtitle}>
+                  Visão do que estamos construindo para os próximos meses.
+                </p>
+              </div>
             </div>
 
             <ul className={styles.roadmapList}>
               <li className={styles.roadmapItem}>
-                <div className={styles.roadmapMain}>
-                  <h4 className={styles.roadmapTitle}>
-                    Relatórios avançados de qualidade
-                  </h4>
-                  <p className={styles.roadmapText}>
-                    Métricas detalhadas de CSAT, tempo médio de resposta e
-                    performance por agente.
-                  </p>
+                <div className={styles.roadmapDot}></div>
+                <div className={styles.roadmapContent}>
+                  <div className={styles.roadmapMain}>
+                    <h4 className={styles.roadmapTitle}>
+                      Relatórios avançados de qualidade
+                    </h4>
+                    <p className={styles.roadmapText}>
+                      Métricas detalhadas de CSAT, tempo médio de resposta e
+                      performance por agente.
+                    </p>
+                  </div>
+                  <span className={`${styles.roadmapTag} ${styles.roadmapTagDev}`}>
+                    Em desenvolvimento · Q2
+                  </span>
                 </div>
-                <span className={styles.roadmapTag}>
-                  Em desenvolvimento · Q2
-                </span>
               </li>
 
               <li className={styles.roadmapItem}>
-                <div className={styles.roadmapMain}>
-                  <h4 className={styles.roadmapTitle}>
-                    Assistente de IA para construção de fluxos
-                  </h4>
-                  <p className={styles.roadmapText}>
-                    Sugestões automáticas de nós, mensagens e regras com base no
-                    histórico da sua operação.
-                  </p>
+                <div className={styles.roadmapDot}></div>
+                <div className={styles.roadmapContent}>
+                  <div className={styles.roadmapMain}>
+                    <h4 className={styles.roadmapTitle}>
+                      Assistente de IA para construção de fluxos
+                    </h4>
+                    <p className={styles.roadmapText}>
+                      Sugestões automáticas de nós, mensagens e regras com base no
+                      histórico da sua operação.
+                    </p>
+                  </div>
+                  <span className={`${styles.roadmapTag} ${styles.roadmapTagResearch}`}>
+                    Em pesquisa · Q3
+                  </span>
                 </div>
-                <span className={styles.roadmapTag}>Em pesquisa · Q3</span>
               </li>
 
               <li className={styles.roadmapItem}>
-                <div className={styles.roadmapMain}>
-                  <h4 className={styles.roadmapTitle}>
-                    Dashboard customizável
-                  </h4>
-                  <p className={styles.roadmapText}>
-                    Crie visões personalizadas com os indicadores mais
-                    importantes para o seu negócio.
-                  </p>
+                <div className={styles.roadmapDot}></div>
+                <div className={styles.roadmapContent}>
+                  <div className={styles.roadmapMain}>
+                    <h4 className={styles.roadmapTitle}>
+                      Dashboard customizável
+                    </h4>
+                    <p className={styles.roadmapText}>
+                      Crie visões personalizadas com os indicadores mais
+                      importantes para o seu negócio.
+                    </p>
+                  </div>
+                  <span className={`${styles.roadmapTag} ${styles.roadmapTagPlanned}`}>
+                    Planejado · Q4
+                  </span>
                 </div>
-                <span className={styles.roadmapTag}>Planejado · Q4</span>
               </li>
             </ul>
           </article>
