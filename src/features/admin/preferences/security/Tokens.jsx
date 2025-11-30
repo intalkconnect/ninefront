@@ -254,9 +254,6 @@ export default function TokensSecurity() {
                       </td>
                       <td>{r.name || "—"}</td>
                       <td>
-                        {r.is_default && (
-                          <span className={styles.badgeOk}>Default</span>
-                        )}{" "}
                         {r.status === "revoked" ? (
                           <span className={styles.badgeWarn}>
                             Revogado
