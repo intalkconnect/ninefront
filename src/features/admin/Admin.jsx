@@ -673,7 +673,7 @@ export default function Admin() {
             <div className={styles.content}>
               <Routes>
                 {/* HOME DE BOAS-VINDAS / NOVIDADES */}
-                <Route index element={<DashboardHome user={userData} />} />
+                <Route index element={<Home user={userData} />} />
 
                 {/* monitoring */}
                 <Route
