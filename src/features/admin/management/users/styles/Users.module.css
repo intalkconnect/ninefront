@@ -1,55 +1,65 @@
+/* ===== Layout base no padrão FlowHub (igual AuditLogs/Tokens) ===== */
+.page {
+  padding: 4px 0 24px;
+  margin: 0;
+  max-width: 100%;
+  color: #e5e7eb;
+  background: transparent;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
 .container {
-  padding: 24px;
-  max-width: 1400px;
+  max-width: 1320px;
   margin: 0 auto;
+  padding: 0 0 24px;
 }
 
-/* HEADER bem simples, igual às outras telas novas */
+/* ===== HEADER DARK ===== */
 .header {
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  padding: 14px 18px;
+  margin-bottom: 20px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 10px;
-  position: relative;
+  gap: 16px;
 }
 
-.header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -10px;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    #2563eb 0%,
-    rgba(37, 99, 235, 0.18) 55%,
-    transparent 100%
-  );
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .title {
   margin: 0;
   font-size: 18px;
-  font-weight: 600;
-  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f9fafb;
 }
 
 .subtitle {
-  margin: 4px 0 0;
-  color: #6b7280;
-  font-size: 14px;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
 }
 
-/* TOOLBAR ACIMA DO CARD (busca + ações) */
+/* ===== TOOLBAR (busca + ações) ===== */
 .toolbar {
-  margin-top: 18px;
-  margin-bottom: 12px;
   display: flex;
+  gap: 16px;
   align-items: center;
-  gap: 12px;
   flex-wrap: wrap;
+  padding: 12px 16px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
 .searchGroup {
@@ -58,23 +68,24 @@
   max-width: 360px;
 }
 
+/* input no mesmo padrão do AuditLogs */
 .searchInput {
   width: 100%;
-  height: 36px;
-  padding: 0 32px 0 12px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
+  height: 40px;
+  padding: 0 36px 0 12px;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
   font-size: 14px;
+  background: #020617;
+  color: #e5e7eb;
 }
-
 .searchInput::placeholder {
-  color: #9ca3af;
+  color: #64748b;
 }
-
 .searchInput:focus {
   outline: none;
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
 }
 
 .searchClear {
@@ -82,32 +93,34 @@
   right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border: 1px solid #1f2937;
+  background: #020617;
   display: grid;
   place-items: center;
   cursor: pointer;
-  color: #6b7280;
+  color: #9ca3af;
+  transition: all 0.18s ease;
 }
-
 .searchClear:hover {
-  background: #e5e7eb;
+  background: #111827;
+  color: #e5e7eb;
 }
 
 .toolbarRight {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
+/* botões da toolbar */
 .toolbarBtn,
 .toolbarBtnPrimary {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   height: 34px;
   padding: 0 12px;
   border-radius: 999px;
@@ -115,38 +128,47 @@
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
+  transition: all 0.18s ease;
 }
 
 .toolbarBtn {
-  background: #ffffff;
-  border-color: #e5e7eb;
-  color: #374151;
+  background: #020617;
+  border-color: #374151;
+  color: #e5e7eb;
 }
-
-.toolbarBtn:hover {
-  background: #f9fafb;
+.toolbarBtn:hover:not(:disabled) {
+  background: #111827;
 }
-
-.toolbarBtnPrimary {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-.toolbarBtnPrimary:hover {
-  filter: brightness(0.97);
-}
-
 .toolbarBtn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* ALERTAS SIMPLES */
+.toolbarBtnPrimary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+}
+.toolbarBtnPrimary:hover {
+  filter: brightness(0.97);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.6);
+}
+
+/* animação de refresh */
+.spinning {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ALERTAS */
 .alertsStack {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 8px;
+  margin: 8px 4px 10px;
 }
 
 .alertErr,
@@ -157,25 +179,27 @@
 }
 
 .alertErr {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.45);
 }
 
 .alertOk {
-  background: #ecfdf5;
-  color: #065f46;
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.45);
 }
 
-/* CARD da tabela (padrão) */
+/* ===== CARD / TABELA ===== */
 .card {
-  background: #020617;
-  border-radius: 16px;
-  border: 1px solid #0b1220;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.55);
+  background: #2b303a;
+  border: 1px solid #3a3f4b;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
   overflow: hidden;
 }
 
-/* TABELA */
+/* tabela padrão dark */
 .tableWrap {
   overflow: auto;
 }
@@ -188,14 +212,17 @@
 }
 
 .table thead th {
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: #020617;
   border-bottom: 1px solid #111827;
   color: #9ca3af;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   font-size: 11px;
   font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .colLeft {
@@ -207,7 +234,7 @@
 }
 
 .table tbody td {
-  padding: 14px 16px;
+  padding: 14px 18px;
   border-bottom: 1px solid #111827;
   color: #e5e7eb;
   vertical-align: top;
@@ -223,11 +250,16 @@
 }
 
 .rowHover {
-  transition: background 0.15s;
+  transition: background 0.18s ease;
 }
-
+.rowHover:nth-child(odd) {
+  background-color: #020617;
+}
+.rowHover:nth-child(even) {
+  background-color: #050816;
+}
 .rowHover:hover {
-  background: #020617;
+  background-color: #0b1120;
 }
 
 .empty {
@@ -237,7 +269,7 @@
   font-style: italic;
 }
 
-/* Skeleton loading */
+/* Skeleton loading (igual AuditLogs/Tokens) */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -248,7 +280,7 @@
 }
 
 .skelRow td {
-  padding: 10px 16px;
+  padding: 12px 18px;
 }
 
 .skeletonRow {
@@ -256,9 +288,9 @@
   border-radius: 8px;
   background: linear-gradient(
     90deg,
-    #0b1120 0%,
-    #1f2937 50%,
-    #0b1120 100%
+    #020617 0%,
+    #111827 50%,
+    #020617 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
@@ -282,7 +314,6 @@
   font-size: 12px;
   font-weight: 600;
   border: 1px solid;
-  box-shadow: 0 0 12px rgba(15, 23, 42, 0.5);
 }
 
 .tagRole {
@@ -321,7 +352,7 @@
   color: #6b7280;
 }
 
-/* AÇÕES (botões quadrados roxo/vermelho – mesmo padrão) */
+/* ===== AÇÕES (botões quadrados iguais ao print) ===== */
 .actionsCell {
   text-align: center;
 }
@@ -331,42 +362,45 @@
   gap: 8px;
 }
 
-.qrIconBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
+/* mesmo padrão de iconBtn/iconDanger do Tokens */
+.iconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 0 0, #4c1d95, #1e1b4b);
+  border: 1px solid #4b5563;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  background: #111827;
   color: #e5e7eb;
-  box-shadow: 0 0 18px rgba(129, 140, 248, 0.55);
   text-decoration: none;
 }
-
-.qrIconBtn:hover {
-  filter: brightness(1.05);
+.iconBtn svg {
+  width: 16px;
+  height: 16px;
+}
+.iconBtn:hover {
+  background: #1f2937;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
-.danger {
-  background: radial-gradient(circle at 0 0, #7f1d1d, #1f2933);
-  box-shadow: 0 0 18px rgba(248, 113, 113, 0.55);
+.iconDanger {
+  background: #7f1d1d;
+  border-color: #b91c1c;
   color: #fecaca;
 }
+.iconDanger:hover {
+  background: #991b1b;
+}
 
-/* Responsivo */
-@media (max-width: 720px) {
-  .container {
-    padding: 18px 12px;
-  }
-
+/* ===== Responsivo ===== */
+@media (max-width: 700px) {
   .toolbar {
     flex-direction: column;
     align-items: stretch;
   }
-
   .toolbarRight {
     justify-content: flex-start;
   }
@@ -374,7 +408,6 @@
   .table thead {
     display: none;
   }
-
   .table,
   .table tbody,
   .table tr,
@@ -382,9 +415,8 @@
     display: block;
     width: 100%;
   }
-
   .table tbody td {
-    padding: 10px 14px;
+    padding: 12px 14px;
   }
 
   .actions {
