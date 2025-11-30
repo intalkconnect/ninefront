@@ -1,3 +1,4 @@
+// File: Users.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Users as UsersIcon,
@@ -30,7 +31,7 @@ export default function Users({ canCreateAdmin = false }) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [statusFilter] = useState(""); // ainda não usado, mas mantido se você quiser filtrar por perfil depois
+  const [statusFilter, setStatusFilter] = useState("");
   const [query, setQuery] = useState("");
 
   const [okMsg, setOkMsg] = useState(null);
@@ -47,6 +48,8 @@ export default function Users({ canCreateAdmin = false }) {
     location.state?.meta?.flowId ||
     params.flowId ||
     null;
+
+  const baseUsersPath = "/management/users";
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
@@ -140,34 +143,31 @@ export default function Users({ canCreateAdmin = false }) {
     if (!refreshing) load();
   };
 
-  const title = flowId ? "Atendentes do flow" : "Usuários";
-  const subtitle = flowId
-    ? "Gerencie os atendentes vinculados a este flow."
-    : "Gestão de usuários: cadastro, papéis e filas de atendimento.";
+  const title = flowId ? "Atendentes do Flow" : "Usuários";
 
   return (
-    <div className={styles.page}>
-      <div className={styles.container}>
-        {/* HEADER no padrão escuro com ícone e busca à direita */}
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            {flowId && (
-              <button
-                onClick={() => navigate(-1)}
-                type="button"
-                className={styles.backBtn}
-                title="Voltar"
-              >
-                <ArrowLeft size={14} />
-              </button>
-            )}
+    <div className={styles.container}>
+      {/* HEADER NO PADRÃO DAS OUTRAS TELAS */}
+      <div className={styles.headerCard}>
+        <div className={styles.headerRow}>
+          <button
+            onClick={() =>
+              flowId ? navigate(-1) : navigate(baseUsersPath, { replace: true })
+            }
+            type="button"
+            className={styles.backBtn}
+            title="Voltar"
+          >
+            <ArrowLeft size={14} />
+            <span>Voltar</span>
+          </button>
 
-            <div className={styles.headerIcon}>
-              <UsersIcon size={18} />
-            </div>
-            <div className={styles.headerTextBlock}>
-              <h1 className={styles.title}>{title}</h1>
-              <p className={styles.subtitle}>{subtitle}</p>
+          <div className={styles.headerCenter}>
+            <div className={styles.headerTitle}>{title}</div>
+            <div className={styles.headerSubtitle}>
+              {flowId
+                ? "Gerencie os atendentes vinculados a este flow."
+                : "Gestão de usuários: cadastro, papéis e acessos."}
             </div>
           </div>
 
@@ -194,7 +194,7 @@ export default function Users({ canCreateAdmin = false }) {
               type="button"
               className={styles.iconCirclePrimary}
               onClick={handleNew}
-              title="Novo usuário"
+              title="Novo atendente"
             >
               <Plus size={18} />
             </button>
@@ -212,128 +212,135 @@ export default function Users({ canCreateAdmin = false }) {
               />
             </button>
           </div>
-        </header>
+        </div>
+      </div>
 
-        {/* Alertas de OK/erro */}
-        {(okMsg || error) && (
-          <div className={styles.alertsStack}>
-            {error && (
-              <div className={styles.alertErr}>
-                <div className={styles.alertIcon}>⚠</div>
-                <span>{error}</span>
-              </div>
-            )}
-            {okMsg && (
-              <div className={styles.alertOk}>
-                <div className={styles.alertIcon}>✓</div>
-                <span>{okMsg}</span>
-              </div>
-            )}
-          </div>
-        )}
+      {/* Alertas de OK/erro */}
+      {(okMsg || error) && (
+        <div className={styles.alertsStack}>
+          {error && (
+            <div className={styles.alertErr}>
+              <div className={styles.alertIcon}>⚠</div>
+              <span>{error}</span>
+            </div>
+          )}
+          {okMsg && (
+            <div className={styles.alertOk}>
+              <div className={styles.alertIcon}>✓</div>
+              <span>{okMsg}</span>
+            </div>
+          )}
+        </div>
+      )}
 
-        {/* Card da tabela */}
-        <section className={styles.card}>
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Email</th>
-                  <th>Perfil</th>
-                  <th>Filas</th>
-                  <th style={{ width: 160, textAlign: "right" }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading &&
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={`sk-${i}`} className={styles.skelRow}>
-                      <td colSpan={5}>
-                        <div className={styles.skeletonRow} />
-                      </td>
-                    </tr>
-                  ))}
-
-                {!loading && filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className={styles.empty}>
-                      Nenhum usuário encontrado.
+      {/* Card da tabela */}
+      <div className={styles.card}>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th className={styles.colLeft}>Nome</th>
+                <th className={styles.colLeft}>Email</th>
+                <th className={styles.colCenter}>Perfil</th>
+                <th className={styles.colCenter}>Filas</th>
+                <th className={styles.colCenter}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading &&
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={`sk-${i}`} className={styles.skelRow}>
+                    <td colSpan={5}>
+                      <div className={styles.skeletonRow} />
                     </td>
                   </tr>
-                )}
+                ))}
 
-                {!loading &&
-                  filtered.map((u) => {
-                    const nome = `${u.name ?? ""} ${u.lastname ?? ""}`.trim();
-                    const filasArr = Array.isArray(u.filas) ? u.filas : [];
-                    const chipNames = filasArr
-                      .map(
-                        (id) =>
-                          queuesById.get(String(id))?.nome ??
-                          queuesById.get(String(id))?.name ??
-                          id
-                      )
-                      .filter(Boolean);
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={5} className={styles.empty}>
+                    Nenhum usuário encontrado.
+                  </td>
+                </tr>
+              )}
 
-                    return (
-                      <tr key={u.id} className={styles.rowHover}>
-                        <td data-label="Nome">{nome || "—"}</td>
-                        <td data-label="Email">{u.email || "—"}</td>
-                        <td data-label="Perfil">
-                          <span
-                            className={`${styles.tag} ${styles.tagRole}`}
-                            data-role={String(u.perfil || "").toLowerCase()}
-                            title={u.perfil}
-                            aria-label={u.perfil}
+              {!loading &&
+                filtered.map((u) => {
+                  const nome = `${u.name ?? ""} ${u.lastname ?? ""}`.trim();
+                  const filasArr = Array.isArray(u.filas) ? u.filas : [];
+                  const chipNames = filasArr
+                    .map(
+                      (id) =>
+                        queuesById.get(String(id))?.nome ??
+                        queuesById.get(String(id))?.name ??
+                        id
+                    )
+                    .filter(Boolean);
+
+                  return (
+                    <tr key={u.id} className={styles.rowHover}>
+                      <td className={styles.cellLeft} data-label="Nome">
+                        {nome || "—"}
+                      </td>
+                      <td className={styles.cellLeft} data-label="Email">
+                        {u.email || "—"}
+                      </td>
+                      <td className={styles.cellCenter} data-label="Perfil">
+                        <span
+                          className={`${styles.tag} ${styles.tagRole}`}
+                          data-role={String(u.perfil || "").toLowerCase()}
+                          title={u.perfil}
+                          aria-label={u.perfil}
+                        >
+                          {iconForPerfil(u.perfil)}
+                        </span>
+                      </td>
+                      <td className={styles.cellCenter} data-label="Filas">
+                        <div className={styles.tagsWrap}>
+                          {chipNames.length === 0 ? (
+                            <span className={styles.muted}>—</span>
+                          ) : (
+                            chipNames.map((n, i) => (
+                              <span
+                                key={`${u.id}-f-${i}`}
+                                className={`${styles.tag} ${styles.tagQueue}`}
+                              >
+                                {n}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </td>
+                      <td
+                        className={`${styles.cellCenter} ${styles.actionsCell}`}
+                        data-label="Ações"
+                      >
+                        <div className={styles.actions}>
+                          <Link
+                            to={`/management/users/${encodeURIComponent(
+                              u.id
+                            )}/edit`}
+                            state={{ canCreateAdmin, flowId }}
+                            className={styles.qrIconBtn}
+                            title="Editar"
                           >
-                            {iconForPerfil(u.perfil)}
-                          </span>
-                        </td>
-                        <td data-label="Filas">
-                          <div className={styles.tagsWrap}>
-                            {chipNames.length === 0 ? (
-                              <span className={styles.muted}>—</span>
-                            ) : (
-                              chipNames.map((n, i) => (
-                                <span
-                                  key={`${u.id}-f-${i}`}
-                                  className={`${styles.tag} ${styles.tagQueue}`}
-                                >
-                                  {n}
-                                </span>
-                              ))
-                            )}
-                          </div>
-                        </td>
-                        <td className={styles.actionsCell}>
-                          <div className={styles.actions}>
-                            <Link
-                              to={`/management/users/${encodeURIComponent(
-                                u.id
-                              )}/edit`}
-                              state={{ canCreateAdmin, flowId }}
-                              className={styles.qrIconBtn}
-                              title="Editar"
-                            >
-                              <SquarePen size={16} />
-                            </Link>
-                            <button
-                              className={`${styles.qrIconBtn} ${styles.danger}`}
-                              title="Excluir"
-                              onClick={() => handleDelete(u)}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                            <SquarePen size={16} />
+                          </Link>
+                          <button
+                            className={`${styles.qrIconBtn} ${styles.danger}`}
+                            title="Excluir"
+                            onClick={() => handleDelete(u)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
