@@ -130,174 +130,164 @@ export default function TokensSecurity() {
 
   return (
     <div className={styles.page}>
-      {/* HEADER SIMPLES, SEM ÍCONE EXTRA */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Tokens de segurança</h1>
-          <p className={styles.subtitle}>
-            Tokens de acesso para integrações externas e automações.
-          </p>
-        </div>
-      </div>
+      <div className={styles.container}>
+        {/* HEADER NO MESMO PADRÃO DO AUDIT LOGS */}
+        <header className={styles.header}>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>Tokens de segurança</h1>
+            <p className={styles.subtitle}>
+              Tokens de acesso para integrações externas e automações.
+            </p>
+          </div>
+        </header>
 
-      {/* CARD DE CRIAÇÃO */}
-      <div className={styles.card}>
-        <div className={styles.cardBody}>
-          <form
-            className={styles.createInline}
-            onSubmit={createToken}
-            noValidate
-          >
-            <div className={styles.fieldCompact}>
-              <input
-                ref={nameRef}
-                className={styles.input}
-                placeholder="Nome do token"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                disabled={creating}
-              />
-            </div>
-            <button
-              type="submit"
-              className={styles.btnPrimary}
-              disabled={creating || !newName.trim()}
-              title={
-                !newName.trim() ? "Informe o nome do token" : "Criar token"
-              }
+        {/* CARD DE CRIAÇÃO */}
+        <section className={styles.card}>
+          <div className={styles.cardBody}>
+            <form
+              className={styles.createInline}
+              onSubmit={createToken}
+              noValidate
             >
-              <Plus size={16} />
-              Criar token
-            </button>
-          </form>
-
-          {justCreated?.token && (
-            <div
-              className={styles.notice}
-              role="status"
-              aria-live="polite"
-            >
-              <div className={styles.noticeTitle}>
-                Token criado{" "}
-                {justCreated.name ? `(${justCreated.name})` : ""} — copie
-                agora
+              <div className={styles.fieldCompact}>
+                <label className={styles.label}>Novo token</label>
+                <input
+                  ref={nameRef}
+                  className={styles.input}
+                  placeholder="Nome do token"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  disabled={creating}
+                />
               </div>
-              <div className={styles.tokenBox}>
-                <code className={styles.tokenValue}>
-                  {justCreated.token}
-                </code>
-                <button
-                  type="button"
-                  className={styles.btnTiny}
-                  onClick={() => copyToClipboard(justCreated.token)}
-                  title="Copiar token completo"
-                >
-                  <Copy size={14} />
-                  Copiar
-                </button>
-              </div>
-              <div className={styles.noticeHelp}>
-                Por segurança, o valor completo do token não será exibido
-                novamente.
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+              <button
+                type="submit"
+                className={styles.btnPrimary}
+                disabled={creating || !newName.trim()}
+                title={
+                  !newName.trim() ? "Informe o nome do token" : "Criar token"
+                }
+              >
+                <Plus size={16} />
+                Criar token
+              </button>
+            </form>
 
-      {/* LISTA / TABELA */}
-      <div className={styles.card}>
-        <div className={styles.cardHead}>
-          <div className={styles.cardTitle}>Tokens do workspace</div>
-        </div>
+            {justCreated?.token && (
+              <div
+                className={styles.notice}
+                role="status"
+                aria-live="polite"
+              >
+                <div className={styles.noticeTitle}>
+                  Token criado
+                  {justCreated.name ? ` (${justCreated.name})` : ""} — copie
+                  agora
+                </div>
+                <div className={styles.tokenBox}>
+                  <code className={styles.tokenValue}>
+                    {justCreated.token}
+                  </code>
+                  <button
+                    type="button"
+                    className={styles.btnTiny}
+                    onClick={() => copyToClipboard(justCreated.token)}
+                    title="Copiar token completo"
+                  >
+                    <Copy size={14} />
+                    Copiar
+                  </button>
+                </div>
+                <div className={styles.noticeHelp}>
+                  Por segurança, o valor completo do token não será exibido
+                  novamente.
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.colToken}>Token</th>
-                <th className={styles.colCenter}>Nome</th>
-                <th className={styles.colCenter}>Status</th>
-                <th className={styles.colCenter}>Criado</th>
-                <th className={styles.colCenter}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
+        {/* LISTA / TABELA */}
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <div className={styles.cardTitle}>Tokens do workspace</div>
+          </div>
+
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={5} className={styles.loading}>
-                    Carregando…
-                  </td>
+                  <th className={styles.colToken}>Token</th>
+                  <th className={styles.colCenter}>Nome</th>
+                  <th className={styles.colCenter}>Status</th>
+                  <th className={styles.colCenter}>Criado</th>
+                  <th className={styles.colCenter}>Ações</th>
                 </tr>
-              )}
-
-              {!loading &&
-                items.map((r) => (
-                  <tr key={r.id} className={styles.rowHover}>
-                    <td className={styles.tokenCell} data-label="Token">
-                      <code className={styles.code}>
-                        {shortPreview(r.preview)}
-                      </code>
-                    </td>
-                    <td
-                      className={styles.centerCell}
-                      data-label="Nome"
-                    >
-                      {r.name || "—"}
-                    </td>
-                    <td
-                      className={styles.centerCell}
-                      data-label="Status"
-                    >
-                      {r.status === "revoked" ? (
-                        <span className={styles.badgeWarn}>
-                          Revogado
-                        </span>
-                      ) : (
-                        <span className={styles.badge}>Ativo</span>
-                      )}
-                    </td>
-                    <td
-                      className={styles.centerCell}
-                      data-label="Criado"
-                    >
-                      {r.created_at
-                        ? new Date(r.created_at).toLocaleString(
-                            "pt-BR"
-                          )
-                        : "—"}
-                    </td>
-                    <td
-                      className={`${styles.centerCell} ${styles.actionsCell}`}
-                      data-label="Ações"
-                    >
-                      {r.is_default ? (
-                        <span className={styles.muted}>Não alterável</span>
-                      ) : r.status !== "revoked" ? (
-                        <button
-                          className={`${styles.iconBtn} ${styles.iconDanger}`}
-                          onClick={() => revoke(r.id)}
-                          title="Revogar token"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      ) : (
-                        <span className={styles.muted}>—</span>
-                      )}
+              </thead>
+              <tbody>
+                {loading && (
+                  <tr>
+                    <td colSpan={5} className={styles.loading}>
+                      Carregando…
                     </td>
                   </tr>
-                ))}
+                )}
 
-              {!loading && items.length === 0 && (
-                <tr>
-                  <td colSpan={5} className={styles.empty}>
-                    Nenhum token criado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                {!loading &&
+                  items.map((r) => (
+                    <tr key={r.id} className={styles.rowHover}>
+                      <td className={styles.tokenCell} data-label="Token">
+                        <code className={styles.code}>
+                          {shortPreview(r.preview)}
+                        </code>
+                      </td>
+                      <td className={styles.centerCell} data-label="Nome">
+                        {r.name || "—"}
+                      </td>
+                      <td className={styles.centerCell} data-label="Status">
+                        {r.status === "revoked" ? (
+                          <span className={styles.badgeWarn}>Revogado</span>
+                        ) : (
+                          <span className={styles.badge}>Ativo</span>
+                        )}
+                      </td>
+                      <td className={styles.centerCell} data-label="Criado">
+                        {r.created_at
+                          ? new Date(r.created_at).toLocaleString("pt-BR")
+                          : "—"}
+                      </td>
+                      <td
+                        className={`${styles.centerCell} ${styles.actionsCell}`}
+                        data-label="Ações"
+                      >
+                        {r.is_default ? (
+                          <span className={styles.muted}>Não alterável</span>
+                        ) : r.status !== "revoked" ? (
+                          <button
+                            className={`${styles.iconBtn} ${styles.iconDanger}`}
+                            onClick={() => revoke(r.id)}
+                            title="Revogar token"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        ) : (
+                          <span className={styles.muted}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+
+                {!loading && items.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={styles.empty}>
+                      Nenhum token criado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );
