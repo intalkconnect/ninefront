@@ -41,7 +41,6 @@ export default function Users({ canCreateAdmin = false }) {
   const location = useLocation();
   const params = useParams();
 
-  // flowId pode vir por state (FlowHub) ou param de rota
   const flowId =
     location.state?.flowId ||
     location.state?.meta?.flowId ||
@@ -145,7 +144,7 @@ export default function Users({ canCreateAdmin = false }) {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER NO PADRÃO DARK */}
+        {/* HEADER NO PADRÃO CAMPANHAS/TEMPLATES: texto + ícones à direita */}
         <header className={styles.header}>
           <div className={styles.titleBlock}>
             <h1 className={styles.title}>{title}</h1>
@@ -155,9 +154,31 @@ export default function Users({ canCreateAdmin = false }) {
                 : "Cadastro e gerenciamento de usuários, perfis e filas."}
             </p>
           </div>
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.headerIconBtn}
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Recarregar lista"
+            >
+              <RefreshCw
+                size={18}
+                className={refreshing ? styles.spinning : undefined}
+              />
+            </button>
+            <button
+              type="button"
+              className={`${styles.headerIconBtn} ${styles.headerIconPrimary}`}
+              onClick={handleNew}
+              title="Novo usuário"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
         </header>
 
-        {/* TOOLBAR (busca + ações) */}
+        {/* TOOLBAR APENAS COM BUSCA */}
         <section className={styles.toolbar}>
           <div className={styles.searchGroup}>
             <input
@@ -175,30 +196,6 @@ export default function Users({ canCreateAdmin = false }) {
                 <XIcon size={14} />
               </button>
             )}
-          </div>
-
-          <div className={styles.toolbarRight}>
-            <button
-              type="button"
-              className={styles.toolbarBtn}
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw
-                size={14}
-                className={refreshing ? styles.spinning : undefined}
-              />
-              <span>Recarregar</span>
-            </button>
-
-            <button
-              type="button"
-              className={styles.toolbarBtnPrimary}
-              onClick={handleNew}
-            >
-              <Plus size={14} />
-              <span>Novo usuário</span>
-            </button>
           </div>
         </section>
 
