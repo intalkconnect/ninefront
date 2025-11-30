@@ -3,7 +3,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 20px 24px 28px;
   border-radius: 16px;
   box-sizing: border-box;
 }
@@ -25,7 +24,6 @@
 }
 
 .welcomeContent {
-  max-width: 600px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -59,7 +57,6 @@
   margin: 0;
   font-size: 14px;
   color: #e2e8f0;
-  max-width: 520px;
   opacity: 0.9;
 }
 
