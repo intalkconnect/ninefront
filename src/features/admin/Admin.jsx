@@ -80,109 +80,151 @@ function RequireRole({ allow, children }) {
 }
 
 /**
- * NOVA PÁGINA INICIAL – NOVIDADES & COISAS ÚTEIS
+ * HOME ESTILO DASHBOARD (igual ao print – boas vindas + cards)
  */
-function HomeUpdates() {
+function HomeDashboard({ user }) {
+  const navigate = useNavigate();
+
+  const firstName =
+    user?.name?.split(" ")[0] ||
+    user?.nome?.split(" ")[0] ||
+    (user?.email ? user.email.split("@")[0] : "NineChatter");
+
+  // mocks apenas para visual, pode ligar em métricas reais depois
+  const stats = [
+    {
+      key: "done",
+      label: "Concluídas",
+      value: 3,
+      helper: "Soluções implementadas com sucesso",
+      percent: 14,
+    },
+    {
+      key: "in-progress",
+      label: "Em Progresso",
+      value: 13,
+      helper: "Implementações em andamento",
+      percent: 59,
+    },
+    {
+      key: "available",
+      label: "Disponíveis",
+      value: 22,
+      helper: "Total de soluções na plataforma",
+      percent: 82,
+    },
+  ];
+
+  const projects = [
+    {
+      key: "proj-1",
+      title: "SDR Automático no WhatsApp Plug and Play com Typebot",
+      tag: "Automação de vendas",
+    },
+    {
+      key: "proj-2",
+      title: "Criando um Board Estratégico com IA para a sua Empresa",
+      tag: "Gestão & estratégia",
+    },
+    {
+      key: "proj-3",
+      title: "Como Gerar Métricas nos grupos de WhatsApp",
+      tag: "Análises e métricas",
+    },
+  ];
+
   return (
     <div className={styles.home}>
-      <header className={styles.homeHeader}>
-        <div>
-          <h1 className={styles.homeTitle}>Novidades do NineChat</h1>
-          <p className={styles.homeSubtitle}>
-            Veja o que mudou, dicas para aproveitar melhor a plataforma
-            e links rápidos para a documentação.
+      {/* HERO / BOAS-VINDAS */}
+      <section className={styles.welcomeHero}>
+        <div className={styles.welcomeContent}>
+          <span className={styles.welcomeTag}>Bem-vindo de volta</span>
+          <h1 className={styles.welcomeTitle}>
+            Bom dia, {firstName}!{" "}
+            <span className={styles.welcomeEmoji}>👋</span>
+          </h1>
+          <p className={styles.welcomeSubtitle}>
+            Continue sua jornada de crescimento. Explore novas soluções e
+            desenvolva seu negócio com o NineChat.
           </p>
+
+          <div className={styles.welcomeActions}>
+            <button
+              type="button"
+              className={styles.welcomeCta}
+              onClick={() => navigate("/workflows/hub")}
+            >
+              Explorar soluções
+            </button>
+            <p className={styles.welcomeNote}>
+              Dica: use o Hub de Workflows para centralizar suas jornadas e
+              canais.
+            </p>
+          </div>
         </div>
-      </header>
+      </section>
 
-      <section className={styles.homeGrid}>
-        <article className={styles.homeCard}>
-          <h2 className={styles.homeCardTitle}>O que há de novo</h2>
-          <p className={styles.homeCardText}>
-            • Novo módulo de <strong>Workflows</strong> para organizar seus
-            fluxos omnichannel.
-            <br />
-            • Melhorias de performance no monitor de atendimento em tempo real.
-            <br />
-            • Ajustes de segurança e auditoria em{" "}
-            <strong>Configurações &gt; Logs</strong>.
-          </p>
-          <p className={styles.homeCardHint}>
-            Dica: use a área de Workflows para centralizar jornadas e canais em
-            um único lugar.
-          </p>
-        </article>
+      {/* CARDS DE MÉTRICAS – 3 COLUNAS */}
+      <section className={styles.homeStatsSection}>
+        {stats.map((stat) => (
+          <article key={stat.key} className={styles.homeStatCard}>
+            <header className={styles.homeStatHeader}>
+              <span className={styles.homeStatIconWrapper}>
+                {/* só um círculo decorativo como no print */}
+                <span className={styles.homeStatIconDot} />
+              </span>
+              <div className={styles.homeStatHeaderText}>
+                <span className={styles.homeStatLabel}>{stat.label}</span>
+                <span className={styles.homeStatValue}>{stat.value}</span>
+              </div>
+            </header>
 
-        <article className={styles.homeCard}>
-          <h2 className={styles.homeCardTitle}>Atalhos rápidos</h2>
-          <ul className={styles.homeLinks}>
-            <li>
-              <button
-                type="button"
-                className={styles.homeLinkBtn}
-                onClick={() => (window.location.href = "/workflows/hub")}
-              >
-                Abrir Workflows
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className={styles.homeLinkBtn}
-                onClick={() =>
-                  (window.location.href = "/monitoring/realtime/queues")
-                }
-              >
-                Ver filas em tempo real
-              </button>
-            </li>
-            <li>
-              <button
-                type="button"
-                className={styles.homeLinkBtn}
-                onClick={() =>
-                  (window.location.href = "/settings/preferences")
-                }
-              >
-                Preferências do workspace
-              </button>
-            </li>
-          </ul>
-        </article>
+            <p className={styles.homeStatHelper}>{stat.helper}</p>
 
-        <article className={styles.homeCard}>
-          <h2 className={styles.homeCardTitle}>Dicas rápidas</h2>
-          <ul className={styles.homeList}>
-            <li>
-              Use <strong>Mensagens Ativas</strong> para campanhas pontuais e
-              comunicações proativas com seus clientes.
-            </li>
-            <li>
-              Configure horários de fila em <strong>Workflows &gt; Filas</strong>{" "}
-              para evitar atendimentos fora do horário.
-            </li>
-            <li>
-              Acompanhe a <strong>qualidade</strong> dos atendimentos em{" "}
-              <strong>Analytics &gt; Qualidade</strong>.
-            </li>
-          </ul>
-        </article>
+            <div className={styles.homeStatFooter}>
+              <div className={styles.homeStatProgressBar}>
+                <div
+                  className={styles.homeStatProgressInner}
+                  style={{ width: `${stat.percent}%` }}
+                />
+              </div>
+              <span className={styles.homeStatPercent}>
+                {stat.percent.toString().padStart(2, "0")}%
+              </span>
+            </div>
+          </article>
+        ))}
+      </section>
 
-        <article className={styles.homeCard}>
-          <h2 className={styles.homeCardTitle}>Documentação & suporte</h2>
-          <p className={styles.homeCardText}>
-            Acesse nossa base de conhecimento com tutoriais passo a passo.
-          </p>
-          <button
-            type="button"
-            className={styles.homeLinkBtn}
-            onClick={() =>
-              window.open("https://docs.ninechat.com.br", "_blank")
-            }
-          >
-            Abrir NineDocs
-          </button>
-        </article>
+      {/* PROJETOS EM ANDAMENTO */}
+      <section className={styles.homeProjects}>
+        <header className={styles.homeProjectsHeader}>
+          <div>
+            <h2 className={styles.homeProjectsTitle}>Projetos em andamento</h2>
+            <p className={styles.homeProjectsSubtitle}>
+              Continue implementando esses projetos em seu negócio.
+            </p>
+          </div>
+        </header>
+
+        <div className={styles.homeProjectsScroller}>
+          {projects.map((proj) => (
+            <article key={proj.key} className={styles.homeProjectCard}>
+              <div className={styles.homeProjectGlow} />
+              <div className={styles.homeProjectBody}>
+                <span className={styles.homeProjectTag}>{proj.tag}</span>
+                <h3 className={styles.homeProjectTitle}>{proj.title}</h3>
+                <button
+                  type="button"
+                  className={styles.homeProjectButton}
+                  onClick={() => navigate("/workflows/hub")}
+                >
+                  Continuar projeto
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );
@@ -292,7 +334,7 @@ export default function Admin() {
     const base = [
       {
         key: "dashboard",
-        label: "Início",
+        label: "Dashboard",
         to: DASHBOARD_PATH,
         icon: <LayoutDashboard size={18} />,
       },
@@ -436,7 +478,7 @@ export default function Admin() {
     // aplica regras de permissão
     const filtered = filterMenusByRole(base);
 
-    // 1) top-level em ordem alfabética, mantendo "Início" primeiro
+    // 1) top-level em ordem alfabética, mantendo "Dashboard" primeiro
     const dashboard = filtered.find((m) => m.key === "dashboard");
     const others = filtered
       .filter((m) => m.key !== "dashboard")
@@ -477,7 +519,7 @@ export default function Admin() {
   const isMenuActive = (menu) => {
     const current = normalizePath(location.pathname);
 
-    // menu de rota direta (só o "Início" hoje)
+    // menu de rota direta (Dashboard)
     if (menu.to) {
       const target = normalizePath(menu.to);
       return current === target || current.startsWith(`${target}/`);
@@ -703,7 +745,7 @@ export default function Admin() {
               {menus.map((menu) => {
                 const activeMenu = isMenuActive(menu);
 
-                // INÍCIO – botão principal
+                // Dashboard – botão principal
                 if (menu.key === "dashboard") {
                   return (
                     <button
@@ -778,8 +820,8 @@ export default function Admin() {
           <main className={styles.main}>
             <div className={styles.content}>
               <Routes>
-                {/* NOVA HOME DE NOVIDADES */}
-                <Route index element={<HomeUpdates />} />
+                {/* HOME ESTILO DASHBOARD */}
+                <Route index element={<HomeDashboard user={userData} />} />
 
                 {/* monitoring */}
                 <Route
