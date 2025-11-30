@@ -249,9 +249,6 @@ export default function TokensSecurity() {
                       className={styles.centerCell}
                       data-label="Status"
                     >
-                      {r.is_default && (
-                        <span className={styles.badgeOk}>Default</span>
-                      )}{" "}
                       {r.status === "revoked" ? (
                         <span className={styles.badgeWarn}>
                           Revogado
