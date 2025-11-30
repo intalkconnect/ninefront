@@ -318,8 +318,8 @@
   gap: 8px;
   padding: 9px 12px;
   border-radius: 12px;
-  border: 1px solid #334155;
-  background: #1e293b;
+  border: 1px solid #1d4ed8;
+  background: #1d4ed8;
   color: #cbd5e1;
   font-size: 13px;
   font-weight: 600;
@@ -336,8 +336,8 @@
 }
 
 .menuPrimaryActive {
-  background: #7c3aed;
-  border-color: #7c3aed;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
   box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6);
   color: #ffffff;
 }
@@ -605,3 +605,4 @@
     padding: 16px 16px 20px;
   }
 }
+
