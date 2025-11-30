@@ -24,6 +24,14 @@ const iconForPerfil = (perfil) => {
   return PERFIL_ICONS[k] ?? <UsersIcon size={14} />;
 };
 
+// filtros de perfil usados nos chips
+const PERFIL_FILTERS = [
+  { key: "", label: "Todos" },
+  { key: "admin", label: "Admins" },
+  { key: "supervisor", label: "Supervisores" },
+  { key: "atendente", label: "Atendentes" },
+];
+
 export default function Users({ canCreateAdmin = false }) {
   const [items, setItems] = useState([]);
   const [queues, setQueues] = useState([]);
@@ -41,6 +49,7 @@ export default function Users({ canCreateAdmin = false }) {
   const location = useLocation();
   const params = useParams();
 
+  // flowId pode vir por state (FlowHub) ou param de rota
   const flowId =
     location.state?.flowId ||
     location.state?.meta?.flowId ||
@@ -85,8 +94,10 @@ export default function Users({ canCreateAdmin = false }) {
     return items.filter((u) => {
       if (statusFilter && (u.perfil || "").toLowerCase() !== statusFilter)
         return false;
+
       const nome = `${u.name ?? ""} ${u.lastname ?? ""}`.toLowerCase();
       const email = String(u.email ?? "").toLowerCase();
+
       if (!q) return true;
       return nome.includes(q) || email.includes(q);
     });
@@ -144,7 +155,7 @@ export default function Users({ canCreateAdmin = false }) {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER NO PADRÃO CAMPANHAS/TEMPLATES: texto + ícones à direita */}
+        {/* HEADER no padrão: texto à esquerda, ícones à direita */}
         <header className={styles.header}>
           <div className={styles.titleBlock}>
             <h1 className={styles.title}>{title}</h1>
@@ -178,8 +189,27 @@ export default function Users({ canCreateAdmin = false }) {
           </div>
         </header>
 
-        {/* TOOLBAR APENAS COM BUSCA */}
+        {/* TOOLBAR: chips de perfil + busca, igual campanhas/templates */}
         <section className={styles.toolbar}>
+          <div className={styles.chipsBlock}>
+            <span className={styles.chipsLabel}>Perfil</span>
+            <div className={styles.chipGroup}>
+              {PERFIL_FILTERS.map((f) => (
+                <button
+                  key={f.key || "all"}
+                  type="button"
+                  className={`${styles.chip} ${
+                    statusFilter === f.key ? styles.chipActive : ""
+                  }`}
+                  aria-pressed={statusFilter === f.key}
+                  onClick={() => setStatusFilter(f.key)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className={styles.searchGroup}>
             <input
               className={styles.searchInput}
