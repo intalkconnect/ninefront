@@ -1,8 +1,9 @@
+// File: TokensSecurity.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { Shield, Plus, Trash2, RefreshCw, Copy } from "lucide-react";
+import { Plus, Trash2, Copy } from "lucide-react";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
-import styles from "./styles/Tokens.module.css";
 import { toast } from "react-toastify";
+import styles from "./styles/Tokens.module.css";
 
 // Prévia ofuscada: 8 chars do segredo + bullets (sem ID)
 function shortPreview(preview = "") {
@@ -100,9 +101,12 @@ export default function TokensSecurity() {
   const revoke = async (id) => {
     if (!id) return;
     if (
-      !confirm("Revogar este token? Esta ação não pode ser desfeita.")
+      !window.confirm(
+        "Revogar este token? Esta ação não pode ser desfeita."
+      )
     )
       return;
+
     const tid = toast.loading("Revogando token…");
     try {
       const j = await apiPost(`/security/tokens/${id}/revoke`, {});
@@ -126,186 +130,177 @@ export default function TokensSecurity() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.container}>
-        {/* HEADER card no padrão novo */}
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.headerIcon}>
-              <Shield size={18} />
-            </div>
-            <div className={styles.headerTextBlock}>
-              <h1 className={styles.title}>Tokens de segurança</h1>
-              <p className={styles.subtitle}>
-                Tokens de acesso para integrações externas e automações.
-              </p>
-            </div>
-          </div>
+      {/* HEADER SIMPLES, SEM ÍCONE EXTRA */}
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Tokens de segurança</h1>
+          <p className={styles.subtitle}>
+            Tokens de acesso para integrações externas e automações.
+          </p>
+        </div>
+      </div>
 
-          <div className={styles.headerRight}>
-            <button
-              type="button"
-              className={styles.headerBtn}
-              onClick={load}
-              disabled={loading}
-              title="Recarregar lista"
-            >
-              <RefreshCw
-                size={16}
-                className={loading ? styles.spin : ""}
+      {/* CARD DE CRIAÇÃO */}
+      <div className={styles.card}>
+        <div className={styles.cardBody}>
+          <form
+            className={styles.createInline}
+            onSubmit={createToken}
+            noValidate
+          >
+            <div className={styles.fieldCompact}>
+              <input
+                ref={nameRef}
+                className={styles.input}
+                placeholder="Nome do token"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                disabled={creating}
               />
-              Recarregar
-            </button>
-          </div>
-        </header>
-
-        {/* Card: criar novo */}
-        <section className={styles.card}>
-          <div className={styles.cardBody}>
-            <form
-              className={styles.createInline}
-              onSubmit={createToken}
-              noValidate
+            </div>
+            <button
+              type="submit"
+              className={styles.btnPrimary}
+              disabled={creating || !newName.trim()}
+              title={
+                !newName.trim() ? "Informe o nome do token" : "Criar token"
+              }
             >
-              <div className={styles.fieldCompact}>
-                <label className={styles.label}>Nome do token</label>
-                <input
-                  ref={nameRef}
-                  className={styles.input}
-                  placeholder="Ex.: integração CRM, webhook, BI"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  disabled={creating}
-                />
+              <Plus size={16} />
+              Criar token
+            </button>
+          </form>
+
+          {justCreated?.token && (
+            <div
+              className={styles.notice}
+              role="status"
+              aria-live="polite"
+            >
+              <div className={styles.noticeTitle}>
+                Token criado{" "}
+                {justCreated.name ? `(${justCreated.name})` : ""} — copie
+                agora
               </div>
-              <button
-                type="submit"
-                className={styles.btnPrimary}
-                disabled={creating || !newName.trim()}
-                title={
-                  !newName.trim()
-                    ? "Informe o nome do token"
-                    : "Criar token"
-                }
-              >
-                <Plus size={16} />
-                Criar token
-              </button>
-            </form>
-
-            {justCreated?.token && (
-              <div
-                className={styles.notice}
-                role="status"
-                aria-live="polite"
-              >
-                <div className={styles.noticeTitle}>
-                  Token criado{" "}
-                  {justCreated.name
-                    ? `(${justCreated.name})`
-                    : ""} — copie agora
-                </div>
-                <div className={styles.tokenBox}>
-                  <code className={styles.tokenValue}>
-                    {justCreated.token}
-                  </code>
-                  <button
-                    type="button"
-                    className={styles.btnTiny}
-                    onClick={() => copyToClipboard(justCreated.token)}
-                    title="Copiar token completo"
-                  >
-                    <Copy size={14} /> Copiar
-                  </button>
-                </div>
-                <div className={styles.noticeHelp}>
-                  Por segurança, o valor completo do token não será
-                  exibido novamente.
-                </div>
+              <div className={styles.tokenBox}>
+                <code className={styles.tokenValue}>
+                  {justCreated.token}
+                </code>
+                <button
+                  type="button"
+                  className={styles.btnTiny}
+                  onClick={() => copyToClipboard(justCreated.token)}
+                  title="Copiar token completo"
+                >
+                  <Copy size={14} />
+                  Copiar
+                </button>
               </div>
-            )}
-          </div>
-        </section>
+              <div className={styles.noticeHelp}>
+                Por segurança, o valor completo do token não será exibido
+                novamente.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-        {/* Card: lista */}
-        <section className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Tokens do workspace</div>
-          </div>
+      {/* LISTA / TABELA */}
+      <div className={styles.card}>
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>Tokens do workspace</div>
+        </div>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th className={styles.colToken}>Token</th>
+                <th className={styles.colCenter}>Nome</th>
+                <th className={styles.colCenter}>Status</th>
+                <th className={styles.colCenter}>Criado</th>
+                <th className={styles.colCenter}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
                 <tr>
-                  <th>Token</th>
-                  <th>Nome</th>
-                  <th>Status</th>
-                  <th>Criado</th>
-                  <th>Ações</th>
+                  <td colSpan={5} className={styles.loading}>
+                    Carregando…
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {!loading &&
-                  items.map((r) => (
-                    <tr key={r.id} className={styles.rowHover}>
-                      <td className={styles.tokenCell}>
-                        <code className={styles.code}>
-                          {shortPreview(r.preview)}
-                        </code>
-                      </td>
-                      <td>{r.name || "—"}</td>
-                      <td>
-                        {r.status === "revoked" ? (
-                          <span className={styles.badgeWarn}>
-                            Revogado
-                          </span>
-                        ) : (
-                          <span className={styles.badge}>Ativo</span>
-                        )}
-                      </td>
-                      <td>
-                        {r.created_at
-                          ? new Date(
-                              r.created_at
-                            ).toLocaleString("pt-BR")
-                          : "—"}
-                      </td>
-                      <td className={styles.actions}>
-                        {r.is_default ? (
-                          <span className={styles.muted}>
-                            Não alterável
-                          </span>
-                        ) : r.status !== "revoked" ? (
-                          <button
-                            className={styles.btnDanger}
-                            onClick={() => revoke(r.id)}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        ) : (
-                          <span className={styles.muted}>—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+              )}
 
-                {loading && (
-                  <tr>
-                    <td colSpan={5} className={styles.loading}>
-                      Carregando…
+              {!loading &&
+                items.map((r) => (
+                  <tr key={r.id} className={styles.rowHover}>
+                    <td className={styles.tokenCell} data-label="Token">
+                      <code className={styles.code}>
+                        {shortPreview(r.preview)}
+                      </code>
+                    </td>
+                    <td
+                      className={styles.centerCell}
+                      data-label="Nome"
+                    >
+                      {r.name || "—"}
+                    </td>
+                    <td
+                      className={styles.centerCell}
+                      data-label="Status"
+                    >
+                      {r.is_default && (
+                        <span className={styles.badgeOk}>Default</span>
+                      )}{" "}
+                      {r.status === "revoked" ? (
+                        <span className={styles.badgeWarn}>
+                          Revogado
+                        </span>
+                      ) : (
+                        <span className={styles.badge}>Ativo</span>
+                      )}
+                    </td>
+                    <td
+                      className={styles.centerCell}
+                      data-label="Criado"
+                    >
+                      {r.created_at
+                        ? new Date(r.created_at).toLocaleString(
+                            "pt-BR"
+                          )
+                        : "—"}
+                    </td>
+                    <td
+                      className={`${styles.centerCell} ${styles.actionsCell}`}
+                      data-label="Ações"
+                    >
+                      {r.is_default ? (
+                        <span className={styles.muted}>Não alterável</span>
+                      ) : r.status !== "revoked" ? (
+                        <button
+                          className={`${styles.iconBtn} ${styles.iconDanger}`}
+                          onClick={() => revoke(r.id)}
+                          title="Revogar token"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <span className={styles.muted}>—</span>
+                      )}
                     </td>
                   </tr>
-                )}
-                {!loading && items.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className={styles.empty}>
-                      Nenhum token criado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                ))}
+
+              {!loading && items.length === 0 && (
+                <tr>
+                  <td colSpan={5} className={styles.empty}>
+                    Nenhum token criado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
