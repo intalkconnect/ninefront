@@ -2,8 +2,7 @@
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: #0f172a;
-  /* a página inteira pode rolar; só escondemos scroll horizontal */
+  background: #1a1d2e;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -13,11 +12,10 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #0f172a;
-  color: #e5e7eb;
+  background: #1a1d2e;
+  color: #e2e8f0;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
-  /* não bloqueia mais o scroll da página */
 }
 
 /* ===== Loading (auth) ===== */
@@ -25,8 +23,8 @@
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: #020617;
-  color: #e5e7eb;
+  background: #1a1d2e;
+  color: #e2e8f0;
 }
 
 .loadingInner {
@@ -51,7 +49,7 @@
   height: 6px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(71, 85, 105, 0.3);
   position: relative;
 }
 
@@ -62,7 +60,7 @@
   bottom: 0;
   width: 40%;
   border-radius: 999px;
-  background: rgba(96, 165, 250, 0.9);
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
   animation: admin-shimmer 1.2s infinite;
 }
 
@@ -80,19 +78,20 @@
 
 /* ===== Topbar ===== */
 .topbar {
+  flex-shrink: 0;
   background: #1e293b;
   border-bottom: 1px solid #334155;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-.topbar-inner {
+.topbarInner {
   max-width: 1320px;
   margin: 0 auto;
   padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
- }
+}
 
 .brand {
   display: inline-flex;
@@ -128,12 +127,12 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #e5e7eb;
+  color: rgba(255, 255, 255, 0.9);
   transition: background 0.18s ease, transform 0.12s ease;
 }
 
 .iconButton:hover {
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
 }
 
@@ -165,10 +164,10 @@
   right: 0;
   top: calc(100% + 8px);
   min-width: 220px;
-  background: #020617;
+  background: #1e293b;
   border-radius: 12px;
-  border: 1px solid #1f2937;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.85);
+  border: 1px solid #334155;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
   padding: 6px;
   z-index: 60;
 }
@@ -190,7 +189,7 @@
   width: 100%;
   border: none;
   background: transparent;
-  color: #e5e7eb;
+  color: #cbd5e1;
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -203,7 +202,8 @@
 }
 
 .dropdownItem:hover {
-  background: #111827;
+  background: #334155;
+  color: #f1f5f9;
 }
 
 .dropdownIcon {
@@ -211,12 +211,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: #94a3b8;
 }
 
 .dropdownSeparator {
   height: 1px;
-  background: #111827;
+  background: #334155;
   margin: 4px 0;
 }
 
@@ -225,7 +225,8 @@
 }
 
 .logout:hover {
-  background: rgba(185, 28, 28, 0.25);
+  background: rgba(220, 38, 38, 0.15);
+  color: #fecaca;
 }
 
 /* header dentro do dropdown de perfil */
@@ -234,30 +235,29 @@
   align-items: center;
   gap: 10px;
   padding: 10px 10px 8px;
-  border-bottom: 1px solid #111827;
+  border-bottom: 1px solid #334155;
   margin-bottom: 4px;
 }
 
 .profileName {
   font-size: 14px;
   font-weight: 600;
-  color: #f9fafb;
+  color: #f1f5f9;
 }
 
 /* ===== Body (menu + conteúdo) ===== */
 .body {
   flex: 1;
   width: 100%;
-  background: #242730;
+  background: #0f172a;
   display: flex;
   justify-content: center;
-  /* deixa o scroll para o documento, não bloqueia aqui */
 }
 
 .bodyInner {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 16px 24px; /* padding vertical reduzido */
+  padding: 16px 24px;
   display: flex;
   gap: 32px;
   align-items: stretch;
@@ -271,7 +271,7 @@
   width: 240px;
   flex-shrink: 0;
   max-height: 100%;
-  overflow-y: auto; /* se o menu estourar, rola só ele */
+  overflow-y: auto;
   padding-right: 4px;
 }
 
@@ -279,7 +279,7 @@
 .sidebar,
 .content {
   scrollbar-width: thin;
-  scrollbar-color: #4b5563 #020617;
+  scrollbar-color: #334155 #0f172a;
 }
 
 .sidebar::-webkit-scrollbar,
@@ -290,18 +290,18 @@
 
 .sidebar::-webkit-scrollbar-track,
 .content::-webkit-scrollbar-track {
-  background: #020617;
+  background: #0f172a;
 }
 
 .sidebar::-webkit-scrollbar-thumb,
 .content::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #4b5563, #1f2937);
+  background: #334155;
   border-radius: 999px;
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover,
 .content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #6b7280, #374151);
+  background: #475569;
 }
 
 .navRoot {
@@ -318,9 +318,9 @@
   gap: 8px;
   padding: 9px 12px;
   border-radius: 12px;
-  border: 1px solid #111827;
-  background: #020617;
-  color: #e5e7eb;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #cbd5e1;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -329,15 +329,17 @@
 }
 
 .menuPrimaryButton:hover {
-  background: rgba(37, 99, 235, 0.16);
-  border-color: rgba(37, 99, 235, 0.5);
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.45);
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.4);
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.3);
+  color: #e2e8f0;
 }
 
 .menuPrimaryActive {
-  background: rgba(37, 99, 235, 0.18);
-  border-color: rgba(37, 99, 235, 0.75);
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.8);
+  background: #7c3aed;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.6);
+  color: #ffffff;
 }
 
 /* seção (Acompanhamento, Gestão, Workflows, etc.) */
@@ -352,11 +354,11 @@
   padding: 4px 0;
   font-size: 12px;
   font-weight: 600;
-  color: #9ca3af;
+  color: #64748b;
 }
 
 .menuSectionHeaderActive {
-  color: #e5e7eb;
+  color: #cbd5e1;
 }
 
 .menuSectionIcon {
@@ -391,7 +393,7 @@
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: #cbd5f5;
+  color: #94a3b8;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -400,16 +402,16 @@
 }
 
 .menuLeafButton:hover {
-  background: rgba(37, 99, 235, 0.14);
-  border-color: rgba(37, 99, 235, 0.55);
-  color: #e5e7eb;
+  background: #334155;
+  border-color: transparent;
+  color: #cbd5e1;
 }
 
 .menuLeafActive {
-  background: rgba(37, 99, 235, 0.18);
-  border-color: rgba(37, 99, 235, 0.8);
-  color: #e5e7eb;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.8);
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.6);
+  color: #e9d5ff;
+  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.4);
 }
 
 .menuLeafIcon {
@@ -428,10 +430,9 @@
 .main {
   flex: 1;
   min-width: 0;
-  background: #242730;
+  background: #0f172a;
   border-radius: 16px;
   display: flex;
-  /* não segura mais o scroll aqui */
   min-height: 0;
 }
 
@@ -439,9 +440,8 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
-  background: #242730;
-  padding: 0; /* cada página interna cuida do próprio padding */
-  /* não força mais scroll interno; quem rola é a página */
+  background: #0f172a;
+  padding: 0;
 }
 
 /* ===== Overlay p/ fechar dropdowns ===== */
@@ -471,14 +471,14 @@
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #f9fafb;
+  color: #f1f5f9;
   margin: 0 0 4px;
 }
 
 .homeSubtitle {
   margin: 0;
   font-size: 13px;
-  color: #cbd5f5;
+  color: #94a3b8;
   opacity: 0.9;
 }
 
@@ -489,9 +489,9 @@
 }
 
 .homeCard {
-  background: #020617;
+  background: #1e293b;
   border-radius: 14px;
-  border: 1px solid #1f2937;
+  border: 1px solid #334155;
   padding: 16px 16px 14px;
   display: flex;
   flex-direction: column;
@@ -502,20 +502,24 @@
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #f9fafb;
+  color: #f1f5f9;
 }
 
 .homeCardText {
   margin: 0;
   font-size: 13px;
-  color: #e5e7eb;
+  color: #cbd5e1;
   line-height: 1.5;
 }
 
 .homeCardHint {
   margin: 0;
   font-size: 12px;
-  color: #93c5fd;
+  color: #a78bfa;
+  background: rgba(124, 58, 237, 0.1);
+  padding: 8px 10px;
+  border-radius: 8px;
+  border-left: 3px solid #7c3aed;
 }
 
 .homeLinks {
@@ -528,29 +532,29 @@
 }
 
 .homeLinkBtn {
-  border-radius: 999px;
-  border: 1px solid #1d4ed8;
-  background: radial-gradient(circle at top left, #1d4ed8, #0f172a);
-  color: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #7c3aed;
+  color: #ffffff;
   font-size: 12px;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 10px 14px;
   cursor: pointer;
   text-align: center;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  transition: all 0.18s ease;
 }
 
 .homeLinkBtn:hover {
+  background: #6d28d9;
   transform: translateY(-1px);
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.65);
-  opacity: 0.96;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
 }
 
 .homeList {
   margin: 0;
   padding-left: 18px;
   font-size: 13px;
-  color: #e5e7eb;
+  color: #cbd5e1;
   line-height: 1.55;
 }
 
@@ -601,4 +605,3 @@
     padding: 16px 16px 20px;
   }
 }
-
