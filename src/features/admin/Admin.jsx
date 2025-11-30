@@ -1,7 +1,7 @@
 // File: Admin.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
-  LayoutDashboard,
+  House,
   Users,
   Settings as SettingsIcon,
   SquareActivity,
@@ -186,9 +186,9 @@ export default function Admin() {
     const base = [
       {
         key: "dashboard",
-        label: "Dashboard",
+        label: "Início",
         to: DASHBOARD_PATH,
-        icon: <LayoutDashboard size={18} />,
+        icon: <House size={18} />,
       },
 
       {
