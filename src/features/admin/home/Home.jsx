@@ -11,6 +11,23 @@ export default function Home({ user }) {
     user?.nome?.split(" ")[0] ||
     (user?.email ? user.email.split("@")[0] : "NineChatter");
 
+  // Função para obter saudação baseada no horário GMT-3
+  const getGreeting = () => {
+    const now = new Date();
+    // Converter para GMT-3 (Brasília)
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const brasiliaTime = new Date(utc + (3600000 * -3));
+    const hours = brasiliaTime.getHours();
+
+    if (hours >= 0 && hours < 12) {
+      return "Bom dia";
+    } else if (hours >= 12 && hours < 18) {
+      return "Boa tarde";
+    } else {
+      return "Boa noite";
+    }
+  };
+
   return (
     <div className={styles.home}>
       {/* HERO / BOAS-VINDAS */}
@@ -18,7 +35,7 @@ export default function Home({ user }) {
         <div className={styles.heroContent}>
           <p className={styles.heroTag}>BEM-VINDO DE VOLTA</p>
           <h1 className={styles.heroTitle}>
-            Bom dia, {firstName}!{" "}
+            {getGreeting()}, {firstName}!{" "}
             <span role="img" aria-label="Mão acenando">
               👋
             </span>
