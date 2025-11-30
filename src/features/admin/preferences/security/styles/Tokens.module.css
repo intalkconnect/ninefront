@@ -1,70 +1,73 @@
-:root {
-  --page-max: 1400px;
-}
-
-/* ===== Página em dark, sem mexer em html/body ===== */
+/* ===== Layout base no padrão FlowHub (mesmo do AuditLogs) ===== */
 .page {
-  padding: 24px;
-  max-width: var(--page-max);
-  margin: 0 auto;
-  background: #0f1419;
+  padding: 4px 0 24px;
+  margin: 0;
+  max-width: 100%;
   color: #e5e7eb;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-    Helvetica, Arial;
-  min-height: 100vh;
+  background: transparent;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
-/* ===== Header simples (sem ícone novo) ===== */
+.container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 0 24px;
+}
+
+/* ===== HEADER ===== */
 .header {
+  background: #2b303a;
+  border-radius: 14px;
+  border: 1px solid #3a3f4b;
+  padding: 14px 18px;
+  margin-bottom: 20px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 18px;
-  position: relative;
+  gap: 16px;
 }
 
-.header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -16px;
-  height: 2px;
-  background: linear-gradient(
-    90deg,
-    #2563eb 0%,
-    rgba(37, 99, 235, 0.18) 55%,
-    transparent 100%
-  );
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .title {
-  margin: 0 0 4px;
   font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #e2e8f0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f9fafb;
+  margin: 0;
 }
 
 .subtitle {
   margin: 0;
   color: #94a3b8;
   font-size: 13px;
+  font-weight: 400;
 }
 
 /* ===== Cards ===== */
 .card {
-  background: #020617;
-  border: 1px solid #111827;
-  border-radius: 16px;
-  margin: 18px 0 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65);
+  background: #2b303a;
+  border: 1px solid #3a3f4b;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
   overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.cardBody {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .cardHead {
-  padding: 12px 16px;
+  padding: 12px 18px;
   border-bottom: 1px solid #111827;
   background: #020617;
 }
@@ -75,55 +78,54 @@
   font-size: 14px;
 }
 
-.cardBody {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* ===== barra de criação ===== */
+/* ===== formulário de criação (alinhado com o header/filters padrão) ===== */
 .createInline {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: flex-end;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .fieldCompact {
-  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
   max-width: 420px;
-  width: clamp(240px, 28vw, 420px);
 }
 
-.input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #1f2937;
-  border-radius: 10px;
-  background: #020617;
-  box-sizing: border-box;
-  font-size: 14px;
+.label {
+  font-size: 12px;
+  font-weight: 700;
   color: #e5e7eb;
 }
 
+/* inputs iguais ao AuditLogs */
+.input {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  background: #020617;
+  font-size: 14px;
+  outline: none;
+  color: #e5e7eb;
+}
 .input::placeholder {
   color: #64748b;
 }
-
 .input:focus {
-  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
 }
 
 /* ===== aviso pós-criação ===== */
 .notice {
-  margin-top: 12px;
+  margin-top: 8px;
+  border-radius: 12px;
   border: 1px dashed #4b5563;
   background: #020617;
-  border-radius: 12px;
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 .noticeTitle {
@@ -154,9 +156,9 @@
   overflow: auto;
 }
 
-/* ===== tabela ===== */
+/* ===== tabela (mesmo estilo da tabela de AuditLogs) ===== */
 .tableWrap {
-  overflow-x: auto;
+  overflow: auto;
 }
 
 .table {
@@ -167,21 +169,21 @@
 }
 
 .table thead th {
+  text-align: left;
+  padding: 14px 18px;
+  background: #020617;
+  border-bottom: 1px solid #111827;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #020617;
-  border-bottom: 1px solid #111827;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  padding: 12px 14px;
-  text-align: center; /* centralizar títulos */
 }
 
 .colToken {
-  text-align: left !important;
+  text-align: left;
 }
 
 .colCenter {
@@ -189,7 +191,7 @@
 }
 
 .table tbody td {
-  padding: 12px 14px;
+  padding: 14px 18px;
   border-bottom: 1px solid #111827;
   vertical-align: middle;
   color: #e5e7eb;
@@ -205,11 +207,16 @@
 }
 
 .rowHover {
-  transition: 0.18s;
+  transition: background 0.18s ease;
 }
-
+.rowHover:nth-child(odd) {
+  background-color: #020617;
+}
+.rowHover:nth-child(even) {
+  background-color: #050816;
+}
 .rowHover:hover {
-  background: rgba(15, 23, 42, 0.85);
+  background-color: #0b1120;
 }
 
 .code {
@@ -226,7 +233,6 @@
 
 /* ===== badges ===== */
 .badge,
-.badgeOk,
 .badgeWarn {
   display: inline-flex;
   align-items: center;
@@ -239,66 +245,56 @@
 }
 
 .badge {
-  background: rgba(59, 130, 246, 0.15);
-  color: #bfdbfe;
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.badgeOk {
-  background: rgba(16, 185, 129, 0.15);
-  color: #6ee7b7;
-  border-color: rgba(16, 185, 129, 0.4);
+  color: #bbf7d0;
+  background: rgba(22, 163, 74, 0.16);
+  border-color: rgba(34, 197, 94, 0.7);
 }
 
 .badgeWarn {
-  background: rgba(234, 179, 8, 0.15);
-  color: #facc15;
-  border-color: rgba(234, 179, 8, 0.4);
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(248, 113, 113, 0.7);
 }
 
-/* ===== ações: padrão de botão quadrado de ícone ===== */
+/* ===== ações: botão de ícone no padrão do print ===== */
 .actionsCell {
   text-align: center;
 }
 
-.actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 .iconBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 1px solid #4b5563;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
-  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.4);
+  transition: all 0.18s ease;
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.iconBtn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .iconBtn:hover {
-  background: rgba(139, 92, 246, 0.25);
-  transform: translateY(-1px);
+  background: #1f2937;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 .iconDanger {
-  background: rgba(239, 68, 68, 0.15);
+  background: #7f1d1d;
+  border-color: #b91c1c;
   color: #fecaca;
-  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
 }
-
 .iconDanger:hover {
-  background: rgba(239, 68, 68, 0.25);
-  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.5);
+  background: #991b1b;
 }
 
+/* textos auxiliares */
 .muted {
   color: #94a3b8;
   font-size: 13px;
@@ -321,17 +317,10 @@
   cursor: pointer;
   transition: filter 0.2s, box-shadow 0.2s;
 }
-
-.btnPrimary svg {
-  width: 16px;
-  height: 16px;
-}
-
 .btnPrimary:hover {
   filter: brightness(0.97);
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.6);
 }
-
 .btnPrimary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -360,19 +349,34 @@
   font-style: italic;
 }
 
-/* responsivo */
-@media (max-width: 840px) {
-  .page {
-    padding: 18px;
-  }
-
-  .fieldCompact {
-    width: 100%;
-    max-width: 100%;
+/* ===== Responsivo (mesmo comportamento da tabela de AuditLogs) ===== */
+@media (max-width: 700px) {
+  .cardBody {
+    padding: 12px 14px 14px;
   }
 
   .createInline {
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fieldCompact {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .table thead {
+    display: none;
+  }
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+  .table tbody td {
+    padding: 12px 14px;
   }
 
   .tokenCell {
