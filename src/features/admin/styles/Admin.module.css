@@ -408,10 +408,10 @@
 }
 
 .menuLeafActive {
-  background: rgba(124, 58, 237, 0.15);
-  border-color: rgba(124, 58, 237, 0.6);
+  background: #1d4ed8;
+  border-color: #1d4ed8;
   color: #e9d5ff;
-  box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.4);
+
 }
 
 .menuLeafIcon {
@@ -605,4 +605,5 @@
     padding: 16px 16px 20px;
   }
 }
+
 
