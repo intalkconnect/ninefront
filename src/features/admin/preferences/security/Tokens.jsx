@@ -279,7 +279,7 @@ export default function TokensSecurity() {
                             className={styles.btnDanger}
                             onClick={() => revoke(r.id)}
                           >
-                            <Trash2 size={14} /> Revogar
+                            <Trash2 size={14} />
                           </button>
                         ) : (
                           <span className={styles.muted}>—</span>
