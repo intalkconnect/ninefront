@@ -143,188 +143,190 @@ export default function Users({ canCreateAdmin = false }) {
   const title = flowId ? "Atendentes do flow" : "Usuários do workspace";
 
   return (
-    <div className={styles.container}>
-      {/* HEADER NO MESMO PADRÃO DAS OUTRAS TELAS (sem ícone novo) */}
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>{title}</h1>
-          <p className={styles.subtitle}>
-            {flowId
-              ? "Gerencie os atendentes vinculados a este flow."
-              : "Cadastro e gerenciamento de usuários, perfis e filas."}
-          </p>
-        </div>
-      </div>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* HEADER NO PADRÃO DARK */}
+        <header className={styles.header}>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>{title}</h1>
+            <p className={styles.subtitle}>
+              {flowId
+                ? "Gerencie os atendentes vinculados a este flow."
+                : "Cadastro e gerenciamento de usuários, perfis e filas."}
+            </p>
+          </div>
+        </header>
 
-      {/* TOOLBAR EM CIMA DO CARD (busca + ações) */}
-      <div className={styles.toolbar}>
-        <div className={styles.searchGroup}>
-          <input
-            className={styles.searchInput}
-            placeholder="Buscar por nome ou email…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <button
-              className={styles.searchClear}
-              onClick={() => setQuery("")}
-              aria-label="Limpar busca"
-            >
-              <XIcon size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className={styles.toolbarRight}>
-          <button
-            type="button"
-            className={styles.toolbarBtn}
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw
-              size={14}
-              className={refreshing ? styles.spinning : undefined}
+        {/* TOOLBAR (busca + ações) */}
+        <section className={styles.toolbar}>
+          <div className={styles.searchGroup}>
+            <input
+              className={styles.searchInput}
+              placeholder="Buscar por nome ou email…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
-            <span>Recarregar</span>
-          </button>
+            {query && (
+              <button
+                className={styles.searchClear}
+                onClick={() => setQuery("")}
+                aria-label="Limpar busca"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
 
-          <button
-            type="button"
-            className={styles.toolbarBtnPrimary}
-            onClick={handleNew}
-          >
-            <Plus size={14} />
-            <span>Novo usuário</span>
-          </button>
-        </div>
-      </div>
+          <div className={styles.toolbarRight}>
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw
+                size={14}
+                className={refreshing ? styles.spinning : undefined}
+              />
+              <span>Recarregar</span>
+            </button>
 
-      {/* Alertas de OK/erro (simples, sem visual novo) */}
-      {(okMsg || error) && (
-        <div className={styles.alertsStack}>
-          {error && (
-            <div className={styles.alertErr}>
-              <span>{error}</span>
-            </div>
-          )}
-          {okMsg && (
-            <div className={styles.alertOk}>
-              <span>{okMsg}</span>
-            </div>
-          )}
-        </div>
-      )}
+            <button
+              type="button"
+              className={styles.toolbarBtnPrimary}
+              onClick={handleNew}
+            >
+              <Plus size={14} />
+              <span>Novo usuário</span>
+            </button>
+          </div>
+        </section>
 
-      {/* Card da tabela, no mesmo padrão do Tokens/Logs */}
-      <div className={styles.card}>
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th className={styles.colLeft}>Nome</th>
-                <th className={styles.colLeft}>Email</th>
-                <th className={styles.colCenter}>Perfil</th>
-                <th className={styles.colCenter}>Filas</th>
-                <th className={styles.colCenter}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading &&
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={`sk-${i}`} className={styles.skelRow}>
-                    <td colSpan={5}>
-                      <div className={styles.skeletonRow} />
-                    </td>
-                  </tr>
-                ))}
+        {/* Alertas de OK/erro */}
+        {(okMsg || error) && (
+          <div className={styles.alertsStack}>
+            {error && (
+              <div className={styles.alertErr}>
+                <span>{error}</span>
+              </div>
+            )}
+            {okMsg && (
+              <div className={styles.alertOk}>
+                <span>{okMsg}</span>
+              </div>
+            )}
+          </div>
+        )}
 
-              {!loading && filtered.length === 0 && (
+        {/* Card da tabela */}
+        <section className={styles.card}>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={5} className={styles.empty}>
-                    Nenhum usuário encontrado.
-                  </td>
+                  <th className={styles.colLeft}>Nome</th>
+                  <th className={styles.colLeft}>Email</th>
+                  <th className={styles.colCenter}>Perfil</th>
+                  <th className={styles.colCenter}>Filas</th>
+                  <th className={styles.colCenter}>Ações</th>
                 </tr>
-              )}
-
-              {!loading &&
-                filtered.map((u) => {
-                  const nome = `${u.name ?? ""} ${u.lastname ?? ""}`.trim();
-                  const filasArr = Array.isArray(u.filas) ? u.filas : [];
-                  const chipNames = filasArr
-                    .map(
-                      (id) =>
-                        queuesById.get(String(id))?.nome ??
-                        queuesById.get(String(id))?.name ??
-                        id
-                    )
-                    .filter(Boolean);
-
-                  return (
-                    <tr key={u.id} className={styles.rowHover}>
-                      <td className={styles.cellLeft} data-label="Nome">
-                        {nome || "—"}
-                      </td>
-                      <td className={styles.cellLeft} data-label="Email">
-                        {u.email || "—"}
-                      </td>
-                      <td className={styles.cellCenter} data-label="Perfil">
-                        <span
-                          className={`${styles.tag} ${styles.tagRole}`}
-                          data-role={String(u.perfil || "").toLowerCase()}
-                          title={u.perfil}
-                          aria-label={u.perfil}
-                        >
-                          {iconForPerfil(u.perfil)}
-                        </span>
-                      </td>
-                      <td className={styles.cellCenter} data-label="Filas">
-                        <div className={styles.tagsWrap}>
-                          {chipNames.length === 0 ? (
-                            <span className={styles.muted}>—</span>
-                          ) : (
-                            chipNames.map((n, i) => (
-                              <span
-                                key={`${u.id}-f-${i}`}
-                                className={`${styles.tag} ${styles.tagQueue}`}
-                              >
-                                {n}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                      <td
-                        className={`${styles.cellCenter} ${styles.actionsCell}`}
-                        data-label="Ações"
-                      >
-                        <div className={styles.actions}>
-                          <Link
-                            to={`/management/users/${encodeURIComponent(
-                              u.id
-                            )}/edit`}
-                            state={{ canCreateAdmin, flowId }}
-                            className={styles.qrIconBtn}
-                            title="Editar"
-                          >
-                            <SquarePen size={16} />
-                          </Link>
-                          <button
-                            className={`${styles.qrIconBtn} ${styles.danger}`}
-                            title="Excluir"
-                            onClick={() => handleDelete(u)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+              </thead>
+              <tbody>
+                {loading &&
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={`sk-${i}`} className={styles.skelRow}>
+                      <td colSpan={5}>
+                        <div className={styles.skeletonRow} />
                       </td>
                     </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
+                  ))}
+
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className={styles.empty}>
+                      Nenhum usuário encontrado.
+                    </td>
+                  </tr>
+                )}
+
+                {!loading &&
+                  filtered.map((u) => {
+                    const nome = `${u.name ?? ""} ${u.lastname ?? ""}`.trim();
+                    const filasArr = Array.isArray(u.filas) ? u.filas : [];
+                    const chipNames = filasArr
+                      .map(
+                        (id) =>
+                          queuesById.get(String(id))?.nome ??
+                          queuesById.get(String(id))?.name ??
+                          id
+                      )
+                      .filter(Boolean);
+
+                    return (
+                      <tr key={u.id} className={styles.rowHover}>
+                        <td className={styles.cellLeft} data-label="Nome">
+                          {nome || "—"}
+                        </td>
+                        <td className={styles.cellLeft} data-label="Email">
+                          {u.email || "—"}
+                        </td>
+                        <td className={styles.cellCenter} data-label="Perfil">
+                          <span
+                            className={`${styles.tag} ${styles.tagRole}`}
+                            data-role={String(u.perfil || "").toLowerCase()}
+                            title={u.perfil}
+                            aria-label={u.perfil}
+                          >
+                            {iconForPerfil(u.perfil)}
+                          </span>
+                        </td>
+                        <td className={styles.cellCenter} data-label="Filas">
+                          <div className={styles.tagsWrap}>
+                            {chipNames.length === 0 ? (
+                              <span className={styles.muted}>—</span>
+                            ) : (
+                              chipNames.map((n, i) => (
+                                <span
+                                  key={`${u.id}-f-${i}`}
+                                  className={`${styles.tag} ${styles.tagQueue}`}
+                                >
+                                  {n}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                        <td
+                          className={`${styles.cellCenter} ${styles.actionsCell}`}
+                          data-label="Ações"
+                        >
+                          <div className={styles.actions}>
+                            <Link
+                              to={`/management/users/${encodeURIComponent(
+                                u.id
+                              )}/edit`}
+                              state={{ canCreateAdmin, flowId }}
+                              className={styles.iconBtn}
+                              title="Editar"
+                            >
+                              <SquarePen size={16} />
+                            </Link>
+                            <button
+                              className={`${styles.iconBtn} ${styles.iconDanger}`}
+                              title="Excluir"
+                              onClick={() => handleDelete(u)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );
