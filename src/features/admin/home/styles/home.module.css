@@ -1,0 +1,307 @@
+/* ===== HOME – DASHBOARD ESTILO PRINT, FOCADO EM NOVIDADES ===== */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 24px 28px;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+/* HERO / BOAS VINDAS */
+.welcomeHero {
+  background: radial-gradient(
+      circle at top left,
+      rgba(34, 197, 94, 0.3),
+      rgba(15, 23, 42, 0.95)
+    );
+  border-radius: 18px;
+  padding: 22px 24px 24px;
+  border: 1px solid rgba(15, 118, 110, 0.6);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.welcomeContent {
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.welcomeTag {
+  align-self: flex-start;
+  padding: 3px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  border-radius: 999px;
+  border: 1px solid rgba(45, 212, 191, 0.8);
+  background: rgba(15, 118, 110, 0.5);
+  color: #ccfbf1;
+}
+
+.welcomeTitle {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 6px 0 4px;
+  color: #f9fafb;
+}
+
+.welcomeEmoji {
+  margin-left: 4px;
+}
+
+.welcomeSubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #e2e8f0;
+  max-width: 520px;
+  opacity: 0.9;
+}
+
+.welcomeActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.welcomeCta {
+  border-radius: 999px;
+  border: 1px solid #0f766e;
+  background: linear-gradient(135deg, #22c55e, #0f766e);
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+}
+
+.welcomeCta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
+  opacity: 0.97;
+}
+
+.welcomeNote {
+  margin: 0;
+  font-size: 12px;
+  color: #a5b4fc;
+}
+
+/* ===== NOVIDADES + ROADMAP ===== */
+.newsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.newsHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.newsTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f9fafb;
+}
+
+.newsSubtitle {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.newsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.newsCard {
+  background: #020617;
+  border-radius: 16px;
+  border: 1px solid #020617;
+  padding: 16px 18px 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.newsCardTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.newsCardIntro {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* lista de novidades */
+.newsList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.newsItem {
+  border-radius: 10px;
+  border: 1px solid #020617;
+  background: radial-gradient(
+    circle at top left,
+    rgba(34, 197, 94, 0.12),
+    rgba(15, 23, 42, 0.9)
+  );
+  padding: 8px 10px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.newsItemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.newsItemTag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: rgba(15, 23, 42, 0.8);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.8);
+}
+
+.newsItemDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+}
+
+.newsItemBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.newsItemTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.newsItemDescription {
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+/* lista de roadmap */
+.roadmapList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+}
+
+.roadmapItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.roadmapTimelineBullet {
+  margin-top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 2px solid #22c55e;
+  background: #020617;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.9);
+}
+
+.roadmapItemContent {
+  flex: 1;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #111827;
+}
+
+.roadmapItem:last-child .roadmapItemContent {
+  border-bottom: none;
+}
+
+.roadmapItemHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.roadmapItemTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.roadmapItemBadge {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.7);
+  background: rgba(15, 23, 42, 0.9);
+  color: #bfdbfe;
+  white-space: nowrap;
+}
+
+.roadmapItemDescription {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #e5e7eb;
+}
+
+/* ===== Responsivo apenas da home ===== */
+@media (max-width: 1024px) {
+  .newsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 840px) {
+  .welcomeHero {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .home {
+    padding: 16px 16px 20px;
+  }
+}
