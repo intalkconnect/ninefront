@@ -7,7 +7,6 @@ import {
   Trash2,
   X as XIcon,
   RefreshCw,
-  ArrowLeft,
 } from "lucide-react";
 import { useNavigate, useLocation, useParams, Link } from "react-router-dom";
 import { apiGet, apiDelete } from "../../../../shared/apiClient.js";
@@ -48,8 +47,6 @@ export default function Users({ canCreateAdmin = false }) {
     location.state?.meta?.flowId ||
     params.flowId ||
     null;
-
-  const baseUsersPath = "/management/users";
 
   const toastOK = useCallback((msg) => {
     setOkMsg(msg);
@@ -143,97 +140,84 @@ export default function Users({ canCreateAdmin = false }) {
     if (!refreshing) load();
   };
 
-  const title = flowId ? "Atendentes do Flow" : "Usuários";
+  const title = flowId ? "Atendentes do flow" : "Usuários do workspace";
 
   return (
     <div className={styles.container}>
-      {/* HEADER NO PADRÃO DAS OUTRAS TELAS */}
-      <div className={styles.headerCard}>
-        <div className={styles.headerRow}>
-          <button
-            onClick={() =>
-              flowId ? navigate(-1) : navigate(baseUsersPath, { replace: true })
-            }
-            type="button"
-            className={styles.backBtn}
-            title="Voltar"
-          >
-            <ArrowLeft size={14} />
-            <span>Voltar</span>
-          </button>
-
-          <div className={styles.headerCenter}>
-            <div className={styles.headerTitle}>{title}</div>
-            <div className={styles.headerSubtitle}>
-              {flowId
-                ? "Gerencie os atendentes vinculados a este flow."
-                : "Gestão de usuários: cadastro, papéis e acessos."}
-            </div>
-          </div>
-
-          <div className={styles.headerRight}>
-            <div className={styles.searchGroup}>
-              <input
-                className={styles.searchInput}
-                placeholder="Buscar por nome ou email…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              {query && (
-                <button
-                  className={styles.searchClear}
-                  onClick={() => setQuery("")}
-                  aria-label="Limpar busca"
-                >
-                  <XIcon size={14} />
-                </button>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className={styles.iconCirclePrimary}
-              onClick={handleNew}
-              title="Novo atendente"
-            >
-              <Plus size={18} />
-            </button>
-
-            <button
-              type="button"
-              className={styles.iconCircle}
-              onClick={handleRefresh}
-              title="Recarregar"
-              disabled={refreshing}
-            >
-              <RefreshCw
-                size={18}
-                className={refreshing ? styles.spinning : undefined}
-              />
-            </button>
-          </div>
+      {/* HEADER NO MESMO PADRÃO DAS OUTRAS TELAS (sem ícone novo) */}
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>{title}</h1>
+          <p className={styles.subtitle}>
+            {flowId
+              ? "Gerencie os atendentes vinculados a este flow."
+              : "Cadastro e gerenciamento de usuários, perfis e filas."}
+          </p>
         </div>
       </div>
 
-      {/* Alertas de OK/erro */}
+      {/* TOOLBAR EM CIMA DO CARD (busca + ações) */}
+      <div className={styles.toolbar}>
+        <div className={styles.searchGroup}>
+          <input
+            className={styles.searchInput}
+            placeholder="Buscar por nome ou email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query && (
+            <button
+              className={styles.searchClear}
+              onClick={() => setQuery("")}
+              aria-label="Limpar busca"
+            >
+              <XIcon size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className={styles.toolbarRight}>
+          <button
+            type="button"
+            className={styles.toolbarBtn}
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw
+              size={14}
+              className={refreshing ? styles.spinning : undefined}
+            />
+            <span>Recarregar</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.toolbarBtnPrimary}
+            onClick={handleNew}
+          >
+            <Plus size={14} />
+            <span>Novo usuário</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Alertas de OK/erro (simples, sem visual novo) */}
       {(okMsg || error) && (
         <div className={styles.alertsStack}>
           {error && (
             <div className={styles.alertErr}>
-              <div className={styles.alertIcon}>⚠</div>
               <span>{error}</span>
             </div>
           )}
           {okMsg && (
             <div className={styles.alertOk}>
-              <div className={styles.alertIcon}>✓</div>
               <span>{okMsg}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* Card da tabela */}
+      {/* Card da tabela, no mesmo padrão do Tokens/Logs */}
       <div className={styles.card}>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
