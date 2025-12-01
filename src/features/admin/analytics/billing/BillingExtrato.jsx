@@ -16,8 +16,8 @@ import {
   PieChart,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import styles from "./styles/BillingExtrato.module.css";
 import BrandIcon from "../../icons/BrandIcon";
+import styles from "../../styles/AdminUI.module.css";
 
 /* ========================= Helpers ========================= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -134,20 +134,34 @@ const ChannelIcon = ({ channel, size = 18 }) => {
   // canais que já existem no BrandIcon
   if (["whatsapp", "facebook", "instagram", "telegram"].includes(ch)) {
     return (
-      <span className={styles.channelIconWrap} title={channel || ch}>
+      <span
+        title={channel || ch}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <BrandIcon type={ch} size={size} />
       </span>
     );
   }
 
-  // webchat – mantemos um SVG próprio
+  // webchat – SVG próprio
   if (ch === "webchat") {
     return (
-      <span className={styles.channelIconWrap} title="Webchat">
+      <span
+        title="Webchat"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <svg
           viewBox="0 0 32 32"
-          className={styles.channelIcon}
           aria-label="Webchat"
+          style={{ width: size, height: size }}
         >
           <rect x="4" y="6" width="24" height="18" rx="4" fill="#0f766e" />
           <path
@@ -169,11 +183,18 @@ const ChannelIcon = ({ channel, size = 18 }) => {
   // fallback genérico – bolinha com inicial do canal
   const initial = ch.charAt(0).toUpperCase() || "?";
   return (
-    <span className={styles.channelIconWrap} title={channel || "default"}>
+    <span
+      title={channel || "default"}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <svg
         viewBox="0 0 32 32"
-        className={styles.channelIcon}
         aria-label={channel || "Canal"}
+        style={{ width: size, height: size }}
       >
         <circle cx="16" cy="16" r="16" fill="#4b5563" />
         <text
@@ -190,9 +211,6 @@ const ChannelIcon = ({ channel, size = 18 }) => {
     </span>
   );
 };
-
-
-
 
 /* ========================= Página ========================= */
 export default function BillingExtrato() {
@@ -338,10 +356,8 @@ export default function BillingExtrato() {
   const DonutChart = () => {
     if (!channels.length || totalByValue <= 0) {
       return (
-        <div className={styles.donutEmpty}>
-          <span className={styles.donutEmptyLabel}>
-            Sem faturamento no período
-          </span>
+        <div className={styles.emptyCell}>
+          Sem faturamento no período.
         </div>
       );
     }
@@ -360,7 +376,6 @@ export default function BillingExtrato() {
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className={styles.donutSvg}
       >
         <circle
           cx={cx}
@@ -390,7 +405,6 @@ export default function BillingExtrato() {
               strokeDasharray={`${dash} ${gap}`}
               strokeDashoffset={offset}
               strokeLinecap="round"
-              className={styles.donutSegment}
             />
           );
         })}
@@ -398,7 +412,9 @@ export default function BillingExtrato() {
           x={cx}
           y={cy - 2}
           textAnchor="middle"
-          className={styles.donutValue}
+          fontSize="12"
+          fill="#e5e7eb"
+          fontWeight="700"
         >
           {grandTotal}
         </text>
@@ -406,7 +422,8 @@ export default function BillingExtrato() {
           x={cx}
           y={cy + 14}
           textAnchor="middle"
-          className={styles.donutLabel}
+          fontSize="10"
+          fill="#9ca3af"
         >
           Total faturado
         </text>
@@ -417,9 +434,9 @@ export default function BillingExtrato() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER enxuto */}
+        {/* HEADER padrão adminUi */}
         <header className={styles.header}>
-          <div className={styles.headerLeft}>
+          <div className={styles.titleRow}>
             <h1 className={styles.title}>Extrato de faturamento</h1>
             <p className={styles.subtitle}>
               Análise detalhada do faturamento por sessões, usuários e canais.
@@ -428,7 +445,7 @@ export default function BillingExtrato() {
 
           <div className={styles.headerActions}>
             <button
-              className={styles.iconBtn}
+              className={styles.iconCircle}
               type="button"
               onClick={() => setRefreshKey((k) => k + 1)}
               disabled={loading}
@@ -436,12 +453,12 @@ export default function BillingExtrato() {
             >
               <RefreshCcw
                 size={16}
-                className={loading ? styles.spin : ""}
+                className={loading ? styles.spinning : ""}
               />
             </button>
 
             <button
-              className={`${styles.iconBtn} ${styles.iconBtnPrimary}`}
+              className={styles.iconCirclePrimary}
               type="button"
               onClick={handleExport}
               disabled={loading}
@@ -452,15 +469,14 @@ export default function BillingExtrato() {
           </div>
         </header>
 
-        {/* PERÍODO – mesmo estilo do header, logo abaixo */}
-        <section className={styles.periodBar}>
-          <div className={styles.periodHeaderRow}>
-            <CalendarRange size={16} />
-            <span>Período de análise</span>
-          </div>
-          <div className={styles.periodFields}>
-            <div className={styles.periodField}>
-              <span className={styles.periodLabel}>Inicial</span>
+        {/* PERÍODO – usando o card de filtros padrão */}
+        <section className={styles.filters}>
+          <div className={styles.filterRow}>
+            <div className={styles.filterGroup}>
+              <div className={styles.filterTitle}>
+                <CalendarRange size={14} />{" "}
+                <span style={{ marginLeft: 6 }}>Inicial</span>
+              </div>
               <input
                 className={styles.input}
                 type="datetime-local"
@@ -468,8 +484,11 @@ export default function BillingExtrato() {
                 onChange={(e) => setFrom(e.target.value)}
               />
             </div>
-            <div className={styles.periodField}>
-              <span className={styles.periodLabel}>Final</span>
+            <div className={styles.filterGroup}>
+              <div className={styles.filterTitle}>
+                <CalendarRange size={14} />{" "}
+                <span style={{ marginLeft: 6 }}>Final</span>
+              </div>
               <input
                 className={styles.input}
                 type="datetime-local"
@@ -478,29 +497,45 @@ export default function BillingExtrato() {
               />
             </div>
           </div>
-          <div className={styles.periodHint}>
+          <p className={styles.subtle} style={{ marginTop: 8 }}>
             Todos os indicadores abaixo consideram o período selecionado.
-          </div>
+          </p>
         </section>
 
-        {/* GRID – 3 cards bem distribuídos */}
-        <section className={styles.kpisGrid}>
+        {/* GRID – 3 cards usando cardGroup padrão */}
+        <section className={styles.cardGroup}>
           {/* Usuários ativos */}
           <article className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>
-                <Users size={18} />
-                Usuários ativos
+                <span className={styles.cardIcon}>
+                  <Users size={18} />
+                </span>
+                <span>Usuários ativos</span>
               </div>
             </div>
             <div className={styles.cardBody}>
-              <div className={styles.bigNumber}>{totalUsers}</div>
+              <div
+                className={styles.kpiValue}
+                style={{ fontSize: 28, marginBottom: 4 }}
+              >
+                {totalUsers}
+              </div>
               <div className={styles.subtle}>
                 Usuários com sessões faturáveis no período.
               </div>
-              <div className={styles.inlineStat}>
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 13,
+                  color: "#e5e7eb",
+                }}
+              >
                 <DollarSign size={14} />
-                Média: {BRL(avgPerUser)} por usuário.
+                <span>Média: {BRL(avgPerUser)} por usuário.</span>
               </div>
             </div>
           </article>
@@ -509,16 +544,42 @@ export default function BillingExtrato() {
           <article className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>
-                <PieChart size={18} />
-                Faturamento por canal
+                <span className={styles.cardIcon}>
+                  <PieChart size={18} />
+                </span>
+                <span>Faturamento por canal</span>
               </div>
             </div>
             <div className={styles.cardBody}>
-              <div className={styles.donutLayout}>
-                <DonutChart />
-                <div className={styles.donutLegend}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div
+                  style={{
+                    flex: "0 0 auto",
+                  }}
+                >
+                  <DonutChart />
+                </div>
+
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 200,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    fontSize: 13,
+                  }}
+                >
                   {channels.length === 0 ? (
-                    <span className={styles.emptyLegend}>
+                    <span className={styles.emptyCell}>
                       Sem dados de canais.
                     </span>
                   ) : (
@@ -531,24 +592,44 @@ export default function BillingExtrato() {
                       return (
                         <div
                           key={c.channel || index}
-                          className={styles.legendRow}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "auto 1fr auto auto",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
                         >
                           <span
-                            className={styles.legendDot}
                             style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: 999,
                               backgroundColor: channelColor(
                                 c.channel,
                                 index
                               ),
                             }}
                           />
-                          <span className={styles.legendLabel}>
+                          <span
+                            style={{
+                              color: "#e5e7eb",
+                              fontWeight: 500,
+                            }}
+                          >
                             {c.channel || "default"}
                           </span>
-                          <span className={styles.legendValue}>
+                          <span
+                            style={{
+                              justifySelf: "flex-end",
+                              color: "#e5e7eb",
+                            }}
+                          >
                             {BRL(value)}
                           </span>
-                          <span className={styles.legendPct}>
+                          <span
+                            className={styles.subtle}
+                            style={{ justifySelf: "flex-end" }}
+                          >
                             {pct.toFixed(1)}%
                           </span>
                         </div>
@@ -564,19 +645,37 @@ export default function BillingExtrato() {
           <article className={styles.card}>
             <div className={styles.cardHead}>
               <div className={styles.cardTitle}>
-                <PieChart size={18} />
-                Sessões por canal
+                <span className={styles.cardIcon}>
+                  <PieChart size={18} />
+                </span>
+                <span>Sessões por canal</span>
               </div>
             </div>
             <div className={styles.cardBody}>
-              <div className={styles.sessionsSummary}>
-                <span className={styles.bigNumber}>{totalSessions}</span>
-                <span className={styles.subtle}>sessões no período.</span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <span
+                  className={styles.kpiValue}
+                  style={{ fontSize: 28 }}
+                >
+                  {totalSessions}
+                </span>
+                <span className={styles.subtle}>
+                  sessão(ões) no período.
+                </span>
               </div>
 
-              <div className={styles.sessionsList}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {channels.length === 0 ? (
-                  <div className={styles.empty}>Sem sessões por canal.</div>
+                  <div className={styles.empty}>
+                    Sem sessões por canal.
+                  </div>
                 ) : (
                   channels.map((c, index) => {
                     const sess = c.sessions || 0;
@@ -587,29 +686,53 @@ export default function BillingExtrato() {
                     return (
                       <div
                         key={c.channel || index}
-                        className={styles.sessionRow}
+                        style={{ display: "flex", flexDirection: "column", gap: 4 }}
                       >
-                        <div className={styles.sessionHeader}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            fontSize: 13,
+                          }}
+                        >
                           <ChannelIcon channel={c.channel} />
-                          <span className={styles.sessionLabel}>
+                          <span
+                            style={{
+                              color: "#e5e7eb",
+                              fontWeight: 500,
+                            }}
+                          >
                             {c.channel || "default"}
                           </span>
-                          <span className={styles.sessionCount}>
+                          <span
+                            style={{
+                              marginLeft: "auto",
+                              color: "#e5e7eb",
+                              fontWeight: 500,
+                            }}
+                          >
                             {sess}
                           </span>
-                          <span className={styles.sessionPct}>
+                          <span className={styles.subtle}>
                             {pct.toFixed(1)}%
                           </span>
                         </div>
-                        <div className={styles.sessionBarBg}>
+                        <div
+                          style={{
+                            width: "100%",
+                            height: 8,
+                            borderRadius: 999,
+                            background: "#020617",
+                            border: "1px solid #1f2937",
+                            overflow: "hidden",
+                          }}
+                        >
                           <div
-                            className={styles.sessionBarFill}
                             style={{
+                              height: "100%",
                               width: `${Math.max(pct, 4)}%`,
-                              backgroundColor: channelColor(
-                                c.channel,
-                                index
-                              ),
+                              backgroundColor: channelColor(c.channel, index),
                             }}
                           />
                         </div>
@@ -625,31 +748,33 @@ export default function BillingExtrato() {
         {/* Tabela detalhada */}
         <section className={styles.tableCard}>
           <div className={styles.tableHeader}>
-            <div className={styles.tableTitleWrap}>
-              <span className={styles.tableTitleIcon}>
-                <PieChart size={16} />
-              </span>
-              <h2 className={styles.tableTitle}>Detalhamento por usuário</h2>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <PieChart size={16} />
+              <h2 className={styles.tableTitle}>
+                Detalhamento por usuário
+              </h2>
             </div>
-            <div className={styles.tableMeta}>
+            <span className={styles.kpill}>
               {totalSessions} sessão(ões) totais
-            </div>
+            </span>
           </div>
 
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  {[
-                    "User ID",
-                    "Canal",
-                    "Sessões",
-                    "Primeira mensagem",
-                    "Última mensagem",
-                    "Valor total",
-                  ].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
+                  <th>User ID</th>
+                  <th>Canal</th>
+                  <th>Sessões</th>
+                  <th>Primeira mensagem</th>
+                  <th>Última mensagem</th>
+                  <th>Valor total</th>
                 </tr>
               </thead>
               <tbody>
@@ -697,10 +822,19 @@ export default function BillingExtrato() {
               {data.rows?.length ? (
                 <tfoot>
                   <tr>
-                    <td colSpan={5} className={styles.tfootLabel}>
+                    <td
+                      colSpan={5}
+                      className={styles.subtle}
+                      style={{ textAlign: "right", fontWeight: 600 }}
+                    >
                       Total geral
                     </td>
-                    <td className={styles.tfootValue}>{grandTotal}</td>
+                    <td
+                      className={styles.bold}
+                      style={{ textAlign: "right" }}
+                    >
+                      {grandTotal}
+                    </td>
                   </tr>
                 </tfoot>
               ) : null}
