@@ -1,3 +1,4 @@
+// File: AgentsMonitor.jsx
 import React, {
   useEffect,
   useMemo,
@@ -8,7 +9,7 @@ import React, {
 import { apiGet } from "../../../../shared/apiClient";
 import { RefreshCw, ToggleLeft, PauseCircle, Power, Clock } from "lucide-react";
 import { toast } from "react-toastify";
-import styles from "./styles/AgentsMonitor.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 /* ---------- helpers ---------- */
 
@@ -232,7 +233,9 @@ export default function AgentsRealtime() {
         ? "Online"
         : s === "offline"
         ? "Offline"
-        : "Inativo"}
+        : s === "inativo"
+        ? "Inativo"
+        : s}
     </span>
   );
 
@@ -268,13 +271,30 @@ export default function AgentsRealtime() {
     return `${styles.row} ${toneClass}`;
   };
 
+  const statusLabel = (s) => {
+    switch (s) {
+      case "todos":
+        return "Todos";
+      case "online":
+        return "Online";
+      case "pause":
+        return "Pausa";
+      case "offline":
+        return "Offline";
+      case "inativo":
+        return "Inativos";
+      default:
+        return s;
+    }
+  };
+
   /* ---------- render ---------- */
 
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER no padrão do monitor de clientes */}
-        <div className={styles.header}>
+        {/* HEADER padrão adminUI */}
+        <header className={styles.header}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Monitor de Agentes</h1>
             <p className={styles.subtitle}>
@@ -288,13 +308,14 @@ export default function AgentsRealtime() {
             onClick={() => fetchAll({ fromButton: true })}
             disabled={refreshing}
             title="Atualizar agora"
+            type="button"
           >
             <RefreshCw
               size={16}
               className={refreshing ? styles.spinning : ""}
             />
           </button>
-        </div>
+        </header>
 
         {/* KPIs */}
         <section className={styles.cardGroup}>
@@ -339,17 +360,20 @@ export default function AgentsRealtime() {
         <section className={styles.filters}>
           <div className={styles.filterGroup}>
             <div className={styles.filterTitle}>Status</div>
-            {["todos", "online", "pause", "offline", "inativo"].map((s) => (
-              <button
-                key={s}
-                className={`${styles.chip} ${
-                  filterStatus === s ? styles.chipActive : ""
-                }`}
-                onClick={() => setFilterStatus(s)}
-              >
-                {s[0].toUpperCase() + s.slice(1)}
-              </button>
-            ))}
+            <div className={styles.filterChips}>
+              {["todos", "online", "pause", "offline", "inativo"].map((s) => (
+                <button
+                  key={s}
+                  className={`${styles.chip} ${
+                    filterStatus === s ? styles.chipActive : ""
+                  }`}
+                  onClick={() => setFilterStatus(s)}
+                  type="button"
+                >
+                  {statusLabel(s)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className={styles.filterGroup}>
@@ -473,6 +497,7 @@ export default function AgentsRealtime() {
               className={styles.pageBtn}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={pageSafe <= 1}
+              type="button"
             >
               ‹ Anterior
             </button>
@@ -483,6 +508,7 @@ export default function AgentsRealtime() {
               className={styles.pageBtn}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={pageSafe >= totalPages}
+              type="button"
             >
               Próxima ›
             </button>
