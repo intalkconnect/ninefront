@@ -8,7 +8,7 @@ import React, {
 import { apiGet } from "../../../../shared/apiClient";
 import { RefreshCw, ToggleLeft, PauseCircle, Power, Clock } from "lucide-react";
 import { toast } from "react-toastify";
-import styles from "../../styles/adminUi.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 /* ---------- helpers ---------- */
 
