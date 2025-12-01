@@ -309,9 +309,15 @@
 /* linha genérica de filtros em grid (ex: datas) */
 .filterRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 16px;
+  align-items: flex-end; /* alinha todos os campos pela base */
 }
+
+.filterRow .searchInput {
+  width: 100%;
+}
+
 
 .filterTitle {
   font-size: 13px;
