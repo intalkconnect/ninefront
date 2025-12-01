@@ -3,8 +3,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, Plus, X as XIcon } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiGet } from "../../../../shared/apiClient";
-import styles from "./styles/Campaigns.module.css";
 import { toast } from "react-toastify";
+import styles from "../../styles/AdminUI.module.css";
 
 /** Radios (options) do topo */
 const FILTERS = [
@@ -128,7 +128,7 @@ export default function Campaigns() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER padrão FlowHub */}
+        {/* HEADER padrão FlowHub/adminUi */}
         <header className={styles.header}>
           <div className={styles.titleBlock}>
             <h1 className={styles.title}>Campanhas</h1>
@@ -247,7 +247,10 @@ export default function Campaigns() {
 
                     return (
                       <tr key={c.id} className={styles.row}>
-                        <td className={styles.campaignCell} data-label="Campanha">
+                        <td
+                          className={styles.campaignCell}
+                          data-label="Campanha"
+                        >
                           <span className={styles.campaignName}>
                             {c.name || "—"}
                           </span>
@@ -261,7 +264,9 @@ export default function Campaigns() {
                           </span>
                         </td>
 
-                        <td data-label="Carregados">{c.total_items ?? 0}</td>
+                        <td data-label="Carregados">
+                          {c.total_items ?? 0}
+                        </td>
 
                         <td data-label="Lidos">
                           <span
