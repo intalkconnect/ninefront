@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-import styles from "./styles/Quality.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 /* ========= Helpers ========= */
 const toISO = (v) => (v ? new Date(v).toISOString() : null);
@@ -48,7 +48,7 @@ const safeGet = async (url) => {
   }
 };
 
-/* ========= UI básicos (cards no padrão dos monitores) ========= */
+/* ========= UI básicos (cards no padrão adminUi) ========= */
 const Card = ({ title, icon, right, children }) => (
   <div className={styles.card}>
     <div className={styles.cardHead}>
@@ -56,7 +56,7 @@ const Card = ({ title, icon, right, children }) => (
         {icon ? <span className={styles.cardIcon}>{icon}</span> : null}
         <span>{title}</span>
       </div>
-      <div className={styles.cardRight}>{right}</div>
+      {right && <div>{right}</div>}
     </div>
     <div className={styles.cardBody}>{children}</div>
   </div>
@@ -80,11 +80,11 @@ const SegmentedGauge = ({
   gapDeg = 3,
   format = (v) => v,
 }) => {
-  const cx = 100,
-    cy = 100,
-    r = 80,
-    vbW = 200,
-    vbH = 120;
+  const cx = 100;
+  const cy = 100;
+  const r = 80;
+  const vbW = 200;
+  const vbH = 120;
 
   const range = Math.max(0.0001, max - min);
   const normalized = Math.min(max, Math.max(min, value));
@@ -122,6 +122,7 @@ const SegmentedGauge = ({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        gap: 8,
       }}
     >
       <svg
@@ -189,9 +190,7 @@ const SegmentedGauge = ({
         <circle cx={cx} cy={cy} r="3.5" fill="#020617" />
         <circle cx={cx} cy={cy} r="2" fill="#ffffff" />
       </svg>
-      <div className={styles.gaugeValue}>
-        {format(normalized)}
-      </div>
+      <div className={styles.kpiValue}>{format(normalized)}</div>
     </div>
   );
 };
@@ -202,31 +201,72 @@ const CsatDistribution = ({ counts = {} }) => {
     (a, k) => a + (counts[k] || 0),
     0
   );
+
+  const colorFor = (k) => {
+    switch (k) {
+      case 1:
+        return "#ef4444";
+      case 2:
+        return "#fb923c";
+      case 3:
+        return "#facc15";
+      case 4:
+        return "#22c55e";
+      case 5:
+      default:
+        return "#22c55e";
+    }
+  };
+
   return (
-    <div className={styles.csatDist}>
-      <div className={styles.csatBar}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          width: "100%",
+          height: 10,
+          borderRadius: 999,
+          overflow: "hidden",
+          background: "#020617",
+          border: "1px solid #1f2937",
+        }}
+      >
         {[1, 2, 3, 4, 5].map((k) => {
           const v = counts[k] || 0;
           const w = total ? (v / total) * 100 : 0;
           return (
             <span
               key={k}
-              className={`${styles.csatSeg} ${styles[`csat${k}`]}`}
-              style={{ width: `${w}%` }}
+              style={{
+                width: `${w}%`,
+                backgroundColor: colorFor(k),
+                opacity: 0.8,
+              }}
               title={`${k}★: ${v}`}
             />
           );
         })}
       </div>
-      <div className={styles.csatLegend}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          fontSize: 12,
+        }}
+      >
         {[1, 2, 3, 4, 5].map((k) => (
-          <span
-            key={k}
-            className={styles.csatLegendItem}
-          >
-            <i
-              className={`${styles.dot} ${styles[`csat${k}`]}`}
-            />{" "}
+          <span key={k} className={styles.subtle}>
+            <span
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                borderRadius: "999px",
+                marginRight: 6,
+                backgroundColor: colorFor(k),
+              }}
+            />
             {k}★
           </span>
         ))}
@@ -309,9 +349,7 @@ export default function Quality() {
   const [from, setFrom] = useState(
     firstMonthDay.toISOString().slice(0, 16)
   );
-  const [to, setTo] = useState(
-    new Date().toISOString().slice(0, 16)
-  );
+  const [to, setTo] = useState(new Date().toISOString().slice(0, 16));
 
   const debFrom = useDebounce(from, 300);
   const debTo = useDebounce(to, 300);
@@ -367,9 +405,9 @@ export default function Quality() {
           sum(npsRaw.map((b) => toNum(b.total))) ||
           promoters + passives + detractors;
 
-        let promPct = 0,
-          passPct = 0,
-          detrPct = 0;
+        let promPct = 0;
+        let passPct = 0;
+        let detrPct = 0;
         if (responses > 0) {
           promPct = (promoters / responses) * 100;
           passPct = (passives / responses) * 100;
@@ -402,15 +440,11 @@ export default function Quality() {
           (x) => x.type === "NPS" && Number.isFinite(x.score)
         );
         const scores = npsOnly.map((x) => x.score);
-        const promoters = npsOnly.filter(
-          (x) => x.score >= 9
-        ).length;
+        const promoters = npsOnly.filter((x) => x.score >= 9).length;
         const passives = npsOnly.filter(
           (x) => x.score >= 7 && x.score <= 8
         ).length;
-        const detractors = npsOnly.filter(
-          (x) => x.score <= 6
-        ).length;
+        const detractors = npsOnly.filter((x) => x.score <= 6).length;
         const responses = npsOnly.length;
 
         const promPct = responses
@@ -478,8 +512,7 @@ export default function Quality() {
       if (mounted.current) {
         setFeedback(
           fb.sort(
-            (a, b) =>
-              +new Date(b.ts || 0) - +new Date(a.ts || 0)
+            (a, b) => +new Date(b.ts || 0) - +new Date(a.ts || 0)
           )
         );
       }
@@ -504,7 +537,7 @@ export default function Quality() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER padrão monitores */}
+        {/* HEADER padrão adminUi */}
         <div className={styles.header}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Monitor de Qualidade</h1>
@@ -516,9 +549,7 @@ export default function Quality() {
           <button
             className={styles.refreshBtn}
             disabled={loading}
-            onClick={() =>
-              setRefreshKey((k) => k + 1)
-            }
+            onClick={() => setRefreshKey((k) => k + 1)}
             title="Atualizar agora"
           >
             <RefreshCcw
@@ -530,28 +561,32 @@ export default function Quality() {
 
         {/* FILTROS (card) */}
         <section className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <div className={styles.filterTitle}>
-              <CalendarRange size={14} /> De
+          <div className={styles.filterRow}>
+            <div className={styles.filterGroup}>
+              <div className={styles.filterTitle}>
+                <CalendarRange size={14} />{" "}
+                <span style={{ marginLeft: 6 }}>De</span>
+              </div>
+              <input
+                type="datetime-local"
+                className={styles.input}
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
             </div>
-            <input
-              type="datetime-local"
-              className={styles.input}
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-            />
-          </div>
 
-          <div className={styles.filterGroup}>
-            <div className={styles.filterTitle}>
-              <CalendarRange size={14} /> Até
+            <div className={styles.filterGroup}>
+              <div className={styles.filterTitle}>
+                <CalendarRange size={14} />{" "}
+                <span style={{ marginLeft: 6 }}>Até</span>
+              </div>
+              <input
+                type="datetime-local"
+                className={styles.input}
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
             </div>
-            <input
-              type="datetime-local"
-              className={styles.input}
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
           </div>
         </section>
 
@@ -578,18 +613,30 @@ export default function Quality() {
                   size={300}
                   format={(v) => Number(v).toFixed(2)}
                 />
-                <div className={styles.npsBreakdown}>
-                  <span className={styles.kpillGreen}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginTop: 12,
+                  }}
+                >
+                  <span
+                    className={`${styles.pill} ${styles.pillOk}`}
+                  >
                     Promotores: {fmtInt(npsAgg?.promoters || 0)} (
                     {fmtPct(npsAgg?.promPct || 0)})
                   </span>
-                  <span className={styles.kpillAmber}>
+                  <span
+                    className={`${styles.pill} ${styles.pillWarn}`}
+                  >
                     Neutros: {fmtInt(npsAgg?.passives || 0)} (
                     {fmtPct(npsAgg?.passPct || 0)})
                   </span>
-                  <span className={styles.kpillRed}>
-                    Detratores:{" "}
-                    {fmtInt(npsAgg?.detractors || 0)} (
+                  <span
+                    className={`${styles.pill} ${styles.pillErr}`}
+                  >
+                    Detratores: {fmtInt(npsAgg?.detractors || 0)} (
                     {fmtPct(npsAgg?.detrPct || 0)})
                   </span>
                 </div>
@@ -599,7 +646,7 @@ export default function Quality() {
 
           <Card
             title="CSAT (média 1–5)"
-            icon={<Smile size={18} />}
+            icon={<MessageSquare size={18} />}
             right={
               <span className={styles.kpill}>
                 {fmtInt(csatAgg?.resp || 0)} respostas
@@ -616,9 +663,7 @@ export default function Quality() {
                   max={5}
                   tickStep={1}
                   size={300}
-                  format={(v) =>
-                    `${Number(v).toFixed(2)} ★`
-                  }
+                  format={(v) => `${Number(v).toFixed(2)} ★`}
                 />
                 {csatAgg?.counts && (
                   <div style={{ marginTop: 10 }}>
@@ -656,10 +701,7 @@ export default function Quality() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className={styles.loading}
-                    >
+                    <td colSpan={6} className={styles.loading}>
                       Carregando…
                     </td>
                   </tr>
@@ -667,10 +709,7 @@ export default function Quality() {
 
                 {!loading && feedback.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className={styles.empty}
-                    >
+                    <td colSpan={6} className={styles.empty}>
                       Nenhuma avaliação no período.
                     </td>
                   </tr>
@@ -684,19 +723,13 @@ export default function Quality() {
                       <td>{f.channel || "—"}</td>
                       <td>{f.type}</td>
                       <td>
-                        {Number.isFinite(+f.score)
-                          ? f.score
-                          : "—"}
+                        {Number.isFinite(+f.score) ? f.score : "—"}
                       </td>
                       <td className={styles.commentCell}>
                         {f.comment ? (
                           f.comment
                         ) : (
-                          <span
-                            className={
-                              styles.subtleCenter
-                            }
-                          >
+                          <span className={styles.subtleCenter}>
                             —
                           </span>
                         )}
