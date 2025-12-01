@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
-import styles from "./styles/CampaignWizard.module.css";
+import styles from "../styles/AdminUI.module.css"; // ajuste o caminho se necessário
 import { toast } from "react-toastify";
 
 /* ---------- Helpers ---------- */
@@ -38,10 +38,11 @@ export default function CampaignWizardPage() {
   const handleBack = () => navigate(-1);
 
   return (
-    <CampaignWizard
-      onCreated={handleCreated}
-      onBack={handleBack}
-    />
+    <div className={styles.page}>
+      <div className={styles.container}>
+        <CampaignWizard onCreated={handleCreated} onBack={handleBack} />
+      </div>
+    </div>
   );
 }
 
@@ -70,8 +71,8 @@ function CampaignWizard({ onCreated, onBack }) {
   const [form, setForm] = useState({
     // Etapa 0 — Configuração
     name: "",
-    sendType: "mass",      // 'mass' | 'single'
-    mode: "immediate",     // 'immediate' | 'scheduled' (apenas mass)
+    sendType: "mass", // 'mass' | 'single'
+    mode: "immediate", // 'immediate' | 'scheduled' (apenas mass)
     start_at: "",
 
     // Etapa 1 — Resposta
@@ -86,8 +87,8 @@ function CampaignWizard({ onCreated, onBack }) {
 
     // Etapa 2 — Template & Destino
     template_id: "",
-    file: null,  // mass
-    to: "",      // single
+    file: null, // mass
+    to: "", // single
   });
 
   const setField = (k, v) => setForm((p) => ({ ...p, [k]: v }));
@@ -165,7 +166,6 @@ function CampaignWizard({ onCreated, onBack }) {
           ? uRes
           : []
       );
-      // sem toast de sucesso aqui
     } catch (e) {
       console.error(e);
       setError("Falha ao carregar dados (templates/filas/usuários).");
@@ -179,54 +179,51 @@ function CampaignWizard({ onCreated, onBack }) {
 
   /* ---------- Load de blocos do fluxo ativo ---------- */
 
-  const loadBlocks = useCallback(
-    async () => {
-      try {
-        setBlocksLoading(true);
-        setBlocksError(null);
+  const loadBlocks = useCallback(async () => {
+    try {
+      setBlocksLoading(true);
+      setBlocksError(null);
 
-        const latest = await apiGet("/flows/latest");
-        const active = Array.isArray(latest)
-          ? latest.find((f) => f.active) || latest[0]
-          : latest?.find?.((f) => f.active) || latest || null;
-        const id = active?.id;
-        if (!id) {
-          setFlowId(null);
-          setBlocks([]);
-          setBlocksError("Nenhum fluxo ativo encontrado.");
-          return;
-        }
-
-        setFlowId(id);
-
-        const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
-        const raw =
-          data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
-
-        const list = Object.entries(raw)
-          .map(([key, b]) => ({
-            key,
-            name: b?.name || b?.title || b?.label || key,
-            type: String(b?.type || "").toLowerCase(),
-          }))
-          .filter((b) => !["script", "api_call"].includes(b.type))
-          .sort((a, b) => a.name.localeCompare(b.name));
-
-        setBlocks(list);
-
-        if (form.flow_block && !list.some((x) => x.key === form.flow_block)) {
-          setField("flow_block", "");
-        }
-      } catch (e) {
-        console.error(e);
+      const latest = await apiGet("/flows/latest");
+      const active = Array.isArray(latest)
+        ? latest.find((f) => f.active) || latest[0]
+        : latest?.find?.((f) => f.active) || latest || null;
+      const id = active?.id;
+      if (!id) {
+        setFlowId(null);
         setBlocks([]);
-        setBlocksError("Falha ao carregar blocos do fluxo ativo.");
-      } finally {
-        setBlocksLoading(false);
+        setBlocksError("Nenhum fluxo ativo encontrado.");
+        return;
       }
-    },
-    [form.flow_block]
-  );
+
+      setFlowId(id);
+
+      const data = await apiGet(`/flows/data/${encodeURIComponent(id)}`);
+      const raw =
+        data?.blocks || data?.data?.blocks || data?.flow?.blocks || {};
+
+      const list = Object.entries(raw)
+        .map(([key, b]) => ({
+          key,
+          name: b?.name || b?.title || b?.label || key,
+          type: String(b?.type || "").toLowerCase(),
+        }))
+        .filter((b) => !["script", "api_call"].includes(b.type))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setBlocks(list);
+
+      if (form.flow_block && !list.some((x) => x.key === form.flow_block)) {
+        setField("flow_block", "");
+      }
+    } catch (e) {
+      console.error(e);
+      setBlocks([]);
+      setBlocksError("Falha ao carregar blocos do fluxo ativo.");
+    } finally {
+      setBlocksLoading(false);
+    }
+  }, [form.flow_block]);
 
   useEffect(() => {
     if (step === 1 && form.actionType === "flow_goto") {
@@ -366,562 +363,541 @@ function CampaignWizard({ onCreated, onBack }) {
   /* ---------- Render ---------- */
 
   return (
-    <div className={styles.container}>
+    <div>
       {/* HEADER NO PADRÃO DAS DEMAIS TELAS */}
-      <div className={styles.headerCard}>
-        <div className={styles.headerRow}>
+      <header className={styles.header}>
+        <button
+          onClick={onBack}
+          type="button"
+          className={styles.backBtn}
+          title="Voltar"
+        >
+          <ArrowLeft size={16} />
+        </button>
+
+        <div className={styles.titleBlock}>
+          <h1 className={styles.title}>Nova campanha</h1>
+          <p className={styles.subtitle}>
+            Configure o disparo em etapas antes de confirmar o envio.
+          </p>
+        </div>
+
+        <div className={styles.headerActions}>
           <button
-            onClick={onBack}
             type="button"
-            className={styles.backBtn}
-            title="Voltar"
+            className={styles.iconCircle}
+            onClick={loadAll}
+            title="Recarregar dados"
           >
-            <ArrowLeft size={16} />
+            <RefreshCw size={18} />
           </button>
+        </div>
+      </header>
 
-          <div className={styles.headerMain}>
-            <div className={styles.headerTitle}>Nova campanha</div>
-            <div className={styles.headerSubtitle}>
-              Configure o disparo em etapas antes de confirmar o envio.
-            </div>
-          </div>
-
-          <div className={styles.headerRight}>
-            <button
-              type="button"
-              className={styles.iconCircle}
-              onClick={loadAll}
-              title="Recarregar dados"
+      {/* Stepper logo abaixo do header */}
+      <div className={styles.stepper} role="navigation" aria-label="Etapas">
+        {[0, 1, 2, 3].map((i) => {
+          const active = step === i;
+          const done = step > i;
+          return (
+            <div
+              key={i}
+              className={`${styles.step} ${
+                active ? styles.stepActive : ""
+              } ${done ? styles.stepDone : ""}`}
+              aria-current={active ? "step" : undefined}
             >
-              <RefreshCw size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* Stepper logo abaixo do header */}
-        <div className={styles.stepper} role="navigation" aria-label="Etapas">
-          {[0, 1, 2, 3].map((i) => {
-            const active = step === i;
-            const done = step > i;
-            return (
-              <div
-                key={i}
-                className={`${styles.step} ${
-                  active ? styles.stepActive : ""
-                } ${done ? styles.stepDone : ""}`}
-                aria-current={active ? "step" : undefined}
-              >
-                <span className={styles.stepIdx}>{i + 1}</span>
-                <span className={styles.stepTxt}>{stepLabel(i)}</span>
-              </div>
-            );
-          })}
-        </div>
+              <span className={styles.stepIdx}>{i + 1}</span>
+              <span className={styles.stepTxt}>{stepLabel(i)}</span>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Conteúdo do wizard */}
-      <div className={styles.page}>
-        {error && <div className={styles.alertErr}>⚠️ {error}</div>}
+      {error && <div className={styles.alertErr}>⚠️ {error}</div>}
 
-        {/* STEP 0 — Configuração */}
-        {step === 0 && (
-          <section className={styles.card}>
-            <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Configuração</h2>
-              <p className={styles.cardDesc}>
-                Defina nome, tipo de envio e, se for em massa, o agendamento.
-              </p>
-            </div>
-            <div className={styles.cardBody}>
-              <div className={styles.grid2}>
-                <div className={styles.group}>
-                  <label className={styles.label}>Nome da campanha</label>
-                  <input
-                    className={styles.input}
-                    placeholder="Ex.: Black Friday Leads"
-                    value={form.name}
-                    onChange={(e) => setField("name", e.target.value)}
-                  />
+      {/* STEP 0 — Configuração */}
+      {step === 0 && (
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>Configuração</h2>
+            <p className={styles.cardDesc}>
+              Defina nome, tipo de envio e, se for em massa, o agendamento.
+            </p>
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.gridTwo}>
+              <div className={styles.group}>
+                <label className={styles.label}>Nome da campanha</label>
+                <input
+                  className={styles.input}
+                  placeholder="Ex.: Black Friday Leads"
+                  value={form.name}
+                  onChange={(e) => setField("name", e.target.value)}
+                />
+              </div>
+
+              <div className={styles.group}>
+                <label className={styles.label}>Tipo de envio</label>
+                <div
+                  className={styles.optionsRow}
+                  role="radiogroup"
+                  aria-label="Tipo de envio"
+                >
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="sendType"
+                      value="mass"
+                      checked={form.sendType === "mass"}
+                      onChange={() => setField("sendType", "mass")}
+                    />
+                    <span>Massa (CSV)</span>
+                  </label>
+                  <label className={styles.opt}>
+                    <input
+                      type="radio"
+                      name="sendType"
+                      value="single"
+                      checked={form.sendType === "single"}
+                      onChange={() => setField("sendType", "single")}
+                    />
+                    <span>Individual</span>
+                  </label>
                 </div>
+              </div>
 
-                <div className={styles.group}>
-                  <label className={styles.label}>Tipo de envio</label>
-                  <div
-                    className={styles.optionsRow}
-                    role="radiogroup"
-                    aria-label="Tipo de envio"
-                  >
-                    <label className={styles.opt}>
-                      <input
-                        type="radio"
-                        name="sendType"
-                        value="mass"
-                        checked={form.sendType === "mass"}
-                        onChange={() => setField("sendType", "mass")}
-                      />
-                      <span>Massa (CSV)</span>
-                    </label>
-                    <label className={styles.opt}>
-                      <input
-                        type="radio"
-                        name="sendType"
-                        value="single"
-                        checked={form.sendType === "single"}
-                        onChange={() => setField("sendType", "single")}
-                      />
-                      <span>Individual</span>
-                    </label>
-                  </div>
-                </div>
-
-                {form.sendType === "mass" && (
-                  <>
-                    <div className={styles.group}>
-                      <label className={styles.label}>Modo de execução</label>
-                      <div
-                        className={styles.optionsRow}
-                        role="radiogroup"
-                        aria-label="Modo de execução"
-                      >
-                        <label className={styles.opt}>
-                          <input
-                            type="radio"
-                            name="mode"
-                            value="immediate"
-                            checked={form.mode === "immediate"}
-                            onChange={() => setField("mode", "immediate")}
-                          />
-                          <span>Imediata</span>
-                        </label>
-                        <label className={styles.opt}>
-                          <input
-                            type="radio"
-                            name="mode"
-                            value="scheduled"
-                            checked={form.mode === "scheduled"}
-                            onChange={() => setField("mode", "scheduled")}
-                          />
-                          <span>Agendada</span>
-                        </label>
-                      </div>
+              {form.sendType === "mass" && (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Modo de execução</label>
+                    <div
+                      className={styles.optionsRow}
+                      role="radiogroup"
+                      aria-label="Modo de execução"
+                    >
+                      <label className={styles.opt}>
+                        <input
+                          type="radio"
+                          name="mode"
+                          value="immediate"
+                          checked={form.mode === "immediate"}
+                          onChange={() => setField("mode", "immediate")}
+                        />
+                        <span>Imediata</span>
+                      </label>
+                      <label className={styles.opt}>
+                        <input
+                          type="radio"
+                          name="mode"
+                          value="scheduled"
+                          checked={form.mode === "scheduled"}
+                          onChange={() => setField("mode", "scheduled")}
+                        />
+                        <span>Agendada</span>
+                      </label>
                     </div>
+                  </div>
 
-                    {form.mode === "scheduled" && (
-                      <div className={styles.group}>
-                        <label className={styles.label}>Agendar para</label>
-                        <div className={styles.inputIconRow}>
-                          <input
-                            type="datetime-local"
-                            className={styles.input}
-                            value={form.start_at}
-                            onChange={(e) =>
-                              setField("start_at", e.target.value)
-                            }
-                          />
-                          <Calendar size={16} />
-                        </div>
-                        <span className={styles.hint}>
-                          Será convertido para ISO e enviado ao backend.
-                        </span>
+                  {form.mode === "scheduled" && (
+                    <div className={styles.group}>
+                      <label className={styles.label}>Agendar para</label>
+                      <div className={styles.inputIconRow}>
+                        <input
+                          type="datetime-local"
+                          className={styles.input}
+                          value={form.start_at}
+                          onChange={(e) =>
+                            setField("start_at", e.target.value)
+                          }
+                        />
+                        <Calendar size={16} />
                       </div>
-                    )}
-                  </>
-                )}
+                      <span className={styles.hint}>
+                        Será convertido para ISO e enviado ao backend.
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* STEP 1 — Resposta */}
+      {step === 1 && (
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>Resposta do cliente</h2>
+            <p className={styles.cardDesc}>
+              Escolha o que acontece quando o cliente responder.
+            </p>
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.group}>
+              <label className={styles.label}>Ação ao responder</label>
+              <div
+                className={styles.optionsRow}
+                role="radiogroup"
+                aria-label="Ação de resposta"
+              >
+                <label className={styles.opt}>
+                  <input
+                    type="radio"
+                    name="actionType"
+                    value="open_ticket"
+                    checked={form.actionType === "open_ticket"}
+                    onChange={() => setField("actionType", "open_ticket")}
+                  />
+                  <span>Abrir ticket (fila/atendente)</span>
+                </label>
+                <label className={styles.opt}>
+                  <input
+                    type="radio"
+                    name="actionType"
+                    value="flow_goto"
+                    checked={form.actionType === "flow_goto"}
+                    onChange={() => setField("actionType", "flow_goto")}
+                  />
+                  <span>Enviar para bloco do fluxo</span>
+                </label>
               </div>
             </div>
-          </section>
-        )}
 
-        {/* STEP 1 — Resposta */}
-        {step === 1 && (
-          <section className={styles.card}>
-            <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Resposta do cliente</h2>
-              <p className={styles.cardDesc}>
-                Escolha o que acontece quando o cliente responder.
-              </p>
-            </div>
-            <div className={styles.cardBody}>
-              <div className={styles.grid1}>
+            {form.actionType === "open_ticket" ? (
+              <div className={styles.gridTwo}>
                 <div className={styles.group}>
-                  <label className={styles.label}>Ação ao responder</label>
-                  <div
-                    className={styles.optionsRow}
-                    role="radiogroup"
-                    aria-label="Ação de resposta"
+                  <label className={styles.label}>Fila (obrigatório)</label>
+                  <select
+                    className={styles.input}
+                    value={form.fila}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setForm((prev) => ({
+                        ...prev,
+                        fila: v,
+                        assigned_to: "",
+                      }));
+                    }}
                   >
-                    <label className={styles.opt}>
-                      <input
-                        type="radio"
-                        name="actionType"
-                        value="open_ticket"
-                        checked={form.actionType === "open_ticket"}
-                        onChange={() => setField("actionType", "open_ticket")}
-                      />
-                      <span>Abrir ticket (fila/atendente)</span>
-                    </label>
-                    <label className={styles.opt}>
-                      <input
-                        type="radio"
-                        name="actionType"
-                        value="flow_goto"
-                        checked={form.actionType === "flow_goto"}
-                        onChange={() => setField("actionType", "flow_goto")}
-                      />
-                      <span>Enviar para bloco do fluxo</span>
-                    </label>
+                    <option value="">Selecione…</option>
+                    {queuesNorm.map((q) => (
+                      <option key={q.id} value={q.nome}>
+                        {q.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.group}>
+                  <label className={styles.label}>Atendente (opcional)</label>
+                  <select
+                    className={styles.input}
+                    value={form.assigned_to}
+                    onChange={(e) => setField("assigned_to", e.target.value)}
+                    disabled={!form.fila}
+                  >
+                    <option value="">Sem atendente específico</option>
+                    {agentsForQueue.map((u) => {
+                      const label = u.name
+                        ? `${u.name}${u.lastname ? ` ${u.lastname}` : ""} — ${
+                            u.email
+                          }`
+                        : u.email;
+                      return (
+                        <option key={u.email} value={u.email}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <small className={styles.hint}>
+                    Lista exibe apenas atendentes vinculados à fila selecionada.
+                  </small>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.gridTwo}>
+                <div className={styles.group}>
+                  <label className={styles.label}>
+                    Bloco de destino (obrigatório)
+                  </label>
+                  <div className={styles.blockRow}>
+                    <select
+                      className={styles.input}
+                      value={form.flow_block}
+                      onChange={(e) => setField("flow_block", e.target.value)}
+                      disabled={blocksLoading || !!blocksError}
+                    >
+                      <option value="">
+                        {blocksLoading
+                          ? "Carregando blocos…"
+                          : "Selecione um bloco…"}
+                      </option>
+                      {blocks.map((b) => (
+                        <option key={b.key} value={b.key}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className={styles.fileButton}
+                      title="Atualizar blocos do fluxo"
+                      onClick={loadBlocks}
+                    >
+                      <RefreshCw size={16} />
+                      <span className={styles.btnText}>Atualizar</span>
+                    </button>
                   </div>
+                  {blocksError && (
+                    <div className={styles.alertErr}>⚠️ {blocksError}</div>
+                  )}
+                  {flowId && !blocksError && (
+                    <small className={styles.hint}>
+                      Fluxo ativo: <b>#{flowId}</b>.
+                    </small>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* STEP 2 — Template & Destino */}
+      {step === 2 && (
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>Template & Destino</h2>
+            <p className={styles.cardDesc}>
+              Selecione o template aprovado e informe o destino conforme o tipo
+              de envio.
+            </p>
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.gridTwo}>
+              <div className={styles.group}>
+                <label className={styles.label}>Template aprovado</label>
+                <select
+                  className={styles.input}
+                  value={form.template_id}
+                  onChange={(e) => setField("template_id", e.target.value)}
+                >
+                  <option value="">Selecione…</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} • {t.language_code}
+                    </option>
+                  ))}
+                </select>
+                {selectedTemplate && (
+                  <small className={styles.hint}>
+                    Idioma: <b>{selectedTemplate.language_code}</b>.
+                  </small>
+                )}
+              </div>
+
+              {form.sendType === "mass" ? (
+                <div className={styles.group}>
+                  <label className={styles.label}>Arquivo CSV</label>
+                  <div className={styles.fileRow}>
+                    <input
+                      id="csvInput"
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handlePickFile}
+                      className={styles.fileNative}
+                    />
+                    <label htmlFor="csvInput" className={styles.fileButton}>
+                      <Upload size={16} />
+                      <span className={styles.btnText}>
+                        {form.file ? "Trocar arquivo…" : "Selecionar arquivo…"}
+                      </span>
+                    </label>
+                    <span className={styles.fileName}>
+                      {form.file
+                        ? form.file.name
+                        : "Nenhum arquivo selecionado"}
+                    </span>
+                  </div>
+                  <small className={styles.hint}>
+                    O CSV deve conter a coluna <b>to</b> e as variáveis do
+                    template.
+                  </small>
+                </div>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>
+                    Número do destinatário
+                  </label>
+                  <input
+                    className={styles.input}
+                    placeholder="Ex.: 5511999998888"
+                    value={form.to}
+                    onChange={(e) =>
+                      setField("to", e.target.value.replace(/\s+/g, ""))
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* STEP 3 — Revisão */}
+      {step === 3 && (
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>Revisão</h2>
+            <p className={styles.cardDesc}>
+              Confira as informações antes de confirmar.
+            </p>
+          </div>
+          <div className={styles.cardBody}>
+            <div className={styles.gridTwo}>
+              <div className={styles.group}>
+                <label className={styles.label}>Nome</label>
+                <div className={styles.readonly}>
+                  {form.name || "—"}
+                </div>
+              </div>
+
+              <div className={styles.group}>
+                <label className={styles.label}>Tipo de envio</label>
+                <div className={styles.readonly}>
+                  {form.sendType === "mass" ? "Massa (CSV)" : "Individual"}
+                </div>
+              </div>
+
+              {form.sendType === "mass" ? (
+                <>
+                  <div className={styles.group}>
+                    <label className={styles.label}>Execução</label>
+                    <div className={styles.readonly}>
+                      {form.mode === "scheduled"
+                        ? form.start_at
+                          ? new Date(form.start_at).toLocaleString("pt-BR")
+                          : "Agendada (sem data)"
+                        : "Imediata"}
+                    </div>
+                  </div>
+
+                  <div className={styles.group}>
+                    <label className={styles.label}>Arquivo</label>
+                    <div className={styles.readonly}>
+                      {form.file?.name || "—"}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className={styles.group}>
+                  <label className={styles.label}>Destinatário</label>
+                  <div className={styles.readonly}>
+                    {form.to || "—"}
+                  </div>
+                </div>
+              )}
+
+              <div className={styles.group}>
+                <label className={styles.label}>Ação de resposta</label>
+                <div className={styles.readonly}>
+                  {form.actionType === "open_ticket"
+                    ? "Abrir ticket"
+                    : "Ir para bloco do fluxo"}
                 </div>
               </div>
 
               {form.actionType === "open_ticket" ? (
-                <div className={styles.grid2}>
+                <>
                   <div className={styles.group}>
-                    <label className={styles.label}>Fila (obrigatório)</label>
-                    <select
-                      className={styles.select}
-                      value={form.fila}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setForm((prev) => ({
-                          ...prev,
-                          fila: v,
-                          assigned_to: "",
-                        }));
-                      }}
-                    >
-                      <option value="">Selecione…</option>
-                      {queuesNorm.map((q) => (
-                        <option key={q.id} value={q.nome}>
-                          {q.nome}
-                        </option>
-                      ))}
-                    </select>
+                    <label className={styles.label}>Fila</label>
+                    <div className={styles.readonly}>
+                      {form.fila || "—"}
+                    </div>
                   </div>
 
                   <div className={styles.group}>
-                    <label className={styles.label}>Atendente (opcional)</label>
-                    <select
-                      className={styles.select}
-                      value={form.assigned_to}
-                      onChange={(e) => setField("assigned_to", e.target.value)}
-                      disabled={!form.fila}
-                    >
-                      <option value="">Sem atendente específico</option>
-                      {agentsForQueue.map((u) => {
-                        const label = u.name
-                          ? `${u.name}${
-                              u.lastname ? ` ${u.lastname}` : ""
-                            } — ${u.email}`
-                          : u.email;
-                        return (
-                          <option key={u.email} value={u.email}>
-                            {label}
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <small className={styles.hint}>
-                      Lista exibe apenas atendentes vinculados à fila
-                      selecionada.
-                    </small>
+                    <label className={styles.label}>Atendente</label>
+                    <div className={styles.readonly}>
+                      {form.assigned_to || "—"}
+                    </div>
                   </div>
-                </div>
+                </>
               ) : (
-                <div className={styles.grid2}>
-                  <div className={styles.group}>
-                    <label className={styles.label}>
-                      Bloco de destino (obrigatório)
-                    </label>
-                    <div className={styles.blockRow}>
-                      <select
-                        className={styles.select}
-                        value={form.flow_block}
-                        onChange={(e) =>
-                          setField("flow_block", e.target.value)
-                        }
-                        disabled={blocksLoading || !!blocksError}
-                      >
-                        <option value="">
-                          {blocksLoading
-                            ? "Carregando blocos…"
-                            : "Selecione um bloco…"}
-                        </option>
-                        {blocks.map((b) => (
-                          <option key={b.key} value={b.key}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        className={styles.fileButton}
-                        title="Atualizar blocos do fluxo"
-                        onClick={loadBlocks}
-                      >
-                        <RefreshCw size={16} />
-                        <span className={styles.btnText}>Atualizar</span>
-                      </button>
-                    </div>
-                    {blocksError && (
-                      <div className={styles.alertErr}>⚠️ {blocksError}</div>
-                    )}
-                    {flowId && !blocksError && (
-                      <small className={styles.hint}>
-                        Fluxo ativo: <b>#{flowId}</b>.
-                      </small>
-                    )}
+                <div className={styles.group}>
+                  <label className={styles.label}>Destino no fluxo</label>
+                  <div className={styles.readonly}>
+                    {blocks.find((b) => b.key === form.flow_block)?.name ||
+                      "—"}
                   </div>
                 </div>
               )}
-            </div>
-          </section>
-        )}
 
-        {/* STEP 2 — Template & Destino */}
-        {step === 2 && (
-          <section className={styles.card}>
-            <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Template & Destino</h2>
-              <p className={styles.cardDesc}>
-                Selecione o template aprovado e informe o destino conforme o
-                tipo de envio.
-              </p>
-            </div>
-            <div className={styles.cardBody}>
-              <div className={styles.grid2}>
-                <div className={styles.group}>
-                  <label className={styles.label}>Template aprovado</label>
-                  <select
-                    className={styles.select}
-                    value={form.template_id}
-                    onChange={(e) =>
-                      setField("template_id", e.target.value)
-                    }
-                  >
-                    <option value="">Selecione…</option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} • {t.language_code}
-                      </option>
-                    ))}
-                  </select>
-                  {selectedTemplate && (
-                    <small className={styles.hint}>
-                      Idioma: <b>{selectedTemplate.language_code}</b>.
-                    </small>
-                  )}
-                </div>
-
-                {form.sendType === "mass" ? (
-                  <div className={styles.group}>
-                    <label className={styles.label}>Arquivo CSV</label>
-                    <div className={styles.fileRow}>
-                      <input
-                        id="csvInput"
-                        type="file"
-                        accept=".csv,text/csv"
-                        onChange={handlePickFile}
-                        className={styles.fileNative}
-                      />
-                      <label
-                        htmlFor="csvInput"
-                        className={styles.fileButton}
-                      >
-                        <Upload size={16} />
-                        <span className={styles.btnText}>
-                          {form.file
-                            ? "Trocar arquivo…"
-                            : "Selecionar arquivo…"}
-                        </span>
-                      </label>
-                      <span className={styles.fileName}>
-                        {form.file
-                          ? form.file.name
-                          : "Nenhum arquivo selecionado"}
-                      </span>
-                    </div>
-                    <small className={styles.hint}>
-                      O CSV deve conter a coluna <b>to</b> e as variáveis do
-                      template.
-                    </small>
-                  </div>
-                ) : (
-                  <div className={styles.group}>
-                    <label className={styles.label}>
-                      Número do destinatário
-                    </label>
-                    <input
-                      className={styles.input}
-                      placeholder="Ex.: 5511999998888"
-                      value={form.to}
-                      onChange={(e) =>
-                        setField("to", e.target.value.replace(/\s+/g, ""))
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* STEP 3 — Revisão */}
-        {step === 3 && (
-          <section className={styles.card}>
-            <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Revisão</h2>
-              <p className={styles.cardDesc}>
-                Confira as informações antes de confirmar.
-              </p>
-            </div>
-            <div className={styles.cardBody}>
-              <div className={styles.grid2}>
-                <div className={styles.group}>
-                  <label className={styles.label}>Nome</label>
-                  <div className={styles.readonly}>
-                    {form.name || "—"}
-                  </div>
-                </div>
-
-                <div className={styles.group}>
-                  <label className={styles.label}>Tipo de envio</label>
-                  <div className={styles.readonly}>
-                    {form.sendType === "mass"
-                      ? "Massa (CSV)"
-                      : "Individual"}
-                  </div>
-                </div>
-
-                {form.sendType === "mass" ? (
-                  <>
-                    <div className={styles.group}>
-                      <label className={styles.label}>Execução</label>
-                      <div className={styles.readonly}>
-                        {form.mode === "scheduled"
-                          ? form.start_at
-                            ? new Date(
-                                form.start_at
-                              ).toLocaleString("pt-BR")
-                            : "Agendada (sem data)"
-                          : "Imediata"}
-                      </div>
-                    </div>
-
-                    <div className={styles.group}>
-                      <label className={styles.label}>Arquivo</label>
-                      <div className={styles.readonly}>
-                        {form.file?.name || "—"}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className={styles.group}>
-                    <label className={styles.label}>Destinatário</label>
-                    <div className={styles.readonly}>
-                      {form.to || "—"}
-                    </div>
-                  </div>
-                )}
-
-                <div className={styles.group}>
-                  <label className={styles.label}>Ação de resposta</label>
-                  <div className={styles.readonly}>
-                    {form.actionType === "open_ticket"
-                      ? "Abrir ticket"
-                      : "Ir para bloco do fluxo"}
-                  </div>
-                </div>
-
-                {form.actionType === "open_ticket" ? (
-                  <>
-                    <div className={styles.group}>
-                      <label className={styles.label}>Fila</label>
-                      <div className={styles.readonly}>
-                        {form.fila || "—"}
-                      </div>
-                    </div>
-
-                    <div className={styles.group}>
-                      <label className={styles.label}>Atendente</label>
-                      <div className={styles.readonly}>
-                        {form.assigned_to || "—"}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className={styles.group}>
-                    <label className={styles.label}>Destino no fluxo</label>
-                    <div className={styles.readonly}>
-                      {blocks.find((b) => b.key === form.flow_block)?.name ||
-                        "—"}
-                    </div>
-                  </div>
-                )}
-
-                <div className={styles.group}>
-                  <label className={styles.label}>Template</label>
-                  <div className={styles.readonly}>
-                    {selectedTemplate
-                      ? `${selectedTemplate.name} • ${selectedTemplate.language_code}`
-                      : "—"}
-                  </div>
+              <div className={styles.group}>
+                <label className={styles.label}>Template</label>
+                <div className={styles.readonly}>
+                  {selectedTemplate
+                    ? `${selectedTemplate.name} • ${selectedTemplate.language_code}`
+                    : "—"}
                 </div>
               </div>
             </div>
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-        {/* Footer / Navegação */}
-        <div
-          className={styles.stickyFooter}
-          role="region"
-          aria-label="Ações do wizard"
-        >
-          <div className={styles.stickyInner}>
-            <div />
-            <div className={styles.footerButtons}>
-              {step > 0 && (
-                <button
-                  type="button"
-                  className={styles.btnGhost}
-                  onClick={goPrev}
-                >
-                  Voltar
-                </button>
-              )}
-              {step < maxStep && (
-                <button
-                  type="button"
-                  className={styles.btnPrimary}
-                  onClick={goNext}
-                  disabled={
-                    (step === 0 && !canNextFromStep0) ||
-                    (step === 1 && !canNextFromStep1) ||
-                    (step === 2 && !canNextFromStep2)
-                  }
-                >
-                  Avançar
-                </button>
-              )}
-              {step === maxStep && (
-                <button
-                  type="button"
-                  className={styles.btnPrimary}
-                  onClick={handleCreate}
-                  disabled={loading || !canCreate}
-                >
-                  {loading ? (
-                    <Loader2 className={styles.spin} size={16} />
-                  ) : null}
-                  {loading
-                    ? "Processando…"
-                    : form.sendType === "mass"
-                    ? "Criar campanha"
-                    : "Enviar mensagem"}
-                </button>
-              )}
-            </div>
+      {/* Footer / Navegação */}
+      <div
+        className={styles.stickyFooter}
+        role="region"
+        aria-label="Ações do wizard"
+      >
+        <div className={styles.stickyInner}>
+          <div />
+          <div className={styles.footerButtons}>
+            {step > 0 && (
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={goPrev}
+              >
+                Voltar
+              </button>
+            )}
+            {step < maxStep && (
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={goNext}
+                disabled={
+                  (step === 0 && !canNextFromStep0) ||
+                  (step === 1 && !canNextFromStep1) ||
+                  (step === 2 && !canNextFromStep2)
+                }
+              >
+                Avançar
+              </button>
+            )}
+            {step === maxStep && (
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={handleCreate}
+                disabled={loading || !canCreate}
+              >
+                {loading ? (
+                  <Loader2 className={styles.spinning} size={16} />
+                ) : null}
+                {loading
+                  ? "Processando…"
+                  : form.sendType === "mass"
+                  ? "Criar campanha"
+                  : "Enviar mensagem"}
+              </button>
+            )}
           </div>
         </div>
       </div>
