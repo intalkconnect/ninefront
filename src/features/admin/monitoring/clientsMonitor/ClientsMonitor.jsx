@@ -28,7 +28,7 @@ import { toast } from "react-toastify";
 
 import MiniChatDrawer from "./MiniChatDrawer";
 import TransferModal from "./TransferModal";
-import styles from "../../styles/AdminUi.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 // helper para ler e decodificar o JWT (email e role/profile)
 const getAuthInfo = () => {
