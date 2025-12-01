@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, Copy } from "lucide-react";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
-import styles from "./styles/Tokens.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 // Prévia ofuscada: 8 chars do segredo + bullets (sem ID)
 function shortPreview(preview = "") {
