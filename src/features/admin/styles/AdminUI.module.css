@@ -1366,7 +1366,6 @@
   gap: 8px;
 }
 
-
 /* ===== RESPONSIVO ===== */
 
 @media (max-width: 1024px) {
@@ -1482,7 +1481,7 @@
   top: 90px;
 }
 
-/* subtítulo dentro dos cards */
+/* subtítulo dentro dos cards (redefinição, continua ok) */
 .cardDesc {
   margin: 4px 0 0;
   font-size: 13px;
@@ -1748,6 +1747,8 @@
 
 .colValue {
   flex: 1.6;
+  display: flex;
+  align-items: flex-start; /* garante valor alinhado ao topo */
 }
 
 .colUpdated {
@@ -1848,18 +1849,19 @@
 .ovEditor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
+/*  Alta | Aguardo [...] | Durante [...]   */
 .ovEditorRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: 52px auto auto;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 6px;
 }
 
 .ovEditorLabel {
-  width: 52px;
   font-size: 13px;
   font-weight: 600;
   text-transform: capitalize;
@@ -1867,10 +1869,10 @@
 }
 
 .ovEditorField {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: #e5e7eb;
 }
 
@@ -1919,5 +1921,10 @@
 
   .colUpdated {
     text-align: left;
+  }
+
+  .ovEditorRow {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
   }
 }
