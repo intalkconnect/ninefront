@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost, apiDelete } from "../../../../shared/apiClient";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 
-import styles from "./styles/Templates.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 const STATUS_OPTIONS = [
   { key: "", label: "Todos" },
