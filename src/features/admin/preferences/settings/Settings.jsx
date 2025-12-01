@@ -61,6 +61,7 @@ const valueLabelFor = (key, value) => {
   if (typeof value === "boolean") return value ? "Ativado" : "Desativado";
   return String(value ?? "—");
 };
+
 const coerceType = (v) => {
   if (v === null || v === undefined) return v;
   if (
@@ -75,7 +76,9 @@ const coerceType = (v) => {
   try {
     const j = JSON.parse(s);
     if (typeof j === "object") return j;
-  } catch {}
+  } catch {
+    // ignore
+  }
   return s;
 };
 
@@ -84,6 +87,7 @@ const DEFAULT_OVERRIDES = {
   alta: { espera_inicial: 5, demora_durante: 10 },
   media: { espera_inicial: 15, demora_durante: 20 },
 };
+
 const parseOverrides = (raw) => {
   try {
     const obj = typeof raw === "string" ? JSON.parse(raw) : raw || {};
@@ -109,6 +113,7 @@ const parseOverrides = (raw) => {
     return { ...DEFAULT_OVERRIDES };
   }
 };
+
 const isBad = (n) => !Number.isFinite(n) || n < 0;
 
 /* ---------- UI: Toggle ---------- */
@@ -146,6 +151,7 @@ export default function Preferences() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     load();
   }, []);
@@ -160,6 +166,7 @@ export default function Preferences() {
     byKey.get("habilitar_alertas_atendimento")?.value
   );
 
+  // se desativar os alertas, cancela edição de overrides
   useEffect(() => {
     if (!alertsEnabled && editingOv) {
       setEditingOv(false);
@@ -269,6 +276,7 @@ export default function Preferences() {
   const renderValueCell = (key, raw) => {
     const spec = FRIENDLY[key];
 
+    // boolean (toggle)
     if (spec?.type === "boolean" || typeof raw === "boolean") {
       return (
         <div className={styles.valueInline}>
@@ -277,17 +285,16 @@ export default function Preferences() {
             onChange={() => toggleBoolean(key)}
             label={valueLabelFor(key, raw)}
           />
-          <span className={styles.valueText}>
-            {valueLabelFor(key, raw)}
-          </span>
+          <span className={styles.valueText}>{valueLabelFor(key, raw)}</span>
         </div>
       );
     }
 
+    // enum (select)
     if (spec?.type === "enum") {
       return (
         <select
-          value={String(raw ?? "")}
+          value={String(raw ?? spec.options[0]?.value ?? "")}
           onChange={(e) => changeEnum(key, e.target.value)}
           className={styles.select}
         >
@@ -300,6 +307,7 @@ export default function Preferences() {
       );
     }
 
+    // overrides (form customizado)
     if (spec?.type === "overrides_form") {
       const v = parseOverrides(raw);
 
@@ -345,6 +353,7 @@ export default function Preferences() {
           {["alta", "media"].map((pr) => (
             <div key={pr} className={styles.ovEditorRow}>
               <span className={styles.ovEditorLabel}>{pr}</span>
+
               <label className={styles.ovEditorField}>
                 Aguardo
                 <input
@@ -366,6 +375,7 @@ export default function Preferences() {
                 />
                 <span className={styles.numSuffix}>min</span>
               </label>
+
               <label className={styles.ovEditorField}>
                 Durante
                 <input
@@ -389,8 +399,10 @@ export default function Preferences() {
               </label>
             </div>
           ))}
+
           <div className={styles.formActions}>
             <button
+              type="button"
               className={styles.btnGhost}
               onClick={() => {
                 setEditingOv(false);
@@ -399,7 +411,11 @@ export default function Preferences() {
             >
               Cancelar
             </button>
-            <button className={styles.btnPrimary} onClick={saveOv}>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={saveOv}
+            >
               Salvar
             </button>
           </div>
@@ -407,17 +423,14 @@ export default function Preferences() {
       );
     }
 
-    return (
-      <pre className={styles.freeValue}>
-        {String(raw ?? "")}
-      </pre>
-    );
+    // fallback: mostra valor livre (JSON/string)
+    return <pre className={styles.freeValue}>{String(raw ?? "")}</pre>;
   };
 
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* Header no padrão dark das outras telas */}
+        {/* Header padrão */}
         <header className={styles.header}>
           <div className={styles.titleBlock}>
             <h1 className={styles.title}>Preferências do workspace</h1>
@@ -427,7 +440,7 @@ export default function Preferences() {
           </div>
         </header>
 
-        {/* Card da “tabela” com header escuro */}
+        {/* Card principal de "tabela" de preferências */}
         <div className={styles.tableCard}>
           <div className={styles.tableHead}>
             <div className={styles.th}>Opção</div>
@@ -470,9 +483,7 @@ export default function Preferences() {
 
                     <div className={styles.colUpdated}>
                       {row.updated_at
-                        ? new Date(
-                            row.updated_at
-                          ).toLocaleString("pt-BR")
+                        ? new Date(row.updated_at).toLocaleString("pt-BR")
                         : "—"}
                     </div>
                   </div>
