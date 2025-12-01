@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { X as XIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import styles from "./styles/AuditLogs.module.css";
 import { apiGet } from "../../../../shared/apiClient";
+import styles from "../../styles/AdminUI.module.css";
 
 /** Sucesso = 2xx ou 3xx */
 const isSuccess = (code) => {
@@ -220,11 +220,12 @@ export default function AuditLogs() {
           </div>
         </header>
 
-        {/* Filtros */}
-        <section className={styles.filtersBar}>
-          <div className={styles.field}>
-            <label>Status</label>
-            <div className={styles.chipGroup}>
+        {/* Filtros reaproveitando o layout padrão */}
+        <section className={styles.filters}>
+          {/* Status */}
+          <div className={styles.filterGroup}>
+            <p className={styles.filterTitle}>Status</p>
+            <div className={styles.filterChips}>
               <button
                 type="button"
                 className={`${styles.chip} ${
@@ -267,57 +268,66 @@ export default function AuditLogs() {
             </div>
           </div>
 
-          <div className={styles.field}>
-            <label>Autor/Usuário</label>
-            <div className={styles.inputWrap}>
-              <input
-                className={styles.input}
-                placeholder="email ou nome"
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-              />
-              {author && (
-                <button
-                  className={styles.inputClear}
-                  title="Limpar"
-                  onClick={() => setAuthor("")}
-                >
-                  <XIcon size={14} />
-                </button>
-              )}
+          {/* Linha de filtros: autor + datas + limpar */}
+          <div className={styles.filterRow}>
+            <div className={styles.group}>
+              <label className={styles.label}>Autor/Usuário</label>
+              <div className={styles.searchGroup}>
+                <input
+                  className={styles.searchInput}
+                  placeholder="email ou nome"
+                  value={author}
+                  onChange={(e) => setAuthor(e.target.value)}
+                />
+                {author && (
+                  <button
+                    type="button"
+                    className={styles.searchClear}
+                    title="Limpar"
+                    onClick={() => setAuthor("")}
+                  >
+                    <XIcon size={14} />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className={styles.field}>
-            <label>De</label>
-            <input
-              type="date"
-              className={styles.input}
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
-          </div>
+            <div className={styles.group}>
+              <label className={styles.label}>De</label>
+              <input
+                type="date"
+                className={styles.input}
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
 
-          <div className={styles.field}>
-            <label>Até</label>
-            <input
-              type="date"
-              className={styles.input}
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
-          </div>
+            <div className={styles.group}>
+              <label className={styles.label}>Até</label>
+              <input
+                type="date"
+                className={styles.input}
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
 
-          <div className={styles.actionsRight}>
-            <button className={styles.resetBtn} onClick={clearFilters}>
-              Limpar filtros
-            </button>
+            <div className={styles.group}>
+              <label className={styles.label}>&nbsp;</label>
+              <button
+                type="button"
+                className={styles.btnGhost}
+                onClick={clearFilters}
+              >
+                Limpar filtros
+              </button>
+            </div>
           </div>
         </section>
 
-        {/* Card + Tabela */}
-        <section className={styles.card}>
-          <div className={styles.tableWrap}>
+        {/* Card + tabela no padrão FlowHub */}
+        <section className={styles.tableCard}>
+          <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -329,10 +339,12 @@ export default function AuditLogs() {
               </thead>
               <tbody>
                 {loading &&
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={`sk-${i}`} className={styles.skelRow}>
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={`sk-${i}`}>
                       <td colSpan={4}>
-                        <div className={styles.skeletonRow} />
+                        <div
+                          className={`${styles.skeleton} ${styles.sq48}`}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -347,18 +359,18 @@ export default function AuditLogs() {
 
                 {!loading &&
                   paginated.map((row) => (
-                    <tr key={row.id} className={styles.rowHover}>
+                    <tr key={row.id}>
                       <td data-label="Data">{fmtDate(row.ts)}</td>
                       <td data-label="Ação">
                         {formatAction(row.action, row.resource_type)}
                       </td>
                       <td data-label="Status">
                         <span
-                          className={
+                          className={`${styles.statusBadge} ${
                             isSuccess(row.status_code)
-                              ? styles.statusOk
-                              : styles.statusFail
-                          }
+                              ? styles.stFinished
+                              : styles.stFailed
+                          }`}
                           title={`HTTP ${row.status_code}`}
                         >
                           {isSuccess(row.status_code) ? "Sucesso" : "Falha"}
@@ -373,9 +385,10 @@ export default function AuditLogs() {
             </table>
           </div>
 
-          {/* Paginação */}
-          <div className={styles.pager}>
+          {/* Paginação padrão adminui */}
+          <div className={styles.pagination}>
             <button
+              type="button"
               className={styles.pageBtn}
               onClick={() => canPrev && setPage((p) => Math.max(1, p - 1))}
               disabled={!canPrev}
@@ -384,11 +397,14 @@ export default function AuditLogs() {
               Anterior
             </button>
             <div className={styles.pageInfo}>
-              {page} / {totalPages}
+              Página {page} de {totalPages}
             </div>
             <button
+              type="button"
               className={styles.pageBtn}
-              onClick={() => canNext && setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() =>
+                canNext && setPage((p) => Math.min(totalPages, p + 1))
+              }
               disabled={!canNext}
             >
               Próxima
