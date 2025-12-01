@@ -1,4 +1,3 @@
-// File: AgentsMonitor.jsx
 import React, {
   useEffect,
   useMemo,
@@ -9,7 +8,7 @@ import React, {
 import { apiGet } from "../../../../shared/apiClient";
 import { RefreshCw, ToggleLeft, PauseCircle, Power, Clock } from "lucide-react";
 import { toast } from "react-toastify";
-import styles from "../../styles/AdminUI.module.css";
+import styles from "../../styles/adminUi.module.css";
 
 /* ---------- helpers ---------- */
 
@@ -150,7 +149,7 @@ export default function AgentsRealtime() {
     [pauseCfg]
   );
 
-  // tom da linha: só ok ou late (sem warn)
+  // tom da linha: ok / late
   const rowTone = useCallback(
     (a) => {
       if (a.status !== "pause") return "ok";
@@ -225,19 +224,25 @@ export default function AgentsRealtime() {
 
   /* ----- helpers de render ----- */
 
-  const StatusPill = ({ s }) => (
-    <span className={`${styles.stPill} ${styles["st_" + s]}`}>
-      {s === "pause"
-        ? "Pausa"
-        : s === "online"
-        ? "Online"
-        : s === "offline"
-        ? "Offline"
-        : s === "inativo"
-        ? "Inativo"
-        : s}
-    </span>
-  );
+  const StatusPill = ({ s }) => {
+    let cls = styles.stDefault;
+    if (s === "online") cls = styles.stActive;
+    else if (s === "pause") cls = styles.stScheduled;
+    else if (s === "offline") cls = styles.stFailed;
+    else if (s === "inativo") cls = styles.stFinished;
+
+    return (
+      <span className={`${styles.statusBadge} ${cls}`}>
+        {s === "pause"
+          ? "Pausa"
+          : s === "online"
+          ? "Online"
+          : s === "offline"
+          ? "Offline"
+          : "Inativo"}
+      </span>
+    );
+  };
 
   const PauseInfo = ({ a }) => {
     if (a.status !== "pause") return "—";
@@ -250,7 +255,7 @@ export default function AgentsRealtime() {
     const late = rest <= 0;
 
     return (
-      <span className={styles.pauseText}>
+      <span className={styles.subtle}>
         {motivo} •{" "}
         {late
           ? `excedido +${fmtMin(-rest)}`
@@ -271,29 +276,12 @@ export default function AgentsRealtime() {
     return `${styles.row} ${toneClass}`;
   };
 
-  const statusLabel = (s) => {
-    switch (s) {
-      case "todos":
-        return "Todos";
-      case "online":
-        return "Online";
-      case "pause":
-        return "Pausa";
-      case "offline":
-        return "Offline";
-      case "inativo":
-        return "Inativos";
-      default:
-        return s;
-    }
-  };
-
   /* ---------- render ---------- */
 
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER padrão adminUI */}
+        {/* HEADER padrão adminUi */}
         <header className={styles.header}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Monitor de Agentes</h1>
@@ -308,7 +296,6 @@ export default function AgentsRealtime() {
             onClick={() => fetchAll({ fromButton: true })}
             disabled={refreshing}
             title="Atualizar agora"
-            type="button"
           >
             <RefreshCw
               size={16}
@@ -317,7 +304,7 @@ export default function AgentsRealtime() {
           </button>
         </header>
 
-        {/* KPIs */}
+        {/* KPIs usando os cards padrão */}
         <section className={styles.cardGroup}>
           {loading ? (
             <>
@@ -356,7 +343,7 @@ export default function AgentsRealtime() {
           )}
         </section>
 
-        {/* Filtros */}
+        {/* Filtros usando layout padrão de filtros do adminUi */}
         <section className={styles.filters}>
           <div className={styles.filterGroup}>
             <div className={styles.filterTitle}>Status</div>
@@ -368,9 +355,8 @@ export default function AgentsRealtime() {
                     filterStatus === s ? styles.chipActive : ""
                   }`}
                   onClick={() => setFilterStatus(s)}
-                  type="button"
                 >
-                  {statusLabel(s)}
+                  {s[0].toUpperCase() + s.slice(1)}
                 </button>
               ))}
             </div>
@@ -381,7 +367,7 @@ export default function AgentsRealtime() {
             <select
               value={filterFila}
               onChange={(e) => setFilterFila(e.target.value)}
-              className={styles.select}
+              className={styles.searchInput}
             >
               {filasOptions.map((f) => (
                 <option key={f} value={f}>
@@ -391,24 +377,26 @@ export default function AgentsRealtime() {
             </select>
           </div>
 
-          <div className={styles.filterGroupGrow}>
+          <div className={styles.filterGroup}>
             <div className={styles.filterTitle}>Buscar</div>
-            <input
-              className={styles.input}
-              placeholder="Nome, fila, motivo…"
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-            />
+            <div className={styles.searchGroup}>
+              <input
+                className={styles.searchInput}
+                placeholder="Nome, fila, motivo…"
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+              />
+            </div>
           </div>
 
           {erro && (
-            <div className={styles.filterError}>
+            <div className={styles.filterGroup}>
               <span className={styles.kpillAmber}>{erro}</span>
             </div>
           )}
         </section>
 
-        {/* Tabela */}
+        {/* Tabela padrão adminUi */}
         <section className={styles.tableCard}>
           <div className={styles.tableHeader}>
             <h2 className={styles.tableTitle}>Agentes em tempo real</h2>
@@ -429,14 +417,16 @@ export default function AgentsRealtime() {
               <tbody>
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={`sk-${i}`} className={styles.skelRow}>
+                    <tr key={`sk-${i}`} className={styles.row}>
                       <td colSpan={6}>
-                        <div className={styles.skeletonRow} />
+                        <div
+                          className={`${styles.skeleton} ${styles.sq48}`}
+                        />
                       </td>
                     </tr>
                   ))
                 ) : pageData.length === 0 ? (
-                  <tr>
+                  <tr className={styles.row}>
                     <td colSpan={6} className={styles.emptyCell}>
                       Nenhum agente no filtro atual.
                     </td>
@@ -448,7 +438,7 @@ export default function AgentsRealtime() {
                       className={rowClass(a)}
                     >
                       <td>
-                        <span className={styles.agentName}>
+                        <span className={styles.clientName}>
                           {a.agente || "—"}
                         </span>
                       </td>
@@ -461,26 +451,12 @@ export default function AgentsRealtime() {
                       <td>{filasTexto(a)}</td>
                       <td>{a.tickets_abertos || 0}</td>
                       <td
-                        className={`${styles.lastAct} ${
-                          !a.last_seen
-                            ? styles.lastStale
-                            : (Date.now() -
-                                new Date(a.last_seen).getTime()) /
-                                1000 <=
-                              60
-                            ? styles.lastOk
-                            : (Date.now() -
-                                new Date(a.last_seen).getTime()) /
-                                1000 <=
-                              180
-                            ? styles.lastWarn
-                            : styles.lastStale
-                        }`}
                         title={
                           a.last_seen
                             ? new Date(a.last_seen).toLocaleString("pt-BR")
                             : ""
                         }
+                        className={styles.subtle}
                       >
                         {fmtRel(a.last_seen)}
                       </td>
@@ -491,13 +467,12 @@ export default function AgentsRealtime() {
             </table>
           </div>
 
-          {/* Paginação */}
+          {/* Paginação padrão adminUi */}
           <div className={styles.pagination}>
             <button
               className={styles.pageBtn}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={pageSafe <= 1}
-              type="button"
             >
               ‹ Anterior
             </button>
@@ -508,7 +483,6 @@ export default function AgentsRealtime() {
               className={styles.pageBtn}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={pageSafe >= totalPages}
-              type="button"
             >
               Próxima ›
             </button>
@@ -519,7 +493,7 @@ export default function AgentsRealtime() {
   );
 }
 
-/* ---------- subcomponentes de KPI ---------- */
+/* ---------- subcomponentes de KPI (usando adminUi) ---------- */
 
 function KpiCard({ icon, label, value, tone = "blue" }) {
   return (
