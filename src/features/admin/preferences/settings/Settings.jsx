@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
-import styles from "./styles/Settings.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 /* ---------- mapa amigável ---------- */
 const FRIENDLY = {
@@ -447,7 +447,7 @@ export default function Preferences() {
                 const raw = row.value;
 
                 return (
-                  <div className={styles.row} key={key}>
+                  <div className={styles.prefRow} key={key}>
                     <div className={styles.colOption}>
                       <div className={styles.optionTitle}>
                         {spec?.label ?? key}
