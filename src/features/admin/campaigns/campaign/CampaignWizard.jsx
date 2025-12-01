@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
-import styles from "../styles/AdminUI.module.css"; // ajuste o caminho se necessário
+import styles from "../../styles/AdminUI.module.css"; // ajuste o caminho se necessário
 import { toast } from "react-toastify";
 
 /* ---------- Helpers ---------- */
