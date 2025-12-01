@@ -1,3 +1,4 @@
+// File: Templates.jsx
 import React, {
   useCallback,
   useEffect,
@@ -10,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost, apiDelete } from "../../../../shared/apiClient";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
 
-import styles from "./styles/Templates.module.css";
+import styles from "../../styles/AdminUI.module.css"; // ajuste o caminho conforme seu projeto
 
 const STATUS_OPTIONS = [
   { key: "", label: "Todos" },
@@ -22,13 +23,17 @@ const STATUS_OPTIONS = [
 
 function StatusChip({ status }) {
   const map = {
-    approved: { txt: "Aprovado", cls: styles.stApproved },
-    rejected: { txt: "Rejeitado", cls: styles.stRejected },
-    submitted: { txt: "Em análise", cls: styles.stSubmitted },
-    draft: { txt: "Rascunho", cls: styles.stDraft },
+    approved: { txt: "Aprovado", cls: styles.stFinished },
+    rejected: { txt: "Rejeitado", cls: styles.stFailed },
+    submitted: { txt: "Em análise", cls: styles.stScheduled },
+    draft: { txt: "Rascunho", cls: styles.stDefault },
   };
   const it = map[status] || { txt: status || "—", cls: styles.stDefault };
-  return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
+  return (
+    <span className={`${styles.statusBadge} ${it.cls}`}>
+      {it.txt}
+    </span>
+  );
 }
 
 function ScoreSemaforo({ value }) {
@@ -58,6 +63,7 @@ function ScoreSemaforo({ value }) {
       : code === "RED"
       ? "#EF4444"
       : "#9CA3AF";
+
   return (
     <span
       className={styles.qualityDot}
@@ -198,19 +204,19 @@ export default function Templates() {
   const clearSearch = () => setQuery("");
 
   return (
-    <div className={styles.container}>
-      {/* HEADER NO PADRÃO CAMPANHAS/USERS */}
-      <div className={styles.headerCard}>
-        <div className={styles.headerRow}>
-          <div className={styles.headerCenter}>
-            <div className={styles.headerTitle}>Templates WhatsApp</div>
-            <div className={styles.headerSubtitle}>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* HEADER padrão FlowHub */}
+        <header className={styles.header}>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>Templates WhatsApp</h1>
+            <p className={styles.subtitle}>
               Crie, acompanhe o status e visualize a prévia dos modelos
               aprovados pela Meta.
-            </div>
+            </p>
           </div>
 
-          <div className={styles.headerRight}>
+          <div className={styles.headerActions}>
             <button
               className={styles.iconCircle}
               type="button"
@@ -228,166 +234,158 @@ export default function Templates() {
               <Plus size={18} />
             </button>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* LISTA (apenas 1 coluna, sem preview) */}
-      <div className={styles.mainGrid}>
-        <div className={styles.colList}>
-          <div className={styles.card}>
-            <div className={styles.cardHead}>
-              <div
-                className={styles.segmentRow}
-                role="tablist"
-                aria-label="Filtrar por status"
-              >
-                {STATUS_OPTIONS.map((opt) => {
-                  const active = statusFilter === opt.key;
-                  return (
-                    <button
-                      key={opt.key || "all"}
-                      type="button"
-                      className={`${styles.segBtn} ${
-                        active ? styles.segBtnActive : ""
-                      }`}
-                      onClick={() => setStatusFilter(opt.key)}
-                      aria-pressed={active}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className={styles.searchGroup}>
-                <input
-                  className={styles.searchInput}
-                  placeholder="Buscar por nome ou conteúdo…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  aria-label="Buscar templates"
-                />
-                {query && (
+        {/* Card da lista */}
+        <section className={styles.card}>
+          <div className={styles.cardHead}>
+            <div
+              className={styles.segmentRow}
+              role="tablist"
+              aria-label="Filtrar por status"
+            >
+              {STATUS_OPTIONS.map((opt) => {
+                const active = statusFilter === opt.key;
+                return (
                   <button
-                    className={styles.searchClear}
-                    onClick={clearSearch}
-                    aria-label="Limpar busca"
+                    key={opt.key || "all"}
                     type="button"
+                    className={`${styles.segBtn} ${
+                      active ? styles.segBtnActive : ""
+                    }`}
+                    onClick={() => setStatusFilter(opt.key)}
+                    aria-pressed={active}
                   >
-                    <XIcon size={14} />
+                    {opt.label}
                   </button>
-                )}
-              </div>
+                );
+              })}
             </div>
 
-            <div className={styles.tableWrap}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={{ minWidth: 240 }}>Nome do modelo</th>
-                    <th>Categoria</th>
-                    <th>Recategorizado</th>
-                    <th>Idioma</th>
-                    <th>Status</th>
-                    <th>Qualidade</th>
-                    <th style={{ width: 120 }}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading && (
-                    <tr>
-                      <td className={styles.loading} colSpan={7}>
-                        Carregando…
-                      </td>
-                    </tr>
-                  )}
-                  {!loading && filtered.length === 0 && (
-                    <tr>
-                      <td className={styles.empty} colSpan={7}>
-                        Nenhum template encontrado.
-                      </td>
-                    </tr>
-                  )}
-
-                  {!loading &&
-                    filtered.map((t) => {
-                      const isSel = selected?.id === t.id;
-                      return (
-                        <tr
-                          key={t.id}
-                          className={`${styles.rowHover} ${
-                            isSel ? styles.rowSelected : ""
-                          }`}
-                          onClick={() => setSelected(t)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setSelected(t);
-                            }
-                          }}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`Selecionar ${t.name} para prévia`}
-                        >
-                          <td data-label="Nome" className={styles.colName}>
-                            <div className={styles.keyTitle}>{t.name}</div>
-                          </td>
-                          <td data-label="Categoria">{t.category || "—"}</td>
-                          <td data-label="Recategorizado">
-                            {t.recategorized ? "Sim" : "Não"}
-                          </td>
-                          <td data-label="Idioma">
-                            {t.language_code || "—"}
-                          </td>
-                          <td data-label="Status">
-                            <StatusChip status={t.status} />
-                          </td>
-                          <td data-label="Qualidade">
-                            <ScoreSemaforo value={t.quality_score} />
-                          </td>
-                          <td
-                            data-label="Ações"
-                            className={styles.actionsCell}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => e.stopPropagation()}
-                          >
-                            <div className={styles.actions}>
-                              <button
-                                className={`${styles.qrIconBtn} ${styles.danger}`}
-                                title="Excluir"
-                                onClick={() =>
-                                  handleDelete(t.id, t.status)
-                                }
-                                disabled={
-                                  !["draft", "rejected"].includes(
-                                    t.status
-                                  )
-                                }
-                                type="button"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
+            <div className={styles.searchGroup}>
+              <input
+                className={styles.searchInput}
+                placeholder="Buscar por nome ou conteúdo…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Buscar templates"
+              />
+              {query && (
+                <button
+                  className={styles.searchClear}
+                  onClick={clearSearch}
+                  aria-label="Limpar busca"
+                  type="button"
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
             </div>
-
-            {error && (
-              <div className={styles.alertErr} role="alert">
-                ⚠️ {error}
-              </div>
-            )}
-            {okMsg && (
-              <div className={styles.alertOk} role="status">
-                ✅ {okMsg}
-              </div>
-            )}
           </div>
-        </div>
+
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th style={{ minWidth: 240 }}>Nome do modelo</th>
+                  <th>Categoria</th>
+                  <th>Recategorizado</th>
+                  <th>Idioma</th>
+                  <th>Status</th>
+                  <th>Qualidade</th>
+                  <th style={{ width: 120 }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading && (
+                  <tr>
+                    <td className={styles.loading} colSpan={7}>
+                      Carregando…
+                    </td>
+                  </tr>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td className={styles.empty} colSpan={7}>
+                      Nenhum template encontrado.
+                    </td>
+                  </tr>
+                )}
+
+                {!loading &&
+                  filtered.map((t) => {
+                    const isSel = selected?.id === t.id;
+                    return (
+                      <tr
+                        key={t.id}
+                        className={`${styles.row} ${
+                          isSel ? styles.rowSelected : ""
+                        }`}
+                        onClick={() => setSelected(t)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelected(t);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Selecionar ${t.name} para prévia`}
+                      >
+                        <td data-label="Nome" className={styles.campaignCell}>
+                          <span className={styles.campaignName}>
+                            {t.name}
+                          </span>
+                        </td>
+                        <td data-label="Categoria">{t.category || "—"}</td>
+                        <td data-label="Recategorizado">
+                          {t.recategorized ? "Sim" : "Não"}
+                        </td>
+                        <td data-label="Idioma">
+                          {t.language_code || "—"}
+                        </td>
+                        <td data-label="Status">
+                          <StatusChip status={t.status} />
+                        </td>
+                        <td data-label="Qualidade">
+                          <ScoreSemaforo value={t.quality_score} />
+                        </td>
+                        <td
+                          data-label="Ações"
+                          className={styles.actionsCell}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            className={styles.iconCircle}
+                            title="Excluir"
+                            onClick={() => handleDelete(t.id, t.status)}
+                            disabled={
+                              !["draft", "rejected"].includes(t.status)
+                            }
+                            type="button"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </div>
+
+          {error && (
+            <div className={styles.alertErr} role="alert">
+              ⚠️ {error}
+            </div>
+          )}
+          {okMsg && (
+            <div className={styles.alertOk} role="status">
+              ✅ {okMsg}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
