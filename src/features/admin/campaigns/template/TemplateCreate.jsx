@@ -4,13 +4,13 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Save as SaveIcon } from "lucide-react";
 import { apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 
 import PreviewWhatsApp from "./PreviewWhatsApp";
-import styles from "./styles/TemplateCreate.module.css";
+import styles from "../../../../styles/adminUi.module.css";
 
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
@@ -114,7 +114,7 @@ const TemplateInfoSection = ({
 }) => (
   <section className={styles.card}>
     <div className={styles.cardHead}>
-      <h2 className={styles.cardTitle}>Informações básicas</h2>
+      <div className={styles.cardTitle}>Informações básicas</div>
       <p className={styles.cardDesc}>
         Defina categoria, idioma e o identificador interno do modelo.
       </p>
@@ -211,7 +211,7 @@ const ContentSection = ({
   return (
     <section className={styles.card}>
       <div className={styles.cardHead}>
-        <h2 className={styles.cardTitle}>Conteúdo da mensagem</h2>
+        <div className={styles.cardTitle}>Conteúdo da mensagem</div>
         <p className={styles.cardDesc}>
           Configure o cabeçalho, corpo e rodapé exibidos para o cliente.
         </p>
@@ -221,13 +221,17 @@ const ContentSection = ({
       <div className={styles.cardBodyGrid}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de cabeçalho</label>
-          <div className={styles.segmented} role="tablist">
+          <div
+            className={styles.segmentRow}
+            role="tablist"
+            aria-label="Tipo de cabeçalho"
+          >
             {HEADER_TYPES.map((h) => (
               <button
                 key={h.value}
                 type="button"
-                className={`${styles.segItem} ${
-                  headerType === h.value ? styles.segActive : ""
+                className={`${styles.segBtn} ${
+                  headerType === h.value ? styles.segBtnActive : ""
                 }`}
                 onClick={() => onChangeHeaderType(h.value)}
                 aria-pressed={headerType === h.value}
@@ -310,7 +314,8 @@ const ContentSection = ({
             placeholder="Texto do rodapé"
           />
           <small className={styles.helperInline}>
-            {footerTextLeft} caracteres restantes (máx. {LIMITS.footerText})
+            {footerTextLeft} caracteres restantes (máx.{" "}
+            {LIMITS.footerText})
           </small>
         </div>
       </div>
@@ -395,7 +400,7 @@ const ButtonsSection = ({
   return (
     <section className={styles.card}>
       <div className={styles.cardHead}>
-        <h2 className={styles.cardTitle}>Botões de ação</h2>
+        <div className={styles.cardTitle}>Botões de ação</div>
         <p className={styles.cardDesc}>
           Adicione botões de ação (URL/telefone) ou respostas rápidas.
         </p>
@@ -405,11 +410,15 @@ const ButtonsSection = ({
       <div className={styles.cardBodyGrid}>
         <div className={styles.groupFull}>
           <label className={styles.label}>Tipo de botão</label>
-          <div className={styles.pills} role="tablist">
+          <div
+            className={styles.segmentRow}
+            role="tablist"
+            aria-label="Tipo de botão"
+          >
             <button
               type="button"
-              className={`${styles.pill} ${
-                buttonMode === "none" ? styles.pillActive : ""
+              className={`${styles.segBtn} ${
+                buttonMode === "none" ? styles.segBtnActive : ""
               }`}
               onClick={() => handleModeChange("none")}
             >
@@ -417,8 +426,8 @@ const ButtonsSection = ({
             </button>
             <button
               type="button"
-              className={`${styles.pill} ${
-                buttonMode === "cta" ? styles.pillActive : ""
+              className={`${styles.segBtn} ${
+                buttonMode === "cta" ? styles.segBtnActive : ""
               }`}
               onClick={() => handleModeChange("cta")}
             >
@@ -426,8 +435,8 @@ const ButtonsSection = ({
             </button>
             <button
               type="button"
-              className={`${styles.pill} ${
-                buttonMode === "quick" ? styles.pillActive : ""
+              className={`${styles.segBtn} ${
+                buttonMode === "quick" ? styles.segBtnActive : ""
               }`}
               onClick={() => handleModeChange("quick")}
             >
@@ -820,7 +829,10 @@ export default function TemplateCreate() {
         ))
     )
       return false;
-    if (buttonMode === "quick" && (!quicks.length || quicks.some((q) => !q.text?.trim())))
+    if (
+      buttonMode === "quick" &&
+      (!quicks.length || quicks.some((q) => !q.text?.trim()))
+    )
       return false;
     return true;
   }, [name, bodyText, headerType, headerText, buttonMode, ctas, quicks]);
@@ -913,91 +925,89 @@ export default function TemplateCreate() {
   );
 
   return (
-    <div className={styles.container} ref={topRef}>
-      {/* Header card no padrão das outras páginas */}
-      <header className={styles.headerCard}>
-        <div className={styles.headerRow}>
-          <div className={styles.headerCenter}>
-            <div className={styles.headerTitle}>
-              Criar Template WhatsApp
-            </div>
-            <div className={styles.headerSubtitle}>
-              Configure seu modelo em 2 etapas simples e envie para
-              aprovação da Meta.
-            </div>
+    <div className={styles.page}>
+      <div className={styles.container} ref={topRef}>
+        {/* Header padrão adminUI */}
+        <header className={styles.header}>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>Criar Template WhatsApp</h1>
+            <p className={styles.subtitle}>
+              Configure seu modelo em 2 etapas simples e envie para aprovação
+              da Meta.
+            </p>
           </div>
 
-          <div className={styles.headerRight}>
+          <div className={styles.headerActions}>
             <button
               type="button"
-              className={styles.btnGhost}
+              className={styles.pageBtn}
               onClick={() => navigate(-1)}
             >
               Cancelar
             </button>
             <button
               type="button"
-              className={styles.btnPrimary}
+              className={styles.pageBtn}
               onClick={handleSubmit}
               disabled={!canSave || saving}
             >
-              <SaveIcon size={16} />
+              <SaveIcon size={16} style={{ marginRight: 6 }} />
               {saving ? "Enviando…" : "Enviar para avaliação"}
             </button>
           </div>
+        </header>
+
+        {/* GRID: formulário + preview telefone */}
+        <div className={styles.mainGrid}>
+          <div className={styles.colForm}>
+            <TemplateInfoSection
+              name={name}
+              setName={setName}
+              language={language}
+              setLanguage={setLanguage}
+              category={category}
+              setCategory={setCategory}
+            />
+
+            <ContentSection
+              headerType={headerType}
+              onChangeHeaderType={handleChangeHeaderType}
+              headerText={headerText}
+              setHeaderText={setHeaderText}
+              headerMediaUrl={headerMediaUrl}
+              setHeaderMediaUrl={setHeaderMediaUrl}
+              bodyText={bodyText}
+              setBodyText={setBodyText}
+              footerText={footerText}
+              setFooterText={setFooterText}
+            />
+
+            <ButtonsSection
+              buttonMode={buttonMode}
+              setButtonMode={setButtonMode}
+              ctas={ctas}
+              setCtas={setCtas}
+              quicks={quicks}
+              setQuicks={setQuicks}
+            />
+          </div>
+
+          <aside
+            className={styles.colPreview}
+            aria-label="Prévia do template WhatsApp"
+          >
+            <PreviewWhatsApp
+              name={sanitizeTemplateName(name) || "template_name"}
+              headerType={headerType}
+              headerText={headerText}
+              headerMediaUrl={headerMediaUrl}
+              bodyText={bodyText}
+              footerText={footerText}
+              ctas={previewCtas}
+              quicks={previewQuicks}
+            />
+          </aside>
         </div>
-      </header>
-
-      {/* GRID: formulário + preview telefone */}
-      <div className={styles.mainGrid}>
-        <div className={styles.colForm}>
-          <TemplateInfoSection
-            name={name}
-            setName={setName}
-            language={language}
-            setLanguage={setLanguage}
-            category={category}
-            setCategory={setCategory}
-          />
-
-          <ContentSection
-            headerType={headerType}
-            onChangeHeaderType={handleChangeHeaderType}
-            headerText={headerText}
-            setHeaderText={setHeaderText}
-            headerMediaUrl={headerMediaUrl}
-            setHeaderMediaUrl={setHeaderMediaUrl}
-            bodyText={bodyText}
-            setBodyText={setBodyText}
-            footerText={footerText}
-            setFooterText={setFooterText}
-          />
-
-          <ButtonsSection
-            buttonMode={buttonMode}
-            setButtonMode={setButtonMode}
-            ctas={ctas}
-            setCtas={setCtas}
-            quicks={quicks}
-            setQuicks={setQuicks}
-          />
-        </div>
-
-        <aside
-          className={styles.colPreview}
-          aria-label="Prévia do template WhatsApp"
-        >
-          <PreviewWhatsApp
-            name={sanitizeTemplateName(name) || "template_name"}
-            headerType={headerType}
-            headerText={headerText}
-            headerMediaUrl={headerMediaUrl}
-            bodyText={bodyText}
-            footerText={footerText}
-            ctas={previewCtas}
-            quicks={previewQuicks}
-          />
-        </aside>
       </div>
     </div>
   );
