@@ -10,7 +10,7 @@ import { apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
 
 import PreviewWhatsApp from "./PreviewWhatsApp";
-import styles from "../../../../styles/adminUi.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 /* ---------------- Constants ---------------- */
 const CATEGORIES = [
