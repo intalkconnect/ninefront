@@ -22,13 +22,15 @@ const STATUS_OPTIONS = [
 
 function StatusChip({ status }) {
   const map = {
-    approved: { txt: "Aprovado", cls: styles.stApproved },
-    rejected: { txt: "Rejeitado", cls: styles.stRejected },
-    submitted: { txt: "Em análise", cls: styles.stSubmitted },
-    draft: { txt: "Rascunho", cls: styles.stDraft },
+    approved: { txt: "Aprovado", cls: styles.stFinished },
+    rejected: { txt: "Rejeitado", cls: styles.stFailed },
+    submitted: { txt: "Em análise", cls: styles.stScheduled },
+    draft: { txt: "Rascunho", cls: styles.stDefault },
   };
   const it = map[status] || { txt: status || "—", cls: styles.stDefault };
-  return <span className={`${styles.statusChip} ${it.cls}`}>{it.txt}</span>;
+  return (
+    <span className={`${styles.statusBadge} ${it.cls}`}>{it.txt}</span>
+  );
 }
 
 function ScoreSemaforo({ value }) {
@@ -198,19 +200,19 @@ export default function Templates() {
   const clearSearch = () => setQuery("");
 
   return (
-    <div className={styles.container}>
-      {/* HEADER NO PADRÃO CAMPANHAS/USERS */}
-      <div className={styles.headerCard}>
-        <div className={styles.headerRow}>
-          <div className={styles.headerCenter}>
-            <div className={styles.headerTitle}>Templates WhatsApp</div>
-            <div className={styles.headerSubtitle}>
+    <div className={styles.page}>
+      <div className={styles.container}>
+        {/* HEADER PADRÃO ADMIN UI */}
+        <header className={styles.header}>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>Templates WhatsApp</h1>
+            <p className={styles.subtitle}>
               Crie, acompanhe o status e visualize a prévia dos modelos
               aprovados pela Meta.
-            </div>
+            </p>
           </div>
 
-          <div className={styles.headerRight}>
+          <div className={styles.headerActions}>
             <button
               className={styles.iconCircle}
               type="button"
@@ -228,58 +230,56 @@ export default function Templates() {
               <Plus size={18} />
             </button>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* LISTA (apenas 1 coluna, sem preview) */}
-      <div className={styles.mainGrid}>
-        <div className={styles.colList}>
-          <div className={styles.card}>
-            <div className={styles.cardHead}>
-              <div
-                className={styles.segmentRow}
-                role="tablist"
-                aria-label="Filtrar por status"
-              >
-                {STATUS_OPTIONS.map((opt) => {
-                  const active = statusFilter === opt.key;
-                  return (
-                    <button
-                      key={opt.key || "all"}
-                      type="button"
-                      className={`${styles.segBtn} ${
-                        active ? styles.segBtnActive : ""
-                      }`}
-                      onClick={() => setStatusFilter(opt.key)}
-                      aria-pressed={active}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className={styles.searchGroup}>
-                <input
-                  className={styles.searchInput}
-                  placeholder="Buscar por nome ou conteúdo…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  aria-label="Buscar templates"
-                />
-                {query && (
+        {/* CARD COM FILTROS + TABELA */}
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <div
+              className={styles.segmentRow}
+              role="tablist"
+              aria-label="Filtrar por status"
+            >
+              {STATUS_OPTIONS.map((opt) => {
+                const active = statusFilter === opt.key;
+                return (
                   <button
-                    className={styles.searchClear}
-                    onClick={clearSearch}
-                    aria-label="Limpar busca"
+                    key={opt.key || "all"}
                     type="button"
+                    className={`${styles.segBtn} ${
+                      active ? styles.segBtnActive : ""
+                    }`}
+                    onClick={() => setStatusFilter(opt.key)}
+                    aria-pressed={active}
                   >
-                    <XIcon size={14} />
+                    {opt.label}
                   </button>
-                )}
-              </div>
+                );
+              })}
             </div>
 
+            <div className={styles.searchGroup}>
+              <input
+                className={styles.searchInput}
+                placeholder="Buscar por nome ou conteúdo…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Buscar templates"
+              />
+              {query && (
+                <button
+                  className={styles.searchClear}
+                  onClick={clearSearch}
+                  aria-label="Limpar busca"
+                  type="button"
+                >
+                  <XIcon size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.cardBody}>
             <div className={styles.tableWrap}>
               <table className={styles.table}>
                 <thead>
@@ -310,59 +310,52 @@ export default function Templates() {
                   )}
 
                   {!loading &&
-                    filtered.map((t) => {
-                      const isSel = selected?.id === t.id;
-                      return (
-                        <tr
-                          key={t.id}
-                          className={`${styles.rowHover} ${
-                            isSel ? styles.rowSelected : ""
-                          }`}
-                          onClick={() => setSelected(t)}
+                    filtered.map((t) => (
+                      <tr
+                        key={t.id}
+                        className={styles.row}
+                        onClick={() => setSelected(t)}
+                      >
+                        <td data-label="Nome">
+                          <span className={styles.bold}>{t.name}</span>
+                        </td>
+                        <td data-label="Categoria">{t.category || "—"}</td>
+                        <td data-label="Recategorizado">
+                          {t.recategorized ? "Sim" : "Não"}
+                        </td>
+                        <td data-label="Idioma">
+                          {t.language_code || "—"}
+                        </td>
+                        <td data-label="Status">
+                          <StatusChip status={t.status} />
+                        </td>
+                        <td data-label="Qualidade">
+                          <ScoreSemaforo value={t.quality_score} />
+                        </td>
+                        <td
+                          data-label="Ações"
+                          className={styles.actionsCell}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
                         >
-                          <td data-label="Nome" className={styles.colName}>
-                            {t.name}
-                          </td>
-                          <td data-label="Categoria">{t.category || "—"}</td>
-                          <td data-label="Recategorizado">
-                            {t.recategorized ? "Sim" : "Não"}
-                          </td>
-                          <td data-label="Idioma">
-                            {t.language_code || "—"}
-                          </td>
-                          <td data-label="Status">
-                            <StatusChip status={t.status} />
-                          </td>
-                          <td data-label="Qualidade">
-                            <ScoreSemaforo value={t.quality_score} />
-                          </td>
-                          <td
-                            data-label="Ações"
-                            className={styles.actionsCell}
-                            onClick={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => e.stopPropagation()}
+                          <button
+                            className={`${styles.linkBtn} ${styles.linkBtnDanger}`}
+                            title="Excluir"
+                            onClick={() =>
+                              handleDelete(t.id, t.status)
+                            }
+                            disabled={
+                              !["draft", "rejected"].includes(
+                                t.status
+                              )
+                            }
+                            type="button"
                           >
-                            <div className={styles.actions}>
-                              <button
-                                className={`${styles.qrIconBtn} ${styles.danger}`}
-                                title="Excluir"
-                                onClick={() =>
-                                  handleDelete(t.id, t.status)
-                                }
-                                disabled={
-                                  !["draft", "rejected"].includes(
-                                    t.status
-                                  )
-                                }
-                                type="button"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
