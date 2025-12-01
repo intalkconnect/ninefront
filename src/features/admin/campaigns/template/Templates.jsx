@@ -321,7 +321,7 @@ export default function Templates() {
                           onClick={() => setSelected(t)}
                         >
                           <td data-label="Nome" className={styles.colName}>
-                            <div className={styles.keyTitle}>{t.name}</div>
+                            {t.name}
                           </td>
                           <td data-label="Categoria">{t.category || "—"}</td>
                           <td data-label="Recategorizado">
