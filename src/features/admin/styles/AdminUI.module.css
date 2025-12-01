@@ -1058,6 +1058,283 @@
   border: 0;
 }
 
+/* ===== FORM / WIZARD SUPORTE ===== */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+/* descrição de card (abaixo do título) */
+.cardDesc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.optionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #020617;
+  border: 1px solid #334155;
+  font-size: 13px;
+  cursor: pointer;
+  color: #e5e7eb;
+  transition: all 0.15s ease;
+}
+
+.opt input {
+  accent-color: #3b82f6;
+}
+
+.opt:hover {
+  background: #111827;
+  border-color: #475569;
+}
+
+.hint {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.inputIconRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inputIconRow .input {
+  flex: 1;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fileNative {
+  display: none;
+}
+
+.fileButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #3b82f6;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #f9fafb;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.5);
+  transition: all 0.15s ease;
+}
+
+.fileButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.6);
+}
+
+.btnText {
+  white-space: nowrap;
+}
+
+.fileName {
+  font-size: 13px;
+  color: #cbd5f5;
+}
+
+/* readonly "pill" para revisão de dados */
+.readonly {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #020617;
+  border: 1px solid #1f2937;
+  font-size: 14px;
+  color: #e5e7eb;
+}
+
+/* ===== STEPPER (WIZARD) ===== */
+
+.stepper {
+  margin: 12px 0 20px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #020617;
+  border: 1px solid #1f2937;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.stepIdx {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #111827;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.stepTxt {
+  font-weight: 600;
+}
+
+.stepActive {
+  border-color: #3b82f6;
+  color: #e5e7eb;
+}
+
+.stepActive .stepIdx {
+  background: #3b82f6;
+  color: #f9fafb;
+}
+
+.stepDone {
+  border-color: #22c55e;
+  color: #bbf7d0;
+}
+
+.stepDone .stepIdx {
+  background: #22c55e;
+  color: #022c22;
+}
+
+/* ===== FOOTER FIXO DO WIZARD ===== */
+
+.stickyFooter {
+  position: sticky;
+  bottom: 0;
+  margin-top: 20px;
+  padding-top: 8px;
+  background: linear-gradient(to top, #020617 40%, transparent);
+}
+
+.stickyInner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 0;
+  border-top: 1px solid #1f2937;
+  gap: 12px;
+}
+
+.footerButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.btnPrimary,
+.btnGhost {
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-color: #1d4ed8;
+  color: #f9fafb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.7);
+}
+
+.btnGhost {
+  background: #020617;
+  border-color: #334155;
+  color: #e5e7eb;
+}
+
+.btnGhost:hover:not(:disabled) {
+  background: #111827;
+  border-color: #475569;
+}
+
+.btnPrimary:disabled,
+.btnGhost:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* linha com select + botão (para blocos de fluxo) */
+.blockRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+/* Botão de "voltar" no header */
+.backBtn {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.backBtn:hover {
+  background: #111827;
+  color: #e5e7eb;
+}
+
 /* ===== RESPONSIVO ===== */
 
 @media (max-width: 1024px) {
