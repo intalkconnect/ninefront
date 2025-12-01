@@ -28,7 +28,7 @@ import { toast } from "react-toastify";
 
 import MiniChatDrawer from "./MiniChatDrawer";
 import TransferModal from "./TransferModal";
-import styles from "./styles/ClientsMonitor.module.css";
+import styles from "../../styles/adminUi.module.css";
 
 // helper para ler e decodificar o JWT (email e role/profile)
 const getAuthInfo = () => {
@@ -364,7 +364,7 @@ export default function ClientsMonitor() {
       const tone = rowTone(a); // ok | warn | late | none
       return `${styles.row} ${styles["tone_" + tone]}`;
     },
-    [rowTone]
+    [rowTone, styles]
   );
 
   /* Paginação derivada */
@@ -393,7 +393,7 @@ export default function ClientsMonitor() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER NO PADRÃO FLOW HUB */}
+        {/* HEADER NO PADRÃO ADMINUI */}
         <header className={styles.header}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>Monitor em tempo real</h1>
@@ -418,7 +418,7 @@ export default function ClientsMonitor() {
           </button>
         </header>
 
-        {/* KPIs */}
+        {/* KPIs (cards padrão adminUi) */}
         <section className={styles.cardGroup}>
           {loading ? (
             <>
@@ -471,7 +471,7 @@ export default function ClientsMonitor() {
           )}
         </section>
 
-        {/* Filtros (fila / canal). “Todos” aqui significa nenhum filtro aplicado */}
+        {/* Filtros (fila / canal) */}
         <section className={styles.filters}>
           <div className={styles.filterGroup}>
             <h4 className={styles.filterTitle}>Filtrar por fila</h4>
@@ -535,7 +535,7 @@ export default function ClientsMonitor() {
           <div className={styles.tableHeader}>
             <h2 className={styles.tableTitle}>Atendimentos em tempo real</h2>
 
-            {/* Tabs de visão logo abaixo do título */}
+            {/* Tabs de visão */}
             <div className={styles.tableTabs}>
               {tabDefs.map((tab) => (
                 <button
@@ -568,14 +568,16 @@ export default function ClientsMonitor() {
               <tbody>
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={`sk-${i}`} className={styles.skelRow}>
+                    <tr key={`sk-${i}`} className={styles.row}>
                       <td colSpan={7}>
-                        <div className={styles.skeletonRow} />
+                        <div
+                          className={`${styles.skeleton} ${styles.sq48}`}
+                        />
                       </td>
                     </tr>
                   ))
                 ) : paged.length === 0 ? (
-                  <tr>
+                  <tr className={styles.row}>
                     <td colSpan={7} className={styles.emptyCell}>
                       Sem atendimentos no filtro atual.
                     </td>
@@ -686,7 +688,7 @@ export default function ClientsMonitor() {
             </table>
           </div>
 
-          {/* Paginação */}
+          {/* Paginação padrão adminUi */}
           <div className={styles.pagination}>
             <button
               className={styles.pageBtn}
