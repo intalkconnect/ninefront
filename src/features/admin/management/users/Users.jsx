@@ -11,8 +11,8 @@ import {
 import { useNavigate, useLocation, useParams, Link } from "react-router-dom";
 import { apiGet, apiDelete } from "../../../../shared/apiClient.js";
 import { toast } from "react-toastify";
+import styles from "./styles/Users.module.css";
 import { useConfirm } from "../../../../app/provider/ConfirmProvider.jsx";
-import styles from "../../styles/AdminUI.module.css";
 
 const PERFIL_ICONS = {
   admin: <UsersIcon size={14} />,
@@ -22,12 +22,6 @@ const PERFIL_ICONS = {
 const iconForPerfil = (perfil) => {
   const k = String(perfil || "").toLowerCase();
   return PERFIL_ICONS[k] ?? <UsersIcon size={14} />;
-};
-
-const PERFIL_LABEL = {
-  admin: "Admin",
-  supervisor: "Supervisor",
-  atendente: "Atendente",
 };
 
 // filtros de perfil usados nos chips
@@ -161,7 +155,7 @@ export default function Users({ canCreateAdmin = false }) {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        {/* HEADER no padrão AdminUI */}
+        {/* HEADER no padrão: texto à esquerda, ícones à direita */}
         <header className={styles.header}>
           <div className={styles.titleBlock}>
             <h1 className={styles.title}>{title}</h1>
@@ -174,7 +168,7 @@ export default function Users({ canCreateAdmin = false }) {
           <div className={styles.headerActions}>
             <button
               type="button"
-              className={styles.refreshBtn}
+              className={styles.headerIconBtn}
               onClick={handleRefresh}
               disabled={refreshing}
               title="Recarregar lista"
@@ -186,20 +180,20 @@ export default function Users({ canCreateAdmin = false }) {
             </button>
             <button
               type="button"
-              className={styles.iconCirclePrimary}
+              className={`${styles.headerIconBtn} ${styles.headerIconPrimary}`}
               onClick={handleNew}
               title="Novo usuário"
             >
-              <Plus size={18} />
+              <Plus size={20} />
             </button>
           </div>
         </header>
 
-        {/* FILTROS – chips de perfil + busca, reaproveitando AdminUI */}
-        <section className={styles.filters}>
-          <div className={styles.filterGroup}>
-            <p className={styles.filterTitle}>Perfil</p>
-            <div className={styles.filterChips}>
+        {/* TOOLBAR: chips de perfil + busca */}
+        <section className={styles.toolbar}>
+          <div className={styles.chipsBlock}>
+            <span className={styles.chipsLabel}>Perfil</span>
+            <div className={styles.chipGroup}>
               {PERFIL_FILTERS.map((f) => (
                 <button
                   key={f.key || "all"}
@@ -216,70 +210,61 @@ export default function Users({ canCreateAdmin = false }) {
             </div>
           </div>
 
-          <div className={styles.filterRow}>
-            <div className={styles.group}>
-              <label className={styles.label}>Busca</label>
-              <div className={styles.searchGroup}>
-                <input
-                  className={styles.searchInput}
-                  placeholder="Buscar por nome ou email…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                {query && (
-                  <button
-                    className={styles.searchClear}
-                    onClick={() => setQuery("")}
-                    aria-label="Limpar busca"
-                    type="button"
-                  >
-                    <XIcon size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
+          <div className={styles.searchGroup}>
+            <input
+              className={styles.searchInput}
+              placeholder="Buscar por nome ou email…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button
+                className={styles.searchClear}
+                onClick={() => setQuery("")}
+                aria-label="Limpar busca"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
           </div>
         </section>
 
-        {/* Alertas de OK/erro (usa alertErr / alertOk do AdminUI) */}
-        {error && (
-          <div className={styles.alertErr}>
-            <span>{error}</span>
-          </div>
-        )}
-        {okMsg && (
-          <div className={styles.alertOk}>
-            <span>{okMsg}</span>
+        {/* Alertas de OK/erro */}
+        {(okMsg || error) && (
+          <div className={styles.alertsStack}>
+            {error && (
+              <div className={styles.alertErr}>
+                <span>{error}</span>
+              </div>
+            )}
+            {okMsg && (
+              <div className={styles.alertOk}>
+                <span>{okMsg}</span>
+              </div>
+            )}
           </div>
         )}
 
-        {/* CARD + TABELA no padrão AdminUI */}
-        <section className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <h2 className={styles.tableTitle}>
-              {flowId ? "Lista de atendentes" : "Usuários do workspace"}
-            </h2>
-          </div>
-
-          <div className={styles.tableScroll}>
+        {/* Card da tabela */}
+        <section className={styles.card}>
+          <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left" }}>Nome</th>
-                  <th style={{ textAlign: "left" }}>Email</th>
-                  <th>Perfil</th>
-                  <th>Filas</th>
-                  <th>Ações</th>
+                  {/* agora todas as colunas usam colCenter */}
+                  <th className={styles.colCenter}>Nome</th>
+                  <th className={styles.colCenter}>Email</th>
+                  <th className={styles.colCenter}>Perfil</th>
+                  <th className={styles.colCenter}>Filas</th>
+                  <th className={styles.colCenter}>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {loading &&
                   Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={`sk-${i}`}>
+                    <tr key={`sk-${i}`} className={styles.skelRow}>
                       <td colSpan={5}>
-                        <div
-                          className={`${styles.skeleton} ${styles.sq48}`}
-                        />
+                        <div className={styles.skeletonRow} />
                       </td>
                     </tr>
                   ))}
@@ -294,7 +279,9 @@ export default function Users({ canCreateAdmin = false }) {
 
                 {!loading &&
                   filtered.map((u) => {
-                    const nome = `${u.name ?? ""} ${u.lastname ?? ""}`.trim();
+                    const nome = `${u.name ?? ""} ${
+                      u.lastname ?? ""
+                    }`.trim();
                     const filasArr = Array.isArray(u.filas) ? u.filas : [];
                     const chipNames = filasArr
                       .map(
@@ -305,73 +292,70 @@ export default function Users({ canCreateAdmin = false }) {
                       )
                       .filter(Boolean);
 
-                    const perfilKey = String(u.perfil || "").toLowerCase();
-                    const perfilLabel =
-                      PERFIL_LABEL[perfilKey] || u.perfil || "—";
-
                     return (
-                      <tr key={u.id} className={styles.row}>
-                        <td
-                          style={{ textAlign: "left" }}
-                          data-label="Nome"
-                        >
+                      <tr key={u.id} className={styles.rowHover}>
+                        {/* células também centralizadas */}
+                        <td className={styles.cellCenter} data-label="Nome">
                           {nome || "—"}
                         </td>
-                        <td
-                          style={{ textAlign: "left" }}
-                          data-label="Email"
-                        >
+                        <td className={styles.cellCenter} data-label="Email">
                           {u.email || "—"}
                         </td>
-                        <td data-label="Perfil">
+                        <td
+                          className={styles.cellCenter}
+                          data-label="Perfil"
+                        >
                           <span
-                            className={`${styles.channelPill} ${styles.ch_default}`}
-                            title={perfilLabel}
+                            className={`${styles.tag} ${styles.tagRole}`}
+                            data-role={String(u.perfil || "").toLowerCase()}
+                            title={u.perfil}
+                            aria-label={u.perfil}
                           >
                             {iconForPerfil(u.perfil)}
-                            <span>{perfilLabel}</span>
                           </span>
                         </td>
-                        <td data-label="Filas">
-                          {chipNames.length === 0 ? (
-                            <span className={styles.subtleCenter}>—</span>
-                          ) : (
-                            <div className={styles.optionsRow}>
-                              {chipNames.map((n, i) => (
+                        <td
+                          className={styles.cellCenter}
+                          data-label="Filas"
+                        >
+                          <div className={styles.tagsWrap}>
+                            {chipNames.length === 0 ? (
+                              <span className={styles.muted}>—</span>
+                            ) : (
+                              chipNames.map((n, i) => (
                                 <span
                                   key={`${u.id}-f-${i}`}
-                                  className={styles.queuePill}
+                                  className={`${styles.tag} ${styles.tagQueue}`}
                                 >
                                   {n}
                                 </span>
-                              ))}
-                            </div>
-                          )}
+                              ))
+                            )}
+                          </div>
                         </td>
-                        <td className={styles.actionsCell} data-label="Ações">
-                          <button
-                            type="button"
-                            className={styles.iconBtn}
-                            title="Editar usuário"
-                            onClick={() =>
-                              navigate(
-                                `/management/users/${encodeURIComponent(
-                                  u.id
-                                )}/edit`,
-                                { state: { canCreateAdmin, flowId } }
-                              )
-                            }
-                          >
-                            <SquarePen size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.iconBtn} ${styles.iconDanger}`}
-                            title="Excluir usuário"
-                            onClick={() => handleDelete(u)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                        <td
+                          className={`${styles.cellCenter} ${styles.actionsCell}`}
+                          data-label="Ações"
+                        >
+                          <div className={styles.actions}>
+                            <Link
+                              to={`/management/users/${encodeURIComponent(
+                                u.id
+                              )}/edit`}
+                              state={{ canCreateAdmin, flowId }}
+                              className={styles.iconBtn}
+                              title="Editar"
+                            >
+                              <SquarePen size={16} />
+                            </Link>
+                            <button
+                              className={`${styles.iconBtn} ${styles.iconDanger}`}
+                              title="Excluir"
+                              onClick={() => handleDelete(u)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
