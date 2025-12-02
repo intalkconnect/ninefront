@@ -220,7 +220,6 @@ export default function TokensSecurity() {
                   <th className={styles.colToken}>Token</th>
                   <th className={styles.colCenter}>Nome</th>
                   <th className={styles.colCenter}>Status</th>
-                  <th className={styles.colCenter}>Criado</th>
                   <th className={styles.colCenter}>Ações</th>
                 </tr>
               </thead>
@@ -250,11 +249,6 @@ export default function TokensSecurity() {
                         ) : (
                           <span className={styles.badge}>Ativo</span>
                         )}
-                      </td>
-                      <td className={styles.centerCell} data-label="Criado">
-                        {r.created_at
-                          ? new Date(r.created_at).toLocaleString("pt-BR")
-                          : "—"}
                       </td>
                       <td
                         className={`${styles.centerCell} ${styles.actionsCell}`}
