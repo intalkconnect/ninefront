@@ -214,7 +214,8 @@ export default function TokensSecurity() {
           </div>
 
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            {/* usa tabela própria de tokens, não a .table genérica */}
+            <table className={styles.tokensTable}>
               <thead>
                 <tr>
                   <th className={styles.colToken}>Token</th>
