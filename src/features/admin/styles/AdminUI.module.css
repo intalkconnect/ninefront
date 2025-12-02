@@ -2077,7 +2077,6 @@
 /* corpo: centralizado por padrão */
 .tokensTable tbody td {
   padding: 14px 18px;
-  border-bottom: 1px solid #1a1f2a;
   vertical-align: middle;
   color: #e5e7eb;
   text-align: center;
