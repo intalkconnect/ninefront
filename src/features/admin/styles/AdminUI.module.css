@@ -2047,6 +2047,11 @@
 
 /* ===== TABELA DE TOKENS (usa layout do tableCard/tableScroll) ===== */
 
+/* Card de criação dos tokens – dá espaço antes da tabela */
+.tokensCard {
+  margin-bottom: 20px; /* mesmo respiro dos filtros do AuditLogs */
+}
+
 .tokensTable {
   width: 100%;
   border-collapse: separate;
