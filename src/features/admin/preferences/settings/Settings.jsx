@@ -1,3 +1,4 @@
+// File: Preferences.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
@@ -52,8 +53,9 @@ const FRIENDLY = {
 /* ---------- helpers ---------- */
 const valueLabelFor = (key, value) => {
   const spec = FRIENDLY[key];
-  if (spec?.type === "boolean")
+  if (spec?.type === "boolean") {
     return !!value ? spec.onText || "Ativado" : spec.offText || "Desativado";
+  }
   if (spec?.type === "enum") {
     const opt = spec.options?.find((o) => String(o.value) === String(value));
     return opt?.label ?? String(value ?? "—");
@@ -210,13 +212,15 @@ export default function Preferences() {
 
   const toggleBoolean = async (key) => {
     const row = byKey.get(key);
-    const current = !!coerceType(row?.value);
-    await saveSetting(key, !current, row?.description ?? null);
+    if (!row) return;
+    const current = !!coerceType(row.value);
+    await saveSetting(key, !current, row.description ?? null);
   };
 
   const changeEnum = async (key, newValue) => {
     const row = byKey.get(key);
-    await saveSetting(key, newValue, row?.description ?? null);
+    if (!row) return;
+    await saveSetting(key, newValue, row.description ?? null);
   };
 
   const ordered = useMemo(() => {
@@ -329,6 +333,7 @@ export default function Preferences() {
               </span>
             </div>
             <button
+              type="button"
               className={styles.btnTiny}
               onClick={() => {
                 if (!alertsEnabled) return;
@@ -441,7 +446,7 @@ export default function Preferences() {
         </header>
 
         {/* Card principal de "tabela" de preferências */}
-        <div className={styles.tableCard}>
+        <section className={styles.tableCard}>
           <div className={styles.tableHead}>
             <div className={styles.th}>Opção</div>
             <div className={styles.th}>Valor</div>
@@ -496,7 +501,7 @@ export default function Preferences() {
               </div>
             )}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
