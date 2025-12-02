@@ -10,7 +10,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Save, ArrowLeft } from "lucide-react";
 import { apiGet, apiPost, apiPut } from "../../../../shared/apiClient";
 import { toast } from "react-toastify";
-import styles from "./styles/UserForm.module.css";
+import styles from "../../styles/AdminUI.module.css";
 
 function normalizeQueues(queues) {
   return (Array.isArray(queues) ? queues : [])
@@ -26,6 +26,8 @@ function normalizeQueues(queues) {
 export default function UserForm() {
   const { userId } = useParams();
   const isEdit = Boolean(userId);
+  const isNew = !isEdit;
+
   const navigate = useNavigate();
   const location = useLocation();
   const canCreateAdmin = Boolean(location.state?.canCreateAdmin);
@@ -55,7 +57,6 @@ export default function UserForm() {
   const perfilLower = String(form.perfil || "").toLowerCase();
   const isEditingAdmin = isEdit && originalPerfil === "admin";
   const isTryingToSaveAsAdmin = perfilLower === "admin" && !canCreateAdmin;
-  const isNew = !isEdit;
 
   const emailInvalid =
     !form.email.trim() ||
@@ -74,6 +75,7 @@ export default function UserForm() {
           : Promise.resolve(null),
       ]);
       setQueues(Array.isArray(filasResp) ? filasResp : []);
+
       if (isEdit) {
         const u = userResp?.data ?? userResp ?? {};
         const perfil = (u.perfil || "atendente").toLowerCase();
@@ -137,6 +139,7 @@ export default function UserForm() {
         name: form.name.trim(),
         lastname: form.lastname.trim(),
         email: form.email.trim(),
+        // criação sempre como atendente; edição mantém/perfilLower
         perfil: (isNew ? "atendente" : perfilLower) || "atendente",
         filas: form.filas,
         ...(flowId ? { flow_id: flowId } : {}),
@@ -167,12 +170,17 @@ export default function UserForm() {
     navigate("/management/users", { state: { flowId } });
   };
 
+  const title = isEdit ? "Editar usuário" : "Novo atendente";
+  const subtitle = isEdit
+    ? "Atualize os dados e filas vinculadas."
+    : "Preencha os dados básicos e vincule às filas correspondentes.";
+
   return (
     <div className={styles.page} ref={topRef}>
       <div className={styles.container}>
-        {/* HEADER NO PADRÃO DAS OUTRAS TELAS */}
+        {/* HEADER padrão AdminUI com botão voltar */}
         <header className={styles.header}>
-          <div className={styles.headerLeft}>
+          <div className={styles.titleBlock}>
             <button
               onClick={handleCancel}
               type="button"
@@ -181,23 +189,21 @@ export default function UserForm() {
             >
               <ArrowLeft size={16} />
             </button>
-
-            <div className={styles.titleBlock}>
-              <h1 className={styles.title}>
-                {isEdit ? "Editar usuário" : "Novo atendente"}
-              </h1>
-              <p className={styles.subtitle}>
-                {isEdit
-                  ? "Atualize os dados e filas vinculadas."
-                  : "Preencha os dados básicos e vincule às filas correspondentes."}
-              </p>
-            </div>
+            <h1 className={styles.title}>{title}</h1>
+            <p className={styles.subtitle}>{subtitle}</p>
           </div>
 
           <div className={styles.headerActions}>
             <button
               type="button"
-              className={styles.primaryAction}
+              className={styles.btnGhost}
+              onClick={handleCancel}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className={styles.btnPrimary}
               onClick={handleSave}
               disabled={!canSubmit}
             >
@@ -207,51 +213,49 @@ export default function UserForm() {
           </div>
         </header>
 
-        {/* Alertas */}
-        {(err || isTryingToSaveAsAdmin) && (
-          <div className={styles.alertsStack}>
-            {err && (
-              <div className={styles.alertErr}>
-                <span>{err}</span>
-              </div>
-            )}
-            {isTryingToSaveAsAdmin && (
-              <div className={styles.alertErr}>
-                <span>
-                  Seu perfil não permite definir &quot;Admin&quot;. Selecione
-                  outro perfil para continuar.
-                </span>
-              </div>
-            )}
+        {/* Alertas inline padrão adminui */}
+        {err && (
+          <div className={styles.alertErr}>
+            <span>{err}</span>
+          </div>
+        )}
+        {isTryingToSaveAsAdmin && (
+          <div className={styles.alertErr}>
+            <span>
+              Seu perfil não permite definir &quot;Admin&quot;. Selecione outro
+              perfil para continuar.
+            </span>
           </div>
         )}
 
         {/* Conteúdo */}
         {loading ? (
-          <div className={styles.skeleton}>
-            <div className={styles.skelCard} />
-            <div className={styles.skelCard} />
-          </div>
+          <section className={styles.card}>
+            <div className={styles.cardBody}>
+              <div className={`${styles.skeleton} ${styles.sq48}`} />
+            </div>
+          </section>
         ) : (
           <>
-            {/* Identificação */}
+            {/* Card: Identificação */}
             <section className={styles.card}>
               <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>Identificação</div>
-                <div className={styles.cardDesc}>
-                  Informações básicas do atendente.
+                <div>
+                  <div className={styles.cardTitle}>Identificação</div>
+                  <p className={styles.cardDesc}>
+                    Informações básicas do atendente.
+                  </p>
                 </div>
               </div>
               <div className={styles.cardBody}>
-                <div className={styles.formGrid}>
-                  <div className={styles.formGroup}>
+                <div className={styles.cardBodyGrid}>
+                  {/* Nome */}
+                  <div className={styles.group}>
                     <label className={styles.label}>
-                      Nome <span className={styles.req}>*</span>
+                      Nome <span className={styles.bold}>*</span>
                     </label>
                     <input
-                      className={`${styles.input} ${
-                        touched.name && nameInvalid ? styles.invalid : ""
-                      }`}
+                      className={styles.input}
                       value={form.name}
                       onChange={(e) =>
                         setForm({ ...form, name: e.target.value })
@@ -260,11 +264,14 @@ export default function UserForm() {
                       placeholder="Ex.: Ana"
                     />
                     {touched.name && nameInvalid && (
-                      <span className={styles.errMsg}>Informe o nome.</span>
+                      <div className={styles.helperInline}>
+                        Informe o nome.
+                      </div>
                     )}
                   </div>
 
-                  <div className={styles.formGroup}>
+                  {/* Sobrenome */}
+                  <div className={styles.group}>
                     <label className={styles.label}>Sobrenome</label>
                     <input
                       className={styles.input}
@@ -276,14 +283,13 @@ export default function UserForm() {
                     />
                   </div>
 
-                  <div className={styles.formGroup}>
+                  {/* Email */}
+                  <div className={styles.group}>
                     <label className={styles.label}>
-                      E-mail <span className={styles.req}>*</span>
+                      E-mail <span className={styles.bold}>*</span>
                     </label>
                     <input
-                      className={`${styles.input} ${
-                        touched.email && emailInvalid ? styles.invalid : ""
-                      }`}
+                      className={styles.input}
                       type="email"
                       value={form.email}
                       onChange={(e) =>
@@ -293,39 +299,40 @@ export default function UserForm() {
                       placeholder="exemplo@dominio.com"
                     />
                     {touched.email && emailInvalid && (
-                      <span className={styles.errMsg}>
+                      <div className={styles.helperInline}>
                         Informe um e-mail válido.
-                      </span>
+                      </div>
                     )}
-                    <small className={styles.hint}>
+                    <div className={styles.helper}>
                       O e-mail é usado para login e notificações.
-                    </small>
+                    </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Acesso & Filas */}
+            {/* Card: Acesso & filas */}
             <section className={styles.card}>
               <div className={styles.cardHead}>
-                <div className={styles.cardTitle}>Acesso &amp; filas</div>
-                <div className={styles.cardDesc}>
-                  Defina o perfil e vincule às filas de atendimento.
+                <div>
+                  <div className={styles.cardTitle}>Acesso &amp; filas</div>
+                  <p className={styles.cardDesc}>
+                    Defina o perfil e vincule às filas de atendimento.
+                  </p>
                 </div>
               </div>
               <div className={styles.cardBody}>
-                <div className={styles.formGrid}>
+                <div className={styles.cardBodyGrid}>
                   {/* Perfil */}
-                  <div className={styles.formGroup}>
+                  <div className={styles.group}>
                     <label className={styles.label}>Perfil</label>
 
                     {isNew ? (
                       <>
-                        <div className={styles.fixedPerfilChip}>Atendente</div>
-                        <small className={styles.hint}>
-                          Criação restrita ao perfil{" "}
-                          <strong>Atendente</strong>.
-                        </small>
+                        <div className={styles.readonly}>Atendente</div>
+                        <div className={styles.helper}>
+                          Criação restrita ao perfil <strong>Atendente</strong>.
+                        </div>
                       </>
                     ) : (
                       <>
@@ -346,16 +353,16 @@ export default function UserForm() {
                           <option value="atendente">Atendente</option>
                         </select>
                         {!canCreateAdmin && (
-                          <small className={styles.hint}>
+                          <div className={styles.helper}>
                             Seu perfil não permite definir novos admins.
-                          </small>
+                          </div>
                         )}
                       </>
                     )}
                   </div>
 
                   {/* Select para adicionar fila */}
-                  <div className={styles.formGroup}>
+                  <div className={styles.group}>
                     <label className={styles.label}>Adicionar fila</label>
                     <select
                       className={styles.select}
@@ -377,42 +384,40 @@ export default function UserForm() {
                           </option>
                         ))}
                     </select>
-                    <small className={styles.hint}>
+                    <div className={styles.helper}>
                       Selecione filas para vincular ao atendente.
-                    </small>
+                    </div>
                   </div>
 
                   {/* Chips de filas vinculadas */}
-                  <div className={styles.formGroup}>
+                  <div className={styles.groupFull}>
                     <label className={styles.label}>Filas vinculadas</label>
-                    <div className={styles.chipsBox}>
-                      {form.filas.length === 0 ? (
-                        <span className={styles.muted}>
-                          Nenhuma fila selecionada
-                        </span>
-                      ) : (
-                        <div className={styles.chips}>
-                          {form.filas.map((fid) => {
-                            const q = qsQueues.find(
-                              (x) => String(x.id) === String(fid)
-                            );
-                            return (
-                              <span key={fid} className={styles.chip}>
-                                {q?.nome ?? fid}
-                                <button
-                                  type="button"
-                                  className={styles.chipX}
-                                  onClick={() => toggleFila(String(fid))}
-                                  aria-label={`Remover fila ${q?.nome ?? fid}`}
-                                >
-                                  ×
-                                </button>
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    {form.filas.length === 0 ? (
+                      <span className={styles.muted}>
+                        Nenhuma fila selecionada.
+                      </span>
+                    ) : (
+                      <div className={styles.tagRow}>
+                        {form.filas.map((fid) => {
+                          const q = qsQueues.find(
+                            (x) => String(x.id) === String(fid)
+                          );
+                          const label = q?.nome ?? fid;
+                          return (
+                            <button
+                              type="button"
+                              key={fid}
+                              className={styles.tagChip}
+                              onClick={() => toggleFila(String(fid))}
+                              title={`Remover fila ${label}`}
+                            >
+                              <span className={styles.tagLabel}>{label}</span>
+                              <span className={styles.tagRemove}>×</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
