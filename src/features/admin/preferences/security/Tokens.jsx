@@ -142,7 +142,7 @@ export default function TokensSecurity() {
         </header>
 
         {/* CARD DE CRIAÇÃO */}
-        <section className={styles.card}>
+        <section className={`${styles.card} ${styles.tokensCard}`}>
           <div className={styles.cardBody}>
             <form
               className={styles.createInline}
@@ -207,14 +207,13 @@ export default function TokensSecurity() {
           </div>
         </section>
 
-        {/* LISTA / TABELA */}
-        <section className={styles.card}>
-          <div className={styles.cardHead}>
-            <div className={styles.cardTitle}>Tokens do workspace</div>
+        {/* LISTA / TABELA – mesmo padrão de layout do Audit (tableCard) */}
+        <section className={styles.tableCard}>
+          <div className={styles.tableHeader}>
+            <h2 className={styles.tableTitle}>Tokens do workspace</h2>
           </div>
 
-          <div className={styles.tableWrap}>
-            {/* usa tabela própria de tokens, não a .table genérica */}
+          <div className={styles.tableScroll}>
             <table className={styles.tokensTable}>
               <thead>
                 <tr>
