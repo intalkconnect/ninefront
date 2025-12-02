@@ -551,6 +551,7 @@
 /* compat: wrapper simples para tabelas, se precisar */
 .tableWrap {
   overflow: hidden auto;
+  padding-top: 6px; /* respiro entre o cardHead e o header da tabela */
 }
 
 /* ===== TABELA – ESTRUTURA (GENÉRICA) ===== */
@@ -1993,10 +1994,11 @@
   border-collapse: separate;
   border-spacing: 0;
   font-size: 14px;
+  margin-top: 2px; /* leve espaçamento do topo da table em relação ao card head */
 }
 
 .tokensTable thead th {
-  text-align: left;
+  text-align: center;                /* padrão: centralizado */
   padding: 14px 18px;
   background: #020617;
   border-bottom: 1px solid #111827;
@@ -2014,24 +2016,25 @@
   border-bottom: 1px solid #111827;
   vertical-align: middle;
   color: #e5e7eb;
+  text-align: center;                /* padrão: centralizado nas células */
 }
 
 /* colunas específicas da tabela de tokens */
 .colToken {
-  text-align: left;
+  text-align: left;                  /* header da coluna Token à esquerda */
 }
 
 .colCenter {
-  text-align: center;
+  text-align: center;                /* header das outras colunas centralizado */
 }
 
 .tokenCell {
   max-width: 720px;
-  text-align: left;
+  text-align: left;                  /* conteúdo da coluna Token à esquerda */
 }
 
 .centerCell {
-  text-align: center;
+  text-align: center;                /* conteúdo das demais colunas centralizado */
 }
 
 /* zebra + hover das linhas de tokens */
@@ -2155,5 +2158,7 @@
 
   .tokensTable tbody td {
     padding: 12px 14px;
+    text-align: center;
   }
 }
+
