@@ -1987,22 +1987,80 @@
   color: #e5e7eb;
 }
 
-/* ===== TABELA PRÓPRIA DE TOKENS (não usa .table genérica) ===== */
+/* ===== TOKENS – CRIAÇÃO E LISTA ===== */
+
+/* formulário de criação: input + botão lado a lado */
+.createInline {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fieldCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+  max-width: 420px;
+}
+
+/* aviso pós-criação (token completo) */
+.notice {
+  margin-top: 8px;
+  border-radius: 12px;
+  border: 1px dashed #4b5563;
+  background: #020617;
+  padding: 10px 12px;
+}
+
+.noticeTitle {
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #e5e7eb;
+}
+
+.noticeHelp {
+  color: #9ca3af;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.tokenBox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tokenValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: #020617;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  padding: 8px 10px;
+  max-width: 100%;
+  overflow: auto;
+  color: #e5e7eb;
+}
+
+/* ===== TABELA DE TOKENS (usa layout do tableCard/tableScroll) ===== */
 
 .tokensTable {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 14px;
-  margin-top: 2px; /* leve espaçamento do topo da table em relação ao card head */
 }
 
+/* cabeçalho: centralizado por padrão */
 .tokensTable thead th {
-  text-align: center;                /* padrão: centralizado */
+  text-align: center;
   padding: 14px 18px;
-  background: #020617;
-  border-bottom: 1px solid #111827;
-  color: #9ca3af;
+  background: #0f1419;
+  border-bottom: 2px solid #2563eb;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 11px;
@@ -2011,30 +2069,31 @@
   z-index: 1;
 }
 
+/* corpo: centralizado por padrão */
 .tokensTable tbody td {
   padding: 14px 18px;
-  border-bottom: 1px solid #111827;
+  border-bottom: 1px solid #1a1f2a;
   vertical-align: middle;
   color: #e5e7eb;
-  text-align: center;                /* padrão: centralizado nas células */
+  text-align: center;
 }
 
 /* colunas específicas da tabela de tokens */
 .colToken {
-  text-align: left;                  /* header da coluna Token à esquerda */
+  text-align: left;        /* header da coluna Token à esquerda */
 }
 
 .colCenter {
-  text-align: center;                /* header das outras colunas centralizado */
+  text-align: center;
 }
 
 .tokenCell {
   max-width: 720px;
-  text-align: left;                  /* conteúdo da coluna Token à esquerda */
+  text-align: left;        /* conteúdo da coluna Token à esquerda */
 }
 
 .centerCell {
-  text-align: center;                /* conteúdo das demais colunas centralizado */
+  text-align: center;
 }
 
 /* zebra + hover das linhas de tokens */
@@ -2128,7 +2187,7 @@
   background: #991b1b;
 }
 
-/* responsivo – criação empilhada + tabela mobile-like */
+/* responsivo – criação empilhada + tabela tipo "cards" no mobile */
 @media (max-width: 700px) {
   .createInline {
     flex-direction: column;
