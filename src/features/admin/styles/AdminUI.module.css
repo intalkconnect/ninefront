@@ -318,7 +318,6 @@
   width: 100%;
 }
 
-
 .filterTitle {
   font-size: 13px;
   font-weight: 700;
@@ -554,7 +553,7 @@
   overflow: hidden auto;
 }
 
-/* ===== TABELA – ESTRUTURA ===== */
+/* ===== TABELA – ESTRUTURA (GENÉRICA) ===== */
 
 .table {
   width: 100%;
@@ -1432,7 +1431,7 @@
   }
 }
 
-/* Versão "mobile card" opcional de tabela (se quiser estilo empilhado) */
+/* Versão "mobile card" opcional de tabela (genérica) */
 @media (max-width: 700px) {
   .table thead {
     display: none;
@@ -1513,12 +1512,6 @@
 
 .groupFull {
   grid-column: 1 / -1;
-}
-
-.label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e5e7eb;
 }
 
 .helper,
@@ -1993,6 +1986,36 @@
   color: #e5e7eb;
 }
 
+/* ===== TABELA PRÓPRIA DE TOKENS (não usa .table genérica) ===== */
+
+.tokensTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.tokensTable thead th {
+  text-align: left;
+  padding: 14px 18px;
+  background: #020617;
+  border-bottom: 1px solid #111827;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tokensTable tbody td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #111827;
+  vertical-align: middle;
+  color: #e5e7eb;
+}
+
 /* colunas específicas da tabela de tokens */
 .colToken {
   text-align: left;
@@ -2102,7 +2125,7 @@
   background: #991b1b;
 }
 
-/* responsivo – criação empilhada + tokenCell full width */
+/* responsivo – criação empilhada + tabela mobile-like */
 @media (max-width: 700px) {
   .createInline {
     flex-direction: column;
@@ -2117,5 +2140,20 @@
   .tokenCell {
     max-width: 100%;
   }
-}
 
+  .tokensTable thead {
+    display: none;
+  }
+
+  .tokensTable,
+  .tokensTable tbody,
+  .tokensTable tr,
+  .tokensTable td {
+    display: block;
+    width: 100%;
+  }
+
+  .tokensTable tbody td {
+    padding: 12px 14px;
+  }
+}
