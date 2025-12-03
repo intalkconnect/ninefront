@@ -173,7 +173,7 @@ export default function FlowHub() {
           </div>
         ) : (
           // GRID DE CARDS REAPROVEITANDO O .cardGroup DO ADMINUI
-          <div className={styles.flowCardGrid}>
+          <div className={styles.flowHubGrid}>
             {rows.map((f) => (
               <div
                 key={f.id}
