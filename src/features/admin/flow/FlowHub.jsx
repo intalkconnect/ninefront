@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "../icons/BrandIcon";
-import styles from "./styles/FlowHub.module.css";
+// IMPORTA O ADMINUI EM VEZ DO FlowHub.module.css
+import styles from "../styles/AdminUI.module.css";
 
 /* ========= tenant util ========= */
 function getTenantFromHost() {
@@ -24,6 +25,20 @@ function getTenantFromHost() {
   const parts = host.split(".");
   if (parts.length >= 3) return parts[0] === "www" ? parts[1] : parts[0];
   return parts[0] || "";
+}
+
+/* ========= helper para classe de canal ========= */
+const CHANNEL_CLASS = {
+  whatsapp: "ch_whatsapp",
+  telegram: "ch_telegram",
+  webchat: "ch_webchat",
+  instagram: "ch_instagram",
+  facebook: "ch_facebook",
+};
+
+function classForChannel(type) {
+  const key = String(type || "").toLowerCase();
+  return CHANNEL_CLASS[key] || "ch_default";
 }
 
 export default function FlowHub() {
@@ -53,10 +68,10 @@ export default function FlowHub() {
     load();
   }, [tenant]);
 
-  // Fechar dropdown ao clicar fora
+  // fecha dropdown clicando fora (usando data-role, não depende de CSS module)
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest(`.${styles.dropdownContainer}`)) {
+      if (!e.target.closest("[data-role='flowhub-dropdown']")) {
         setOpenDropdown(null);
       }
     };
@@ -128,190 +143,263 @@ export default function FlowHub() {
 
   return (
     <div className={styles.page}>
-      {/* Header no padrão do workspace */}
-      <header className={styles.header}>
-        <div className={styles.titleRow}>
-          <h1 className={styles.title}>Hub de Workflows</h1>
-          <p className={styles.subtitle}>
-            Organize seus fluxos, canais e times de atendimento em um só lugar.
-          </p>
-        </div>
+      <div className={styles.container}>
+        {/* HEADER NO PADRÃO ADMINUI */}
+        <header className={styles.header}>
+          <div className={styles.titleBlock}>
+            <h1 className={styles.title}>Hub de Workflows</h1>
+            <p className={styles.subtitle}>
+              Organize seus fluxos, canais e times de atendimento em um só
+              lugar.
+            </p>
+          </div>
+          <div className={styles.headerActions}>
+            <button
+              onClick={() => setShowNewModal(true)}
+              className={styles.btnPrimary}
+              type="button"
+            >
+              + Novo flow
+            </button>
+          </div>
+        </header>
 
-        <button
-          onClick={() => setShowNewModal(true)}
-          className={styles.btnPrimary}
-          type="button"
-        >
-          + Novo flow
-        </button>
-      </header>
-
-      {loading ? (
-        <LogoLoader full size={56} src="/logo.svg" />
-      ) : rows.length === 0 ? (
-        <div className={styles.emptyHint}>
-          Nenhum flow ainda. Crie o primeiro.
-        </div>
-      ) : (
-        <div className={styles.grid}>
-          {rows.map((f) => (
-            <div key={f.id} className={styles.card}>
-              {/* Cabeçalho do card: título e dropdown na mesma linha */}
-              <div className={styles.cardHead}>
-                <h3 className={styles.cardTitle} title={f.name || "Sem nome"}>
-                  {f.name || "Sem nome"}
-                </h3>
-
-                <div className={styles.dropdownContainer}>
-                  <button
-                    className={styles.dropdownTrigger}
-                    onClick={() => toggleDropdown(f.id)}
-                    title="Ações"
-                    type="button"
+        {loading ? (
+          <LogoLoader full size={56} src="/logo.svg" />
+        ) : rows.length === 0 ? (
+          <div className={styles.empty}>
+            Nenhum flow ainda. Crie o primeiro.
+          </div>
+        ) : (
+          // GRID DE CARDS REAPROVEITANDO O .cardGroup DO ADMINUI
+          <div className={styles.cardGroup}>
+            {rows.map((f) => (
+              <div key={f.id} className={styles.card}>
+                {/* Cabeçalho do card: título + botão de ações (3 pontinhos) */}
+                <div
+                  className={styles.cardHead}
+                  style={{ alignItems: "center", gap: 8 }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                    }}
                   >
-                    <MoreVertical size={18} />
-                  </button>
-
-                  {openDropdown === f.id && (
-                    <div className={styles.dropdownMenu}>
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openChannels(f)}
-                        type="button"
-                      >
-                        <PlugZap size={16} />
-                        <span>Canais</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openStudio(f)}
-                        type="button"
-                      >
-                        <Bot size={16} />
-                        <span>Studio</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openTracker(f)}
-                        type="button"
-                      >
-                        <RouteIcon size={16} />
-                        <span>Tracker</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openQueues(f)}
-                        type="button"
-                      >
-                        <ListChecks size={16} />
-                        <span>Filas</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openAgents(f)}
-                        type="button"
-                      >
-                        <Headphones size={16} />
-                        <span>Atendentes</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openQuickReplies(f)}
-                        type="button"
-                      >
-                        <MessageSquare size={16} />
-                        <span>Respostas rápidas</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openTicketHistory(f)}
-                        type="button"
-                      >
-                        <History size={16} />
-                        <span>Histórico de ticket</span>
-                      </button>
-
-                      <button
-                        className={styles.dropdownItem}
-                        onClick={() => openCustomers(f)}
-                        type="button"
-                      >
-                        <IdCard size={16} />
-                        <span>Clientes</span>
-                      </button>
+                    <div
+                      className={styles.cardTitle}
+                      title={f.name || "Sem nome"}
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {f.name || "Sem nome"}
                     </div>
+                    {f.description && (
+                      <p
+                        className={styles.cardDesc}
+                        style={{
+                          margin: 0,
+                          fontSize: 12,
+                          color: "#9ca3af",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={f.description}
+                      >
+                        {f.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Dropdown de ações do flow */}
+                  <div
+                    data-role="flowhub-dropdown"
+                    style={{ position: "relative" }}
+                  >
+                    <button
+                      type="button"
+                      className={styles.iconCircle}
+                      onClick={() => toggleDropdown(f.id)}
+                      title="Ações do flow"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+
+                    {openDropdown === f.id && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          right: 0,
+                          marginTop: 8,
+                          minWidth: 220,
+                          background: "#020617",
+                          borderRadius: 12,
+                          border: "1px solid #1f2937",
+                          boxShadow: "0 18px 40px rgba(0,0,0,0.75)",
+                          padding: "6px 0",
+                          zIndex: 30,
+                        }}
+                      >
+                        <DropdownItem onClick={() => openChannels(f)}>
+                          <PlugZap size={16} />
+                          <span>Canais</span>
+                        </DropdownItem>
+
+                        <DropdownItem onClick={() => openStudio(f)}>
+                          <Bot size={16} />
+                          <span>Studio</span>
+                        </DropdownItem>
+
+                        <DropdownItem onClick={() => openTracker(f)}>
+                          <RouteIcon size={16} />
+                          <span>Tracker</span>
+                        </DropdownItem>
+
+                        <DropdownItem onClick={() => openQueues(f)}>
+                          <ListChecks size={16} />
+                          <span>Filas</span>
+                        </DropdownItem>
+
+                        <DropdownItem onClick={() => openAgents(f)}>
+                          <Headphones size={16} />
+                          <span>Atendentes</span>
+                        </DropdownItem>
+
+                        <DropdownItem onClick={() => openQuickReplies(f)}>
+                          <MessageSquare size={16} />
+                          <span>Respostas rápidas</span>
+                        </DropdownItem>
+
+                        <DropdownItem onClick={() => openTicketHistory(f)}>
+                          <History size={16} />
+                          <span>Histórico de ticket</span>
+                        </DropdownItem>
+
+                        <DropdownItem onClick={() => openCustomers(f)}>
+                          <IdCard size={16} />
+                          <span>Clientes</span>
+                        </DropdownItem>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Corpo do card: descrição (se não veio em cima) + canais */}
+                <div className={styles.cardBody}>
+                  {!f.description && (
+                    <p
+                      className={styles.cardDesc}
+                      style={{ marginTop: 0, marginBottom: 8 }}
+                      title="Sem descrição"
+                    >
+                      Sem descrição
+                    </p>
                   )}
+
+                  <div
+                    style={{
+                      marginTop: 6,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 8,
+                      alignItems: "center",
+                    }}
+                  >
+                    {Array.isArray(f.channels) &&
+                    f.channels.filter((c) => c?.is_active).length ? (
+                      f.channels
+                        .filter((c) => c?.is_active)
+                        .slice(0, 8)
+                        .map((c, i) => (
+                          <span
+                            key={`${c.channel_type}-${i}`}
+                            title={c.display_name || c.channel_type}
+                            className={`${styles.channelPill} ${
+                              styles[classForChannel(c.channel_type)]
+                            }`}
+                          >
+                            <BrandIcon type={c.channel_type} />
+                          </span>
+                        ))
+                    ) : (
+                      <span className={styles.muted}>
+                        Nenhum canal vinculado
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              <p
-                className={
-                  f.description ? styles.cardDesc : styles.cardDescMuted
-                }
-                title={f.description ? f.description : "Sem descrição"}
-              >
-                {f.description ? f.description : "Sem descrição"}
-              </p>
-
-              {/* Rodapé: canais vinculados */}
-              <div className={styles.cardFoot}>
-                {Array.isArray(f.channels) && f.channels.length ? (
-                  f.channels
-                    .filter((c) => c?.is_active)
-                    .slice(0, 8)
-                    .map((c, i) => (
-                      <span
-                        key={`${c.channel_type}-${i}`}
-                        title={c.display_name || c.channel_type}
-                        className={styles.channelBadge}
-                      >
-                        <BrandIcon type={c.channel_type} />
-                      </span>
-                    ))
-                ) : (
-                  <span className={styles.noChannels}>
-                    Nenhum canal vinculado
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showNewModal && (
-        <NewFlowModal
-          onClose={() => setShowNewModal(false)}
-          onCreate={async (form) => {
-            if (!form.name || !form.name.trim()) {
-              toast.warn("Informe um nome para o flow.");
-              return;
-            }
-            try {
-              const created = await apiPost("/flows", {
-                name: form.name.trim(),
-                description: form.description?.trim() || null,
-              });
-              toast.success(`Flow "${created?.name}" criado!`);
-              setShowNewModal(false);
-              await load();
-            } catch {
-              toast.error("Erro ao criar flow");
-            }
-          }}
-        />
-      )}
+        {showNewModal && (
+          <NewFlowModal
+            onClose={() => setShowNewModal(false)}
+            onCreate={async (form) => {
+              if (!form.name || !form.name.trim()) {
+                toast.warn("Informe um nome para o flow.");
+                return;
+              }
+              try {
+                const created = await apiPost("/flows", {
+                  name: form.name.trim(),
+                  description: form.description?.trim() || null,
+                });
+                toast.success(`Flow "${created?.name}" criado!`);
+                setShowNewModal(false);
+                await load();
+              } catch {
+                toast.error("Erro ao criar flow");
+              }
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
-/* ---------- Aux components ---------- */
+/* ---------- Dropdown item reusável ---------- */
+
+function DropdownItem({ children, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 12px",
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        fontSize: 13,
+        color: "#e5e7eb",
+        textAlign: "left",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = "#111827";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = "transparent";
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ---------- Modal de novo flow (padrão AdminUI) ---------- */
 
 function NewFlowModal({ onClose, onCreate }) {
   const [name, setName] = useState("");
@@ -334,19 +422,36 @@ function NewFlowModal({ onClose, onCreate }) {
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.modalHead}>
-          <strong>Novo flow</strong>
-          <button onClick={onClose} className={styles.linkBtn} type="button">
-            Fechar
-          </button>
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15, 23, 42, 0.78)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 50,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={styles.card}
+        style={{
+          maxWidth: 480,
+          width: "96vw",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.85)",
+        }}
+      >
+        <div className={styles.cardHead}>
+          <div className={styles.cardTitle}>Novo flow</div>
         </div>
 
-        <div className={styles.modalBody}>
-          <div>
+        <div className={styles.cardBody}>
+          <div className={styles.group}>
             <label className={styles.label} htmlFor="flow-name">
-              Nome<span className={styles.reqStar}>*</span>
+              Nome{" "}
+              <span style={{ color: "#f97373", fontWeight: 700 }}>*</span>
             </label>
             <input
               id="flow-name"
@@ -357,9 +462,7 @@ function NewFlowModal({ onClose, onCreate }) {
               onBlur={() => setTouchedName(true)}
               placeholder="ex.: Atendimento"
               aria-invalid={!!nameError}
-              className={`${styles.input} ${
-                nameError ? styles.inputInvalid : ""
-              }`}
+              className={styles.input}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -368,11 +471,16 @@ function NewFlowModal({ onClose, onCreate }) {
               }}
             />
             {nameError ? (
-              <div className={styles.fieldError}>{nameError}</div>
+              <div
+                className={styles.helperInline}
+                style={{ color: "#fecaca" }}
+              >
+                {nameError}
+              </div>
             ) : null}
           </div>
 
-          <div>
+          <div className={styles.group}>
             <label className={styles.label} htmlFor="flow-desc">
               Descrição (opcional)
             </label>
@@ -381,21 +489,32 @@ function NewFlowModal({ onClose, onCreate }) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Breve descrição do fluxo"
-              className={`${styles.input} ${styles.textarea}`}
+              className={styles.textarea}
             />
           </div>
         </div>
 
-        <div className={styles.modalFoot}>
-          <button onClick={onClose} className={styles.btnGhost} type="button">
+        <div
+          style={{
+            padding: "10px 16px 14px",
+            borderTop: "1px solid #1f2937",
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 10,
+            background: "#020617",
+          }}
+        >
+          <button
+            onClick={onClose}
+            className={styles.btnGhost}
+            type="button"
+          >
             Cancelar
           </button>
           <button
             disabled={!canSave}
             onClick={submit}
-            className={`${styles.btnPrimary} ${
-              !canSave ? styles.btnDisabled : ""
-            }`}
+            className={styles.btnPrimary}
             type="button"
           >
             Criar
