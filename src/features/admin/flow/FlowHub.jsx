@@ -172,7 +172,7 @@ export default function FlowHub() {
             Nenhum flow ainda. Crie o primeiro.
           </div>
         ) : (
-          // GRID DE CARDS REAPROVEITANDO O .cardGroup DO ADMINUI
+          // GRID DE CARDS
           <div className={styles.flowHubGrid}>
             {rows.map((f) => (
               <div
@@ -283,7 +283,9 @@ export default function FlowHub() {
                 </div>
 
                 {/* Corpo do card: descrição (se não veio em cima) + canais */}
-                <div className={styles.cardBody}>
+                <div
+                  className={`${styles.cardBody} ${styles.flowCardBody}`}
+                >
                   {!f.description && (
                     <p
                       className={styles.cardDesc}
@@ -294,15 +296,7 @@ export default function FlowHub() {
                     </p>
                   )}
 
-                  <div
-                    style={{
-                      marginTop: 6,
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 8,
-                      alignItems: "center",
-                    }}
-                  >
+                  <div className={styles.flowChannels}>
                     {Array.isArray(f.channels) &&
                     f.channels.filter((c) => c?.is_active).length ? (
                       f.channels
