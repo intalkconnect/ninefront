@@ -2225,9 +2225,9 @@
   }
 }
 
-/* ===== FLOWHUB – overrides de card/dropdown ===== */
 
-/* menu suspenso dos cards do FlowHub */
+/* ===== FLOWHUB – menu suspenso dos cards ===== */
+
 .flowDropdownMenu {
   position: absolute;
   top: 110%;              /* logo abaixo do botão de 3 pontinhos */
@@ -2243,7 +2243,7 @@
 
 /* ===== FLOWHUB – grade de cards ===== */
 
-.flowHubGrid {
+.flowCardGrid {
   display: flex;
   flex-wrap: wrap;          /* quebra para a linha de baixo quando não couber */
   gap: 24px;                /* espaço entre os cards */
@@ -2253,7 +2253,25 @@
 
 /* card do flow com largura fixa, estilo “quadradinho” */
 .flowCard {
-  width: 220px;             /* largura fixa como no exemplo */
-  min-height: 260px;        /* ajusta a altura se quiser maior/menor */
+  width: 220px;             /* largura fixa */
+  min-height: 260px;
+  overflow: visible;        /* NÃO corta o dropdown */
 }
+
+/* body do card preparado para empurrar canais para a base */
+.flowCardBody {
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;        /* ajuste fino se quiser mais/menos altura útil */
+}
+
+/* container dos canais na base do card */
+.flowChannels {
+  margin-top: auto;         /* EMPURRA para o rodapé do card */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 
