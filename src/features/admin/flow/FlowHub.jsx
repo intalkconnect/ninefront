@@ -233,20 +233,7 @@ export default function FlowHub() {
                     </button>
 
                     {openDropdown === f.id && (
-                      <div
-                        style={{
-                          position: "absolute",
-                          right: 0,
-                          marginTop: 8,
-                          minWidth: 220,
-                          background: "#020617",
-                          borderRadius: 12,
-                          border: "1px solid #1f2937",
-                          boxShadow: "0 18px 40px rgba(0,0,0,0.75)",
-                          padding: "6px 0",
-                          zIndex: 30,
-                        }}
-                      >
+                       <div className={styles.flowDropdownMenu}>
                         <DropdownItem onClick={() => openChannels(f)}>
                           <PlugZap size={16} />
                           <span>Canais</span>
