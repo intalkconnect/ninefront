@@ -2243,25 +2243,21 @@
 
 /* ===== FLOWHUB – GRID / CARDS ===== */
 
+/* Grid de cards fixos, tipo “quadradinho” */
 .flowHubGrid {
   display: grid;
-  /* 
-    Cada card tem ~320px de largura.
-    Quando não couber mais um de 320px na linha, ele desce.
-  */
-  grid-template-columns: repeat(auto-fill, minmax(320px, 320px));
-  gap: 16px;
-  margin: 4px 0 20px;
-  justify-content: flex-start; /* não estica pra ocupar a linha toda */
+  /* cada card ~220px; quando não couber outro, ele quebra de linha */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 220px));
+  gap: 24px;
+  margin: 16px 0 24px;
+  justify-content: flex-start; /* não estica para ocupar 100% */
 }
 
+/* Card do FlowHub no tamanho fixo */
 .flowCard {
-  width: 100%;
-}
-
-/* Mobile: em telas pequenas deixa ocupar a largura inteira */
-@media (max-width: 768px) {
-  .flowHubGrid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  max-width: 220px;
+  min-width: 220px;
+  min-height: 260px; /* altura parecida com o exemplo branco */
+  display: flex;
+  flex-direction: column;
 }
