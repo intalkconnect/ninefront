@@ -2244,9 +2244,11 @@
 
 .flowCardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* cards mais estreitos */
-  gap: 14px; /* um pouco menos de espaço entre eles */
+
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
   margin: 4px 0 20px;
+  align-items: stretch;
 }
 
 /* card do flow: permite dropdown “vazar” e deixa mais compacto */
