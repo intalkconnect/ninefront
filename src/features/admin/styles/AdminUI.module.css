@@ -2241,23 +2241,19 @@
   z-index: 40;            /* acima do card */
 }
 
-/* ===== FLOWHUB – GRID / CARDS ===== */
+/* ===== FLOWHUB – grade de cards ===== */
 
-/* Grid de cards fixos, tipo “quadradinho” */
 .flowHubGrid {
-  display: grid;
-  /* cada card ~220px; quando não couber outro, ele quebra de linha */
-  grid-template-columns: repeat(auto-fill, minmax(220px, 220px));
-  gap: 24px;
+  display: flex;
+  flex-wrap: wrap;          /* quebra para a linha de baixo quando não couber */
+  gap: 24px;                /* espaço entre os cards */
   margin: 16px 0 24px;
-  justify-content: flex-start; /* não estica para ocupar 100% */
+  align-items: flex-start;
 }
 
-/* Card do FlowHub no tamanho fixo */
+/* card do flow com largura fixa, estilo “quadradinho” */
 .flowCard {
-  max-width: 220px;
-  min-width: 220px;
-  min-height: 260px; /* altura parecida com o exemplo branco */
-  display: flex;
-  flex-direction: column;
+  width: 220px;             /* largura fixa como no exemplo */
+  min-height: 260px;        /* ajusta a altura se quiser maior/menor */
 }
+
