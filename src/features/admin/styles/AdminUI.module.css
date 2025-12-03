@@ -2227,16 +2227,22 @@
 
 /* ===== FLOWHUB – overrides de card/dropdown ===== */
 
-.flowDropdownMenu {
-  position: absolute;
-  right: 0;
-  margin-top: 8px;
-  min-width: 220px;
-  background: #020617;
-  border-radius: 12px;
-  border: 1px solid #1f2937;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75);
-  padding: 6px 0;
-  z-index: 30;
+/* card especial para o FlowHub: deixa o conteúdo “vazar” pra fora */
+.flowCard {
+  overflow: visible;      /* sobrescreve o overflow: hidden do .card */
+  position: relative;     /* âncora para o dropdown absoluto */
 }
 
+/* menu suspenso dos cards do FlowHub */
+.flowDropdownMenu {
+  position: absolute;
+  top: 110%;              /* logo abaixo do botão de 3 pontinhos */
+  right: 0;
+  min-width: 220px;
+  padding: 6px 0;
+  border-radius: 12px;
+  border: 1px solid #1f2937;
+  background: #020617;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.75);
+  z-index: 40;            /* acima do card */
+}
