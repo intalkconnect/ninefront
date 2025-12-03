@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import LogoLoader from "../../../components/common/LogoLoader";
 import BrandIcon from "../icons/BrandIcon";
-// IMPORTA O ADMINUI EM VEZ DO FlowHub.module.css
+// Usa o AdminUI
 import styles from "../styles/AdminUI.module.css";
 
 /* ========= tenant util ========= */
@@ -68,7 +68,7 @@ export default function FlowHub() {
     load();
   }, [tenant]);
 
-  // fecha dropdown clicando fora (usando data-role, não depende de CSS module)
+  // fecha dropdown clicando fora
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!e.target.closest("[data-role='flowhub-dropdown']")) {
@@ -76,7 +76,8 @@ export default function FlowHub() {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* ====== navegação por flow (sempre usando f.id) ====== */
@@ -174,8 +175,11 @@ export default function FlowHub() {
           // GRID DE CARDS REAPROVEITANDO O .cardGroup DO ADMINUI
           <div className={styles.cardGroup}>
             {rows.map((f) => (
-              <div key={f.id} className={styles.card}>
-                {/* Cabeçalho do card: título + botão de ações (3 pontinhos) */}
+              <div
+                key={f.id}
+                className={`${styles.card} ${styles.flowCard}`}
+              >
+                {/* Cabeçalho do card: título + botão de ações */}
                 <div
                   className={styles.cardHead}
                   style={{ alignItems: "center", gap: 8 }}
@@ -233,7 +237,7 @@ export default function FlowHub() {
                     </button>
 
                     {openDropdown === f.id && (
-                       <div className={styles.flowDropdownMenu}>
+                      <div className={styles.flowDropdownMenu}>
                         <DropdownItem onClick={() => openChannels(f)}>
                           <PlugZap size={16} />
                           <span>Canais</span>
